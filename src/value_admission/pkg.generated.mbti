@@ -274,6 +274,8 @@ pub fn wire_emit_pending_frames(WireEmitCursor) -> Int
 
 pub fn wire_emit_start_construction_inventory() -> WireEmitConstructionInventory
 
+pub fn wire_emit_workspace_construction_inventory(Int) -> WireEmitConstructionInventory?
+
 // Errors
 
 // Types and methods

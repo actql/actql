@@ -555,3 +555,76 @@ pub fn completed_relation_identity_scan_body_next_construction_capacity(
     owned_wire_bytes: 0L,
   })
 }
+
+///|
+/// Live checked Result metadata while its stream is reading. The sorted row
+/// indexes and reference collector remain on their existing reservations.
+/// The two active writers and per-row frames are quoted separately.
+pub fn completed_result_export_open_metadata_capacity(
+  preparation : CompletedResultRelationExportPreparation,
+  stream : CompletedOutputExport,
+) -> ExecutionCapacity? {
+  guard preparation.closed &&
+    !preparation.advancing &&
+    preparation.rows.closed &&
+    preparation.metadata is None &&
+    preparation.rows.mapping_input is None &&
+    preparation.rows.comparison.tree is NoRowComparison &&
+    preparation.stream.map(original => physical_equal(original, stream)) ==
+    Some(true) &&
+    stream.source is Some(source) &&
+    !stream.reading &&
+    stream.pending_row is None &&
+    stream.budget.retention is None &&
+    stream.budget.row_scratch_start is None &&
+    physical_equal(preparation.rows.source, source) &&
+    stream.schema is Some(schema) else {
+    return None
+  }
+  let order = stream.order.columns
+  let scalars = stream.column_rows.capacity().to_int64() +
+    stream.column_bytes.capacity().to_int64() +
+    stream.column_nodes.capacity().to_int64() +
+    stream.column_max_value_bytes.capacity().to_int64() +
+    stream.column_null_rows.capacity().to_int64() +
+    stream.column_admitted_depths.capacity().to_int64()
+  let columns = stream.rows.columns.map(columns => columns.capacity().to_int64())
+  // Five empty view Arrays, one order Array and two separate name Arrays.
+  guard @shape.reference_array_retained_extent(
+      8L,
+      order.capacity().to_int64() +
+      stream.rows.names.capacity().to_int64() +
+      schema.field_names.capacity().to_int64(),
+    )
+    is Some(refs) &&
+    @shape.reference_array_retained_extent(
+      6L + (if columns is Some(_) { 1L } else { 0L }),
+      0L,
+    )
+    is Some(scalar_arrays) else {
+    return None
+  }
+  let entries = order.length().to_int64()
+  // Preparation, finished view and stream controls, schema identity and its
+  // Strings, value budget, original Options and comparison/charge records.
+  // Order tuples borrow the original field Text.
+  preparation_representation_cost({
+    record_headers: 26L +
+    refs.record_headers +
+    scalar_arrays.record_headers +
+    entries,
+    reference_slots: 74L +
+    refs.reference_slots +
+    scalar_arrays.reference_slots +
+    entries,
+    scalar_words: 85L +
+    refs.scalar_words +
+    scalar_arrays.scalar_words +
+    entries +
+    scalars +
+    columns.unwrap_or(0L),
+    owned_utf16_units: schema.cid.length().to_int64() +
+    schema.wire.length().to_int64(),
+    owned_wire_bytes: 0L,
+  }).bind(bytes => execution_capacity(0L, bytes))
+}

@@ -570,6 +570,7 @@ fn next_completed_output_export_with_growth(
   value : CompletedOutputExport,
   batch : Bool,
   before_batch_growth : ((Int) -> Result[Bool, CompletedExportIssue])?,
+  before_row_start? : (() -> Result[Bool, CompletedExportIssue])? = None,
 ) -> Result[String?, CompletedExportIssue] {
   guard completed_output_export_workspace_slots(value.budget.limits, {
       max_columns: 0,
@@ -583,12 +584,8 @@ fn next_completed_output_export_with_growth(
   }
   while true {
     let result = match
-      advance_completed_output_export(
-        value,
-        64,
-        slots,
-        batch~,
-        before_batch_growth~,
+      advance_completed_output_export_with_row_start(
+        value, 64, slots, batch, before_batch_growth, before_row_start,
       ) {
       Ok(result) => result
       Err(issue) => return Err(issue)
@@ -610,8 +607,9 @@ fn next_completed_output_export_with_growth(
 /// parsed at a time; no environment adapter reconstructs the full Relation.
 /// The leading array delimiter is part of the stored byte batch, but not of
 /// the row value. A conversion failure poisons this export occurrence.
-/// before_emit prices the original payload and logical writers after measuring
-/// the row and before either emits it. before_decode then receives the emitted
+/// before_measure funds the row cursor, measurement writer and open export
+/// writers before traversal. before_emit uses the measured row bound before
+/// either writer emits it. before_decode then receives the emitted
 /// batch bytes, row nodes and enclosing-array-adjusted depth before decoding.
 pub fn next_completed_output_export_canonical_row(
   value : CompletedOutputExport,
@@ -620,6 +618,7 @@ pub fn next_completed_output_export_canonical_row(
   max_utf16_units : Int,
   before_decode? : ((Int, Int, Int) -> Bool)? = None,
   before_emit? : ((ExecutionCapacity) -> Bool)? = None,
+  before_measure? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Int, String, @identity.CanonicalValue)?, CompletedExportIssue] {
   if max_nodes < 1 || max_depth < 1 || max_utf16_units < 0 {
     return Err(CanonicalRow)
@@ -630,16 +629,57 @@ pub fn next_completed_output_export_canonical_row(
   } else {
     (0, 0, 0)
   }
+  let traversal = if before_measure is Some(_) {
+    guard completed_output_export_workspace_slots(value.budget.limits, {
+        max_columns: 0,
+        max_order_work: 0,
+        max_bytes: value.measurement_max_bytes,
+        max_nodes: value.measurement_max_nodes,
+        max_depth: value.measurement_max_depth,
+      })
+      is Some(slots) &&
+      completed_export_row_traversal_capacity(value, slots) is Some(capacity) else {
+      return Err(Admission(CaptureLimit))
+    }
+    Some(capacity)
+  } else {
+    None
+  }
+  let fund_measure = before_measure.map(fund => {
+    fn() {
+      let pending = @encode.observed_writer_usage(value.writer).0 -
+        value.drained_bytes
+      guard traversal is Some(traversal) &&
+        completed_export_row_writer_capacity(value, pending).bind(writers => {
+          add_execution_capacity(writers, traversal)
+        })
+        is Some(capacity) else {
+        return Err(CompletedExportIssue::Admission(CaptureLimit))
+      }
+      Ok(fund(capacity))
+    }
+  })
   let fund_emit = before_emit.map(fund => {
     fn(bytes) {
-      guard completed_export_row_writer_capacity(value, bytes) is Some(capacity) else {
+      let writers = completed_export_row_writer_capacity(value, bytes)
+      let quote = match traversal {
+        Some(traversal) =>
+          writers.bind(writers => add_execution_capacity(writers, traversal))
+        None => writers
+      }
+      guard quote is Some(capacity) else {
         return Err(CompletedExportIssue::Admission(CaptureLimit))
       }
       Ok(fund(capacity))
     }
   })
   let batch = match
-    next_completed_output_export_with_growth(value, false, fund_emit) {
+    next_completed_output_export_with_growth(
+      value,
+      false,
+      fund_emit,
+      before_row_start=fund_measure,
+    ) {
     Ok(Some(batch)) => batch
     Ok(None) => return Ok(None)
     Err(issue) => return Err(issue)

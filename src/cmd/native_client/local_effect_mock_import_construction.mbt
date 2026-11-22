@@ -1078,6 +1078,27 @@ fn LocalNativeMockEffectImportConstruction::export_metadata_funding(
 }
 
 ///|
+fn native_mock_effect_open_export_metadata(
+  original : LocalCommandPreparationOriginal,
+  preparation : @execution.CompletedResultRelationExportPreparation,
+  stream : @execution.CompletedOutputExport,
+) -> Int64 raise ClientStop {
+  let capacity : Result[
+    @execution.ExecutionCapacity,
+    LocalNativeMockEffectProposalIssue,
+  ] = match
+    @execution.completed_result_export_open_metadata_capacity(
+      preparation, stream,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(Managed(InsufficientCapacity))
+  }
+  @execution.execution_capacity_execution_bytes(
+    capacity.native_effect_proposal(original),
+  )
+}
+
+///|
 // The closed writer and decoded row are gone. Keep the measured survivors on
 // the same operation before reusing the export's relative workspace.
 fn LocalNativeMockEffectImportConstruction::retain_export_metadata(

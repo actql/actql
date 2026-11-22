@@ -634,6 +634,8 @@ pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> I
 
 pub fn completed_relation_identity_scan_workspace_slots(CompletedOutput, ValueLimits, RowWireLimits, RowWireLimits) -> Int?
 
+pub fn completed_result_export_open_metadata_capacity(CompletedResultRelationExportPreparation, CompletedOutputExport) -> ExecutionCapacity?
+
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
@@ -1128,7 +1130,7 @@ pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn next_completed_output_export(CompletedOutputExport, batch? : Bool) -> Result[String?, CompletedExportIssue]
 
-pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int, before_decode? : ((Int, Int, Int) -> Bool)?, before_emit? : ((ExecutionCapacity) -> Bool)?) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
+pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int, before_decode? : ((Int, Int, Int) -> Bool)?, before_emit? : ((ExecutionCapacity) -> Bool)?, before_measure? : ((ExecutionCapacity) -> Bool)?) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
 
 pub fn next_completed_output_export_original_row(CompletedOutputExport, Int, Int, Int) -> Result[(String, CompletedOutputExportOriginalRow)?, CompletedExportIssue]
 

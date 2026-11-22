@@ -661,8 +661,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       } else {
         0L
       }
+      let metadata_workspace = if before_metadata is Some(_) {
+        native_mock_effect_open_export_metadata(
+          self.original,
+          preparation,
+          stream,
+        )
+      } else {
+        0L
+      }
       let export_funding = construction.map(original => {
-        original.export_row_funding(fixed_workspace, issue => {
+        original.export_row_funding(fixed_workspace + metadata_workspace, issue => {
           self.original.retain_primary(CommandBusinessEffectProposals(issue))
         })
       })
@@ -701,6 +710,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             limits.output_work,
             before_decode~,
             before_emit~,
+            before_measure=before_emit,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original)

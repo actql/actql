@@ -180,9 +180,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       .native_effect_proposal(self.original)
     entry.stream = Some(stream)
     let funding = if measure_results {
-      let fixed = construction.recipe[0]
-      let workspace = @execution.execution_capacity_execution_bytes(fixed) -
+      let workspace = if before_metadata is Some(_) {
+        native_mock_effect_open_export_metadata(
+          self.original,
+          preparation,
+          stream,
+        )
+      } else {
+        let fixed = construction.recipe[0]
+        @execution.execution_capacity_execution_bytes(fixed) -
         @execution.execution_capacity_retained_bytes(fixed)
+      }
       Some(
         construction.export_row_funding(workspace, issue => {
           self.original.retain_primary(CommandBusinessEffectProposals(issue))
@@ -193,6 +201,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     }
     let before_emit = funding.map(original => original.0)
     let before_decode = funding.map(original => original.1)
+    let before_measure = if before_metadata is Some(_) {
+      before_emit
+    } else {
+      None
+    }
     while @execution.next_completed_output_export_canonical_row(
             stream,
             wire.max_nodes,
@@ -200,6 +213,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
             limits.output_work,
             before_emit~,
             before_decode~,
+            before_measure~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original)

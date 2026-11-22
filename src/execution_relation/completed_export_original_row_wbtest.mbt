@@ -451,3 +451,108 @@ test "original export row fences cancellation performed by physical availability
   assert_false(completed_output_export_original_row_available(row))
   retire_completed_output_export_original_row(row)
 }
+
+///|
+test "Result export admits the original row measurement before allocating its cursor" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  let (first_preparation, first) = original_export_row_preparation(
+    source, occurrence,
+  )
+  let (other_preparation, other) = original_export_row_preparation(
+    source, occurrence,
+  )
+  assert_true(
+    completed_result_export_open_metadata_capacity(first_preparation, other)
+    is None,
+  )
+  let live_bytes = execution_capacity_execution_bytes(
+    completed_result_export_open_metadata_capacity(first_preparation, first).unwrap(),
+  )
+  let schema = first.schema.unwrap()
+  // 26H/74R/85W, 15 Array wrappers, four 32B order entries,
+  // exact scalar/name/order slots and the two original schema Strings.
+  let scalar_slots = first.column_rows.capacity() +
+    first.column_bytes.capacity() +
+    first.column_nodes.capacity() +
+    first.column_max_value_bytes.capacity() +
+    first.column_null_rows.capacity() +
+    first.column_admitted_depths.capacity() +
+    first.rows.columns.unwrap().capacity()
+  let reference_slots = first.order.columns.capacity() +
+    first.rows.names.capacity() +
+    schema.field_names.capacity()
+  assert_eq(
+    live_bytes,
+    2656L +
+    8L * (scalar_slots + reference_slots).to_int64() +
+    2L * (schema.cid.length() + schema.wire.length()).to_int64(),
+  )
+  let exact = Ref(0L)
+  for
+    (accept, preparation, stream) in [
+      (true, first_preparation, first),
+      (false, other_preparation, other),
+    ] {
+    assert_eq(
+      execution_capacity_execution_bytes(
+        completed_result_export_open_metadata_capacity(preparation, stream).unwrap(),
+      ),
+      live_bytes,
+    )
+    let mut starts = 0
+    let mut emits = 0
+    let mut before_cursor = false
+    let mut reentry_closed = false
+    let fund = fn(capacity) {
+      starts += 1
+      before_cursor = stream.pending_row is None &&
+        stream.row == 0 &&
+        completed_output_export_poll_steps(stream) == 0
+      reentry_closed = next_completed_output_export_canonical_row(
+          stream, 100, 10, 4096,
+        )
+        is Err(Closed)
+      let quote = execution_capacity_execution_bytes(capacity) + live_bytes
+      if accept {
+        exact.val = quote
+      }
+      quote <= exact.val - (if accept { 0L } else { 1L })
+    }
+    let result = next_completed_output_export_canonical_row(
+      stream,
+      100,
+      10,
+      4096,
+      before_measure=Some(fund),
+      before_emit=Some(_ => {
+        emits += 1
+        true
+      }),
+    )
+    assert_eq(starts, 1)
+    assert_true(before_cursor && reentry_closed)
+    if accept {
+      assert_true(result is Ok(Some((0, _, _))))
+      assert_eq(emits, 1)
+      cancel_completed_output_export(stream)
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+      assert_eq(emits, 0)
+      assert_eq(completed_output_export_poll_steps(stream), 0)
+      assert_true(stream.pending_row is None && stream.row == 0)
+    }
+    assert_true(
+      completed_result_export_open_metadata_capacity(preparation, stream)
+      is None,
+    )
+    assert_true(completed_output_available(source))
+  }
+}
