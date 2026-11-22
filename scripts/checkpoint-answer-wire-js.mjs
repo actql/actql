@@ -135,6 +135,16 @@ const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
 const typedArrayByteLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'byteLength').get;
 const typedArrayTag = Object.getOwnPropertyDescriptor(typedArrayPrototype, Symbol.toStringTag).get;
 
+const {token_min_length: signerTokenMin, token_max_length: signerTokenMax} = contract.recipe.signer;
+function validSignerToken(value) {
+  return typeof value === 'string' && value.length >= signerTokenMin &&
+    value.length <= signerTokenMax && /^[A-Za-z0-9._:-]+$(?![\s\S])/u.test(value);
+}
+
+function validSignerIds(keyId, reviewerId) {
+  return validSignerToken(keyId) && validSignerToken(reviewerId);
+}
+
 function signature(value) {
   if (typeof value !== 'string' || value.length !== signatureTextLength ||
       !signaturePatternExact.test(value)) refuse('InvalidField', 'proof.signature');
@@ -182,10 +192,7 @@ export function createCheckpointAnswerCodec(primitives) {
     if (!contract.recipe.decisions.includes(decision)) refuse('InvalidField', 'decision');
     shape(actor, ['keyId', 'reviewerId'], ['authorityScopeCid']);
     const capturedActor = {keyId: actor.keyId, reviewerId: actor.reviewerId, authorityScopeCid: actor.authorityScopeCid};
-    const signer = contract.recipe.signer;
-    const token = value => typeof value === 'string' && value.length >= signer.token_min_length &&
-      value.length <= signer.token_max_length && /^[A-Za-z0-9._:-]+$(?![\s\S])/u.test(value);
-    if (!token(capturedActor.keyId) || !token(capturedActor.reviewerId)) refuse('InvalidField', 'signer');
+    if (!validSignerIds(capturedActor.keyId, capturedActor.reviewerId)) refuse('InvalidField', 'signer');
     summary = capture(summary, limits);
     if (!valid(summary, contract.summary)) refuse('InvalidShape');
     for (const path of contract.recipe.canonical.identity_text_paths) {
@@ -264,7 +271,8 @@ export function createCheckpointAnswerCodec(primitives) {
     } catch { return false; }
   }
   return Object.freeze({prepareAnswerCandidate, answerCandidateApprovalPreimage,
-    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate, reviewBytesMatchCid, encodeSignerSignature});
+    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate,
+    reviewBytesMatchCid, encodeSignerSignature, validSignerIds});
 }
 `;
 }

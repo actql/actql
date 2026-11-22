@@ -52,6 +52,30 @@ test('ordinary lazy compilation is a separate selected disposition without an ea
   assert.throws(()=>module.inspectInitialControlPhaseEnvelope(data,declaration,runtime),unavailable);
 });
 
+test('a combined ordinary inventory selects one exact engine and refuses unavailable or ambiguous runtimes', () => {
+  const runtime = {...original, eager: false}, alternate = {...runtime,
+    platform: runtime.platform === 'darwin' ? 'linux' : 'darwin'};
+  const declaration = module.declareOrdinaryInitialControlPhaseEnvelope(1024 * 1024);
+  const select = (profiles, current = runtime, defaultEngine = alternate) =>
+    module.inspectOrdinaryInitialControlPhaseEnvelope(
+      {...inventory(), ordinaryEngine: defaultEngine, engineProfiles: profiles}, declaration, current);
+  const table = [alternate, runtime].map(ordinaryEngine => ({ordinaryEngine}));
+  assert.strictEqual(select(table).declaration, declaration);
+  assert.strictEqual(select(table, alternate).declaration, declaration);
+  for (const [field, value] of [['node', 'unsupported-node'], ['v8', 'unsupported-v8'],
+    ['openssl', 'unsupported-openssl'], ['arch', 'unsupported-arch'], ['eager', true],
+    ['libraries', {...runtime.libraries, uv: 'unsupported-uv'}]]) {
+    assert.throws(() => select(table, {...runtime, [field]: value}), unavailable);
+  }
+  assert.throws(() => select([table[0]], runtime, runtime), unavailable);
+  assert.throws(() => select([...table, table[1]]), unavailable);
+  assert.throws(() => select(Array.from({length: 5}, () => table[0])), unavailable);
+  let reads = 0;
+  Object.defineProperty(table, '1', {get() {reads++; return {ordinaryEngine: runtime};}});
+  assert.throws(() => select(table), unavailable);
+  assert.equal(reads, 0);
+});
+
 test('mock definition acquisition adds original Task rereads and answer documents before capture without Model credit', () => {
   const declaration = module.declareInitialControlPhaseEnvelope(1024 * 1024);
   const held = declaration.mockAnswerPreparation;

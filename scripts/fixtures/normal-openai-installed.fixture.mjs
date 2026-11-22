@@ -2,7 +2,8 @@
 // outside-checkout installation. Only installed public package entrances run.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createRequire, registerHooks} from 'node:module';
 import {realpathSync} from 'node:fs';
 import {access, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
@@ -15,9 +16,12 @@ import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.m
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
-  'timeout-headers', 'timeout-body', 'timeout-call'].includes(phase));
+  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
+  'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
+  'registered-google'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
+const credentialMismatch = phase.startsWith('registered-credential-');
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
 const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk', '@actql/local-node/observation']
@@ -33,7 +37,7 @@ for (const [name, url] of publicModules) {
 }
 // Resolve and validate all public entrances before any package can execute.
 const {open} = await import(publicModules.get('@actql/node'));
-const {createOpenAIChatProvider, createProjectOpenAIChatProvider} = await import(publicModules.get('@actql/provider-ai-sdk'));
+const providerModule = publicModules.get('@actql/provider-ai-sdk');
 const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
 const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
 const work = workflowWorkObservation({createObservation: createHostObservationConnection});
@@ -41,20 +45,107 @@ const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
+const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google'}[phase];
 const selection = fresh ? {
-  usage: phase === 'project-key' ? 'reported' : phase.startsWith('usage-') ? phase.slice(6) : null,
+  usage: phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
+    : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
   rateLimit: phase === 'rate-limit',
-  project: phase === 'project-key',
+  project: phase === 'project-key' || phase.startsWith('registered-'),
+  registered: phase.startsWith('registered-'),
+  ...(alternative === undefined ? {} : {provider: alternative}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert.deepEqual(Object.keys(selection).sort(), ['project', 'rateLimit', 'timeout', 'usage']);
+assert([undefined, 'anthropic', 'google'].includes(selection.provider));
+const anthropic = selection.provider === 'anthropic', google = selection.provider === 'google';
+assert.deepEqual(Object.keys(selection).sort(),
+  ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered', 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const project = selection.project === true;
-if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true});
-const officialHost = 'api.openai.com';
+const registered = selection.registered === true;
+if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true, registered,
+  ...(selection.provider === undefined ? {} : {provider: selection.provider})});
+const providerName = selection.provider ?? 'openai';
+const routeFixture = {
+  openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
+    credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
+    resolvedModelId: 'fixture-chat', path: '_internal/openai-chat.mjs', version: '4.0.91',
+    exportName: 'createOpenAI', apiMode: 'chat_completions', options: {store: false, strictJsonSchema: true}},
+  anthropic: {officialHost: 'api.anthropic.com', credentialReference: 'ANTHROPIC_API_KEY',
+    credentialHeader: 'x-api-key', credentialPrefix: '', requestPath: '/v1/messages',
+    resolvedModelId: 'claude-sonnet-4-6', path: '_internal/anthropic-messages.mjs', version: '4.0.107',
+    exportName: 'createAnthropic', apiMode: 'messages', options: {structuredOutputMode: 'outputFormat'}},
+  google: {officialHost: 'generativelanguage.googleapis.com', credentialReference: 'GOOGLE_GENERATIVE_AI_API_KEY',
+    credentialHeader: 'x-goog-api-key', credentialPrefix: '',
+    requestPath: '/v1beta/models/gemini-2.5-flash:generateContent', resolvedModelId: 'gemini-2.5-flash',
+    path: '_internal/google-generate-content.mjs', version: '4.0.124', exportName: 'createGoogle',
+    apiMode: 'generate_content', options: {structuredOutputs: true}},
+}[providerName];
+const {officialHost, credentialReference, credentialHeader, credentialPrefix, requestPath, resolvedModelId} = routeFixture;
+let modelSdkRegistrations;
+if (registered) {
+  const packageName = '@ai-sdk/' + providerName;
+  const sdkEntry = createRequire(new URL(providerModule)).resolve(packageName);
+  assert.equal(sdkEntry, realpathSync(sdkEntry));
+  assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/' + packageName + '/dist/index.js'));
+  const image = async (path, file) => Object.freeze({path,
+    cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
+  const {path, version, exportName, apiMode, options} = routeFixture;
+  modelSdkRegistrations = Object.freeze([Object.freeze({
+    adapter: await image(path, new URL(path, providerModule)),
+    lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
+    sdk: Object.freeze({...await image('dist/index.js', sdkEntry),
+      packageName, version, exportName}),
+    route: Object.freeze({providerId: 'models/http', modelId: resolvedModelId, selector: 'fixture-chat',
+      apiMode, endpoint: 'https://' + officialHost + requestPath}),
+    providerOptions: Object.freeze(options),
+    credential: Object.freeze({
+      reference: phase === 'registered-credential-reference' ? 'ACTQL_TEST_UNAPPROVED_MODEL_KEY' : credentialReference,
+      header: phase === 'registered-credential-header' ? 'x-api-key' : credentialHeader,
+    }),
+  })]);
+}
+if (phase === 'registered-invalid') {
+  const original = modelSdkRegistrations[0];
+  const sdk = Object.freeze({...original.sdk, cid: 'sha256:' + '0'.repeat(64)});
+  assert.notEqual(sdk.cid, original.sdk.cid);
+  const invalid = Object.freeze([Object.freeze({...original, sdk})]);
+  const initialRegisterHooks = registerHooks;
+  let registrations = 0;
+  await writeFile('actql.config.json', '{"version":"actql-config/0.1"}', {flag: 'wx', mode: 0o600});
+  await assert.rejects(open({stateDir: '.rejected-state', installation: {modelSdkRegistrations: invalid,
+    registerModelProviders() {registrations++; return [];}}}), {code: 'InvalidInstalledModelSdkInstallation'});
+  assert.equal(registrations, 0);
+  assert.equal(registerHooks, initialRegisterHooks);
+  await assert.rejects(access('.rejected-state'), {code: 'ENOENT'});
+  const client = await open({stateDir: '.state'});
+  await client.close();
+  assert.equal(observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0, true);
+  await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
+  console.log(JSON.stringify({phase, startupRefused: true, registrations, calls: 0,
+    defaultOpened: true, firstCloseReturned: true, aliveScopedFD0: true}));
+  process.exit(0);
+}
+if (phase === 'registered-too-late') {
+  // The first ordinary Host makes the actual selection and closes the loader.
+  // A distinct genuine file in the verified SDK graph is too late afterward.
+  const initial = await open({stateDir: '.initial-state', installation: {modelSdkRegistrations}});
+  await initial.close();
+  const original = modelSdkRegistrations[0];
+  const sdkEntry = createRequire(new URL(providerModule)).resolve('@ai-sdk/openai/internal');
+  const sdk = Object.freeze({...original.sdk, path: 'dist/internal/index.js',
+    cid: 'sha256:' + createHash('sha256').update(await readFile(sdkEntry)).digest('hex')});
+  const late = Object.freeze([Object.freeze({...original, sdk})]);
+  let registrations = 0;
+  await assert.rejects(open({stateDir: '.state', installation: {modelSdkRegistrations: late,
+    registerModelProviders() {registrations++; return [];}}}), {code: 'InitialControlSdkImageUnavailable'});
+  assert.equal(registrations, 0);
+  await assert.rejects(access('.state'), {code: 'ENOENT'});
+  process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
+  process.exit(0);
+}
 const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
 const maxCalls = usageMode === 'reported' ? 1n : 2n;
 const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
@@ -73,7 +164,8 @@ if (fresh) {
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await put('model-tasks.json', JSON.stringify({version: 'actql-model-tasks/0.1',
     tasks: {'model-task:first': './first.json', 'model-task:second': './second.json'},
-    providers: {'models/http': {type: 'openai', api_key_env: 'OPENAI_API_KEY'}}, default_provider: 'models/http'}));
+    providers: {'models/http': {type: providerName, api_key_env: credentialReference}},
+    default_provider: 'models/http'}));
   for (const [path, task] of [
     ['first.json', {task: 'model-task:first', instructions: 'Return the exact boolean.',
       input: {text: 'string'}, output: {answer: 'boolean'}, limits: {max_items: 2, max_output_tokens: 100}}],
@@ -89,7 +181,7 @@ if (fresh) {
   {stdio: 'ignore'});
 } else await access('.state');
 if (project) {
-  assert.equal(process.env.OPENAI_API_KEY, undefined, 'Do not inherit an operator credential');
+  assert.equal(process.env[credentialReference], undefined, 'Do not inherit an operator credential');
   await assert.rejects(access('provider-credential.fixture'), {code: 'ENOENT'});
 }
 
@@ -105,8 +197,9 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   assert.equal(missingKey, false, 'Missing project credential must never use the fixture transport');
   diagnostic.request(request);
   assert.equal(fresh, true, 'A Saved read must never contact the provider');
-  assert.equal(request.url, '/v1/chat/completions');
-  assert(request.headers.authorization === 'Bearer ' + fixtureCredential, 'Unexpected synthetic credential');
+  assert.equal(request.url, requestPath);
+  assert(request.headers[credentialHeader] === credentialPrefix + fixtureCredential,
+    'Unexpected synthetic credential');
   if (project) {
     assert.equal(request.headers.host, officialHost);
     assert.equal(request.socket.servername, officialHost);
@@ -115,9 +208,30 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   let wire = '';
   for await (const chunk of request) {wire += chunk; assert(wire.length <= 32768);}
   const body = JSON.parse(wire);
-  assert.equal(body.model, 'fixture-chat'); assert.notEqual(body.stream, true);
-  schemas.push(body.response_format.json_schema.schema);
-  const input = JSON.parse(body.messages[1].content);
+  if (!google) assert.equal(body.model, resolvedModelId);
+  assert.notEqual(body.stream, true);
+  let schema, promptText;
+  if (anthropic) {
+    assert.equal(body.output_config.format.type, 'json_schema');
+    assert.equal(body.output_config.format.schema.properties.answer.type, 'boolean');
+    assert.equal(body.tools, undefined);
+    assert.deepEqual(body.system, [{type: 'text', text: 'Return the exact boolean.'}]);
+    schema = body.output_config.format.schema;
+    promptText = body.messages[0].content[0].text;
+  } else if (google) {
+    assert.equal(body.generationConfig.responseMimeType, 'application/json');
+    assert.equal(body.generationConfig.responseJsonSchema.properties.answer.type, 'boolean');
+    assert.equal(body.tools, undefined);
+    assert.deepEqual(body.systemInstruction, {parts: [{text: 'Return the exact boolean.'}]});
+    schema = body.generationConfig.responseJsonSchema;
+    promptText = body.contents[0].parts[0].text;
+  } else {
+    if (registered) assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
+    schema = body.response_format.json_schema.schema;
+    promptText = body.messages[1].content;
+  }
+  schemas.push(schema);
+  const input = JSON.parse(promptText);
   assert.deepEqual(input, calls === 1 ? {text: 'first'} : {quantity: 7});
   const value = calls === 1 ? {answer: true} : {label: 'exact-label'};
   if (timeoutMode === 'headers') return; // Actual request received; no response headers.
@@ -138,7 +252,15 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     return;
   }
 
-  response.end(JSON.stringify({id: 'installed-' + calls, object: 'chat.completion', created: 1,
+  if (google) {
+    response.end(JSON.stringify({modelVersion: resolvedModelId, candidates: [{index: 0, finishReason: 'STOP',
+      content: {role: 'model', parts: [{text: JSON.stringify(value)}]}}],
+    usageMetadata: {promptTokenCount: 2, candidatesTokenCount: 2, thoughtsTokenCount: 1, totalTokenCount: 5}}));
+    return;
+  }
+  response.end(JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
+    model: resolvedModelId, content: [{type: 'text', text: JSON.stringify(value)}], stop_reason: 'end_turn',
+    usage: {input_tokens: 2, output_tokens: 3}} : {id: 'installed-' + calls, object: 'chat.completion', created: 1,
     model: 'fixture-chat', choices: [{index: 0,
       message: {role: 'assistant', content: JSON.stringify(value)}, finish_reason: 'stop'}],
     ...(usageMode === 'absent' ? {} : {usage: usageMode === 'zero'
@@ -157,7 +279,7 @@ const authorization = {
     entries: [{entry_id: 'fixture-only', outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {all: true}, exclusions: []}]}),
 };
-const providerOptions = {modelId: 'fixture-chat',
+const providerOptions = {
   generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
   transportTimeouts,
   budget: {maxCalls, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n,
@@ -166,9 +288,21 @@ const providerOptions = {modelId: 'fixture-chat',
     egressChecks++;
     return {classification: 'public', region: 'global', providerRetention: true, trainingUse: false};
   }};
-const registerModelProviders = missingKey || project ? createProjectOpenAIChatProvider(providerOptions)
-  : createOpenAIChatProvider({...providerOptions, providerId: 'models/http',
-    apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
+const fixtureHandling = {schema: 'actql.contract/0.1', id: 'registered-sdk-fixture-policy',
+  version: '1', kind: 'request_data_handling',
+  body: {accepted_classifications: ['public'], allowed_regions: ['global'],
+    retention: 'provider_contract', training_use: 'forbidden'},
+  cid: 'sha256:45514e22d8ea4714fb2d6a4bfac3a963f51fd8ef0b5c5e12229f053b9f8955aa'};
+const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatProvider, createRegisteredSdkProvider}) =>
+  selection.provider !== undefined ? createRegisteredSdkProvider({...providerOptions, providerId: 'models/http',
+    dataHandlingContractWire: JSON.stringify(fixtureHandling)})
+    : missingKey || project ? createProjectOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat'})
+    : createOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat', providerId: 'models/http',
+      apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
+const registerModelProviders = registered ? async (runtime, context) => {
+  assert.equal(context.registeredSdkSelected('models/http'), true);
+  return configureProvider(await import(providerModule))(runtime, context);
+} : configureProvider(await import(providerModule));
 const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'installed-' + field,
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: {type: 'string', nullable: false}, [field]: {type, nullable: false}},
@@ -242,6 +376,35 @@ const inferEvidence = usageMode === undefined ? undefined : {
     },
   },
 };
+const openOptions = {stateDir: '.state', installation: {
+  registerModelProviders, authorization, observation: work.connection,
+  ...(registered ? {modelSdkRegistrations} : {}),
+  ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}};
+if (credentialMismatch) {
+  const env = process.env, connect = tls.connect;
+  let credentialReads = 0, tlsAttempts = 0;
+  process.env = new Proxy(env, {get(target, name, receiver) {
+    if (name === 'OPENAI_API_KEY' || name === 'ACTQL_TEST_UNAPPROVED_MODEL_KEY') credentialReads++;
+    return Reflect.get(target, name, receiver);
+  }});
+  tls.connect = () => {
+    tlsAttempts++;
+    throw Error('CredentialMismatchReachedTls');
+  };
+  try {
+    await assert.rejects(open(openOptions), {code: 'RegisteredSdkCredentialMismatch'});
+    assert.equal(credentialReads, 0);
+    assert.equal(tlsAttempts, 0);
+    assert.equal(calls, 0);
+  } finally {
+    process.env = env;
+    tls.connect = connect;
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+  console.log(JSON.stringify({phase, rejected: 'RegisteredSdkCredentialMismatch', credentialReads, tlsAttempts, calls}));
+  process.exit(0);
+}
 let client, primary, failed = false;
 const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
@@ -261,11 +424,9 @@ try {
       return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
     };
   }
-  client = await open({stateDir: '.state', installation: {
-    registerModelProviders, authorization, observation: work.connection,
-    ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
+  client = await open(openOptions);
   if (fresh) {
-    if (project) process.env.OPENAI_API_KEY = fixtureCredential;
+    if (project) process.env[credentialReference] = fixtureCredential;
     const cases = [
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
@@ -315,7 +476,9 @@ try {
       assert.equal(usageCaptures, 1); assert.equal(usageAuthorizations, 1);
       assert(usageReceipt !== undefined);
       assert.deepEqual(JSON.parse(await readFile('usage-receipt.json', 'utf8')), usageReceipt);
-      assert.equal(JSON.parse(await readFile('usage-original.json', 'utf8')).observation_origin, 'reported');
+      const captured = JSON.parse(await readFile('usage-original.json', 'utf8'));
+      assert.equal(captured.observation_origin, 'reported');
+      if (registered) assert.match(captured.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
     }
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
@@ -350,7 +513,7 @@ finally {
     }
   }
   if (project) {
-    delete process.env.OPENAI_API_KEY;
+  delete process.env[credentialReference];
     tls.connect = connectTls;
   }
   clearInterval(pulse);
@@ -370,6 +533,7 @@ if (project) {
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
+  ...(registered ? {registeredSdk: true} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
   ...(phase === 'cold' ? {egressChecks,

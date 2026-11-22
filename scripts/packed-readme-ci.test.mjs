@@ -256,18 +256,31 @@ test('workflow DATA oracles execute before an installed runtime is available', a
 
 test('record ordinary runner binds the exact selected fixture variant before the existing installed child', () => {
   const application = '/own-fresh-consumer', env = {HARNESS_ONLY: 'true'};
-  for (const [mockVariant, mockCasePath] of [['whole-input'], ['three-source'], ['binary-source'], [''],
+  for (const [mockVariant, authoredCasePath] of [['whole-input'], ['three-source'], ['binary-source'], [''],
     ['', '/own-fresh-consumer/authored-mock-case.json']]) {
     const {files, options} = packedRecordApprovalInvocation({application, approvalConnector: 'hubspot',
-      mockConnector: 'hubspot', mockVariant, mockCasePath, env});
+      mockConnector: 'hubspot', mockVariant, authoredCasePath, env});
     assert.deepEqual(files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
     assert.equal(options.cwd, application);
     assert.equal(options.expectedTests, 1);
     assert.deepEqual(options.env, {...env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: 'hubspot',
       ACTQL_RECORD_APPROVAL_MOCK_VARIANT: mockVariant,
       ...(mockVariant ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-      ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath})});
+      ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: authoredCasePath})});
   }
+});
+
+test('record ordinary runner binds the staged HTTP case and preserves the independent Result scope', () => {
+  const application = '/own-fresh-consumer', authoredCasePath = `${application}/authored-case.json`;
+  const env = {ACTQL_RECORD_APPROVAL_HTTP_CASE: '/author/case.json',
+    ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","authored_updates"]'};
+  const {files, options} = packedRecordApprovalInvocation({application, approvalConnector: 'kintone',
+    authoredCasePath, reject: true, env});
+  assert.deepEqual(files, ['scripts/fixtures/packed-kintone-approval.mjs']);
+  assert.equal(options.expectedTests, 1);
+  assert.deepEqual(options.env, {...env, ACTQL_RECORD_APPROVAL_HTTP_CASE: authoredCasePath,
+    ACTQL_RECORD_APPROVAL_DECISION: 'rejected'});
+  assert.equal(env.ACTQL_RECORD_APPROVAL_HTTP_CASE, '/author/case.json');
 });
 
 test('Whole three-Source and binary JOIN evidence preserves failed commands and requires original nonzero qualification', async t => {
@@ -359,10 +372,17 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
+  const runtime = job.steps.find(step => step.uses?.startsWith('actions/setup-node@'));
+  assert.equal(runtime.with['node-version'], "${{ matrix.node == '24' && '24.21.0' || matrix.node }}");
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
   assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
+  const registered = job.steps.find(step => step.run?.includes('--registered-only'));
+  assert.equal(registered.run, 'node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/registered-provider" --registered-only');
+  assert(job.steps.indexOf(input) < job.steps.indexOf(registered));
+  assert.equal(registered.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(registered['continue-on-error'], undefined);
   const union = job.steps.find(step => step.id === 'packed-union-budget');
   assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
   assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
@@ -377,6 +397,8 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(output.if, 'always()'); assert.equal(output.with['if-no-files-found'], 'error');
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
+  assert(output.with.path.includes('/registered-provider/summary.json'));
+  assert(output.with.path.includes('/registered-provider/raw/*/*'));
   assert(output.with.path.includes('mock-project-*/*.pending.json'));
   assert(output.with.path.includes('collection/*.pending.json'));
   assert(output.with.path.includes('collection/*.progress.json'));

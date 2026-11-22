@@ -5,9 +5,10 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e66648f0e9e1161acc100c8e13fcf60f57cbc08869439f48874b0cb0036b1ced",
+      "sha256": "bb44e5f5df0f42b7394e4502af45516a2c2a1c2e59ec6a70cd73a89718d800e0",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
+        "createConfiguredUndiciRegisteredSdkRegistration",
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration"
       ],
@@ -31,7 +32,18 @@
           "parameters": [
             "config",
             "transportTimeouts",
-            "openAICredentialBytes"
+            "openAICredentialBytes",
+            "registeredSdk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createConfiguredUndiciRegisteredSdkRegistration",
+          "parameters": [
+            "config",
+            "transportTimeouts",
+            "credentialBytes",
+            "registeredSdk"
           ],
           "async": false
         },
@@ -62,12 +74,13 @@
             "request",
             "notification",
             "retainRawBinder",
-            "admittedProvider"
+            "admittedProvider",
+            "structuredAdmission"
           ],
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
+          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/common/init:checked/init:checked",
           "parameters": [
             "value"
           ],
@@ -158,6 +171,7 @@
       "imports": [
         "./bounded-response.mjs",
         "./compiler-binding.generated.mjs",
+        "./model-port.mjs",
         "./openai-chat.mjs",
         "./original-materials.mjs",
         "./original-openai-chat.mjs",
@@ -174,18 +188,19 @@
             "assertRuntime/assertRuntime/assertRuntime",
             "cid/cid",
             "createConfiguredUndiciOpenAIChatRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
             "installedChatRegistration/installedChatRegistration",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
+            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/common/init:checked/init:checked",
+            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
             "installedChatRegistration/installedChatRegistration#2",
             "installedChatRegistration/installedChatRegistration#3",
             "installedChatRegistration/installedChatRegistration#4",
             "installedChatRegistration/installedChatRegistration#5",
             "installedChatRegistration/installedChatRegistration#6",
             "installedChatRegistration/installedChatRegistration#7",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
-            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
             "snapshotData/entries/entries",
             "snapshotData/snapshotData",
             "snapshotData/snapshotData#2",
@@ -193,6 +208,7 @@
           ],
           "exports": [
             "createConfiguredUndiciOpenAIChatRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration"
           ],
@@ -543,12 +559,62 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aeeeff7cb1a3ac655d663763bea159fda49adefc38a0d29c2df77100a7f41532",
+      "sha256": "12d9ff23046260eed355aeacd0f606bceba530fb0a93ddff17f90d3195f26010",
       "exports": [
+        "createAdmittedRegisteredSdkPreflight",
         "createSdkModelPreflight",
-        "createSdkNativeDecisionPreflight"
+        "createSdkNativeDecisionPreflight",
+        "createSdkStructuredModelPreflight",
+        "originalSdkCallOptions",
+        "sdkProjectionBounds"
       ],
       "operations": [
+        {
+          "name": "createAdmittedRegisteredSdkPreflight",
+          "parameters": [
+            "moon",
+            "request",
+            "admission",
+            "registeredSdk",
+            "taskCid",
+            "promptCid",
+            "outputSchemaCid",
+            "projectionLimits",
+            "maxRequestBytes",
+            "maxHeaderBytes",
+            "maxHeaders",
+            "checked",
+            "notify",
+            "signal",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/init:advance",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/schema/schema",
+          "parameters": [
+            "_key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createSdkModelPreflight",
           "parameters": [
@@ -696,9 +762,41 @@
           "async": false
         },
         {
+          "name": "createSdkPhysicalPreflight/readDecoded/readDecoded",
+          "parameters": [
+            "original",
+            "receipt",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "createSdkPhysicalPreflight/start/start",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkStructuredModelPreflight",
+          "parameters": [
+            "options",
+            "admission",
+            "readReportedUsage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight",
+          "parameters": [
+            "runtime",
+            "request",
+            "bytes",
+            "amounts",
+            "profile",
+            "installation",
+            "start",
+            "readDecoded"
           ],
           "async": false
         },
@@ -712,6 +810,32 @@
             "profile",
             "installation",
             "start"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalSdkCallOptions",
+          "parameters": [
+            "generation",
+            "prompt",
+            "responseFormat",
+            "unsupported",
+            "providerOptions"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkProjectionBounds",
+          "parameters": [
+            "limits",
+            "invalid"
+          ],
+          "async": false
+        },
+        {
+          "name": "sdkProjectionBounds/sdkProjectionBounds",
+          "parameters": [
+            "name"
           ],
           "async": false
         }
@@ -751,11 +875,26 @@
             "createSdkPhysicalPreflight/preflight/preflight",
             "createSdkPhysicalPreflight/start/start",
             "generationPlan",
-            "createSdkPhysicalPreflight/bindRaw/bindRaw"
+            "createSdkPhysicalPreflight/bindRaw/bindRaw",
+            "createSdkPhysicalPreflight/readDecoded/readDecoded",
+            "createSdkStructuredModelPreflight",
+            "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight",
+            "createAdmittedRegisteredSdkPreflight",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/init:advance",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/schema/schema",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
+            "originalSdkCallOptions",
+            "sdkProjectionBounds",
+            "sdkProjectionBounds/sdkProjectionBounds"
           ],
           "exports": [
+            "createAdmittedRegisteredSdkPreflight",
             "createSdkModelPreflight",
-            "createSdkNativeDecisionPreflight"
+            "createSdkNativeDecisionPreflight",
+            "createSdkStructuredModelPreflight",
+            "originalSdkCallOptions",
+            "sdkProjectionBounds"
           ],
           "attributes": {
             "responsibility": [
@@ -844,6 +983,14 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "selected structured SDK settles the original verified Raw"
+              },
+              {
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               }
             ]
           }
@@ -1378,7 +1525,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7089c8acf0aca6821cff605d3ab3f882bc2f855ad22fe1df4369429703ecc2ea",
+      "sha256": "a7e62909a50e5cb8eba4a3febe67c06f64e313cca0e2f388aa660c5f9699bdb2",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1405,14 +1552,8 @@
             "signal",
             "notify",
             "rawCaptureBinder",
+            "structuredAdmission",
             "port"
-          ],
-          "async": false
-        },
-        {
-          "name": "createAdmittedOpenAIChatPreflight/createAdmittedOpenAIChatPreflight",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -1464,7 +1605,8 @@
             "maxHeaders",
             "signal",
             "notify",
-            "verifyRequest"
+            "verifyRequest",
+            "structuredAdmission"
           ],
           "async": false
         }
@@ -1484,7 +1626,6 @@
           "operations": [
             "<module>",
             "createAdmittedOpenAIChatPreflight",
-            "createAdmittedOpenAIChatPreflight/createAdmittedOpenAIChatPreflight",
             "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
             "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
             "originalExpectedBodyVerifier/originalExpectedBodyVerifier",

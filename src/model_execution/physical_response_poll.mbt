@@ -57,6 +57,7 @@ pub(all) enum ModelPhysicalCallPoll {
   // A conforming port wraps every poll, including a response before close.
   PhysicalIoPending(ModelPhysicalCall, ModelPhysicalCallPoll)
   PhysicalIoQuiescent(ModelPhysicalCall, ModelPhysicalCallPoll)
+  PhysicalSavedStructuredResponse(ModelPhysicalSavedStructuredResponse)
 }
 
 ///|
@@ -120,7 +121,7 @@ pub fn model_physical_call(
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.physical_plans.get(entry.slot) is Some(plan) &&
-    plan.invocation is Asynchronous(_) &&
+    plan.invocation is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
     state.reservations.get(entry.slot) is Some(reservation) &&
     @resources.reservation_open(reservation) else {
     return None
@@ -191,7 +192,8 @@ fn poll_model_physical_call(
         physical_equal(trace, entry.trace) &&
         state.physical_plans.get(entry.slot) is Some(plan) &&
         physical_equal(plan, binding.plan) &&
-        plan.invocation is Asynchronous(_) &&
+        plan.invocation
+        is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
         state.reservations.get(entry.slot) is Some(reservation) &&
         physical_equal(reservation, binding.reservation) &&
         @resources.reservation_open(reservation) &&
@@ -315,6 +317,16 @@ fn observe_model_physical_usage(
   call : ModelPhysicalCall,
   observed : ModelPhysicalCallPoll,
 ) -> Result[Unit, ModelExecutionIssue] {
+  // A structured capability must not publish through the legacy response
+  // carriers, even if the installed adapter returns such a poll.
+  if model_call_requires_structured_receipt(call) &&
+    observed
+    is (PhysicalResponse(_)
+    | PhysicalEncodedResponse(_)
+    | PhysicalChatResponse(_)
+    | PhysicalNativeResponse(_)) {
+    return Err(OutputIdentity)
+  }
   // Raw usage has not been decoded yet. Do not cache unknown quantities and
   // thereby discard actual usage discovered by the original Common child.
   if observed is (PhysicalChatResponse(_) | PhysicalNativeResponse(_)) {
@@ -326,6 +338,11 @@ fn observe_model_physical_usage(
   let result = observe_original_model_physical_usage(state, call, observed)
   if !(observed is PhysicalPending) {
     call.usage_result = Some(result)
+    // This path has no Chat RAW usage reader. Seal the original custody's
+    // accounting observation before the journal asks for the attempt proof.
+    if model_call_requires_structured_receipt(call) {
+      retire_model_raw_usage_child(call) |> ignore
+    }
   }
   result
 }
@@ -352,6 +369,19 @@ fn observe_original_model_physical_usage(
         input_tokens: response.observation.input_tokens,
         output_tokens: response.observation.output_tokens,
       }
+    PhysicalSavedStructuredResponse(response) => {
+      if !model_saved_structured_response_original(response, call) {
+        return Err(RequestIdentity)
+      }
+      {
+        input_tokens: response.result
+        .to_option()
+        .bind(encoded => encoded.observation.input_tokens),
+        output_tokens: response.result
+        .to_option()
+        .bind(encoded => encoded.observation.output_tokens),
+      }
+    }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
     PhysicalPending
     | PhysicalChatResponse(_)
@@ -438,5 +468,30 @@ fn advance_model_physical_response(
       observe_model_physical(state, InvokeReturned)
       begin_native_model_response(state, prepared, response, reader)
     }
+    PhysicalSavedStructuredResponse(response) =>
+      match response.result {
+        Err(failure) => accept_structured_model_failure(state, failure)
+        Ok(encoded) => {
+          observe_model_physical(state, InvokeReturned)
+          match begin_encoded_model_response(state, prepared, encoded, reader) {
+            @bounded.Failed(OutputValue, _, _) =>
+              accept_structured_model_failure(state, SchemaInvalid)
+            step => step
+          }
+        }
+      }
   }
+}
+
+///|
+fn accept_structured_model_failure(
+  state : ModelState,
+  failure : ModelProviderFailure,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  state.progress.observing_response = false
+  observe_model_physical(state, InvokeFailed)
+  if state.stop_requested {
+    return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+  }
+  accept_failed_model_slot(state, failure)
 }
