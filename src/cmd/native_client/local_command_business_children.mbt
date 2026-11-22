@@ -53,6 +53,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   request : @run_host.ClientRequestIdentity,
+  reference : @local_host.NativeClientSubmissionReference,
 ) -> @local_host.NativeClientValuesWork raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
@@ -72,7 +73,9 @@ fn LocalCommandBusinessPreparation::open_values_work(
   }).unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
   let drive_task = business.model_run.map(model => {
     (task, operations) => {
-      self.drive_configured_model_task(business, model, run, task, operations)
+      self.drive_configured_model_task(
+        business, model, run, reference, task, operations,
+      )
     }
   })
   let installed = run.source_free.unwrap_or_else(() => {

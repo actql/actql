@@ -87,6 +87,7 @@ fn LocalCommandBusinessPreparation::drive_configured_model_task(
   business : LocalCommandBusinessOriginal,
   model : LocalCommandModelRun,
   run : LocalRunInstallation,
+  reference : @local_host.NativeClientSubmissionReference,
   task : Int,
   operations : @local_driver.LocalManagedDispatchOperations[Int],
 ) -> Result[Unit, @local_values.LocalValuesExecutionIssue] {
@@ -116,7 +117,30 @@ fn LocalCommandBusinessPreparation::drive_configured_model_task(
       })
       let progress = match (operations.advance)(31) {
         Ok(value) => value
-        Err(issue) => return Err(Driver(issue))
+        Err(issue) => {
+          if work.closed_http_unknown_observed() &&
+            business.publication_publisher is Some(publisher) {
+            self.original.retain_primary(
+              CommandBusinessModel(Model(@infer.Model(@model.UnknownCalls))),
+            )
+            // A failed metadata save cannot replace the original driver
+            // failure or discharge the existing scope/Journal cleanup.
+            self.with_model_driver_read(business, () => {
+              local_host_result(
+                work.retain_http_unknown_in_original_read(
+                  publisher,
+                  reference,
+                  self.connection,
+                  local_utc_now(),
+                  @env.now().to_double(),
+                ),
+              )
+            }) catch {
+              ClientStop(_) => ()
+            }
+          }
+          return Err(Driver(issue))
+        }
       }
       if progress.complete {
         return Ok(())

@@ -87,7 +87,9 @@ fn local_execute_original_publish_values(
   operation
   .enter_business_from_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeUnavailable"))
-  let work = selection.open_values_work(run, compiled, definition, request)
+  let work = selection.open_values_work(
+    run, compiled, definition, request, reference,
+  )
   let model_leader = if business.model_run is Some(model) {
     guard business.model_work.get(0) is Some(leader) else {
       stop("LocalOriginalModelUnavailable")
