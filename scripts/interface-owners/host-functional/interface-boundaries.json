@@ -77806,7 +77806,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock-answers.mjs",
-      "sha256": "1078c2a07b2b0e3741829703d8dc732aa354cabed575229e2d657ab14f3a7432",
+      "sha256": "c216b90c9fbb1c2c14d71243c59fa9fbfb90ffe1606163c3bd3ba76628c5a479",
       "exports": [
         "loadInstalledProjectMockAnswers",
         "prepareInstalledMockRegistrySelection"
@@ -78055,13 +78055,13 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "export async function loadInstalledProjectMockAnswers(moon,project,profile,"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "export async function loadInstalledProjectMockAnswers(moon: MockRuntime,project: Project | undefined,profile: Profile | undefined,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "const bounds=snapshotLimits(limits);"
               },
               {
@@ -78071,8 +78071,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "let original=installedProjectOriginalsForRuntime(project,moon);"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "let original: ProjectOriginal | undefined=installedProjectOriginalsForRuntime(project,moon);"
               },
               {
                 "path": "src/model_execution/mock_answer_originals.mbt",
@@ -78081,7 +78081,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "original=selection=project=profile=profilePorts=ports=assertCurrent=openFile=undefined;"
               },
               {
@@ -78095,11 +78095,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "const call=<Name extends keyof AnswerPorts>(name: Name,...args: Parameters<AnswerPorts[Name]>)=>"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
               }
             ],
@@ -78129,8 +78129,8 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "let retained=[],selectionWork=bounds.maxWork;"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "let retained: AnswerEntry[] | readonly AnswerEntry[] | undefined=[],selectionWork=bounds.maxWork;"
               },
               {
                 "path": "src/model_execution/mock_answer_originals.mbt",
@@ -78183,7 +78183,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "bindModelsForRuntime(runtime,originalProfile,now)"
               },
               {
@@ -78197,11 +78197,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "clientProgramNormalizeMockTask"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "modelInstallationForRuntime(runtime,wire,evidenceCid)"
               },
               {
@@ -78211,11 +78211,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "if(runtime!==moon||receiver!==state.value)"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "modelBinding.profile!==originalProfile||modelBinding.now!==now"
               },
               {
@@ -78225,11 +78225,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "state.entries.push(bound);"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "(state.entries as BoundEntry[]).push(bound);"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "modelBinding=state;"
               },
               {
@@ -78239,11 +78239,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "check();"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "currentModels(runtime,this);"
               },
               {
@@ -78253,7 +78253,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "catch(error){state.failed=true;state.failure=error;throw error;}"
               },
               {
@@ -78263,11 +78263,11 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "if(checked(Reflect.apply(modelBinding.callbacks.retire,moon,"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "if(checked(Reflect.apply(modelBinding.callbacks!.retire,moon,"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "[entry.installation]))!==true)fail('InstalledMockModelsCleanupPending');"
               },
               {
@@ -78291,11 +78291,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "fail('ForeignInstalledMockModelOriginal');"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "if(previous.bodyWire!==bodyWire)fail('InstalledMockModelBodyMismatch');"
               },
               {
@@ -78433,13 +78433,13 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "export async function loadInstalledProjectMockAnswers(moon,project,profile,"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "export async function loadInstalledProjectMockAnswers(moon: MockRuntime,project: Project | undefined,profile: Profile | undefined,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "const bounds=snapshotLimits(limits);"
               },
               {
@@ -78449,8 +78449,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "let original=installedProjectOriginalsForRuntime(project,moon);"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "let original: ProjectOriginal | undefined=installedProjectOriginalsForRuntime(project,moon);"
               },
               {
                 "path": "src/model_execution/mock_answer_originals.mbt",
@@ -78459,7 +78459,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "original=selection=project=profile=profilePorts=ports=assertCurrent=openFile=undefined;"
               },
               {
@@ -78473,11 +78473,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "const call=<Name extends keyof AnswerPorts>(name: Name,...args: Parameters<AnswerPorts[Name]>)=>"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
               }
             ],
@@ -78507,8 +78507,8 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "let retained=[],selectionWork=bounds.maxWork;"
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
+                "anchor": "let retained: AnswerEntry[] | readonly AnswerEntry[] | undefined=[],selectionWork=bounds.maxWork;"
               },
               {
                 "path": "src/model_execution/mock_answer_originals.mbt",
@@ -78553,7 +78553,7 @@
                 "anchor": "Managed Mock registry selection borrows"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "export function prepareInstalledMockRegistrySelection("
               }
             ],
@@ -78569,7 +78569,7 @@
                 "anchor": "Managed Mock registry selection borrows"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "assertDeclaredFileInstallationInventory"
               }
             ],
@@ -78611,7 +78611,7 @@
                 "anchor": "Managed Mock registry selection borrows"
               },
               {
-                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mts",
                 "anchor": "prepareMetadataInput"
               }
             ],

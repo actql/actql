@@ -2176,3 +2176,5 @@ target/
 /adapters/host-node/installed-project-model-task-funding.actual.test.d.mts
 /scripts/fixtures/model-provider-binding-fixture.mjs
 /scripts/fixtures/model-provider-binding-fixture.d.mts
+/adapters/local-node/installed-project-mock-answers.mjs
+/adapters/local-node/installed-project-mock-answers.d.mts
