@@ -36,9 +36,9 @@ type SelectionInputs = Readonly<{
   source: SourceIdentity;
   planning?: unknown;
 }>;
-// The Common binding produces this document. Only these two fields are used
-// here; the original spread preserves the rest of the compiler-owned report.
+// The Common binding produces this document; its report is forwarded intact.
 type SelectionDocument = Readonly<{
+  status: 'deferred' | 'no_candidates' | 'selected' | 'invalid';
   candidates: readonly Readonly<{candidate: string}>[];
   missing: readonly string[];
 }>;

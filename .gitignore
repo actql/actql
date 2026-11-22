@@ -1766,3 +1766,5 @@ target/
 /adapters/connectors/duckdb/node/test/acquisition-planning.test.d.mts
 /adapters/connectors/duckdb/node/test/physical-capacity.test.mjs
 /adapters/connectors/duckdb/node/test/physical-capacity.test.d.mts
+/adapters/host-node/captured-duckdb-source.mjs
+/adapters/host-node/captured-duckdb-source.d.mts

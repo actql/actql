@@ -40158,7 +40158,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40168,7 +40168,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40178,7 +40178,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40188,7 +40188,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40198,7 +40198,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40208,7 +40208,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40218,7 +40218,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40228,7 +40228,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40238,7 +40238,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40248,7 +40248,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "admittedTransportPolicy"
               },
               {
@@ -40272,7 +40272,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40282,7 +40282,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40292,7 +40292,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40302,7 +40302,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40312,7 +40312,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40322,7 +40322,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40332,7 +40332,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40342,7 +40342,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40352,7 +40352,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40362,7 +40362,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBConfiguration"
               },
               {
@@ -40386,7 +40386,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40396,7 +40396,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40406,7 +40406,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40416,7 +40416,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40426,7 +40426,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40436,7 +40436,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40446,7 +40446,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40456,7 +40456,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40466,7 +40466,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40476,7 +40476,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBNativeConfiguration"
               },
               {
@@ -40500,7 +40500,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40510,7 +40510,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40520,7 +40520,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40530,7 +40530,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40540,7 +40540,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40550,7 +40550,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40560,7 +40560,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40570,7 +40570,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40580,7 +40580,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40590,7 +40590,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPendingCapacity"
               },
               {
@@ -40614,7 +40614,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40624,7 +40624,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40634,7 +40634,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40644,7 +40644,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40654,7 +40654,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40664,7 +40664,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40674,7 +40674,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40684,7 +40684,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40694,7 +40694,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40704,7 +40704,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBPhysicalCapacity"
               },
               {
@@ -40728,7 +40728,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40738,7 +40738,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40748,7 +40748,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40758,7 +40758,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40768,7 +40768,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40778,7 +40778,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40788,7 +40788,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40798,7 +40798,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40808,7 +40808,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40818,7 +40818,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "capturedDuckDBRequirement"
               },
               {
@@ -40838,7 +40838,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40848,7 +40848,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40858,7 +40858,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40868,7 +40868,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40878,7 +40878,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40888,7 +40888,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40898,7 +40898,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40908,7 +40908,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40918,7 +40918,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40928,7 +40928,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "currentReadDecision"
               },
               {
@@ -40959,7 +40959,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -40973,7 +40973,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -40983,7 +40983,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -40997,7 +40997,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41011,7 +41011,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41021,7 +41021,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41031,7 +41031,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41041,7 +41041,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41055,7 +41055,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41065,7 +41065,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "openCapturedDuckDBSource"
               },
               {
@@ -41098,7 +41098,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41108,7 +41108,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41118,7 +41118,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41128,7 +41128,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41138,7 +41138,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41148,7 +41148,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41158,7 +41158,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41168,7 +41168,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41178,7 +41178,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41188,7 +41188,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "prepareCapturedDuckDBSource"
               },
               {
@@ -41208,7 +41208,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41218,7 +41218,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41228,7 +41228,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41238,7 +41238,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41248,7 +41248,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41258,7 +41258,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41268,7 +41268,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41278,7 +41278,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41288,7 +41288,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41298,7 +41298,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "selectAcquisition"
               },
               {
@@ -41320,7 +41320,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41330,7 +41330,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41340,7 +41340,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41350,7 +41350,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41360,7 +41360,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41370,7 +41370,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41380,7 +41380,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41390,7 +41390,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41400,7 +41400,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {
@@ -41410,7 +41410,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/captured-duckdb-source.mjs",
+                "path": "adapters/host-node/captured-duckdb-source.mts",
                 "anchor": "// Physical acquisition for a Host-authorized DuckDB source. The checked"
               },
               {

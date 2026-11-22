@@ -12,20 +12,138 @@ import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
-import {loadDuckDBNativeRuntime} from
-  '../connectors/duckdb/node/native-runtime.mjs';
+import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
+// @ts-expect-error TS7016 The selected native loader still has authored JavaScript entrypoints.
+import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
+
+type QueryOptions = Parameters<typeof prepareOriginalSourceQuery>[0];
+type SelectionInputs = Parameters<typeof selectInstalledDuckDBAcquisition>[0];
+type Selection = ReturnType<typeof selectInstalledDuckDBAcquisition>['selection'];
+type TransportLimits = Parameters<typeof validateLimits>[0];
+type Authorize = ReturnType<typeof createAuthorizationGate>['authorize'];
+type ReadDecision = Pick<Awaited<ReturnType<Authorize>>, 'action' | 'basis' | 'reason'>;
+type SourceAccess = Readonly<{
+  authorization?: {authorize(...args: Parameters<Authorize>): ReadDecision | Promise<ReadDecision>};
+  connection?: string;
+  resource?: string;
+  sourceRef: string;
+  subjectCid?: string;
+}>;
+type Occurrence = Readonly<{stage: number; input: number; task: number}>;
+type LogicalOwner = (owner: unknown, source: unknown, identity: unknown,
+  requirement: unknown, occurrence?: number) => unknown;
+type OpenHost = (owner: unknown, source: unknown, registry: QueryOptions['registry'], values: string,
+  epochs: bigint, rows: bigint, cells: bigint, bytes: bigint, fragment: string, ordered: string) => unknown;
+type Runtime = QueryOptions['moon'] & SelectionInputs['moon'] & Readonly<{
+  clientProgramMatchesRequestIdentity(owner: unknown, request: unknown): boolean;
+  clientProgramPrepareLocalQueryRequirement: NonNullable<QueryOptions['moon']['clientProgramPrepareLocalQueryRequirement']>;
+  clientProgramQueryRequirementSourceEvidenceFacts(requirement: unknown): unknown;
+  clientProgramQueryRequirementInputContractCid(requirement: unknown): string;
+  clientProgramQueryRequirementOutputContractCid(requirement: unknown): string;
+  clientProgramPrepareDuckDBSourceEvidenceContext(requirement: unknown): unknown;
+  clientProgramPrepareDuckDBCaptureCapacity?(requirement: unknown, schema: string, table: string,
+    ...contracts: SelectionInputs['contracts']): unknown;
+  clientProgramCapturedBroadConfiguration(acquisition: unknown): unknown;
+  clientProgramCapturedNativeConfiguration(acquisition: unknown): unknown;
+  clientProgramInstalledDuckDBCaptureCapacityAccepts?(capacity: unknown, configuration: unknown): boolean;
+  clientProgramDuckDBCaptureCapacityAccepts?(capacity: unknown, configuration: unknown): boolean;
+  clientProgramEffectCapturedSourceMatches(owner: unknown, source: unknown): boolean;
+  clientProgramEffectCapturedSourceMatchesAt(owner: unknown, source: unknown, occurrence: number): boolean;
+  clientProgramCapturedTaskSourceMatches(owner: unknown, source: unknown, occurrence: number): boolean;
+  clientProgramIdentifyCapturedEffectSourceRelation(source: unknown): unknown;
+  clientProgramIdentifyCapturedSourceRelation(source: unknown): unknown;
+  clientProgramEffectIssueCapturedSourceLogical: LogicalOwner;
+  clientProgramEffectIssueCapturedSourceLogicalAt: LogicalOwner;
+  clientProgramIssueCapturedTaskSourceLogical: LogicalOwner;
+  clientProgramSelectedInferStep(owner: unknown): unknown;
+  clientProgramComposedInferOccurrences(owner: unknown): unknown;
+  clientProgramOpenCapturedLocalRetainedHost: OpenHost;
+  clientProgramOpenCapturedLocalHost: OpenHost;
+}>;
+type CaptureOptions = Omit<QueryOptions, 'moon' | 'stage' | 'input' | 'fragment' | 'ordered'> & Readonly<{
+  moon: Runtime;
+  database: string;
+  schema: string;
+  table: string;
+  fragment: string;
+  ordered: string;
+  sourceAccess: SourceAccess;
+  transportLimits: TransportLimits;
+  acquisitionPlanning?: unknown;
+  occurrence?: Occurrence;
+}>;
+type PrepareCaptureOptions = CaptureOptions & Readonly<{
+  originalCapture?: Readonly<{requirement: unknown; capacity?: unknown}>;
+  originalContracts?: SelectionInputs['contracts'];
+  requireImmediateReadAuthorization?: boolean;
+}>;
+type OpenCaptureOptions = CaptureOptions & Readonly<{
+  preparedSource?: ReturnType<typeof describeCapturedSource>;
+  signal?: AbortSignal;
+  reportAcquisitionFailure?: (failure: ReturnType<typeof acquisitionFailure>) => void;
+  ledger?: unknown;
+  retainedRelationOutput?: boolean;
+}>;
+type Preparation = Readonly<Pick<CaptureOptions,
+  'moon' | 'registry' | 'values' | 'fragment' | 'ordered' | 'database' | 'schema' | 'table' | 'sourceAccess'> & {
+  retainedOnly?: false;
+  checkedOwner: unknown;
+  effectful: boolean;
+  requirement: unknown;
+  evidenceContext: unknown;
+  acquisition: unknown;
+  broad: boolean;
+  selection: Selection | undefined;
+  selectionInputs: SelectionInputs;
+  transportLimits: TransportLimits;
+  acquisitionPlanning: unknown;
+  capacityEnvelope: unknown;
+  installedCapacity: boolean;
+  occurrence: Occurrence;
+}>;
+type RetainedPreparation = Readonly<{
+  retainedOnly: true;
+  requirement: unknown;
+  broad?: never;
+  acquisition?: never;
+  moon?: never;
+  transportLimits?: never;
+  capacityEnvelope?: never;
+}>;
+type NativeCapture = Readonly<{
+  source(): unknown;
+  document(): string;
+  close(): unknown;
+}>;
+type EvidenceOptions = Readonly<Record<string, unknown>>;
+type NativeRuntime = Readonly<{
+  session: {
+    authorizeLocalDatabase(database: string, access: SourceAccess): Promise<unknown>;
+  };
+  host: {
+    runNativeHostQuery(grant: unknown, acquisition: unknown, limits: TransportLimits,
+      signal?: AbortSignal): Promise<NativeCapture>;
+    runBroadHostQuery(grant: unknown, acquisition: unknown, limits: TransportLimits,
+      signal: AbortSignal | undefined, moon: Runtime, ledger: unknown): Promise<NativeCapture>;
+    runStrategyNativeHostQuery(grant: unknown, acquisition: unknown, ledger: unknown,
+      limits: TransportLimits, signal?: AbortSignal): Promise<NativeCapture>;
+    nativeSourceIdentityMatches(capture: NativeCapture, identity: unknown): boolean;
+    issueNativeSourceEvidence(capture: NativeCapture, options: EvidenceOptions): Promise<unknown>;
+    prepareNativeSourceEvidenceOriginal(capture: NativeCapture, options: EvidenceOptions): Promise<unknown>;
+  };
+}>;
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 const contractFiles = [
   'actql-query-acquisition.json',
   'actql-query-process-evidence.json',
   'actql-query-two-receipt.json',
-];
-const preparations = new WeakMap();
+] as const;
+const preparations = new WeakMap<object, Preparation | RetainedPreparation>();
 const transportLimitKeys = Object.freeze(['maxRows', 'maxCells', 'maxTransportBytes',
   'maxSqlBytes', 'maxParameters', 'maxColumns', 'memoryBytes', 'threads',
   'cancelWaitMs', 'maxChunkRows', 'maxChunkBytes']);
-function admittedTransportPolicy(limits) {
+function admittedTransportPolicy(limits: TransportLimits) {
   const validated = validateLimits(limits);
   computePhysicalCapacity(validated);
   return Object.freeze(Object.fromEntries(transportLimitKeys.map(key => [key, validated[key]])));
@@ -33,7 +151,7 @@ function admittedTransportPolicy(limits) {
 
 // This pure authorization check precedes comparison. The provider still
 // checks the current gate again immediately before opening its read session.
-async function currentReadDecision(database, access, signal) {
+async function currentReadDecision(database: string, access: SourceAccess | undefined, signal?: AbortSignal): Promise<ReadDecision> {
   if (typeof access?.authorization?.authorize !== 'function') {
     return {action: 'deny', basis: 'account', reason: 'configuration_missing'};
   }
@@ -43,7 +161,7 @@ async function currentReadDecision(database, access, signal) {
   }, {subjectCid: access.subjectCid, signal});
 }
 
-function selectAcquisition(inputs) {
+function selectAcquisition(inputs: SelectionInputs) {
   const chosen = selectInstalledDuckDBAcquisition(inputs);
   if (chosen.native === undefined && chosen.broad === undefined) {
     const code = chosen.selection.status === 'deferred'
@@ -54,7 +172,7 @@ function selectAcquisition(inputs) {
     broad: chosen.native === undefined, selection: chosen.selection};
 }
 
-function checkedSourceForRequirement(moon, requirement, sourceAccess) {
+function checkedSourceForRequirement(moon: Runtime, requirement: unknown, sourceAccess: SourceAccess | undefined) {
   const sourceFacts = checked(
     moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
   if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||
@@ -79,7 +197,10 @@ function checkedSourceForRequirement(moon, requirement, sourceAccess) {
   return checkedSource;
 }
 
-function describeCapturedSource(checkedSource, selection, admittedLimits, planning, occurrence, sourceAccess, database, schema, table) {
+function describeCapturedSource(checkedSource: ReturnType<typeof checkedSourceForRequirement>,
+  selection: Selection | undefined, admittedLimits: TransportLimits,
+  planning: ReturnType<typeof checkDuckDBAcquisitionPlanning> | undefined, occurrence: Occurrence,
+  sourceAccess: SourceAccess, database: string, schema: string, table: string) {
   return Object.freeze({checkedSource, selection,
     physicalPolicy: Object.freeze({transportLimits: admittedLimits,
       acquisitionPlanning: planning ?? null}),
@@ -94,11 +215,11 @@ function describeCapturedSource(checkedSource, selection, admittedLimits, planni
 // recovery Request backs this call; it selects no acquisition or physical read.
 export function prepareRetainedCapturedDuckDBSource({moon, preparedProgram, requestIdentity,
   registry, values, fragment, ordered, sourceAccess, database, schema, table,
-  transportLimits, acquisitionPlanning, occurrence}) {
+  transportLimits, acquisitionPlanning, occurrence}: CaptureOptions) {
   if (requestIdentity === undefined ||
       moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
       occurrence === undefined || !['stage', 'input', 'task'].every(name =>
-        Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) {
+        Number.isSafeInteger(occurrence[name as keyof Occurrence]) && occurrence[name as keyof Occurrence] >= 0)) {
     throw new Error('InstalledSourcePreparationMismatch');
   }
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
@@ -123,7 +244,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   queryTimePreparation, requestIdentity, originalCapture, originalContracts,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
-  occurrence = {stage: 0, input: 0, task: 0}}) {
+  occurrence = {stage: 0, input: 0, task: 0}}: PrepareCaptureOptions) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || registry === undefined || registry === null ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
@@ -148,7 +269,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   const evidenceContext = checked(
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = originalContracts ?? await Promise.all(contractFiles.map(name =>
-    readFile(new URL(name, contractRoot), 'utf8')));
+    readFile(new URL(name, contractRoot), 'utf8'))) as [...SelectionInputs['contracts']];
   // Mandatory physical limits are actual Host policy, independent of all
   // optional cost/quantity evidence. Validate them before any comparison.
   const admittedLimits = admittedTransportPolicy(transportLimits);
@@ -162,7 +283,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   const capacityEnvelope = originalCapture?.capacity ?? (typeof moon.clientProgramPrepareDuckDBCaptureCapacity === 'function'
     ? checked(moon.clientProgramPrepareDuckDBCaptureCapacity(requirement,
       schema, table, ...contracts)) : undefined);
-  let acquisition, broad = false, selection;
+  let acquisition: unknown, broad = false, selection: Selection | undefined;
   const decision = await currentReadDecision(database, sourceAccess);
   if (decision.action === 'dispatch') {
     ({acquisition, broad, selection} = selectAcquisition(selectionInputs));
@@ -200,7 +321,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, signal, preparedSource,
   reportAcquisitionFailure, occurrence = {stage: 0, input: 0, task: 0}, ledger,
-  retainedRelationOutput = false}) {
+  retainedRelationOutput = false}: OpenCaptureOptions) {
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
@@ -208,16 +329,17 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       typeof reportAcquisitionFailure !== 'function') {
     throw new TypeError('InvalidAcquisitionEndReceiver');
   }
-  const failAcquisition = (cause, outcome, recovery) => {
+  const failAcquisition: (cause: unknown, outcome: unknown, recovery?: unknown) => never =
+    (cause, outcome, recovery) => {
     const failure = acquisitionFailure(cause, outcome, recovery);
     reportAcquisitionFailure?.(failure);
     throw failure;
   };
-  let owner;
-  let prepared;
-  let grant;
-  let native;
-  let authorizedSelection;
+  let owner: Preparation | RetainedPreparation | undefined;
+  let prepared: ReturnType<typeof describeCapturedSource>;
+  let grant: unknown;
+  let native: NativeRuntime;
+  let authorizedSelection: ReturnType<typeof selectAcquisition> | undefined;
   try {
     prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
@@ -238,7 +360,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       throw new Error('InstalledSourcePreparationMismatch');
     }
     const currentLimits = admittedTransportPolicy(transportLimits);
-    if (transportLimitKeys.some(key => currentLimits[key] !== owner.transportLimits[key])) {
+    if (transportLimitKeys.some(key => currentLimits[key] !== owner!.transportLimits![key])) {
       throw new Error('InstalledSourceResourcePolicyMismatch');
     }
     const decision = await currentReadDecision(database, sourceAccess, signal);
@@ -268,7 +390,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {runNativeHostQuery, runBroadHostQuery, runStrategyNativeHostQuery,
     nativeSourceIdentityMatches, issueNativeSourceEvidence,
     prepareNativeSourceEvidenceOriginal} = native.host;
-  let capture;
+  let capture: NativeCapture;
   try {
     capture = broad
       ? await runBroadHostQuery(grant, acquisition, owner.transportLimits,
@@ -314,7 +436,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       moon.clientProgramSelectedInferStep(owner.checkedOwner);
     const inferInventory = owner.effectful || ledger !== undefined ? undefined :
       moon.clientProgramComposedInferOccurrences(owner.checkedOwner);
-    const composedInfer = runtimeIsOk(inferInventory) && runtimeField(inferInventory, 0).length > 1;
+    const composedInfer = runtimeIsOk(inferInventory) && (runtimeField(inferInventory, 0) as readonly unknown[]).length > 1;
     const open = retainedRelationOutput
       ? moon.clientProgramOpenCapturedLocalRetainedHost
       : moon.clientProgramOpenCapturedLocalHost;
@@ -332,9 +454,9 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       occurrence: owner.occurrence,
       acquisition: selection === undefined ? undefined : freezeAcquisitionDiagnostic({
         selection, observation: JSON.parse(capture.document())}),
-      prepareSourceEvidenceOriginal: options => prepareNativeSourceEvidenceOriginal(capture,
+      prepareSourceEvidenceOriginal: (options: EvidenceOptions) => prepareNativeSourceEvidenceOriginal(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
-      issueSourceEvidence: options => issueNativeSourceEvidence(capture,
+      issueSourceEvidence: (options: EvidenceOptions) => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});
   } catch (cause) {
@@ -346,8 +468,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         async cleanup() { await capture.close(); pending = false; return true; },
         cleanupPending: () => pending,
       });
-      const failure = Object.assign(new Error(cause?.message ?? 'AcquisitionFailed', {cause}), {
-        code: cause?.code, primaryFailure: cause,
+      const failure = Object.assign(new Error((cause as {message?: string} | null | undefined)?.message ?? 'AcquisitionFailed', {cause}), {
+        code: (cause as {code?: unknown} | null | undefined)?.code, primaryFailure: cause,
         cleanupErrors: Object.freeze([cleanup]),
       });
       failAcquisition(failure, 'unknown', recovery);
@@ -359,7 +481,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
 // The checked native preparation contributes its already-admitted capacity to
 // the one Run ledger before any source starts. Foreign/closed handles cannot
 // manufacture a configuration or bypass the occurrence owner.
-export function capturedDuckDBNativeConfiguration(prepared) {
+export function capturedDuckDBNativeConfiguration(prepared: object) {
   const owner = preparations.get(prepared);
   if (owner === undefined || owner.broad || owner.acquisition === undefined) {
     throw new TypeError('InstalledMultiSourceNativeAcquisitionRequired');
@@ -369,7 +491,7 @@ export function capturedDuckDBNativeConfiguration(prepared) {
 
 // Keep the selected configuration's typed owner. Broad remains Broad, with
 // the existing Client/Local residual represented in capacity admission.
-export function capturedDuckDBConfiguration(prepared) {
+export function capturedDuckDBConfiguration(prepared: object) {
   const owner = preparations.get(prepared);
   if (owner === undefined) {
     throw new TypeError('InstalledSourcePreparationMismatch');
@@ -381,7 +503,7 @@ export function capturedDuckDBConfiguration(prepared) {
     : owner.moon.clientProgramCapturedNativeConfiguration)(owner.acquisition);
 }
 
-export function capturedDuckDBPhysicalCapacity(prepared) {
+export function capturedDuckDBPhysicalCapacity(prepared: object) {
   const owner = preparations.get(prepared);
   if (owner === undefined || owner.transportLimits === undefined) {
     throw new TypeError('InstalledSourcePreparationMismatch');
@@ -389,7 +511,7 @@ export function capturedDuckDBPhysicalCapacity(prepared) {
   return computePhysicalCapacity(owner.transportLimits);
 }
 
-export function capturedDuckDBPendingCapacity(prepared) {
+export function capturedDuckDBPendingCapacity(prepared: object) {
   const owner = preparations.get(prepared);
   if (owner?.capacityEnvelope === undefined) {
     throw new TypeError('InstalledSourceCapacityEnvelopeUnavailable');
@@ -397,7 +519,7 @@ export function capturedDuckDBPendingCapacity(prepared) {
   return owner.capacityEnvelope;
 }
 
-export function capturedDuckDBRequirement(prepared) {
+export function capturedDuckDBRequirement(prepared: object) {
   const owner = preparations.get(prepared);
   if (owner === undefined) throw new TypeError('InstalledSourcePreparationMismatch');
   return owner.requirement;
