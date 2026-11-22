@@ -176,15 +176,16 @@ function responseFixture() {
   return {response, started, acknowledge(error) {acknowledge(error);},
     close() {response.closed = true; response.emit('close');}};
 }
-function httpRead(f, response) {
+function httpRead(f, response, operation = 'run-explanation') {
   const {principalId, ...body} = request(), events = [];
   const input = Readable.from([Buffer.from(JSON.stringify(body))]);
-  Object.assign(input, {method: 'POST', url: '/actql/client/0.1/run-explanation',
+  Object.assign(input, {method: 'POST', url: '/actql/client/0.1/' + operation,
     headers: {'content-type': 'application/json'}});
   const handler = createClientHttpHandler({authenticate: () => principalId,
     authorizeConnection: () => true, runExplanation: f.handler,
-    prepareRequest: (operation, original) => {
-      assert.equal(operation, 'run-explanation');
+    runExplanationContext: f.handler,
+    prepareRequest: (selectedOperation, original) => {
+      assert.equal(selectedOperation, operation);
       return {body: original, bindRequest() {}, beforeReply() {events.push('reply');},
         finish(terminal) {events.push(terminal); assert.equal(f.held.size, 0);}};
     }});
@@ -344,4 +345,80 @@ test('actual Host explanation getter refuses a loan changed by its current callb
     hooks.deregister();
     delete globalThis[observerKey];
   }
+});
+
+
+test('Saved Context guards scalar read, native readback and egress with synchronous current', async () => {
+  for (const boundary of ['probe', 'lookup', 'egress', 'replaced']) {
+    let fresh = true, authorizations = 0, lookups = 0, reads = 0, disposals = 0;
+    const original = {definitionWire: 'definition', admissionEvidenceWire: 'evidence',
+      programDefinitionCid: explanationFacts.program_definition_cid,
+      parameterValuesCid: explanationFacts.parameter_values_cid,
+      factsWire: 'original facts', contextWire: undefined, invocationTemplateWire: undefined};
+    const extent = Object.freeze({storedBytes: 16384, contextBytes: 0, invocationTemplateBytes: 0});
+    const input = request(), selected = Object.freeze({...input, ref: Object.freeze({...input.ref})});
+    const operation = Object.freeze({purpose: 'run-explanation-context', indexKey: selected.ref,
+      principalId: selected.principalId});
+    const service = installClientRunExplanation({context: true,
+      authorize: () => true,
+      authorizeEgress(_selected, candidate) {
+        assert.equal(candidate, operation);
+        if (++authorizations === 1 && boundary === 'probe') queueMicrotask(() => {fresh = false;});
+        return true;
+      },
+      authorizeCurrent() {return fresh;},
+      probeOriginal() {assert.notEqual(boundary, 'probe'); return extent;},
+      lookupOriginal(ref, evidence) {
+        assert.deepEqual(ref, input.ref); assert.equal(evidence, extent);
+        assert.notEqual(boundary, 'lookup');
+        lookups++;
+        if (lookups === 2 && boundary === 'egress') fresh = false;
+        if (lookups === 2 && boundary === 'replaced') return {...original, invocationTemplateWire: 'foreign'};
+        return original;
+      },
+      readWorkspace: {
+        beginExplanationContext(value) {assert.equal(value, input); return operation;},
+        explanationRequest(value) {assert.equal(value, input); return selected;},
+        prepareExplanation(value, evidence) {
+          assert.equal(value, input); assert.equal(evidence, extent);
+          if (boundary === 'lookup') fresh = false;
+        },
+        renderExplanation(value, data) {
+          reads++; assert.equal(value, input); assert.equal(data, original);
+          return JSON.stringify({version: 'actql-run-explanation-context-view/0.1',
+            run_ref: input.ref, explanation: {state: 'not_projected', reason: 'not_retained'}});
+        },
+        close(value, primary) {disposals++; assert.equal(value, input); assert(primary instanceof Error);},
+      }});
+    await assert.rejects(service(input, () => assert.fail('stale or replaced Context cannot reach the sink')),
+      {code: boundary === 'replaced' ? 'RunExplanationEncodingRejected' : 'RunObservationAccessDenied'});
+    assert.equal(reads, boundary === 'egress' || boundary === 'replaced' ? 1 : 0);
+    assert.equal(lookups, boundary === 'egress' || boundary === 'replaced' ? 2 : 0);
+    assert.equal(disposals, 1);
+  }
+});
+
+
+test('HTTP Saved Context owns its read until the original response completes', async () => {
+  const output = responseFixture();
+  let retained = false;
+  const handler = async (input, consume) => {
+    const ref = request().ref;
+    assert.deepEqual(input.ref, ref);
+    retained = true;
+    try {
+      await consume({version: 'actql-run-explanation-context-view/0.1', run_ref: ref,
+        explanation: {state: 'not_projected', reason: 'not_retained'}});
+    } finally {retained = false;}
+  };
+  const {completion, events} = httpRead({handler,
+    held: {get size() {return retained ? 1 : 0;}}}, output.response, 'run-explanation-context');
+  const bytes = await output.started;
+  assert.deepEqual(JSON.parse(bytes.toString()).run_ref, request().ref);
+  assert.equal(retained, true);
+  assert.deepEqual(events, ['reply']);
+  output.acknowledge();
+  await completion;
+  assert.equal(retained, false);
+  assert.deepEqual(events, ['reply', 'returned']);
 });

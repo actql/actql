@@ -17,6 +17,18 @@ fn normalize_native_program_arguments(
       local_result_delivery_selection(child, directory, run_presentation=true),
     )
   }
+  if operation == "explain" && native_static_explanation_selected(child) {
+    if optional(child, "run") is Some(_) ||
+      child.flags.get("verbose").unwrap_or(false) ||
+      child.flags.get("json").unwrap_or(false) ||
+      (
+        child.flags.get("explanation-json").unwrap_or(false) &&
+        optional(child, "explanation-language") is Some(_)
+      ) {
+      stop("ConflictingLocalStaticExplanationSelection")
+    }
+    ignore(native_static_explanation_language(child))
+  }
   if operation == "explain" && optional(child, "run") is Some(id) {
     if id.is_empty() || @utf8.encode(id).length() > 4096 {
       stop("InvalidLocalSavedPlanSelection")
@@ -57,6 +69,26 @@ fn normalize_native_program_arguments(
       ignore(child.values.remove("params"))
     }
     _ => ()
+  }
+}
+
+///|
+fn native_static_explanation_selected(
+  child : @argparse.Matches,
+) -> Bool raise ClientStop {
+  child.flags.get("explanation-json").unwrap_or(false) ||
+  optional(child, "explanation-language") is Some(_)
+}
+
+///|
+fn native_static_explanation_language(
+  child : @argparse.Matches,
+) -> @run_host.ClientExplanationLanguage? raise ClientStop {
+  match optional(child, "explanation-language") {
+    None => None
+    Some("en") => Some(English)
+    Some("ja") => Some(Japanese)
+    Some(_) => stop("InvalidLocalStaticExplanationLanguage")
   }
 }
 

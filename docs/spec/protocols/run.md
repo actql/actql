@@ -54,7 +54,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:45c70b0da65627b9de1c50ac2974fb588f55a179535d0696abd5a1a8dc6b5690 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:6a0eb46a1abfe6ead8abbc85a296283e25a6c54e0dde3c694cc1a8088e087b50 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_plan_view sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/effectful_static_plan_view sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_type sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3 -->
@@ -65,6 +65,9 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_step sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_facts sha256:0bd17264c5c1efa5e2fa2984a5052e3ebace93ba3a66bcbe0c3a60ffca01b2a2 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_explanation_view sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_context sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/static_explanation_view sha256:8e4b03ac25f7e1457d676d66caf56ece97fdbad1a3dd78d09552f3bc0e4a73a2 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_explanation_context_view sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d -->
 <!-- page-contents:start -->
 ## On this page
 
@@ -1197,6 +1200,26 @@ A Saved read MUST consume retained original facts. An old or Normal Run without
 them MUST return explicit `not_projected`; it MUST NOT compile current text,
 reacquire a Source or rerun INFER to repair the omission. This family adds no
 default Sample, heavy per-step scan or mandatory facts retention to Normal Run.
+
+<!-- requirement-block: explanation-context-original-binding explanation-context-structural-scope explanation-context-current-and-egress explanation-context-saved-custody -->
+The structural `actql-explanation-context/0.1` companion MUST bind the
+original checked Program Definition, Parameters, Check Environment, Compiled
+Plan and logical map. Its Source locators and consuming ports, ModelTask
+bindings, named Results and Effect declarations MUST retain their original
+checked correspondence and use explicit unprojected states when unsupported.
+Read and egress authorization MUST precede disclosure of any item or
+inventory, and remain current through consumption. Saved disclosure MUST
+use the Context retained with the original Plan adoption and report an
+absent original without reconstruction. Structural values exclude literal
+values and inferred value lengths, prompts, Source bodies, resolved Effect
+targets, Preview values, observations and authorization decisions.
+
+The additive `run-explanation-context` read (`Execution.explainContext()`
+in the JavaScript SDK) returns `actql-run-explanation-context-view/0.1`.
+It carries the complete Run reference and either the original computation Plan
+with its Facts and Context, or `not_projected` with reason `not_retained`.
+Denied reads and failed or corrupt originals are errors. The existing
+`run-explanation` operation and its Facts-only reply retain their wire shape.
 
 The initial `actql-interactive-run-control-registry/0.1` registers separate
 controlled state, Plan/Run views, control Profile, original request intent,

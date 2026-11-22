@@ -1075,14 +1075,19 @@ test('managed Facts preserve timed compiler custody and wait for actual Journal 
       // The fixed control's independently tested handoff retains this SAME
       // per-producer scope before any output/current getter can fail.
       context.preparation=undefined;context.scope=scope;context.factsWire='original-facts';context.offered=true;
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);
+      assert.throws(()=>f.view.retireOriginalExplanation(prepared,f.original),
+        {code:'InstalledExplanationAdmissionCleanupPending'});
       refuseClose=true;assert.throws(()=>journal.close(),/AuthoredNativeJournalClosePending/u);
       assert.equal(observeOriginalClientRequestJournalCustody(journal).journalClosed,true);
       assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed,false);
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);assert.equal(returns,0);
+      assert.throws(()=>f.view.retireOriginalExplanation(prepared,f.original),
+        {code:'InstalledExplanationAdmissionCleanupPending'});
+      assert.equal(returns,0);assert.equal(context.scope,scope);assert.equal(context.factsWire,'original-facts');
       refuseClose=false;journal.close();
-      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),true);
+      f.view.retireOriginalExplanation(prepared,f.original);
       assert.equal(returns,1);assert.equal(context.acknowledged,false);
+      f.view.retireOriginalExplanation(prepared,f.original);
+      assert.equal(returns,1);
     }
     f.view.finishSourceProducer(receipt,'returned');retiring=true;
     f.view.severPreparation(prepared,f.original);
@@ -3174,6 +3179,112 @@ test('static Effect Plan manager reads the same checked Request without executio
     f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
   }
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('static Effect Explanation manager holds its original Request through asynchronous delivery', async () => {
+  for (const retireWhileDelivering of [false, true]) {
+    const environment = {}, f = await fixture({environment}), moon = f.context.runtime, request = {};
+    const program = input();
+    const receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    const bounds = Object.freeze({maxWireBytes: 2048, maxNodes: 256, maxDepth: 32});
+    const entered = Promise.withResolvers(), release = Promise.withResolvers();
+    const projection = {}, response = {}, order = [], admission = {};
+    const holder = {}, prepared = {}, occurrence = {}, execution = {}, graph = {};
+    let returned = false, retiring = false;
+    f.originals.installation = {sequenceContractOriginal: {moon, admission}};
+    const modelInstallation = Object.freeze({environmentWire: '{}', dependencyBodies: Object.freeze([]),
+      executionContracts: Object.freeze([Object.freeze({modelTaskCid: 'original-task',
+        cid: 'original-execution-cid', bodyWire: 'original-execution'})])});
+    moon.clientProgramPrepareRequestNativeComputation = () => {order.push('check'); return ok(undefined);};
+    moon.clientProgramFinishRequestComputation = () => {order.push('compile'); return ok('effectful');};
+    moon.clientProgramBorrowRequestEffectPlanInput = (parent, original, staticModels) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt); assert.equal(staticModels, true);
+      order.push('borrow'); return ok(holder);
+    };
+    moon.clientProgramEffectPreparationInputRead = value => {assert.equal(value, holder); return prepared;};
+    moon.clientProgramEffectPreparationInputRetirementStarted = value => {assert.equal(value, holder); return retiring;};
+    moon.clientProgramEffectPreparationInputReturn = value => {
+      assert.equal(value, holder); assert.equal(retiring, true); returned = true; return ok(false);
+    };
+    const abort = moon.clientProgramAbortRequestPreparation;
+    moon.clientProgramAbortRequestPreparation = parent => {
+      if (returned) return Reflect.apply(abort, moon, [parent]);
+      retiring = true; return ok(undefined);
+    };
+    moon.clientProgramEffectInferOccurrences = value => {assert.equal(value, prepared); return ok([occurrence]);};
+    moon.clientProgramInferOccurrenceCoordinates = value => {assert.equal(value, occurrence); return {_2: 0};};
+    moon.clientProgramInferOccurrenceModelTaskCid = value => {assert.equal(value, occurrence); return 'original-task';};
+    moon.clientProgramPrepareRequestModelContractMaterials = (parent, original, count, at, containers) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(count, 1); assert.equal(containers, 1); assert.equal(at(0), 'original-execution');
+      order.push('reserve'); return ok(undefined);
+    };
+    moon.clientProgramReadComposedInferModelExecution = (original, wire, cid) => {
+      assert.equal(original, occurrence); assert.equal(wire, 'original-execution');
+      assert.equal(cid, 'original-execution-cid'); order.push('execution-metadata'); return ok(execution);
+    };
+    moon.clientProgramPrepareRequestModelGraph = (parent, original, selected, actual, contracts) => {
+      assert.equal(parent, f.parent); assert.equal(original, receipt);
+      assert.equal(selected, occurrence); assert.equal(actual, execution); assert.equal(contracts, admission);
+      order.push('graph'); return ok(graph);
+    };
+    moon.clientProgramReadRequestCheckedStaticEffectExplanation = function(parent, original, ...limits) {
+      assert.strictEqual(this, moon);
+      assert.strictEqual(parent, f.parent); assert.strictEqual(original, receipt);
+      assert.deepEqual(limits.slice(0, 4), [2048, 256, 32, 1000]);
+      assert.equal(limits[4].length, 1); assert.equal(limits[4][0], graph); assert(Object.isFrozen(limits[4]));
+      order.push('project'); return ok(projection);
+    };
+    for (const member of ['Plan', 'Facts', 'Context']) {
+      moon[`clientProgramStaticEffectExplanation${member}Wire`] = function(actual) {
+        assert.strictEqual(this, moon); assert.strictEqual(actual, projection);
+        return member;
+      };
+    }
+    for (const name of ['clientProgramReadRequestCheckedStaticPlan',
+      'clientProgramAdoptRequestEffectPreparation', 'clientProgramIssueRequestEffectRunMaterials']) {
+      moon[name] = () => assert.fail('Explanation must not enter ' + name);
+    }
+    const operation = f.view.withOriginalStaticEffectExplanation(request, environment, undefined, undefined,
+      bounds, 1000, async (wires, current) => {
+        assert.deepEqual(wires, {plan: 'Plan', facts: 'Facts', context: 'Context'});
+        current();
+        order.push('deliver'); entered.resolve();
+        await release.promise;
+        assert.equal(returned, false);
+        assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+        order.push('delivered'); return response;
+      }, modelInstallation);
+    const delivery = ['check', 'compile', 'borrow', 'reserve', 'execution-metadata', 'graph', 'project', 'deliver'];
+    try {
+      await Promise.race([entered.promise, operation]);
+      assert.deepEqual(order, delivery);
+      await assert.rejects(f.view.fundedPreparation(request, environment), {code: 'ForeignInstalledSourceProducer'});
+      if (retireWhileDelivering) {
+        assert.throws(() => f.view.finishSourceProducer(receipt, 'returned'),
+          {code: 'InstalledSourceRunCleanupPending'});
+        assert.deepEqual(await f.view.close(), {pending: true});
+      }
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+      release.resolve();
+      if (retireWhileDelivering) {
+        await assert.rejects(operation, {code: 'SourceManagedPreparationUnavailable'});
+      } else {
+        assert.strictEqual(await operation, response);
+        f.view.finishSourceProducer(receipt, 'returned');
+      }
+      assert.deepEqual(order, [...delivery, 'delivered']);
+      assert.deepEqual(await f.view.close(), {pending: false});
+      assert.equal(returned, true);
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+    } finally {
+      release.resolve();
+      await operation.catch(() => {});
+      await f.view.close();
+    }
+  }
 });
 
 test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback', async () => {

@@ -50,6 +50,29 @@ pub fn saved_compiled_plan_matches_definition(
 }
 
 ///|
+/// Borrow the checked environment from the Template committed by this Run.
+/// The caller must admit the original Template wire before this comparison.
+/// This does not admit a Run or confer authority to read its explanation.
+pub fn saved_run_template_environment(
+  template : RunEvidenceValue,
+  definition : PublicationContract,
+  program_cid : String,
+  parameters_cid : String,
+) -> String? {
+  if template.name != "bound_invocation_template" ||
+    definition.name != "run_definition" ||
+    contract_string(definition, "invocation_template_cid") !=
+    Some(template.identity) ||
+    contract_string_from_value(template.value, "program_definition_cid") !=
+    Some(program_cid) ||
+    contract_string_from_value(template.value, "parameter_values_cid") !=
+    Some(parameters_cid) {
+    return None
+  }
+  contract_string_from_value(template.value, "check_environment_cid")
+}
+
+///|
 /// Closed compiled_plan field-rule/identity-preimage constructor DATA. The
 /// codec owns parser, canonical tree, hash, text writer and their controls.
 /// Malformed object widths are bounded by the measured node count before

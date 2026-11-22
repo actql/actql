@@ -22,6 +22,10 @@
       "types": "./checkpoints.d.ts",
       "default": "./checkpoints.mjs"
     },
+    "./explanation-narrative": {
+      "types": "./explanation-narrative.d.ts",
+      "default": "./explanation-narrative.mjs"
+    },
     "./workers-finite": {
       "types": "./workers-finite.d.ts",
       "default": "./dist/workers_finite.js"
@@ -31,7 +35,7 @@
   "files": ["compiler-binding.generated.mjs", "index.mjs", "index.d.ts", "publication-action.mjs", "result-access.mjs", "result-access-public.mjs",
     "result-access.d.ts", "result-delivery.mjs", "managed-failure.mjs",
     "observation.mjs", "observation.d.ts",
-    "checkpoints.mjs", "checkpoints.d.ts",
+    "checkpoints.mjs", "checkpoints.d.ts", "explanation-narrative.mjs", "explanation-narrative.d.ts",
     "workers-finite.d.ts", "dist/workers_finite.js", "dist/workers_finite_payload.js",
     "dist/client_values_host_abi.js", "dist/checkpoint_runtime_node.js"],
   "scripts": {
