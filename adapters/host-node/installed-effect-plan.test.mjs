@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import './effect-control-refusal.test.mjs';
 import './installed-effect-read-slots.test.mjs';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
@@ -1548,13 +1548,10 @@ test('installed recipe keeps member Describe and row target occurrences distinct
 });
 
 test('same installed driver keeps create update and upsert recipes tied to their original checked kind', () => {
-  const source = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureManagedPlanRecipes');
-  assert(declaration);
-  const capture = Function('nodeTypes', 'captureInstalledEffectPlanRecipe', 'fail',
-    `return (${source.slice(declaration.start, declaration.end)});`)(nodeTypes, captureInstalledEffectPlanRecipe,
-      code => {throw Object.assign(new Error(code), {code});});
+  const {captureManagedPlanRecipes: capture} = createInstalledRowEffectPlanCapture({
+    fail(code) {throw Object.assign(new Error(code), {code});},
+    text: value => typeof value === 'string' && value.length > 0,
+  });
   const kinds = Object.freeze(['create', 'update', 'upsert']);
   const extents = kinds.map(() => ({}));
   const recipes = Object.freeze(Object.fromEntries(kinds.map((kind, index) => [kind, Object.freeze({

@@ -1,4 +1,8 @@
 import {types as nodeTypes} from 'node:util';
+import {declaredRowUpdateKinds} from '../host-common/owned-invocation-context.mjs';
+import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
+import {captureInstalledEffectPlanRecipe, installedEffectRecipeForControlEntryLimit} from './installed-effect-recipe.mjs';
+import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 
 type Operation<Role extends string> = Readonly<{role: Role; operation: string}>;
 type ManagedPlanDefinition = Readonly<{memberOperations: readonly []}> & (
@@ -6,6 +10,20 @@ type ManagedPlanDefinition = Readonly<{memberOperations: readonly []}> & (
   Readonly<{kind: 'command'; rowOperations: readonly [Operation<'write'>]}>
 );
 type DefinitionDriver = Readonly<{kinds: readonly string[]; targetRead?: Readonly<{operation: string}>}>;
+type CapturedRecipes = Readonly<Partial<Record<string, InstalledEffectPlanRecipe>>>;
+type TargetRecipe = Readonly<{
+  recipe: InstalledEffectPlanRecipe;
+  fallback: InstalledEffectPlanRecipe | undefined;
+  entryLimit: number;
+  responseLimit: number;
+  writeOperation: string;
+  targetReadOperation: string;
+}>;
+type PreparedTargetRecipes = Readonly<{
+  byMapping: Readonly<Partial<Record<string, TargetRecipe>>>;
+  maxEntryBytes: number;
+  maxResponseBytes: number;
+}>;
 type CommandConstruction = Readonly<{
   write: Readonly<{operation: string; maxRequestBytes: number; maxResponseBytes: number}>;
   check: undefined;
@@ -17,6 +35,8 @@ type CaptureOptions = Readonly<{
 }>;
 
 export function createInstalledRowEffectPlanCapture({fail, text}: CaptureOptions) {
+  const reject: CaptureOptions['fail'] = fail;
+
   // Closed operation-name DATA from the same installed provider. This keeps the
   // original descriptor; it neither counts physical calls nor supplies capacity.
   function captureManagedPlanDefinition(definition: unknown, driver: DefinitionDriver): ManagedPlanDefinition | undefined {
@@ -89,5 +109,76 @@ export function createInstalledRowEffectPlanCapture({fail, text}: CaptureOptions
     return construction as CommandConstruction;
   }
 
-  return {captureManagedPlanDefinition, captureManagedDriverConstruction};
+  // An installed provider may implement several existing write kinds. Each
+  // immutable recipe retains that kind's actual operation strings/extents; a
+  // create, update and upsert never borrow one another's credential occurrence.
+  // Selection below uses the checked member kind, not provider DATA or a label.
+  function captureManagedPlanRecipes(recipes: unknown, driver: Pick<DefinitionDriver, 'kinds'>,
+      maxOperations: number, declaredUpdate?: boolean): CapturedRecipes | undefined {
+    if (recipes === undefined) return undefined;
+    if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
+        !Object.isFrozen(recipes)) reject('InvalidInstalledEffectPlanRecipe');
+    const fields = Object.getOwnPropertyDescriptors(recipes);
+    const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : driver.kinds;
+    if (Reflect.ownKeys(fields).length !== supportedKinds.length || supportedKinds.some(kind =>
+      !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
+      reject('InvalidInstalledEffectPlanRecipe');
+    }
+    return Object.freeze(Object.fromEntries(supportedKinds.map(kind =>
+      [kind, captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations)])));
+  }
+
+  // The installer calls this while its original Source constructor still holds
+  // the table and normalization workspace. Capture both control variants now
+  // so a later single or composed stage only borrows the selected recipe.
+  function prepareInstalledTargetPlanRecipes(mappings: unknown, recipes: unknown, cidPattern: RegExp,
+      localContractLimits: Readonly<{maxNodes: number}>,
+      managedTargetPlanOriginals: WeakMap<PreparedTargetRecipes, readonly unknown[]>): PreparedTargetRecipes {
+    if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
+        !Object.isFrozen(recipes) || !Array.isArray(mappings) || nodeTypes.isProxy(mappings) ||
+        !Object.isFrozen(mappings) || mappings.length === 0) {
+      reject('InvalidInstalledEffectPlanRecipe');
+    }
+    const fields = Object.getOwnPropertyDescriptors(recipes),
+      retained: Partial<Record<string, TargetRecipe>> = Object.create(null);
+    if (Reflect.ownKeys(fields).length !== mappings.length) reject('InvalidInstalledEffectPlanRecipe');
+    let maxEntryBytes = 0, maxResponseBytes = 0;
+    for (const mapping of mappings) {
+      if (mapping === null || typeof mapping !== 'object' || nodeTypes.isProxy(mapping) ||
+          !Object.isFrozen(mapping)) reject('InvalidInstalledEffectPlanRecipe');
+      const identity = Object.getOwnPropertyDescriptor(mapping, 'mappingCid');
+      const mappingCid: unknown = identity?.value;
+      if (!text(mappingCid) || !cidPattern.test(mappingCid)) reject('InvalidInstalledEffectPlanRecipe');
+      const value = Object.hasOwn(fields[mappingCid] ?? {}, 'value') ? fields[mappingCid].value : undefined;
+      if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+          !Object.isFrozen(value) || Object.hasOwn(retained, mappingCid)) {
+        reject('InvalidInstalledEffectPlanRecipe');
+      }
+      const entry = Object.getOwnPropertyDescriptors(value);
+      const operation: unknown = entry.targetReadOperation?.value;
+      if (Reflect.ownKeys(entry).length !== 2 || !text(operation) || !operation.isWellFormed() ||
+          !Object.hasOwn(entry.recipe ?? {}, 'value')) reject('InvalidInstalledEffectPlanRecipe');
+      const recipe = captureInstalledEffectPlanRecipe(entry.recipe.value, localContractLimits.maxNodes);
+      const writeOperation = recipe?.rowOperations[recipe.physicalWrite?.operationIndex as number]?.operation;
+      if (!text(writeOperation) ||
+          recipe?.ownedReadOperations?.length !== 3 || recipe.ownedReadOperations.some(read =>
+            recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase)) {
+        reject('InvalidInstalledEffectPlanRecipe');
+      }
+      const entryLimit = recipe.savedControlCodec?.maxEntryBytes ?? effectLedgerImplementationBounds.maxEntryBytes;
+      const responseLimit = recipe.savedControlCodec?.maxResponseBytes ?? effectLedgerImplementationBounds.maxResponseBytes;
+      const fallback = installedEffectRecipeForControlEntryLimit(recipe,
+        effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes);
+      maxEntryBytes = Math.max(maxEntryBytes, entryLimit);
+      maxResponseBytes = Math.max(maxResponseBytes, responseLimit);
+      retained[mappingCid] = Object.freeze({recipe, fallback, entryLimit, responseLimit,
+        writeOperation, targetReadOperation: operation});
+    }
+    const prepared = Object.freeze({byMapping: Object.freeze(retained), maxEntryBytes, maxResponseBytes});
+    managedTargetPlanOriginals.set(prepared, mappings);
+    return prepared;
+  }
+
+  return {captureManagedPlanDefinition, captureManagedDriverConstruction, captureManagedPlanRecipes,
+    prepareInstalledTargetPlanRecipes};
 }

@@ -121,7 +121,6 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
-import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
@@ -187,7 +186,8 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
-const {captureManagedPlanDefinition, captureManagedDriverConstruction} = createInstalledRowEffectPlanCapture({fail, text});
+const {captureManagedPlanDefinition, captureManagedDriverConstruction, captureManagedPlanRecipes,
+  prepareInstalledTargetPlanRecipes: prepareManagedTargetPlanRecipes} = createInstalledRowEffectPlanCapture({fail, text});
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
@@ -467,72 +467,11 @@ const optionalFunction = value => value === undefined ||
 // The actual Host supplies this private service. Capturing its methods does
 // not issue a Run or turn limits into capacity; the retained owner validates
 // the original preparation/Run before each physical use.
-// An installed provider may implement several existing write kinds. Each
-// immutable recipe retains that kind's actual operation strings/extents; a
-// create, update and upsert never borrow one another's credential occurrence.
-// Selection below uses the checked member kind, not provider DATA or a label.
-function captureManagedPlanRecipes(recipes, driver, maxOperations, declaredUpdate) {
-  if (recipes === undefined) return undefined;
-  if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
-      !Object.isFrozen(recipes)) fail('InvalidInstalledEffectPlanRecipe');
-  const fields = Object.getOwnPropertyDescriptors(recipes);
-  const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : driver.kinds;
-  if (Reflect.ownKeys(fields).length !== supportedKinds.length || supportedKinds.some(kind =>
-    !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
-    fail('InvalidInstalledEffectPlanRecipe');
-  }
-  return Object.freeze(Object.fromEntries(supportedKinds.map(kind =>
-    [kind, captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations)])));
-}
-
 const managedTargetPlanOriginals = new WeakMap();
 
-// The installer calls this while its original Source constructor still holds
-// the table and normalization workspace. Capture both control variants now
-// so a later single or composed stage only borrows the selected recipe.
 export function prepareInstalledTargetPlanRecipes(mappings, recipes) {
-  if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
-      !Object.isFrozen(recipes) || !Array.isArray(mappings) || nodeTypes.isProxy(mappings) ||
-      !Object.isFrozen(mappings) || mappings.length === 0) {
-    fail('InvalidInstalledEffectPlanRecipe');
-  }
-  const fields = Object.getOwnPropertyDescriptors(recipes), retained = Object.create(null);
-  if (Reflect.ownKeys(fields).length !== mappings.length) fail('InvalidInstalledEffectPlanRecipe');
-  let maxEntryBytes = 0, maxResponseBytes = 0;
-  for (const mapping of mappings) {
-    if (mapping === null || typeof mapping !== 'object' || nodeTypes.isProxy(mapping) ||
-        !Object.isFrozen(mapping)) fail('InvalidInstalledEffectPlanRecipe');
-    const identity = Object.getOwnPropertyDescriptor(mapping, 'mappingCid');
-    const mappingCid = identity?.value;
-    if (!text(mappingCid) || !cidPattern.test(mappingCid)) fail('InvalidInstalledEffectPlanRecipe');
-    const value = Object.hasOwn(fields[mappingCid] ?? {}, 'value') ? fields[mappingCid].value : undefined;
-    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
-        !Object.isFrozen(value) || Object.hasOwn(retained, mappingCid)) {
-      fail('InvalidInstalledEffectPlanRecipe');
-    }
-    const entry = Object.getOwnPropertyDescriptors(value);
-    const operation = entry.targetReadOperation?.value;
-    if (Reflect.ownKeys(entry).length !== 2 || !text(operation) || !operation.isWellFormed() ||
-        !Object.hasOwn(entry.recipe ?? {}, 'value')) fail('InvalidInstalledEffectPlanRecipe');
-    const recipe = captureInstalledEffectPlanRecipe(entry.recipe.value, localContractLimits.maxNodes);
-    const writeOperation = recipe?.rowOperations[recipe.physicalWrite?.operationIndex]?.operation;
-    if (!text(writeOperation) ||
-        recipe?.ownedReadOperations?.length !== 3 || recipe.ownedReadOperations.some(read =>
-          recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase)) {
-      fail('InvalidInstalledEffectPlanRecipe');
-    }
-    const entryLimit = recipe.savedControlCodec?.maxEntryBytes ?? effectLedgerImplementationBounds.maxEntryBytes;
-    const responseLimit = recipe.savedControlCodec?.maxResponseBytes ?? effectLedgerImplementationBounds.maxResponseBytes;
-    const fallback = installedEffectRecipeForControlEntryLimit(recipe,
-      effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes);
-    maxEntryBytes = Math.max(maxEntryBytes, entryLimit);
-    maxResponseBytes = Math.max(maxResponseBytes, responseLimit);
-    retained[mappingCid] = Object.freeze({recipe, fallback, entryLimit, responseLimit,
-      writeOperation, targetReadOperation: operation});
-  }
-  const prepared = Object.freeze({byMapping: Object.freeze(retained), maxEntryBytes, maxResponseBytes});
-  managedTargetPlanOriginals.set(prepared, mappings);
-  return prepared;
+  return prepareManagedTargetPlanRecipes(mappings, recipes, cidPattern, localContractLimits,
+    managedTargetPlanOriginals);
 }
 
 function captureEffectResources(receiver) {

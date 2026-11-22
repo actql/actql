@@ -88026,7 +88026,7 @@
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e8d085cbbbf5834ce36c971155304509706422bf40938983a306d6ae6b1384ca",
+      "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -88085,6 +88085,48 @@
           "name": "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition/fields/fields/fields",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes",
+          "parameters": [
+            "recipes",
+            "driver",
+            "maxOperations",
+            "declaredUpdate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "mappings",
+            "recipes",
+            "cidPattern",
+            "localContractLimits",
+            "managedTargetPlanOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+          "parameters": [
+            "read"
           ],
           "async": false
         }
@@ -88203,9 +88245,121 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes",
+            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "reject('InvalidInstalledEffectPlanRecipe')"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous frozen operation-name DATA capture neither starts work nor owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function prepareInstalledTargetPlanRecipes"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "same installed driver keeps create update and upsert recipes tied to their original checked kind"
+              }
+            ]
+          }
         }
       ],
       "imports": [
+        "../host-common/owned-invocation-context.mjs",
+        "./effect-ledger-implementation-bounds.mjs",
+        "./installed-effect-recipe.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -88214,7 +88368,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b56f5b39ae6974633c9be35d9a4ff312c4bc11b2dcd777f1472bbea7d0b1cff5",
+      "sha256": "2ed7bfe6377a6fdbf2ad8d74760725495b0213c68bdd8c12b0040fe260a84225",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -88252,20 +88406,6 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes",
-          "parameters": [
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-          "parameters": [
-            "kind"
           ],
           "async": false
         },
@@ -90254,13 +90394,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
-          "parameters": [
-            "read"
-          ],
-          "async": false
-        },
-        {
           "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
           "parameters": [],
           "async": false
@@ -90982,10 +91115,7 @@
         },
         {
           "operations": [
-            "captureManagedPlanRecipes/captureManagedPlanRecipes",
             "prepareInstalledTargetPlanRecipes",
-            "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
             "fail/fail",
             "text/text"
           ],
@@ -97325,7 +97455,6 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mts",
         "./effect-input-export.mjs",
-        "./effect-ledger-implementation-bounds.mjs",
         "./effect-physical-dispatch.mjs",
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
