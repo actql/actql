@@ -9326,7 +9326,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
-      "sha256": "586fe96e80d6a3af8e09ca0d7061a40bcf34b30531cede13f66c1769526ddd10",
+      "sha256": "4bc0d5cd78a9e3444a3c0b7d95a1ddac716af3dbfc13df8e93f2bc412a3ec887",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing kintone proposal and Common execution preparation inventories",
@@ -9341,8 +9341,20 @@
           "declaration": "record_key_upsert_create_construction_capacity ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "record_key_upsert_create_request_capacity",
+          "declaration": "record_key_upsert_create_request_capacity ( mapping : RecordKeyUpsertMapping , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_finalization_construction_capacity",
+          "declaration": "record_key_upsert_finalization_construction_capacity ( mapping : RecordKeyUpsertMapping , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "record_key_upsert_proposal_construction_capacity",
           "declaration": "record_key_upsert_proposal_construction_capacity ( mapping : RecordKeyUpsertMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , lookup : @ catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_recovery_construction_capacity",
+          "declaration": "record_key_upsert_recovery_construction_capacity ( mapping : RecordKeyUpsertMapping , target_bytes : Int , max_input_bytes : Int , lookup : @ catalog . RecordLookupLimits , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , write : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , before_limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "record_key_upsert_request_checks",
@@ -9351,6 +9363,10 @@
         {
           "name": "record_key_upsert_update_construction_capacity",
           "declaration": "record_key_upsert_update_construction_capacity ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_update_request_capacity",
+          "declaration": "record_key_upsert_update_request_capacity ( mapping : RecordKeyUpsertMapping , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
@@ -9361,7 +9377,11 @@
             "record_key_upsert_proposal_construction_capacity",
             "record_key_upsert_update_construction_capacity",
             "record_key_upsert_request_checks",
-            "record_key_upsert_create_construction_capacity"
+            "record_key_upsert_create_construction_capacity",
+            "record_key_upsert_create_request_capacity",
+            "record_key_upsert_finalization_construction_capacity",
+            "record_key_upsert_recovery_construction_capacity",
+            "record_key_upsert_update_request_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -9423,6 +9443,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "demonstrate that the extra quote follows the bounded output."
+              },
+              {
+                "path": "src/connectors/kintone/host/record_key_upsert_before_wbtest.mbt",
+                "anchor": "UPSERT plan budgets either final write and all co-held cold native outputs"
               }
             ]
           }

@@ -885,3 +885,11 @@ must reproduce the complete native request body. Cold recovery performs no
 provider read and has no authority to substitute a different request.
 The surrounding owner still compares the original saved digests, Preview,
 and claim before the reconstructed material may be used.
+
+The write plan can quote finalization from the selected Mapping and limits
+before the physical lookup. CREATE and UPDATE are mutually exclusive, so
+the finalization allowance uses the greater retained and execution extent
+of the two. The cold-recovery allowance keeps each earlier native output
+while the next constructor runs, takes the peak over the construction
+phases, and retains all three returned originals. The Host separately
+accounts for the saved envelope, its byte buffers and any physical calls.

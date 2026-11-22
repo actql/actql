@@ -214,12 +214,21 @@ pub fn record_key_upsert_update_construction_capacity(
   limits : @catalog.RecordMutationLimits,
 ) -> @execution.ExecutionCapacity? {
   guard record_key_upsert_has_original_before(proposal, before) &&
-    before.target is Some(_) &&
-    record_target_before_limits_valid(limits) &&
-    limits.max_records == 1 else {
+    before.target is Some(_) else {
     return None
   }
-  let count = proposal.mapping.fields.length()
+  record_key_upsert_update_request_capacity(proposal.mapping, limits)
+}
+
+///|
+fn record_key_upsert_update_request_capacity(
+  mapping : RecordKeyUpsertMapping,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_target_before_limits_valid(limits) && limits.max_records == 1 else {
+    return None
+  }
+  let count = mapping.fields.length()
   guard record_update_request_construction_inventory(count, limits)
     is Some(update) &&
     record_key_upsert_request_checks(count) is Some(checks) &&
@@ -254,8 +263,19 @@ pub fn record_key_upsert_create_construction_capacity(
   limits : @catalog.RecordMutationLimits,
 ) -> @execution.ExecutionCapacity? {
   guard record_key_upsert_has_original_before(proposal, before) &&
-    before.target is None &&
-    record_target_before_limits_valid(limits) &&
+    before.target is None else {
+    return None
+  }
+  record_key_upsert_create_request_capacity(proposal.mapping, write, limits)
+}
+
+///|
+fn record_key_upsert_create_request_capacity(
+  mapping : RecordKeyUpsertMapping,
+  write : @catalog.RecordWriteLimits,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_target_before_limits_valid(limits) &&
     limits.max_records == 1 &&
     write.max_fields > 0 &&
     write.max_name_bytes > 0 &&
@@ -265,8 +285,8 @@ pub fn record_key_upsert_create_construction_capacity(
     write.max_output_bytes > 0 else {
     return None
   }
-  let selected = proposal.mapping.fields.length()
-  let catalog = proposal.mapping.original.catalog
+  let selected = mapping.fields.length()
+  let catalog = mapping.original.catalog
   let form_fields = @catalog.form_field_count(catalog)
   // The copied input always has room for one additional key. The admitted
   // prefix of the new native value vector is bounded separately.
@@ -301,7 +321,7 @@ pub fn record_key_upsert_create_construction_capacity(
       map_entries: copied + fields,
     })
     is Some(controls) &&
-    record_write_value_construction_extents(proposal.mapping.original, write)
+    record_write_value_construction_extents(mapping.original, write)
     is Some((_, traversal)) &&
     record_read_writer_units(
       write.max_output_bytes,
@@ -339,4 +359,108 @@ pub fn record_key_upsert_create_construction_capacity(
     owned_wire_bytes: 0L,
   }
   update_construction_capacity({ retained, workspace, })
+}
+
+///|
+/// Budget finalization before any target has been read. Exactly one original
+/// branch can be constructed, so use the larger branch per dimension.
+pub fn record_key_upsert_finalization_construction_capacity(
+  mapping : RecordKeyUpsertMapping,
+  write : @catalog.RecordWriteLimits,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard mapping.self is Some(original) &&
+    physical_equal(mapping, original) &&
+    record_key_upsert_create_request_capacity(mapping, write, limits)
+    is Some(insert) &&
+    record_key_upsert_update_request_capacity(mapping, limits) is Some(update) else {
+    return None
+  }
+  @execution.execution_capacity(
+    Int64::max(
+      @execution.execution_capacity_retained_bytes(insert),
+      @execution.execution_capacity_retained_bytes(update),
+    ),
+    Int64::max(
+      @execution.execution_capacity_execution_bytes(insert),
+      @execution.execution_capacity_execution_bytes(update),
+    ),
+  )
+}
+
+///|
+/// Cold native recovery borrows the saved bytes and returns the rebuilt
+/// proposal, Before and request together. Only their retained allocations
+/// overlap the following phase; each constructor's synchronous parser or
+/// writer has returned before the next phase begins. Host saved envelopes,
+/// digests and transport have their own caller-side allowances.
+pub fn record_key_upsert_recovery_construction_capacity(
+  mapping : RecordKeyUpsertMapping,
+  target_bytes : Int,
+  max_input_bytes : Int,
+  lookup : @catalog.RecordLookupLimits,
+  pages : @catalog.RecordPageLimits,
+  values : @catalog.RecordValueLimits,
+  write : @catalog.RecordWriteLimits,
+  request_limits : @catalog.RecordMutationLimits,
+  before_limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  let utf8 = @scalar.utf8_length_admission_construction_units()
+  // Tuple and Result retain the three native outputs. The original outer
+  // guard and branch/body comparison borrow text and keep no new byte array.
+  guard update_construction_capacity({
+      retained: {
+        ..update_construction_empty(),
+        record_headers: 2L,
+        reference_slots: 4L,
+        scalar_words: 1L,
+      },
+      workspace: {
+        ..update_construction_empty(),
+        record_headers: 14L + utf8.0,
+        reference_slots: 14L + utf8.1,
+        scalar_words: 10L + utf8.2,
+      },
+    })
+    is Some(controls) &&
+    record_key_upsert_proposal_construction_capacity(
+      mapping, max_input_bytes, write, request_limits, lookup,
+    )
+    is Some(proposal) &&
+    record_key_upsert_before_construction_capacity(
+      mapping, target_bytes, pages, values, before_limits,
+    )
+    is Some(before) &&
+    record_key_upsert_finalization_construction_capacity(
+      mapping, write, request_limits,
+    )
+    is Some(request) else {
+    return None
+  }
+  let proposal_bytes = @execution.execution_capacity_retained_bytes(proposal)
+  let before_bytes = @execution.execution_capacity_retained_bytes(before)
+  guard @execution.execution_capacity(proposal_bytes, proposal_bytes)
+    is Some(held_proposal) &&
+    @execution.execution_capacity(before_bytes, before_bytes)
+    is Some(held_before) &&
+    @execution.add_execution_capacity(held_proposal, before)
+    is Some(before_peak) &&
+    @execution.add_execution_capacity(held_proposal, held_before)
+    is Some(held_inputs) &&
+    @execution.add_execution_capacity(held_inputs, request)
+    is Some(request_peak) &&
+    @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(request_peak),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(proposal),
+        Int64::max(
+          @execution.execution_capacity_execution_bytes(before_peak),
+          @execution.execution_capacity_execution_bytes(request_peak),
+        ),
+      ),
+    )
+    is Some(native) else {
+    return None
+  }
+  @execution.add_execution_capacity(native, controls)
 }

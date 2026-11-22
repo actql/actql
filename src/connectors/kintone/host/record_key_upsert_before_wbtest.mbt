@@ -844,3 +844,114 @@ test "UPSERT before reuses the charged page reader and refuses incomplete absenc
     is Err(IncompleteResponse),
   )
 }
+
+///|
+test "UPSERT plan budgets either final write and all co-held cold native outputs" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let mapping = prepare_record_key_upsert_mapping(
+    original,
+    "customers",
+    "customer_code",
+    [{ target: "memo", field: "next", null_behavior: "reject", }],
+    delete_declaration_limits(),
+  ).unwrap()
+  let write = key_before_write_limits()
+  let lookup = key_before_lookup_limits()
+  let request = create_construction_request()
+  let values = delete_preview_values()
+  let bytes = b"{\"memo\":\"next\"}"
+  let proposal = prepare_record_key_upsert_proposal(
+    mapping,
+    "original-key",
+    bytes,
+    bytes.length(),
+    write,
+    lookup,
+  ).unwrap()
+  let original_lookup = record_key_upsert_proposal_lookup(proposal)
+  let (none, some) = (
+    prepare_record_key_upsert_proposal_before(
+      proposal,
+      key_before_reply(original_lookup, false),
+      values,
+      request,
+    ).unwrap(),
+    prepare_record_key_upsert_proposal_before(
+      proposal,
+      key_before_reply(original_lookup, true),
+      values,
+      request,
+    ).unwrap(),
+  )
+  let insert = record_key_upsert_create_construction_capacity(
+    proposal, none, write, request,
+  ).unwrap()
+  let update = record_key_upsert_update_construction_capacity(
+    proposal, some, request,
+  ).unwrap()
+  let finalization = record_key_upsert_finalization_construction_capacity(
+    mapping, write, request,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes
+  let execution = @execution.execution_capacity_execution_bytes
+  assert_eq(
+    retained(finalization),
+    Int64::max(retained(insert), retained(update)),
+  )
+  assert_eq(
+    execution(finalization),
+    Int64::max(execution(insert), execution(update)),
+  )
+
+  let target_bytes = key_before_response_body(true).length()
+  let pages = { ..key_before_page_limits(), max_bytes: target_bytes, }
+  let proposed = record_key_upsert_proposal_construction_capacity(
+    mapping,
+    bytes.length(),
+    write,
+    request,
+    lookup,
+  ).unwrap()
+  let observed = record_key_upsert_before_construction_capacity(
+    mapping, target_bytes, pages, values, request,
+  ).unwrap()
+  let recovery = record_key_upsert_recovery_construction_capacity(
+    mapping,
+    target_bytes,
+    bytes.length(),
+    lookup,
+    pages,
+    values,
+    write,
+    request,
+    request,
+  ).unwrap()
+  assert_true(
+    retained(recovery) >
+    retained(proposed) + retained(observed) + retained(finalization),
+  )
+  assert_true(execution(recovery) >= execution(proposed))
+  assert_true(execution(recovery) >= retained(proposed) + execution(observed))
+  assert_true(
+    execution(recovery) >=
+    retained(proposed) + retained(observed) + execution(finalization),
+  )
+  assert_true(
+    execution(recovery) <
+    execution(proposed) + execution(observed) + execution(finalization),
+  )
+  assert_true(
+    record_key_upsert_recovery_construction_capacity(
+      mapping,
+      target_bytes + 1,
+      bytes.length(),
+      lookup,
+      pages,
+      values,
+      write,
+      request,
+      request,
+    )
+    is None,
+  )
+}
