@@ -69052,7 +69052,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "import {readFile} from 'node:fs/promises';"
               },
               {
@@ -69112,7 +69112,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
               },
               {
@@ -69204,7 +69204,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "import {readFile} from 'node:fs/promises';"
               },
               {
@@ -69260,7 +69260,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
               },
               {
@@ -69654,7 +69654,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "import {readFile} from 'node:fs/promises';"
               },
               {
@@ -69714,7 +69714,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
               },
               {
@@ -69806,7 +69806,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "import {readFile} from 'node:fs/promises';"
               },
               {
@@ -69862,7 +69862,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-duckdb-source.mjs",
+                "path": "adapters/host-node/installed-duckdb-source.mts",
                 "anchor": "// Host-owned physical source installation. Programs select a checked Catalog"
               },
               {

@@ -26,7 +26,7 @@ type ProviderHandle = Readonly<{
 }>;
 type CompleteOptions = ReadAuthority & Readonly<{
   owner: Readonly<{checkedOwner: unknown; effectful: boolean; occurrence: Readonly<{task: number}>;
-    providerCaptureCapacity?: unknown; requirement?: unknown}>;
+    providerCaptureCapacity?: unknown; requirement?: unknown; wholeInput?: boolean}>;
   prepared: Readonly<{checkedSource: unknown}>;
   registry?: unknown; values?: unknown; fragment?: unknown; ordered?: unknown;
   retainedRelationOutput?: boolean; captureOnly?: boolean;

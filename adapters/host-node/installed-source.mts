@@ -47,7 +47,6 @@ import {retainInstalledHostServiceInstallation, installedSourceConfigurationRead
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {createInstalledSourcePublicationRequests} from './installed-source-publication.mjs';
 import {createInstalledSourceInventoryLoader} from './installed-source-inventory.mjs';
-// @ts-expect-error TS7016: remove after installed-duckdb-source has an authored TypeScript entry.
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile, checkInstalledDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 
 import {installedConnectors} from
@@ -80,7 +79,8 @@ type PublicationFacts = Readonly<{path: string; revision: string; aliases: Query
 type PublishOptions = Pick<LoadOptions, 'root' | 'principalId' | 'runtimeUrl' | 'resolveSecret' | 'connectorTable'> &
   Readonly<{moon: unknown; signal?: AbortSignal}>;
 type SourceCheck = Readonly<{sourceRef?: unknown; checkEnvironmentWire?: unknown; connectorId?: unknown}>;
-type DuckDBLoadOptions = Pick<LoadOptions, 'root' | 'principalId' | 'moon'> & Readonly<{
+type DuckDBLoadOptions = Pick<LoadOptions, 'root' | 'principalId'> & Readonly<{
+  moon: unknown;
   construction?: {createDuckDBSource(): unknown};
   sourceInitialization?: unknown;
   installation: Installation;
@@ -96,7 +96,8 @@ const duckdbSourceModule = Object.freeze({
   load: async (profile: unknown, {root, principalId, moon, construction, sourceInitialization, installation}: DuckDBLoadOptions) => {
     if (construction !== undefined) return construction.createDuckDBSource();
     if (sourceInitialization !== undefined) throw new TypeError('InstalledSourceConstructorUnavailable');
-    return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}), moon,
+    return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}),
+      moon as Parameters<typeof createInstalledDuckDBSource>[1],
       {root, principalId, installation});
   },
 });

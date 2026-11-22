@@ -12,8 +12,8 @@ import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
-import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction,
-  readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
+// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource, prepareRetainedCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
   capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from
@@ -21,9 +21,112 @@ import {openCapturedDuckDBSource, prepareCapturedDuckDBSource, prepareRetainedCa
 export {INSTALLED_DUCKDB_SOURCE_VERSION, checkInstalledDuckDBSourceProfile,
   installDuckDBSourceProfile, loadInstalledDuckDBSource} from './installed-duckdb-profile.mjs';
 
+import type {installDuckDBSourceProfile} from './installed-duckdb-profile.mjs';
+
+type InstalledProfile = Awaited<ReturnType<typeof installDuckDBSourceProfile>>;
+type Profile = Omit<InstalledProfile, 'transportLimits'> & Readonly<{
+  transportLimits: InstalledProfile['transportLimits'] &
+    Readonly<{maxChunkBytes?: number; maxChunkRows?: number}>;
+}>;
+type CaptureInput = Parameters<typeof prepareCapturedDuckDBSource>[0];
+type CaptureOpen = Parameters<typeof openCapturedDuckDBSource>[0];
+type RetainedInput = Parameters<typeof prepareRetainedCapturedDuckDBSource>[0];
+type CapturePreparation = Awaited<ReturnType<typeof prepareCapturedDuckDBSource>>;
+type Occurrence = NonNullable<CaptureInput['occurrence']> & Readonly<{computeTask?: number}>;
+type SourceAccess = CaptureInput['sourceAccess'];
+type WholeAccess = SourceAccess & Required<Pick<SourceAccess, 'authorization'>>;
+type Runtime = CaptureInput['moon'] & Readonly<{
+  clientProgramDuckDBWholeSourcePageDepth(): number;
+  clientProgramInstalledSourceReadRetire(read: unknown): unknown;
+  clientProgramInstalledSourceReadCheckCurrent(read: unknown): unknown;
+  clientProgramInstalledSourceReadCheckLedger(read: unknown, ledger: unknown): unknown;
+  clientProgramInstalledManagedDuckDBWholeSourceRead(run: unknown, owner: unknown,
+    identity: unknown, capacity: unknown): unknown;
+  clientProgramWholeSourceFacts(acquisition: unknown): readonly unknown[] | undefined;
+  clientProgramWholeSourceInputIdentity(owner: unknown, source: unknown): unknown;
+  clientProgramRowSourceBeginWithPageLimits(run: unknown, maxBytes: number,
+    maxNodes: number, maxDepth: number, maxPageRows: number, maxCaptureRows: number,
+    referenceIssuer?: unknown): unknown;
+  clientProgramDuckDBWholeSourceSql(capacity: unknown, schema: string, table: string, maxBytes: number): unknown;
+  clientProgramWholeSourceBorrowResponses(run: unknown, acquisition: unknown): unknown;
+  clientProgramRowSourceBindResponseCleanup(borrow: unknown, cleanup: () => boolean): unknown;
+  clientProgramDuckDBWholeSourceAcceptPage(run: unknown, acquisition: unknown, charge: unknown,
+    fields: string, columns: string, rows: number): unknown;
+  clientProgramDuckDBWholeSourceBeginTransport(borrow: unknown): unknown;
+  clientProgramRowSourceConsumeObservationCharge(run: unknown, charge: unknown): unknown;
+  clientProgramDuckDBWholeSourceChargeResponse(run: unknown, bytes: bigint): unknown;
+  clientProgramSelectedSourceInputRef(selection: unknown): string | undefined;
+  clientProgramPrepareDuckDBWholeSourceCapacity(owner: unknown, selection: unknown, contracts: unknown,
+    maxRows: number, maxBytes: number, maxNodes: number, maxDepth: number, maxPageRows: number): unknown;
+  clientProgramWholeSourceCapacityAcquisition(capacity: unknown): unknown;
+  clientProgramDuckDBWholeSourceConnector(capacity: unknown): string;
+  clientProgramQueryRequirementSourceRef(requirement: unknown): string;
+  clientProgramPrepareDuckDBCaptureCapacity: NonNullable<CaptureInput['moon']['clientProgramPrepareDuckDBCaptureCapacity']>;
+  clientProgramInstalledPendingDuckDBCaptureCapacity(pending: unknown): unknown;
+  clientProgramInstalledDuckDBCaptureCapacity(configuration: unknown): unknown;
+  clientProgramInstalledEffectManagedDuckDBCapture?(run: unknown, owner: unknown, identity: unknown, task: number): unknown;
+  clientProgramInstalledManagedDuckDBCapture?(run: unknown, owner: unknown, identity: unknown, task: number): unknown;
+}>;
+type Catalog = Readonly<{connector_id: string; source_views: readonly Readonly<{contract_cid: string}>[]}>;
+type SourceEnvironment = Readonly<{wire: string; body?: Readonly<{connector_catalogs: readonly Catalog[]}>}>;
+type InstallOptions = Readonly<{
+  root: string; principalId: string;
+  installation?: Readonly<{registration?: string; revision?: string}>;
+}> & (Readonly<{sourceInitialization?: undefined; environment?: SourceEnvironment}> |
+  Readonly<{sourceInitialization: object; environment: SourceEnvironment}>);
+type Binding = Readonly<{
+  connectorId: string | undefined;
+  connectorRegistration: string | undefined;
+  connectorRevision: string | undefined;
+  bindingCid: string;
+}>;
+type ReadTuple = CapturePreparation['readTuple'];
+type WholePreparation = Readonly<{
+  checkedSource: Readonly<{
+    sourceInput: readonly unknown[]; sourceRef: unknown; sourceContractCid: unknown;
+    carrierSchemaContractCid: unknown; sourceDataPolicyCid: unknown;
+    dataClassification: unknown; sourceViewContractCid: unknown;
+  }>;
+  occurrence: Occurrence; physicalBinding: CapturePreparation['physicalBinding']; readTuple: ReadTuple;
+}>;
+type Prepared = CapturePreparation | WholePreparation;
+type OriginalIdentity = Readonly<{
+  checkedOwner?: unknown; requestIdentity?: unknown; managedRun?: unknown; occurrence?: Occurrence;
+}>;
+type RetainedRead = OriginalIdentity & Readonly<{
+  wholeInput?: false; physicalBinding: Prepared['physicalBinding'];
+  binding: Binding; captureCapacity: unknown; retainedOnly: boolean;
+}>;
+type RowSession = ReturnType<typeof startInstalledRowRun>;
+type WholeReadState = {
+  read: unknown; source: unknown; acquisition: unknown; capacity: unknown; retired: boolean;
+  checkedOwner: unknown; requestIdentity: unknown; managedRun: unknown; occurrence: Occurrence;
+  sourceAccess: WholeAccess; session?: RowSession;
+};
+type WholeRead = WholeReadState & Readonly<{
+  wholeInput: true; retainedOnly: false;
+  physicalBinding: WholePreparation['physicalBinding']; binding: Binding;
+}>;
+type WholeLimits = Readonly<{
+  maxRows: number; maxBytes: number; maxPageRows: number; maxPageNodes: number; maxPageDepth: number;
+}>;
+type WholeCapacity = Readonly<{
+  capacity: unknown; wholeInput: true; transferBytes: bigint; executionBytes: bigint;
+}>;
+type PreparationInput = Pick<CaptureInput, 'preparedEffect' | 'registry' | 'values' | 'fragment' | 'ordered' |
+  'requireImmediateReadAuthorization' | 'queryTimePreparation' | 'requestIdentity'> & Readonly<{
+  preparedProgram?: object; sourceAccess: WholeAccess | undefined; occurrence: Occurrence;
+  managedRun?: unknown; preparedSource?: WholePreparation;
+}>;
+type OpenInput = Pick<CaptureOpen, 'preparedProgram' | 'preparedEffect' | 'registry' | 'values' |
+  'fragment' | 'ordered' | 'signal' | 'reportAcquisitionFailure' | 'occurrence' | 'ledger' |
+  'retainedRelationOutput'> & Readonly<{sourceAccess: SourceAccess; preparedSource?: Prepared}>;
+type CleanupHandle = Readonly<{retry(): unknown; status(): Readonly<{pending: boolean}>}>;
+
 // The known builtin constructor, selected only by the bound Host factory.
 // Its Query/native-acquisition behavior remains the original implementation.
-export async function createInstalledDuckDBSource(profile, moon, {root, principalId, sourceInitialization, environment, installation}) {
+export async function createInstalledDuckDBSource(profile: Profile, moon: Runtime,
+  {root, principalId, sourceInitialization, environment, installation}: InstallOptions) {
   if (sourceInitialization !== undefined) {
     assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
     if (profile.environmentWire !== environment.wire) throw new TypeError('ForeignInstalledSourceConstruction');
@@ -40,18 +143,19 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
   ].map(name => {
     const path = new URL('../../spec/contracts/' + name, import.meta.url);
     return sourceInitialization === undefined ? readFile(path, 'utf8')
-      : readInstalledSourceAcquisitionContract(sourceInitialization, path);
-  })));
+      : readInstalledSourceAcquisitionContract(sourceInitialization, path) as Promise<string>;
+  }))) as NonNullable<CaptureInput['originalContracts']>;
   if (sourceInitialization !== undefined) assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
-  const catalogs = (environment?.body ?? JSON.parse(profile.environmentWire)).connector_catalogs;
+  const catalogs: readonly Catalog[] = (environment?.body ?? JSON.parse(profile.environmentWire)).connector_catalogs;
   const catalogIds = catalogs.map(catalog => catalog.connector_id);
   const physicalBinding = duckDBPhysicalTarget(profile);
   const bindingCid = contentCid({version: 'actql-installed-duckdb-source-binding/0.1',
     root, principalId, physicalBinding, sourceRef: profile.sourceRef});
-  const preparations = new WeakMap();
-  const retainPrepared = (prepared, captureCapacity, retainedOnly = false, original = preparations.get(prepared)) => {
+  const preparations = new WeakMap<object, RetainedRead | WholeRead>();
+  const retainPrepared = <Value extends Prepared,>(prepared: Value, captureCapacity: unknown, retainedOnly = false,
+    original: OriginalIdentity | undefined = preparations.get(prepared)) => {
     const matches = catalogs.filter(value => value.source_views.some(view =>
       view.contract_cid === prepared.checkedSource.sourceViewContractCid));
     const catalog = matches.length === 1 ? matches[0] : undefined;
@@ -67,8 +171,8 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       occurrence: original?.occurrence}));
     return prepared;
   };
-  const wholeCapacities = new WeakMap(), wholeReads = new Set();
-  let wholePhysical, wholeLimits;
+  const wholeCapacities = new WeakMap<object, WholeCapacity>(), wholeReads = new Set<WholeReadState>();
+  let wholePhysical: ReturnType<typeof computePhysicalCapacity>, wholeLimits: WholeLimits | undefined;
   const prepareWholeLimits = () => {
     if (wholeLimits !== undefined) return wholeLimits;
     wholePhysical = computePhysicalCapacity(profile.transportLimits);
@@ -85,7 +189,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       maxPageNodes, maxPageDepth});
     return wholeLimits;
   };
-  const authorizeWhole = async (access, signal) => {
+  const authorizeWhole = async (access: WholeAccess, signal?: AbortSignal) => {
     current(); signal?.throwIfAborted();
     const decision = await access.authorization.authorize('acquisition', {
       connection: access.connection ?? 'local-database', resource: access.resource ?? profile.database,
@@ -93,13 +197,13 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     current(); signal?.throwIfAborted();
     return decision;
   };
-  const retireWhole = original => {
+  const retireWhole = (original: WholeReadState) => {
     if (original.retired) return;
     if (original.session !== undefined) original.session.close();
     else checked(moon.clientProgramInstalledSourceReadRetire(original.read));
     original.retired = true; wholeReads.delete(original);
   };
-  const prepareWhole = async facts => {
+  const prepareWhole = async (facts: PreparationInput & Readonly<{preparedProgram: object}>) => {
     const {preparedProgram, requestIdentity, managedRun, occurrence, sourceAccess = profile.sourceAccess} = facts;
     const selected = wholeCapacities.get(preparedProgram);
     if (selected === undefined || occurrence.stage !== 0 || occurrence.input !== 0 || occurrence.task !== 0 ||
@@ -126,7 +230,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     }
     const tuple = checked(moon.clientProgramInstalledManagedDuckDBWholeSourceRead(
       managedRun, preparedProgram, requestIdentity, selected.capacity));
-    const original = {read: runtimeField(tuple, 0), source: runtimeField(tuple, 1),
+    const original: WholeReadState = {read: runtimeField(tuple, 0), source: runtimeField(tuple, 1),
       acquisition: runtimeField(tuple, 2), capacity: runtimeField(tuple, 3), retired: false,
       checkedOwner: preparedProgram, requestIdentity, managedRun, sourceAccess, occurrence: Object.freeze({...occurrence})};
     wholeReads.add(original);
@@ -139,14 +243,14 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       const [sourceRef, sourceContractCid, carrierSchemaContractCid,
         sourceDataPolicyCid, dataClassification, sourceViewContractCid] = data;
       const prepared = Object.freeze({checkedSource: Object.freeze({
-        sourceInput: Object.freeze([...runtimeField(identity, 0)]), sourceRef, sourceContractCid,
+        sourceInput: Object.freeze([...runtimeField(identity, 0) as readonly unknown[]]), sourceRef, sourceContractCid,
         carrierSchemaContractCid, sourceDataPolicyCid, dataClassification, sourceViewContractCid}),
       occurrence: original.occurrence, physicalBinding,
       readTuple: Object.freeze({connection: sourceAccess.connection ?? 'local-database',
         resource: sourceAccess.resource ?? profile.database, operation: 'read'})});
       retainPrepared(prepared, original.capacity, false, original);
       Object.assign(original, preparations.get(prepared), {wholeInput: true, prepared});
-      preparations.set(prepared, original);
+      preparations.set(prepared, original as WholeRead);
       const decision = await authorizeWhole(sourceAccess);
       if (decision.action === 'deny' || facts.requireImmediateReadAuthorization && decision.action === 'unsupported') {
         throw new ExecutionAuthorizationError(decision);
@@ -158,13 +262,13 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       throw cause;
     }
   };
-  const openWhole = async options => {
-    const original = preparations.get(options.preparedSource);
+  const openWhole = async (options: OpenInput & Readonly<{captureOnly?: boolean}>) => {
+    const original = preparations.get(options.preparedSource as object);
     const occurrence = options.occurrence ?? original?.occurrence;
     if (original === undefined || !original.wholeInput || original.retired || original.session !== undefined ||
         original.checkedOwner !== options.preparedProgram || original.sourceAccess !== (options.sourceAccess ?? profile.sourceAccess) ||
-        original.occurrence.stage !== occurrence.stage || original.occurrence.input !== occurrence.input ||
-        original.occurrence.task !== occurrence.task || options.ledger === undefined) {
+        original.occurrence.stage !== occurrence!.stage || original.occurrence.input !== occurrence!.input ||
+        original.occurrence.task !== occurrence!.task || options.ledger === undefined) {
       throw new TypeError('InstalledSourcePreparationMismatch');
     }
     const verifyRead = async () => {
@@ -172,29 +276,29 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
       checked(moon.clientProgramInstalledSourceReadCheckCurrent(original.read));
     };
-    let native, grant, rowSession, charge;
+    let native, grant, rowSession: RowSession | undefined, charge: unknown;
     let nativeStarted = false, nativeStopped = false;
-    const state = {closeFailed: false};
+    const state: Parameters<RowSession['closeAfterFailure']>[0] = {closeFailed: false};
     try {
       await verifyRead();
       checked(moon.clientProgramInstalledSourceReadCheckLedger(original.read, options.ledger));
-      rowSession = startInstalledRowRun({moon, acquisition: original.acquisition, nonce: `duckdb-whole-${randomUUID()}`,
+      rowSession = startInstalledRowRun({moon: moon as Parameters<typeof startInstalledRowRun>[0]['moon'], acquisition: original.acquisition, nonce: `duckdb-whole-${randomUUID()}`,
         ledger: options.ledger, originalRead: original.read, wholeInput: true,
         capacity: {transferBytes: wholePhysical.transferBytes, executionBytes: wholePhysical.executionBytes}});
       original.session = rowSession;
       current(); options.signal?.throwIfAborted();
       const run = rowSession.run;
-      checked(moon.clientProgramRowSourceBeginWithPageLimits(run, wholeLimits.maxBytes, wholeLimits.maxPageNodes, wholeLimits.maxPageDepth,
-        wholeLimits.maxPageRows, wholeLimits.maxRows));
+      checked(moon.clientProgramRowSourceBeginWithPageLimits(run, wholeLimits!.maxBytes, wholeLimits!.maxPageNodes, wholeLimits!.maxPageDepth,
+        wholeLimits!.maxPageRows, wholeLimits!.maxRows));
       const sql = checked(moon.clientProgramDuckDBWholeSourceSql(original.capacity, profile.schema, profile.table,
-        profile.transportLimits.maxSqlBytes));
+        profile.transportLimits.maxSqlBytes)) as string;
       native = await loadDuckDBNativeRuntime();
       grant = await native.session.authorizeLocalDatabase(profile.database, original.sourceAccess);
       current(); options.signal?.throwIfAborted();
       const borrow = checked(moon.clientProgramWholeSourceBorrowResponses(run, original.acquisition));
       checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, () => !nativeStarted || nativeStopped));
       await native.session.withSourceDatabase(grant, profile.transportLimits, async session => {
-        const acceptFrame = async frame => {
+        const acceptFrame: Parameters<typeof session.command>[2] = async frame => {
           await verifyRead();
           if (charge === undefined) throw new TypeError('InstalledSourcePageChargeUnavailable');
           checked(moon.clientProgramDuckDBWholeSourceAcceptPage(run, original.acquisition, charge,
@@ -213,13 +317,13 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
           if (charge !== undefined) checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
           charge = checked(moon.clientProgramDuckDBWholeSourceChargeResponse(run, BigInt(bytes)));
         },
-        settled(confirmed) {nativeStopped = confirmed === true; if (nativeStopped) rowSession.confirmTransportStopped();},
+        settled(confirmed) {nativeStopped = confirmed === true; if (nativeStopped) rowSession!.confirmTransportStopped();},
       });
       if (charge !== undefined) {checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));charge=undefined;}
       await verifyRead();
       const completed = await rowSession.complete({owner: {checkedOwner: original.checkedOwner,
         occurrence: original.occurrence, effectful: false, wholeInput: true,
-        providerCaptureCapacity: original.capacity}, prepared: options.preparedSource,
+        providerCaptureCapacity: original.capacity}, prepared: options.preparedSource!,
       registry: options.registry, values: options.values, fragment: options.fragment, ordered: options.ordered,
       retainedRelationOutput: options.retainedRelationOutput ?? false, signal: options.signal,
       currentRead: verifyRead, captureOnly: options.captureOnly ?? false});
@@ -228,7 +332,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       wholeReads.delete(original);
       return completed;
     } catch (cause) {
-      const handle = cause?.cleanupHandle;
+      const handle = (cause as {cleanupHandle?: CleanupHandle} | null | undefined)?.cleanupHandle;
       const recovery = handle === undefined ? undefined : Object.freeze({
         async cleanup() {await handle.retry();return !handle.status().pending;},
         cleanupPending: () => handle.status().pending,
@@ -251,14 +355,14 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     ...(sourceInitialization === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid}))),
-    ordinaryRecoveryBinding(prepared, expected) {
+    ordinaryRecoveryBinding(prepared: Prepared, expected?: OriginalIdentity) {
       current();
       const original = preparations.get(prepared);
       if (original === undefined || prepared.physicalBinding !== original.physicalBinding ||
           prepared.checkedSource.sourceRef !== profile.sourceRef ||
           expected !== undefined && (original.checkedOwner !== expected.checkedOwner ||
             original.requestIdentity !== expected.requestIdentity ||
-            ['stage', 'input', 'task', 'computeTask'].some(name =>
+            (['stage', 'input', 'task', 'computeTask'] as const).some(name =>
               original.occurrence?.[name] !== expected.occurrence?.[name]))) {
         throw new TypeError('InstalledSourcePreparationMismatch');
       }
@@ -266,7 +370,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     },
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
-    admitsSource: sourceRef => !closing && sourceRef === profile.sourceRef,
+    admitsSource: (sourceRef: unknown) => !closing && sourceRef === profile.sourceRef,
     managedEffectPlanSelection() {
       current();
       // Inert inputs to the SAME Plan's native capture constructor. The Plan
@@ -277,7 +381,8 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
         schema: profile.schema, table: profile.table, contracts: capacityContracts}),
       transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
     },
-    managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}) {
+    managedWholeSourceCapacity({preparedProgram, sourceSelection, installedContracts}: Readonly<{
+      preparedProgram: object; sourceSelection: unknown; installedContracts: unknown}>) {
       current();
       if (installation?.registration !== 'builtin_source' || installation?.revision !== 'builtin_source/0.1') {
         throw new TypeError('InstalledSourceRegistrationMismatch');
@@ -285,23 +390,23 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       prepareWholeLimits();
       if (moon.clientProgramSelectedSourceInputRef(sourceSelection) !== profile.sourceRef) throw new TypeError('InstalledSourceProgramMismatch');
       const capacity = checked(moon.clientProgramPrepareDuckDBWholeSourceCapacity(preparedProgram,
-        sourceSelection, installedContracts, wholeLimits.maxRows, wholeLimits.maxBytes, wholeLimits.maxPageNodes, wholeLimits.maxPageDepth, wholeLimits.maxPageRows));
+        sourceSelection, installedContracts, wholeLimits!.maxRows, wholeLimits!.maxBytes, wholeLimits!.maxPageNodes, wholeLimits!.maxPageDepth, wholeLimits!.maxPageRows));
       const facts = moon.clientProgramWholeSourceFacts(moon.clientProgramWholeSourceCapacityAcquisition(capacity));
       const declaredCatalogs = catalogs.filter(catalog => catalog.source_views.some(view => view.contract_cid === facts?.[5]));
       if (!Array.isArray(facts) || facts[0] !== profile.sourceRef || declaredCatalogs.length !== 1 ||
           declaredCatalogs[0].connector_id !== moon.clientProgramDuckDBWholeSourceConnector(capacity)) {
         throw new TypeError('InstalledSourcePreparationMismatch');
       }
-      const selected = Object.freeze({capacity, wholeInput: true,
+      const selected: WholeCapacity = Object.freeze({capacity, wholeInput: true,
         transferBytes: wholePhysical.transferBytes, executionBytes: wholePhysical.executionBytes});
       wholeCapacities.set(preparedProgram, selected);
       return selected;
     },
-    retirePreparedSource(prepared) {
+    retirePreparedSource(prepared: object) {
       const original = preparations.get(prepared);
       if (original?.wholeInput) retireWhole(original);
     },
-    managedCaptureCapacity(requirement) {
+    managedCaptureCapacity(requirement: unknown) {
       current();
       if (moon.clientProgramQueryRequirementSourceRef(requirement) !== profile.sourceRef) {
         throw new TypeError('InstalledSourceProgramMismatch');
@@ -314,7 +419,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       return Object.freeze({capacity, transferBytes: physical.transferBytes,
         executionBytes: physical.executionBytes});
     },
-    retainedCapture(prepared) {
+    retainedCapture(prepared: object) {
       current();
       const original = preparations.get(prepared);
       if (original === undefined || original.retainedOnly) throw new TypeError('InstalledSourcePreparationMismatch');
@@ -323,7 +428,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
         capacity: original.captureCapacity ?? moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
           capturedDuckDBPendingCapacity(prepared))});
     },
-    ledgerCapacity(prepared) {
+    ledgerCapacity(prepared: object) {
       current();
       const original = preparations.get(prepared);
       if (original?.wholeInput) return Object.freeze({capacity: original.capacity, wholeInput: true,
@@ -342,7 +447,8 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       });
     },
     prepareRetained({preparedProgram, requestIdentity, occurrence, registry, values, fragment, ordered,
-      sourceAccess = profile.sourceAccess}) {
+      sourceAccess = profile.sourceAccess}: Omit<RetainedInput, keyof typeof common | 'transportLimits' | 'sourceAccess'> &
+      Readonly<{sourceAccess?: SourceAccess}>) {
       current();
       const prepared = prepareRetainedCapturedDuckDBSource({...common,
         preparedProgram, requestIdentity, occurrence, registry, values, fragment, ordered, sourceAccess,
@@ -351,7 +457,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       return retainPrepared(prepared, undefined, true,
         {checkedOwner: preparedProgram, requestIdentity, occurrence: prepared.occurrence});
     },
-    prepareRetainedCapture(facts) {
+    prepareRetainedCapture(facts: Parameters<typeof adapter.prepareRetained>[0]) {
       // This checked metadata constructor opens no database or Source reader.
       // The original recovery Request funds it before restoring its exact
       // saved capture against the same Ledger and current Source binding.
@@ -362,7 +468,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     },
     prepare: async ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, requireImmediateReadAuthorization,
-      queryTimePreparation, requestIdentity, managedRun, preparedSource}) => {
+      queryTimePreparation, requestIdentity, managedRun, preparedSource}: PreparationInput) => {
       current();
       if (managedRun !== undefined && preparedProgram !== undefined && wholeCapacities.has(preparedProgram)) {
         return prepareWhole({preparedProgram, preparedEffect, registry, values, fragment, ordered,
@@ -385,7 +491,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       const prepared = await prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
       queryTimePreparation, requestIdentity, originalCapture, originalContracts: capacityContracts,
-      sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
+      sourceAccess: sourceAccess!, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
       current();
       retainPrepared(prepared, originalCapture?.capacity, false,
         {checkedOwner: preparedEffect ?? preparedProgram, requestIdentity, managedRun,
@@ -394,18 +500,18 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     },
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,
-      retainedRelationOutput}) => {
+      retainedRelationOutput}: OpenInput) => {
       current();
-      if (preparations.get(preparedSource)?.wholeInput) return openWhole({preparedProgram, preparedEffect,
+      if (preparations.get(preparedSource as object)?.wholeInput) return openWhole({preparedProgram, preparedEffect,
         registry, values, fragment, ordered, sourceAccess, signal, preparedSource, reportAcquisitionFailure,
         occurrence, ledger, retainedRelationOutput});
       return openCapturedDuckDBSource({
       ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource, reportAcquisitionFailure, occurrence, ledger,
+      preparedSource: preparedSource as CapturePreparation | undefined, reportAcquisitionFailure, occurrence, ledger,
       retainedRelationOutput});
     },
-    openCapture(options) {
+    openCapture(options: OpenInput) {
       // The existing native opener already omits its standalone Host when
       // borrowing this Ledger. Capture-only must never select a fresh Ledger.
       if (options.ledger === undefined) throw new TypeError('InstalledSourceCaptureLedgerUnavailable');
