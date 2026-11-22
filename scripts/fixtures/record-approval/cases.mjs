@@ -19,17 +19,20 @@ export const sharedRecordUpdateSelections = Object.freeze({
 
 export const maxRecordUpdateFixtureTextUnits = 16_384;
 
-export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}) {
-  if (typeof recordId !== 'string' || !recordId || typeof previousName !== 'string' || !previousName) {
+export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'},
+  {allowAbsent = false} = {}) {
+  const absent = allowAbsent && previousName === null;
+  if (typeof recordId !== 'string' || !recordId || !absent && (typeof previousName !== 'string' || !previousName)) {
     throw new TypeError('InvalidRecordApprovalSelection');
   }
   if (typeof controlId !== 'string' || !controlId || controlId === recordId || typeof controlName !== 'string') {
     throw new TypeError('InvalidRecordApprovalControl');
   }
-  if ([recordId, previousName, controlId, controlName].some(text => text.length > maxRecordUpdateFixtureTextUnits)) {
+  if ([recordId, previousName, controlId, controlName].some(text =>
+    text !== null && text.length > maxRecordUpdateFixtureTextUnits)) {
     throw new RangeError('RecordApprovalFixtureSeedLimit');
   }
-  return Object.freeze({target: Object.freeze({id: recordId, name: previousName}),
+  return Object.freeze({target: absent ? null : Object.freeze({id: recordId, name: previousName}),
     control: Object.freeze({id: controlId, name: controlName})});
 }
 

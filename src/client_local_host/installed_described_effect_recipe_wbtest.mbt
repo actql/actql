@@ -46,6 +46,7 @@ fn described_multiread_fixture(
   target_on_child : Bool,
   target : @execution.ExecutionCapacity,
   target_reads? : Bool = true,
+  metadata_on_child? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   let zero = @execution.execution_capacity(0L, 0L).unwrap()
   installed_described_effect_recipe_capacities(
@@ -77,8 +78,51 @@ fn described_multiread_fixture(
     4,
     0L,
     metadata_occurrences~,
+    metadata_on_child~,
     target_occurrences~,
     target_on_child~,
+  )
+}
+
+///|
+test "local describe prices Form validation only in the original target children" {
+  let target = @execution.execution_capacity(18L, 55L).unwrap()
+  let described = described_multiread_fixture(
+    3,
+    9,
+    true,
+    target,
+    metadata_on_child=true,
+  ).unwrap()
+  let target_only = described_multiread_fixture(
+    0,
+    9,
+    true,
+    target,
+    metadata_on_child=true,
+  ).unwrap()
+  let per_grant = @execution.execution_capacity_retained_bytes(
+    standard_create_grant_capacity().unwrap(),
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(described[4]) -
+    @execution.execution_capacity_retained_bytes(target_only[4]),
+    3L * per_grant,
+  )
+  for index in [0, 1, 2, 3, 5, 6, 7] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(target_only[index]),
+      @execution.execution_capacity_retained_bytes(described[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(target_only[index]),
+      @execution.execution_capacity_execution_bytes(described[index]),
+    )
+  }
+  assert_true(described_multiread_fixture(0, 9, true, target) is Err(_))
+  assert_true(
+    described_multiread_fixture(0, 9, false, target, metadata_on_child=true)
+    is Err(_),
   )
 }
 

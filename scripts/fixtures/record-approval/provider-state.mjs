@@ -5,9 +5,10 @@ import {maxRecordUpdateFixtureTextUnits, recordUpdateFixtureSeed} from './cases.
 // failed route observations and leaves room for a single overflow witness.
 const maxRouteAttempts = 64;
 
-export function createRecordUpdateProviderState(selection, initialFields) {
-  const seed = recordUpdateFixtureSeed(selection);
-  const originalTarget = Object.freeze({...initialFields, ...seed.target});
+export function createRecordUpdateProviderState(selection, initialFields, {allowCreate = false} = {}) {
+  const seed = recordUpdateFixtureSeed(selection, {allowAbsent: allowCreate});
+  const targetId = selection.recordId;
+  const originalTarget = seed.target === null ? null : Object.freeze({...initialFields, ...seed.target});
   const control = Object.freeze({...initialFields, ...seed.control});
   let target, writes, requests, failures, attempts;
   function reset() {
@@ -19,15 +20,26 @@ export function createRecordUpdateProviderState(selection, initialFields) {
   }
   reset();
 
-  function updateTarget(name, fields) {
+  function replaceTarget(name, fields) {
     assert(typeof name === 'string' && name.length <= maxRecordUpdateFixtureTextUnits, 'InvalidRecordApprovalFixtureValue');
-    assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-    target = Object.freeze({...target, ...fields, id: target.id, name});
+    assert.equal(writes, 0, 'Only one original physical write is expected');
+    target = Object.freeze({...target, ...fields, id: targetId, name});
     writes++;
     return target;
   }
 
+  function updateTarget(name, fields) {
+    assert(target !== null, 'The original UPDATE requires an existing target');
+    return replaceTarget(name, fields);
+  }
+
+  function createTarget(name, fields) {
+    assert(allowCreate && target === null, 'The original CREATE requires an absent target');
+    return replaceTarget(name, fields);
+  }
+
   function deleteTarget() {
+    assert(target !== null, 'The original DELETE requires an existing target');
     assert.equal(writes, 0, 'Only one original physical DELETE is expected');
     target = null;
     writes++;
@@ -48,7 +60,8 @@ export function createRecordUpdateProviderState(selection, initialFields) {
         assert.equal(exchange.method, method);
         assert.equal(exchange.pathname, pathname);
         assert.equal(exchange.authorized, true, 'The original credential header must be present');
-        requests.push({method, pathname});
+        requests.push({method, pathname, ...(allowCreate
+          ? {methodOverride: exchange.headers['x-http-method-override'] ?? null} : {})});
         return {body: action(exchange)};
       } catch (error) {
         const message = typeof error?.message === 'string' ? error.message.slice(0, 512) : undefined;
@@ -58,6 +71,6 @@ export function createRecordUpdateProviderState(selection, initialFields) {
     }};
   }
 
-  return Object.freeze({get target() {return target;}, control, route, updateTarget, deleteTarget, reset,
+  return Object.freeze({get target() {return target;}, control, route, updateTarget, createTarget, deleteTarget, reset,
     snapshot: () => structuredClone({writes, target, control, requests, failures})});
 }

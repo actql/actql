@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "a8f7a7859f71bddd3e0c58f8292e64ad2bd2bed29fa6293fdd5bbe326830738a",
+      "sha256": "ad3fc66cf4071a9b6deacbf3e3299c2a5573f7f6eea482cd8544c8b24b085ffd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4363,6 +4363,13 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -7437,7 +7444,8 @@
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
             "prepareInstalledTargetPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes"
           ],
           "exports": [
             "prepareInstalledTargetPlanRecipes"
@@ -19793,7 +19801,8 @@
         "prepareInstalledEffectRequestChild",
         "prepareInstalledPhysicalWritePlanRecipe",
         "prepareInstalledStandardCreatePlanRecipe",
-        "selectInstalledEffectCredentialOperation"
+        "selectInstalledEffectCredentialOperation",
+        "selectInstalledEffectWriteBranch"
       ],
       "operations": [
         {
@@ -19816,6 +19825,13 @@
           "parameters": [
             "recipe",
             "maxOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledEffectPlanRecipe/absent/absent",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -19869,6 +19885,13 @@
           "name": "captureInstalledEffectPlanRecipe/own/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledEffectPlanRecipe/present/present",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -20601,6 +20624,15 @@
             "entry"
           ],
           "async": false
+        },
+        {
+          "name": "selectInstalledEffectWriteBranch",
+          "parameters": [
+            "recipe",
+            "kind",
+            "previewRow"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -20615,7 +20647,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "55f903872abc8342dc00cc678e0d60497048f4cee1e46b7a913cd08c76904100",
+      "sha256": "fa1a81cc2697b2790662adf905a03e98a9a6dbbe140b1f6135fa0eaa2243fd12",
       "contracts": [
         {
           "operations": [
@@ -20675,7 +20707,9 @@
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledDeclaredUpdatePlanRecipe",
             "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
-            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
+            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
+            "captureInstalledEffectPlanRecipe/absent/absent",
+            "captureInstalledEffectPlanRecipe/present/present"
           ],
           "exports": [
             "captureDeclaredUpdateTargetCapacity",
@@ -21525,10 +21559,12 @@
         {
           "operations": [
             "selectInstalledEffectCredentialOperation",
-            "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation"
+            "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectWriteBranch"
           ],
           "exports": [
-            "selectInstalledEffectCredentialOperation"
+            "selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectWriteBranch"
           ],
           "attributes": {
             "responsibility": [

@@ -1,0 +1,34 @@
+{
+  "name": "kintone-keyed-upsert-present",
+  "effect": {
+    "documentPath": "upsert.aql",
+    "format": "aql",
+    "resultName": "upserts",
+    "parameterDeclarations": {"customer_key": {"type": "string"}, "next_name": {"type": "string"}},
+    "parameters": {"customer_key": "existing-customer", "next_name": "Updated by approved UPSERT"},
+    "expectedRows": [{"customer_key": "existing-customer", "next_name": "Updated by approved UPSERT"}]
+  },
+  "read": {
+    "documentPath": "read-key.aql",
+    "format": "aql",
+    "resultName": "main",
+    "parameterDeclarations": {"customer_key": {"type": "string"}},
+    "parameters": {"customer_key": "existing-customer"},
+    "beforeRows": [{"id": "9007199254740993", "customer_key": "existing-customer", "Subject": "Original customer"}],
+    "afterRows": [{"id": "9007199254740993", "customer_key": "existing-customer", "Subject": "Updated by approved UPSERT"}]
+  },
+  "review": {
+    "kind": "upsert",
+    "target": "connector://kintone/inquiries",
+    "identity": "existing-customer",
+    "before": {"CustomerKey": "existing-customer", "Subject": "Original customer"},
+    "changes": {"Subject": "Updated by approved UPSERT"}
+  },
+  "fixture": {
+    "seed": {"recordId": "9007199254740993", "controlId": "9007199254740994", "previousName": "Original customer", "controlName": "Untouched control", "key": "existing-customer"},
+    "expected": {
+      "before": {"target": {"id": "9007199254740993", "name": "Original customer"}, "control": {"id": "9007199254740994", "name": "Untouched control"}},
+      "after": {"target": {"id": "9007199254740993", "name": "Updated by approved UPSERT"}, "control": {"id": "9007199254740994", "name": "Untouched control"}}
+    }
+  }
+}

@@ -1,0 +1,4 @@
+SELECT @customer_key AS customer_key, @next_name AS next_name
+|> ASSERT UNIQUE BY (customer_key)
+|> RESULT upserts
+|> EFFECT UPSERT kintone.inquiries ID customer_key SET (Subject = next_name);

@@ -581,9 +581,10 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         fail('InvalidInstalledEffectPlanRecipe');
       }
       const named = slot !== undefined;
-      if (named && (!describe && !target || !text(slot) || !slot.isWellFormed() ||
+      const writeBranch = phase === 'write' && (slot === 'absent' || slot === 'present');
+      if (named && (!describe && !target && !writeBranch || !text(slot) || !slot.isWellFormed() ||
           /[\u0000-\u001f\u007f]/u.test(slot)) ||
-          resource !== undefined && (!named || !text(resource) || !resource.isWellFormed() ||
+          resource !== undefined && (writeBranch || !named || !text(resource) || !resource.isWellFormed() ||
             /[\u0000-\u001f\u007f]/u.test(resource))) fail('InvalidInstalledEffectPlanRecipe');
       const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write', 'apply-confirm', 'resume-confirm',
         'capture-target', 'apply-target', 'resume-target'].includes(phase);
@@ -613,6 +614,14 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         ...(discardResponseProjection === undefined ? {} : {discardResponseProjection})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
+    if (phases.get('write') === 'named') {
+      const absent = credentialOperations.find(entry => entry.phase === 'write' && entry.slot === 'absent');
+      const present = credentialOperations.find(entry => entry.phase === 'write' && entry.slot === 'present');
+      if (absent === undefined || present === undefined ||
+          rowOperations[absent.operationIndex].operation === rowOperations[present.operationIndex].operation) {
+        fail('InvalidInstalledEffectPlanRecipe');
+      }
+    }
   }
   let physicalWrite;
   if (fields.physicalWrite !== undefined) {
@@ -660,6 +669,19 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
 // observation current, share another slot's token or enlarge its bounds.
 export function selectInstalledEffectCredentialOperation(recipe, phase, slot) {
   return recipe?.credentialOperations?.find(entry => entry.phase === phase && entry.slot === slot);
+}
+
+// Each UPSERT branch uses the physical occurrence retained by its recipe.
+// The caller must supply the already admitted original Preview row.
+export function selectInstalledEffectWriteBranch(recipe, kind, previewRow) {
+  if (selectInstalledEffectCredentialOperation(recipe, 'write', 'absent') === undefined) return undefined;
+  const presence = previewRow?.before?.state;
+  const guard = previewRow?.target_guard?.state;
+  if (kind !== 'upsert' || (presence === 'absent' ? guard !== 'not_applicable'
+      : presence !== 'present' || guard !== 'version')) fail('InvalidInstalledEffectWriteBranch');
+  const selected = selectInstalledEffectCredentialOperation(recipe, 'write', presence);
+  if (selected === undefined) fail('InvalidInstalledEffectWriteBranch');
+  return selected;
 }
 
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {

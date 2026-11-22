@@ -426,3 +426,104 @@ test "Relation Mapping caller ceilings refuse no partial Mapping and keep origin
     is Ok(_),
   )
 }
+
+///|
+test "actual Relation UPSERT Mapping admits only the exact keyed write and both permissions" {
+  let limits = delete_mapping_limits()
+  let original = generate_relation_row_declaration(
+    "typed-write",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "records",
+        resource_kind: "record",
+        schema_wire: (
+          #|{"id":{"nullable":false,"type":"string"},"memo":{"nullable":false,"type":"string"},"sku":{"nullable":false,"type":"string"}}
+        ),
+        schema_cid: "sha256:73024dcb40a914edfc93bb74679e647b1997099d46ffdef735132190035b9c99",
+        request_schema_wire: None,
+        facts_wire: None,
+        acquisition_wire: None,
+      },
+    ],
+    limits,
+  ).unwrap()
+  let spec : RowRelationWriteSpec = {
+    kind: RelationKeyUpsert(
+      native_identity="id",
+      update_permission="fixture:update",
+    ),
+    writable_fields: ["memo"],
+    required_fields: ["memo"],
+    permission: "fixture:create",
+    approval: "required",
+  }
+  let sources : Array[RowMappingSource] = [
+    { target: "memo", field: "next", null_behavior: "reject", },
+  ]
+  let mapping = prepare_relation_row_write_mapping(
+    original, "records", "sku", spec, sources, limits,
+  ).unwrap()
+  let checked = @environment.check_mapping_contract_shapes(
+    relation_mapping_environment(original, mapping),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 32, max_members: 100, },
+    10000,
+  ).unwrap()
+  let shape = @environment.mapping_shape_at(checked, 0).unwrap()
+  assert_eq(@environment.mapping_shape_primary_identity(shape), Some("sku"))
+  let permission = @environment.select_mapping_permissions(
+    shape,
+    "upsert",
+    "key",
+    ["memo"],
+    1000,
+  ).unwrap()
+  assert_eq(@environment.mapping_permission_names(permission), [
+    "fixture:create", "fixture:update",
+  ])
+  assert_true(
+    @environment.select_mapping_permissions(
+      shape,
+      "upsert",
+      "id",
+      ["memo"],
+      1000,
+    )
+    is Err(_),
+  )
+  assert_true(
+    prepare_relation_row_write_mapping(
+      original,
+      "records",
+      "sku",
+      {
+        ..spec,
+        kind: RelationKeyUpsert(
+          native_identity="other_id",
+          update_permission="fixture:update",
+        ),
+      },
+      sources,
+      limits,
+    )
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_relation_row_write_mapping(
+      original,
+      "records",
+      "sku",
+      {
+        ..spec,
+        kind: RelationKeyUpsert(
+          native_identity="id",
+          update_permission="fixture:create",
+        ),
+      },
+      sources,
+      limits,
+    )
+    is Err(InvalidSpecification),
+  )
+}

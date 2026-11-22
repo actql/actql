@@ -33,6 +33,8 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
     'Test packed HubSpot record approval and original Saved',
     'Test packed kintone record approval and original Saved',
     'Test packed kintone conditional DELETE and original Saved',
+    'Test packed kintone keyed UPSERT present target and original Saved',
+    'Test packed kintone keyed UPSERT absent target and original Saved',
     'Test packed Salesforce mock approval and original Saved',
     'Test packed HubSpot mock approval and original Saved',
     'Test packed HubSpot Whole-input mock approval and original Saved',

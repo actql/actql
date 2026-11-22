@@ -92,6 +92,22 @@ fn record_lookup_field_token(code : String) -> Bool {
 }
 
 ///|
+/// The original Form must allow this exact Text field as a unique lookup key.
+pub fn require_record_text_lookup_key(
+  catalog : FormFieldCatalog,
+  key : String,
+) -> Result[Unit, RecordLookupIssue] {
+  let field = match require_form_unique_key(catalog, key) {
+    Ok(value) => value
+    Err(issue) => return Err(Form(issue))
+  }
+  if field.native_type != "SINGLE_LINE_TEXT" || !record_lookup_field_token(key) {
+    return Err(InvalidKey)
+  }
+  Ok(())
+}
+
+///|
 pub fn prepare_record_text_key_lookup(
   catalog : FormFieldCatalog,
   key : String,
@@ -127,15 +143,11 @@ pub fn prepare_record_text_key_lookup(
       }
     }
   }
-  let metadata = match require_form_unique_key(catalog, key) {
-    Ok(value) => value
-    Err(issue) => return Err(Form(issue))
+  match require_record_text_lookup_key(catalog, key) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
-  // Number's historical storage domain is not replaced by Text or Double.
-  // A missing Text key also cannot enforce uniqueness for a later insertion.
-  if metadata.native_type != "SINGLE_LINE_TEXT" ||
-    value.is_empty() ||
-    !record_lookup_field_token(key) {
+  if value.is_empty() {
     return Err(InvalidKey)
   }
   for unit in value {

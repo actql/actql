@@ -1,6 +1,5 @@
-// Kintone's existing described row Effect recipe: three fresh Form describe
-// slots, nine before/target/after slots and one original PUT. Common owns every
-// constructor, grant/transfer child, checked Plan, control codec and cleanup.
+// Kintone's guarded row Effect recipes. Each phase owns its target and Form
+// reads. Only UPDATE also describes the Form outside the row.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
@@ -11,7 +10,7 @@ import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
   httpsCredentialResponseWindowBytes} from '../../../site-node/https-credential-resource.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_RECORD_DELETE_OPERATION, KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
-import {KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
+import {KINTONE_RECORD_CREATE_OPERATION, KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
 
 const fail = () => {throw Object.assign(new Error('KintoneEffectRecipeUnavailable'), {code: 'KintoneEffectRecipeUnavailable'});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
@@ -33,16 +32,21 @@ const names = ['maxInputBytes', 'maxRequestBytes', 'maxResponseBytes', 'maxNodes
   'maxValueDepth', 'maxValueTextBytes', 'maxIdentityBytes', 'maxComparisonWork', 'maxRecoveryBytes'];
 
 export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
-  if (kind !== 'update' && kind !== 'delete') fail();
-  const updating = kind === 'update';
-  const writeOperation = updating ? KINTONE_RECORD_UPDATE_OPERATION : KINTONE_RECORD_DELETE_OPERATION;
+  if (!['update', 'upsert', 'delete'].includes(kind)) fail();
+  const keyed = kind === 'upsert', deleting = kind === 'delete';
+  const writeOperation = deleting ? KINTONE_RECORD_DELETE_OPERATION : KINTONE_RECORD_UPDATE_OPERATION;
   const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
-  const constructors = updating ? ['WriteLimits', 'UpdateProposalConstructionCapacity', 'UpdateFormConstructionCapacity',
-    'UpdateTargetConstructionCapacity', 'UpdateFinalizationConstructionCapacity', 'UpdateResponseConstructionCapacity']
-    : ['DeleteTargetReadConstructionCapacity', 'DeleteFormConstructionCapacity', 'DeleteTargetConstructionCapacity',
-      'DeleteResponseConstructionCapacity'];
+  const constructors = keyed ? ['LookupLimits', 'WriteLimits', 'KeyUpsertProposalConstructionCapacity',
+    'KeyUpsertBeforeConstructionCapacity', 'KeyUpsertFormConstructionCapacity',
+    'KeyUpsertFinalizationConstructionCapacity', 'KeyUpsertRecoveryConstructionCapacity',
+    'KeyUpsertResponseConstructionCapacity', 'KeyUpsertRecipeCapacities']
+    : deleting ? ['DeleteTargetReadConstructionCapacity', 'DeleteFormConstructionCapacity',
+      'DeleteTargetConstructionCapacity', 'DeleteResponseConstructionCapacity', 'UpdateRecipeCapacities']
+      : ['WriteLimits', 'UpdateProposalConstructionCapacity', 'UpdateFormConstructionCapacity',
+        'UpdateTargetConstructionCapacity', 'UpdateFinalizationConstructionCapacity',
+        'UpdateResponseConstructionCapacity', 'UpdateRecipeCapacities'];
   const original = Object.freeze(Object.fromEntries(['MutationLimits', 'PageLimits', 'ValueLimits',
-    'FormLimits', 'UpdateAddConstructionCapacity', 'UpdateRecipeCapacities', ...constructors]
+    'FormLimits', 'UpdateAddConstructionCapacity', ...constructors]
     .map(name => [name, method(moon, 'clientProgramKintone' + name)])));
   const sourceCapacity = method(moon, 'clientProgramInstalledSourceConstructionCapacity');
   const extent = method(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
@@ -74,14 +78,16 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
     const mutation = maximum => original.MutationLimits(1, policy.maxIdentityBytes, policy.maxComparisonWork,
       maximum, policy.maxNodes, policy.maxDepth);
     const requestLimits = mutation(policy.maxRequestBytes), responseLimits = mutation(policy.maxResponseBytes);
-    const writeLimits = updating ? original.WriteLimits(policy.maxFields, policy.maxNameUnits, policy.maxValueNodes,
+    const writeLimits = !deleting ? original.WriteLimits(policy.maxFields, policy.maxNameUnits, policy.maxValueNodes,
       policy.maxValueDepth, policy.maxValueTextBytes, policy.maxRequestBytes) : undefined;
     const pageLimits = original.PageLimits(policy.maxResponseBytes, policy.maxNodes, policy.maxDepth,
-      1, policy.maxColumns, policy.maxCells, policy.maxTableRows);
+      keyed ? 2 : 1, policy.maxColumns, policy.maxCells, policy.maxTableRows);
     const valueLimits = original.ValueLimits(policy.maxColumns, policy.maxNameUnits,
       policy.maxValueNodes, policy.maxValueDepth, policy.maxValueTextBytes);
     const formLimits = original.FormLimits(policy.maxResponseBytes, policy.maxNodes, policy.maxDepth,
       policy.maxFields, policy.maxNameUnits);
+    const lookup = keyed ? original.LookupLimits(policy.maxIdentityBytes, policy.maxColumns,
+      policy.maxComparisonWork, policy.maxRequestBytes, policy.maxNodes, policy.maxDepth) : undefined;
     const parsed = (bytes, nodes = policy.maxValueNodes + 2, depth = policy.maxValueDepth + 2) =>
       [bytes, Math.min(nodes, bytes), Math.min(depth, bytes)];
     // Caller-only DATA: carrier/WeakMap entry views, exact CID preimages,
@@ -90,7 +96,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
     // capacities/Core output ports. A Form Unit has no such returned material.
     const host = (kind, bytes) => {
       const b = BigInt(Math.max(1, bytes)), units = BigInt(bindingUnits), f = BigInt(fields.length);
-      const input = updating && kind === 'request' ? BigInt(body.maxBytes) : 0n;
+      const input = !deleting && kind === 'request' ? BigInt(body.maxBytes) : 0n;
       const base64 = kind === 'target' ? 4n * ((b + 2n) / 3n) : 0n;
       const returnedNodes = kind === 'form' ? 0n : 80n + 4n * f;
       const returnedText = kind === 'form' ? 0n : 2n * (base64 + 3n * 71n);
@@ -102,21 +108,29 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
         256n + 16n * BigInt(body.maxNodes) + 8n * f, 6n * canonical,
         2n * canonical + input + b));
     };
-    const request = add(native(updating ? original.UpdateProposalConstructionCapacity(mapping, policy.maxInputBytes,
-      writeLimits, requestLimits) : original.DeleteTargetReadConstructionCapacity(mapping, policy.maxFields, requestLimits)),
-    host('request', policy.maxRequestBytes));
+    const proposalCapacity = keyed
+      ? original.KeyUpsertProposalConstructionCapacity(mapping, policy.maxInputBytes, writeLimits, requestLimits, lookup)
+      : deleting ? original.DeleteTargetReadConstructionCapacity(mapping, policy.maxFields, requestLimits)
+        : original.UpdateProposalConstructionCapacity(mapping, policy.maxInputBytes, writeLimits, requestLimits);
+    const request = add(native(proposalCapacity), host('request', policy.maxRequestBytes));
     const finalHost = host('finalize', policy.maxRequestBytes);
-    const finalization = updating ? add(native(original.UpdateFinalizationConstructionCapacity(mapping, requestLimits)),
-      finalHost) : finalHost;
-    const targetCapacity = updating ? original.UpdateTargetConstructionCapacity : original.DeleteTargetConstructionCapacity;
-    const formCapacity = updating ? original.UpdateFormConstructionCapacity : original.DeleteFormConstructionCapacity;
-    const responseCapacity = updating ? original.UpdateResponseConstructionCapacity : original.DeleteResponseConstructionCapacity;
+    const finalization = deleting ? finalHost : add(native(keyed
+      ? original.KeyUpsertFinalizationConstructionCapacity(mapping, writeLimits, requestLimits)
+      : original.UpdateFinalizationConstructionCapacity(mapping, requestLimits)), finalHost);
+    const beforeCapacity = deleting ? original.DeleteTargetConstructionCapacity : original.UpdateTargetConstructionCapacity;
+    const targetCapacity = bytes => native(keyed
+      ? original.KeyUpsertBeforeConstructionCapacity(mapping, Math.max(1, bytes), pageLimits, valueLimits, responseLimits)
+      : beforeCapacity(mapping, bytes, pageLimits, valueLimits, responseLimits));
+    const formCapacity = keyed ? original.KeyUpsertFormConstructionCapacity
+      : deleting ? original.DeleteFormConstructionCapacity : original.UpdateFormConstructionCapacity;
+    const responseCapacity = keyed ? original.KeyUpsertResponseConstructionCapacity
+      : deleting ? original.DeleteResponseConstructionCapacity : original.UpdateResponseConstructionCapacity;
     const profile = (targetBytes, metadataBytes, responseBytes = policy.maxResponseBytes) => {
-      const target = add(native(targetCapacity(mapping, targetBytes,
-        pageLimits, valueLimits, responseLimits)), host('target', targetBytes));
+      const target = add(targetCapacity(targetBytes), host('target', targetBytes));
       const form = native(formCapacity(mapping, metadataBytes, formLimits));
       const response = native(responseCapacity(mapping, responseBytes, responseLimits));
-      const outcomeBytes = Math.min(policy.maxResponseBytes, 6 * Math.min(Math.max(1, responseBytes), policy.maxIdentityBytes) + 128);
+      const outcomeBytes = Math.min(policy.maxResponseBytes, 6 * Math.min(Math.max(1, responseBytes), policy.maxIdentityBytes) +
+        (keyed ? 160 : 128));
       return Object.freeze({capacities: [request, target, response, form],
         output: [...parsed(policy.maxRequestBytes), ...parsed(policy.maxResponseBytes), ...parsed(outcomeBytes, 16, 3)]});
     };
@@ -137,30 +151,36 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
       // native admitted values/targets and Host before trees are separate.
       const envelopes = checked(sourceCapacity(128n, 2n * wireBytes, 0n,
         512n + 4n * wireBytes, 148n * wireBytes + 16n * BigInt(bindingUnits), 4n * wireBytes));
-      return add(envelopes, add(finalization, add(native(targetCapacity(mapping,
-        targetBytes, pageLimits, valueLimits, responseLimits)), host('target', targetBytes))));
+      if (keyed) {
+        const whole = native(original.KeyUpsertRecoveryConstructionCapacity(mapping, Math.max(1, targetBytes),
+          policy.maxInputBytes, lookup, pageLimits, valueLimits, writeLimits, requestLimits, responseLimits));
+        return add(envelopes, add(whole, host('request', policy.maxRequestBytes)));
+      }
+      return add(envelopes, add(finalization, add(targetCapacity(targetBytes), host('target', targetBytes))));
     };
-    const quantities = (values, hostBytes = 0, control = controlBytes, recoveryBytes = hostBytes) => checked(original.UpdateRecipeCapacities(
+    const recipeCapacity = keyed ? original.KeyUpsertRecipeCapacities : original.UpdateRecipeCapacities;
+    const quantities = (values, hostBytes = 0, control = controlBytes, recoveryBytes = hostBytes) => checked(recipeCapacity(
       values.capacities, values.output, cold(recoveryBytes), parameters, BigInt(bindingUnits), httpsCredentialResponseReadQuantum, control, hostBytes));
     const initialProfile = profile(0, 0), initial = quantities(initialProfile);
     const maximum = quantities(profile(policy.maxResponseBytes, policy.maxResponseBytes), -1);
     const fallback = quantities(initialProfile, 0, 0);
     if ([initial, maximum, fallback].some(values => !Array.isArray(values) || values.length !== 8)) fail();
-    const captureName = writeOperation + '.capture';
+    const recipeName = keyed ? 'kintone:records:key-upsert' : writeOperation;
+    const captureName = recipeName + '.capture';
     const capturedExtent = values => checked(capture(captureName, values.slice(0, 6),
       preview.maxWireBytes, preview.maxNodes, preview.maxDepth));
     const operationExtent = (operation, capacity, transfer = 0n, physical = false) => checked(extent(operation, capacity, transfer, physical));
     const memberOperations = [{operation: captureName, extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
     const rowOperations = [
-      {operation: writeOperation + '.request', extent: operationExtent(writeOperation + '.request', initial[2])},
-      {operation: writeOperation + '.finalize', extent: operationExtent(writeOperation + '.finalize', finalization)},
+      {operation: recipeName + '.request', extent: operationExtent(recipeName + '.request', initial[2])},
+      {operation: recipeName + '.finalize', extent: operationExtent(recipeName + '.finalize', finalization)},
     ];
     const credentialOperations = [];
     const physical = (phase, slot, resource, perRow, target) => {
       const operation = target ? KINTONE_TARGET_READ_OPERATION : KINTONE_FORM_READ_OPERATION;
       const operations = perRow ? rowOperations : memberOperations, operationIndex = operations.length;
       const transfer = BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes);
-      const deferredTarget = target && !updating;
+      const deferredTarget = target && deleting;
       const of = bytes => {
         const capacity = quantities(target ? profile(bytes, 0) : profile(0, bytes))[target ? 6 : 7];
         return operationExtent(operation, deferredTarget ? composeUpdateTarget(capacity, maxTargetBytes) : capacity, transfer, true);
@@ -176,17 +196,21 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}) {
         }}));
     };
     for (const phase of ['capture', 'apply', 'resume']) {
-      physical(phase + '-describe', 'schema', formResource, false, false);
+      if (!keyed) physical(phase + '-describe', 'schema', formResource, false, false);
       physical(phase + '-target', 'schema-before', formResource, true, false);
       physical(phase + '-target', 'target', undefined, true, true);
       physical(phase + '-target', 'schema-after', formResource, true, false);
     }
-    const writeIndex = rowOperations.length;
     const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
-    rowOperations.push({operation: writeOperation, extent: operationExtent(writeOperation,
-      writeCapacity, BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes), true)});
-    credentialOperations.push(Object.freeze({phase: 'write', operationIndex: writeIndex,
-      maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes, maxTargetBytes}));
+    const physicalWrites = keyed ? [['absent', KINTONE_RECORD_CREATE_OPERATION], ['present', KINTONE_RECORD_UPDATE_OPERATION]]
+      : [[undefined, writeOperation]];
+    for (const [slot, operation] of physicalWrites) {
+      const operationIndex = rowOperations.length;
+      rowOperations.push({operation, extent: operationExtent(operation, writeCapacity,
+        BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes), true)});
+      credentialOperations.push(Object.freeze({phase: 'write', ...(slot === undefined ? {} : {slot}), operationIndex,
+        maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes, maxTargetBytes}));
+    }
     const recoveryIndex = memberOperations.length; memberOperations.push(memberOperations[0]);
     return captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze(memberOperations.map(Object.freeze)),
       rowOperations: Object.freeze(rowOperations.map(Object.freeze)), credentialOperations: Object.freeze(credentialOperations),

@@ -150,3 +150,27 @@ unchanged. For the separate applied-write reply-loss run, use approval and set
 Every run uses fresh fixture and Host roots. In the loss case the provider
 applies the original DELETE once, drops its reply and sees no new write on the
 same-Run lookup.
+
+## Reproduce the owned TLS keyed UPSERT cases
+
+Use the same bounded packed runner and `--kintone-approval`. Select one
+authored case per invocation, with fresh fixture, Host and process roots.
+
+```sh
+export ACTQL_RECORD_APPROVAL_RESULT_NAMES='["main","upserts"]'
+export ACTQL_RECORD_APPROVAL_HTTP_CASE="$PWD/scripts/fixtures/kintone-approval/upsert-present.case.json"
+```
+
+The present case verifies the original key lookup, signed approval and one
+Update Records request with the exact string record ID and revision. To verify
+Create Records with the submitted key, select `upsert-absent.case.json` instead.
+Both cases read the target independently before and after, check the unchanged
+control record, and read the original Saved Result in a fresh process with
+zero additional provider requests. Add `--reject` to exercise the signed
+rejection and unchanged provider state. For an applied write with a lost
+response, set the same reply-loss expectation as for conditional DELETE. The
+read-only recovery then observes the same original Run in
+`needs_reconciliation` with zero additional writes.
+
+These cases use a controlled TLS provider. Live operations use the
+corresponding real App permissions and explicit sandbox authorization.

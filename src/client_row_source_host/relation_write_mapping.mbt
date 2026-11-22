@@ -4,6 +4,8 @@
 pub(all) enum RowRelationWriteKind {
   RelationCreate
   RelationUpdate
+  /// Original physical identity field and the additional update permission.
+  RelationKeyUpsert(native_identity~ : String, update_permission~ : String)
 } derive(Eq, Debug)
 
 ///|
@@ -100,6 +102,27 @@ pub fn prepare_relation_row_write_mapping(
     return Err(EmptyWrite)
   }
   let mut remaining = limits.max_bytes
+  if spec.kind is RelationKeyUpsert(native_identity~, update_permission~) {
+    guard @schema.lookup_reference(relation, native_identity) is Some(field) &&
+      !field.contract.nullable &&
+      @contract.key_comparable(field.contract, field.contract) &&
+      native_identity != primary_identity &&
+      !spec.writable_fields.contains(native_identity) &&
+      !update_permission.is_empty() &&
+      update_permission != spec.permission else {
+      return Err(InvalidSpecification)
+    }
+    for name in [native_identity, update_permission] {
+      if name.length() > remaining {
+        return Err(OutputLimit)
+      }
+      let bytes = @utf8.encode(name).length()
+      if bytes > remaining {
+        return Err(OutputLimit)
+      }
+      remaining -= bytes
+    }
+  }
   let names = [
     resource,
     primary_identity,
@@ -191,8 +214,13 @@ pub fn prepare_relation_row_write_mapping(
   let (kind, selector) = match spec.kind {
     RelationCreate => ("create", "none")
     RelationUpdate => ("update", "id")
+    RelationKeyUpsert(..) => ("upsert", "key")
   }
   let permission = spec.permission
+  let provider_identity = match spec.kind {
+    RelationKeyUpsert(native_identity~, ..) => native_identity
+    _ => primary_identity
+  }
   let approval = spec.approval
   let writer = @encode.writer(
     limits.max_bytes,
@@ -215,14 +243,28 @@ pub fn prepare_relation_row_write_mapping(
   }
   try {
     let request_cid = canonical_cid(
-      object([
-        ("resource", resource.to_json()),
-        ("kind", kind.to_json()),
-        ("key", Json::null()),
-        ("target_schema", target_schema),
-        ("write_fields", Json::array(written.map(name => name.to_json()))),
-        ("row_mapping", object(row_mapping)),
-      ]),
+      object(
+        [
+          ("resource", resource.to_json()),
+          ("kind", kind.to_json()),
+          (
+            "key",
+            if spec.kind is RelationKeyUpsert(..) {
+              primary_identity.to_json()
+            } else {
+              Json::null()
+            },
+          ),
+          ..if spec.kind is RelationKeyUpsert(..) {
+            [("native_identity", provider_identity.to_json())]
+          } else {
+            []
+          },
+          ("target_schema", target_schema),
+          ("write_fields", Json::array(written.map(name => name.to_json()))),
+          ("row_mapping", object(row_mapping)),
+        ],
+      ),
       limits,
     )
     let mapping_ref = "mapping:" +
@@ -239,8 +281,8 @@ pub fn prepare_relation_row_write_mapping(
         ("version", "actql.resource_identity/0.1".to_json()),
         ("provider_namespace", declaration.connector_registration.to_json()),
         ("resource_kind", resource_kind.to_json()),
-        ("provider_id_field", primary_identity.to_json()),
-        ("output_field", primary_identity.to_json()),
+        ("provider_id_field", provider_identity.to_json()),
+        ("output_field", provider_identity.to_json()),
         ("boundary_topology", "connector_connection".to_json()),
       ]),
       limits,
@@ -272,7 +314,17 @@ pub fn prepare_relation_row_write_mapping(
               ("effect_kind", kind.to_json()),
               ("selector_class", selector.to_json()),
               ("write_fields", Json::array(written.map(name => name.to_json()))),
-              ("permissions", Json::array([permission.to_json()])),
+              (
+                "permissions",
+                if spec.kind is RelationKeyUpsert(update_permission~, ..) {
+                  Json::array([
+                    permission.to_json(),
+                    update_permission.to_json(),
+                  ])
+                } else {
+                  Json::array([permission.to_json()])
+                },
+              ),
             ]),
           ]),
         ),

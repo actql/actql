@@ -80,7 +80,9 @@ pub fn record_delete_target_construction_capacity(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> @execution.ExecutionCapacity? {
-  if !record_delete_mapping_is_original(mapping) || limits.max_records != 1 {
+  if !record_delete_mapping_is_original(mapping) ||
+    limits.max_records != 1 ||
+    pages.max_rows != 1 {
     return None
   }
   guard record_target_before_construction_inventory(

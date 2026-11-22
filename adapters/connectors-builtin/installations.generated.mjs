@@ -133,6 +133,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-source.mjs", href: new URL("../connectors/kintone/host/installed-kintone-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/host/kintone-delete-request.mjs", href: new URL("../connectors/kintone/host/kintone-delete-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/host/kintone-effect-plan.mjs", href: new URL("../connectors/kintone/host/kintone-effect-plan.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/host/kintone-key-upsert-request.mjs", href: new URL("../connectors/kintone/host/kintone-key-upsert-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/host/kintone-update-driver.mjs", href: new URL("../connectors/kintone/host/kintone-update-driver.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/host/kintone-update-request.mjs", href: new URL("../connectors/kintone/host/kintone-update-request.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/site/kintone-managed-sequence.mjs", href: new URL("../connectors/kintone/site/kintone-managed-sequence.mjs", import.meta.url).href}),
