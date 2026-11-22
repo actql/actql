@@ -10,7 +10,7 @@ import {
   LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, validateLocalRuntimeManifest,
   admitLocalLibraryBytes, admitInstalledLocalRuntime, nativeModelHttpSystemDependency,
 } from '../packages/native-cli/lib/local-runtime.mjs';
-import {verifiedNativeModelHttpLibrary} from './native-preparation-originals.mjs';
+import {verifiedNativeModelHttpPackage} from './native-preparation-originals.mjs';
 
 function original(input, maxBytes) {
   assert.deepEqual(Object.keys(input).sort(), ['bytes', 'path', 'sha256']);
@@ -114,11 +114,15 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
   const modelHttp = libraries.find(item => item.role === 'model-http');
   assert.equal(modelHttp !== undefined, hasModelPreparation,
     'Model HTTP requires its original file-backed preparation receipt');
+  let modelHttpNotice;
   if (modelHttp) {
     const preparation = options.modelHttpPreparation;
     const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
-    const verified = verifiedNativeModelHttpLibrary(preparation, {source: sourceSha, target});
-    assert.deepEqual(modelHttp.original, verified, 'Model HTTP runtime original differs');
+    const verified = verifiedNativeModelHttpPackage(preparation, {source: sourceSha, target});
+    assert.deepEqual(modelHttp.original, verified.library, 'Model HTTP runtime original differs');
+    assert.deepEqual([...modelHttp.dependencies].sort(), [...verified.dependencies].sort(),
+      'Model HTTP preparation dependency census differs');
+    modelHttpNotice = verified.notice;
   }
   const libraryBytes = libraries.map(item => {
     const bytes = original(item.original, LOCAL_RUNTIME_MAX_BYTES);
@@ -128,6 +132,12 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
     new Set(libraries.map(v => v.name)), execute, item.role));
   for (const [index, item] of libraries.entries()) assert.deepEqual(
     [...item.dependencies].sort(), [...observations[index].dependencies].sort(), 'Declared and physical loader dependencies differ');
+  if (modelHttp) {
+    const recorded = licenses.find(item => item.name === modelHttp.license);
+    assert(recorded, 'Model HTTP requires its original combined notice');
+    assert.deepEqual(original(recorded.original, 1024 * 1024), modelHttpNotice,
+      'Model HTTP combined notice differs from its original preparation');
+  }
   const manifest = {
     sourceSha, platform,
     libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`,

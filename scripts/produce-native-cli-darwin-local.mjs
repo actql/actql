@@ -20,7 +20,8 @@ const inside = (value, parent) => parent === '/' || value === parent || value.st
 export function parseNativeDarwinLocalArguments(args) {
   const flags = {'--source': 'sourceSha', '--package-version': 'packageVersion', '--output': 'outputDirectory',
     '--clang': 'clang', '--sdk': 'sdk', '--sqlite-archive': 'sqliteArchive', '--openssl-source-archive': 'opensslSourceArchive',
-    '--component-seconds': 'componentSeconds', '--compile-seconds': 'compileSeconds'};
+    '--component-seconds': 'componentSeconds', '--compile-seconds': 'compileSeconds',
+    '--model-http-preparation': 'modelHttpPreparation'};
   assert(Array.isArray(args) && args.length % 2 === 0, 'Select source, version, compiler/SDK, both original archives and fresh output');
   const options = {};
   for (let index = 0; index < args.length; index += 2) {
@@ -37,15 +38,21 @@ export function parseNativeDarwinLocalArguments(args) {
 export function planNativeDarwinLocalProduction(options, {sourceRoot = resolve(repository), node = process.execPath} = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options));
   const allowed = ['sourceSha', 'packageVersion', 'outputDirectory', 'clang', 'sdk', 'sqliteArchive',
-    'opensslSourceArchive', 'componentSeconds', 'compileSeconds'];
+    'opensslSourceArchive', 'componentSeconds', 'compileSeconds', 'modelHttpPreparation'];
   assert(Object.keys(options).every(key => allowed.includes(key)), 'Unknown Darwin production selection');
   const {sourceSha, outputDirectory, clang, sdk, sqliteArchive, opensslSourceArchive,
-    componentSeconds = 900, compileSeconds = 1800} = options;
+    componentSeconds = 900, compileSeconds = 1800, modelHttpPreparation} = options;
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   const packageVersion = nativePackageVersion(options.packageVersion);
   for (const [label, value] of Object.entries({sourceRoot, node, outputDirectory, clang, sdk, sqliteArchive, opensslSourceArchive})) absolute(value, label);
   assert(!inside(outputDirectory, sourceRoot) && !inside(sourceRoot, outputDirectory), 'Output must be outside the source checkout');
   const inputs = [clang, sdk, sqliteArchive, opensslSourceArchive];
+  const modelSelection = [];
+  if (modelHttpPreparation !== undefined) {
+    absolute(modelHttpPreparation, 'Model HTTP preparation');
+    inputs.push(modelHttpPreparation);
+    modelSelection.push('--model-http-preparation', modelHttpPreparation);
+  }
   assert.equal(new Set(inputs).size, inputs.length, 'Compiler, SDK and archives must be distinct');
   assert(inputs.every(value => !inside(value, outputDirectory)), 'Original inputs cannot be inside fresh output');
   assert(Number.isSafeInteger(componentSeconds) && componentSeconds > 0 && componentSeconds <= 1800,
@@ -55,7 +62,8 @@ export function planNativeDarwinLocalProduction(options, {sourceRoot = resolve(r
   directories.cryptoSource = directories.crypto;
   directories.crypto = join(directories.cryptoSource, 'component');
   const step = (phase, command, args, timeoutMs) => ({phase, command, args, timeoutMs});
-  return {sourceSha, packageVersion, outputDirectory, clang, sdk, sqliteArchive, opensslSourceArchive, sourceRoot, directories,
+  return {sourceSha, packageVersion, outputDirectory, clang, sdk, sqliteArchive, opensslSourceArchive,
+    modelHttpPreparation, sourceRoot, directories,
     commands: [
       step('sqlite', 'python3', [join(sourceRoot, 'scripts/produce-python-sqlite-component.py'),
         '--source', sourceSha, '--archive', sqliteArchive, '--process-provider', '--process-target', 'darwin-arm64',
@@ -66,7 +74,7 @@ export function planNativeDarwinLocalProduction(options, {sourceRoot = resolve(r
         '--seconds', String(componentSeconds)], componentSeconds * 1000),
       step('recipe', node, [join(sourceRoot, 'scripts/native-cli-local-recipe.mjs'),
         '--source', sourceSha, '--platform', 'darwin-arm64', '--sqlite-component', directories.sqlite,
-        '--crypto-component', directories.crypto, '--output', directories.recipe], 120000),
+        '--crypto-component', directories.crypto, '--output', directories.recipe, ...modelSelection], 120000),
       step('artifact', node, [join(sourceRoot, 'scripts/native-cli-artifact.mjs'), directories.artifact,
         '--local-runtime-recipe', join(directories.recipe, 'local-runtime-recipe.json'),
         '--package-version', packageVersion, '--compile-seconds', String(budget.seconds)], budget.timeoutMs + 120000),
@@ -118,6 +126,7 @@ export async function produceNativeCliDarwinLocal(options, {execute = execFileSy
   const selections = [[plan.clang, 512 * 1024 * 1024], [join(plan.sdk, 'SDKSettings.json'), 1024 * 1024],
     [plan.sqliteArchive, 5 * 1024 * 1024], [plan.opensslSourceArchive, 128 * 1024 * 1024],
     [join(sourceRoot, 'packages/python-local-runtime/native/sqlite-component/source.json'), 65536]];
+  if (plan.modelHttpPreparation !== undefined) selections.push([plan.modelHttpPreparation, 32 * 1024 * 1024]);
   const inputs = Object.fromEntries(selections.map(([file, maximum]) => [file, original(file, maximum).identity]));
   const checkInputs = () => {for (const [file, maximum] of selections) assert.deepEqual(original(file, maximum).identity, inputs[file]);};
   const checkTools = () => {

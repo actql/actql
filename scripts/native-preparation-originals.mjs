@@ -115,7 +115,9 @@ function index(root,selected) {
 }
 function readVerifiedNativeHttpPreparation(path,selected,item,requireModelResolver) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
-  for(const key of ['source','target'])assert.equal(body[key],selected[key]);
+  for (const key of ['source', 'target']) {
+    assert.equal(body[key], selected[key], `HTTP preparation ${key} differs from the selected original`);
+  }
   const minimum=selected.target==='darwin-arm64'?'11.0':null;
   assert.equal(body.minimumMacOS,minimum);
   assert.equal(body.loaded,0);assert.equal(body.initialized,0);assert.equal(body.installed_supplier,false);
@@ -158,7 +160,7 @@ function readVerifiedNativeHttpPreparation(path,selected,item,requireModelResolv
     assert.equal(resolver.notice.path, join(directory, 'component/bundle/CARES-LICENSE.md'));
     for (const original of [resolver.source, resolver.staticLibrary, resolver.notice]) verifyOriginal(original);
   }
-  return {path: body.component.path, component};
+  return {path: body.component.path, component, tls};
 }
 
 export function verifyNativeHttpPreparation(path, selected, item, {requireModelResolver = false} = {}) {
@@ -188,13 +190,33 @@ function verifyModelHttpProducerInputs(producerSource, packageSource) {
     'src/platform_native/http_client/component_tls_lifetime.h']);
 }
 
-export function verifiedNativeModelHttpLibrary(preparation, selected) {
+export function verifiedNativeModelHttpPackage(preparation, selected) {
   const producerSource = preparation.source ?? selected.source;
   verifyModelHttpProducerInputs(producerSource, selected.source);
-  const {component} = readVerifiedNativeHttpPreparation(
+  const {component, tls} = readVerifiedNativeHttpPreparation(
     preparation.path, {...selected, source: producerSource}, preparation, true);
   const {path, bytes, sha256} = component.library;
-  return {path, bytes, sha256};
+  const {version, archive} = component.upstream;
+  const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
+    item.sha256 === archive.sha256 && basename(item.path) === `curl-${version}.tar.xz`);
+  assert.equal(curlArchives.length, 1, 'One original curl source archive required');
+  const curlArchive = curlArchives[0];
+  // Use the selected archive bytes themselves for the upstream notice.
+  const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
+    input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
+  });
+  const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
+  assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
+  const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
+  const resolver = component.modelResolver.notice;
+  const resolverNotice = data(resolver.path, resolver);
+  assert(curlNotice.length > 0 && tlsNotice.length <= 65536 && resolverNotice.length <= 65536);
+  const separator = Buffer.from('\n\n');
+  return {
+    library: {path, bytes, sha256},
+    dependencies: component.systemDependencies,
+    notice: Buffer.concat([curlNotice, separator, tlsNotice, separator, resolverNotice]),
+  };
 }
 
 export function preparedNativeHttpReceipt(root,selected,options) {
