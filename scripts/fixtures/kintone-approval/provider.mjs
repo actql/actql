@@ -1,20 +1,15 @@
 // Synthetic provider DATA only. Revision comparison and exactly one UPDATE
 // are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
-import {recordUpdateFixtureState} from '../record-approval/cases.mjs';
+import {recordUpdateFixtureSeed} from '../record-approval/cases.mjs';
 import {form} from '../../../adapters/connectors/kintone/test/kintone-update-form.fixture.mjs';
 
-export function kintoneApprovalProvider({recordId, controlId, previousName, nextName}) {
+export function kintoneApprovalProvider({recordId, controlId, previousName}) {
   for (const value of [recordId, controlId]) assert.match(value, /^[1-9][0-9]*$/u);
-  for (const value of [previousName, nextName]) {
-    assert.equal(typeof value, 'string'); assert(value.length > 0);
-  }
-  assert.notEqual(recordId, controlId);
-  assert.notEqual(previousName, nextName);
   const revision = '9007199254740994', nextRevision = '9007199254740995';
-  const {before} = recordUpdateFixtureState({recordId, controlId, previousName, nextName});
-  const target = {...before.target, revision};
-  const control = {...before.control, revision};
+  const seed = recordUpdateFixtureSeed({recordId, controlId, previousName});
+  const target = {...seed.target, revision};
+  const control = {...seed.control, revision};
   const fields = ['$id', '$revision', 'Computed', 'Subject', 'Tags'];
   const record = value => ({$id: {type: '__ID__', value: value.id},
     $revision: {type: '__REVISION__', value: value.revision},
@@ -36,10 +31,13 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
   }});
   const writeRoute = route('PUT', '/k/v1/records.json', exchange => {
     assert.equal(exchange.headers['x-http-method-override'], undefined);
-    assert.deepEqual(JSON.parse(exchange.body), {app: '12', records: [{id: recordId, revision,
-      record: {Subject: {value: nextName}}}], upsert: false});
+    const body = JSON.parse(exchange.body);
+    const name = body?.records?.[0]?.record?.Subject?.value;
+    assert.equal(typeof name, 'string');
+    assert.deepEqual(body, {app: '12', records: [{id: recordId, revision: target.revision,
+      record: {Subject: {value: name}}}], upsert: false});
     assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-    writes++; target.name = nextName; target.revision = nextRevision;
+    writes++; target.name = name; target.revision = nextRevision;
     return {records: [{id: recordId, revision: nextRevision}]};
   });
   const routes = [

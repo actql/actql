@@ -7,7 +7,8 @@ import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile,
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
-import {openRecordApprovalExchange, installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
+import {openRecordApprovalExchange, installedRecordReplyLossExpectation,
+  assertRecordApprovalTarget} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
@@ -727,9 +728,9 @@ test('HubSpot approval provider retains independent original records and accepts
   assert.equal(f.value.snapshot().writes, 1);
 });
 
-test('HubSpot approval provider refuses wrong targets, values and markers without writing', () => {
+test('HubSpot approval provider refuses wrong targets, malformed values and markers without writing', () => {
   for (const mutate of [body => {body.inputs[0].id = 'other';},
-    body => {body.inputs[0].properties.name = 'other';},
+    body => {body.inputs[0].properties.name = null;},
     body => {delete body.inputs[0].properties.actql_request_id;},
     body => {body.inputs[0].properties.actql_request_id = 'not-a-cid';},
     body => {body.inputs[0].extra = 'unapproved';}]) {
@@ -807,6 +808,26 @@ test('kintone approval provider keeps string identity and original revision for 
   assert.equal(f.value.snapshot().writes, 1);
 });
 
+test('record approval target oracle refuses protocol-valid writes with unexpected values', () => {
+  const hubspot = hubspotProviderFixture(), kintone = kintoneProviderFixture();
+  const wrongValue = 'Wrong but valid provider text';
+  hubspot.body.inputs[0].properties.name = wrongValue;
+  kintone.body.records[0].record.Subject.value = wrongValue;
+  for (const [fixture, selected] of [
+    [hubspot, {...selection, controlId: 'untouched-control'}], [kintone, kintone.selected],
+  ]) {
+    const expected = recordUpdateFixtureState(selected);
+    const before = fixture.value.snapshot();
+    fixture.apply(fixture.body);
+    const after = fixture.value.snapshot();
+    assert.equal(after.writes, 1);
+    assert.deepEqual(after.failures, []);
+    assert.equal(after.target.name, wrongValue);
+    assert.deepEqual(after.control, before.control);
+    assert.throws(() => assertRecordApprovalTarget(after, expected.after), /Independent provider target state/u);
+  }
+});
+
 for (const [connector, builder, resource, idField, valueField, makeProvider, makeCase, beforeName, afterName] of [
   ['hubspot', hubspotMock, 'companies', 'id', 'name', hubspotApprovalProvider, hubspotUpdateCase,
     'Before HubSpot approval', 'After HubSpot approval'],
@@ -873,7 +894,7 @@ test('shared record fixture rejects missing or aliased control identity without 
 test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {
   for (const mutate of [body => {body.records[0].id = '123';},
     body => {body.records[0].revision = '7';}, body => {delete body.records[0].revision;},
-    body => {body.records[0].record.Subject.value = 'wrong';},
+    body => {body.records[0].record.Subject.value = 7;},
     body => {body.records[0].record.Computed = {value: 'unapproved'};},
     body => {body.upsert = true;}]) {
     const f = kintoneProviderFixture(), before = f.value.snapshot();
