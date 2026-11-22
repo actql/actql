@@ -96,9 +96,9 @@ fn client_keyed_plan_test_environment(
     declaration.manifest_entry +
     "],\"version\":\"actql-connectors/0.1\"}",
   )
-  let members = (bodies : Array[String]) => {
+  let members = (bodies : Array[Json]) => {
     let entries = bodies.map(body => {
-      let value = @canonical.from_json(@json.parse(body), 100000, 100, 1000000)
+      let value = @canonical.from_json(body, 100000, 100, 1000000)
       (@canonical.cid_value(value, 1000000, 100000, 100), value)
     })
     entries.sort_by((a, b) => a.0.compare(b.0))
@@ -110,16 +110,17 @@ fn client_keyed_plan_test_environment(
       "]",
     )
   }
-  fields["contract_registry"] = members(declaration.contracts)
-  fields["source_views"] = members(declaration.view_bodies)
+  fields["contract_registry"] = members(
+    declaration.contracts.map(body => @json.parse(body)),
+  )
+  fields["source_views"] = members(
+    declaration.view_bodies.map(body => @json.parse(body)),
+  )
   let (schemas, capabilities) = @row_host.row_declaration_evidence_members(
     declaration,
   )
-  fields["schema_snapshots"] = members(schemas)
-  fields["connector_capabilities"] = members(capabilities)
-  guard fields["connector_capabilities"] is Array(caps) else {
-    fail("capabilities")
-  }
+  fields["schema_snapshots"] = members(schemas.map(body => @json.parse(body)))
+  let caps = capabilities.map(body => @json.parse(body))
   for item in caps {
     guard item is Object(cap) && cap["capability_contract_cids"] is Array(ids) else {
       fail("capability")
@@ -127,6 +128,8 @@ fn client_keyed_plan_test_environment(
     ids.push(Json::string(@publication.publication_contract_identity(profile)))
     ids.sort_by((a, b) => a.stringify().compare(b.stringify()))
   }
+  // The final body owns each member CID, including the installed read profile.
+  fields["connector_capabilities"] = members(caps)
   guard fields["host_policy_profile"] is Object(policy) else {
     fail("Host policy")
   }
