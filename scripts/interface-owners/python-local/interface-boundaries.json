@@ -8336,7 +8336,7 @@
           ]
         }
       ],
-      "sha256": "771b7fc3932e5380872d2cb19c54a262d9a51797f817ef5f9164752d45142267",
+      "sha256": "bb822647ffb10952bfe7a9f8114126b619cfe36b7a515b7900dbb206435f8a7b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28458,7 +28458,8 @@
           "async": false,
           "name": "OriginalHostBinding/_new_invocation_observation",
           "parameters": [
-            "self"
+            "self",
+            "export_name"
           ]
         },
         {
@@ -28654,6 +28655,13 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation/terminal_read_baseline",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalPublisherPort",
           "parameters": []
         },
@@ -28737,7 +28745,7 @@
           ]
         }
       ],
-      "sha256": "ee5836716d033ee48c62ecce180bd38a20b98b69a0897555a661aa19f8424798",
+      "sha256": "5726cf8d5ec5a74f114a9a4fe3c23dc0e9e61d4344af3f299cbe4e74e9165562",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28909,7 +28917,8 @@
             "_OriginalPublisherPort/_require_reservation",
             "_OriginalPublisherPort/authorize",
             "_OriginalPublisherPort/current",
-            "_InvocationObservation/supports_saved_census_read"
+            "_InvocationObservation/supports_saved_census_read",
+            "_InvocationObservation/terminal_read_baseline"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -29309,6 +29318,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_proves_only_its_fresh_same_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
               }
             ]
           }
@@ -60500,7 +60525,7 @@
           ]
         }
       ],
-      "sha256": "5e2123a104add2e61bf932b6db2740db73e7076863d2601b5620c0c673014785",
+      "sha256": "97754eb140b37933b9682638cfcd54bef65a88bf2adbcf01bc2f44202ccea1f1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -64979,7 +65004,8 @@
             "_readonly",
             "_prewrite",
             "_reconciliation",
-            "_projected_prewrite"
+            "_projected_prewrite",
+            "_terminal_read_baseline"
           ]
         },
         {
@@ -65026,7 +65052,8 @@
           "name": "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
           "parameters": [
             "span",
-            "snapshot"
+            "snapshot",
+            "baseline"
           ]
         },
         {
@@ -65038,8 +65065,10 @@
         },
         {
           "async": false,
-          "name": "LocalByteStore/_inspect_namespace_locked/closed_observation_open",
-          "parameters": []
+          "name": "LocalByteStore/_inspect_namespace_locked/closed_baseline",
+          "parameters": [
+            "span"
+          ]
         },
         {
           "async": false,
@@ -65240,8 +65269,14 @@
             "fences",
             "inspect",
             "current",
-            "_sdk_delivery_prewrite"
+            "_sdk_delivery_prewrite",
+            "_sdk_terminal_precommit"
           ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_projected_attached/capture_terminal_baseline",
+          "parameters": []
         },
         {
           "async": false,
@@ -65260,6 +65295,13 @@
           "name": "LocalByteStore/_projected_attached/consume_ordinal/consume",
           "parameters": [
             "write"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_projected_attached/terminal_read_baseline",
+          "parameters": [
+            "export_name"
           ]
         },
         {
@@ -65452,7 +65494,8 @@
             "inspect",
             "current",
             "before_commit",
-            "_sdk_delivery_prewrite"
+            "_sdk_delivery_prewrite",
+            "_sdk_terminal_precommit"
           ]
         },
         {
@@ -65756,7 +65799,7 @@
           "parameters": []
         }
       ],
-      "sha256": "3aa1681ceb5872e1c2d1c1405164ec78b3953f216f0b105e009204f233eb8f7b",
+      "sha256": "2ef099fab0cb0002868c2e62c049acf77d522b6c157a8c57e46447daa2844417",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66319,7 +66362,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
             "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
-            "LocalByteStore/_inspect_namespace_locked/closed_observation_open",
+            "LocalByteStore/_inspect_namespace_locked/closed_baseline",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/invocation_candidate",
@@ -66343,6 +66386,8 @@
             "LocalByteStore/_originals_match_locked",
             "LocalByteStore/_prepare_physical_path",
             "LocalByteStore/_projected_attached",
+            "LocalByteStore/_projected_attached/terminal_read_baseline",
+            "LocalByteStore/_projected_attached/capture_terminal_baseline",
             "LocalByteStore/_projected_attached/consume_all",
             "LocalByteStore/_projected_attached/consume_ordinal",
             "LocalByteStore/_projected_attached/consume_ordinal/consume",
@@ -66909,6 +66954,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_proves_only_its_fresh_same_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
               }
             ]
           }

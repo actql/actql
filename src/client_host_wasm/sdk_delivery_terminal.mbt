@@ -131,7 +131,7 @@ pub fn produce_publication_sdk_terminal_storage(
       first,
       run,
       current_configuration,
-      same_reader_census=!output.produced && !output.invoked,
+      same_reader_census=output.produced || !output.invoked,
     ) {
     Ok(context) => context
     Err(code) => return code

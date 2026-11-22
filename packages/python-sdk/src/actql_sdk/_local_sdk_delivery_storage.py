@@ -488,7 +488,8 @@ class OriginalSDKDeliveryStore:
                     generations = observation._store.compare_exchange_projected_inspected(
                         3, project, observation._originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
-                        _sdk_delivery_prewrite=observation._projection._saved)
+                        _sdk_delivery_prewrite=observation._projection._saved,
+                        _sdk_terminal_precommit=observation._projection._saved)
                 if generations is None:
                     raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
             except BaseException:
