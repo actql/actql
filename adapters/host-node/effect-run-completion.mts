@@ -2,7 +2,6 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from
   // @ts-expect-error The existing Effect apply owner is still authored in JavaScript.
   './effect-run-apply.mjs';
 import {issueAuthorizedEffectSetReceipt} from
-  // @ts-expect-error The existing receipt issuer is still authored in JavaScript.
   './effect-response-recovery.mjs';
 import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from
   '../host-common/completed-run-publication.mjs';
@@ -14,7 +13,8 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Published = Parameters<typeof publishCompletedEffectfulRun>[0];
 type IssuedSet = ReturnType<typeof retainIssuedEffectSetReceipt>;
-type Ledger = Readonly<{currentAdmitted(locator: string): unknown}>;
+type ReceiptOptions = Parameters<typeof issueAuthorizedEffectSetReceipt>[0];
+type Ledger = ReceiptOptions['ledger'] & Readonly<{currentAdmitted(locator: string): unknown}>;
 type ApplyRuntime = Readonly<{
   clientProgramEffectApplySubjectCid(capturedInputs: unknown): unknown;
   strategyEffectPreviewSemanticCid(preview: unknown): unknown;
@@ -38,13 +38,11 @@ type Apply = Readonly<{
   computation?: unknown; preview?: unknown;
   dispatchRow?: DispatchRow; bindDispatch?(facts: DispatchFacts): DispatchRow | undefined;
 }> & Readonly<Record<string, unknown>>;
-type Receipt = Readonly<{
-  commonMoon: unknown; ledger: unknown; preview: unknown; publicationPreview: unknown;
-  authorizeEvidenceRead: (...args: never[]) => unknown; providerBinding?: unknown;
+type Receipt = Omit<ReceiptOptions, 'members'> & Readonly<{
   members: readonly Readonly<{replayed: boolean; rowOwners: readonly Readonly<{
-    claim: Readonly<{locator: unknown}>;
+    claim: Extract<ReceiptOptions['members'][number]['rowOwners'][number], {claim: object}>['claim'];
   }>[]}>[];
-  limits: Published['contractLimits'];
+  publicationPreview: unknown;
 }>;
 type Publication = Omit<Published, 'ledger' | 'issuedSet' | 'signal' | 'control'> & Readonly<{
   ledger: unknown; control: Published['control'] & Readonly<{

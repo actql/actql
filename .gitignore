@@ -1930,3 +1930,7 @@ target/
 /adapters/host-node/update-target-original-owner.test.d.mts
 /adapters/host-node/installed-update-originals.mjs
 /adapters/host-node/installed-update-originals.d.mts
+/adapters/host-node/effect-physical-dispatch.mjs
+/adapters/host-node/effect-physical-dispatch.d.mts
+/adapters/host-node/effect-response-recovery.mjs
+/adapters/host-node/effect-response-recovery.d.mts

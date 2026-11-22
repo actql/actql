@@ -1085,11 +1085,11 @@
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -2095,7 +2095,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -2135,7 +2135,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -2157,11 +2157,11 @@
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -2815,11 +2815,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -4195,7 +4195,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -4211,17 +4211,17 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -4899,7 +4899,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               },
               {
@@ -5051,7 +5051,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -5125,11 +5125,11 @@
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
@@ -6649,11 +6649,11 @@
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -7580,7 +7580,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               },
               {
@@ -7728,7 +7728,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -7802,11 +7802,11 @@
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
@@ -9283,7 +9283,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -9323,7 +9323,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               }
             ],
@@ -9341,11 +9341,11 @@
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],

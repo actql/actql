@@ -45793,8 +45793,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -45807,8 +45807,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -45821,7 +45821,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "scope: claim?.scope,"
               },
               {
@@ -45835,7 +45835,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// opaque, exact objects; cloning or serializing them would lose their owner."
               },
               {
@@ -45849,7 +45849,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// Own the JS wrapper across the physical await. The MoonBit values remain"
               },
               {
@@ -45863,7 +45863,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -45877,8 +45877,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -45891,7 +45891,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// This bridge records only the bounded Site observation. It does not classify"
               },
               {
@@ -45905,8 +45905,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -45937,8 +45937,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -45951,8 +45951,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -45965,7 +45965,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "scope: claim?.scope,"
               },
               {
@@ -45979,7 +45979,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// opaque, exact objects; cloning or serializing them would lose their owner."
               },
               {
@@ -45993,7 +45993,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// Own the JS wrapper across the physical await. The MoonBit values remain"
               },
               {
@@ -46007,7 +46007,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -46021,8 +46021,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46035,7 +46035,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "// This bridge records only the bounded Site observation. It does not classify"
               },
               {
@@ -46049,8 +46049,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
-                "anchor": "export const snapshotEffectDispatchClaim = claim => Object.freeze({"
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
+                "anchor": "export const snapshotEffectDispatchClaim = (claim: ClaimInput) => Object.freeze({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46261,8 +46261,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46275,8 +46275,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -46289,7 +46289,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "expectedRequestCid,"
               },
               {
@@ -46303,7 +46303,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "import {retainIssuedEffectSetReceipt} from"
               },
               {
@@ -46317,7 +46317,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "if (await authorizeEvidenceRead(binding) !== true) {"
               },
               {
@@ -46331,7 +46331,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -46345,8 +46345,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46359,7 +46359,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "// verifies the exact durable claim before exposing bytes to a provider"
               },
               {
@@ -46373,8 +46373,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46405,8 +46405,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46419,8 +46419,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -46433,7 +46433,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "expectedRequestCid,"
               },
               {
@@ -46447,7 +46447,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "import {retainIssuedEffectSetReceipt} from"
               },
               {
@@ -46461,7 +46461,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "if (await authorizeEvidenceRead(binding) !== true) {"
               },
               {
@@ -46475,7 +46475,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "throw Object.assign(new Error(code), {code});"
               },
               {
@@ -46489,8 +46489,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46503,7 +46503,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "// verifies the exact durable claim before exposing bytes to a provider"
               },
               {
@@ -46517,8 +46517,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
-                "anchor": "export async function readAuthorizedEffectResponse({"
+                "path": "adapters/host-node/effect-response-recovery.mts",
+                "anchor": "export async function readAuthorizedEffectResponse<Stored>({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
