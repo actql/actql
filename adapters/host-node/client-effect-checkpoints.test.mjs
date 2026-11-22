@@ -3,11 +3,8 @@
 // capture/apply/publication acceptance is a separate installed-Host test.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {readFileSync} from 'node:fs';
 import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
-import {compileFunction} from 'node:vm';
-import {parseExpressionAt} from 'acorn';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -26,7 +23,7 @@ import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {authorizationDispatchFacts} from
   '../host-common/authorization-gate.mjs';
-import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {installedEffectSettlements, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
@@ -85,9 +82,8 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
 }
 
 test('Host first close joins the original pre-dispatch Effect resume Store reader', async t => {
-  // Exercise the actual Host port expression, Checkpoint stop, Store FD and
-  // shutdown. The resume callback and unused dispatch/journal ports are
-  // explicit fixtures; this issues no business Run, send or physical-stop ACK.
+  // Use the actual Effect drain, Checkpoint stop and Store FD. This fixture
+  // supplies a resume reader without issuing a business Run or send.
   const latch = () => {let resolve; const promise = new Promise(done => {resolve = done;}); return {promise, resolve};};
   const allowRead = latch(), readEntered = latch(), drainEntered = latch();
   const originalOpen = fsPromises.open;
@@ -132,16 +128,12 @@ test('Host first close joins the original pre-dispatch Effect resume Store reade
     readFlight.finally(() => flights.delete('original-resume')).catch(() => {});
     return true;
   };
-  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-  const marker = 'await checkpoints.start(', start = source.indexOf(marker) + marker.length;
-  assert(start >= marker.length && source.indexOf(marker, start) < 0);
-  const expression = parseExpressionAt(source, start, {ecmaVersion: 'latest', sourceType: 'module'});
-  const port = compileFunction('return (' + source.slice(expression.start, expression.end) + ');',
-    ['inspectHeld', 'resumeHeld', 'abandonHeld', 'observeHeldRun', 'cancelHeldRun',
-      'modelController', 'sweepModelRuns', 'modelResumeFlights', 'effectRun', 'sweepEffectRuns', 'effectResumeFlights', 'effectRetirementFlights'])(
-    ...Array.from({length: 5}, () => () => assert.fail('No business continuation is issued')),
-    undefined, undefined, new Map(), {}, sweep, flights, new Map());
-  await installed.start(port);
+  const lifecycle = installedEffectSettlements();
+  const retirements = new Map();
+  const unexpectedContinuation = () => assert.fail('No business continuation is issued');
+  await installed.start({inspect: unexpectedContinuation, resume: unexpectedContinuation,
+    abandon: unexpectedContinuation, observe: unexpectedContinuation, cancelRun: unexpectedContinuation,
+    effects: {sweep, drain: () => lifecycle.drain(flights, retirements)}});
   await readEntered.promise;
   assert(originalFd.fd >= 0, 'the same original semantic read really owns an open FD');
   let storeCloses = 0, fdAtStoreClose;

@@ -16702,7 +16702,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainEffectStartSettlement/retainEffectStartSettlement/retire/retire",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
@@ -16725,9 +16724,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
@@ -26640,11 +26637,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retainEffectStartSettlement/retainEffectStartSettlement/retire/retire",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
           "parameters": [],
           "async": true
@@ -26994,22 +26986,8 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
-          "parameters": [
-            "error"
-          ],
           "async": false
         },
         {
@@ -29382,7 +29360,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "379b9039fba4557c02d7443ecf246d4429d0fa9a2556e21ca7c7062cc4decee0"
+      "sha256": "616f5f4879b72061b9ff66f6d0271b8107bcee89902bd51aac1041435d26daec"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -35610,7 +35588,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1188,
+    "operations": 1185,
     "exports": 109,
     "explicitContractGroups": 106
   }
