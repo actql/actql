@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import * as common from '../../../../_build/js/debug/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
+import {isEffectPreparationRefusal} from '../../../host-common/effect-preparation-result.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {selectInstalledEffectCredentialOperation, selectInstalledEffectWriteBranch}
   from '../../../host-node/installed-effect-plan.mjs';
@@ -212,6 +213,7 @@ for (const [kind, row, opposite] of [['create', absent, 'update'], ['update', pr
     const member = {kind: 'upsert', effectId: 'upsert-inquiry', memberIndex: 0, resource: options.resource,
       mapping: {mappingRef: adapter.mappingRef, mappingCid: adapter.mappingCid}};
     const targetGrant = Object.freeze({grant: {}, useId: 'original-target'});
+    let currentRow = row;
     const original = {member, maxRows: 1, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
       authorizationForRow: () => targetGrant,
       async readChild(grant, invocation, rowIndex, slot, project) {
@@ -221,7 +223,7 @@ for (const [kind, row, opposite] of [['create', absent, 'update'], ['update', pr
         if (slot === 'target') assert.strictEqual(grant, targetGrant);
         else assert(forms.has(grant));
         reads.push(slot);
-        return project({...observation(slot === 'target' ? row : keyedForm), accepted: true});
+        return project({...observation(slot === 'target' ? currentRow : keyedForm), accepted: true});
       },
     };
     assert.deepEqual(driver.kinds, ['upsert']);
@@ -249,6 +251,20 @@ for (const [kind, row, opposite] of [['create', absent, 'update'], ['update', pr
     assert.equal(cold.requestCid(restored.requests[0][0]), final.requestCid);
     assert.equal(reads.length, 3, 'restoration performs no physical reads');
     assert.equal(writes.length, 0, 'restoration performs no physical writes');
+    const loaded = await cold.describe(description);
+    const saved = {request: restored.requests[0][0], requestCid: final.requestCid};
+    const unread = Object.assign(new Error('Unobserved target'), {code: 'KintoneKeyUpsertTargetChanged'});
+    await assert.rejects(cold.observeTargets({...description, current: loaded, entries: [saved],
+      async readChild(...input) {
+        if (input[3] === 'target') throw unread;
+        return readChild(...input);
+      },
+    }), error => error.cause === unread && !isEffectPreparationRefusal(error));
+    currentRow = kind === 'create' ? present : {...present, records: present.records.map(record =>
+      ({...record, $revision: {...record.$revision, value: '9007199254740997'}}))};
+    await assert.rejects(cold.observeTargets({...description, readChild, current: loaded, entries: [saved]}),
+      error => error.code === 'KintoneKeyUpsertTargetChanged' && isEffectPreparationRefusal(error));
+    assert.deepEqual(writes, []);
     const reply = {...observation(kind === 'create' ? {ids: [nativeId], revisions: [revision]}
       : {records: [{id: nativeId, revision}]}), useCid: cid('f')};
     const invoke = (operation, resourceOrigin = options.origin) => driver.send({member, current,

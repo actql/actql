@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
+import {isEffectPreparationRefusal, refusedEffectPreparation} from '../../../host-common/effect-preparation-result.mjs';
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
   restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
@@ -248,7 +249,12 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
           rows.push(observed);
         }
         return Object.freeze(rows);
-      } catch (cause) {throw new KintoneUpdateObservationFailure(cause, observations);}
+      } catch (cause) {
+        const failure = new KintoneUpdateObservationFailure(cause, observations);
+        // Only a checked provider observation can identify a definitive
+        // target refusal. Preserve its marker across the diagnostic wrapper.
+        throw upsert && isEffectPreparationRefusal(cause) ? refusedEffectPreparation(failure) : failure;
+      }
     },
     admitTargetReadApproval({member, decision}) {
       selected(member);

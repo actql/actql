@@ -8964,7 +8964,7 @@
     },
     {
       "module": "adapters/connectors/kintone/host/kintone-key-upsert-request.mjs",
-      "sha256": "3331e29724ee8122842ba85f97e522a8d79c563b71f954f4dc2f73fef5b2a726",
+      "sha256": "0ab3d6fc6156b98d8f2689c41849bd099b654ee198029287c185f6542f154fb3",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Original Kintone keyed UPSERT request and saved material projection",
@@ -9156,6 +9156,7 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../../packages/sdk/internal/private-source-preparation.mjs",
         "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
         "../../../host-common/runtime-result.mjs",
         "../site/kintone-record-write.mjs",
         "node:crypto",
@@ -9262,7 +9263,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "ffcd5313a98bf1cf55b191c00faf295246aae5ee4ff5db22d172d29e0ea2090f",
+      "sha256": "4bed358ec462c74a49549adab5054eceabed82e948f3c35bc91be215870c4f9d",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -9522,6 +9523,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
         "../../../host-common/http-exchange.mjs",
         "../../../host-common/installed-row-update-recovery.mjs",
         "../../../host-common/owned-invocation-context.mjs",

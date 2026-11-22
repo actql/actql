@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {freezeInput} from '../../../../packages/sdk/internal/private-source-preparation.mjs';
+import {refusedEffectPreparation} from '../../../host-common/effect-preparation-result.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {KINTONE_RECORD_CREATE_OPERATION, KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
@@ -163,7 +164,8 @@ export function createKintoneKeyUpsertRequestAdapter({moon, mapping, declaration
         Object.assign(original, current, {before,
           targetBodyBase64: Buffer.from(bytes).toString('base64'), targetBodyCid: digest(bytes)});
       } else if (current.beforeWire !== original.beforeWire || current.versionCid !== original.versionCid) {
-        fail('KintoneKeyUpsertTargetChanged');
+        throw refusedEffectPreparation(Object.assign(new TypeError('KintoneKeyUpsertTargetChanged'),
+          {code: 'KintoneKeyUpsertTargetChanged'}));
       }
       return Object.freeze(current.versionCid === undefined ? {identity: original.identity, state: 'absent'}
         : {identity: original.identity, state: 'present', versionCid: current.versionCid, before: JSON.parse(current.beforeWire)});
