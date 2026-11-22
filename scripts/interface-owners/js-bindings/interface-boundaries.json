@@ -4722,7 +4722,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4732,7 +4732,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4742,7 +4742,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4752,7 +4752,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4762,7 +4762,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4772,7 +4772,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4782,7 +4782,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4792,7 +4792,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4802,7 +4802,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4812,7 +4812,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               },
               {
@@ -4834,7 +4834,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4844,7 +4844,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4854,7 +4854,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4864,7 +4864,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4874,7 +4874,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4884,7 +4884,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4894,7 +4894,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4904,7 +4904,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4914,7 +4914,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -4924,7 +4924,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {

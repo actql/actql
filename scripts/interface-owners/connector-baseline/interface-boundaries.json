@@ -720,37 +720,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "Cleanup state is Host-owned metadata"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "ownedHostFailure"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "failure.primaryFailure = reason"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "failure.cleanupHandle = cleanupHandle"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "failureMember"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "{cause: reason}"
               }
             ],
@@ -759,7 +759,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "[...cleanupErrors]"
               }
             ],
@@ -771,7 +771,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/failure-envelope.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/failure-envelope.test.mts",
                 "anchor": "Host failure envelope never mutates a frozen failure"
               }
             ]

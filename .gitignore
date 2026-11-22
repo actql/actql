@@ -1772,3 +1772,11 @@ target/
 /adapters/connectors/duckdb/node/native-runtime.d.mts
 /adapters/host-node/duckdb-import-boundary.test.mjs
 /adapters/host-node/duckdb-import-boundary.test.d.mts
+/adapters/connectors/duckdb/node/failure-envelope.mjs
+/adapters/connectors/duckdb/node/failure-envelope.d.mts
+/adapters/connectors/duckdb/node/managed-output-finish.mjs
+/adapters/connectors/duckdb/node/managed-output-finish.d.mts
+/adapters/connectors/duckdb/node/test/failure-envelope.test.mjs
+/adapters/connectors/duckdb/node/test/failure-envelope.test.d.mts
+/adapters/connectors/duckdb/node/test/managed-output-finish.test.mjs
+/adapters/connectors/duckdb/node/test/managed-output-finish.test.d.mts

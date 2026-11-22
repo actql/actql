@@ -1733,49 +1733,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "common owner issues the receipt"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "finishManagedOutputReceipt"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "advance(quantum)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "caller retains cleanup custody"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "await yieldToHost"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "Invalid managed output finish progress"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-output-finish.mts",
                 "anchor": "const quantum = 64"
               }
             ],
@@ -1787,7 +1787,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/managed-output-finish.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/managed-output-finish.test.mts",
                 "anchor": "physical receipt adapter rejects invalid progress without retry"
               }
             ]
@@ -1870,7 +1870,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/failure-envelope.mjs",
+                "path": "adapters/connectors/duckdb/node/failure-envelope.mts",
                 "anchor": "primaryFailure"
               }
             ],
