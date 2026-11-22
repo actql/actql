@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import {mkdir, copyFile, writeFile, readFile, symlink, readlink, unlink} from 'node:fs/promises';
 import {join, dirname, isAbsolute} from 'node:path';
-import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
+import type {BenchmarkPackageManifest} from './node-benchmark-evidence.mjs';
 
 export const packedAccountCases = Object.freeze(['bootstrap', 'padded-default', 'installed-explicit']);
 export const packedAccountMembers = Object.freeze([
@@ -11,7 +12,35 @@ export const packedAccountMembers = Object.freeze([
   'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
 ]);
 
-export function assertPackedAccountOutcome(actual, pid) {
+type AccountCase = {
+  id: unknown; complete: unknown; hostOpenCalls: unknown; firstClose: unknown; firstCloseCalls: unknown;
+  primary?: unknown; cleanup: unknown; beforeCloseRecorded: unknown; aliveScopedFD: unknown; rows: unknown;
+  ref: unknown; resultName: unknown; profile?: unknown; accountId?: unknown; rawBytes?: number;
+  canonicalAccountUnchanged?: unknown; sameLiveHost?: unknown; currentControls?: unknown;
+};
+type AccountOutcome = {
+  case: unknown; pid: number; complete: unknown; primary?: unknown; cleanup: unknown; cases: AccountCase[];
+};
+type Failure = ReturnType<typeof nodeBenchmarkFailure>;
+type CommandResult = {
+  pid: number; code: number | null; signal?: NodeJS.Signals | null; stdout: string; timedOut?: boolean;
+};
+type AccountRecord = {
+  status: string; completed: boolean; unexecutedReason?: string;
+  startedAt?: string; endedAt?: string; command?: string; timeoutMs?: number; args?: string[]; cwd?: string;
+  pid?: number; exitCode?: number | null; signal?: NodeJS.Signals | null;
+  actual?: AccountOutcome; error?: Failure; partial?: unknown[]; progress?: unknown; cleanup?: Failure[];
+};
+type RunnerOptions = {
+  prepared: {manifest: BenchmarkPackageManifest; manifestPath: string; consumer: string};
+  root: string; repository: string;
+  command: (executable: string, args: string[], options: {cwd: string; env: NodeJS.ProcessEnv; name: string; timeout: number}) =>
+    CommandResult | PromiseLike<CommandResult>;
+  report: {account?: AccountRecord}; cleanup: unknown[];
+  verifyPackages?: (...args: Parameters<typeof verifyNodeBenchmarkPackages>) => unknown;
+};
+
+export function assertPackedAccountOutcome(actual: AccountOutcome, pid: number) {
   assert.equal(actual.case, 'packed-account-construction');
   assert.equal(actual.pid, pid); assert.equal(actual.complete, true);
   assert.equal(actual.primary, undefined); assert.deepEqual(actual.cleanup, []);
@@ -27,10 +56,10 @@ export function assertPackedAccountOutcome(actual, pid) {
   }
   const [first, padded, installed] = actual.cases;
   assert.equal(first.profile, 'actql-local-standard');
-  assert.equal(typeof first.accountId, 'string'); assert(first.accountId.length > 0);
+  assert.equal(typeof first.accountId, 'string'); assert((first.accountId as string).length > 0);
   assert.equal(padded.accountId, first.accountId);
-  assert(padded.rawBytes > 1000000); assert.equal(padded.canonicalAccountUnchanged, true);
-  assert(installed.rawBytes > 1000000); assert.equal(installed.sameLiveHost, true);
+  assert(padded.rawBytes! > 1000000); assert.equal(padded.canonicalAccountUnchanged, true);
+  assert(installed.rawBytes! > 1000000); assert.equal(installed.sameLiveHost, true);
   assert.deepEqual(installed.currentControls, {
     sameAccountRestriction: {code: 'ResultAccessDenied', sameAccountId: true},
     changedAccount: {code: 'ResultAccessDenied', differentAccountId: true},
@@ -41,7 +70,7 @@ export function assertPackedAccountOutcome(actual, pid) {
 // The default verifier is the existing exact-source/tarball/installed-software
 // verifier. The optional port is used only by routing tests, never by the runner.
 export async function runPackedAccountControls({prepared, root, repository, command,
-  report, cleanup, verifyPackages = verifyNodeBenchmarkPackages}) {
+  report, cleanup, verifyPackages = verifyNodeBenchmarkPackages}: RunnerOptions) {
   const record = report.account;
   assert(record && typeof command === 'function');
   assert(isAbsolute(root) && isAbsolute(repository) && isAbsolute(prepared.consumer));
@@ -49,8 +78,8 @@ export async function runPackedAccountControls({prepared, root, repository, comm
   await mkdir(application, {recursive: true});
   const prefix = join(collection, 'account-controls');
   const software = join(prepared.consumer, 'node_modules'), alias = join(application, 'node_modules');
-  let primary, linked = false;
-  const ownCleanup = [];
+  let primary: unknown, linked = false;
+  const ownCleanup: unknown[] = [];
   Object.assign(record, {status: 'running', completed: false, startedAt: new Date().toISOString(),
     command: process.execPath, timeoutMs: 120000});
   delete record.unexecutedReason;
@@ -62,7 +91,7 @@ export async function runPackedAccountControls({prepared, root, repository, comm
     }
     await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n', {flag: 'wx'});
     const home = join(application, 'home'); await mkdir(home);
-    const env = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
+    const env: NodeJS.ProcessEnv = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
     delete env.ACTQL_PACKED_CLIENT_PACKAGES;
     await symlink(software, alias, 'dir'); linked = true;
     const args = [join(application, packedAccountMembers[0]), prefix];
@@ -71,14 +100,14 @@ export async function runPackedAccountControls({prepared, root, repository, comm
       {cwd: application, env, name: 'account-controls', timeout: 120000});
     Object.assign(record, {pid: observed.pid, exitCode: observed.code, signal: observed.signal ?? null});
     assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
-    const actual = JSON.parse(observed.stdout.trim());
+    const actual = JSON.parse(observed.stdout.trim()) as AccountOutcome;
     record.actual = actual;
     assertPackedAccountOutcome(actual, observed.pid);
     record.completed = true; record.status = 'passed';
   } catch (error) {
     primary = error;
-    const observed = error.commandResult;
-    record.status = observed?.timedOut === true || error.code === 'ETIMEDOUT' ? 'timeout' : 'failed';
+    const observed = (error as {commandResult?: CommandResult}).commandResult;
+    record.status = observed?.timedOut === true || (error as NodeJS.ErrnoException).code === 'ETIMEDOUT' ? 'timeout' : 'failed';
     record.error = nodeBenchmarkFailure(error);
     if (observed) Object.assign(record, {pid: observed.pid, exitCode: observed.code ?? null, signal: observed.signal ?? null});
     // Same-child pre-close facts remain evidence even when a first close or

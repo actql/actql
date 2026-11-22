@@ -2026,3 +2026,5 @@ target/
 /scripts/packed-mock-effect-controls.d.mts
 /scripts/packed-model-controls.mjs
 /scripts/packed-model-controls.d.mts
+/scripts/packed-account-controls.mjs
+/scripts/packed-account-controls.d.mts
