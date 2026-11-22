@@ -5,26 +5,45 @@ import {canonicalJson} from '../../packages/sdk/checkpoints.mjs';
 import {declaredProjectCatalogEntryConstructionGeometry as geometry}
   from './declared-project-catalog-construction.mjs';
 
-const wire = value => canonicalJson(value, {dataKeys: true});
-const sample = text => ({views: [{resource: 'records', resource_kind: 'relation',
+type FixtureSchema = Record<string, {type: string; nullable: boolean; description?: unknown}>;
+type FixtureView = {
+  resource: string; resource_kind: string; schema: FixtureSchema;
+  request_schema?: unknown; facts?: unknown; acquisition?: unknown;
+  resource_identity?: unknown; data_classification?: string;
+};
+type FixtureFileBinding = {
+  listing_resource: string; content_resource: string; data_resource: string; version_field: string;
+  identity_field: string; name_field: string; media_type_field: string; content_utf8_field: string;
+};
+type FixtureEntry = {
+  views: FixtureView[]; query_aliases: {name: string; resource: string}[];
+  data: {resource: string; items_path: string[]; key_path: string[]; primary_identity: string; schema?: FixtureSchema}[];
+  file_bindings?: FixtureFileBinding[];
+};
+type SavedFixtureView = Record<string, string> & {resource: string; resource_kind: string};
+type InitialFixture = {views: readonly {resource: string; carrier_schema_cid: string}[]};
+type ScopeInputs = [connection: string, provider: string, path: string, catalog: string];
+
+const wire = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const sample = (text: unknown): FixtureEntry => ({views: [{resource: 'records', resource_kind: 'relation',
   schema: {id: {type: 'string', nullable: false}, label: {type: 'string', nullable: true, description: text}},
   request_schema: {type: 'object', fields: {}}, facts: {relation_keys: {candidate_keys: [['id']]}},
   data_classification: 'internal'}], query_aliases: [{name: 'records', resource: 'records'}],
   data: [{resource: 'records', items_path: ['records'], key_path: ['keys'], primary_identity: 'id'}]});
 
 // Test-only execution of the exact pre-restore body serialization families.
-function project(entry) {
+function project(entry: Pick<FixtureEntry, 'views'>) {
   let hashedBytes = 0n;
   const views = entry.views.map(view => {
     const schema = wire(view.schema);
     const hashed = wire(view.schema);
     hashedBytes += BigInt(Buffer.byteLength(hashed));
-    const result = {resource: view.resource, resource_kind: view.resource_kind,
+    const result: SavedFixtureView = {resource: view.resource, resource_kind: view.resource_kind,
       schema_wire: schema, schema_cid: 'sha256:' + createHash('sha256').update(hashed).digest('hex')};
-    for (const name of ['request_schema', 'facts', 'acquisition', 'resource_identity']) {
+    for (const name of ['request_schema', 'facts', 'acquisition', 'resource_identity'] as const) {
       if (Object.hasOwn(view, name)) result[name + '_wire'] = wire(view[name]);
     }
-    if (Object.hasOwn(view, 'data_classification')) result.data_classification = view.data_classification;
+    if (Object.hasOwn(view, 'data_classification')) result.data_classification = view.data_classification!;
     return result;
   });
   return {views, savedViewsWire: wire({views}), hashedBytes};
@@ -87,7 +106,7 @@ test('multi-view projection retains all native array entries and canonical outpu
 test('geometry refuses non-String originals without invoking coercion', () => {
   let calls = 0;
   const hostile = {toString() {calls++; return '{}';}};
-  for (const input of [undefined, null, {}, [], 1, hostile]) assert.throws(() => geometry(input), TypeError);
+  for (const input of [undefined, null, {}, [], 1, hostile]) assert.throws(() => geometry(input as string), TypeError);
   assert.equal(calls, 0);
 });
 
@@ -97,29 +116,29 @@ import {declaredProjectCatalogScopeConstructionGeometry as scopeGeometry,
   declaredProjectCatalogFinalDescriptorsConstructionGeometry as finalGeometry}
   from './declared-project-catalog-construction.mjs';
 
-const digest = value => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
-const scopeInputs = ['logical-connection', 'configured-provider', '/project/日本語/data.json', '{"connections":{}}'];
+const digest = (value: unknown) => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
+const scopeInputs: ScopeInputs = ['logical-connection', 'configured-provider', '/project/日本語/data.json', '{"connections":{}}'];
 
-function fileProjection(entry, initial, scope) {
+function fileProjection(entry: FixtureEntry, initial: InitialFixture, scope: string) {
   const views = project(entry).views;
   let hashedBytes = 0n, factUnits = 0n;
   for (const binding of entry.file_bindings ?? []) {
-    const source = entry.data.find(value => value.resource === binding.data_resource);
-    const physical = {...source, schema: source.schema ?? entry.views.find(view => view.resource === source.resource).schema};
+    const source = entry.data.find(value => value.resource === binding.data_resource)!;
+    const physical = {...source, schema: source.schema ?? entry.views.find(view => view.resource === source.resource)!.schema};
     const preimage = {scope, physical, version_field: binding.version_field, representation: 'exact_stored_bytes'};
     hashedBytes += BigInt(Buffer.byteLength(wire(preimage)));
     const version = digest(preimage);
-    const listing = views.find(view => view.resource === binding.listing_resource);
-    const content = views.find(view => view.resource === binding.content_resource);
+    const listing = views.find(view => view.resource === binding.listing_resource)!;
+    const content = views.find(view => view.resource === binding.content_resource)!;
     listing.facts_wire = wire({file_listing: {version: 'actql-file-list/0.1', kind: 'file_listing',
       selectable: [], allow_unfiltered_listing: true, admitted_scope_contract_cid: scope,
-      listing_schema_contract_cid: initial.views.find(view => view.resource === binding.listing_resource).carrier_schema_cid,
+      listing_schema_contract_cid: initial.views.find(view => view.resource === binding.listing_resource)!.carrier_schema_cid,
       version_capability: {contract_cid: version, required_nonnull: true},
       max_listing_items: 100, max_examined_items: 100, max_listing_pages: 1, max_request_attempts: 1,
       max_listing_bytes: 1048576, max_listing_duration_ms: 30000, maximum_path_length: 4096}});
     content.facts_wire = wire({file_content: {version: 'actql-file-content/0.1', kind: 'file_content',
       admitted_scope_contract_cid: scope,
-      content_schema_contract_cid: initial.views.find(view => view.resource === binding.content_resource).carrier_schema_cid,
+      content_schema_contract_cid: initial.views.find(view => view.resource === binding.content_resource)!.carrier_schema_cid,
       version_capability: {contract_cid: version, required_nonnull: true}, representation: 'exact_stored_bytes'},
       lookup_capacity: {version: 'actql-lookup-capacity/0.1', completeness: 'complete_per_requested_key',
         max_rows_per_key: 1, max_pages_per_request: 1, max_response_bytes_per_page: 1048576}});
@@ -148,7 +167,7 @@ test('scope stage uses exact provider namespace path and entire original catalog
   assert.ok(q.wire >= BigInt(Buffer.byteLength(actual)));
   assert.equal(q.retained.text, 142n);
   for (let index = 0; index < scopeInputs.length; index++) {
-    const larger = [...scopeInputs]; larger[index] += '😀\\"'.repeat(100);
+    const larger: ScopeInputs = [...scopeInputs]; larger[index] += '😀\\"'.repeat(100);
     const next = scopeGeometry(...larger);
     assert.equal(next.nodes, q.nodes);
     assert.ok(next.text > q.text && next.wire > q.wire);
@@ -162,12 +181,12 @@ test('File stage includes initial parse version hash generated facts and retaine
   const original = JSON.stringify(entry), exported = JSON.stringify(initial);
   const q = fileGeometry(original, exported, scope, 1);
   const actual = fileProjection(entry, initial, scope);
-  assert.ok(q.bounds.generatedFactsUnits >= actual.factUnits);
+  assert.ok(q.bounds.generatedFactsUnits! >= actual.factUnits);
   assert.ok(q.bounds.finalSavedViewsWireUnits >= BigInt(actual.wire.length));
   assert.ok(q.wire >= actual.hashedBytes);
   assert.ok(q.retained.text >= 2n * BigInt(exported.length + actual.wire.length));
   const twice = fileGeometry(original, exported, scope, 2);
-  assert.equal(twice.bounds.generatedFactsUnits, 2n * q.bounds.generatedFactsUnits);
+  assert.equal(twice.bounds.generatedFactsUnits, 2n * q.bounds.generatedFactsUnits!);
   assert.equal(twice.wire, 2n * q.wire);
   const altered = fileGeometry(original, exported + ' '.repeat(1000), scope, 1);
   assert.ok(altered.text > q.text);
@@ -185,7 +204,7 @@ test('physical overrides sum schema hash candidate facts and detached payload fo
   assert.ok(one.bounds.savedViewsWireUnits >= BigInt(payload.length));
   assert.ok(one.wire >= BigInt(Buffer.byteLength(wire(view.schema))));
   assert.equal(two.nodes - 1n, 2n * (one.nodes - 1n), 'one Map wrapper, summed override entries');
-  for (const key of ['text', 'wire']) assert.equal(two[key], 2n * one[key]);
+  for (const key of ['text', 'wire'] as const) assert.equal(two[key], 2n * one[key]);
   assert.deepEqual(physicalGeometry(original, 0).workspace, {nodes: 0n, text: 0n, wire: 0n});
   assert.equal(physicalGeometry(original, 0).retained.nodes, 1n, 'empty Map still constructed');
 });
@@ -206,7 +225,7 @@ test('final descriptors borrow all native wires and reject accessor or proxy met
   assert.equal(bodyReads, 0);
   assert.ok(finalGeometry(original, '{}', ['{}', '{}'], 2).nodes > one.nodes);
   let reads = 0;
-  const array = [];
+  const array: unknown[] = [];
   Object.defineProperty(array, '0', {get() {reads++; return '{}';}});
   assert.throws(() => finalGeometry(original, '{}', array, 1), TypeError);
   assert.throws(() => finalGeometry(original, '{}', new Proxy([], {get() {reads++;}}), 1), TypeError);
@@ -224,9 +243,9 @@ test('all later quotations scan Strings only and reject unbounded count guesses'
     assert.ok(physicalGeometry(original, 1).nodes > 0n);
     assert.ok(finalGeometry(original, exported, ['mapping'], 1).nodes > 0n);
     for (const count of [-1, 0.5, 129, Infinity, 1n, '1']) {
-      assert.throws(() => fileGeometry(original, exported, 'scope', count), TypeError);
-      assert.throws(() => physicalGeometry(original, count), TypeError);
-      assert.throws(() => finalGeometry(original, exported, [], count), TypeError);
+      assert.throws(() => fileGeometry(original, exported, 'scope', count as number), TypeError);
+      assert.throws(() => physicalGeometry(original, count as number), TypeError);
+      assert.throws(() => finalGeometry(original, exported, [], count as number), TypeError);
     }
   } finally {JSON.parse = parse; JSON.stringify = stringify;}
 });
@@ -234,7 +253,7 @@ test('all later quotations scan Strings only and reject unbounded count guesses'
 import {declaredProjectCatalogMappingInputsConstructionGeometry as mappingGeometry}
   from './declared-project-catalog-construction.mjs';
 
-function mappingProjection(specs) {
+function mappingProjection(specs: readonly ReturnType<typeof updateSpec>[]) {
   const writesJson = wire({writes: specs.map(spec => ({resource: spec.resource,
     primary_identity: spec.primary_identity,
     update: {fields: spec.writable_fields, permission: spec.permission, approval: spec.approval}}))});
@@ -244,7 +263,7 @@ function mappingProjection(specs) {
   return Object.freeze({writesJson, mappings});
 }
 
-const updateSpec = text => ({resource: 'records', primary_identity: 'id',
+const updateSpec = (text: string) => ({resource: 'records', primary_identity: 'id',
   writable_fields: ['label', text], permission: 'records.update',
   observe_permission: 'records.read', approval: 'required', aliases: ['apply']});
 
@@ -290,10 +309,10 @@ test('Mapping input quotation does not parse serialize or coerce and validates a
     assert.ok(mappingGeometry(original, 1).nodes > 0n);
     assert.ok(mappingGeometry('{"writes":[', 1).nodes > 0n, 'geometry never attests admission');
     for (const count of [-1, 0.5, 129, Infinity, '1', 1n]) {
-      assert.throws(() => mappingGeometry(original, count), TypeError);
+      assert.throws(() => mappingGeometry(original, count as number), TypeError);
     }
     let calls = 0;
-    assert.throws(() => mappingGeometry({toString() {calls++; return original;}}, 1), TypeError);
+    assert.throws(() => mappingGeometry({toString() {calls++; return original;}} as unknown as string, 1), TypeError);
     assert.equal(calls, 0);
   } finally {JSON.parse = parse; JSON.stringify = stringify;}
 });
@@ -303,7 +322,7 @@ import {declaredProjectCatalogJsonParseConstructionGeometry as parseGeometry,
   declaredProjectCatalogSavedInputConstructionGeometry as savedGeometry,
   declaredProjectCatalogFileFactsProjectionConstructionGeometry as fileProjectionGeometry}
   from './declared-project-catalog-construction.mjs';
-const deepFreeze = value => {
+const deepFreeze = <Value,>(value: Value): Value => {
   if (value !== null && typeof value === 'object') {
     for (const item of Object.values(value)) deepFreeze(item);
     Object.freeze(value);
@@ -355,7 +374,7 @@ test('immutable geometry refuses proxies accessors cycles holes and unsupported 
   const getter = Object.freeze({get views() {calls++; return [];}});
   assert.throws(() => entryProjectionGeometry(getter));
   assert.throws(() => entryProjectionGeometry(new Proxy(Object.freeze({}), {ownKeys() {calls++; return [];}})));
-  const cycle = {}; cycle.self = cycle; Object.freeze(cycle);
+  const cycle: {self?: object} = {}; cycle.self = cycle; Object.freeze(cycle);
   assert.throws(() => entryProjectionGeometry(cycle));
   assert.throws(() => savedGeometry(Object.freeze(Array(2))));
   assert.throws(() => savedGeometry([{resource: 'mutable'}]));
@@ -370,7 +389,7 @@ test('file projection selects actual original CIDs and excludes irrelevant expor
     {resource: 'content', schema: {id: {type: 'string', nullable: false}}}],
     data: [{resource: 'files', items_path: ['rows'], key_path: ['id'], primary_identity: 'id'}],
     file_bindings: [{data_resource: 'files', listing_resource: 'files', content_resource: 'content', version_field: 'version'}]});
-  const initial = extra => deepFreeze({views: [{resource: 'files', carrier_schema_cid: 'a'.repeat(71)},
+  const initial = (extra: string) => deepFreeze({views: [{resource: 'files', carrier_schema_cid: 'a'.repeat(71)},
     {resource: 'content', carrier_schema_cid: 'b'.repeat(71)}], extra});
   const first = fileProjectionGeometry(entry, initial(''), 'c'.repeat(71));
   const huge = fileProjectionGeometry(entry, initial('x'.repeat(100000)), 'c'.repeat(71));

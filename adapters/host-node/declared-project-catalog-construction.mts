@@ -8,6 +8,14 @@ import {types as nodeTypes} from 'node:util';
 type WireShape = Pick<ReturnType<typeof sourceJsonWireGeometry>, 'nodes' | 'units' | 'weighted' | 'depth'>;
 type Quantity = {nodes: bigint; text: bigint; wire: bigint};
 type Bounds = Readonly<Record<string, bigint>>;
+type Quote<Counts> = Quantity & {retained: Quantity; workspace: Quantity; bounds: Counts};
+type FileFactsBounds = Readonly<{
+  finalSavedViewsWireUnits: bigint; generatedFactsUnits?: bigint;
+  versionPreimageUnits?: bigint; fileBindingCount?: bigint;
+}>;
+type PhysicalOverrideBounds = Readonly<{
+  savedViewsWireUnits: bigint; perOverrideSavedViewsWireUnits?: bigint; overrideCount?: bigint;
+}>;
 type JsonShape = Readonly<{nodes: bigint; units: bigint; outputUnits: bigint; recursiveUnits: bigint}>;
 type JsonAncestor = Readonly<{value: object; parent?: JsonAncestor}>;
 type WritablePhysical = Readonly<{
@@ -198,7 +206,7 @@ export function declaredProjectCatalogScopeConstructionGeometry(
  * the subsequent native final restore/export, which gets its own quote. */
 export function declaredProjectCatalogFileFactsConstructionGeometry(
   entryWire: string, initialDeclarationWire: string, scopeCid: string, fileBindingCount: number,
-) {
+): Quote<FileFactsBounds> {
   const entry = sourceJsonWireGeometry(entryWire);
   const initial = sourceJsonWireGeometry(initialDeclarationWire);
   const scope = stringUnits(scopeCid), count = admittedCount(fileBindingCount);
@@ -247,7 +255,7 @@ export function declaredProjectCatalogFileFactsConstructionGeometry(
  * Aliased schemas are counted once PER INVOCATION, never deduplicated by data.
  * First argument may instead be the already-funded frozen parsed entry; that
  * path measures each selected original schema and checks the exact count. */
-export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire: unknown, overrideCount: number) {
+export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire: unknown, overrideCount: number): Quote<PhysicalOverrideBounds> {
   if (typeof entryWire !== 'string') return physicalOverridesFromImmutableEntry(entryWire, overrideCount);
   const entry = sourceJsonWireGeometry(entryWire), count = admittedCount(overrideCount);
   if (count === 0n) return stage({nodes: 1n, text: 0n, wire: 0n}, zero(), {savedViewsWireUnits: 0n});
