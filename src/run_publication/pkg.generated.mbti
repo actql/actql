@@ -407,6 +407,10 @@ pub fn effect_computation_capture_holding_cid(PublicationContract, String) -> St
 
 pub fn effect_computation_record_holding_cid(PublicationContract, String) -> String?
 
+pub fn effect_file_create_storage_key(String, String, String, String, Int) -> Result[String, EffectRowOutcomeIssue]
+
+pub fn effect_file_create_storage_key_from_preview(EffectPreviewIdentity, Int, Int, String, String) -> Result[String, EffectRowOutcomeIssue]
+
 pub fn effect_file_operation_receipt_cid(EffectFileOperationReceipt) -> String
 
 pub fn effect_file_operation_receipt_wire(EffectFileOperationReceipt) -> String

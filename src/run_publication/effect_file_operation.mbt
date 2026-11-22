@@ -103,6 +103,80 @@ pub fn effect_file_target_cid(
 }
 
 ///|
+/// File Mock's allocated Text key from the checked CREATE occurrence data.
+/// The original Run definition distinguishes identical independent invocations.
+/// The key can be computed before provider requests and Preview are sealed.
+pub fn effect_file_create_storage_key(
+  run_definition_cid : String,
+  installation_cid : String,
+  effect_identity_cid : String,
+  content_cid : String,
+  occurrence : Int,
+) -> Result[String, EffectRowOutcomeIssue] {
+  guard valid_contract_cid(run_definition_cid) &&
+    valid_contract_cid(installation_cid) &&
+    valid_contract_cid(effect_identity_cid) &&
+    valid_contract_cid(content_cid) &&
+    occurrence >= 0 else {
+    return Err(ForeignRow)
+  }
+  // Four fixed-width CIDs, one bounded ordinal and a fixed domain.
+  try {
+    let hash = @encode.hashing_writer(512, 7, 1)
+    @encode.begin_object(hash)
+    local_operation_text(hash, "content_cid", content_cid)
+    local_operation_text(hash, "effect_identity_cid", effect_identity_cid)
+    local_operation_text(hash, "installation_cid", installation_cid)
+    @encode.key(hash, "occurrence")
+    @encode.number_value(hash, occurrence.to_double())
+    local_operation_text(hash, "run_definition_cid", run_definition_cid)
+    local_operation_text(hash, "version", "actql-mock-file-create-key/0.1")
+    @encode.end_object(hash)
+    Ok(@encode.finish_hash(hash))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Recover the same key from the original admitted Preview strictly as DATA.
+/// The caller must separately own the original current claim to send a write.
+pub fn effect_file_create_storage_key_from_preview(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  ordered_row_index : Int,
+  run_definition_cid : String,
+  installation_cid : String,
+) -> Result[String, EffectRowOutcomeIssue] {
+  guard effect_preview_run_identity(preview) == run_definition_cid &&
+    effect_preview_member_kind(preview, member_index) == Some("create") &&
+    effect_preview_member_source_binding_cid(preview, member_index) ==
+    Some(installation_cid) &&
+    effect_preview_member_effect_identity_cid(preview, member_index)
+    is Some(effect) &&
+    effect_preview_ordered_row_correlation_wire(
+      preview, member_index, ordered_row_index,
+    )
+    is Some(wire) &&
+    parse_contract_wire(wire, 128, 3, 1, data_keys=true) is Ok(row) &&
+    @json.object_field_count(row) == Some(2) &&
+    @json.object_field(row, "content_cid") is Some(@json.String(content)) &&
+    @json.object_field(row, "occurrence") is Some(@json.Number(index)) &&
+    index >= 0.0 &&
+    index <= 2147483647.0 &&
+    index == index.to_int().to_double() else {
+    return Err(ForeignRow)
+  }
+  effect_file_create_storage_key(
+    run_definition_cid,
+    installation_cid,
+    effect,
+    content,
+    index.to_int(),
+  )
+}
+
+///|
 pub fn prepare_effect_file_operation(
   preview : EffectPreviewIdentity,
   member_index : Int,
