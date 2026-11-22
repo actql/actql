@@ -34,6 +34,83 @@ fn delete_preview_mapping(
 }
 
 ///|
+test "kintone DELETE target read binds the original Mapping and exact API ID" {
+  let mapping = delete_preview_mapping(delete_mapping_form())
+  let identity = "9007199254740993"
+  let wire =
+    #|{"app":"12","fields":["$id","$revision","Subject"],"query":"$id in (9007199254740993) order by $id asc limit 1"}
+  let limits = {
+    ..delete_preview_limits(),
+    max_identity_bytes: identity.length(),
+    max_output_bytes: wire.length(),
+  }
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, limits),
+    Ok(wire),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, {
+      ..limits,
+      max_identity_bytes: identity.length() - 1,
+    }),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, {
+      ..limits,
+      max_output_bytes: wire.length() - 1,
+    }),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, "7) or $id in (8", 8, limits),
+    Err(InvalidRequest),
+  )
+  let copy = { ..mapping, self: Some(mapping), }
+  assert_eq(
+    record_delete_target_read_body(copy, identity, 8, limits),
+    Err(ForeignCatalog),
+  )
+}
+
+///|
+test "kintone observed DELETE target binds Preview DATA and the exact revision request" {
+  let mapping = delete_preview_mapping(delete_mapping_form())
+  let identity = "9007199254740993"
+  let read = @utf8.encode(delete_original_record_page_wire())
+  let pages = delete_record_page_limits()
+  let values = delete_preview_values()
+  let limits = delete_preview_limits()
+  let (preview, request) = prepare_record_delete_target_read(
+    mapping, identity, read, pages, values, limits,
+  ).unwrap()
+  let target = @catalog.record_delete_request_targets(request)[0]
+  assert_true(record_delete_preview_matches(preview, mapping, target))
+  assert_true(record_delete_mapping_matches_request(mapping, request))
+  assert_eq(
+    record_delete_preview_before_wire(preview),
+    "{\"$id\":\"9007199254740993\",\"Subject\":\"original\"}",
+  )
+  assert_eq(
+    @catalog.record_delete_request_body(request),
+    "{\"app\":\"12\",\"ids\":[\"9007199254740993\"],\"revisions\":[\"9007199254740994\"]}",
+  )
+  assert_true(
+    prepare_record_delete_target_read(
+      mapping, "9007199254740994", read, pages, values, limits,
+    )
+    is Err(TargetMismatch),
+  )
+  let absent = @utf8.encode("{\"records\":[],\"totalCount\":null}")
+  assert_true(
+    prepare_record_delete_target_read(
+      mapping, identity, absent, pages, values, limits,
+    )
+    is Err(TargetMismatch),
+  )
+}
+
+///|
 test "kintone before projection retains the exact original API ID and revision guard" {
   let catalog = delete_mapping_form()
   let mapping = delete_preview_mapping(catalog)

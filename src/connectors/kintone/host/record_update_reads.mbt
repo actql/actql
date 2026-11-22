@@ -38,29 +38,55 @@ pub fn record_update_target_read_body(
   if !record_update_proposal_matches_mapping(proposal, proposal.mapping) {
     return Err(MappingMismatch)
   }
+  match
+    record_exact_target_read_body(
+      proposal.mapping.original.catalog.app_id,
+      proposal.identity,
+      proposal.mapping.before_fields,
+      max_fields,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(body) => Ok(body)
+    Err(@catalog.InvalidLimits) => Err(InvalidLimits)
+    Err(issue) => Err(Request(issue))
+  }
+}
+
+///|
+/// The caller supplies one already-admitted API ID and original field list.
+fn record_exact_target_read_body(
+  app_id : String,
+  identity : String,
+  names : Array[String],
+  max_fields : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.RecordMutationIssue] {
   if max_fields <= 0 || max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  let names = proposal.mapping.before_fields
   if names.length() > max_fields || names.length() > 998 {
-    return Err(Request(@catalog.BudgetExceeded))
+    return Err(BudgetExceeded)
   }
   // Ids are already bounded digit Strings. Check the query size before its
   // concatenation; Encoder still bounds the complete request and UTF8 names.
   let prefix = "$id in ("
   let suffix = ") order by $id asc limit 1"
   if prefix.length() + suffix.length() > max_bytes ||
-    proposal.identity.length() > max_bytes - prefix.length() - suffix.length() {
-    return Err(Request(@catalog.BudgetExceeded))
+    identity.length() > max_bytes - prefix.length() - suffix.length() {
+    return Err(BudgetExceeded)
   }
-  let query = prefix + proposal.identity + suffix
+  let query = prefix + identity + suffix
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Request(@catalog.BudgetExceeded))
+    _ => return Err(BudgetExceeded)
   }
   try {
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "app")
-    @encode.string_value(writer, proposal.mapping.original.catalog.app_id)
+    @encode.string_value(writer, app_id)
     @encode.ordered_key(writer, "fields")
     @encode.begin_array(writer)
     @encode.string_value(writer, "$id")
@@ -76,7 +102,7 @@ pub fn record_update_target_read_body(
   } catch {
     _ => {
       @encode.cancel_writer(writer)
-      Err(Request(@catalog.BudgetExceeded))
+      Err(BudgetExceeded)
     }
   }
 }

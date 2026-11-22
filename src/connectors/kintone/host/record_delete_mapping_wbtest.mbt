@@ -51,27 +51,35 @@ fn delete_original_declaration(
 }
 
 ///|
+fn delete_original_record_page_wire() -> String {
+  (
+    #|{"records":[{"$id":{"type":"__ID__","value":"9007199254740993"},"$revision":{"type":"__REVISION__","value":"9007199254740994"},"Subject":{"type":"SINGLE_LINE_TEXT","value":"original"}}],"totalCount":null}
+  )
+}
+
+///|
+fn delete_record_page_limits() -> @catalog.RecordPageLimits {
+  {
+    max_bytes: 8192,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_rows: 4,
+    max_columns: 8,
+    max_cells: 32,
+    max_table_rows: 16,
+  }
+}
+
+///|
 fn delete_original_request(
   catalog : @catalog.FormFieldCatalog,
   fields? : Array[String] = ["Subject"],
 ) -> @catalog.RecordDeleteRequest {
   let page = @catalog.project_record_page(
-    @utf8.encode(
-      (
-        #|{"records":[{"$id":{"type":"__ID__","value":"9007199254740993"},"$revision":{"type":"__REVISION__","value":"9007199254740994"},"Subject":{"type":"SINGLE_LINE_TEXT","value":"original"}}],"totalCount":null}
-      ),
-    ),
+    @utf8.encode(delete_original_record_page_wire()),
     catalog,
     fields,
-    {
-      max_bytes: 8192,
-      max_nodes: 1000,
-      max_depth: 16,
-      max_rows: 4,
-      max_columns: 8,
-      max_cells: 32,
-      max_table_rows: 16,
-    },
+    delete_record_page_limits(),
   ).unwrap()
   @catalog.prepare_record_delete_request(
     [@catalog.prepare_original_record_target(page, 0, 1000).unwrap()],
