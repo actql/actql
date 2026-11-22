@@ -698,6 +698,17 @@ fn native_mock_effect_import_construction(
       stop("LocalOriginalEffectCapacityUnavailable")
     })
     results = @results.count(declarations).to_int64()
+    // The Source-only Query route can import a prior completed Source Unit.
+    // Size the full producer Manifest and all its Results beside the Effect
+    // Unit. The actual import proof still has to select that same producer.
+    if imports == 1L &&
+      units == 1L &&
+      @run_host.client_direct_acquisition_occurrence_at(direct, 0)
+      is Some((source_stage, _, _)) &&
+      source_stage != unit &&
+      @stage_results.stage_at(stages, source_stage) is Some(producer) {
+      results += @results.count(producer).to_int64()
+    }
   } else {
     for index in 0..<units.to_int() {
       let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(
