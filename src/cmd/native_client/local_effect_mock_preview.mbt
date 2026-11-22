@@ -521,19 +521,21 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   })
   let measured_keys = !state.first._retained_models.is_empty() &&
     proposals.imports is Some(_) &&
-    @strategy.captured_effect_proposal_plan_staged_rows(
-      proposals.members[0].plan,
-    )
+    proposals.members
+    .get(0)
+    .bind(entry => {
+      @strategy.captured_effect_proposal_plan_staged_rows(entry.plan)
+    })
     is Some(_)
   let (semantic, authored, identity) = if measured_keys {
-    // The authored carrier borrows the same wire and identity through
-    // dispatch completion. Reserve its control before constructing it.
+    // The authored carrier, the eventual completion carrier and their
+    // return controls stay paid through dispatch completion.
     construction
     .prepare_body_result(
       @execution.preparation_representation_cost({
-        record_headers: 2L,
-        reference_slots: 3L,
-        scalar_words: 3L,
+        record_headers: 5L,
+        reference_slots: 7L,
+        scalar_words: 9L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }).bind(bytes => @execution.execution_capacity(0L, bytes)),
@@ -582,10 +584,21 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   }
   let (completed, completed_identity) = {
     let completed = match authored {
-      Some(original) =>
-        @publication.complete_authored_effect_preview_dispatch_keys(
-          original, key_cids,
+      Some(original) => {
+        let prepared = @publication.prepare_effect_preview_dispatch_completion(
+            original, key_cids,
+          )
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::PreviewBody(issue)
+          })
+          .native_effect_proposal_with_cause(report)
+        construction
+        .prepare_body_result(
+          native_mock_effect_preview_admission_capacity(prepared, key_cids),
         )
+        .native_effect_proposal_with_cause(report)
+        @publication.admit_prepared_effect_preview_dispatch(prepared)
+      }
       None =>
         @publication.complete_effect_preview_dispatch_keys_with_identity(
           semantic, key_cids, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
@@ -717,10 +730,10 @@ fn native_mock_effect_preview_dispatch_capacity(
   // Its canonical correlation uses ordered objects and a growing parent
   // stack, with one cursor and one parent variant per open container.
   let stack = @shape.collection_construction_extent({
-    // Keep the authored carrier and its option beside one key codec.
-    records: 6L + 2L * levels,
-    record_references: 11L + 2L * levels,
-    record_words: 11L + 2L * levels,
+    // Keep both completion carriers' control allowance beside the codec.
+    records: 9L + 2L * levels,
+    record_references: 15L + 2L * levels,
+    record_words: 17L + 2L * levels,
     reference_arrays: 1L,
     reference_items: levels,
     scalar_arrays: 0L,
@@ -769,4 +782,38 @@ fn native_mock_effect_preview_dispatch_capacity(
     return Err(Managed(InsufficientCapacity))
   }
   Ok(capacity)
+}
+
+///|
+// The emitter and its parsed semantic tree have returned. The completed wire
+// and the caller's CID-only vectors can still coexist with the full validator.
+// The original warm basis continues to own the authored and returned Preview
+// representations; this quote independently covers the validator's peak.
+fn native_mock_effect_preview_admission_capacity(
+  prepared : @publication.PreparedEffectPreviewDispatch,
+  keys : Array[Array[String]],
+) -> @execution.ExecutionCapacity? {
+  let (bytes, nodes, depth) = @publication.prepared_effect_preview_dispatch_usage(
+    prepared,
+  )
+  let members = keys.length().to_int64()
+  let mut slots = members
+  for row_keys in keys {
+    slots += row_keys.length().to_int64()
+  }
+  guard @publication.effect_preview_identity_construction_inventory(
+      bytes, nodes, depth,
+    )
+    is Some(admission) &&
+    @execution.preparation_array_representation(members + 1L, slots, true)
+    is Some(vectors) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: admission.record_headers + vectors.record_headers + 6L,
+    reference_slots: admission.reference_slots + vectors.reference_slots + 7L,
+    scalar_words: admission.scalar_words + vectors.scalar_words + 9L,
+    owned_utf16_units: admission.owned_utf16_units + bytes.to_int64(),
+    owned_wire_bytes: admission.owned_wire_bytes,
+  }).bind(bytes => @execution.execution_capacity(0L, bytes))
 }

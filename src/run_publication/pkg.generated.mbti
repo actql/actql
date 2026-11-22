@@ -93,6 +93,8 @@ pub fn admit_model_source_observation(RunEvidenceValue, RunEvidenceValue, String
 
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
+pub fn admit_prepared_effect_preview_dispatch(PreparedEffectPreviewDispatch) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
+
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn admit_publication_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
@@ -338,8 +340,6 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
 pub fn cold_static_plan_validation_construction(String, Bool, Int, Int64, Int, Int, Int) -> StaticPlanValidationConstruction?
-
-pub fn complete_authored_effect_preview_dispatch_keys(AuthoredEffectPreview, Array[Array[String]]) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
 
@@ -897,6 +897,8 @@ pub fn prepare_effect_local_operation(EffectPreviewIdentity, Int, Int, String, S
 
 pub fn prepare_effect_local_operation_receipt(EffectLocalOperation, EffectLocalOperationResult, String, Int, Int, Int) -> Result[EffectLocalOperationReceipt, EffectRowOutcomeIssue]
 
+pub fn prepare_effect_preview_dispatch_completion(AuthoredEffectPreview, Array[Array[String]]) -> Result[PreparedEffectPreviewDispatch, EffectPreviewIdentityIssue]
+
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
 pub fn prepare_generated_content_reference(ContentByteEncoder, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
@@ -964,6 +966,8 @@ pub fn prepared_captured_effect_run_payloads(PreparedCapturedEffectRun) -> Array
 pub fn prepared_captured_effect_run_schemas(PreparedCapturedEffectRun) -> Array[(String, String)]
 
 pub fn prepared_captured_effect_run_sources(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Array[Int], Array[PublicationContract], String, Int, Int, Int) -> Result[Array[CapturedEffectSourceArtifact], RunEvidenceChainIssue]
+
+pub fn prepared_effect_preview_dispatch_usage(PreparedEffectPreviewDispatch) -> (Int, Int, Int)
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 
@@ -2144,6 +2148,8 @@ type PendingSourceStateAdvance
 type PreparedCapturedEffectDependencyInventory
 
 type PreparedCapturedEffectRun
+
+type PreparedEffectPreviewDispatch
 
 pub(all) struct PublicIndexRead {
   namespace_id : String

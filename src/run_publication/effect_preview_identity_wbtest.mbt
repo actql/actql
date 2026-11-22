@@ -342,17 +342,28 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
   let authored = prepare_authored_effect_preview(
     template, run, authoring, 8192, 256, 12,
   ).unwrap()
-  let (typed_wire, typed_identity) = complete_authored_effect_preview_dispatch_keys(
-    authored,
-    [[preview_identity_test_cid("4")]],
+  let prepared = prepare_effect_preview_dispatch_completion(authored, [
+    [preview_identity_test_cid("4")],
+  ]).unwrap()
+  let (typed_wire, typed_identity) = admit_prepared_effect_preview_dispatch(
+    prepared,
   ).unwrap()
   assert_eq(typed_wire, final_wire)
+  let parsed = parse_effect_preview_shape(final_wire, 8192, 256, 12).unwrap()
+  let (_, bytes, nodes, depth) = @json.stringify_value_with_usage(
+    parsed, 8192, 256, 12,
+  )
+  assert_eq(
+    prepared_effect_preview_dispatch_usage(prepared),
+    (bytes, nodes, depth),
+  )
+  assert_eq(bytes, @utf8.encode(final_wire).length())
   assert_eq(
     effect_preview_semantic_identity(authored_effect_preview_identity(authored)),
     effect_preview_semantic_identity(typed_identity),
   )
   assert_true(
-    complete_authored_effect_preview_dispatch_keys(authored, [])
+    prepare_effect_preview_dispatch_completion(authored, [])
     is Err(InvalidMember),
   )
   let readmitted = admit_effect_preview_identity(
@@ -444,9 +455,8 @@ test "Authored Preview dispatch preserves a nontrivial original row order" {
   let semantic = authored_effect_preview_identity(authored)
   let second_key = preview_identity_test_cid("5")
   let keys = [[original_key, second_key]]
-  let (wire, completed) = complete_authored_effect_preview_dispatch_keys(
-    authored, keys,
-  ).unwrap()
+  let prepared = prepare_effect_preview_dispatch_completion(authored, keys).unwrap()
+  let (wire, completed) = admit_prepared_effect_preview_dispatch(prepared).unwrap()
   assert_eq(
     wire,
     complete_effect_preview_dispatch_keys(
@@ -470,10 +480,11 @@ test "Authored Preview dispatch preserves a nontrivial original row order" {
   )
   assert_eq(effect_preview_row_key(completed, 0, 0), Some(original_key))
   assert_eq(effect_preview_row_key(completed, 0, 1), Some(second_key))
+  let duplicate = prepare_effect_preview_dispatch_completion(authored, [
+    [original_key, original_key],
+  ]).unwrap()
   assert_true(
-    complete_authored_effect_preview_dispatch_keys(authored, [
-      [original_key, original_key],
-    ])
+    admit_prepared_effect_preview_dispatch(duplicate)
     is Err(RowInventoryMismatch(0)),
   )
 }

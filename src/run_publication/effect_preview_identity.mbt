@@ -437,7 +437,7 @@ fn emit_authored_effect_preview(
   max_nodes : Int,
   max_depth : Int,
   reuse_row_order? : Bool = false,
-) -> Result[String, EffectPreviewIdentityIssue] {
+) -> Result[(String, Int, Int, Int), EffectPreviewIdentityIssue] {
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -565,7 +565,7 @@ fn emit_authored_effect_preview(
       }
     }
     @encode.end_object(writer)
-    Ok(@encode.finish(writer))
+    Ok(@encode.finish_text_usage(writer))
   } catch {
     _ => Err(Encoding)
   }
@@ -596,7 +596,7 @@ pub fn author_effect_preview_semantic_wire(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let draft = match
+  let (draft, _, _, _) = match
     emit_authored_effect_preview(
       template,
       rows,
@@ -617,7 +617,7 @@ pub fn author_effect_preview_semantic_wire(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let wire = match
+  let (wire, _, _, _) = match
     emit_authored_effect_preview(
       template,
       rows,
@@ -681,33 +681,70 @@ pub fn authored_effect_preview_identity(
 }
 
 ///|
-/// Complete the same immutable authored original under its original codec.
-/// Only dispatch keys change. Borrow the row order fixed by the original
-/// author and still admit the final wire with the full Preview validator.
-pub fn complete_authored_effect_preview_dispatch_keys(
-  value : AuthoredEffectPreview,
+/// Dispatch-completed bytes and usage from the same original text writer.
+/// Admission still checks the whole completed Preview under its original codec.
+struct PreparedEffectPreviewDispatch {
+  wire : String
+  bytes : Int
+  nodes : Int
+  depth : Int
+  original : AuthoredEffectPreview
+}
+
+///|
+/// Only dispatch keys change. Borrow the original row order. The parsed
+/// semantic tree and emitter scratch end before returning the completed wire.
+pub fn prepare_effect_preview_dispatch_completion(
+  original : AuthoredEffectPreview,
   key_cids : Array[Array[String]],
-) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+) -> Result[PreparedEffectPreviewDispatch, EffectPreviewIdentityIssue] {
   let semantic = match
     parse_contract_wire(
-      value.wire,
-      value.max_wire_bytes,
-      value.max_nodes,
-      value.max_depth,
+      original.wire,
+      original.max_wire_bytes,
+      original.max_nodes,
+      original.max_depth,
       data_keys=true,
     ) {
     Ok(value) => value
     Err(issue) => return Err(PreviewShape(issue))
   }
-  complete_effect_preview_dispatch_keys_original(
+  emit_authored_effect_preview(
     semantic,
-    value.identity,
-    key_cids,
-    value.max_wire_bytes,
-    value.max_nodes,
-    value.max_depth,
+    original.identity.row_cids,
+    Some(original.identity.member_cids),
+    Some(original.identity.semantic_cid),
+    Some(key_cids),
+    original.max_wire_bytes,
+    original.max_nodes,
+    original.max_depth,
     reuse_row_order=true,
-  )
+  ).map(value => {
+    let (wire, bytes, nodes, depth) = value
+    { wire, bytes, nodes, depth, original, }
+  })
+}
+
+///|
+pub fn prepared_effect_preview_dispatch_usage(
+  value : PreparedEffectPreviewDispatch,
+) -> (Int, Int, Int) {
+  (value.bytes, value.nodes, value.depth)
+}
+
+///|
+pub fn admit_prepared_effect_preview_dispatch(
+  value : PreparedEffectPreviewDispatch,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+  let original = value.original
+  admit_effect_preview_identity(
+    value.wire,
+    original.identity.run_identity_cid,
+    original.identity.authoring_context_cid,
+    original.max_wire_bytes,
+    original.max_nodes,
+    original.max_depth,
+  ).map(identity => (value.wire, identity))
 }
 
 ///|
@@ -755,22 +792,7 @@ pub fn complete_effect_preview_dispatch_keys_with_identity(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  complete_effect_preview_dispatch_keys_original(
-    semantic, identity, key_cids, max_wire_bytes, max_nodes, max_depth,
-  )
-}
-
-///|
-fn complete_effect_preview_dispatch_keys_original(
-  semantic : @json.CanonicalValue,
-  identity : EffectPreviewIdentity,
-  key_cids : Array[Array[String]],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-  reuse_row_order? : Bool = false,
-) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
-  let wire = match
+  let (wire, _, _, _) = match
     emit_authored_effect_preview(
       semantic,
       identity.row_cids,
@@ -780,7 +802,6 @@ fn complete_effect_preview_dispatch_keys_original(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      reuse_row_order~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
