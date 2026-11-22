@@ -5,21 +5,44 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
+// @ts-expect-error TS7016: the shared Connector manifest fixture is authored in JavaScript.
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
-const cid = digit => `sha256:${digit.repeat(64)}`;
+
+type InstalledTableEffect = Parameters<typeof createInstalledTableEffect>[0];
+type Moon = InstalledTableEffect['moon'] & Readonly<{
+  clientProgramCheckEnvironment(wire: string, evidenceCid: string, textTime: boolean, veca: boolean,
+    rela: boolean, sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareEffectComputationWithParameters(document: string, format: string,
+    environment: unknown, queryTime: undefined, parameters: readonly unknown[]): unknown;
+  clientProgramEffectPreparationReady(preparation: unknown): unknown;
+  clientProgramEffectRequestIdentity(prepared: unknown, scopeCid: string, requestId: string,
+    intentCid: string): unknown;
+  clientProgramCompileLocalEffects(prepared: unknown): unknown;
+  clientPrepareInstalledSequenceContracts(registry: string, values: string,
+    fragment: undefined, ordered: undefined): unknown;
+  clientProgramInstalledEffectManagedPlanShape(plan: unknown): readonly [number, number, number];
+  clientProgramInstalledEffectManagedPlanOperation(plan: unknown, memberIndex: number,
+    perRow: boolean, operationIndex: number, operation: string): unknown;
+  clientProgramInstalledEffectOperationExtentPhysical(extent: unknown): boolean;
+  clientProgramInstalledEffectOperationExtentTransfer(extent: unknown): bigint;
+}>;
+const moon = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href) as Moon;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog', mappingRef = 'mapping:table.catalog.v1';
-async function tablePlanFixture(empty) {
+async function tablePlanFixture(empty: boolean) {
   const body = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'));
   const manifest = withFixtureConnector(body, targetRef);
   const targetSchema = {additional_properties: false, nullable: false, type: 'object',
     fields: {Id: {nullable: false, type: 'number'}, Name: {nullable: true, type: 'number'}}};
-  const mapping = {connector_manifest_cid: manifest, conversions: [], mapping_ref: mappingRef,
+  const mapping: {mapping_contract_cid?: string} & Record<string, unknown> = {
+    connector_manifest_cid: manifest, conversions: [], mapping_ref: mappingRef,
     minimum_approval: 'required', permission_rules: [{effect_kind: 'store', permissions: ['scope:store'],
       selector_class: 'none', write_fields: ['Name']}], primary_identity: 'Id', required_fields: [],
     required_permissions: [], resource_identity_cid: cid('b'),
@@ -56,7 +79,7 @@ for (const empty of [false, true]) {
           run: 'table-managed-demand', catalog: {database: join(f.directory, 'catalog.db'),
             warehouse: join(f.directory, 'warehouse'), catalogCid: cid('3'),
             limits: {bytes: 1048576, files: 16, operations: 8}}});
-        const options = {moon, environmentWire: '{}', connectorId: 'table',
+        const options: InstalledTableEffect = {moon, environmentWire: '{}', connectorId: 'table',
           connectorRegistration: 'table', connectorRevision: 'table/0.1', connection: 'table',
           runtimeBundleCid: cid('8'), bindingCid: cid('9'), catalogCid: cid('3'),
           targets: ['first', 'second'].map((effectId, index) => ({effectId,
@@ -85,7 +108,7 @@ for (const empty of [false, true]) {
         const shape = moon.clientProgramInstalledEffectManagedPlanShape(plan);
         assert.equal(runtimeField(shape, 1), 2);
         if (empty) assert.equal(runtimeField(shape, 0), 0);
-        else assert.ok(runtimeField(shape, 0) > 0);
+        else assert.ok((runtimeField(shape, 0) as number) > 0);
         for (const index of [0, 1]) {
           const request = checked(moon.clientProgramInstalledEffectManagedPlanOperation(
             plan, index, false, 2, 'table.commit.request'));

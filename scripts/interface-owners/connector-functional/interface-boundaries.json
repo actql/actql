@@ -19429,7 +19429,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/table-managed-demand.test.mjs",
+                "path": "adapters/host-node/table-managed-demand.test.mts",
                 "anchor": "Table managed demand keeps one whole-Relation dispatch"
               }
             ]
