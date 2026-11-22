@@ -12,6 +12,7 @@ import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
 import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
+import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
 export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
 
@@ -37,12 +38,41 @@ export function assertRecordApprovalTarget(snapshot, expected) {
   assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
 }
 
-export async function runInstalledRecordApprovalFixture(t, fixture) {
+function assertRecordApprovalControl(snapshot, expected) {
+  const {id, name} = snapshot.control;
+  assert.deepEqual({id, name}, expected.control, 'Independent provider control state');
+}
+
+export function assertRecordApprovalSourceSchema(view, expected) {
+  const observed = {sourceRef: view.source_ref, sourceViewContractCid: view.source_view_contract_cid,
+    carrierSchemaContractCid: view.carrier_schema_contract_cid};
+  assert.deepEqual(observed, expected, 'Independent provider Source View and schema');
+  return observed;
+}
+
+export async function runInstalledRecordApprovalFixture(t, input) {
+  const authored = input.casePath === undefined ? undefined : await readAuthoredCase(input.casePath);
+  const authoredFixture = authored?.fixture;
+  let fixture = input;
+  if (authoredFixture !== undefined) {
+    assert.equal(typeof input.createInstallation, 'function', 'Select an original provider fixture adapter');
+    assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
+    fixture = {...input, ...input.createInstallation(authoredFixture.seed)};
+  }
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
   const rejecting = decision === 'rejected';
-  const expected = recordUpdateFixtureState(selection);
-  const loss = recordApprovalReplyLossExpectation(fixture.replyLossExpectation);
+  const expected = authoredFixture?.expected ?? recordUpdateFixtureState(selection);
+  if (authoredFixture !== undefined) {
+    const original = provider.snapshot();
+    assertRecordApprovalTarget(original, expected.before);
+    assertRecordApprovalControl(original, expected.before);
+  }
+  const faults = authoredFixture?.faults;
+  if (faults !== undefined) {
+    assert(fixture.replyLossExpectation === undefined && fixture.faults === undefined, 'Select one original fixture fault schedule');
+  }
+  const loss = recordApprovalReplyLossExpectation(faults === undefined ? fixture.replyLossExpectation : faults[0]?.expected);
   assert(!rejecting || (loss === undefined && fixture.faults === undefined), 'The rejection case selects only the ordinary provider');
   if (loss !== undefined) assert.equal(fixture.faults, undefined, 'Select one original reply-loss fault only');
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1', 'Preserve original state on every outcome');
@@ -54,6 +84,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   t.diagnostic(`Retained ${connectorId} approval original root: ${root}`);
   const phases = [], cleanup = [], parentState = {};
   let tls, declared, services, parentPending = false, parentClosed = false, failed = false, primary;
+  let fixtureSourceSchema;
   let closeParent = async () => {};
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
   const load = path => import(new URL(path, local));
@@ -90,9 +121,10 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     ];
     const providerAccount = canonicalJson({version: 'actql-execution-account-config/0.1',
       account_id: connectorId + '-approval-fixture', entries});
-    // One complete identity is passed to both original Account consumers.
+    // The fixture owner selects the allowed Results separately from any case.
+    // Both original Account consumers receive the same complete identity.
     const fullAccount = recordApprovalHostAccountConfiguration(
-      canonicalJson, providerAccount, principal, 'row-source-acquired');
+      canonicalJson, providerAccount, principal, 'row-source-acquired', fixture.authorizedResultNames);
     const profile = {...fixture.source, version: `actql-installed-${connectorId}-source/0.1`,
       connectorId, metadataPath, siteProfilePath, accountConfigurationWire: fullAccount};
     await writeFile(sourceProfilePath, JSON.stringify(profile), privateFile);
@@ -121,6 +153,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     assert.equal(declared.realizationKey, 'row-source-acquired');
     assert.equal(tls.seen().length, 0);
     assert.equal(resolutions, 0);
+    if (authoredFixture?.schema !== undefined) fixtureSourceSchema = assertRecordApprovalSourceSchema(view, authoredFixture.schema);
     await declared.close(); declared = undefined;
     await closeParent();
     await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{name: alias,
@@ -134,8 +167,11 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: principal,
         publicKey: pem(reviewer.publicKey)}], reviewReaders: [principal], leaseMs: 10000};
     const configuration = join(root, 'configuration.json');
+    const casePath = 'case.json';
+    if (authored !== undefined) await writeFile(join(root, casePath), JSON.stringify(authored), privateFile);
     await writeFile(configuration, JSON.stringify({connect: {mode: 'local', installation: {directory: stateRoot,
-      sourceProfilePath, effectProfilePath, authorization}}, selection, operatorModulePath: 'operator.mjs',
+      sourceProfilePath, effectProfilePath, authorization}},
+      ...(authored === undefined ? {selection} : {casePath}), operatorModulePath: 'operator.mjs',
       ...(rejecting ? {decision} : {}),
       signer: {keyId: 'reviewer', reviewerId: 'reviewer', privateKeyPath: 'reviewer.key'}}), privateFile);
     await writeFile(join(root, 'operator.mjs'),
@@ -146,7 +182,9 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     for (const key of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE',
       'ACTQL_RECORD_APPROVAL_DECISION']) delete env[key];
     delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
+    delete env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA;
     if (loss !== undefined) env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION = JSON.stringify(loss);
+    if (fixtureSourceSchema !== undefined) env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA = JSON.stringify(fixtureSourceSchema);
     for (const phase of ['capture', rejecting ? 'reject' : 'approve', 'recover']) {
       const before = provider.snapshot(), startedAt = new Date().toISOString();
       const args = [fileURLToPath(new URL('./installed-child.mjs', import.meta.url)),
@@ -171,10 +209,11 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       const after = provider.snapshot();
       assert.deepEqual(after.control, before.control);
-      assert.deepEqual({id: after.control.id, name: after.control.name}, expected.before.control);
       const writesExpected = rejecting || phase === 'capture' ? 0 : 1;
       assert.equal(after.writes, writesExpected);
-      assertRecordApprovalTarget(after, writesExpected === 0 ? expected.before : expected.after);
+      const expectedState = writesExpected === 0 ? expected.before : expected.after;
+      assertRecordApprovalTarget(after, expectedState);
+      assertRecordApprovalControl(after, expectedState);
       if (rejecting) assert.deepEqual(after.target, before.target, 'A rejected checkpoint preserves the entire target and revision');
       if (phase === 'recover' && loss === undefined) assert.equal(after.requests.length, before.requests.length,
         'Saved first sends no provider request');
