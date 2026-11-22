@@ -5,6 +5,7 @@
 import type {EffectDispatchClaim} from './effect-physical-dispatch.mjs';
 
 type ClaimIdentity = Pick<EffectDispatchClaim, 'canonicalRequestCid'>;
+type UnknownOutcome = Readonly<{status: 'unknown'; receipt?: never}>;
 type ReceiptState = Readonly<{terminalState: string | undefined}>;
 type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
 type Binding = Readonly<{operationWire: string; preview: unknown; memberIndex: number}>;
@@ -38,7 +39,7 @@ export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt exte
   // The Ledger separately checks scope, immutable basis, durable dispatch and
   // exact saved-response ownership. Never project a supplied body/status pair.
   const saved = ledger.readClaimedResponse(claim);
-  if (saved === undefined) return Object.freeze({status: 'unknown'});
+  if (saved === undefined) return Object.freeze({status: 'unknown'}) as UnknownOutcome;
   if (!Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
       saved.responseBytes.byteLength > limits.maxWireBytes) {
     throw Object.assign(new Error('TableCommitResponseLimit'),

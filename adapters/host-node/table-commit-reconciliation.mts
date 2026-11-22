@@ -15,7 +15,8 @@ type EffectControl = Pick<ReturnType<typeof effectApplicationControl>, 'admitMem
   'ledgerEntryStateCode' | 'ledgerEntryAdmitsDispatch'>;
 type Receipt = ReturnType<ReturnType<typeof effectApplicationControl>['admitRowOutcomeReceiptFromResponse']>;
 type Settlement = Parameters<typeof settleSavedTableCommit<EffectDispatchClaim, Receipt>>[0];
-type EvidenceOptions = Parameters<typeof readAuthorizedEffectResponse>[0];
+type StoredResponse = NonNullable<ReturnType<Settlement['ledger']['readClaimedResponse']>>;
+type EvidenceOptions = Parameters<typeof readAuthorizedEffectResponse<StoredResponse>>[0];
 type ReconciliationControl = Omit<Settlement['control'], 'tablePreviewLedgerBinding'> & Readonly<{
   tablePreviewLedgerBinding(preview: object): ReturnType<Settlement['control']['tablePreviewLedgerBinding']> &
     Readonly<{rowPreviewCid: string}>;
@@ -34,7 +35,8 @@ type LookupReply = Readonly<{ok?: unknown; result?: unknown}>;
 
 const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const unknown = () => Object.freeze({status: 'unknown'});
+type UnknownOutcome = Extract<ReturnType<typeof settleSavedTableCommit>, {status: 'unknown'}>;
+const unknown = (): UnknownOutcome => Object.freeze({status: 'unknown'});
 
 export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   tablePreview, claim, bridge, authorizeEvidenceRead, credentialUseCid,

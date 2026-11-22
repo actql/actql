@@ -5,16 +5,42 @@ import assert from 'node:assert/strict';
 import {expectedLogicalTableReceipt} from './fixtures/table-logical-receipt.mjs';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
+// @ts-expect-error TS7016: the shared Client Program bridge test still has a JavaScript fixture.
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
+// @ts-expect-error TS7016: the durable Effect Ledger still has a JavaScript entry.
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {reconcileOriginalTableCommit} from './table-commit-reconciliation.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const seal = body => ({...body, receipt_cid: `sha256:${createHash('sha256')
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+
+type Reconciliation = Parameters<typeof reconcileOriginalTableCommit>[0];
+type Capture = Parameters<typeof captureClaimedEffectResponse>[0];
+type Claim = Reconciliation['claim'];
+type RecordedResponse = NonNullable<ReturnType<Reconciliation['ledger']['readClaimedResponse']>> &
+  Readonly<{credentialUseCid: string}>;
+type Ledger = Omit<Reconciliation['ledger'], 'readClaimedResponse'> & Capture['ledger'] & Readonly<{
+  readClaimedResponse(claim: Claim): RecordedResponse | undefined;
+  readClaimedOutcome(claim: Claim): unknown;
+  close(): unknown; append(wire: string): unknown; currentAdmitted(locatorCid: string): unknown;
+}>;
+type Effect = Pick<ReturnType<typeof effectApplicationControl>, 'logicalItemLocator' | 'logicalItemLocatorCid' |
+  'ledgerBasis' | 'ledgerEntryWire' | 'issuePreparedLedgerEntry' | 'issueNextLedgerEntry'>;
+type Operation = Readonly<{request_cid: string; effect_identity_cid: string; catalog_identity_cid: string;
+  schema_cid: string; storage_mapping_cid: string}>;
+type Fixture = Readonly<{
+  moon: unknown; sourceControl: Reconciliation['control'] & Required<Pick<Reconciliation['control'], 'localTableCommitResponse'>>;
+  effect: Effect; tablePreview: object; tableLimits: Reconciliation['limits']; operations: readonly Operation[];
+  authored: Readonly<{_0: string; _1: readonly (readonly unknown[])[]}>; scope: unknown; directory: string;
+}>;
+type ProjectResponse = NonNullable<Reconciliation['bridge']['projectCommitResponse']>;
+type Evidence = Parameters<Reconciliation['authorizeEvidenceRead']>[0];
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const seal = <Body extends object>(body: Body) => ({...body, receipt_cid: `sha256:${createHash('sha256')
   .update(canonicalJson(body, {dataKeys: true})).digest('hex')}`});
-function receipt(operation, empty) {
+function receipt(operation: Operation, empty: boolean) {
   return seal({version: 'actql-table-receipt/0.1',
     request_cid: operation.request_cid, effect_identity_cid: operation.effect_identity_cid,
     catalog_identity_cid: operation.catalog_identity_cid, schema_cid: operation.schema_cid,
@@ -26,7 +52,7 @@ function receipt(operation, empty) {
 
 for (const empty of [false, true]) {
   test(`Table original-operation reconciliation ${empty ? 'empty' : 'nonempty'} uses original durable dispatch without resend`,
-    async t => exerciseEffectSourceSet(t, {empty, onTablePreview: async f => {
+    async t => exerciseEffectSourceSet(t, {empty, onTablePreview: async (f: Fixture) => {
       const {moon, sourceControl: control, effect, tablePreview, tableLimits: limits} = f;
       const operation = f.operations[0];
       const binding = control.tablePreviewLedgerBinding(tablePreview);
@@ -40,17 +66,17 @@ for (const empty of [false, true]) {
       const claim = {scope: f.scope, locator, key, basis,
         intentFingerprintCid: binding.rowPreviewCid, canonicalRequestCid: operation.request_cid};
       const expected = receipt(operation, empty), reply = {ok: true, result: expected};
-      const projectCommitResponse = ({responseWire, statusCode, limits}) =>
+      const projectCommitResponse: ProjectResponse = ({responseWire, statusCode, limits}) =>
         control.localTableCommitResponse(responseWire, statusCode, limits);
       const responseBytes = Buffer.from(JSON.stringify(reply));
-      const opens = [];
-      const open = name => {
-        const value = openEffectLedger({moon, root: join(f.directory, `reconcile-${name}`),
+      const opens: Ledger[] = [];
+      const open = (name: string) => {
+        const value: Ledger = openEffectLedger({moon, root: join(f.directory, `reconcile-${name}`),
           authorityScopeCid: cid('e'), callerRequestId: 'table-bind', maxEntryBytes: 8192});
         opens.push(value);
         return value;
       };
-      const possible = async name => {
+      const possible = async (name: string) => {
         const first = open(name);
         await assert.rejects(captureClaimedEffectResponse({ledger: first, claim,
           requestCid: operation.request_cid, execute: () => {
@@ -59,15 +85,15 @@ for (const empty of [false, true]) {
         first.close();
         return open(name);
       };
-      const options = ledger => ({control, commonMoon: moon, ledger, tablePreview,
+      const options = (ledger: Ledger) => ({control, commonMoon: moon, ledger, tablePreview,
         claim, credentialUseCid: cid('7'), maxRevisions: 8, limits,
         entryLimits: {maxWireBytes: 8192, maxNodes: 64, maxDepth: 4},
-        authorizeEvidenceRead: async evidence => {
+        authorizeEvidenceRead: async (evidence: Evidence) => {
           assert.equal(evidence.canonicalRequestCid, operation.request_cid);
           assert.equal(evidence.catalogIdentityCid, operation.catalog_identity_cid);
           assert.equal(evidence.logicalRequestScopeCid, ledger.scopeCid);
           return true;
-        }, bridge: {projectCommitResponse, async reconcileOperation(actual) {
+        }, bridge: {projectCommitResponse, async reconcileOperation(actual: unknown) {
           assert.deepEqual(actual, operation);
           return reply;
         }, execute() { assert.fail('Reconciliation must never write'); },
@@ -109,7 +135,8 @@ for (const empty of [false, true]) {
         assert.equal(denied.readClaimedResponse(claim), undefined);
 
         const foreign = await possible('foreign');
-        const substituted = {...expected, request_cid: cid('9')};
+        const substituted: Omit<typeof expected, 'receipt_cid'> & {receipt_cid?: string} =
+          {...expected, request_cid: cid('9')};
         delete substituted.receipt_cid;
         await assert.rejects(reconcileOriginalTableCommit({...options(foreign),
           bridge: {projectCommitResponse, reconcileOperation: async () => ({ok: true, result: seal(substituted)})}}),
@@ -124,7 +151,7 @@ for (const empty of [false, true]) {
         await assert.rejects(reconcileOriginalTableCommit({...options(invalidSaved),
           bridge: {projectCommitResponse, reconcileOperation: () => assert.fail('Existing invalid evidence must not be replaced')}}),
         {code: 'MoonBitHostFailure'});
-        assert.deepEqual(invalidSaved.readClaimedResponse(claim).responseBytes, invalidBytes);
+        assert.deepEqual(invalidSaved.readClaimedResponse(claim)!.responseBytes, invalidBytes);
         assert.equal(invalidSaved.readClaimedOutcome(claim), undefined);
 
         const explicitlyUnknown = await possible('unknown-state');
@@ -158,16 +185,16 @@ for (const empty of [false, true]) {
             return {ok: false, result: noncommit};
           }}});
         assert.equal(failed.status, 'failed');
-        assert.equal(JSON.parse(failed.receipt.wire).typed_outcome.error.code, 'CreateNameConflict');
-        assert.deepEqual(JSON.parse(failed.receipt.wire).typed_outcome.error.details, noncommit);
+        assert.equal(JSON.parse(failed.receipt!.wire).typed_outcome.error.code, 'CreateNameConflict');
+        assert.deepEqual(JSON.parse(failed.receipt!.wire).typed_outcome.error.details, noncommit);
         const failedHistory = refused.history(effect.logicalItemLocatorCid(locator), 8);
         refused.close();
         const failedReopened = open('noncommit');
         assert.equal((await reconcileOriginalTableCommit({...options(failedReopened),
           bridge: {projectCommitResponse, reconcileOperation: () => assert.fail('Saved noncommit must not query or write again')}}))
-          .receipt.identity, failed.receipt.identity);
+          .receipt!.identity, failed.receipt!.identity);
         assert.deepEqual(failedReopened.history(effect.logicalItemLocatorCid(locator), 8), failedHistory);
-        assert.equal(failedReopened.readClaimedResponse(claim).statusCode, 409);
+        assert.equal(failedReopened.readClaimedResponse(claim)!.statusCode, 409);
         const rawConflict = await possible('raw-conflict');
         assert.deepEqual(await reconcileOriginalTableCommit({...options(rawConflict),
           bridge: {projectCommitResponse, reconcileOperation: async () => ({ok: false, code: 'ExpectedGenerationConflict'})}}),
@@ -176,9 +203,10 @@ for (const empty of [false, true]) {
 
         // Two read-only recoveries overlap after the same original dispatch.
         const concurrent = await possible('concurrent');
-        let lookups = 0, release;
-        const barrier = new Promise(resolve => { release = resolve; });
-        const concurrentOptions = {...options(concurrent), bridge: {projectCommitResponse, async reconcileOperation(actual) {
+        let lookups = 0;
+        let release: () => void;
+        const barrier = new Promise<void>(resolve => { release = resolve; });
+        const concurrentOptions = {...options(concurrent), bridge: {projectCommitResponse, async reconcileOperation(actual: unknown) {
           assert.deepEqual(actual, operation);
           if (++lookups === 2) release();
           await barrier;
@@ -188,9 +216,9 @@ for (const empty of [false, true]) {
           reconcileOriginalTableCommit({...concurrentOptions, credentialUseCid: cid('8')})]);
         assert.equal(lookups, 2);
         assert.ok(settled.every(value => value.status === 'applied'));
-        assert.equal(settled[0].receipt.identity, settled[1].receipt.identity);
-        assert.deepEqual(JSON.parse(settled[0].receipt.wire).typed_outcome.result, expectedLogicalTableReceipt(expected));
-        const saved = concurrent.readClaimedResponse(claim);
+        assert.equal(settled[0].receipt!.identity, settled[1].receipt!.identity);
+        assert.deepEqual(JSON.parse(settled[0].receipt!.wire).typed_outcome.result, expectedLogicalTableReceipt(expected));
+        const saved = concurrent.readClaimedResponse(claim)!;
         assert.deepEqual(saved.responseBytes, responseBytes);
         const terminalHistory = concurrent.history(effect.logicalItemLocatorCid(locator), 8);
         assert.equal(terminalHistory.length, 3);
@@ -198,9 +226,9 @@ for (const empty of [false, true]) {
         const reopened = open('concurrent');
         assert.equal((await reconcileOriginalTableCommit({...options(reopened),
           bridge: {projectCommitResponse, reconcileOperation: () => assert.fail('Saved evidence does not query again')}}))
-          .receipt.identity, settled[0].receipt.identity);
+          .receipt!.identity, settled[0].receipt!.identity);
         assert.deepEqual(reopened.history(effect.logicalItemLocatorCid(locator), 8), terminalHistory);
-        assert.equal(reopened.readClaimedResponse(claim).credentialUseCid, saved.credentialUseCid);
+        assert.equal(reopened.readClaimedResponse(claim)!.credentialUseCid, saved.credentialUseCid);
         assert.equal((await captureClaimedEffectResponse({ledger: reopened, claim,
           requestCid: operation.request_cid,
           execute: () => assert.fail('Reconciled commit must not resend')})).claimed, false);
@@ -217,13 +245,13 @@ for (const empty of [false, true]) {
             canonicalRequestCid: operation.request_cid, credentialUseCid: cid('8'),
             statusCode: 200, responseBytes});
         };
-        const raced = {...late, recordResponse(value) {
+        const raced: Ledger = {...late, recordResponse(value) {
           recordLate();
           return late.recordResponse(value);
         }};
         assert.equal((await reconcileOriginalTableCommit({...options(late), ledger: raced})).status, 'applied');
-        assert.equal(late.readClaimedResponse(claim).credentialUseCid, cid('8'));
-        assert.deepEqual(late.readClaimedResponse(claim).responseBytes, responseBytes);
+        assert.equal(late.readClaimedResponse(claim)!.credentialUseCid, cid('8'));
+        assert.deepEqual(late.readClaimedResponse(claim)!.responseBytes, responseBytes);
       } finally {
         for (const ledger of opens) ledger.close();
       }

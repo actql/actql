@@ -2116,3 +2116,7 @@ target/
 /adapters/host-node/table-commit-reconciliation.d.mts
 /adapters/host-node/table-commit-outcome.test.mjs
 /adapters/host-node/table-commit-outcome.test.d.mts
+/adapters/host-node/table-commit-reconciliation.test.mjs
+/adapters/host-node/table-commit-reconciliation.test.d.mts
+/adapters/host-node/fixtures/table-logical-receipt.mjs
+/adapters/host-node/fixtures/table-logical-receipt.d.mts

@@ -104435,7 +104435,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.test.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.test.mts",
                 "anchor": "// Real checked Preview and durable common Ledger. Catalog lookup replies are"
               },
               {
@@ -104579,7 +104579,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.test.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.test.mts",
                 "anchor": "// Real checked Preview and durable common Ledger. Catalog lookup replies are"
               },
               {

@@ -4,7 +4,13 @@
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../../../scripts/check-canonical-json.mjs';
 
-export function expectedLogicalTableReceipt(physical) {
+type PhysicalReceipt = Readonly<{
+  request_cid: string; effect_identity_cid: string; catalog_identity_cid: string;
+  table_uuid: string; generation_cid: string; schema_cid: string;
+  storage_mapping_cid: string; receipt_cid: string; row_count: number;
+}>;
+
+export function expectedLogicalTableReceipt(physical: PhysicalReceipt) {
   const body = {
     version: 'actql-table-logical-receipt/0.1',
     request_cid: physical.request_cid,
