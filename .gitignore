@@ -1141,6 +1141,8 @@ target/
 /adapters/connectors/local/host/local-file-store-target.test.d.mts
 /adapters/connectors/local/host/local-file-store-plan.mjs
 /adapters/connectors/local/host/local-file-store-plan.d.mts
+/adapters/connectors/local/host/installed-project-file-effects.mjs
+/adapters/connectors/local/host/installed-project-file-effects.d.mts
 /adapters/connectors/local/site/root-file-writer-profile.mjs
 /adapters/connectors/local/site/root-file-writer-profile.d.mts
 /adapters/connectors/local/site/root-file-writer-profile.test.mjs

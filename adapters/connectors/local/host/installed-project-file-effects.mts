@@ -6,11 +6,13 @@ import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts,assertAuthorizationAccountCurrent}
   from '../../../host-common/authorization-gate.mjs';
-import {createInstalledRowEffect,retainInstalledRowEffectAdapter,
-  installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
+// @ts-expect-error TS7016: the original Row Effect is still authored in JavaScript.
+import {createInstalledRowEffect,retainInstalledRowEffectAdapter,installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
+// @ts-expect-error TS7016: the original Effect inventory is still authored in JavaScript.
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+// @ts-expect-error TS7016: the original Row Source is still authored in JavaScript.
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';
@@ -18,13 +20,108 @@ import {prepareLocalStoredContentWrite} from '../site/root-stored-content-writer
 import {captureLocalFileWriteConstructionProfile} from '../site/root-file-writer-profile.mjs';
 import {prepareLocalFileStorePlanRecipe} from './local-file-store-plan.mjs';
 
-const wire=value=>canonicalJson(value,{dataKeys:true});
-const cid=value=>'sha256:'+createHash('sha256').update(wire(value)).digest('hex');
-const isCid=value=>typeof value==='string'&&/^sha256:[0-9a-f]{64}$/u.test(value);
-const fail=(code,cause)=>{throw Object.assign(new Error(code,{cause}),{code});};
-const closed=(value,keys)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&
+type Data = Readonly<Record<string, unknown>>;
+type Target = ReturnType<typeof prepareLocalFileStoreTarget>;
+type WriterProfile = ReturnType<typeof captureLocalFileWriteConstructionProfile>;
+type WriteOptions = Parameters<typeof prepareLocalStoredContentWrite>[0];
+type Write = ReturnType<typeof prepareLocalStoredContentWrite>;
+type Borrow = WriteOptions['content'] & Readonly<{wire(): string}>;
+type ContentOwner = WriteOptions['contentOwner'];
+type Decision = Parameters<typeof assertAuthorizationAccountCurrent>[0];
+type Runtime = NonNullable<Parameters<typeof prepareLocalFileStoreTarget>[0]> &
+  Parameters<typeof prepareLocalFileStorePlanRecipe>[0]['moon'] & Readonly<{
+    clientProgramInstalledSourceConstructionCapacity(nodes: bigint, fields: bigint, objects: bigint,
+      arrays: bigint, text: bigint, wire: bigint): unknown;
+  }>;
+type Entry = Readonly<{connection: string; connectorId: string; rootPath: string; scopeCid: string;
+  wire: string; queryAliases: unknown; limits: Readonly<{maxPathBytes: number; maxFileBytes: number}>}>;
+type Bundle = Readonly<{project: unknown; connections: unknown; sources: readonly Entry[]}>;
+type Preparation = Readonly<{originalsForRuntime(runtime: Runtime): Bundle}>;
+type Binding = Readonly<{connectorId: string; bindingCid: string}>;
+type Command = Readonly<{command_id: string; contract_cid: string}>;
+type Mapping = Readonly<{mapping_ref: string; mapping_contract_cid: string}>;
+type Limits = Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxFileBytes: number;
+  maxRows?: number; maxEffects?: number}>;
+type RunLimits = Readonly<Record<string, number>> & Readonly<{maxRows: number; maxEffects: number}>;
+type Resources = Readonly<{assertCurrent(runOriginal: object): unknown; limits(runOriginal: object): RunLimits;
+  bindRunOriginal(...input: never[]): unknown}>;
+type Authorization = Readonly<{context: Readonly<{contextCid: string}>; configurationCid: string}>;
+type InstallationInput = Readonly<{
+  moon: Runtime; preparation: Preparation; sourceManaged: Readonly<{assertCurrent(): unknown}>;
+  baseEnvironmentWire: string; authorizationFor(connection: string): Authorization | Promise<Authorization>;
+  principalId: string; runtimeBundleCid: string; ledgerRoot: string; nativeFilesystem: unknown;
+  effectResources: unknown; sourceBindings: readonly Binding[];
+  installationServices: Parameters<typeof installedSourceConfigurationReader>[0];
+  sourceProfile?: Readonly<{connectorBindings: readonly Binding[];
+    originalsForProjectEffects(runtime: Runtime, preparation: Preparation): Bundle}>;
+}>;
+type DriverInput = Readonly<{
+  entry: Pick<Entry, 'connection' | 'rootPath' | 'limits'>; target: Pick<Target, 'resourceWire'>;
+  command: Command; bindingCid: string; principalId: string; authorization: Pick<Authorization, 'configurationCid'>;
+  assertCurrent(): undefined; resources: Resources; limits: Limits; nativeFilesystem: unknown;
+  writerProfile?: Pick<WriterProfile, 'writeQuantumBytes'>; maxRecoveryBytes?: number;
+}>;
+type Member = Readonly<{kind: string; resource: string; command: Readonly<{commandRef: string; commandCid: string}>;
+  memberIndex: number}>;
+type RequestValue = Readonly<{content: object; path: string; overwrite?: boolean}>;
+type RequestRecord = Readonly<{binding: string; command: string; target: object; value: RequestValue}>;
+type Scope = Readonly<{runOriginal: object; runInvocationCid: unknown; dispatchRequestCid: unknown}>;
+type Description = Scope & Readonly<{runInvocationCid: string; dispatchRequestCid: string}>;
+type RequestState = {
+  record: RequestRecord; cid: string; runOriginal: object; borrow: Borrow | undefined;
+  contentOwner: ContentOwner | undefined; writeChild: Write | undefined; released: boolean;
+};
+type RequestEntry = Readonly<{request: object}>;
+type Grant = {decision: Decision; runInvocationCid: string; dispatchRequestCid: string;
+  subjectCid: string; used: boolean};
+type Cleanup = Readonly<{release(): Promise<boolean>; status(): Readonly<{pending: boolean}>}>;
+type DescriptionInput = Scope & Readonly<{member: Member}>;
+type PrepareInput = Pick<Scope, 'runOriginal'> & Readonly<{member: Member; value: RequestValue; selector: unknown;
+  current: object; content(input: 'content'): Borrow; contentOwner: ContentOwner}>;
+type EntriesInput = Readonly<{member: Member; entries: readonly RequestEntry[]; runOriginal: object}>;
+type RecoveryInput = Readonly<{
+  durable?: Readonly<{connectorRecovery: readonly Readonly<{memberIndex: number; kind: string; wire: string;
+    observationCid: string}>[]}>;
+  body?: Readonly<{effects: readonly Readonly<{changes: readonly unknown[]}>[]}>;
+  memberIndexes?: readonly number[]; runOriginal: object; members?: readonly Member[];
+  runInvocationCid: unknown; dispatches?: readonly unknown[];
+}>;
+type ContentChild = Cleanup & Readonly<{prepare(): Promise<Readonly<{borrow: Borrow; contentOwner: ContentOwner}>>}>;
+type RecoveryProjection = (captured: unknown, tag: undefined, project: () => ContentChild, operation: undefined) => ContentChild;
+type RecoveredContent = Readonly<{
+  prepared?: unknown; allowed?: unknown; runDefinition: unknown;
+  computation: Readonly<{
+    effectSources?: readonly Readonly<{memberIndex: number; source: unknown}>[];
+    computation: Readonly<{capturedRun: unknown}>; preview: unknown; invocation: unknown;
+  }>;
+  recoveryResources?: Readonly<{constructCapturedValidation?: RecoveryProjection; constructCaptured: RecoveryProjection}>;
+}>;
+type RecoveredContentInput = Readonly<{
+  recovered?: RecoveredContent; members: readonly Member[]; entries: readonly (readonly RequestEntry[])[];
+  memberIndexes: readonly number[]; control: unknown; store: unknown;
+  contentRun?: Readonly<{prepareRecoveredCommandContent(options: Data): ContentChild}>;
+  principalId: string; assertCurrent?: () => undefined; signal?: AbortSignal;
+  limits: Readonly<{maxFields: number; maxWork: number;
+    body: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>}>;
+  runOriginal: object; managedContext: unknown;
+}>;
+type SendInput = Readonly<{
+  member: Member; request: object; current: object; authorization: Readonly<{proof: object; useId: unknown}>;
+  signal?: AbortSignal; runOriginal: object; physicalOperation?: Readonly<{
+    chargeBytes(bytes: bigint): undefined; retainPhysicalChild(child: Write): unknown;
+  }>;
+}>;
+type ObserverInput = Readonly<{request: object; observation?: Readonly<{useCid: unknown; statusCode: number; body: unknown}>}>;
+type GrantInput = Readonly<{operation: string; decision: Decision; resource: string;
+  runInvocationCid: unknown; dispatchRequestCid: unknown; subjectCid: unknown}>;
+
+const wire=(value: unknown)=>canonicalJson(value,{dataKeys:true});
+const cid=(value: unknown)=>'sha256:'+createHash('sha256').update(wire(value)).digest('hex');
+const isCid=(value: unknown): value is string=>typeof value==='string'&&/^sha256:[0-9a-f]{64}$/u.test(value);
+const fail: (code: string, cause?: unknown) => never=(code,cause)=>{throw Object.assign(new Error(code,{cause}),{code});};
+const closed=(value: unknown,keys: readonly string[]): value is Data=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).sort().join('\0')===[...keys].sort().join('\0');
-const synchronous=value=>{
+const synchronous=(value: unknown)=>{
   if(value!==undefined){
     if(value instanceof Promise)void value.catch(()=>{});
     fail('InvalidLocalStoreCurrentFence');
@@ -43,7 +140,7 @@ export const LOCAL_STORE_LIMITS=Object.freeze({maxRows:100,maxRequestBytes:10000
 
 export async function installPreparedProjectLocalFileEffects({moon,preparation,sourceManaged,
   baseEnvironmentWire,authorizationFor,principalId,runtimeBundleCid,ledgerRoot,
-  nativeFilesystem,effectResources,sourceBindings,installationServices,sourceProfile}) {
+  nativeFilesystem,effectResources,sourceBindings,installationServices,sourceProfile}: InstallationInput) {
   if(typeof preparation?.originalsForRuntime!=='function'||
       typeof sourceManaged?.assertCurrent!=='function'||typeof authorizationFor!=='function'||
       typeof principalId!=='string'||!isCid(runtimeBundleCid)||typeof ledgerRoot!=='string'||
@@ -52,9 +149,9 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
   const resources=Object.freeze(Object.fromEntries(['bindRunOriginal','assertCurrent','limits'].map(name=>{
     const method=Object.getOwnPropertyDescriptor(effectResources??{},name)?.value;
     if(typeof method!=='function')fail('LocalStoreEffectResourcesUnavailable');
-    return[name,(...args)=>Reflect.apply(method,effectResources,args)];
-  })));
-  const current=()=>{
+    return[name,(...args: unknown[])=>Reflect.apply(method,effectResources,args)];
+  })) as unknown as Resources);
+  const current=(): undefined=>{
     synchronous(sourceManaged.assertCurrent());
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
@@ -63,7 +160,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
   // These selectors name already admitted Project entries, not new profile
   // reads. Reuse the existing installation inventory and partial-close owner.
   const effects=await composeInstalledEffects(bundle.sources.map(entry=>entry.connection),
-    {moon,baseEnvironmentWire,installationServices},async(connection,_options,retain)=>{
+    {moon,baseEnvironmentWire,installationServices},async(connection: string,_options: unknown,retain: (effect: object) => void)=>{
       current();
       const entries=bundle.sources.filter(entry=>entry.connection===connection);
       if(entries.length!==1)fail('InvalidLocalFileEffectInstallation');
@@ -93,8 +190,8 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const target=prepareLocalFileStoreTarget(moon,{declaredWire,
         connectorId:entry.connectorId,rootPath:entry.rootPath,scopeCid:entry.scopeCid,
         authorityScopeCid:authorization.context.contextCid,assertCurrent:current,...declarationLimits});
-      const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire),
-        mapping=JSON.parse(target.mappingWire);
+      const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire) as Command,
+        mapping=JSON.parse(target.mappingWire) as Mapping;
       const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared,[target.mappingWire]);
       const inputLimits=installedRowEffectConstructionLimits();
       // Counts come from the same managed Plan. The incidental legacy count
@@ -109,11 +206,11 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       // and projector selectors, opaque quotes, captured copies and fixed recipe carriers.
       // This standing metadata is funded before the original factory; the
       // per-row proof population belongs to its later same-Run control quote.
-      const {driver,site}=installedSourceConfigurationReader(installationServices).prepareNativeInput(Object.freeze({
+      const {driver,site}=installedSourceConfigurationReader(installationServices)!.prepareNativeInput(Object.freeze({
         capacity:()=>checked(moon.clientProgramInstalledSourceConstructionCapacity(10n,0n,0n,0n,0n,0n)),
         project:()=>createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
           authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile,
-          maxRecoveryBytes:inputLimits.preview.maxWireBytes})}));
+          maxRecoveryBytes:inputLimits.preview.maxWireBytes})})) as ReturnType<typeof createLocalFileStoreDriver>;
       // Counts come from the same checked managed Plan and retained input
       // inventory. These defaults still size the legacy recipe's byte limits;
       // they are not an operator-selected row/member policy.
@@ -149,7 +246,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
   try{
     current();
     return Object.freeze({...effects,
-      queryStoreTargets:Object.freeze(effects.effects.flatMap(effect=>effect.queryStoreTargets))});
+      queryStoreTargets:Object.freeze(effects.effects.flatMap((effect: Readonly<{queryStoreTargets: readonly unknown[]}>)=>effect.queryStoreTargets))});
   }catch(cause){
     throw await retainInstalledHostInitializationFailure(cause,{installedEffect:effects});
   }
@@ -160,13 +257,14 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
 // send, after the existing dispatch claim and any required Preview approval.
 export function createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
   authorization,assertCurrent,resources,limits,nativeFilesystem,writerProfile,
-  maxRecoveryBytes=limits.maxRequestBytes}) {
+  maxRecoveryBytes=limits.maxRequestBytes}: DriverInput) {
   if(!Number.isSafeInteger(maxRecoveryBytes)||maxRecoveryBytes<1||maxRecoveryBytes>2147483647)
     fail('InvalidLocalStoreRecoveryLimits');
-  const requests=new WeakMap(),descriptions=new WeakMap(),grants=new WeakMap(),children=new Set();
+  const requests=new WeakMap<object,RequestState>(),descriptions=new WeakMap<object,Description>(),
+    grants=new WeakMap<object,Grant>(),children=new Set<Cleanup>();
   let closing=false;
   const current=()=>{if(closing)fail('LocalStoreInstallationClosing');synchronous(assertCurrent());};
-  const runCurrent=runOriginal=>{
+  const runCurrent=(runOriginal: object)=>{
     current();
     if(runOriginal===null||typeof runOriginal!=='object')fail('ForeignLocalStoreRun');
     synchronous(resources.assertCurrent(runOriginal));
@@ -180,37 +278,37 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     current();
     return actual;
   };
-  const memberCurrent=member=>{
+  const memberCurrent=(member: Member)=>{
     current();
     if(member.kind!=='command'||member.resource!=='files'||
         member.command.commandRef!==command.command_id||member.command.commandCid!==command.contract_cid)
       fail('ForeignLocalStoreMember');
   };
-  const description=(value,runOriginal)=>{
+  const description=(value: object,runOriginal?: object)=>{
     const original=descriptions.get(value);
     if(original===undefined||runOriginal!==undefined&&original.runOriginal!==runOriginal)
       fail('ForeignLocalStoreDescription');
     runCurrent(original.runOriginal);return original;
   };
-  const own=(request,runOriginal)=>{
+  const own=(request: object,runOriginal?: object)=>{
     const original=requests.get(request);
     if(original===undefined||original.released||
         runOriginal!==undefined&&original.runOriginal!==runOriginal)fail('ForeignLocalStoreRequest');
     runCurrent(original.runOriginal);return original;
   };
-  const validPath=path=>typeof path==='string'&&path.length>0&&path.isWellFormed()&&
+  const validPath=(path: unknown): path is string=>typeof path==='string'&&path.length>0&&path.isWellFormed()&&
     !path.includes('\0')&&!isAbsolute(path)&&Buffer.byteLength(path)<=entry.limits.maxPathBytes&&
     path.split('/').length<=128&&path.split('/').every(part=>part!=='.'&&part!=='..'&&
       part.length>0&&Buffer.byteLength(part)<=1024);
-  const requestFrom=(record,runOriginal,borrow,contentOwner)=>{
+  const requestFrom=(record: unknown,runOriginal: object,borrow?: Borrow,contentOwner?: ContentOwner)=>{
     runCurrent(runOriginal);
     if(!closed(record,['binding','command','target','value'])||record.binding!==bindingCid||
         record.command!==command.contract_cid||wire(record.target)!==target.resourceWire||
-        !closed(record.value,['content','path',...(Object.hasOwn(record.value??{},'overwrite')?['overwrite']:[])])||
+        !closed(record.value,['content','path',...(Object.hasOwn((record.value??{}) as object,'overwrite')?['overwrite']:[])])||
         !validPath(record.value.path)||record.value.content===null||typeof record.value.content!=='object'||
         Object.hasOwn(record.value,'overwrite')&&typeof record.value.overwrite!=='boolean'||
         Buffer.byteLength(wire(record))>limits.maxRequestBytes)fail('InvalidLocalStoreRequest');
-    const immutable=JSON.parse(wire(record));
+    const immutable=JSON.parse(wire(record)) as RequestRecord;
     Object.freeze(immutable.target);Object.freeze(immutable.value.content);Object.freeze(immutable.value);
     Object.freeze(immutable);
     const request=Object.freeze({});
@@ -220,9 +318,9 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
   };
   // Account permission and continuation ownership are separate Common gates.
   // Do not reinterpret the issuer's basis or invent a connector approval minimum.
-  const decisionCurrent=decision=>{
+  const decisionCurrent=(decision: Decision)=>{
     current();const facts=authorizationDispatchFacts(decision);
-    if(facts?.principal!==principalId||facts.configurationCid!==authorization.configurationCid||
+    if(facts?.principal!==principalId||facts!.configurationCid!==authorization.configurationCid||
         decision.action!=='dispatch'||decision.boundary!=='effect_commit'||
         decision.tuple?.connection!==entry.connection||decision.tuple?.resource!=='files'||
         decision.tuple?.operation!=='effect')fail('LocalStoreNotAuthorized');
@@ -233,7 +331,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     for(const child of children)await child.release();
     if([...children].some(child=>child.status().pending))fail('LocalStoreCleanupPending');
   };
-  const recover=({durable,body,memberIndexes,runOriginal,members,runInvocationCid,dispatches})=>{
+  const recover=({durable,body,memberIndexes,runOriginal,members,runInvocationCid,dispatches}: RecoveryInput)=>{
     const runLimits=runCurrent(runOriginal);
     const maxRows=Math.min(runLimits.maxRows,limits.maxRows??runLimits.maxRows),
       maxEffects=Math.min(runLimits.maxEffects,limits.maxEffects??runLimits.maxEffects);
@@ -248,7 +346,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       if(matches.length!==1||matches[0].kind!=='local-file-store'||
           typeof matches[0].wire!=='string'||Buffer.byteLength(matches[0].wire)>maxRecoveryBytes)
         fail('InvalidLocalStoreRecovery');
-      const saved=JSON.parse(matches[0].wire);
+      const saved=JSON.parse(matches[0].wire) as unknown;
       if(!closed(saved,['binding','requests'])||saved.binding!==bindingCid||
           cid(saved)!==matches[0].observationCid||!Array.isArray(saved.requests)||
           saved.requests.length>maxRows||saved.requests.length!==body.effects[index].changes.length)
@@ -256,7 +354,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       // Rebuilding approved DATA does not reconstruct a Content read grant.
       // A still-unattempted send must separately bind its restored original.
       restored.push(saved.requests.map(record=>requestFrom(record,runOriginal)));
-      memberCurrent(members?.[index]);
+      memberCurrent(members?.[index]!);
       if(!isCid(runInvocationCid)||!isCid(dispatches?.[index]))fail('ForeignLocalStoreDescription');
       const selected=Object.freeze({});
       descriptions.set(selected,{runInvocationCid,dispatchRequestCid:dispatches[index],runOriginal});
@@ -265,16 +363,16 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     return{requests:restored,currents};
   };
   const driver=Object.freeze({kinds:Object.freeze(['command']),writeOperation:()=> 'files.write',
-    describe({member,runInvocationCid,dispatchRequestCid,runOriginal}){
+    describe({member,runInvocationCid,dispatchRequestCid,runOriginal}: DescriptionInput){
       memberCurrent(member);runCurrent(runOriginal);
       if(!isCid(runInvocationCid)||!isCid(dispatchRequestCid))fail('ForeignLocalStoreDescription');
       const value=Object.freeze({});descriptions.set(value,{runInvocationCid,dispatchRequestCid,runOriginal});
       return value;
     },
     prepareRequest(){fail('OriginalLocalStoreContentRequired');},
-    prepareRequestChild({member,value,selector,current:selected,content,contentOwner,runOriginal}){
+    prepareRequestChild({member,value,selector,current:selected,content,contentOwner,runOriginal}: PrepareInput){
       memberCurrent(member);description(selected,runOriginal);
-      let request,stopping=false,preparing=false;
+      let request: object | undefined,stopping=false,preparing=false;
       const child=Object.freeze({
         prepare(){
           if(stopping||preparing||request!==undefined)fail('ForeignLocalStoreRequest');
@@ -286,7 +384,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
             request=requestFrom({binding:bindingCid,command:command.contract_cid,target:selector,value},
               runOriginal,borrowed,contentOwner);
             if(stopping)fail('LocalStoreRequestClosing');
-            return Object.freeze({request,requestCid:requests.get(request).cid});
+            return Object.freeze({request,requestCid:requests.get(request)!.cid});
           }finally{preparing=false;}
         },
         async release(){
@@ -303,9 +401,9 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       });
       children.add(child);return child;
     },
-    requestFacts(request){const {record}=own(request);return{value:record.value,target:record.target};},
-    requestCid:request=>own(request).cid,
-    recheckRequests({member,entries,runOriginal}){
+    requestFacts(request: object){const {record}=own(request);return{value:record.value,target:record.target};},
+    requestCid:(request: object)=>own(request).cid,
+    recheckRequests({member,entries,runOriginal}: EntriesInput){
       memberCurrent(member);runCurrent(runOriginal);
       for(const {request} of entries){
         const original=own(request,runOriginal);
@@ -313,7 +411,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           fail('OriginalEffectContentUnavailable');
       }
     },
-    footprint({member,entries}){
+    footprint({member,entries}: Pick<EntriesInput,'member'|'entries'>){
       memberCurrent(member);
       const targets=[],seen=new Set();
       let exact=true;
@@ -339,7 +437,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
         resource_identity_scheme_cid:fileFootprintScheme,
         provider_object_identity_cids:exact?targets:[]};
     },
-    recoveryEntry({entries}){
+    recoveryEntry({entries}: Pick<EntriesInput,'entries'>){
       // Preserve admission of every original request before encoding any row.
       // These are the same immutable records, not reconstructed Content grants.
       const records=entries.map(entry=>own(entry.request).record);
@@ -361,13 +459,13 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     },
     recoverRequests:recover,recoverMemberRequests:recover,
     prepareRecoveredContentChild({recovered,members,entries,memberIndexes,control,store,
-      contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal,managedContext}){
+      contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal,managedContext}: RecoveredContentInput){
       const runLimits=runCurrent(runOriginal);
       const maxRows=Math.min(runLimits.maxRows,limits.maxRows??runLimits.maxRows);
       if(typeof contentRun?.prepareRecoveredCommandContent!=='function'||
           recovered?.prepared===undefined||recovered.allowed===undefined||actor!==principalId)
         fail('OriginalEffectContentUnavailable');
-      const selected=[];
+      const selected: {state: RequestState; index: number}[]=[];
       for(const index of memberIndexes){
         memberCurrent(members[index]);
         for(const entry of entries[index]){
@@ -375,8 +473,8 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           selected.push({state:own(entry.request,runOriginal),index});
         }
       }
-      const retained=[];
-      let stopping=false,released=false,attempted=false,flight;
+      const retained: ContentChild[]=[];
+      let stopping=false,released=false,attempted=false,flight: Promise<void> | undefined;
       const child=Object.freeze({
         prepare(){
           if(attempted||stopping)fail('LocalStoreRecoveryAlreadyAttempted');
@@ -388,7 +486,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
                 source.memberIndex===members[index].memberIndex);
               if(sources?.length!==1)fail('OriginalEffectContentUnavailable');
               const prepareContent=()=>{
-                const contentChild=contentRun.prepareRecoveredCommandContent({
+                const contentChild=contentRun!.prepareRecoveredCommandContent({
                   prepared:recovered.prepared,allowed:recovered.allowed,managedContext,
                   definition:recovered.runDefinition,
                   captured:recovered.computation.computation.capturedRun,
@@ -440,7 +538,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       });
       children.add(child);return child;
     },
-    async send({member,request,current:selected,authorization:supplied,signal,runOriginal,physicalOperation}){
+    async send({member,request,current:selected,authorization:supplied,signal,runOriginal,physicalOperation}: SendInput){
       memberCurrent(member);const observed=description(selected,runOriginal),original=own(request,runOriginal);
       const grant=grants.get(supplied?.proof);
       if(grant===undefined||grant.used||grant.runInvocationCid!==observed.runInvocationCid||
@@ -452,43 +550,43 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       const write=prepareLocalStoredContentWrite({native:nativeFilesystem,rootPath:entry.rootPath,
         path:original.record.value.path,temporaryName:'.actql-store-'+randomUUID(),
         maxBytes:limits.maxFileBytes,overwrite:original.record.value.overwrite??false,
-        contentOwner:original.contentOwner,content:original.borrow,signal,
+        contentOwner:original.contentOwner!,content:original.borrow!,signal,
         writeQuantumBytes:writerProfile?.writeQuantumBytes,observeWriteBytes:physicalOperation?.chargeBytes,
         assertCurrent(){runCurrent(runOriginal);decisionCurrent(grant.decision);}});
       original.writeChild=write; // Before execute/acquisition or a later callback.
       physicalOperation?.retainPhysicalChild(write);
-      let result,primary,failed=false;
+      let result: Awaited<ReturnType<Write['execute']>>,primary: unknown,failed=false;
       try{result=await write.execute();}catch(cause){failed=true;primary=cause;}
-      let cleanup,cleanupFailed=false;
+      let cleanup: unknown,cleanupFailed=false;
       try{if((await write.close()).pending){cleanupFailed=true;cleanup=new Error('LocalStoreCleanupPending');}}
       catch(cause){cleanupFailed=true;cleanup=cause;}
       if(cleanupFailed)throw Object.assign(new Error('LocalStoreCleanupPending',
         {cause:failed?primary:cleanup}),{code:'LocalStoreCleanupPending',cleanupPending:true,
         cleanupHandle:Object.freeze({status:write.status,retry:write.retry})});
       if(failed)throw primary;
-      const response={request_cid:original.cid,path:result.path,bytes:result.bytes,action:'stored'};
+      const response={request_cid:original.cid,path:result!.path,bytes:result!.bytes,action:'stored'};
       const bytes=Buffer.from(wire(response));
       if(bytes.length>limits.maxResponseBytes)fail('LocalStoreResponseLimit');
       return Object.freeze({observation:Object.freeze({useCid:cid({binding:bindingCid,
         run:grant.runInvocationCid,dispatch:grant.dispatchRequestCid,subject:grant.subjectCid,use:supplied.useId}),
         statusCode:200,body:bytes})});
     },
-    project({request,observation}){
+    project({request,observation}: ObserverInput){
       const original=own(request);
       if(!isCid(observation?.useCid)||observation.statusCode!==200||
           !(observation.body instanceof Uint8Array)||observation.body.length>limits.maxResponseBytes)
         return{kind:'unknown'};
-      let response;try{response=JSON.parse(Buffer.from(observation.body).toString('utf8'));}catch{return{kind:'unknown'};}
+      let response: unknown;try{response=JSON.parse(Buffer.from(observation!.body as Uint8Array).toString('utf8'));}catch{return{kind:'unknown'};}
       if(!closed(response,['request_cid','path','bytes','action'])||response.request_cid!==original.cid||
           response.path!==original.record.value.path||response.action!=='stored'||
-          !Number.isSafeInteger(response.bytes)||response.bytes<0||response.bytes>limits.maxFileBytes)
+          !Number.isSafeInteger(response.bytes)||(response.bytes as number)<0||(response.bytes as number)>limits.maxFileBytes)
         return{kind:'unknown'};
       return{kind:'typed-success-response',outcome:{state:'applied',result:{}}};
     },
   });
   const site=Object.freeze({
     issueReadGrant(){fail('LocalStoreTargetReadUnavailable');},
-    issueEffectGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,subjectCid}){
+    issueEffectGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,subjectCid}: GrantInput){
       if(operation!=='files.write'||resource!=='files'||!isCid(runInvocationCid)||
           !isCid(dispatchRequestCid)||!isCid(subjectCid)||decision?.subjectCid!==subjectCid)
         fail('LocalStoreNotAuthorized');

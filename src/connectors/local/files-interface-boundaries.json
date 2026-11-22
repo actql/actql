@@ -2622,7 +2622,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "export async function installPreparedProjectLocalFileEffects("
               },
               {
@@ -2640,7 +2640,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "export function createLocalFileStoreDriver("
               },
               {
@@ -2658,7 +2658,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "const bindingCid=cid({scope:entry.scopeCid,declaration:entry.wire,"
               },
               {
@@ -2680,7 +2680,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "original.writeChild=write;"
               },
               {
@@ -2702,7 +2702,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "retained.push(contentChild);"
               },
               {
@@ -2720,7 +2720,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "LocalFileWriteAlreadyAttempted"
               },
               {
@@ -2742,7 +2742,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "stopping=true;"
               },
               {
@@ -2764,7 +2764,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "maxFileBytes:entry.limits.maxFileBytes"
               },
               {
@@ -2786,7 +2786,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mts",
                 "anchor": "commands:[{resource:'files'"
               },
               {
@@ -2850,7 +2850,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "70fe10d95eeff15921c5a2a3def900493f74bcb99b9f19acb6dcf26392f74508"
+      "sha256": "26f5bceb5a701b4d2ae9e6878474b3df121703dcc441abf972b624d782ff1eaa"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
