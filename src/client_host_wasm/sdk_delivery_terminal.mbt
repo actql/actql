@@ -126,7 +126,13 @@ pub fn produce_publication_sdk_terminal_storage(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=!output.produced && !output.invoked,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }

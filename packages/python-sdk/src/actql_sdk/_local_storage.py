@@ -73,6 +73,9 @@ class _NamespaceReader:
     # it never refreshes the original snapshot or returns a currentness token.
     _invocation_candidate: Callable[['_NamespaceReader', Callable[[], object], object], bool] | None = None
 
+    # Only a Store-owned terminal projection supplies this prewrite lifetime.
+    _projected_prewrite: Callable[[], bool] | None = None
+
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
 
@@ -950,7 +953,8 @@ class LocalByteStore:
             self, inspect: _InventoryInspection | None, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
             successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
-            _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None) -> None:
+            _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None,
+            _projected_prewrite: Callable[[], bool] | None = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -960,10 +964,14 @@ class LocalByteStore:
         failure: BaseException | None = None
         observing_current: Callable[[], object] | None = None
         observing_invocation = False
-        # Only audited owner phases end this reader before any intended write.
-        # BEGIN IMMEDIATE alone is not eligibility: projected readers enclose
-        # multiple writes and deliberately retain the full legacy path.
-        closed_phase = (_readonly is True or _prewrite is True) and not successors
+        # A projected terminal read has a closed observation phase only before
+        # the Store consumes its proposal. The one reader retains the same
+        # cumulative read and copy counters through the writes and precommit.
+        closed_phase = (_readonly is True or _prewrite is True
+                        or _projected_prewrite is not None) and not successors
+
+        def closed_observation_open() -> bool:
+            return closed_phase and (_projected_prewrite is None or _projected_prewrite())
 
         database = self._physical
         original_snapshot = (database._snapshot_identity()
@@ -1026,7 +1034,7 @@ class LocalByteStore:
             if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
                     or view is not reader or type(self) is not LocalByteStore
                     or view.owner is not self or not active or get_ident() != thread
-                    or observing_invocation or not closed_phase or observer is not current
+                    or observing_invocation or not closed_observation_open() or observer is not current
                     or view.scan_after is not scan_after or view.read is not read
                     or view.query_current is not query_current or view.journal_schema is not journal_schema
                     or view.check_frame is not check_frame or view.check_fences is not check_fences
@@ -1035,6 +1043,7 @@ class LocalByteStore:
                     or view.check_unchanged is not check_unchanged
                     or view._invocation_candidate is not invocation_candidate
                     or view._invocation_check is not invocation_check
+                    or view._projected_prewrite is not _projected_prewrite
                     or span.reader is not view or span.binding._current_observer is not observer
                     or span.core._invocation_observation is not span or not span.core._invoking
                     or reading and observing_current is not observer and not metadata):
@@ -1046,6 +1055,8 @@ class LocalByteStore:
             try:
                 if failure is not None:
                     raise failure
+                if not closed_observation_open():
+                    return False
                 invocation_frame(view, observer, span)
                 if (span.admitted or span.connection._closed_invocation is not None
                         or type(database) is not _SQLiteByteDatabase or original_snapshot is None
@@ -1468,7 +1479,8 @@ class LocalByteStore:
                     and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
                 _prepare_check=prepare_check if closed_reader and _reconciliation is not None else None,
                 _invocation_check=invocation_check if closed_reader else None,
-                _invocation_candidate=invocation_candidate if closed_reader else None)
+                _invocation_candidate=invocation_candidate if closed_reader else None,
+                _projected_prewrite=_projected_prewrite if closed_reader else None)
             result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
                       else inspect(reader) if inspect is not None else None)
             if failure is not None:
@@ -1723,7 +1735,7 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], _terminal_prewrite: bool = False) -> tuple[int, ...] | None:
         """Apply Core's original CAS under this same write/current snapshot.
 
         This reuses the existing projected transaction and generation checks.
@@ -1735,7 +1747,8 @@ class LocalByteStore:
         self._validate_metadata_fences(fences, ())
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
-            reuse_identical=False, fences=fences, inspect=inspect, current=current)
+            reuse_identical=False, fences=fences, inspect=inspect, current=current,
+            _terminal_prewrite=_terminal_prewrite)
 
     def store_publication_projected_inspected(
             self, count: int,
@@ -1768,7 +1781,8 @@ class LocalByteStore:
             before_commit: Callable[[], object], reuse_identical: bool,
             fences: tuple[ByteFence, ...] = (),
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
-            current: Callable[[], object] | None = None) -> tuple[int, ...] | None:
+            current: Callable[[], object] | None = None,
+            _terminal_prewrite: bool = False) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
@@ -1864,6 +1878,9 @@ class LocalByteStore:
                         if consumed:
                             raise ValueError('Original Local projection was already consumed')
                         consumed = True
+                        if (_terminal_prewrite and type(self._connection) is _TrackedSQLiteConnection
+                                and self._connection._closed_invocation is not None):
+                            raise LocalStorageError('Terminal writes require the original prewrite invocation to return')
                         for ordinal in range(count):
                             consume_ordinal(ordinal)
                         if before_commit() is not None:
@@ -1877,7 +1894,8 @@ class LocalByteStore:
                     consume_all()
                 else:
                     self._inspect_namespace_locked(
-                        lambda reader: inspect(reader, consume_all), fences, current)
+                        lambda reader: inspect(reader, consume_all), fences, current,
+                        _projected_prewrite=(lambda: not consumed) if _terminal_prewrite else None)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:

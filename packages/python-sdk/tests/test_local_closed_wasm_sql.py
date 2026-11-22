@@ -15,7 +15,7 @@ import wasmtime
 from actql_sdk._local_core import LocalCore, _ClosedWasmExports, _CLOSED_WASM_RECEIPT_BYTES, _MEMORY_LIMIT
 from actql_sdk._local_host_binding import _InvocationObservation
 from actql_sdk._local_files import LocalFileError
-from actql_sdk._local_storage import LocalStorageError
+from actql_sdk._local_storage import ByteFence, ByteWrite, LocalStorageError, StoredBytes
 from actql_sdk._local_storage_physical import _SQLiteByteDatabase, _TrackedSQLiteConnection
 import test_local_closed_invocation as closed
 
@@ -249,6 +249,73 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 self.assertEqual(stopped, [True] if stop and not legacy else [])
                 self.assertIsNone(binding._observed_reader)
                 self.assertIsNone(store._connection._closed_invocation)
+
+    def terminal_original(self, store):
+        key = store.namespaced_key('probe', 'row')
+        self.assertTrue(store.reserve_capacity('publication_payload', key, 7, 1, 32, 1))
+        reservation = store.read_capacity('publication_payload', key)
+        self.assertIsNotNone(reservation)
+        return ((ByteFence(key, 0, b'payload'), reservation),)
+
+    def test_saved_terminal_proposal_closes_proof_before_writing(self):
+        export = 'produce_sdk_terminal_storage'
+        for enabled, expected in ((True, [11, 0]), (False, [0, 0])):
+            with self.subTest(enabled=enabled):
+                core, binding, store, _ = self.fixture(census_export=export)
+                originals = self.terminal_original(store)
+                observed, readers, epochs = [], [], []
+                key = store.namespaced_key('probe', 'inserted')
+                write = ByteWrite(key, None, b'new-original')
+                def observe():
+                    readers.append(binding._observed_reader)
+                    epochs.append(store._connection._outer_transaction_epoch)
+                    observed.append(LocalCore._call(core, 'publication_commit_export', export, 0, 1))
+                def inspect(reader, take):
+                    def prepare(_):
+                        observe()
+                        take()
+                    binding.inspect_reader(reader, prepare)
+                def before_commit():
+                    rows = []
+                    binding._observed_reader.read('probe', 'inserted', rows.append)
+                    self.assertEqual(rows, [('inserted', StoredBytes(0, write.payload))])
+                    observe()
+                with binding.fenced() as fences:
+                    changes = store._connection.total_changes
+                    self.assertEqual(store.compare_exchange_projected_inspected(
+                        1, lambda _, consume: consume(write), originals, fences, inspect=inspect,
+                        current=binding._current_observer, before_commit=before_commit,
+                        _terminal_prewrite=enabled), (0,))
+                self.assertIs(readers[0], readers[1])
+                self.assertEqual(epochs[0], epochs[1])
+                self.assertEqual(observed, expected)
+                self.assertEqual(store._connection.total_changes, changes + 1)
+                self.assertEqual(store.read(key), StoredBytes(0, write.payload))
+                self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback(self):
+        export = 'produce_sdk_terminal_storage'
+        consumers = []
+        def effect():
+            consumers[0]()
+            return 0
+        core, binding, store, _ = self.fixture(census_export=export, effect=effect)
+        originals = self.terminal_original(store)
+        key = store.namespaced_key('probe', 'do-not-insert')
+        def inspect(reader, take):
+            consumers.append(take)
+            binding.inspect_reader(reader, lambda _: LocalCore._call(
+                core, 'publication_commit_export', export, 1, 1))
+        with binding.fenced() as fences:
+            changes = store._connection.total_changes
+            with self.assertRaisesRegex(LocalStorageError, 'prewrite invocation'):
+                store.compare_exchange_projected_inspected(
+                    1, lambda _, consume: consume(ByteWrite(key, None, b'bytes')), originals, fences,
+                    inspect=inspect, current=binding._current_observer,
+                    before_commit=lambda: None, _terminal_prewrite=True)
+        self.assertEqual(store._connection.total_changes, changes)
+        self.assertIsNone(store.read(key))
+        self.assertIsNone(store._connection._closed_invocation)
 
     def test_journal_metadata_assignments_still_poison_closed_epoch(self):
         for setting in ('application_id', 'user_version'):

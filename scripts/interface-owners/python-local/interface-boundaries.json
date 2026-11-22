@@ -28723,7 +28723,7 @@
           ]
         }
       ],
-      "sha256": "ad4e00b23760c7639cc89363ebebdd16b0049c23d9e4a0b82d18c8559d1dea66",
+      "sha256": "80d9b892b3599501a379a1b379dd2781f2afa3bb4ac4234b47456004a5296d04",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29263,6 +29263,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
               }
             ]
           }
@@ -60454,7 +60462,7 @@
           ]
         }
       ],
-      "sha256": "734e7aa7a50dbdfd2520614d0f0c640c1ba8594431750dce441f1e9b1f543a6e",
+      "sha256": "ab11497dadeea78325ea0b4526208d9bbb577528ff20ad8398a1d2bd4c5522f4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60626,6 +60634,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
                 "anchor": "class OriginalSDKDeliveryStore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
               }
             ]
           }
@@ -64912,7 +64928,8 @@
             "successors",
             "_readonly",
             "_prewrite",
-            "_reconciliation"
+            "_reconciliation",
+            "_projected_prewrite"
           ]
         },
         {
@@ -64968,6 +64985,11 @@
           "parameters": [
             "view"
           ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/closed_observation_open",
+          "parameters": []
         },
         {
           "async": false,
@@ -65167,7 +65189,8 @@
             "reuse_identical",
             "fences",
             "inspect",
-            "current"
+            "current",
+            "_terminal_prewrite"
           ]
         },
         {
@@ -65378,7 +65401,8 @@
             "fences",
             "inspect",
             "current",
-            "before_commit"
+            "before_commit",
+            "_terminal_prewrite"
           ]
         },
         {
@@ -65681,7 +65705,7 @@
           "parameters": []
         }
       ],
-      "sha256": "a055f70f4726e6819910079a6bed457de6d49feb821e5ca94a62b8412b0ea2ab",
+      "sha256": "4069b111148255d175efba4392aa99051d07736eaf3176a28131677fcba607ba",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66244,6 +66268,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
             "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
+            "LocalByteStore/_inspect_namespace_locked/closed_observation_open",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/invocation_candidate",
@@ -66805,6 +66830,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
               }
             ]
           }

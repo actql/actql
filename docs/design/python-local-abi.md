@@ -4081,9 +4081,12 @@ the separate readback after terminal commit. Successful codec preparation
 runs a full census again after returning its physical clock borrow via reader
 stop.
 Rechecking an already produced chunk starts its own export and census.
-Terminal projection and precommit validation keep the full checks in their
-write transaction. An eligible guest can then ask
-the existing current operation import about optional unchanged-reader proof
+Saved terminal projection may reuse the first census within its write-free
+proposal invocation. The original Store closes this phase before consuming the
+CAS proposal. The same transaction and reader keep their cumulative copy and
+query budgets, and precommit validation runs its full checks on the staged
+rows. An eligible guest can ask the existing current operation import about
+optional unchanged-reader proof
 support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
 or the original unallocated-ticket refusal leaves full validation active. The
 schema query continues to return physical schema 0 or 1 unchanged, and previous
