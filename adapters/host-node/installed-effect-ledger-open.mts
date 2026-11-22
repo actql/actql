@@ -1,6 +1,4 @@
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
-import type {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
-// @ts-expect-error TS7016: the physical Effect Ledger opener is still authored in JavaScript.
 import {openEffectLedger} from './effect-ledger.mjs';
 
 type RequestIdentityReader<Identity> = Readonly<{
@@ -8,11 +6,7 @@ type RequestIdentityReader<Identity> = Readonly<{
   clientRequestCallerId(identity: Identity): string;
 }>;
 type LedgerOwner = Extract<SynchronousRuntimeData, object>;
-type LedgerConstruction = {
-  <Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
-    receiver: undefined, method: (this: undefined, ...args: Args) => Value, args: Args): Value;
-  ledgerOpen?: ReturnType<typeof prepareInstalledEffectControlConstruction>['ledgerOpen'];
-};
+type LedgerConstruction = NonNullable<Parameters<typeof openEffectLedger>[0]['controlConstruction']>;
 type LedgerOpen<Runtime, Value extends LedgerOwner> = (options: Readonly<{
   moon: Runtime;
   root: string;
@@ -27,7 +21,7 @@ type LedgerOpen<Runtime, Value extends LedgerOwner> = (options: Readonly<{
 // reads; they do not rewrite the installation's durable response policy.
 export function openInstalledEffectLedger<Identity, Runtime extends RequestIdentityReader<Identity>>(
   moon: Runtime, root: string, identity: Identity, maxEntryBytes: number,
-  maxReadResponseBytes: number, controlConstruction: LedgerConstruction | undefined, open?: undefined): LedgerOwner;
+  maxReadResponseBytes: number, controlConstruction: LedgerConstruction | undefined, open?: undefined): ReturnType<typeof openEffectLedger>;
 export function openInstalledEffectLedger<Identity, Runtime extends RequestIdentityReader<Identity>, Value extends LedgerOwner>(
   moon: Runtime, root: string, identity: Identity, maxEntryBytes: number,
   maxReadResponseBytes: number, controlConstruction: LedgerConstruction | undefined, open: LedgerOpen<Runtime, Value>): Value;

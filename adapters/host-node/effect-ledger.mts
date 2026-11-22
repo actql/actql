@@ -1,4 +1,5 @@
 import {types as nodeTypes} from 'node:util';
+// @ts-expect-error TS7016: the Common runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
@@ -8,9 +9,69 @@ import {effectLedgerImplementationBounds} from './effect-ledger-implementation-b
 import {bindEffectLedgerCodecs, bindEffectLedgerConstruction, fail} from './effect-ledger-frames.mjs';
 import {prepareEffectLedgerEvidence} from './effect-ledger-evidence.mjs';
 
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+import type {EffectDispatchClaim} from './effect-physical-dispatch.mjs';
+import type {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+
+type Control = ReturnType<typeof effectApplicationControl>;
+type Construction = NonNullable<Parameters<typeof bindEffectLedgerConstruction>[1]> &
+  NonNullable<Parameters<typeof bindEffectLedgerCodecs>[1]> &
+  Partial<Pick<ReturnType<typeof prepareInstalledEffectControlConstruction>, 'ledgerHistory' | 'ledgerOpen'>>;
+type Physical = ReturnType<typeof openSqliteEffectLedger>;
+type Evidence = ReturnType<typeof prepareEffectLedgerEvidence>;
+type OutcomeOptions = Parameters<Evidence['admitStoredRowOutcome']>[0];
+type MemberPartition = Parameters<Evidence['memberReceiptEvidence']>[0];
+type PartitionArgs = ReturnType<Evidence['memberReceiptEvidence']>;
+type BatchEvidence = Parameters<Evidence['assertOwnedBatchEvidence']>[1];
+type BatchResponse = BatchEvidence['stored'];
+type SingleResponse = Exclude<NonNullable<ReturnType<Physical['response']>>, BatchResponse>;
+type PhysicalOutcome = ReturnType<Physical['outcomeForLocator']>;
+type RecordedOutcome = ReturnType<Physical['recordOutcome']>;
+type RowReceipt = ReturnType<Control['issueRowOutcomeReceipt']>;
+type Claim = EffectDispatchClaim;
+type Member = Readonly<{claims: readonly Claim[]}>;
+type RecordedResponse = Readonly<{credentialUseCid: string; statusCode: number; responseBytes: Uint8Array}>;
+type Recovery = Readonly<{
+  preview: unknown; scope: unknown; programId: string; nodeId: string; maxRows: number; maxWork: number;
+}>;
+type RecoveredClaims = Readonly<{members: readonly Member[]; frontier: unknown}>;
+type LedgerRuntime = object & Readonly<{
+  clientProgramEffectPreviewLedgerIdentity?(captured: unknown): unknown;
+  clientProgramInstalledEffectMemberReceiptConstruction?(rows: number, bytes: number, nodes: number, depth: number): unknown;
+  strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded?(...args: [
+    ...PartitionArgs, wire: string, rows: number, bytes: number, nodes: number, depth: number,
+    memberBytes: number, memberNodes: number, memberDepth: number,
+  ]): unknown;
+  strategyIssueEffectMemberReceiptFromRowPartitionFunded?(...args: [
+    ...PartitionArgs, rows: number, bytes: number, nodes: number, depth: number,
+    memberBytes: number, memberNodes: number, memberDepth: number,
+  ]): unknown;
+  strategyPublicationContractIdentity?: ControlReceiptIdentity;
+  strategyPublicationContractJson?: ControlReceiptIdentity;
+}>;
+type ControlReceiptIdentity = (value: unknown) => string;
+type LedgerOptions = Readonly<{
+  moon: LedgerRuntime;
+  root: string;
+  authorityScopeCid: string;
+  callerRequestId: string;
+  maxEntries?: number;
+  maxEntryBytes?: number;
+  maxResponseBytes?: number;
+  maxReadResponseBytes?: number;
+  maxStoredBytes?: number;
+  maxBatchRows?: number;
+  maxNodes?: number;
+  maxDepth?: number;
+  maxOutcomeNodes?: number;
+  maxOutcomeDepth?: number;
+  maxCallerBytes?: number;
+  controlConstruction?: Construction;
+}>;
+
 // Process-local observations of physical calls. Durable dispatch entries are
 // possible sends after restart, never proof that a call is still in progress.
-const activePhysicalFlights = new Map();
+const activePhysicalFlights = new Map<string, symbol>();
 
 export function openEffectLedger({
   moon,
@@ -29,7 +90,7 @@ export function openEffectLedger({
   maxOutcomeDepth = effectLedgerImplementationBounds.maxOutcomeDepth,
   maxCallerBytes = effectLedgerImplementationBounds.maxCallerBytes,
   controlConstruction,
-}) {
+}: LedgerOptions) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {
     fail('InvalidEffectLedgerBatchLimit');
@@ -41,7 +102,7 @@ export function openEffectLedger({
     fail('InvalidEffectLedgerOutcomeLimit');
   }
   if (controlConstruction !== undefined && typeof controlConstruction !== 'function') fail('InvalidEffectLedgerConstruction');
-  const control = bindEffectLedgerCodecs(runtimeCore(moon).effectApplicationControl, controlConstruction);
+  const control = bindEffectLedgerCodecs((runtimeCore(moon) as {effectApplicationControl: Control}).effectApplicationControl, controlConstruction);
   const scope = control.logicalRequestScope(
     authorityScopeCid, callerRequestId, maxCallerBytes,
   );
@@ -50,13 +111,13 @@ export function openEffectLedger({
     authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes, maxReadResponseBytes,
     maxStoredBytes,
     ...(typeof controlConstruction?.ledgerHistory === 'function'
-      ? {beforeHistoryRead: (count, wireUnits) => controlConstruction.ledgerHistory(count, wireUnits)} : {}),
+      ? {beforeHistoryRead: (count: number, wireUnits: number) => controlConstruction.ledgerHistory!(count, wireUnits)} : {}),
   });
-  const ownedBatchEvidence = new WeakSet();
+  const ownedBatchEvidence = new WeakSet<BatchEvidence>();
   const flightPrefix = `${realpathSync(root)}\0${scopeCid}\0`;
   // A physical call still owns its row if the durable head advances from
   // dispatching to unknown while the call is settling.
-  const flightKey = entry =>
+  const flightKey = (entry: unknown) =>
     `${flightPrefix}${control.ledgerEntryLocatorCid(entry)}`;
   const {assertOwnedBatchEvidence, validateStored, append, admitStoredRowOutcome, memberReceiptEvidence} =
     prepareEffectLedgerEvidence({control, physical, scopeCid, ownedBatchEvidence, activePhysicalFlights, flightKey,
@@ -64,41 +125,41 @@ export function openEffectLedger({
       getLedger: () => ledger});
   const ledger = Object.freeze({
     scopeCid,
-    current(locatorCid) {
+    current(locatorCid: unknown) {
       return validateStored(physical.current(locatorCid))?.row;
     },
-    currentAdmitted(locatorCid) {
+    currentAdmitted(locatorCid: unknown) {
       return validateStored(physical.current(locatorCid))?.entry;
     },
-    history(locatorCid, maxRevisions) {
+    history(locatorCid: unknown, maxRevisions: number) {
       const rows = physical.history(locatorCid, maxRevisions);
       let previous;
       for (const row of rows) {
         const stored = validateStored(row);
-        if (!control.ledgerEntryFollows(previous, stored.entry)) {
+        if (!control.ledgerEntryFollows(previous, stored!.entry)) {
           fail('EffectLedgerIntegrityFailed');
         }
-        previous = stored.entry;
+        previous = stored!.entry;
       }
       return rows;
     },
-    currentScopePage(options) {
+    currentScopePage(options?: Parameters<Physical['currentScopePage']>[1]) {
       const page=physical.currentScopePage(scopeCid,options);
       if (page.kind !== 'page') return page;
       page.entries.forEach(validateStored);
       return page;
     },
-    historyPage(locatorCid, options) {
+    historyPage(locatorCid: unknown, options?: Parameters<Physical['historyPage']>[1]) {
       // Authenticate this locator's current scope even when the physical
       // cursor is invalid; a cursor is never a request-scope capability.
       validateStored(physical.current(locatorCid));
       const page = physical.historyPage(locatorCid, options);
       if (page.kind !== 'page') return page;
-      let previous = page.previous === null ? undefined : validateStored(page.previous).entry;
+      let previous = page.previous === null ? undefined : validateStored(page.previous)!.entry;
       for (const row of page.entries) {
         const stored = validateStored(row);
-        if (!control.ledgerEntryFollows(previous, stored.entry)) fail('EffectLedgerIntegrityFailed');
-        previous = stored.entry;
+        if (!control.ledgerEntryFollows(previous, stored!.entry)) fail('EffectLedgerIntegrityFailed');
+        previous = stored!.entry;
       }
       return page;
     },
@@ -106,7 +167,7 @@ export function openEffectLedger({
     // immutable basis and decides the common Effect frontier.
     // The caller must obtain the admitted Preview and claims from the checked
     // Program; this is progress, never send admission.
-    frontierFromDurableHeads(admittedPreview, members, maxWork,
+    frontierFromDurableHeads(admittedPreview: unknown, members: readonly Member[], maxWork: number,
       recoverTargetGuards = false) {
       if (!admittedPreview || !Array.isArray(members) || members.length === 0 ||
           members.length > 1000 || !Number.isSafeInteger(maxWork) ||
@@ -132,8 +193,8 @@ export function openEffectLedger({
         const memberBases = [];
         const memberLocators = [];
         const memberKeys = [];
-        const memberHeads = [];
-        const memberActiveOwners = [];
+        const memberHeads: unknown[] = [];
+        const memberActiveOwners: boolean[] = [];
         for (const claim of member.claims) {
           if (!claim?.basis || !claim.scope || !claim.locator ||
               !claim.key || typeof claim.canonicalRequestCid !== 'string' ||
@@ -201,14 +262,14 @@ export function openEffectLedger({
     },
     // Derive an opaque selection from the same authenticated durable heads.
     // Neither a caller-supplied mask nor absence of a head waives a guard.
-    recoveredTargetGuards(admittedPreview, members, maxWork) {
+    recoveredTargetGuards(admittedPreview: unknown, members: readonly Member[], maxWork: number): unknown {
       return ledger.frontierFromDurableHeads(
         admittedPreview, members, maxWork, true);
     },
     // The standard Client Host supplies the same captured Preview owner that
     // retained the Result inputs. Historical progress survives pin release;
     // this path does not turn an uncertain row into a new send permission.
-    frontierFromCapturedHeads(captured, members, maxWork) {
+    frontierFromCapturedHeads(captured: unknown, members: readonly Member[], maxWork: number): unknown {
       if (typeof moon.clientProgramEffectPreviewLedgerIdentity !== 'function' ||
           !captured) {
         fail('InvalidCapturedEffectProgress');
@@ -220,7 +281,7 @@ export function openEffectLedger({
     // After whole-set apply admission, retain every exact row intent before
     // the first physical send. A prepared head is still unattempted; this
     // atomic batch does not claim a dispatch or authorize a retry.
-    prepareSetIntents(admittedPreview, members, maxWork) {
+    prepareSetIntents(admittedPreview: unknown, members: readonly Member[], maxWork: number): number {
       ledger.frontierFromDurableHeads(admittedPreview, members, maxWork);
       const claims = members.flatMap(member => member.claims);
       const locators = claims.map(claim =>
@@ -236,8 +297,8 @@ export function openEffectLedger({
             fail('EffectLedgerIntentConflict');
           }
           const action = control.recoveryActionFromEntry(
-            claim.locator, claim.intentFingerprintCid, claim.key,
-            claim.canonicalRequestCid, stored?.entry, false);
+            claim.locator, claim.intentFingerprintCid!, claim.key,
+            claim.canonicalRequestCid!, stored?.entry, false);
           if (action === 0) {
             const prepared = control.issuePreparedLedgerEntry(
               claim.basis, maxEntryBytes, maxNodes, maxDepth);
@@ -263,7 +324,7 @@ export function openEffectLedger({
       }
       fail('EffectLedgerClaimContention');
     },
-    prepareCapturedSetIntents(captured, members, maxWork) {
+    prepareCapturedSetIntents(captured: unknown, members: readonly Member[], maxWork: number): number {
       if (typeof moon.clientProgramEffectPreviewLedgerIdentity !==
           'function' || !captured) {
         fail('InvalidCapturedEffectProgress');
@@ -278,7 +339,7 @@ export function openEffectLedger({
     // recorded intents: current whole-set admission and the exact physical
     // request must be checked again before any dispatch.
     recoverClaimFacts({preview, scope, programId, nodeId, maxRows,
-      maxWork}, originalKeys) {
+      maxWork}: Recovery, originalKeys?: unknown): RecoveredClaims {
       if (!preview || !scope || typeof programId !== 'string' ||
           typeof nodeId !== 'string' ||
           !Number.isSafeInteger(maxRows) || maxRows < 1 ||
@@ -290,10 +351,10 @@ export function openEffectLedger({
       }
       // The managed recovery already funded and admitted these exact keys.
       // Borrow that cohort; do not encode and retain another correlation set.
-      const bindings = originalKeys === undefined
+      const bindings = (originalKeys === undefined
         ? control.recoveryBindings(preview, scope, programId, nodeId, maxRows, maxWork)
         : control.recoveryBindingsFromKeys(preview, scope, programId, nodeId,
-          originalKeys, maxRows, maxWork);
+          originalKeys, maxRows, maxWork)) as readonly (readonly unknown[])[];
       const locatorCids = bindings.flatMap(rows => rows.map(binding =>
         control.recoveryBindingLocatorCid(binding)));
       if (locatorCids.length === 0 || locatorCids.length > maxRows ||
@@ -305,7 +366,7 @@ export function openEffectLedger({
       const heads = bindings.map(rows => rows.map(() =>
         validateStored(snapshot[position++])?.entry));
       const recovered = control.recoverClaimsFromHeads(bindings, heads,
-        maxRows);
+        maxRows) as readonly (readonly unknown[])[];
       const members = Object.freeze(recovered.map(rows => Object.freeze({
         claims: Object.freeze(rows.map(value => Object.freeze({
           scope: control.recoveredClaimScope(value),
@@ -324,7 +385,7 @@ export function openEffectLedger({
     },
     // Terminal evidence recovery must not silently turn a Prepared row into
     // a new physical call. The apply owner uses recoverClaimFacts instead.
-    recoverRecordedClaims(options) {
+    recoverRecordedClaims(options: Recovery): RecoveredClaims {
       const recovered = ledger.recoverClaimFacts(options);
       if (control.setFrontierReadyCount(recovered.frontier) !== 0) {
         fail('EffectRecoveryHasSendableRows');
@@ -333,7 +394,7 @@ export function openEffectLedger({
     },
     // The caller must have won the durable send claim. This observation ends
     // when the physical call settles, independently of response persistence.
-    beginPhysicalFlight(dispatching, claims) {
+    beginPhysicalFlight(dispatching: unknown, claims: Claim | readonly Claim[]) {
       const entries = Array.isArray(dispatching)
         ? dispatching : [dispatching];
       const binding = Array.isArray(claims) ? claims : [claims];
@@ -373,7 +434,7 @@ export function openEffectLedger({
         }
       };
     },
-    response(dispatchEntryCid) {
+    response(dispatchEntryCid: unknown) {
       const row = physical.response(dispatchEntryCid);
       if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
         fail('EffectLedgerScopeMismatch');
@@ -383,7 +444,7 @@ export function openEffectLedger({
     // This is an exact, read-only physical observation for an already
     // possible dispatch. The Host must authorize evidence viewing before
     // calling it; no claim, state transition, or provider request occurs.
-    readClaimedResponse(claim) {
+    readClaimedResponse(claim: Claim | undefined): SingleResponse | undefined {
       if (!claim?.basis || !claim.scope || !claim.locator || !claim.key ||
           typeof claim.intentFingerprintCid !== 'string' ||
           typeof claim.canonicalRequestCid !== 'string') {
@@ -414,7 +475,7 @@ export function openEffectLedger({
     // Read physical outcome custody only through the same exact claim that
     // owns the saved response. This does not admit the outcome's semantic
     // body, issue a receipt, or make a dispatch terminal.
-    readClaimedOutcome(claim) {
+    readClaimedOutcome(claim: Claim): PhysicalOutcome {
       const stored = ledger.readClaimedResponse(claim);
       if (stored === undefined) return undefined;
       return physical.outcomeForLocator(stored.logicalItemLocatorCid, undefined, true);
@@ -424,7 +485,10 @@ export function openEffectLedger({
     // Collections projection can resume from the saved response without a
     // second HTTP send.
     recordClaimedOutcome({claim, claims, rowIndex, responsePhysicalSha256,
-      outcomeCid, outcomeJson}) {
+      outcomeCid, outcomeJson}: Readonly<{
+        claim?: Claim; claims?: readonly Claim[]; rowIndex?: number;
+        responsePhysicalSha256: string; outcomeCid: string; outcomeJson: string;
+      }>): RecordedOutcome {
       let stored, member;
       if (claims === undefined) {
         if (rowIndex !== undefined) fail('InvalidEffectPhysicalOutcome');
@@ -433,11 +497,11 @@ export function openEffectLedger({
       } else {
         if (claim !== undefined || !Array.isArray(claims) ||
             !Number.isSafeInteger(rowIndex) ||
-            rowIndex < 0 || rowIndex >= claims.length) {
+            rowIndex! < 0 || rowIndex! >= claims.length) {
           fail('InvalidEffectPhysicalOutcome');
         }
         stored = ledger.readClaimedBatchResponse(claims);
-        member = stored?.batchMembers[rowIndex];
+        member = stored?.batchMembers[rowIndex!];
       }
       if (stored === undefined || member === undefined ||
           stored.responsePhysicalSha256 !== responsePhysicalSha256) {
@@ -454,7 +518,8 @@ export function openEffectLedger({
     // The common MoonBit issuer fixes the receipt semantics before SQLite
     // retains it. The original response remains the sole physical observation.
     recordAdmittedRowOutcome({claim, claims, batchRowIndex, preview,
-      memberIndex, previewRowIndex, outcomeWire, responseEvidence}) {
+      memberIndex, previewRowIndex, outcomeWire, responseEvidence}: OutcomeOptions & Readonly<{outcomeWire: string}>):
+      Readonly<{receipt: RowReceipt; custody: RecordedOutcome}> {
       if (!preview || !Number.isSafeInteger(memberIndex) ||
           !Number.isSafeInteger(previewRowIndex) ||
           typeof outcomeWire !== 'string') {
@@ -471,11 +536,11 @@ export function openEffectLedger({
       if (stored === undefined ||
           (claims === undefined && batchRowIndex !== undefined) ||
           (claims !== undefined &&
-            (!Number.isSafeInteger(batchRowIndex) || batchRowIndex < 0 ||
-              batchRowIndex >= claims.length))) {
+            (!Number.isSafeInteger(batchRowIndex) || batchRowIndex! < 0 ||
+              batchRowIndex! >= claims.length))) {
         fail('EffectPhysicalResponseNotOwned');
       }
-      const ownedClaim = claims === undefined ? claim : claims[batchRowIndex];
+      const ownedClaim = claims === undefined ? claim : claims[batchRowIndex!];
       const effectKind = control.previewMemberKind(preview, memberIndex);
       const rowCid = control.previewOrderedRowCid(
         preview, memberIndex, previewRowIndex);
@@ -487,7 +552,7 @@ export function openEffectLedger({
         ownedClaim.scope, rowCid, ownedClaim.locator, ownedClaim.key);
       const dispatchEntryCid = claims === undefined
         ? stored.dispatchEntryCid
-        : stored.batchMembers[batchRowIndex].dispatchEntryCid;
+        : stored.batchMembers![batchRowIndex!].dispatchEntryCid;
       const issued = responseEvidence === undefined
         ? control.issueRowOutcomeReceipt(
           preview, memberIndex, previewRowIndex, dispatchEntryCid,
@@ -509,17 +574,17 @@ export function openEffectLedger({
         : physical.recordOutcome({
           logicalRequestScopeCid: scopeCid,
           logicalItemLocatorCid:
-            stored.batchMembers[batchRowIndex].logicalItemLocatorCid,
+            stored.batchMembers![batchRowIndex!].logicalItemLocatorCid,
           dispatchEntryCid,
           responsePhysicalSha256: stored.responsePhysicalSha256,
           outcomeCid: issued.identity, outcomeJson: issued.wire,
-          batchEvidence: stored,
+          batchEvidence: stored as BatchResponse,
         });
       return Object.freeze({receipt: issued, custody});
     },
     // Commit only a previously retained and re-admitted row Receipt. This is
     // a Store CAS of a MoonBit-selected state, not an HTTP response retry.
-    commitAdmittedRowOutcome(options) {
+    commitAdmittedRowOutcome(options: OutcomeOptions) {
       const {receipt, terminal} = admitStoredRowOutcome(options);
       return Object.freeze({receipt, transition: append(
         control.ledgerEntryWire(terminal))});
@@ -527,7 +592,7 @@ export function openEffectLedger({
     // A terminal row can be read for member aggregation only after the caller
     // separately admits evidence viewing. An external read rechecks exact
     // physical bytes, the Receipt, and the durable dispatch history.
-    readAdmittedTerminalOutcome(options) {
+    readAdmittedTerminalOutcome(options: OutcomeOptions): RowReceipt {
       const {current, receipt, terminal} = admitStoredRowOutcome(options);
       if (control.ledgerEntryCid(terminal) !==
           control.ledgerEntryCid(current.entry)) {
@@ -540,7 +605,8 @@ export function openEffectLedger({
     // Receipt; unknown and unattempted rows supply no invented outcome.
     // Current evidence-view authorization belongs to the Host caller.
     checkMemberReceiptRowPartitionEvidence({preview, memberIndex,
-      rowOwners, memberReceiptWire}, prepared, originalRows, originalOwners) {
+      rowOwners, memberReceiptWire}: MemberPartition & Readonly<{memberReceiptWire: string}>,
+      prepared?: unknown, originalRows?: number, originalOwners?: readonly unknown[]) {
       if (typeof memberReceiptWire !== 'string') {
         fail('InvalidEffectMemberReceiptEvidence');
       }
@@ -561,12 +627,13 @@ export function openEffectLedger({
         ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
           rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
       if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
-      return checked(moon.strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded(
+      return checked(moon.strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded!(
         ...evidence, memberReceiptWire, rowOwners.length,
         maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
-        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
+        runtimeField(selected, 1) as number, runtimeField(selected, 2) as number, runtimeField(selected, 3) as number));
     },
-    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}, prepared, originalRows, originalOwners) {
+    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}: MemberPartition,
+      prepared?: unknown, originalRows?: number, originalOwners?: readonly unknown[]) {
       if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
       if (controlConstruction !== undefined &&
           typeof moon.clientProgramInstalledEffectMemberReceiptConstruction === 'function' &&
@@ -582,20 +649,20 @@ export function openEffectLedger({
         ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
           rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
       if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
-      const value = checked(moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(
+      const value = checked(moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded!(
         ...evidence, rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
-        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
-      return Object.freeze({identity: moon.strategyPublicationContractIdentity(value),
-        wire: moon.strategyPublicationContractJson(value)});
+        runtimeField(selected, 1) as number, runtimeField(selected, 2) as number, runtimeField(selected, 3) as number));
+      return Object.freeze({identity: moon.strategyPublicationContractIdentity!(value),
+        wire: moon.strategyPublicationContractJson!(value)});
     },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
-    readClaimedBatchResponse(claims) {
+    readClaimedBatchResponse(claims: readonly Claim[]): BatchResponse | undefined {
       if (!Array.isArray(claims) || claims.length === 0 ||
           claims.length > maxBatchRows) {
         fail('InvalidEffectResponseRead');
       }
-      const members = [];
+      const members: {logicalItemLocatorCid: string}[] = [];
       const seen = new Set();
       for (const claim of claims) {
         if (!claim?.basis || !claim.scope || !claim.locator || !claim.key ||
@@ -624,8 +691,8 @@ export function openEffectLedger({
       const row = physical.responseForLocator(members[0].logicalItemLocatorCid);
       if (row === undefined) return undefined;
       if (row.logicalRequestScopeCid !== scopeCid ||
-          row.batchOwnerCid !== row.dispatchEntryCid ||
-          row.batchPosition !== 0 || row.batchCount !== members.length ||
+          (row as BatchResponse).batchOwnerCid !== row.dispatchEntryCid ||
+          (row as BatchResponse).batchPosition !== 0 || (row as BatchResponse).batchCount !== members.length ||
           row.batchMembers?.length !== members.length ||
           row.batchMembers.some((member, index) =>
             member.logicalItemLocatorCid !==
@@ -634,11 +701,11 @@ export function openEffectLedger({
               members[index].logicalItemLocatorCid))) {
         fail('EffectCollectionResponseBindingMismatch');
       }
-      return row;
+      return row as BatchResponse;
     },
     // One exact, Store-verified batch read yields an opaque MoonBit response
     // fact for all its row Receipts. A bare digest cannot enter this path.
-    prepareOwnedBatchResponseEvidence(claims) {
+    prepareOwnedBatchResponseEvidence(claims: readonly Claim[]): BatchEvidence {
       const stored = ledger.readClaimedBatchResponse(claims);
       if (stored === undefined) fail('EffectPhysicalResponseNotOwned');
       const typed = control.admitSavedResponseEvidence(
@@ -646,7 +713,7 @@ export function openEffectLedger({
         stored.credentialUseCid, stored.responseBytes, stored.statusCode,
         maxResponseBytes);
       const evidence = Object.freeze({claims, stored, typed,
-        requestCid: claims[0].canonicalRequestCid,
+        requestCid: claims[0].canonicalRequestCid!,
         locatorCids: Object.freeze(stored.batchMembers.map(member =>
           member.logicalItemLocatorCid))});
       ownedBatchEvidence.add(evidence);
@@ -654,14 +721,15 @@ export function openEffectLedger({
     },
     // Each Collections row retains its own dispatch and outcome owner even
     // though all rows share one durable HTTP observation.
-    readClaimedBatchOutcomes(claims) {
+    readClaimedBatchOutcomes(claims: readonly Claim[]): readonly PhysicalOutcome[] | undefined {
       const stored = ledger.readClaimedBatchResponse(claims);
       if (stored === undefined) return undefined;
       return Object.freeze(stored.batchMembers.map(member =>
         physical.outcome(member.dispatchEntryCid)));
     },
     recordResponse({dispatching, scope, locator, key,
-      canonicalRequestCid, credentialUseCid, statusCode, responseBytes}) {
+      canonicalRequestCid, credentialUseCid, statusCode, responseBytes}: RecordedResponse &
+      Pick<Claim, 'scope' | 'locator' | 'key'> & Readonly<{dispatching: unknown; canonicalRequestCid: string}>) {
       if (!control.ledgerEntryAdmitsDispatch(
         dispatching, scope, locator, key, canonicalRequestCid) ||
           control.ledgerEntryScopeCid(dispatching) !== scopeCid) {
@@ -679,17 +747,17 @@ export function openEffectLedger({
     },
     append,
     claimDispatch({scope, locator, key, basis,
-      intentFingerprintCid, canonicalRequestCid}) {
+      intentFingerprintCid, canonicalRequestCid}: Claim) {
       const prepared = control.issuePreparedLedgerEntry(
         basis, maxEntryBytes, maxNodes, maxDepth);
       const draftAction = control.recoveryActionFromEntry(
-        locator, intentFingerprintCid, key, canonicalRequestCid,
+        locator, intentFingerprintCid!, key, canonicalRequestCid!,
         prepared, false);
       const draftDispatching = control.issueNextLedgerEntry(
         prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
       if (draftAction !== 1 ||
           !control.ledgerEntryAdmitsDispatch(
-            draftDispatching, scope, locator, key, canonicalRequestCid) ||
+            draftDispatching, scope, locator, key, canonicalRequestCid!) ||
           control.ledgerEntryScopeCid(prepared) !== scopeCid) {
         fail('EffectDispatchBindingMismatch');
       }
@@ -701,34 +769,34 @@ export function openEffectLedger({
           fail('EffectLedgerIntentConflict');
         }
         const action = control.recoveryActionFromEntry(
-          locator, intentFingerprintCid, key, canonicalRequestCid,
+          locator, intentFingerprintCid!, key, canonicalRequestCid!,
           stored?.entry, false);
         if (action === 0) {
           try { append(control.ledgerEntryWire(prepared)); }
           catch (error) {
-            if (error?.code !== 'EffectLedgerInvalidTransition') throw error;
+            if ((error as {code?: unknown} | null | undefined)?.code !== 'EffectLedgerInvalidTransition') throw error;
           }
           continue;
         }
         if (action === 1) {
           const dispatching = control.issueNextLedgerEntry(
-            stored.entry, 'dispatching', '',
+            stored!.entry, 'dispatching', '',
             maxEntryBytes, maxNodes, maxDepth);
           try {
             const result = append(control.ledgerEntryWire(dispatching));
             if (result.created) {
-              return Object.freeze({action, claimed: true, dispatching});
+              return Object.freeze({action, claimed: true as const, dispatching});
             }
           } catch (error) {
-            if (error?.code !== 'EffectLedgerInvalidTransition') throw error;
+            if ((error as {code?: unknown} | null | undefined)?.code !== 'EffectLedgerInvalidTransition') throw error;
           }
           continue;
         }
         if (action >= 3 && action <= 7) {
           return Object.freeze({
-            action, claimed: false, entry: stored.entry,
+            action, claimed: false as const, entry: stored!.entry,
             response: action === 3
-              ? physical.response(control.ledgerEntryCid(stored.entry), true)
+              ? physical.response(control.ledgerEntryCid(stored!.entry), true)
               : undefined,
           });
         }
@@ -736,7 +804,7 @@ export function openEffectLedger({
       }
       fail('EffectLedgerClaimContention');
     },
-    claimDispatchBatch(claims) {
+    claimDispatchBatch(claims: readonly Claim[]) {
       if (!Array.isArray(claims) || claims.length === 0 ||
           claims.length > maxBatchRows) {
         fail('InvalidEffectLedgerBatch');
@@ -783,14 +851,14 @@ export function openEffectLedger({
             fail('EffectLedgerIntentConflict');
           }
           const action = control.recoveryActionFromEntry(
-            claim.locator, claim.intentFingerprintCid, claim.key,
-            claim.canonicalRequestCid, stored?.entry, false);
+            claim.locator, claim.intentFingerprintCid!, claim.key,
+            claim.canonicalRequestCid!, stored?.entry, false);
           actions.push(action);
           if (action !== 0 && action !== 1) continue;
           const prepared = action === 0
             ? control.issuePreparedLedgerEntry(
               claim.basis, maxEntryBytes, maxNodes, maxDepth)
-            : stored.entry;
+            : stored!.entry;
           const dispatching = control.issueNextLedgerEntry(
             prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
           if (!control.ledgerEntryAdmitsDispatch(
@@ -817,11 +885,11 @@ export function openEffectLedger({
           dispatchingEntries.push(dispatching);
         }
         if (actions.some(action => action !== 0 && action !== 1)) {
-          return Object.freeze({claimed: false, actions: Object.freeze(actions)});
+          return Object.freeze({claimed: false as const, actions: Object.freeze(actions)});
         }
         const result = physical.appendBatch(operations);
         if (result.created) {
-          return Object.freeze({claimed: true,
+          return Object.freeze({claimed: true as const,
             actions: Object.freeze(actions),
             dispatching: Object.freeze(dispatchingEntries)});
         }
@@ -829,7 +897,9 @@ export function openEffectLedger({
       fail('EffectLedgerClaimContention');
     },
     recordBatchResponse({claims, ownership, credentialUseCid,
-      statusCode, responseBytes}) {
+      statusCode, responseBytes}: RecordedResponse & Readonly<{
+        claims: readonly Claim[]; ownership: Readonly<{claimed: true; dispatching: readonly unknown[]}>;
+      }>) {
       if (!Array.isArray(claims) || claims.length === 0 ||
           claims.length > maxBatchRows || ownership?.claimed !== true ||
           !Array.isArray(ownership.dispatching) ||

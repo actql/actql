@@ -2392,3 +2392,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/sqlite-effect-history-page.test.d.mts
 /adapters/host-node/effect-ledger-evidence.mjs
 /adapters/host-node/effect-ledger-evidence.d.mts
+/adapters/host-node/effect-ledger.mjs
+/adapters/host-node/effect-ledger.d.mts

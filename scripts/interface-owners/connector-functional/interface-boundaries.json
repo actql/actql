@@ -21179,7 +21179,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "9032a2a4f00947283e10597260f6d93e099dbf1aa0efdfb9fc561e5b15198597",
+      "sha256": "f0cd8cb0edae7a6547995cd4cd7c00142b5d2bf19bea9b6474ee1362aa1211a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",

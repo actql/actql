@@ -31,7 +31,6 @@ import {prepareCapturedTableCommit, prepareRecoveredTableCommit,
   bindApprovedTableCommitDispatch, refreshCapturedTableTargets,
   cleanupCapturedTableCommit} from './table-commit-apply.mjs';
 import {reconcileOriginalTableCommit} from './table-commit-reconciliation.mjs';
-// @ts-expect-error TS7016: the durable Effect Ledger still has a JavaScript entry.
 import {openEffectLedger} from './effect-ledger.mjs';
 import {localContractLimits} from './local-publication-limits.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction}

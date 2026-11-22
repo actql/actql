@@ -45574,7 +45574,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aa5e608dc26cd5f144e1a2745c2b97293c8620e6b031f166841067395962be1b",
+      "sha256": "a9caf01c1c3dd9d6bbd3680022d192b6cc6404dfad4177ae653eccd56af6fa3f",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -46077,7 +46077,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "export function openEffectLedger({"
               },
               {
@@ -46091,7 +46091,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "export function openEffectLedger({"
               },
               {
@@ -46105,7 +46105,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "authorityScopeCid,"
               },
               {
@@ -46161,7 +46161,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "// retained the Result inputs. Historical progress survives pin release;"
               },
               {
@@ -46189,7 +46189,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "// cursor is invalid; a cursor is never a request-scope capability."
               },
               {
@@ -46221,7 +46221,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "export function openEffectLedger({"
               },
               {
@@ -46235,7 +46235,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "export function openEffectLedger({"
               },
               {
@@ -46249,7 +46249,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "authorityScopeCid,"
               },
               {
@@ -46305,7 +46305,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "// retained the Result inputs. Historical progress survives pin release;"
               },
               {
@@ -46333,7 +46333,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
+                "path": "adapters/host-node/effect-ledger.mts",
                 "anchor": "// cursor is invalid; a cursor is never a request-scope capability."
               },
               {
@@ -46487,7 +46487,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-ledger-open.mjs",
-      "sha256": "d9401c3b91e45d1e40bc5eb3a91bb03e20c32be608a239dcb404d32cad41a735",
+      "sha256": "8d94d69a62bbfac496ee28d47b29e0a6b5eb1eb1f2f8e7fdbd26ec18d5d36e2e",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",

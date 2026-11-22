@@ -7,7 +7,6 @@ import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 // @ts-expect-error TS7016: the shared Client Program bridge test still has a JavaScript fixture.
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
-// @ts-expect-error TS7016: the durable Effect Ledger still has a JavaScript entry.
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {reconcileOriginalTableCommit} from './table-commit-reconciliation.mjs';
@@ -30,7 +29,7 @@ type Effect = Pick<ReturnType<typeof effectApplicationControl>, 'logicalItemLoca
 type Operation = Readonly<{request_cid: string; effect_identity_cid: string; catalog_identity_cid: string;
   schema_cid: string; storage_mapping_cid: string}>;
 type Fixture = Readonly<{
-  moon: unknown; sourceControl: Reconciliation['control'] & Required<Pick<Reconciliation['control'], 'localTableCommitResponse'>>;
+  moon: Parameters<typeof openEffectLedger>[0]['moon']; sourceControl: Reconciliation['control'] & Required<Pick<Reconciliation['control'], 'localTableCommitResponse'>>;
   effect: Effect; tablePreview: object; tableLimits: Reconciliation['limits']; operations: readonly Operation[];
   authored: Readonly<{_0: string; _1: readonly (readonly unknown[])[]}>; scope: unknown; directory: string;
 }>;
