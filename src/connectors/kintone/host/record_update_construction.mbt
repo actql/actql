@@ -315,7 +315,18 @@ pub fn record_update_finalization_construction_inventory(
     limits.max_records != 1 {
     return None
   }
-  let f = mapping.before_fields.length().to_int64()
+  record_update_request_construction_inventory(
+    mapping.before_fields.length(),
+    limits,
+  )
+}
+
+///|
+fn record_update_request_construction_inventory(
+  field_count : Int,
+  limits : @catalog.RecordMutationLimits,
+) -> RecordUpdateConstructionInventory? {
+  let f = field_count.to_int64()
   guard record_read_writer_units(
       limits.max_output_bytes,
       limits.max_output_nodes,

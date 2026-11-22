@@ -859,3 +859,12 @@ validation. Parsed two-row replies fit the same refusal workspace, while
 only a matching one-record or complete-empty observation may be retained.
 The bounded reply controls exercise the actual present and absent cases,
 one-byte-short admission and refusal of an incomplete count.
+
+For an observed record, the request quote uses the existing single-record
+conditional UPDATE writer. The quote requires the proposal's own nominal
+lookup and Before, and retains the request wrapper and native body. The
+original record, revision, lookup and intended values remain borrowed.
+The Form and key comparisons and the writer are execution workspace.
+Complete absence still requires its own CREATE construction inventory.
+The present-record control checks the exact conditional PUT body,
+one-byte-short refusal and rejection of a separately issued lookup.

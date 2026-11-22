@@ -9145,7 +9145,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "ed6d7db70a2213d89b9ca707fccb8d5a424757bab8ea995df759f9fb0d2d62f3",
+      "sha256": "c6292429d8986501d8f6cfc6dbfab3d143bc1f4893a1686527cd718d7f2e4f96",
       "exports": [],
       "operations": [
         {
@@ -9179,6 +9179,10 @@
         {
           "name": "record_update_proposal_construction_inventory",
           "declaration": "record_update_proposal_construction_inventory ( mapping : RecordUpdateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_update_request_construction_inventory",
+          "declaration": "record_update_request_construction_inventory ( field_count : Int , limits : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
         },
         {
           "name": "record_update_response_construction_capacity",
@@ -9222,7 +9226,8 @@
             "update_construction_capacity",
             "update_construction_empty",
             "record_mutation_proposal_values_inventory",
-            "record_target_before_construction_inventory"
+            "record_target_before_construction_inventory",
+            "record_update_request_construction_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -9292,7 +9297,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
-      "sha256": "48b69151f6bc5e2281dbbff84a86e93fcbc7bc5f89de07d3a630efbfe41951e2",
+      "sha256": "4085f769e545e055ee2009e81b2c5cde07765a841acf2352d632a1f0dba3abd7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing kintone proposal and Common execution preparation inventories",
@@ -9305,6 +9310,10 @@
         {
           "name": "record_key_upsert_proposal_construction_capacity",
           "declaration": "record_key_upsert_proposal_construction_capacity ( mapping : RecordKeyUpsertMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , lookup : @ catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_update_construction_capacity",
+          "declaration": "record_key_upsert_update_construction_capacity ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
@@ -9312,7 +9321,8 @@
           "operations": [
             "<module>",
             "record_key_upsert_before_construction_capacity",
-            "record_key_upsert_proposal_construction_capacity"
+            "record_key_upsert_proposal_construction_capacity",
+            "record_key_upsert_update_construction_capacity"
           ],
           "exports": [],
           "attributes": {

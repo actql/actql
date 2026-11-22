@@ -399,6 +399,7 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
   let bytes = b"{\"memo\":\"next\"}"
   let limits = key_before_lookup_limits()
   let write_limits = key_before_write_limits()
+  let mutation = { ..delete_preview_limits(), max_records: 1, }
   for present in [true, false] {
     let proposal = prepare_record_key_upsert_proposal(
       selected, "original-key", bytes, 10000, write_limits, limits,
@@ -412,25 +413,54 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
       proposal,
       observed,
       delete_preview_values(),
-      delete_preview_limits(),
-    ).unwrap()
-    let request = prepare_record_key_upsert_request_from_before(
-      proposal,
-      before,
-      write_limits,
-      delete_preview_limits(),
+      mutation,
     ).unwrap()
     assert_true(record_key_upsert_before_matches(before, original, observed))
     if present {
       assert_true(record_key_upsert_before_version_cid(before) is Some(_))
+      let expected = "{\"app\":\"12\",\"records\":[{\"id\":\"9007199254740993\",\"record\":{\"memo\":{\"value\":\"next\"}},\"revision\":\"9007199254740994\"}],\"upsert\":false}"
+      let exact = { ..mutation, max_output_bytes: expected.length(), }
+      let short = { ..exact, max_output_bytes: expected.length() - 1, }
+      let quote = record_key_upsert_update_construction_capacity(
+        proposal, before, exact,
+      ).unwrap()
+      let smaller = record_key_upsert_update_construction_capacity(
+        proposal, before, short,
+      ).unwrap()
+      assert_true(
+        @execution.execution_capacity_retained_bytes(quote) >
+        @execution.execution_capacity_retained_bytes(smaller),
+      )
+      assert_true(
+        @execution.execution_capacity_execution_bytes(quote) >
+        @execution.execution_capacity_retained_bytes(quote),
+      )
+      let bounded = prepare_record_key_upsert_request_from_before(
+        proposal, before, write_limits, exact,
+      ).unwrap()
       assert_eq(
         @catalog.record_update_request_body(
-          @catalog.record_key_upsert_update_request(request).unwrap(),
+          @catalog.record_key_upsert_update_request(bounded).unwrap(),
         ),
-        "{\"app\":\"12\",\"records\":[{\"id\":\"9007199254740993\",\"record\":{\"memo\":{\"value\":\"next\"}},\"revision\":\"9007199254740994\"}],\"upsert\":false}",
+        expected,
+      )
+      assert_true(
+        prepare_record_key_upsert_request_from_before(
+          proposal, before, write_limits, short,
+        )
+        is Err(Request(Request(BudgetExceeded))),
       )
     } else {
+      let request = prepare_record_key_upsert_request_from_before(
+        proposal, before, write_limits, mutation,
+      ).unwrap()
       assert_true(record_key_upsert_before_version_cid(before) is None)
+      assert_true(
+        record_key_upsert_update_construction_capacity(
+          proposal, before, mutation,
+        )
+        is None,
+      )
       assert_eq(
         @catalog.record_create_request_body(
           @catalog.record_key_upsert_create_request(request).unwrap(),
@@ -446,16 +476,19 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
         different,
         observed,
         delete_preview_values(),
-        delete_preview_limits(),
+        mutation,
       )
       is Err(Lookup(ForeignRequest)),
     )
     assert_true(
+      record_key_upsert_update_construction_capacity(
+        different, before, mutation,
+      )
+      is None,
+    )
+    assert_true(
       prepare_record_key_upsert_request_from_before(
-        different,
-        before,
-        write_limits,
-        delete_preview_limits(),
+        different, before, write_limits, mutation,
       )
       is Err(Lookup(ForeignRequest)),
     )

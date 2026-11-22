@@ -182,3 +182,65 @@ pub fn record_key_upsert_before_construction_capacity(
   }
   update_construction_capacity({ retained, workspace, })
 }
+
+///|
+/// Quote the revision-checked PUT selected by this proposal's original Before.
+/// The retained proposal cells, lookup and observed target stay with their
+/// existing owners. Absent Before requires the separate create inventory.
+pub fn record_key_upsert_update_construction_capacity(
+  proposal : RecordKeyUpsertProposal,
+  before : RecordKeyUpsertBefore,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard proposal.self is Some(original) &&
+    physical_equal(proposal, original) &&
+    record_key_upsert_before_matches(
+      before,
+      proposal.mapping.original,
+      before.lookup,
+    ) &&
+    @catalog.record_key_lookup_uses_request(before.lookup, proposal.lookup) &&
+    before.target is Some(_) &&
+    record_target_before_limits_valid(limits) &&
+    limits.max_records == 1 else {
+    return None
+  }
+  let count = proposal.mapping.fields.length()
+  let fields = count.to_int64()
+  let utf8 = @scalar.utf8_length_admission_construction_units()
+  guard record_update_request_construction_inventory(count, limits)
+    is Some(update) &&
+    @shape.collection_construction_extent({
+      // Form/key recheck owns the lookup Options, Text contract and checked
+      // key. Its UTF8 passes are synchronous and borrow the key's String.
+      // The per-cell comparisons own two small arrays but no new text.
+      records: 16L + utf8.0 + 4L * fields,
+      record_references: 20L + utf8.1 + 6L * fields,
+      record_words: 20L + utf8.2 + 6L * fields,
+      reference_arrays: 3L + 2L * fields,
+      reference_items: 3L + 4L * fields,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(checks) &&
+    @execution.compose_preparation_representation([
+      update.retained,
+      {
+        ..update_construction_empty(),
+        record_headers: 3L,
+        reference_slots: 6L,
+        scalar_words: 2L,
+      },
+    ])
+    is Some(retained) &&
+    @execution.compose_preparation_representation([
+      update.workspace,
+      record_read_collection_units(checks),
+    ])
+    is Some(workspace) else {
+    return None
+  }
+  update_construction_capacity({ retained, workspace, })
+}
