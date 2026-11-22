@@ -83787,7 +83787,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "02a17135229e6ab80e6908261ffeccbe964b96334a1ba623f9156006d93074df",
+      "sha256": "a8f790d5432be245fec546581ac572dbc09ff7c48b89c31c957b276dc51350f4",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -83861,6 +83861,13 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -86576,7 +86583,8 @@
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
             "prepareInstalledTargetPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes"
           ],
           "exports": [
             "prepareInstalledTargetPlanRecipes"

@@ -27,7 +27,9 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 //   writes and its target identity (absent for a create). The common owner
 //   compares both with the Program's mapped value and selector, and with
 //   the approved Preview, before anything derived from them is trusted.
-// - `writeOperation(member)`: the grant operation of a row's send.
+// - `writeOperation(member)`: the grant operation of a row's send when
+//   the installed recipe has a single write. A presence-bound UPSERT recipe
+//   selects its exact grant operation from the admitted original Preview.
 // - `send({member, request, current, authorization, credential,
 //   callResource, signal})`: one physical send, called only inside a fresh
 //   durable claim.
@@ -94,7 +96,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, selectInstalledEffectWriteBranch, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -518,8 +520,12 @@ function captureManagedPlanRecipes(recipes, driver, maxOperations, declaredUpdat
     !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
     fail('InvalidInstalledEffectPlanRecipe');
   }
-  return Object.freeze(Object.fromEntries(supportedKinds.map(kind =>
-    [kind, captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations)])));
+  return Object.freeze(Object.fromEntries(supportedKinds.map(kind => {
+    const recipe = captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations);
+    if (kind !== 'upsert' && recipe?.credentialOperations?.some(entry =>
+      entry.phase === 'write' && entry.slot !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
+    return [kind, recipe];
+  })));
 }
 
 const managedTargetPlanOriginals = new WeakMap();
@@ -1287,6 +1293,10 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned,
     localContractLimits.maxNodes, declaredUpdate);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
+  if (selectInstalledEffectCredentialOperation(suppliedRecipe, 'write', 'absent') !== undefined &&
+      (declaredUpdate || owned.kinds.length !== 1 || owned.kinds[0] !== 'upsert')) {
+    fail('InvalidInstalledEffectPlanRecipe');
+  }
   const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
   if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
       owned.finalizeRequest !== undefined || managedPlanConstruction !== undefined)) {
@@ -1806,6 +1816,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const commonCapability = (member, entries) => {
     const {connectorRegistration, connectorRevision, runtimeBundleCid, bindingCid, connection, owned,
       updateWriteSlot} = ownerOf(member);
+    const recipe = member.kind === 'upsert' ? recipeOf(member) : undefined;
+    const absent = selectInstalledEffectCredentialOperation(recipe, 'write', 'absent');
+    const present = selectInstalledEffectCredentialOperation(recipe, 'write', 'present');
     return Object.freeze({
     identity: cid({
       version: CAPABILITY_VERSION,
@@ -1815,7 +1828,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       connection, resource: member.resource,
       ...(member.kind === 'command'
         ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
-      operation: installedEffectWriteOperation(owned, member, updateWriteSlot),
+      ...(absent === undefined ? {operation: installedEffectWriteOperation(owned, member, updateWriteSlot)}
+        : {operations: {
+          absent: recipe.rowOperations[absent.operationIndex].operation,
+          present: recipe.rowOperations[present.operationIndex].operation,
+        }}),
       route: 'single_serial', idempotency: 'unavailable',
       request_cids: entries.map(entry => owned.capabilityRequestCid === undefined
         ? entry.requestCid : owned.capabilityRequestCid(entry.request))}),
@@ -2402,13 +2419,20 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const managedPlanRecipe = recipeOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
+          const previewRow = previewRows[memberIndex][sourceIndex];
           const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
-            claim, member, entry,
-            previewRow: previewRows[memberIndex][sourceIndex]});
+            claim, member, entry, previewRow});
           await owned.recheckRequests?.({member, entries: [entry],
             current: now[memberIndex], controlConstruction, ...resourceFields(member)});
           assertCurrent?.();
-          const grantFacts = {operation: installedEffectWriteOperation(owned, member, updateWriteSlot),
+          const branch = member.kind === 'upsert'
+            ? selectInstalledEffectWriteBranch(managedPlanRecipe, member.kind, previewRow) : undefined;
+          const operation = branch === undefined ? installedEffectWriteOperation(owned, member, updateWriteSlot)
+            : managedPlanRecipe.rowOperations[branch.operationIndex].operation;
+          if (branch !== undefined && !permissionsOf(member).includes(operation)) {
+            fail('InstalledEffectPhysicalPlanUnavailable');
+          }
+          const grantFacts = {operation,
             decision: commits.get(scopeKey(member)), resource: member.resource,
             runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
           const grantConstructor = managedPlanRecipe?.grantConstruction;
@@ -2425,7 +2449,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               if (managedPlanRecipe?.physicalWrite !== undefined) {
                 if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
                 return physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot), assertCurrent: assertClaimedCurrent, signal,
+                  operation, assertCurrent: assertClaimedCurrent, signal,
                   invoke: physicalOperation => owned.send({member, request: entry.request, current: now[memberIndex],
                     authorization: {...grant, useId}, credential: site.credential, signal, physicalOperation,
                     ...resourceFields(member)})});
@@ -2433,7 +2457,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               if (managedPlanRecipe?.credentialOperations !== undefined) {
                 if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
                 const send = () => physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot), site, originalAuthorization: grant, useId,
+                  operation, site, originalAuthorization: grant, useId,
+                  ...(branch === undefined ? {} : {credentialSlot: branch.slot}),
                   resource: member.resource, purpose: 'effect', runInvocationCid,
                   dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
                   invoke: ({authorization, credential, callResource}) => {
