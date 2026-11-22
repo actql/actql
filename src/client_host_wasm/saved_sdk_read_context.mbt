@@ -83,6 +83,7 @@ fn saved_sdk_read_context(
     view,
     result_name,
     format,
+    same_reader_census,
     check_current: () => {
       check_saved_sdk_read_context(
         value, record, parent, saved, current, source, same_reader_census,

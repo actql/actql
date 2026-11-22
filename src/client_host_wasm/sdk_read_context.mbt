@@ -10,6 +10,9 @@ priv struct OriginalSDKReadContext {
   view : @publication.PublicationCommitReadView
   result_name : String
   format : String
+  // Enables a fresh probe against the enclosing export's first census.
+  // The physical reader still decides whether any repeated scan is needed.
+  same_reader_census : Bool
   check_current : () -> Result[Unit, Int]
 }
 
@@ -150,6 +153,7 @@ fn original_sdk_read_context(
         view,
         result_name,
         format,
+        same_reader_census: false,
         check_current,
       })
   }

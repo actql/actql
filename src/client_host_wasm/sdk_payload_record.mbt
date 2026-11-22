@@ -33,7 +33,16 @@ fn sdk_payload_record_binding_current(
       if ordinals != (result, binding_index) {
         return -32
       }
-      match saved_payload_binding(value, payload, current_configuration) {
+      // The enclosing export already completed its first census. The nested
+      // binding still reads the original rows and asks the physical owner
+      // whether this same reader remains eligible before omitting a census.
+      match
+        saved_payload_binding(
+          value,
+          payload,
+          current_configuration,
+          same_reader_census=context.same_reader_census,
+        ) {
         Ok(binding) => {
           let selected = match
             context.owner.view_binding(context.view, binding_index) {
