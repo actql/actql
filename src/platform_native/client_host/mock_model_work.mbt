@@ -9,7 +9,7 @@ struct NativeClientMockModelWork {
   compiled : @host.ClientCompiledRun
   definition : @publication.PublicationContract
   graph : @host.ClientInferPlanGraph
-  profile : @environment.ModelMockProfile
+  provider_role : NativeClientModelWorkProvider
   _retained_provider : @model.ModelProvider
   _retained_limits : @infer.Limits
   _retained_observation_capacity : @execution.ExecutionCapacity
@@ -26,6 +26,7 @@ struct NativeClientMockModelWork {
   mut entry : @model.ModelCallEntry?
   mut entry_recording : Bool
   mut entry_recorded : Bool
+  mut entry_not_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
   mut effect_review : NativeMockEffectReview?
@@ -81,9 +82,40 @@ pub fn prepare_native_client_mock_model_work(
   namespace_id : String,
   current_time : () -> String,
 ) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
+  if !@environment.model_mock_profile_current(profile) {
+    return Err(ForeignOriginal)
+  }
+  prepare_native_client_model_work(
+    capture,
+    request,
+    compiled,
+    definition,
+    graph,
+    Mock(profile),
+    provider,
+    limits,
+    principal,
+    namespace_id,
+    current_time,
+  )
+}
+
+///|
+fn prepare_native_client_model_work(
+  capture : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @host.ClientInferPlanGraph,
+  provider_role : NativeClientModelWorkProvider,
+  provider : @model.ModelProvider,
+  limits : @infer.Limits,
+  principal : String,
+  namespace_id : String,
+  current_time : () -> String,
+) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
   if principal.is_empty() ||
     namespace_id.is_empty() ||
-    !@environment.model_mock_profile_current(profile) ||
     @infer.check_original_composed_preparation(
       compiled,
       definition,
@@ -103,7 +135,7 @@ pub fn prepare_native_client_mock_model_work(
     compiled,
     definition,
     graph,
-    profile,
+    provider_role,
     _retained_provider: provider,
     _retained_limits: limits,
     _retained_observation_capacity: observation_capacity,
@@ -120,6 +152,7 @@ pub fn prepare_native_client_mock_model_work(
     entry: None,
     entry_recording: false,
     entry_recorded: false,
+    entry_not_recorded: false,
     entry_issue: None,
     settlement: None,
     effect_review: None,
@@ -376,25 +409,32 @@ pub fn NativeClientMockModelWork::open(
     // and no retention/training. Core combines this observation with ALL checked
     // source policies; the provider can never lower an unknown classification.
     let region = @environment.model_task_region_at(task, 0).unwrap_or("")
-    let egress = mock_model_require(
-      @host.admit_client_infer_occurrence_egress(
-        self.graph.occurrence,
-        execution,
-        () => {
-          if self.closing ||
-            !@environment.model_mock_profile_current(self.profile) {
-            None
-          } else {
-            Some({
-              classification: @environment.Public,
-              region,
-              provider_retention: false,
-              training_use: false,
-            })
-          }
-        },
-      ).map_err(issue => NativeClientMockModelIssue::Egress(issue)),
-    )
+    let egress = match self.provider_role {
+      Mock(profile) =>
+        mock_model_require(
+          @host.admit_client_infer_occurrence_egress(
+            self.graph.occurrence,
+            execution,
+            () => {
+              if self.closing ||
+                !@environment.model_mock_profile_current(profile) {
+                None
+              } else {
+                Some({
+                  classification: @environment.Public,
+                  region,
+                  provider_retention: false,
+                  training_use: false,
+                })
+              }
+            },
+          ).map_err(issue => NativeClientMockModelIssue::Egress(issue)),
+        )
+      PortableHttp(work) => {
+        mock_model_require(work.bind_preflight(active))
+        work.configuration.egress
+      }
+    }
     mock_model_require(
       @infer.bind_egress_admission(active, egress).map_err(issue => {
         NativeClientMockModelIssue::Model(issue)
@@ -516,7 +556,6 @@ fn NativeClientMockModelWork::bind_prepared(
       self.admission is None &&
       self.account is Some(account) &&
       self.observation_time is Some(at) &&
-      @environment.model_mock_profile_originals(self.profile) is Some(originals) &&
       @infer.call_scope(active) is Some(call_scope) &&
       @host.client_infer_call_scope_unit_id(call_scope) is Some(unit_id) else {
       return Err(ForeignOriginal)
@@ -537,14 +576,27 @@ fn NativeClientMockModelWork::bind_prepared(
       @authorization.Allow(entry) => entry
       _ => return Err(Account(outcome))
     }
-    let provider = mock_model_require(
-      @host.issue_client_model_provider_binding(
-        connection,
-        originals.0,
-        originals.2,
-        originals.4,
-      ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
-    )
+    let provider = match self.provider_role {
+      Mock(profile) => {
+        guard @environment.model_mock_profile_originals(profile)
+          is Some(originals) else {
+          return Err(ForeignOriginal)
+        }
+        mock_model_require(
+          @host.issue_client_model_provider_binding(
+            connection,
+            originals.0,
+            originals.2,
+            originals.4,
+          ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
+        )
+      }
+      PortableHttp(work) => work.installation.binding
+    }
+    guard @publication.model_provider_binding_configuration_cids(provider)
+      is Some((revision_cid, contract_cid, configuration_cid)) else {
+      return Err(ForeignOriginal)
+    }
     let boundary : @publication.ModelInvocationBoundary = {
       unit_id,
       task_index: @host.client_infer_occurrence_coordinates(
@@ -563,9 +615,9 @@ fn NativeClientMockModelWork::bind_prepared(
       context_cid: @publication.run_publication_execution_context(
         self.compiled.admission,
       ),
-      installation_revision_cid: originals.1,
-      configuration_contract_cid: originals.3,
-      provider_configuration_cid: originals.5,
+      installation_revision_cid: revision_cid,
+      configuration_contract_cid: contract_cid,
+      provider_configuration_cid: configuration_cid,
     }
     let scope = mock_model_require(
       native_mock_model_invocation_scope(
@@ -613,6 +665,7 @@ fn NativeClientMockModelWork::bind_prepared(
         self.entry = Some(entry)
         self.entry_recording = false
         self.entry_recorded = false
+        self.entry_not_recorded = false
         self.entry_issue = None
         @model.model_call_entry_persistence(entry, prepared, () => {
           self.entry_observation(entry, prepared)
@@ -656,6 +709,8 @@ fn NativeClientMockModelWork::entry_observation(
       Some(acknowledgement) => @model.Saved(acknowledgement)
       None => @model.Unknown
     }
+  } else if self.entry_not_recorded {
+    @model.NotRecorded
   } else if self.entry_issue is Some(_) {
     @model.Unknown
   } else {
@@ -685,6 +740,17 @@ pub fn NativeClientMockModelWork::persist_entry_in_original_read(
   self.account = None
   self.observation_time = None
   self.entry_recording = true
+  if self.provider_role is PortableHttp(work) {
+    if self.prepare_http_entry_in_original_read(
+        work, entry, prepared, admission,
+      )
+      is Err(issue) {
+      // No persistence call has run. Keep the transport cleanup with its
+      // original Runtime and make the same Entry's refusal observable.
+      self.entry_not_recorded = true
+      return Err(issue)
+    }
+  }
   match
     self.capture.persist_model_call_entry_in_original_read(
       self.request,
@@ -863,6 +929,10 @@ pub fn NativeClientMockModelWork::prepare_http_raw_in_original_read(
   call : NativeClientModelHttpCall,
   store : @publication_store.Store,
 ) -> Result[NativeClientModelRawCapture, NativeClientMockModelIssue] {
+  guard self.provider_role is PortableHttp(configured) &&
+    physical_equal(configured.configuration.store, store) else {
+    return Err(ForeignOriginal)
+  }
   self.with_observed_http_step(call, () => {
     guard self.observation_time is Some(at) else {
       return Err(NativeClientModelHttpIssue::ForeignOriginal)
@@ -1029,10 +1099,10 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    // Existing controls plus the one retained lookup-entry vector and field.
-    record_headers: 12L,
-    reference_slots: 55L,
-    scalar_words: 19L,
+    // Include the selected provider arm and explicit pre-entry refusal bit.
+    record_headers: 13L,
+    reference_slots: 56L,
+    scalar_words: 20L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

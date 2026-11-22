@@ -801,6 +801,8 @@ pub fn model_original_resource_origin_field(ModelOriginalResourceDocument, Strin
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
+pub fn model_provider_binding_configuration_cids(RunEvidenceValue) -> (String, String, String)?
+
 pub fn model_raw_capture_policy_originals(BoundModelRawCapturePolicy) -> Array[CapturedEffectDependencyBody]
 
 pub fn model_raw_capture_policy_value(BoundModelRawCapturePolicy) -> RunEvidenceValue
