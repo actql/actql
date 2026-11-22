@@ -243,9 +243,14 @@ test "raw save requires its original compiled Run even when public identity agre
       "infer", "model_raw_capture",
     ]),
   )
+  let allowed = current.val
+  let original_egress = egress_fixture_observation()
+  let egress = Ref(Some(original_egress))
   let at = Ref("2026-10-02T00:00:00.000Z")
   let ready = Ref(false)
   let original_call : Ref[@model.ModelPhysicalCall?] = Ref(None)
+  let original_request : Ref[@model.ModelRequest?] = Ref(None)
+  let profile = async_response_profile()
   let (active, prefix) = async_response_fixture(
     calls,
     Ref(0),
@@ -255,16 +260,31 @@ test "raw save requires its original compiled Run even when public identity agre
     Ref(true),
     @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
     current~,
+    egress~,
     now=at,
     observe_call=call => original_call.val = Some(call),
+    observe_entry=(entry, request) => {
+      original_request.val = Some(request)
+      if @model.register_model_physical_call_for_request(
+          entry,
+          request,
+          () => @model.PhysicalPending,
+          () => (),
+          _ => false,
+        )
+        is Some(_) {
+        abort("the consumed Entry already owns a different transport")
+      }
+    },
+    profile~,
   )
   let prepared = prepared_call_set(active).unwrap()
   let scope = @model.prepared_model_scope(prepared).unwrap()
   let registration = @publication_host.register_client_model_raw_capture(
     active.dispatch_admission.unwrap(),
     scope,
-    raw_registration_policy(active, prepared),
-    async_response_profile(),
+    raw_registration_policy(active, prepared, response_profile=profile),
+    profile,
     async_response_installation(),
     None,
     current.val,
@@ -276,6 +296,39 @@ test "raw save requires its original compiled Run even when public identity agre
   guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
     abort("original call must reach its physical observation")
   }
+  let call = original_call.val.unwrap()
+  let request = original_request.val.unwrap()
+  assert_true(
+    @model.check_model_physical_call_dispatch_current(
+      call, request, profile, registration,
+    )
+    is Ok(_),
+  )
+  let copied = { ..request, slot_cid: request.slot_cid, }
+  assert_true(
+    @model.check_model_physical_call_dispatch_current(
+      call, copied, profile, registration,
+    )
+    is Err(Dispatch(CallEntryRefused)),
+  )
+  current.val = evidence_account(@authorization.Deny, operations=[
+    "infer", "model_raw_capture",
+  ])
+  assert_true(
+    @model.check_model_physical_call_dispatch_current(
+      call, request, profile, registration,
+    )
+    is Err(Dispatch(Authorization(_))),
+  )
+  current.val = allowed
+  egress.val = None
+  assert_true(
+    @model.check_model_physical_call_dispatch_current(
+      call, request, profile, registration,
+    )
+    is Err(Dispatch(Egress(MissingObservation))),
+  )
+  egress.val = Some(original_egress)
   let original = active.run_binding.unwrap()
   let (copy, copied_definition) = invocation_fixture_compiled(active)
   assert_eq(
@@ -284,7 +337,7 @@ test "raw save requires its original compiled Run even when public identity agre
   )
   assert_false(physical_equal(copy, original.compiled))
   let save = @model.observe_model_raw_capture(
-    original_call.val.unwrap(),
+    call,
     registration,
     "sha256:" + "f".repeat(64),
     12,
@@ -303,6 +356,12 @@ test "raw save requires its original compiled Run even when public identity agre
     @model.model_raw_capture_save_matches_run(save, copy, copied_definition),
   )
   assert_true(cancel(active))
+  assert_true(
+    @model.check_model_physical_call_dispatch_current(
+      call, request, profile, registration,
+    )
+    is Err(Dispatch(CallEntryRefused)),
+  )
   ready.val = true
   assert_true(
     fixture_finish(active, initial_work=work)

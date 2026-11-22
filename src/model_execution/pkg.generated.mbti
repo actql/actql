@@ -87,6 +87,8 @@ pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
 
 pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
 
+pub fn check_model_physical_call_dispatch_current(ModelPhysicalCall, ModelRequest, @check_environment.ModelResponseProfile, @run_publication_host.ClientModelRawCaptureRegistration) -> Result[Unit, ModelPhysicalDispatchReadIssue]
+
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
@@ -358,6 +360,8 @@ pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publ
 pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_environment.ModelExecutionContract, Bytes?, Bytes?, Bytes?, @check_environment.Limits, Int) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
+
+pub fn register_model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
 
 pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, @check_environment.ModelResponseProfile, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
 
@@ -724,6 +728,11 @@ pub(all) enum ModelPhysicalCallPoll {
 
 pub struct ModelPhysicalChatResponse {
   // private fields
+}
+
+pub(all) enum ModelPhysicalDispatchReadIssue {
+  Dispatch(ModelExecutionIssue)
+  Raw(@run_publication_host.ClientModelRawCaptureIssue)
 }
 
 pub(all) struct ModelPhysicalEncodedResponse {
