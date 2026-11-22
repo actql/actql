@@ -92,9 +92,10 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     ];
     const providerAccount = canonicalJson({version: 'actql-execution-account-config/0.1',
       account_id: connectorId + '-approval-fixture', entries});
-    // One complete identity is passed to both original Account consumers.
+    // The fixture owner selects the allowed Results separately from any case.
+    // Both original Account consumers receive the same complete identity.
     const fullAccount = recordApprovalHostAccountConfiguration(
-      canonicalJson, providerAccount, principal, 'row-source-acquired');
+      canonicalJson, providerAccount, principal, 'row-source-acquired', fixture.authorizedResultNames);
     const profile = {...fixture.source, version: `actql-installed-${connectorId}-source/0.1`,
       connectorId, metadataPath, siteProfilePath, accountConfigurationWire: fullAccount};
     await writeFile(sourceProfilePath, JSON.stringify(profile), privateFile);

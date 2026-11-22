@@ -845,6 +845,18 @@ test('shared record approval Account fixture preserves provider policy in one co
   assert.equal(JSON.stringify(provider), original);
 });
 
+test('shared record approval Account fixture selects only explicitly allowed Result names', () => {
+  const provider = JSON.stringify({entries: []});
+  const wire = recordApprovalHostAccountConfiguration(JSON.stringify, provider, 'principal', 'row-source-acquired',
+    ['main', 'authored_updates']);
+  const entry = JSON.parse(wire).entries.find(entry => entry.entry_id === 'host-read');
+  assert.deepEqual(entry.resource, {any_of: ['result/authored_updates', 'result/main', 'run']});
+  for (const names of [[], ['main', 'main'], ['result/main'], ['*'], Array(1)]) {
+    assert.throws(() => recordApprovalHostAccountConfiguration(JSON.stringify, provider, 'principal',
+      'row-source-acquired', names), {message: 'InvalidRecordApprovalAccountFixture'});
+  }
+});
+
 test('shared record approval Account fixture never overwrites an existing Host rule', () => {
   for (const entry_id of ['host-read', 'host-submit']) {
     assert.throws(() => recordApprovalHostAccountConfiguration(JSON.stringify,
