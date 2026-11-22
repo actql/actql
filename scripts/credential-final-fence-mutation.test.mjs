@@ -61,8 +61,14 @@ test('dropping final credential authorization fails the actual post-await revoca
 
 test('dropping retained-material comparison fails the real wrong-account no-send assertion', () => {
   mutation(source => {
-    const comparison = /    if \(binding\?\.secret !== undefined && binding\.secret !== currentSecret\) \{\n      binding\.changed = true;\n      fail\('RemoteCredentialBindingChanged'\);\n    \}/u;
-    assert.match(source, comparison);
+    const comparison = [
+      '',
+      '    if (originalSecret?.secret !== undefined && originalSecret.secret !== currentSecret) {',
+      '      originalSecret.changed = true;binding.changed = true;',
+      "      fail('RemoteCredentialBindingChanged');",
+      '    }',
+    ].join('\n');
+    assert.equal(source.split(comparison).length, 2);
     return source.replace(comparison, '');
   }, '^rotation after identity refuses a replacement token',
     /RemoteCredentialBindingChanged/u);
@@ -70,8 +76,10 @@ test('dropping retained-material comparison fails the real wrong-account no-send
 
 test('acknowledging cleanup before the original call retires fails the pending-custody assertion', () => {
   mutation(source => {
-    assert.equal(source.split('state.retiring && !state.active &&').length, 2);
-    return source.replace('state.retiring && !state.active &&', 'state.retiring &&');
+    const original = 'state.retiring && state.borrow === undefined && !state.secretChildren && bindingQuiescent(state)';
+    assert.equal(source.split(original).length, 2);
+    return source.replace(original, 'state.retiring && state.borrow === undefined && !state.secretChildren && ' +
+      'state.request === undefined && state.unjoinedResponseCustody === undefined');
   }, '^cleanup during resolution retains the same binding',
     /closed[\s\S]*pending/u);
 });
