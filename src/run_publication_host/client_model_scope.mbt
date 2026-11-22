@@ -86,10 +86,10 @@ pub fn client_model_resolved_configuration_matches(
     (field, expected) in [
       ("provider_id", provider_id),
       ("selector", selector),
+      ("endpoint", endpoint),
       ("model_id", model_id),
       ("adapter_kind", adapter_kind),
       ("api_mode", api_mode),
-      ("endpoint", endpoint),
     ] {
     guard @canonical.object_field(configuration, field)
       is Some(@canonical.String(actual)) &&
