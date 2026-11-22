@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, writeFile, rm, open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -7,17 +8,28 @@ import {join, dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration, resolveInstalledProjectTaskPath, retireInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+// @ts-expect-error TS7016: the installed Model provider Owner is still authored in JavaScript.
 import {installModelProviders} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
+type Runtime = Parameters<typeof loadInstalledProjectModelTasks>[0] &
+  NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]>;
+type Providers = Parameters<typeof loadInstalledProjectModelTasks>[2];
+type Provider = NonNullable<ReturnType<Providers['get']>>;
+type PendingFailure = Readonly<{cleanupPending: boolean; cleanupHandle: Readonly<{
+  status(): {pending: boolean};
+  retry(): Promise<{pending: boolean}>;
+}>}>;
+type ReadArguments = [buffer: Buffer, offset: number, length: number, position: number | null];
+
 assert.ok(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME,
   'An input-matching actual Common runtime is required; do not skip');
-const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME));
-const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+const moon: Runtime = await import(pathToFileURL(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME).href);
+const canonical = (value: unknown): string => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : value !== null && typeof value === 'object'
-    ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+    ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical((value as Record<string, unknown>)[key])).join(',') + '}'
     : JSON.stringify(value);
-const original = body => {
+const original = (body: unknown) => {
   const wire = canonical(body);
   return {wire, cid: 'sha256:' + createHash('sha256').update(wire).digest('hex')};
 };
@@ -29,9 +41,9 @@ const policy = original({schema: 'actql.contract/0.1', id: 'explicit-fixture-pol
   version: 'fixture-r1', kind: 'request_data_handling', body: {
     accepted_classifications: ['public'], allowed_regions: ['fixture'],
     retention: 'none', training_use: 'forbidden'}});
-const declaration = name => `task: ${name}\ninput:\n  notes: string\noutput:\n  enabled: boolean\ninstructions: |-\n  Original é\n  second line\nlimits:\n  max_output_tokens: 200\n`;
+const declaration = (name: string) => `task: ${name}\ninput:\n  notes: string\noutput:\n  enabled: boolean\ninstructions: |-\n  Original é\n  second line\nlimits:\n  max_output_tokens: 200\n`;
 
-async function fixture(t, tasks = {'model-task:project': './task.yaml'}, registry = 'model-tasks.json') {
+async function fixture(t: TestContext, tasks: Readonly<Record<string, string>> = {'model-task:project': './task.yaml'}, registry = 'model-tasks.json') {
   const directory = await mkdtemp(join(tmpdir(), 'actql-project-tasks-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   await writeFile(join(directory, 'actql.config.json'),
@@ -41,7 +53,7 @@ async function fixture(t, tasks = {'model-task:project': './task.yaml'}, registr
     tasks, providers: {[providerId]: {type: 'fixture'}}, default_provider: providerId}));
   await writeFile(join(directory, 'task.yaml'), declaration('model-task:root-decoy'));
   await writeFile(join(dirname(join(directory, registry)), 'task.yaml'), declaration('model-task:project'));
-  const project = await loadInstalledProjectConfiguration(moon, {directory});
+  const project = (await loadInstalledProjectConfiguration(moon, {directory}))!;
   let current = true, sends = 0;
   const assertCurrent = () => {
     if (!current) throw Object.assign(new Error('OriginalProjectLost'), {code: 'OriginalProjectLost'});
@@ -49,14 +61,14 @@ async function fixture(t, tasks = {'model-task:project': './task.yaml'}, registr
   const binding = providerBindingOriginals(providerId);
   binding.configurationContract = original({...JSON.parse(binding.configurationContract.wire),
     required: ['endpoint', 'principal', 'selector', 'tenant', 'model_defaults']});
-  const setPolicy = present => {
+  const setPolicy = (present: boolean) => {
     binding.configuration = original({...JSON.parse(binding.configuration.wire), model_defaults: {
       default_model: 'first', models: [{model: 'first',
         ...(present ? {data_handling: {...JSON.parse(policy.wire), cid: policy.cid}} : {}),
         generation_config: {temperature: 0, top_p: 1, max_output_tokens: 100}}]}});
   };
   setPolicy(true);
-  const providers = () => installModelProviders(moon, actual => {
+  const providers = (): Map<string, Provider> => installModelProviders(moon, (actual: unknown) => {
     assert.equal(actual, moon);
     return [{providerId, bindingOriginals: binding, validatePrompt: () => true,
       invoke() { sends++; assert.fail('No physical Provider invocation'); }}];
@@ -114,7 +126,7 @@ test('actual project rechecks currentness after awaited read and confirmed close
   await assert.rejects(loadInstalledProjectModelTasks(moon, f.project, f.providers(), {
     limits, assertCurrent: f.assertCurrent, openFile: async (...args) => {
       const fd = await open(...args);
-      return {read: (...args) => fd.read(...args), async close() {
+      return {read: (...args: ReadArguments) => fd.read(...args), async close() {
         await fd.close(); closes++; f.loseCurrent();
       }};
     },
@@ -140,19 +152,19 @@ test('actual project keeps pending FD cleanup responsibility and refuses malform
     {limits, assertCurrent: f.assertCurrent}), {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
   await writeFile(join(f.directory, 'task.yaml'), declaration('model-task:project'));
   let closeCalls = 0;
-  let failure;
+  let failure: PendingFailure | undefined;
   await assert.rejects(loadInstalledProjectModelTasks(moon, f.project, f.providers(), {
     limits, assertCurrent: f.assertCurrent, openFile: async (...args) => {
       const fd = await open(...args);
-      return {read: (...args) => fd.read(...args), async close() {
+      return {read: (...args: ReadArguments) => fd.read(...args), async close() {
         closeCalls++;
         if (closeCalls === 1) return false;
         return fd.close();
       }};
     },
-  }), error => { failure = error; return error.cleanupPending === true; });
-  assert.equal(failure.cleanupHandle.status().pending, true);
-  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  }), (error: unknown) => { failure = error as PendingFailure; return (error as PendingFailure).cleanupPending === true; });
+  assert.equal(failure!.cleanupHandle.status().pending, true);
+  assert.equal((await failure!.cleanupHandle.retry()).pending, false);
   assert.equal(closeCalls, 2);
   assert.equal(f.sends(), 0);
 });
@@ -176,7 +188,7 @@ test('actual retained project detects replacement of the selected installation p
   const f = await fixture(t), providers = f.providers();
   const view = await loadInstalledProjectModelTasks(moon, f.project, providers,
     {limits, assertCurrent: f.assertCurrent});
-  providers.set(providerId, f.providers().get(providerId));
+  providers.set(providerId, f.providers().get(providerId)!);
   assert.throws(() => view.originalsForRuntime(moon), {code: 'InstalledModelDefaultsForeignOriginal'});
   assert.equal(f.sends(), 0);
 });

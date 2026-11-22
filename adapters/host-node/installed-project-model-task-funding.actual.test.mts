@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {createHash} from 'node:crypto';
 import {readFile, mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -8,18 +9,27 @@ import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {readInstalledHostEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
+// @ts-expect-error TS7016: the installed Model provider Owner is still authored in JavaScript.
 import {installModelProviders} from './installed-model.mjs';
+// @ts-expect-error TS7016: the original installed-loader parent fixture is still authored in JavaScript.
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
+type Runtime = Parameters<typeof loadInstalledProjectModelTasks>[0] &
+  NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]> &
+  Parameters<typeof readInstalledHostEnvironment>[1];
+type Counters = {read: number; normalize: number; defaults: number; reserve: number;
+  sends: number; wire: number; final: number};
+type FixtureOptions = {count?: number; small?: boolean; observeCounters?: (counters: Counters) => void};
+
 assert.ok(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME,
   'Select the actual matching Common runtime; this case may not skip');
-const native = await import(pathToFileURL(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME));
-const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+const native = await import(pathToFileURL(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME).href);
+const canonical = (value: unknown): string => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : value !== null && typeof value === 'object'
-    ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+    ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical((value as Record<string, unknown>)[key])).join(',') + '}'
     : JSON.stringify(value);
-const original = value => {
+const original = (value: unknown) => {
   const wire = canonical(value);
   return {wire, cid: 'sha256:' + createHash('sha256').update(wire).digest('hex')};
 };
@@ -31,24 +41,24 @@ const baseWire = (await readFile(new URL('../../spec/local-check-environment.jso
 const numeric = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
 const graph = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
 
-async function fixture(t, {count = 129, small = false, observeCounters} = {}) {
+async function fixture(t: TestContext, {count = 129, small = false, observeCounters}: FixtureOptions = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-funded-model-registry-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const counters = {read: 0, normalize: 0, defaults: 0, reserve: 0, sends: 0, wire: 0, final: 0};
   observeCounters?.(counters);
   let current = true;
   const assertCurrent = () => {if (!current) throw Object.assign(new Error('OriginalProjectLost'), {code: 'OriginalProjectLost'});};
-  const moon = {...native};
+  const moon = {...native} as Runtime & Record<string, (...args: unknown[]) => unknown>;
   for (const [method, counter] of [['ReadPublicModelTask', 'read'],
     ['NormalizeProjectModelTask', 'normalize'], ['ReadInstalledModelDefaults', 'defaults'],
-    ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentModelFromWireWithGraphProfile', 'final']]) {
-    moon['clientProgram' + method] = (...args) => {
+    ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentModelFromWireWithGraphProfile', 'final']] as const) {
+    moon['clientProgram' + method] = (...args: unknown[]) => {
       assert.ok(counters.reserve > 0, 'The actual parent must reserve before any constructor');
       counters[counter]++;
       return native['clientProgram' + method](...args);
     };
   }
-  moon.clientProgramReserveInstalledSourceConstruction = (...args) => {
+  moon.clientProgramReserveInstalledSourceConstruction = (...args: unknown[]) => {
     counters.reserve++;
     return native.clientProgramReserveInstalledSourceConstruction(...args);
   };
@@ -57,7 +67,7 @@ async function fixture(t, {count = 129, small = false, observeCounters} = {}) {
   const parent = createInstalledLoaderParent({root: join(directory, '.state'), moon, assertCurrent});
   t.after(() => parent.close());
   parent.open();
-  const tasks = {};
+  const tasks: Record<string, string> = {};
   for (let index = 0; index < count; index++) {
     const name = `model-task:funded.${String(index).padStart(3, '0')}`;
     tasks[name] = `./task-${index}.yaml`;
@@ -67,7 +77,7 @@ async function fixture(t, {count = 129, small = false, observeCounters} = {}) {
   await writeFile(join(directory, 'actql.config.json'), '{"version":"actql-config/0.1","model_tasks":"./tasks.json"}');
   await writeFile(join(directory, 'tasks.json'), canonical({version: 'actql-model-tasks/0.1', tasks,
     providers: {[providerId]: {type: 'fixture'}}, default_provider: providerId}));
-  const project = await loadInstalledProjectConfiguration(moon, {directory});
+  const project = (await loadInstalledProjectConfiguration(moon, {directory}))!;
   const binding = providerBindingOriginals(providerId);
   const handling = original({schema: 'actql.contract/0.1', id: 'funded-project-policy',
     version: 'fixture-r1', kind: 'request_data_handling', body: {
@@ -82,7 +92,7 @@ async function fixture(t, {count = 129, small = false, observeCounters} = {}) {
   assertCurrent, assertCurrent);
   return {moon, parent, project, providers, counters, assertCurrent,
     loseCurrent: () => {current = false;},
-    load: (selected = limits) => loadInstalledProjectModelTasks(moon, project, providers,
+    load: (selected: typeof limits & {maxTasks?: number} = limits) => loadInstalledProjectModelTasks(moon, project, providers,
       {limits: selected, assertCurrent, installationServices: parent.services})};
 }
 
@@ -101,7 +111,7 @@ test('actual same-parent loader registers 129 original Tasks once and funds comp
   const final = readInstalledHostEnvironment(f.parent.services, f.moon, projection.environmentWire,
     {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
   assert.ok(final.admitted && final.raw);
-  assert.equal(final.body.model_task_contracts.length, 129);
+  assert.equal((final.body!.model_task_contracts as readonly unknown[]).length, 129);
   assert.equal(native.clientProgramCheckEnvironmentFromWireConstructionCapacity(final.raw), undefined,
     'An empty-only construction recipe must refuse this populated original');
   assert.equal(native.clientProgramCheckEnvironmentFromWireWithGraphProfile(final.raw,
@@ -132,7 +142,7 @@ test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Tas
 });
 
 test('actual smaller original Host Resource refuses before Task construction and closes its partial parent', async t => {
-  let counters;
+  let counters: Counters | undefined;
   // This 2MB choice is insufficient for the initial Host constructor itself;
   // keep that original refusal, rather than claiming a later admitted Task.
   await assert.rejects(async () => {

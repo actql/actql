@@ -76682,7 +76682,7 @@
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
@@ -76708,7 +76708,7 @@
                 "anchor": "Unknown or pending child cleanup retains responsibility."
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
@@ -76786,11 +76786,11 @@
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual retained project detects replacement of the selected installation provider'"
               },
               {
@@ -76927,7 +76927,7 @@
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
@@ -76945,7 +76945,7 @@
                 "anchor": "Unknown or pending child cleanup retains responsibility."
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
@@ -76999,11 +76999,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual retained project detects replacement of the selected installation provider'"
               },
               {
@@ -77289,7 +77289,7 @@
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               },
               {
@@ -77315,7 +77315,7 @@
                 "anchor": "Unknown or pending child cleanup retains responsibility."
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               },
               {
@@ -77393,11 +77393,11 @@
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual retained project detects replacement of the selected installation provider'"
               },
               {
@@ -80975,7 +80975,7 @@
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               }
             ],
@@ -80985,7 +80985,7 @@
                 "anchor": "Unknown or pending child cleanup retains responsibility."
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               }
             ],
@@ -81015,11 +81015,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual retained project detects replacement of the selected installation provider'"
               },
               {
@@ -81242,7 +81242,7 @@
                 "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               }
             ],
@@ -81252,7 +81252,7 @@
                 "anchor": "Unknown or pending child cleanup retains responsibility."
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               }
             ],
@@ -81282,11 +81282,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mts",
                 "anchor": "test('actual retained project detects replacement of the selected installation provider'"
               },
               {
@@ -81383,11 +81383,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
@@ -142725,11 +142725,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
               },
               {
-                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mts",
                 "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
               },
               {
