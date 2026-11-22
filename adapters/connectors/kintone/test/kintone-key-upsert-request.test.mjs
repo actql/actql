@@ -226,9 +226,15 @@ for (const [kind, row, opposite] of [['create', absent, 'update'], ['update', pr
     };
     assert.deepEqual(driver.kinds, ['upsert']);
     assert.throws(() => driver.writeOperation(member), {code: 'KintoneKeyUpsertWriteBranchUnavailable'});
-    const current = await driver.describe(original);
+    const {readChild, ...description} = original;
+    await assert.rejects(driver.describe({...description, runInvocationCid: undefined}),
+      {code: 'KintoneUpdateReadChildUnavailable'});
+    const current = await driver.describe(description);
     const planned = driver.prepareRequest({member, current, value: input, selector: key});
-    const [target] = await driver.observeTargets({...original, current, entries: [planned]});
+    await assert.rejects(driver.observeTargets({...description, current, entries: [planned]}),
+      {code: 'KintoneUpdateReadChildUnavailable'});
+    assert.deepEqual(reads, []);
+    const [target] = await driver.observeTargets({...description, readChild, current, entries: [planned]});
     assert.equal(target.state, kind === 'create' ? 'absent' : 'present');
     assert.deepEqual(reads, ['schema-before', 'target', 'schema-after']);
     assert.deepEqual(writes, []);

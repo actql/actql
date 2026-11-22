@@ -9262,7 +9262,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "cfe0ddea9229cf0e52451a126343014e13b2a2b401a3c942af103318e4b5e861",
+      "sha256": "ffcd5313a98bf1cf55b191c00faf295246aae5ee4ff5db22d172d29e0ea2090f",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",

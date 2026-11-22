@@ -88,13 +88,15 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     if (!original || original.member !== member) fail('ForeignKintoneUpdateCurrent');
     return original;
   };
+  const assertReadOriginal = ({member, runInvocationCid, dispatchRequestCid}) => {
+    selected(member);
+    if (!isCid(runInvocationCid) || !isCid(dispatchRequestCid)) fail('KintoneUpdateReadChildUnavailable');
+  };
   const readScope = (options, observations) => {
     const {member, signal, runInvocationCid, dispatchRequestCid, controlConstruction, readChild, readTarget,
       targetAuthorization} = options;
-    selected(member);
-    if (!isCid(runInvocationCid) || !isCid(dispatchRequestCid) || typeof readChild !== 'function') {
-      fail('KintoneUpdateReadChildUnavailable');
-    }
+    assertReadOriginal(options);
+    if (typeof readChild !== 'function') fail('KintoneUpdateReadChildUnavailable');
     const decision = async slot => {
       signal?.throwIfAborted();
       const result = await authorize('acquisition', {connection, resource: formResource, operation: 'read'}, {
@@ -207,8 +209,10 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 0 || options.maxRows > 2147483647) {
           fail('InvalidKintoneUpdateRequests');
         }
-        const read = readScope(options, observations);
-        if (!upsert) await read('schema', requests.formBody, 0, requests.recheckForm);
+        // UPSERT validates Form under the exact row's target-read children,
+        // after the logical request identifies the selected key.
+        if (upsert) assertReadOriginal(options);
+        else await readScope(options, observations)('schema', requests.formBody, 0, requests.recheckForm);
         const current = Object.freeze({});
         currentFrames.set(current, {member: options.member, runInvocationCid: options.runInvocationCid,
           dispatchRequestCid: options.dispatchRequestCid, controlConstruction: options.controlConstruction, maxRows: options.maxRows});
