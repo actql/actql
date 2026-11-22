@@ -885,7 +885,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3362f64680d2f4f923c9ec534195824305af5bcd51168eb5f09dd9d2ced73f33",
+      "sha256": "85294bba60e7fadf509568d3efcbca07d2d7415cd238b2ba5a03c1ffba7ffd1a",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -893,6 +893,8 @@
         "admitLocalRuntimePlatform",
         "installedLocalRuntimeEnvironment",
         "localRuntimeHash",
+        "nativeRemoteHttpLibraryName",
+        "nativeRemoteHttpSystemDependency",
         "readLocalRuntimeMember",
         "validateLocalRuntimeManifest"
       ],
@@ -960,6 +962,21 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeRemoteHttpLibraryName",
+          "parameters": [
+            "platform"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeRemoteHttpSystemDependency",
+          "parameters": [
+            "platform",
+            "name"
           ],
           "async": false
         },
@@ -2437,10 +2454,14 @@
             "validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/licenses/licenses",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest",
-            "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest"
+            "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest",
+            "nativeRemoteHttpLibraryName",
+            "nativeRemoteHttpSystemDependency"
           ],
           "exports": [
-            "validateLocalRuntimeManifest"
+            "validateLocalRuntimeManifest",
+            "nativeRemoteHttpLibraryName",
+            "nativeRemoteHttpSystemDependency"
           ],
           "attributes": {
             "responsibility": [

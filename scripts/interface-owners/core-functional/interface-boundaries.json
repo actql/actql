@@ -113325,7 +113325,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
+      "sha256": "b58c6f67e3b05c2a1ad29d7e047aaf5a4ca9337e0b6b619a3a03c741d2465141",
       "exports": [],
       "operations": [
         {
@@ -113355,6 +113355,10 @@
         {
           "name": "client_native_local_runtime_original",
           "declaration": "client_native_local_runtime_original ( value : ClientNativeLocalRuntime , ) - > String"
+        },
+        {
+          "name": "native_local_remote_http_system",
+          "declaration": "native_local_remote_http_system ( platform : String , dependency : String , ) - > Bool"
         },
         {
           "name": "runtime_assemble",
@@ -113400,6 +113404,7 @@
             "client_native_local_product_originals",
             "client_native_local_runtime_members",
             "client_native_local_runtime_original",
+            "native_local_remote_http_system",
             "runtime_assemble",
             "runtime_elements",
             "runtime_filename",

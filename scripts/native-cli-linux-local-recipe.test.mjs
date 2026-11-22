@@ -111,6 +111,15 @@ test('Linux recipe preserves originals, both Crypto notices and current default 
   assert.deepEqual(JSON.parse(readFileSync(join(f.options.outputDirectory, 'originals.json'))).observations[0].abi, {minimumGlibc: '2.34'});
 });
 
+test('the optional Remote HTTP preparation must match the recipe platform before output is created', t => {
+  const f = fixture(t);
+  const remoteHttpPreparation = join(f.root, 'remote-http/preparation.json');
+  f.put(remoteHttpPreparation, wire({source: sourceSha, target: 'darwin-arm64'}));
+  assert.throws(() => assembleNativeLinuxLocalRecipe({...f.options, remoteHttpPreparation}, f.execute),
+    /HTTP preparation target differs from the selected original/u);
+  assert(!existsSync(f.options.outputDirectory));
+});
+
 test('wrong source, target, dirty source and incomplete receipts are refused before output', t => {
   const mutations = [
     f => { f.sqlite.source_sha = 'b'.repeat(40); },

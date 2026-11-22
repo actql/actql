@@ -113,9 +113,11 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-export function verifyNativeHttpPreparation(path,selected,item) {
+function readVerifiedNativeHttpPreparation(path,selected,item) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
-  for(const key of ['source','target'])assert.equal(body[key],selected[key]);
+  for (const key of ['source', 'target']) {
+    assert.equal(body[key], selected[key], `HTTP preparation ${key} differs from the selected original`);
+  }
   const minimum=selected.target==='darwin-arm64'?'11.0':null;
   assert.equal(body.minimumMacOS,minimum);
   assert.equal(body.loaded,0);assert.equal(body.initialized,0);assert.equal(body.installed_supplier,false);
@@ -139,8 +141,39 @@ export function verifyNativeHttpPreparation(path,selected,item) {
   assert.equal(component.library.path,join(directory,'component/bundle',
     selected.target==='darwin-arm64'?'libcurl.4.dylib':'libcurl.so.4'));
   verifyOriginal(component.library);
-  return body.component.path;
+  return {path: body.component.path, component, tls};
 }
+
+export function verifyNativeHttpPreparation(path, selected, item) {
+  return readVerifiedNativeHttpPreparation(path, selected, item).path;
+}
+
+export function verifiedNativeRemoteHttpPackage(preparation, selected) {
+  const {component, tls} = readVerifiedNativeHttpPreparation(preparation.path, selected, preparation);
+  assert.equal(preparation.source, selected.source, 'Remote HTTP preparation source differs');
+  const recipe = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
+  assert.equal(component.recipe_sha256, checksum(recipe));
+  assert.equal(component.modelResolver, undefined, 'Remote HTTP requires the synchronous component original');
+  const {path, bytes, sha256} = component.library;
+  const {version, archive} = component.upstream;
+  const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
+    item.sha256 === archive.sha256);
+  assert.equal(curlArchives.length, 1, 'One original curl source archive required');
+  const curlArchive = curlArchives[0];
+  const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
+    input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
+  });
+  const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
+  assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
+  const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
+  assert(curlNotice.length > 0 && tlsNotice.length > 0 && tlsNotice.length <= 65536);
+  return {
+    library: {path, bytes, sha256},
+    dependencies: component.systemDependencies,
+    notice: Buffer.concat([curlNotice, Buffer.from('\n\n'), tlsNotice]),
+  };
+}
+
 export function preparedNativeHttpReceipt(root,selected) {
   const {root:canonical,record}=index(root,selected);
   assert(record.http,'Complete original HTTP preparation is required for Resident');
