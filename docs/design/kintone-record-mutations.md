@@ -865,6 +865,14 @@ conditional UPDATE writer. The quote requires the proposal's own nominal
 lookup and Before, and retains the request wrapper and native body. The
 original record, revision, lookup and intended values remain borrowed.
 The Form and key comparisons and the writer are execution workspace.
-Complete absence still requires its own CREATE construction inventory.
 The present-record control checks the exact conditional PUT body,
 one-byte-short refusal and rejection of a separately issued lookup.
+
+Complete absence selects the separate CREATE quote. The source cell bodies
+and key text stay with the proposal. The returned request owns the added key
+carrier, its admitted cell vector, the native field document and final body.
+The copy, required-field checks, write validation and both writers are
+execution workspace. The copied-target map is bounded by the original Form's
+lookup destinations and the same comparison work limit as the CREATE scan.
+The controls exercise both exact writer limits, one-byte-short failures
+and refusal to quote a foreign or present-record Before as an insert.

@@ -1839,9 +1839,13 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_create_requirements.mbt",
-      "sha256": "079899c09f1bd4fcf87b66c9aa9c2ff8c1eb2fba17c0bc5164bc5e70b2f57f71",
+      "sha256": "ac164c71aaae218444a76f6acf8570c367d97cdbdec722734a8f0d6d3b47730b",
       "exports": [],
       "operations": [
+        {
+          "name": "record_create_copied_target_bound",
+          "declaration": "record_create_copied_target_bound ( catalog : FormFieldCatalog , max_fields : Int , max_work : Int , ) - > Int"
+        },
         {
           "name": "record_create_required_fields",
           "declaration": "record_create_required_fields ( catalog : FormFieldCatalog , max_fields : Int , max_work : Int , ) - > Result [ Array [ String ] , RecordWriteIssue ]"
@@ -1854,7 +1858,8 @@
         {
           "operations": [
             "<module>",
-            "record_create_required_fields"
+            "record_create_required_fields",
+            "record_create_copied_target_bound"
           ],
           "exports": [],
           "attributes": {
@@ -9297,7 +9302,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
-      "sha256": "4085f769e545e055ee2009e81b2c5cde07765a841acf2352d632a1f0dba3abd7",
+      "sha256": "c653019ad892a8802ba33c3a273412c7d6c3fce323e045886b3c3b9727f6f828",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing kintone proposal and Common execution preparation inventories",
@@ -9308,8 +9313,20 @@
           "declaration": "record_key_upsert_before_construction_capacity ( mapping : RecordKeyUpsertMapping , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "record_key_upsert_create_construction_capacity",
+          "declaration": "record_key_upsert_create_construction_capacity ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_has_original_before",
+          "declaration": "record_key_upsert_has_original_before ( proposal : RecordKeyUpsertProposal , before : RecordKeyUpsertBefore , ) - > Bool"
+        },
+        {
           "name": "record_key_upsert_proposal_construction_capacity",
           "declaration": "record_key_upsert_proposal_construction_capacity ( mapping : RecordKeyUpsertMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , lookup : @ catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_key_upsert_request_checks",
+          "declaration": "record_key_upsert_request_checks ( count : Int , ) - > @ shape . CollectionConstructionExtent ?"
         },
         {
           "name": "record_key_upsert_update_construction_capacity",
@@ -9322,7 +9339,10 @@
             "<module>",
             "record_key_upsert_before_construction_capacity",
             "record_key_upsert_proposal_construction_capacity",
-            "record_key_upsert_update_construction_capacity"
+            "record_key_upsert_update_construction_capacity",
+            "record_key_upsert_has_original_before",
+            "record_key_upsert_request_checks",
+            "record_key_upsert_create_construction_capacity"
           ],
           "exports": [],
           "attributes": {

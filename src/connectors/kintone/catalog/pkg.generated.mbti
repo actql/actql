@@ -111,6 +111,8 @@ pub fn record_create_acknowledgement_records(RecordCreateAcknowledgement) -> Arr
 
 pub fn record_create_acknowledgement_request(RecordCreateAcknowledgement) -> RecordCreateRequest
 
+pub fn record_create_copied_target_bound(FormFieldCatalog, Int, Int) -> Int
+
 pub fn record_create_effect_outcome_matches_request(RecordCreateEffectOutcome, RecordCreateRequest) -> Bool
 
 pub fn record_create_effect_outcome_response_sha256(RecordCreateEffectOutcome) -> String
