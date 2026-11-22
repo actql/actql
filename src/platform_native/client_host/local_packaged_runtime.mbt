@@ -23,9 +23,21 @@ struct NativeLocalPackagedRuntime {
   mut command_sqlite_member : @filesystem.NativeObservedComponentMember?
   mut command_crypto_member : @filesystem.NativeObservedComponentMember?
   mut command_model_http_member : @filesystem.NativeObservedComponentMember?
-  mut model_http_load : Result[@http.Library, @http.NativeHttpLibraryLoadError]?
+  mut model_http_load : Result[
+    NativeLocalLoadedModelHttp,
+    @http.NativeHttpLibraryLoadError,
+  ]?
   mut ready : Bool
   mut closed : Bool
+}
+
+///|
+// This exists only for the selected Model component. The command returns
+// each acquired Call before asking this Library to acknowledge retirement.
+priv struct NativeLocalLoadedModelHttp {
+  library : @http.Library
+  mut calls : NativeClientModelHttpCall?
+  mut stopping : Bool
 }
 
 ///|
@@ -882,6 +894,9 @@ pub fn NativeLocalPackagedRuntime::close(
       Ok(_) => ()
     }
   }
+  if self.close_model_http_calls() is Err(_) {
+    return Err(CleanupPending)
+  }
   match local_runtime_read_begin(self, cleanup=true) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -905,8 +920,8 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   self.ready = false
   match self.model_http_load {
-    Some(Ok(library)) =>
-      if library.close_checked() is Err(_) {
+    Some(Ok(loaded)) =>
+      if loaded.calls is Some(_) || loaded.library.close_checked() is Err(_) {
         return Err(CleanupPending)
       }
     Some(Err(@http.CleanupRequired(failure))) =>
@@ -1018,21 +1033,49 @@ pub fn NativeLocalPackagedRuntime::borrow_model_http_library(
   }
   let result = self
     .local_runtime_check_originals()
-    .map(_ => {
+    .bind(_ => {
       if self.model_http_load is Some(original) {
-        return original
+        return Ok(original)
       }
-      let original = @http.load_command_model_library_with_custody(
-        component, diagnostic_ceiling,
+      // Retain the Model-only list head and load result before opening curl.
+      guard self.original_read is Some((host, read)) &&
+        @execution.preparation_representation_cost({
+          record_headers: 3L,
+          reference_slots: 4L,
+          scalar_words: 1L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        })
+        is Some(cost) else {
+        return Err(OriginalReadUnavailable)
+      }
+      let (header, _, _, _, pointer) = @bootstrap.native_managed_value_layout()
+      host
+      .prepare_domain_original_read_retained_construction(
+        read,
+        cost,
+        cost,
+        header + 3L * pointer,
       )
-      self.model_http_load = Some(original)
-      original
+      .map_err(issue => NativeLocalPackagedRuntimeIssue::OriginalRead(issue))
+      .map(_ => {
+        let original = @http.load_command_model_library_with_custody(
+          component, diagnostic_ceiling,
+        ).map(library => { library, calls: None, stopping: false, })
+        self.model_http_load = Some(original)
+        original
+      })
     })
   let left = local_runtime_read_finish(self, Ok(()))
   match result {
     Err(issue) => Err(Runtime(issue))
     Ok(Err(@http.RefusedBeforeAcquisition(issue))) => Err(Load(issue))
     Ok(Err(@http.CleanupRequired(failure))) => Err(Load(failure.issue()))
-    Ok(Ok(library)) => left.map(_ => library).map_err(issue => Runtime(issue))
+    Ok(Ok(loaded)) =>
+      if loaded.stopping {
+        Err(Unavailable)
+      } else {
+        left.map(_ => loaded.library).map_err(issue => Runtime(issue))
+      }
   }
 }

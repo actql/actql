@@ -200,6 +200,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  // Store/file operations above can still own a pending Read return. Retire
+  // those scopes before borrowing cleanup Read for the HTTP calls, then enter
+  // the retained execution to observe the same physical ACKs in Core.
+  if self.runtime is Some(runtime) {
+    match runtime.close_model_http_calls() {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandBusinessModelHttp(issue))
+    }
+  }
   // Drop request DATA only after the actual original file children retire.
   business.saved_effect_rows.clear()
   business.saved_effect_rows.shrink_to_fit()

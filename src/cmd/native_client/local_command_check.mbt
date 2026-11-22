@@ -56,6 +56,7 @@ fn command_preparation_cleanup_kind(
     CommandSavedEffectCompletion(_) => "saved-effect-completion"
     CommandBusinessSource(_) => "business-source"
     CommandBusinessModel(_) => "business-model"
+    CommandBusinessModelHttp(_) => "business-model-http"
     CommandBusinessModelGraph(_) => "business-model-graph"
     CommandBusinessQueryPlan(_) => "business-query-plan"
     CommandBusinessQueryRequirement(_) => "business-query-requirement"

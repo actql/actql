@@ -30,6 +30,7 @@ pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeH
 pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
 pub fn Client::start_bearer_post(Self, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[Unit, NativeHttpIssue]
 pub fn Client::start_projected_bearer_post(Self, String, Bytes, @filesystem.PrivateFileProjection, Int64) -> Result[Unit, NativeHttpIssue]
+pub fn Client::uses_library(Self, Library) -> Bool
 
 type Library
 pub fn Library::close_checked(Self) -> Result[Unit, NativeHttpIssue]

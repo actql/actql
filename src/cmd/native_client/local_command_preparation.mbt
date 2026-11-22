@@ -46,6 +46,7 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
+  CommandBusinessModelHttp(@local_host.NativeClientModelHttpIssue)
   CommandBusinessModelGraph(@local_values.ClientRequestProgramPlanIssue)
   CommandBusinessQueryPlan(@local_values.ClientRequestProgramPlanIssue)
   CommandBusinessQueryRequirement(@local_values.ClientLocalQueryIssue)

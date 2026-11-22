@@ -62,7 +62,7 @@ test "TLS image preserves its other Library and reports only its actual cleanup 
   let second = load_library_with_custody(path, diagnostic_ceiling=Some(256)).unwrap()
   let has_tls_cleanup = retirement_fixture_has_tls_cleanup(first)
   assert_eq(retirement_fixture_has_tls_cleanup(second), has_tls_cleanup)
-  let request = fn(library : Library) -> Unit raise {
+  let request = fn(library : Library, foreign : Library) -> Unit raise {
     let client = library
       .create_authenticated_client_with_custody(
         @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA").unwrap(),
@@ -75,6 +75,8 @@ test "TLS image preserves its other Library and reports only its actual cleanup 
         5000,
       )
       .unwrap()
+    assert_true(client.uses_library(library))
+    assert_false(client.uses_library(foreign))
     let response = client
       .post_json(
         @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL").unwrap() + "/probe",
@@ -85,14 +87,14 @@ test "TLS image preserves its other Library and reports only its actual cleanup 
     assert_eq(response.body, b"{\"accepted\":true}")
     client.close_checked().unwrap()
   }
-  request(first)
+  request(first, second)
   if has_tls_cleanup {
     first.close_checked().unwrap()
   } else {
     assert_true(first.close_checked() is Err(Transport(_)))
   }
   assert_true(!second.version().is_empty())
-  request(second)
+  request(second, first)
   if has_tls_cleanup {
     second.close_checked().unwrap()
     // Use the actual loader after these original references retire. No flag
@@ -101,7 +103,7 @@ test "TLS image preserves its other Library and reports only its actual cleanup 
       path,
       diagnostic_ceiling=Some(256),
     ).unwrap()
-    request(replacement)
+    request(replacement, second)
     replacement.close_checked().unwrap()
   } else {
     assert_true(second.close_checked() is Err(Transport(_)))

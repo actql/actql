@@ -247,6 +247,14 @@ extern "C" fn client_poll_bearer_post_ffi(
 extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_client_status"
 
 ///|
+/// Compare physical originals before retaining this client in the Runtime.
+#borrow(client, library)
+pub extern "C" fn Client::uses_library(
+  client : Client,
+  library : Library,
+) -> Bool = "actql_native_http_client_uses_library"
+
+///|
 #borrow(client)
 extern "C" fn client_response_limit_ffi(client : Client) -> Int64 = "actql_native_http_client_response_limit"
 

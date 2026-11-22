@@ -184,6 +184,11 @@ pub fn Client::cancel(_self : Client) -> Bool {
 }
 
 ///|
+pub fn Client::uses_library(_self : Client, _library : Library) -> Bool {
+  false
+}
+
+///|
 pub fn Client::response_limit(_self : Client) -> Result[Int64, NativeHttpIssue] {
   Err(UnsupportedTarget)
 }

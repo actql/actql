@@ -2132,6 +2132,13 @@ int32_t actql_native_http_client_get_local_preparation(
   return result;
 }
 
+int32_t actql_native_http_client_uses_library(
+  actql_native_http_client *client, actql_native_http_library *library
+) {
+  return client && library && client->library == library &&
+    library->original_process == getpid();
+}
+
 int64_t actql_native_http_client_response_limit(actql_native_http_client *client) {
   if (client == NULL || client->library == NULL ||
       client->max_response_bytes < 0 || client->max_response_bytes > INT32_MAX) {
