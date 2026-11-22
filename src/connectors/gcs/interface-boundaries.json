@@ -2329,7 +2329,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]
@@ -4281,7 +4281,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]
@@ -5614,7 +5614,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               },
               {
@@ -8342,7 +8342,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               },
               {
@@ -9497,7 +9497,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]

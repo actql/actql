@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -526,10 +527,6 @@ test('an original planned Resource read never substitutes for the provider Crede
 // Execute the original recovered Row Effect and its actual physical-route
 // guard/retirement. Credential/Core/provider ports are explicit, never a new
 // Common Plan, Resource grant or ordinary Saved acceptance.
-const recoveryRowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-const recoveryNode = parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage').body.body
-  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered');
 const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
@@ -635,7 +632,7 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
     physicalRoute(options) {routeOptions = options; return realRoute(options);},
-    owners: [owner], scopes: () => [{}], canonicalJson: JSON.stringify, fail,
+    owners: [owner], scopes: () => [{}], fail,
     admitRow: () => ({}), settle() {events.push('settle');},
     async recoverProjectedEffectResponse() {events.push('stored-await'); await storedResponse; return {recovered: {}};},
     prepareCredentialOperation(options) {
@@ -668,8 +665,7 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
       assert.strictEqual(facts.body, body); assert.strictEqual(entries, originalEntries.entries);
     }};
   ports.prepareRecoveredEntries = createInstalledRowEffectRecoveryBacking(entryPorts);
-  const prepare = new Function(...Object.keys(ports), 'return ' +
-    recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
+  const prepare = createInstalledRowEffectRecovery(ports);
   const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope,
     computation: {computation, preview, storedResults, invocation}}, continuation: {version: 'original-version',
     program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},

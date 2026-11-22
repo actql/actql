@@ -13,6 +13,7 @@ import {captureInstalledStandardCreateLimits, prepareInstalledEffectControlConst
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 
 function parsed(source) {
   const nodes = [];
@@ -256,14 +257,21 @@ test('actual invalid asynchronous pure projector remains joined and cannot produ
   assert.equal(h.route.retire(), true);
 });
 
-const recoveryNode = source.nodes.find(n => n.type === 'VariableDeclarator' && n.id.name === 'reconcileStoredResponses');
 function cold(h, {outcome, commitError, callSignal} = {}) {
   const claim = {}, preview = {}, events = [], ownedClaim = Object.freeze({});
   const response = Buffer.from(JSON.stringify({data: {addComment: {
     commentEdge: {node: {id: 'IC_original', databaseId: 7}}, subject: {__typename: 'Issue', id: value.subject_id}}}}));
   const stored = {credentialUseCid: tag, statusCode: 200, responseBytes: response};
   const entry = {request: h.originalRequest, requestCid: h.originalRequest.requestCid};
-  const ledger = {readClaimedResponse(original) {assert.strictEqual(original, claim); return stored;},
+  const moon = {}, scope = {}, keys = [[{}]], admitted = {}, members = [member];
+  const body = {invocation_cid: 'original invocation', run_identity_cid: 'original run',
+    authoring_context: {authoring_context_cid: 'original authoring'},
+    effects: [{changes: [{}], capability_evidence_cid: 'original capability'}]};
+  const previewWire = JSON.stringify(body);
+  const ledger = {recoverClaimFacts(facts, originalKeys) {
+    assert.strictEqual(facts.preview, admitted); assert.strictEqual(facts.scope, scope);
+    assert.strictEqual(originalKeys, keys); return {members: [{claims: [claim]}]};
+  }, readClaimedResponse(original) {assert.strictEqual(original, claim); return stored;},
     readClaimedOutcome(original) {assert.strictEqual(original, ownedClaim); events.push('outcome'); return outcome;},
     commitAdmittedRowOutcome(facts) {
       assert.strictEqual(facts.claim, ownedClaim); assert.strictEqual(facts.preview, preview);
@@ -271,10 +279,20 @@ function cold(h, {outcome, commitError, callSignal} = {}) {
       if (commitError) throw commitError;
       return {receipt: {}, transition: {created: false}};
     }};
-  const ports = {route: h.route, ledger, fail, dispatchIndexes: [[0]], entries: [[entry]],
-    members: [member], currents: [{}], ownerOf: () => h.owner, applyPreview: preview, moon: {}, signal: undefined,
-    previewRows: [[{}]], projectOwnedResponse: h.projectOwnedResponse,
-    controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
+  const prepare = createInstalledRowEffectRecovery({
+    moon, fail, text, localContractLimits: {}, ROUTING_VERSION: 'original version',
+    owners: [h.owner], ownerOf: () => h.owner, recoveredMembers: () => members,
+    bindRunResources() {}, selectionFence: () => h.route.assertClaimedCurrent,
+    memberDispatch: () => 'original dispatch', scopes: () => [],
+    runLimits: () => ({maxMembers: 1, maxRows: 1, maxRowsPerMember: 1, maxWork: 1,
+      maxFrontierWork: 1, key: {}, preview: {}}),
+    effect: {recoveredPreviewKeys: () => keys, admitPreviewIdentity: () => preview, dispatchKeyCid: () => tag},
+    openLedger: () => ledger, prepareRecoveredEntries: () => ({entries: [[entry]], currents: [{}]}),
+    admitCapability: () => ({identity: 'original capability'}), orderedSourceIndexes: () => [0],
+    physicalRoute: () => h.route,
+    projectOwnedResponse(selected, facts) {
+      return h.projectOwnedResponse(selected, facts, (receiver, method, args) => Reflect.apply(method, receiver, args));
+    },
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return ownedClaim;},
     async recoverProjectedEffectResponse(options) {
       assert.strictEqual(options.claims, ownedClaim); assert.equal(options.expectedRequestCid, entry.requestCid);
@@ -283,11 +301,15 @@ function cold(h, {outcome, commitError, callSignal} = {}) {
     },
     settle(facts) {assert.strictEqual(facts.claim, ownedClaim); assert.strictEqual(facts.applyPreview, preview);
       applied(facts.projected); events.push('settle');},
-  };
-  // Evaluate only the original callback; its enclosing resource/lifetime
-  // variables remain explicit, mutable protocol inputs to this component.
-  return {events, run: Function(...Object.keys(ports), `let closing=false,closed=false,reconciling=0;
-    return (${sourceText.slice(recoveryNode.init.start, recoveryNode.init.end)});`)(...Object.values(ports))({members: [{claims: [claim]}], preview, signal: callSignal})};
+  });
+  const stage = prepare({moon, control: {
+    effectComputationPreviewWire(actual) {assert.strictEqual(actual, preview); return previewWire;},
+    effectComputationPreviewLedgerIdentity: () => admitted,
+    effectComputationPreviewSemanticCid: () => 'original preview',
+  }, recovered: {requestIdentity: {}, requestScope: scope, computation: {preview}},
+  continuation: {version: 'original version', program_id: 'program', stage_id: 'stage',
+    members: [{dispatch_request_cid: 'original dispatch'}]}});
+  return {events, run: stage.apply.reconcileStoredResponses({members: [{claims: [claim]}], preview, signal: callSignal})};
 }
 
 test('actual cold caller confirms the stored original response before typed settlement without another mutation', async () => {
