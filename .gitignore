@@ -2248,3 +2248,7 @@ target/
 /adapters/host-node/infer-capture-custody.d.mts
 /adapters/host-node/infer-result-custody.mjs
 /adapters/host-node/infer-result-custody.d.mts
+/adapters/host-node/infer-evidence-copy-geometry.mjs
+/adapters/host-node/infer-evidence-copy-geometry.d.mts
+/adapters/host-node/infer-evaluation-evidence.mjs
+/adapters/host-node/infer-evaluation-evidence.d.mts

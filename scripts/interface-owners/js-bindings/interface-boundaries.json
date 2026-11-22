@@ -73263,7 +73263,7 @@
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2dc302273675d9c879943e4cc72c8fa8f4a9e537d7aa78ac94939623b715938c",
+      "sha256": "5239210c6650f473319de69f77eea827f1bed694a865147c8231f72fb7238064",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -73453,7 +73453,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73467,7 +73467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73481,7 +73481,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73499,7 +73499,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73517,7 +73517,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73531,7 +73531,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73549,7 +73549,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73567,7 +73567,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73585,7 +73585,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73599,7 +73599,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "canonicalJson"
               },
               {
@@ -73625,7 +73625,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73635,7 +73635,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73645,7 +73645,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73659,7 +73659,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73673,7 +73673,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73683,7 +73683,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73697,7 +73697,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73711,7 +73711,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73725,7 +73725,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73735,7 +73735,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "cid"
               },
               {
@@ -73760,7 +73760,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73770,7 +73770,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73780,7 +73780,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73794,7 +73794,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73808,7 +73808,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73818,7 +73818,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73832,7 +73832,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73846,7 +73846,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73860,7 +73860,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73870,7 +73870,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "configureInferEvidence"
               },
               {
@@ -73890,7 +73890,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73900,7 +73900,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73910,7 +73910,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73924,7 +73924,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73938,7 +73938,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73948,7 +73948,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73962,7 +73962,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73976,7 +73976,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -73990,7 +73990,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -74000,7 +74000,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "missing"
               },
               {
@@ -74020,7 +74020,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74030,7 +74030,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74040,7 +74040,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74054,7 +74054,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74068,7 +74068,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74078,7 +74078,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74092,7 +74092,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74106,7 +74106,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74120,7 +74120,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74130,7 +74130,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "preparedEvidenceBytes"
               },
               {
@@ -74165,7 +74165,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74175,7 +74175,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74185,7 +74185,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74199,7 +74199,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74213,7 +74213,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74223,7 +74223,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74237,7 +74237,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74251,7 +74251,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74265,7 +74265,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74275,7 +74275,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "projectInferEvidence"
               },
               {
@@ -74302,7 +74302,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74312,7 +74312,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74322,7 +74322,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74336,7 +74336,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74350,7 +74350,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74360,7 +74360,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74374,7 +74374,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74388,7 +74388,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74402,7 +74402,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74412,7 +74412,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "withPreparedInferEvidence"
               },
               {
@@ -74434,7 +74434,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74444,7 +74444,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74454,7 +74454,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74468,7 +74468,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74482,7 +74482,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74492,7 +74492,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74506,7 +74506,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74520,7 +74520,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74534,7 +74534,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -74544,7 +74544,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -78580,6 +78580,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./infer-evidence-copy-geometry.mjs",
         "./infer-io-notification.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-capture.mjs",
@@ -78589,7 +78590,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4e13558bf124a8a6b9784397f76d6bb32c780c0798617dc945daaf2643504d3d"
+      "sha256": "3a09cace6692aea802f1ea5efbfb77bf8d0067e20dc575544178f5d6ad5f5440"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

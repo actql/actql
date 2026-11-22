@@ -21460,7 +21460,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "2dc302273675d9c879943e4cc72c8fa8f4a9e537d7aa78ac94939623b715938c",
+      "sha256": "5239210c6650f473319de69f77eea827f1bed694a865147c8231f72fb7238064",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -21674,8 +21674,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "docs/design/infer-model-observations.md",
@@ -21692,8 +21692,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21706,7 +21706,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -21724,7 +21724,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// receipt retains these originals; this creates no executable Model owner."
               },
               {
@@ -21742,8 +21742,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21756,7 +21756,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "throw new TypeError('InvalidInferEvidenceConfiguration');"
               },
               {
@@ -21774,7 +21774,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "retainCopy({cleanupPending: () => copy !== undefined, close: async () => release(), cleanup: async () => release()});"
               },
               {
@@ -21792,8 +21792,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "function preparedEvidenceBytes(item, maxBytes) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "function preparedEvidenceBytes(item: PreparedInput, maxBytes: number) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21810,8 +21810,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "docs/design/infer-model-observations.md",
@@ -21846,8 +21846,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "docs/design/infer-model-observations.md",
@@ -21860,8 +21860,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21870,7 +21870,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// Optional projection of existing, Store-confirmed INFER originals. This"
               },
               {
@@ -21884,7 +21884,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "// receipt retains these originals; this creates no executable Model owner."
               },
               {
@@ -21898,8 +21898,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21908,7 +21908,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "throw new TypeError('InvalidInferEvidenceConfiguration');"
               },
               {
@@ -21922,7 +21922,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
                 "anchor": "retainCopy({cleanupPending: () => copy !== undefined, close: async () => release(), cleanup: async () => release()});"
               },
               {
@@ -21936,8 +21936,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "function preparedEvidenceBytes(item, maxBytes) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "function preparedEvidenceBytes(item: PreparedInput, maxBytes: number) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -21950,8 +21950,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-evaluation-evidence.mjs",
-                "anchor": "export function configureInferEvidence(configuration) {"
+                "path": "adapters/host-node/infer-evaluation-evidence.mts",
+                "anchor": "export function configureInferEvidence(configuration: Configuration | undefined) {"
               },
               {
                 "path": "docs/design/infer-model-observations.md",
@@ -21981,6 +21981,108 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/infer-evidence-copy-geometry.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "62446697704457a3795357cd7470a12705fa0a69c84b3c2c27272a2cd2fcbe46",
+      "role": "physical-io",
+      "owner": "Existing Model/Resource/Entry and installed call custody",
+      "exports": [
+        "inferEvidenceCopyConstruction"
+      ],
+      "operations": [
+        {
+          "name": "inferEvidenceCopyConstruction",
+          "parameters": [
+            "moon",
+            "operation",
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "inferEvidenceCopyConstruction"
+          ],
+          "exports": [
+            "inferEvidenceCopyConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "// Calculate the existing Common quote over the same admitted call inventory."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "export function inferEvidenceCopyConstruction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "logical!.request : runtimeField(physical, 0)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "// The caller's original owner retains the reserve, grow and receipt duties."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "for (let slot = 0; slot < bundle.count; slot++)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "throw failure('RequiredEvidenceUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "return {retained, execution};"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "clientProgramEffectModelEvidenceCopyCapacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-evidence-copy-geometry.mts",
+                "anchor": "if (kind === 'typed-input') error.code = code;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "actual original129 inventory grows before a receipt and retains each coheld prefix"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "The existing Common copy quote over original Model inputs. Funding, currentness, and receipt custody remain with the original operation."
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
@@ -24641,6 +24743,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./infer-evidence-copy-geometry.mjs",
         "./infer-io-notification.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-capture.mjs",
@@ -24650,7 +24753,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4e13558bf124a8a6b9784397f76d6bb32c780c0798617dc945daaf2643504d3d"
+      "sha256": "3a09cace6692aea802f1ea5efbfb77bf8d0067e20dc575544178f5d6ad5f5440"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
