@@ -543,7 +543,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "25a38b6d253120bba474b851decb60a4e15611a3a21617b1c881e310119008ee",
+      "sha256": "73cf05fd1236fcd84e40263d11f6db171283c8e55cb558a67c816e3ad449ec4c",
       "exports": [
         "createSdkModelPreflight",
         "createSdkNativeDecisionPreflight",

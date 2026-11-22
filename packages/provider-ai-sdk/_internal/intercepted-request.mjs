@@ -310,7 +310,6 @@ export function confirmSavedSdkTransportResponse(handle, originalRaw, saved) {
   if (transport?.responseMode !== 'saved-sdk' || !transport.settled ||
       transport.failure !== undefined || originalRaw === undefined ||
       originalRaw !== transport.rawObservation || state.delivered ||
-      originalRaw.status < 200 || originalRaw.status >= 300 ||
       saved?.receipt === undefined || !(saved.bytes instanceof Uint8Array) ||
       saved.bytes.byteLength !== originalRaw.observedBytes ||
       createHash('sha256').update(saved.bytes).digest('hex') !== transport.rawDigest) {

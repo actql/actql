@@ -1382,7 +1382,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7150482b23b7b71b23d4491594f713795e888c7d92e854ec9316738a2206f76a",
+      "sha256": "4edf9b7fa195aa1113eeca8c2b45b8a74062059f1ee8e5aaddb69e2182fcb2cd",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",

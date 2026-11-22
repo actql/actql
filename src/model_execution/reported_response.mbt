@@ -156,7 +156,8 @@ fn model_reported_response_owned(
     Some(PhysicalSavedStructuredResponse(saved)) => {
       guard call.decoded_response is Some(original) &&
         model_saved_structured_response_original(saved, call) &&
-        physical_equal(saved.encoded.observation, original.observation) else {
+        saved.result is Ok(encoded) &&
+        physical_equal(encoded.observation, original.observation) else {
         return false
       }
       original

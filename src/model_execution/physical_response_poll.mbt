@@ -374,8 +374,12 @@ fn observe_original_model_physical_usage(
         return Err(RequestIdentity)
       }
       {
-        input_tokens: response.encoded.observation.input_tokens,
-        output_tokens: response.encoded.observation.output_tokens,
+        input_tokens: response.result
+        .to_option()
+        .bind(encoded => encoded.observation.input_tokens),
+        output_tokens: response.result
+        .to_option()
+        .bind(encoded => encoded.observation.output_tokens),
       }
     }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
@@ -464,9 +468,30 @@ fn advance_model_physical_response(
       observe_model_physical(state, InvokeReturned)
       begin_native_model_response(state, prepared, response, reader)
     }
-    PhysicalSavedStructuredResponse(response) => {
-      observe_model_physical(state, InvokeReturned)
-      begin_encoded_model_response(state, prepared, response.encoded, reader)
-    }
+    PhysicalSavedStructuredResponse(response) =>
+      match response.result {
+        Err(failure) => accept_structured_model_failure(state, failure)
+        Ok(encoded) => {
+          observe_model_physical(state, InvokeReturned)
+          match begin_encoded_model_response(state, prepared, encoded, reader) {
+            @bounded.Failed(OutputValue, _, _) =>
+              accept_structured_model_failure(state, SchemaInvalid)
+            step => step
+          }
+        }
+      }
   }
+}
+
+///|
+fn accept_structured_model_failure(
+  state : ModelState,
+  failure : ModelProviderFailure,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  state.progress.observing_response = false
+  observe_model_physical(state, InvokeFailed)
+  if state.stop_requested {
+    return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+  }
+  accept_failed_model_slot(state, failure)
 }

@@ -88,7 +88,9 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     try { notify(); } catch { /* Wake is not execution or persistence evidence. */ }
   };
   const readDecoded = structured ? (original, receipt, bytes) => {
-    if (retired || original !== call) return undefined;
+    if (retired || original !== call || pollSdkDecode(preparation).kind !== 'ready') {
+      return undefined;
+    }
     const decoded = takeSavedSdkDecodedResult(preparation, receipt, bytes);
     const content = decoded.content;
     // This initial profile permits one complete text/JSON answer. SDK
@@ -110,7 +112,6 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
         if (structured) {
           const decoded = pollSdkDecode(preparation);
           if (decoded.kind === 'pending') return moon.clientProgramModelPhysicalPending();
-          if (decoded.kind !== 'ready') throw new TypeError('StructuredSdkDecodeUnavailable');
           selectedResponse = checked(moon.clientProgramModelPhysicalSavedStructured(
             call, response.receipt, response.bytes));
         } else {

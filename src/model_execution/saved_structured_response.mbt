@@ -3,7 +3,7 @@
 /// Store receipt as a separate nominal borrow. The decoded text is never Raw.
 pub struct ModelPhysicalSavedStructuredResponse {
   priv receipt : ModelSavedRawReceipt
-  priv encoded : ModelPhysicalEncodedResponse
+  priv result : Result[ModelPhysicalEncodedResponse, ModelProviderFailure]
 }
 
 ///|
@@ -34,7 +34,8 @@ fn model_saved_structured_response_original(
 }
 
 ///|
-/// Only the original saved 2xx/EOF response may supply structured output.
+/// Classify a closed HTTP response from the same verified Store receipt.
+/// Only a complete 2xx response may supply a structured answer.
 /// Verify the borrowed Store bytes against the saved descriptor before
 /// invoking the decoder retained by this physical Plan. An asynchronous
 /// SDK port uses this callback to read the same invocation's result; a
@@ -56,7 +57,7 @@ pub fn model_physical_saved_structured_response(
   let (status, transport_eof, observed_at) = @publication.model_raw_response_transport_facts(
     raw,
   )
-  if status < 200 || status >= 300 || !transport_eof {
+  if !transport_eof {
     return Err(OutputIdentity)
   }
   let (_, _, _, content_cid, byte_count) = @publication.model_raw_response_store_binding(
@@ -69,11 +70,25 @@ pub fn model_physical_saved_structured_response(
   if state.stop_requested || call.cancel_requested {
     return Err(Cancelled)
   }
-  guard read_decoded(call, receipt, bytes) is Some(decoded) &&
-    model_structured_receipt_owned(call, receipt) &&
+  if status < 200 || status >= 300 {
+    let failure = match status {
+      429 => RateLimit
+      _ => ProviderError
+    }
+    return Ok(
+      PhysicalSavedStructuredResponse({ receipt, result: Err(failure), }),
+    )
+  }
+  let selected = read_decoded(call, receipt, bytes)
+  guard model_structured_receipt_owned(call, receipt) &&
     !state.stop_requested &&
     !call.cancel_requested else {
     return Err(OutputIdentity)
+  }
+  guard selected is Some(decoded) else {
+    return Ok(
+      PhysicalSavedStructuredResponse({ receipt, result: Err(SchemaInvalid), }),
+    )
   }
   let observation = {
     ..decoded.observation,
@@ -94,5 +109,5 @@ pub fn model_physical_saved_structured_response(
     return Err(OutputIdentity)
   }
   let encoded = { ..decoded, observation, transport_eof, }
-  Ok(PhysicalSavedStructuredResponse({ receipt, encoded, }))
+  Ok(PhysicalSavedStructuredResponse({ receipt, result: Ok(encoded), }))
 }

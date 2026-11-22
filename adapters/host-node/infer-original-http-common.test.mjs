@@ -38,9 +38,30 @@ test('selected structured SDK settles the original verified Raw through Common a
   {timeout:15000}, t => originalHttpSettlement(t, true));
 
 test('selected structured SDK retains the original unknown when Raw cannot be confirmed',
-  {timeout:15000}, t => originalHttpSettlement(t, true, true));
+  {timeout:15000}, t => originalHttpSettlement(t, true, {refuseRaw: true}));
 
-async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
+for (const [status, outcome] of [[401,'provider_error'],[429,'rate_limit'],[503,'provider_error']]) {
+  test('selected structured SDK saves complete HTTP '+status+' as '+outcome,
+    {timeout:15000}, t => originalHttpSettlement(t, true, {
+      status, outcome, wire:'{"error":{"message":"controlled provider failure"}}',
+    }));
+}
+
+test('selected structured SDK classifies a malformed complete 2xx from its decoder',
+  {timeout:15000}, t => originalHttpSettlement(t, true, {
+    outcome:'schema_invalid',wire:'{"not-a-provider-envelope":true}',
+  }));
+
+test('selected structured SDK rejects a type-invalid complete 2xx through Common',
+  {timeout:15000}, t => originalHttpSettlement(t, true, {
+    outcome:'schema_invalid',wire:responseWire.replace('\\"low\\"','123'),
+  }));
+
+test('selected structured SDK keeps a truncated provider response unknown',
+  {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
+
+async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
+  status=200, outcome, wire=responseWire} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -49,7 +70,13 @@ async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
       response.sendDate=false;
       response.setHeader('content-type','application/json');
       response.setHeader('connection','close');
-      response.end(responseWire);
+      response.statusCode=status;
+      if (loseResponse) {
+        response.setHeader('content-length',Buffer.byteLength(wire));
+        response.write(wire.slice(0, 8), () => response.destroy());
+      } else {
+        response.end(wire);
+      }
     });
     server.on('connection',socket=>{
       sockets.add(socket);
@@ -86,9 +113,9 @@ async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
       operation:f.operation,plan:f.plan,store:f.store,storeAuthorityCid:f.storeAuthorityCid,
       durableCalls:true,captureOnly:true});
     capture.configureModelJournal({observe:f.opened.observe,entry:f.opened.entry});
-    if (refuseRaw) {
+    if (refuseRaw || loseResponse) {
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
-      assert.equal(f.ports[0].rawFailure(),refusal);
+      if (refuseRaw) assert.equal(f.ports[0].rawFailure(),refusal);
       assert.equal(f.originalReads(),2);
       assert.equal(calls.length,1);
       assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');
@@ -97,7 +124,7 @@ async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
       // another invocation or acknowledging the uncertain remote outcome.
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
     } else {
-      await assertOriginalSettlement(f,capture,calls,structuredSdk);
+      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome);
     }
     assert.equal(calls.length,1,'Settlement must not repeat the original physical request');
     await until(()=>capture.custody.cleanup(),value=>value===true);
@@ -116,7 +143,7 @@ async function originalHttpSettlement(t, structuredSdk, refuseRaw = false) {
     t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite; synthetic funding and private Host fixture');
 }
 
-async function assertOriginalSettlement(f,capture,calls,structuredSdk) {
+async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome) {
     const boundary=await f.operation.run();
     assert.equal(boundary.status,'settling');
     assert.equal(calls.length,1);
@@ -128,7 +155,9 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk) {
     assert.ok(entry);
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown',
       'A saved raw response alone is not the settled slot');
-    if (structuredSdk) {
+    const record=JSON.parse(moon.strategyRunEvidenceJson(f.operation.issuedSlotCapture(0)));
+    assert.equal(record.outcome,outcome===undefined?'ok':'failed:'+outcome);
+    if (structuredSdk && outcome===undefined) {
       const exporter=checked(moon.clientProgramStartInferCallSettlementExport(
         boundary.settlement,65536,100000));
       try {
@@ -147,7 +176,8 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk) {
       }
     }
     const saved=await capture.persistSettlement(boundary.settlement,entry);
-    assert.equal(saved.state,'SavedSuccess');
-    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'SavedSuccess');
+    const expected=outcome===undefined?'SavedSuccess':'SavedFailure';
+    assert.equal(saved.state,expected);
+    assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,expected);
     assert.ok(await f.operation.run());
 }
