@@ -530,7 +530,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     if target_index != state.targets.length() {
       stop("LocalOriginalEffectPreviewTargetUnavailable")
     }
-    let (draft, draft_bytes, draft_nodes, draft_depth) = encode_with_usage({
+    let draft_json : Json = {
       "version": "actql-effect-preview/0.1",
       "sensitivity": "private",
       "retention_class": "authority-evidence",
@@ -577,7 +577,15 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       "effects": Json::array(effects),
       "executed": false,
       "effect_preview_cid": Json::string(pending),
-    })
+    }
+    if measured_preview {
+      construction.fund_preview_draft_encoding(
+        draft_json, draft_row_bytes, max_bytes, max_nodes, max_depth, report,
+      )
+    }
+    let (draft, draft_bytes, draft_nodes, draft_depth) = encode_with_usage(
+      draft_json,
+    )
     (
       draft, draft_bytes, draft_nodes, draft_depth, sources, identities, target_index,
     )
@@ -994,4 +1002,200 @@ fn native_mock_effect_preview_target_row_capacity(
     return None
   }
   Some((retained, workspace))
+}
+
+///|
+// Counts the input seen by the existing from_json converter. Repeated edges
+// are visited again: the same value used for "after" and "intended_changes"
+// is converted twice. No output tree or detached field vector is allocated.
+priv struct NativePreviewDraftGeometry {
+  mut nodes : Int
+  mut fields : Int
+  mut objects : Int
+  mut arrays : Int
+  mut depth : Int
+  mut text : Int64
+}
+
+///|
+fn NativePreviewDraftGeometry::observe(
+  self : Self,
+  value : Json,
+  level : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_bytes : Int,
+) -> Bool {
+  if self.nodes >= max_nodes {
+    return false
+  }
+  self.nodes += 1
+  match value {
+    Object(values) => {
+      if level >= max_depth || values.length() > max_nodes - self.nodes {
+        return false
+      }
+      self.objects += 1
+      self.fields += values.length()
+      self.depth = Int::max(self.depth, level + 1)
+      for key, child in values {
+        self.text += key.length().to_int64()
+        if !self.observe(child, level + 1, max_nodes, max_depth, max_bytes) {
+          return false
+        }
+      }
+    }
+    Array(values) => {
+      if level >= max_depth || values.length() > max_nodes - self.nodes {
+        return false
+      }
+      self.arrays += 1
+      self.depth = Int::max(self.depth, level + 1)
+      for child in values {
+        if !self.observe(child, level + 1, max_nodes, max_depth, max_bytes) {
+          return false
+        }
+      }
+    }
+    String(text) => self.text += text.length().to_int64()
+    _ => ()
+  }
+  self.text <= max_bytes.to_int64()
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::fund_preview_draft_encoding(
+  self : Self,
+  draft : Json,
+  row_backing : Int64,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> Unit raise ClientStop {
+  let depth = max_depth.to_int64()
+  let scan = @execution.preparation_representation_cost({
+      // One scalar geometry and the active Map/Array iterators of a bounded
+      // traversal. The source Json and original borrowed Strings stay live.
+      record_headers: 2L + 8L * depth,
+      reference_slots: 15L * depth,
+      scalar_words: 12L + 12L * depth,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    .bind(bytes => {
+      @execution.checked_preparation_add_product(row_backing, bytes, 1L)
+    })
+    .bind(bytes => @execution.execution_capacity(0L, bytes))
+  self.prepare_body_result(scan).native_effect_proposal_with_cause(report)
+  let geometry = {
+    nodes: 0,
+    fields: 0,
+    objects: 0,
+    arrays: 0,
+    depth: 0,
+    text: 0L,
+  }
+  if !geometry.observe(draft, 0, max_nodes, max_depth, max_bytes) {
+    stop("LocalOriginalEffectPreviewEncodingUnavailable")
+  }
+  self
+  .prepare_body_result(
+    native_mock_effect_preview_draft_capacity(geometry, row_backing, max_bytes),
+  )
+  .native_effect_proposal_with_cause(report)
+}
+
+///|
+fn native_mock_effect_preview_draft_capacity(
+  geometry : NativePreviewDraftGeometry,
+  row_backing : Int64,
+  max_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  let nodes = geometry.nodes.to_int64()
+  let fields = geometry.fields.to_int64()
+  let depth = geometry.depth.to_int64()
+  guard @canonical.source_conversion_construction_extent(
+      geometry.nodes,
+      geometry.fields,
+      geometry.objects,
+      geometry.arrays,
+      geometry.depth,
+      geometry.text.to_int(),
+    )
+    is Some(conversion) &&
+    @shape.collection_construction_extent({
+      // Retain the current Native Json tree, not unused parse tokens from
+      // earlier calls. Counting shared subtrees twice is conservative.
+      records: 2L * nodes + fields,
+      record_references: 2L * nodes + fields,
+      record_words: 3L * nodes + fields,
+      reference_arrays: geometry.arrays.to_int64(),
+      reference_items: Int64::max(0L, nodes - fields - 1L),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: geometry.objects.to_int64(),
+      map_entries: fields,
+    })
+    is Some(input) &&
+    @execution.preparation_representation_cost({
+      record_headers: input.record_headers,
+      reference_slots: input.reference_slots,
+      scalar_words: input.scalar_words,
+      owned_utf16_units: geometry.text,
+      owned_wire_bytes: 0L,
+    })
+    is Some(native) else {
+    return None
+  }
+  let output_bytes = Int64::min(
+    max_bytes.to_int64(),
+    6L * conversion.retained_utf16_units + 32L * nodes + 4L * fields,
+  ).to_int()
+  // Ordered canonical objects have no unordered-key Map in this writer.
+  guard @encode.text_writer_live_key_inventory(output_bytes, 0, geometry.depth)
+    is Some(writer) &&
+    @shape.collection_construction_extent({
+      // from_json's pending BuildFrames, active iterators and sort of one
+      // object's field vector. The shared envelope includes normalization and
+      // the seen Map inventory. The emission cursor uses the same depth bound.
+      records: 12L + nodes + 14L * depth,
+      record_references: 20L + 26L * depth,
+      record_words: 16L + nodes + 18L * depth,
+      reference_arrays: 2L,
+      reference_items: 3L * depth + 1L + fields,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(frames) &&
+    @execution.preparation_representation_cost({
+      record_headers: frames.record_headers +
+      conversion.retained.record_headers +
+      conversion.scratch.record_headers +
+      writer.record_headers,
+      reference_slots: frames.reference_slots +
+      conversion.retained.reference_slots +
+      conversion.scratch.reference_slots +
+      writer.reference_slots,
+      scalar_words: frames.scalar_words +
+      conversion.retained.scalar_words +
+      conversion.scratch.scalar_words +
+      writer.scalar_words,
+      owned_utf16_units: conversion.retained_utf16_units +
+      conversion.scratch_utf16_units +
+      writer.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(encoding) else {
+    return None
+  }
+  // The draft's reachable rows are the same prior prefix. Remain
+  // conservative about that old peak while the new tree/writer is live.
+  @execution.checked_preparation_add_product(
+    Int64::max(row_backing, native),
+    encoding,
+    1L,
+  ).bind(bytes => @execution.execution_capacity(0L, bytes))
 }

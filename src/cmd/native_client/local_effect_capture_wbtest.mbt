@@ -772,3 +772,34 @@ test "Native Preview target parsing funds overlapping original rows before entry
     )
   }
 }
+
+///|
+test "Native Preview draft counts both positions of one original row value" {
+  let shared = @json.parse("{\"name\":\"é\",\"nested\":[1,2]}")
+  let draft : Json = { "after": shared, "intended_changes": shared }
+  let geometry : NativePreviewDraftGeometry = {
+    nodes: 0,
+    fields: 0,
+    objects: 0,
+    arrays: 0,
+    depth: 0,
+    text: 0L,
+  }
+  assert_true(geometry.observe(draft, 0, 11, 3, 43))
+  assert_eq(
+    (geometry.nodes, geometry.fields, geometry.objects, geometry.arrays),
+    (11, 6, 3, 2),
+  )
+  assert_eq((geometry.depth, geometry.text), (3, 43L))
+  let canonical = @canonical.from_json(draft, 11, 3, 43, data_keys=true)
+  let (wire, _, nodes, depth) = @canonical.stringify_value_with_usage(
+    canonical, 8192, 11, 3,
+  )
+  assert_eq((nodes, depth), (11, 3))
+  assert_eq(
+    wire, "{\"after\":{\"name\":\"é\",\"nested\":[1,2]},\"intended_changes\":{\"name\":\"é\",\"nested\":[1,2]}}",
+  )
+  let quote = native_mock_effect_preview_draft_capacity(geometry, 8192L, 8192).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(quote), 0L)
+  assert_true(@execution.execution_capacity_execution_bytes(quote) > 8192L)
+}
