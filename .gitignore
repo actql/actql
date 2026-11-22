@@ -1838,3 +1838,9 @@ target/
 /adapters/connectors/duckdb/node/test/typed-catalog.d.mts
 /adapters/connectors/duckdb/node/test/managed-column-codec.test.mjs
 /adapters/connectors/duckdb/node/test/managed-column-codec.test.d.mts
+/adapters/connectors/duckdb/node/test/managed-fixture-cleanup.mjs
+/adapters/connectors/duckdb/node/test/managed-fixture-cleanup.d.mts
+/adapters/connectors/duckdb/node/test/managed-fixture-cleanup.test.mjs
+/adapters/connectors/duckdb/node/test/managed-fixture-cleanup.test.d.mts
+/adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mjs
+/adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.d.mts

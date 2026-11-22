@@ -6,8 +6,25 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {closeManagedDuckDBOutput, settleFailedManagedDuckDB} from '../managed-failure.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
-import * as portableRuntime from
-  '../../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js';
+type RecoveryState = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type FixtureRecovery = Readonly<{status(): RecoveryState; retry(): Promise<RecoveryState>}>;
+type FixtureFailure = Awaited<ReturnType<typeof settleFailedManagedDuckDB>> & {
+  cleanupHandle?: FixtureRecovery;
+};
+type FixtureState = {
+  calls: Record<'open' | 'settle' | 'close' | 'refresh' | 'cleanup', number>;
+  failCleanupOnce: boolean;
+  cleanupFailed: boolean;
+  controller?: AbortController;
+  reason?: unknown;
+  store?: Awaited<ReturnType<typeof createLocalRetainedStore>>;
+};
+type FixtureGlobals = typeof globalThis & {__actqlManagedFailureTest?: FixtureState};
+
+const portableRuntime = await import(new URL(
+  '../../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js',
+  import.meta.url,
+).href) as Parameters<typeof settleFailedManagedDuckDB>[0];
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 
@@ -43,22 +60,22 @@ for (const mode of ['normal', 'pending-reader', 'cleanup-error']) {
       if (mode === 'normal') {
         await closeManagedDuckDBOutput(moon, value => value, state);
       } else {
-        let failure;
+        let failure!: FixtureFailure;
         await assert.rejects(closeManagedDuckDBOutput(moon, value => value, state), error => {
-          failure = error; return error.cleanupPending === true;
+          failure = error as FixtureFailure; return (error as FixtureFailure).cleanupPending === true;
         });
         assert.equal(actual.status().reservedBytes, 3);
         assert.equal(confirmed, 0, 'a live reader must not confirm task cleanup');
-        assert.equal((await failure.cleanupHandle.retry()).pending, true);
+        assert.equal((await failure.cleanupHandle!.retry()).pending, true);
         assert.equal(actual.status().reservedBytes, 3);
-        assert.equal(reader.confirmStopped(), true);
+        assert.equal(reader!.confirmStopped(), true);
         if (mode === 'cleanup-error') {
           inject = true;
-          assert.equal((await failure.cleanupHandle.retry()).pending, true);
+          assert.equal((await failure.cleanupHandle!.retry()).pending, true);
           assert.equal(actual.status().reservedBytes, 3);
         }
-        assert.equal((await failure.cleanupHandle.retry()).pending, false);
-        assert.equal((await failure.cleanupHandle.retry()).pending, false);
+        assert.equal((await failure.cleanupHandle!.retry()).pending, false);
+        assert.equal((await failure.cleanupHandle!.retry()).pending, false);
       }
       assert.equal(actual.status().reservedBytes, 0);
       assert.equal(actual.status().cleanupPending, false);
@@ -74,18 +91,18 @@ for (const mode of ['normal', 'pending-reader', 'cleanup-error']) {
   });
 }
 
-async function runFailure(reason, {failCleanupOnce = false} = {}) {
+async function runFailure(reason: unknown, {failCleanupOnce = false} = {}) {
   const base = await mkdtemp(join(tmpdir(), 'actql-managed-failure-'));
   const duckdb = join(base, 'adapters', 'connectors', 'duckdb', 'node');
   const store = join(base, 'adapters', 'store-local');
   const runtime = join(base,
     '_build/js/release/build/connectors/duckdb/host_node');
-  const state = {
+  const state: FixtureState = {
     calls: {open: 0, settle: 0, close: 0, refresh: 0, cleanup: 0},
     failCleanupOnce,
     cleanupFailed: false,
   };
-  globalThis.__actqlManagedFailureTest = state;
+  (globalThis as FixtureGlobals).__actqlManagedFailureTest = state;
   try {
     await mkdir(duckdb, {recursive: true});
     await mkdir(store, {recursive: true});
@@ -193,31 +210,31 @@ export {
     state.controller = new AbortController();
     state.reason = reason;
     const module = await import(pathToFileURL(
-      join(duckdb, 'managed-strategy-compute.mjs')).href);
-    let failure;
+      join(duckdb, 'managed-strategy-compute.mjs')).href) as typeof import('../managed-strategy-compute.mjs');
+    let failure!: FixtureFailure;
     try {
       await module.runManagedColumnStrategyHostCompute(
         {}, {}, 'column', {maxSqlBytes: 10000},
         {parentDirectory: base, maxFrameBytes: 1024},
         state.controller.signal,
       );
-    } catch (error) { failure = error; }
-    const initialStatus = state.store.status();
-    let retryStatus;
+    } catch (error) { failure = error as FixtureFailure; }
+    const initialStatus = state.store!.status();
+    let retryStatus: RecoveryState | undefined;
     if (failCleanupOnce) {
-      retryStatus = await failure.cleanupHandle.retry();
+      retryStatus = await failure.cleanupHandle!.retry();
     }
     return {
       failure,
       calls: {...state.calls},
       initialStatus,
       retryStatus,
-      status: state.store.status(),
+      status: state.store!.status(),
     };
   } finally {
     state.store?.close();
     await state.store?.cleanup();
-    delete globalThis.__actqlManagedFailureTest;
+    delete (globalThis as FixtureGlobals).__actqlManagedFailureTest;
     await rm(base, {recursive: true, force: true});
   }
 }
@@ -266,10 +283,10 @@ test('frozen abort and cleanup failure preserve both causes and still retry',
     assert.equal(failure.primaryFailure, reason);
     assert.equal(failure.cause, reason);
     assert.equal(failure.cleanupErrors.length, 1);
-    assert.match(failure.cleanupErrors[0].message, /injected cleanup failure/);
+    assert.match((failure.cleanupErrors[0] as Error).message, /injected cleanup failure/);
     assert.equal(initialStatus.cleanupPending, true);
     assert.equal(initialStatus.reservedBytes, 1024);
-    assert.equal(retryStatus.pending, false);
+    assert.equal(retryStatus!.pending, false);
     assert.equal(status.cleanupPending, false);
     assert.equal(status.reservedBytes, 0);
     assert.deepEqual(calls, {
@@ -296,7 +313,11 @@ test('native and output cleanup retry independently before task release',
     };
     let nativePending = true;
     let outputPending = true;
-    const nativeFailure = new Error('native operation still running');
+    const nativeFailure = new Error('native operation still running') as Error & {
+      cleanupPending?: boolean;
+      cleanupErrors?: readonly unknown[];
+      cleanupHandle?: FixtureRecovery;
+    };
     nativeFailure.cleanupPending = true;
     nativeFailure.cleanupErrors = Object.freeze([]);
     nativeFailure.cleanupHandle = Object.freeze({
@@ -347,14 +368,14 @@ test('native and output cleanup retry independently before task release',
     assert.equal(calls.settle, 0);
     assert.equal(calls.refresh, 0);
 
-    const first = await failure.cleanupHandle.retry();
+    const first = await (failure.cleanupHandle as FixtureRecovery).retry();
     assert.equal(first.pending, true);
     assert.equal(calls.nativeRetry, 1);
     assert.equal(calls.storeCleanup, 2,
       'Store cleanup must proceed after an independent native retry failure');
     assert.equal(calls.refresh, 0);
 
-    const second = await failure.cleanupHandle.retry();
+    const second = await (failure.cleanupHandle as FixtureRecovery).retry();
     assert.equal(second.pending, false);
     assert.equal(calls.nativeRetry, 2);
     assert.equal(calls.storeCleanup, 2);

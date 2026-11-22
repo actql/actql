@@ -30,14 +30,14 @@ test('fixture cleanup retains its first bounded-pending error and uses only expl
   assert.equal(result.firstCloseFailure, f.failure);
   assert.equal(result.cleanupAttempts, 4);
   assert.deepEqual(f.counts(), {closes: 1, cleanups: 4});
-  assert.equal(f.failure.cause.primaryFailure.message, 'LocalManagedOutputCleanupPending');
+  assert.equal((f.failure.cause as typeof f.failure.primaryFailure).primaryFailure.message, 'LocalManagedOutputCleanupPending');
 });
 
 test('fixture cleanup rejects a physical exception hidden under the same outer classification', async () => {
   const f = fixture(new Error('PhysicalReleaseUnavailable'));
   await assert.rejects(closeManagedFixtureExecution(f.execution, 60000), error => {
-    assert.equal(error.errors[0], f.failure);
-    assert.equal(error.errors[1].code, 'ERR_ASSERTION');
+    assert.equal((error as AggregateError).errors[0], f.failure);
+    assert.equal((error as AggregateError).errors[1].code, 'ERR_ASSERTION');
     return true;
   });
   assert.deepEqual(f.counts(), {closes: 1, cleanups: 0});
@@ -47,7 +47,7 @@ test('fixture cleanup retains the original pending failure when explicit recover
   const f = fixture(), recoveryFailure = new Error('RecoveryUnavailable');
   f.execution.cleanup = async () => { throw recoveryFailure; };
   await assert.rejects(closeManagedFixtureExecution(f.execution, 60000), error => {
-    assert.deepEqual(error.errors, [f.failure, recoveryFailure]);
+    assert.deepEqual((error as AggregateError).errors, [f.failure, recoveryFailure]);
     return true;
   });
   assert.equal(f.execution.cleanupPending(), true);
@@ -65,12 +65,12 @@ test('fixture pending diagnostics retain closed codes without exposing primary v
   assert.equal(managedFixtureCleanupDiagnostic(proxy),'opaque');
 });
 
-function originalFixtureAssertion(file = 'retained-values-chain.test.mjs') {
+function originalFixtureAssertion(file = 'retained-values-chain.test.mjs'): InstanceType<typeof assert.AssertionError> {
   try {
     runInNewContext('assert.equal("hidden-row", "hidden-key")', {assert}, {
       filename: `file:///fixture/adapters/connectors/duckdb/node/test/${file}`,
     });
-  } catch (error) { return error; }
+  } catch (error) { return error as InstanceType<typeof assert.AssertionError>; }
   assert.fail('the original assertion must fail');
 }
 
@@ -108,7 +108,7 @@ test('fixture assertion sites refuse foreign frames, accessors and custom stack 
     assert.equal(managedFixtureCleanupDiagnostic(formatted), 'ERR_ASSERTION/none/none');
   } finally {
     if (original) Object.defineProperty(Error, 'prepareStackTrace', original);
-    else delete Error.prepareStackTrace;
+    else delete (Error as Partial<ErrorConstructor>).prepareStackTrace;
   }
   assert.equal(reads, 0);
 });

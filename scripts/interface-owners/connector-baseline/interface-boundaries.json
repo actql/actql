@@ -1454,7 +1454,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/managed-failure-lifecycle.test.mts",
                 "anchor": "native and output cleanup retry independently before task release"
               }
             ]
