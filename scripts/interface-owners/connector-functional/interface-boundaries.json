@@ -2125,7 +2125,7 @@
                 "anchor": "test('explicit data profiles select resident reuse with independent retained output"
               },
               {
-                "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mts",
                 "anchor": "test('typed composite join and count preserve fixed capture across Local fresh and resident DAGs"
               }
             ]

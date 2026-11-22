@@ -8,18 +8,23 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
+// @ts-expect-error The standard Host entry still has an authored JavaScript implementation.
 import { runCapturedStrategy } from '../../../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import type {CapturedUsage, ContractWires, JoinFixtureRuntime, RunCapturedStrategy} from './captured-join-fixture.mjs';
+
+type ScalarCase = readonly [name: string, sqlType: string, field: Parameters<typeof typedCatalog>[1],
+  highSql: string, lowSql: string, high: string | number | boolean, low: string | number | boolean];
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 // Authored values/order, not expectations obtained from either execution engine.
-const cases = [
+const cases: readonly ScalarCase[] = [
   ['text', 'VARCHAR', { type: 'string' }, "chr(57344)", "chr(65536)", '\ue000', '\u{10000}'],
   ['boolean', 'BOOLEAN', { type: 'boolean' }, 'TRUE', 'FALSE', true, false],
   ['integer', 'BIGINT', { type: 'number' }, '9007199254740992', '-2', 9007199254740992, -2],
@@ -39,17 +44,18 @@ test('case-distinct names preserve group order and exclude lossy resident storag
     'connectors/duckdb/conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${name}`], { cwd: root });
   }
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: JoinFixtureRuntime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')) as unknown as string);
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1].match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
-  const seed = JSON.parse(JSON.parse(match[1]));
+  const seed = JSON.parse(JSON.parse(match![1])) as Parameters<typeof typedCatalog>[0];
   const contracts = await pinnedEngineContracts(root);
   const shared = await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
-  const output = fields => ({ r: { from: 'out', fields } });
-  const branch = id => ({ id, inputs: { x: { result: { stage: 'acquire', result: 'r' } } },
+  const output = (fields: readonly string[]) => ({ r: { from: 'out', fields } });
+  const branch = (id: string) => ({ id, inputs: { x: { result: { stage: 'acquire', result: 'r' } } },
     steps: [{ filter: 'id > 0' }, { select: ['id', 'amount'], as: 'out' }], results: output(['id', 'amount']) });
-  for (const [key, aggregate, collision] of [['K', 'k', false], ['k', 'K', false], ['K', 'k', true]]) {
+  for (const [key, aggregate, collision] of [['K', 'k', false], ['k', 'K', false], ['K', 'k', true]] as const) {
   const program = JSON.stringify({ version: 'actql/0.1', id: 'typed-resident',
     params: { minimum: { type: 'number', nullable: false } }, stages: [
       { id: 'acquire', inputs: { remote: { connector: 'crm/main', resource: 'r' } },
@@ -70,7 +76,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
     for (const [name, sqlType, type, highSql, lowSql, high, low] of cases.filter(c => ['number', 'text'].includes(c[0]))) {
       const environment = typedCatalog(seed, { ...type, nullable: true });
       const path = join(directory, `${name}.duckdb`);
-      const write = async reset => {
+      const write = async (reset: boolean | 'empty') => {
         const db = await DuckDBInstance.create(path);
         const connection = await db.connect();
         try {
@@ -83,7 +89,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       for (const placement of ['local', 'duckdb', 'resident']) {
         await write(true);
-        const f = moon.strategyFixtureJoinCreate(canonical(environment), environment.evidence_bundle_cid, ...contracts, ...shared, program);
+        const f = moon.strategyFixtureJoinCreate(canonical(environment), environment.evidence_bundle_cid, ...(contracts as unknown as ContractWires), ...(shared as unknown as ContractWires), program);
         const capture = await runNativeHostQuery(grant, moon.strategyFixtureAcquisition(f), limits);
         let execution;
         try {
@@ -91,7 +97,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f)
             : moon.strategyFixtureCostedDispatch(f, placement === 'local' ? 20n : 1n);
-          execution = await runCapturedStrategy(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
+          execution = await (runCapturedStrategy as RunCapturedStrategy)(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
           const expected = hash([{[key]: low,[aggregate]:4},{[key]:high,[aggregate]:1}]);
           const actual = moon.strategyFixtureCid(f,4);
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}/${key}/${collision}: ${inspect(execution.failure, { depth: 10 })}`);
@@ -112,8 +118,8 @@ test('case-distinct names preserve group order and exclude lossy resident storag
           try { await execution?.close(); }
           finally { capture.close(); }
         }
-        assert.equal(execution.usage().heldBytes, 0n);
-        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+        assert.equal((execution.usage() as CapturedUsage).heldBytes, 0n);
+        assert.equal((execution.usage() as CapturedUsage).reservedExecutionBytes, 0n);
         assert.equal(execution.cleanupPending(), false);
       }
     }

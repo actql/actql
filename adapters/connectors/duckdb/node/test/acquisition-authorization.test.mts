@@ -1,4 +1,5 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,6 +14,16 @@ import {
   fixtureAuthorization,
   sqliteDeferral,
 } from '../../../../host-node/authorization-fixture.mjs';
+
+type Access = NonNullable<Parameters<typeof authorizeLocalDatabase>[1]>;
+type Decide = NonNullable<NonNullable<Parameters<typeof fixtureAuthorization>[1]>['decide']>;
+type AcquisitionFailure = Error & Readonly<{
+  code: string;
+  authorization: Readonly<{
+    reason: string;
+    checkpoint: Readonly<{checkpointCid: string; runId: string}>;
+  }>;
+}>;
 
 const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
@@ -44,7 +55,7 @@ function spies() {
   return { counts, accounting, port };
 }
 
-async function database(t) {
+async function database(t: Pick<TestContext, 'after'>) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-acquisition-authorization-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const path = join(directory, 'source.duckdb');
@@ -57,16 +68,16 @@ async function database(t) {
   return { directory, path };
 }
 
-async function acquire(path, authorization) {
+async function acquire(path: string, authorization: Access['authorization']) {
   const spy = spies();
   const grant = await authorizeLocalDatabase(path, { authorization, ...source, subjectCid });
-  let error;
+  let error: AcquisitionFailure | undefined;
   try { await runBroadAcquisition(grant, spy.port, limits, undefined, spy.accounting); }
-  catch (reason) { error = reason; }
+  catch (reason) { error = reason as AcquisitionFailure; }
   return { ...spy.counts, error };
 }
 
-const readEntries = outcome => [accountEntry('warehouse-read', outcome, {
+const readEntries = (outcome: Parameters<typeof accountEntry>[1]) => [accountEntry('warehouse-read', outcome, {
   connection: 'warehouse', operation: 'read',
 })];
 
@@ -95,10 +106,10 @@ test('acquisition deny and missing configuration open no provider session', asyn
     connection: 'crm',
   })], { decide, answeringAuthorities: ['reviewer'] });
   for (const [gate, reason] of [[explicit, 'explicit'], [unmatched, 'no_match'],
-    [undefined, 'configuration_missing']]) {
+    [undefined, 'configuration_missing']] as const) {
     const result = await acquire(path, gate);
     assert.equal(result.error?.code, 'ExecutionAuthorizationDenied');
-    assert.equal(result.error.authorization.reason, reason);
+    assert.equal(result.error!.authorization.reason, reason);
     assert.equal(result.sessions, 0);
     assert.equal(result.commands, 0);
   }
@@ -118,9 +129,9 @@ test('acquisition deny and missing configuration open no provider session', asyn
 
 test('acquisition delegate: permit reads, reject and failures do not', async t => {
   const { path } = await database(t);
-  const permit = view => ({ decision: 'permit', subject: view.subject, authority: 'reviewer' });
-  const reject = view => ({ decision: 'reject', subject: view.subject, authority: 'reviewer' });
-  const cases = [
+  const permit: Decide = view => ({ decision: 'permit', subject: view.subject, authority: 'reviewer' });
+  const reject: Decide = view => ({ decision: 'reject', subject: view.subject, authority: 'reviewer' });
+  const cases: readonly (readonly [string, Decide, number, string | undefined])[] = [
     ['permit', permit, 1, undefined],
     ['reject', reject, 0, 'ExecutionAuthorizationDenied'],
     ['throw', () => { throw new Error('DecisionServiceDown'); }, 0, 'ExecutionAuthorizationDecisionFailed'],
@@ -145,16 +156,16 @@ test('acquisition defer persists a Checkpoint first, or stops as unsupported', a
   const { directory, path } = await database(t);
   const deferral = await sqliteDeferral(join(directory, 'journal'));
   t.after(() => deferral.journal.close());
-  const defer = view => ({ decision: 'defer', subject: view.subject });
+  const defer: Decide = view => ({ decision: 'defer', subject: view.subject });
   const durable = await fixtureAuthorization(readEntries('delegate'),
     { decide: defer, answeringAuthorities: ['reviewer'], deferral });
   const waiting = await acquire(path, durable);
   assert.equal(waiting.error?.code, 'ExecutionAuthorizationWaiting');
   assert.equal(waiting.sessions, 0);
   assert.equal(waiting.commands, 0);
-  const checkpoint = waiting.error.authorization.checkpoint;
+  const checkpoint = waiting.error!.authorization.checkpoint;
   assert.equal(deferral.journal.listPending()[0].checkpointCid, checkpoint.checkpointCid);
-  assert.equal(deferral.journal.getRunState(checkpoint.runId).status, 'waiting_checkpoint');
+  assert.equal(deferral.journal.getRunState(checkpoint.runId)!.status, 'waiting_checkpoint');
   assert.equal(durable.counters().checkpointsPersisted, 1);
 
   const unsupported = await fixtureAuthorization(readEntries('delegate'),

@@ -8,18 +8,23 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
+// @ts-expect-error The standard Host entry still has an authored JavaScript implementation.
 import { runCapturedStrategy } from '../../../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import type {CapturedUsage, ContractWires, JoinFixtureRuntime, RunCapturedStrategy} from './captured-join-fixture.mjs';
+
+type ScalarCase = readonly [name: string, sqlType: string, field: Parameters<typeof typedCatalog>[1],
+  highSql: string, lowSql: string, high: string | number | boolean, low: string | number | boolean];
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 // Authored values/order, not expectations obtained from either execution engine.
-const cases = [
+const cases: readonly ScalarCase[] = [
   ['text', 'VARCHAR', { type: 'string' }, "chr(57344)", "chr(65536)", '\ue000', '\u{10000}'],
   ['boolean', 'BOOLEAN', { type: 'boolean' }, 'TRUE', 'FALSE', true, false],
   ['integer', 'BIGINT', { type: 'number' }, '9007199254740992', '-2', 9007199254740992, -2],
@@ -39,15 +44,16 @@ test('typed composite join and count preserve fixed capture across Local fresh a
     'connectors/duckdb/conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${name}`], { cwd: root });
   }
-  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: JoinFixtureRuntime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')) as unknown as string);
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1].match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
-  const seed = JSON.parse(JSON.parse(match[1]));
+  const seed = JSON.parse(JSON.parse(match![1])) as Parameters<typeof typedCatalog>[0];
   const contracts = await pinnedEngineContracts(root);
   const shared = await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
-  const output = fields => ({ r: { from: 'out', fields } });
-  const branch = id => ({ id, inputs: { x: { result: { stage: 'acquire', result: 'r' } } },
+  const output = (fields: readonly string[]) => ({ r: { from: 'out', fields } });
+  const branch = (id: string) => ({ id, inputs: { x: { result: { stage: 'acquire', result: 'r' } } },
     steps: [{ filter: 'id > 0' }, { select: ['id', 'amount'], as: 'out' }], results: output(['id', 'amount']) });
   const program = JSON.stringify({ version: 'actql/0.1', id: 'typed-resident',
     params: { minimum: { type: 'number', nullable: false } }, stages: [
@@ -69,7 +75,7 @@ test('typed composite join and count preserve fixed capture across Local fresh a
     for (const [name, sqlType, type, highSql, lowSql, high, low] of cases) {
       const environment = typedCatalog(seed, { ...type, nullable: true });
       const path = join(directory, `${name}.duckdb`);
-      const write = async reset => {
+      const write = async (reset: boolean | 'empty') => {
         const db = await DuckDBInstance.create(path);
         const connection = await db.connect();
         try {
@@ -80,10 +86,10 @@ test('typed composite join and count preserve fixed capture across Local fresh a
       };
       await write(false);
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
-      let freshBytes;
+      let freshBytes!: bigint;
       for (const placement of ['local', 'duckdb', 'resident']) {
         await write(true);
-        const f = moon.strategyFixtureJoinCreate(canonical(environment), environment.evidence_bundle_cid, ...contracts, ...shared, program);
+        const f = moon.strategyFixtureJoinCreate(canonical(environment), environment.evidence_bundle_cid, ...(contracts as unknown as ContractWires), ...(shared as unknown as ContractWires), program);
         const capture = await runNativeHostQuery(grant, moon.strategyFixtureAcquisition(f), limits);
         let execution;
         try {
@@ -91,14 +97,14 @@ test('typed composite join and count preserve fixed capture across Local fresh a
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f) : moon.strategyFixtureDispatch(f);
           if (placement !== 'resident') assert.equal(moon.strategyFixtureReplan(f, placement === 'local' ? 20n : 1n), true);
-          execution = await runCapturedStrategy(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
+          execution = await (runCapturedStrategy as RunCapturedStrategy)(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}: ${execution.failure}`);
           assert.deepEqual(execution.completed.map(item => item.realization), Array(4).fill(placement === 'resident' ? 'duckdb-resident' : placement));
           assert.equal(moon.strategyFixtureCid(f, 3), hash([high, high, low, high, high].map(amount => ({ amount }))), `${name} join order`);
           const expected = hash([{ amount: low, n: 1, p: 1 }, { amount: high, n: 4, p: 4 }]);
           assert.equal(moon.strategyFixtureCid(f, 4), expected, `${name} group order and counts`);
-          if (placement === 'duckdb') freshBytes = execution.usage().transferredBytes;
-          if (placement === 'resident') assert(execution.usage().transferredBytes < freshBytes);
+          if (placement === 'duckdb') freshBytes = (execution.usage() as CapturedUsage).transferredBytes;
+          if (placement === 'resident') assert((execution.usage() as CapturedUsage).transferredBytes < freshBytes);
           capture.close();
           for (const task of [1, 2, 3]) moon.strategyFixtureCloseOutput(f, task);
           assert.equal(moon.strategyFixtureCid(f, 4), expected, `${name} independent completion`);
@@ -106,8 +112,8 @@ test('typed composite join and count preserve fixed capture across Local fresh a
           try { await execution?.close(); }
           finally { capture.close(); }
         }
-        assert.equal(execution.usage().heldBytes, 0n);
-        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+        assert.equal((execution.usage() as CapturedUsage).heldBytes, 0n);
+        assert.equal((execution.usage() as CapturedUsage).reservedExecutionBytes, 0n);
         assert.equal(execution.cleanupPending(), false);
       }
     }

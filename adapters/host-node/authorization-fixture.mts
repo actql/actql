@@ -27,6 +27,8 @@ type FixtureCheckpoint = Readonly<{
 }>;
 type FixtureJournal = Deferral['journal'] & Readonly<{
   inspect(reference: string): FixtureCheckpoint | undefined;
+  listPending(options?: Readonly<{after?: string; limit?: number}>): readonly FixtureCheckpoint[];
+  getRunState(runId: string): Readonly<{status: string}> | undefined;
   submitResolution(input: Readonly<{checkpointCid: string; resolutionWire: string; approvalEvidenceWire: string}>): Promise<unknown>;
   close(): void;
 }>;

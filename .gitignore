@@ -1908,3 +1908,9 @@ target/
 /adapters/host-node/funded-client-preparation.fixture.d.mts
 /adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.mjs
 /adapters/connectors/duckdb/node/test/managed-driver-reclamation.test.d.mts
+/adapters/connectors/duckdb/node/test/case-distinct-host.test.mjs
+/adapters/connectors/duckdb/node/test/case-distinct-host.test.d.mts
+/adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs
+/adapters/connectors/duckdb/node/test/typed-resident-join.test.d.mts
+/adapters/connectors/duckdb/node/test/acquisition-authorization.test.mjs
+/adapters/connectors/duckdb/node/test/acquisition-authorization.test.d.mts
