@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {machineCid} from './actql-spec-family.mjs';
 
 // Independent canonical vectors: no product issuer is invoked to form them.
 const catalogPreimage = "{\"applicability\":{\"actual_completions\":\"zero; nonempty-or-unconnected-completion-refuses\",\"audit_work_limit\":10000,\"change_sources\":[\"field\",\"scalar_literal\"],\"compatibility\":\"existing-catalogs-and-saved-original-recipe-bytes-unchanged\",\"computation\":\"existing-common-original-occurrence-normalization-audit; execution-requirements-retained\",\"effect_kind\":\"mapped_update\",\"mapping_conversions\":\"none\",\"parameter_origins\":[\"supplied\",\"default\"],\"proof\":\"same-original-CheckedProgram-complete-requirement-closure-and-static-update-Mapping-owners\",\"scope\":\"fresh-normalization-only; no-operation-support-Model-Effect-approval-resource-or-current-grant\",\"selector_classes\":[\"id\"],\"source_selection\":\"explicit-original-resolver-selection; no-Source-authority\"},\"profile\":\"actql-local-common-update-completion-free/0.1\",\"rules\":[],\"version\":\"actql-normalization-rule-catalog/0.1\"}";
@@ -64,4 +65,20 @@ test('mapped UPDATE Source catalogue keeps the original sole-view rule and nonem
   assert.deepEqual(JSON.parse(fixture.journal_wire), {...journal, journal_cid: fixture.journal_cid});
   const issuer = readFileSync(new URL('../src/run_publication_host/client_effect_normalization.mbt', import.meta.url), 'utf8');
   assert(issuer.includes('"' + fixture.catalog_cid + '"'));
+});
+
+test('mapped file mutation catalogue keeps the original sole-view rule and its own journal identity', () => {
+  const read = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + name, import.meta.url), 'utf8'));
+  const file = read('actql-local-common-file-mutation-normalization-catalog.json');
+  const update = read('actql-local-common-update-source-normalization-catalog.json');
+  assert.deepEqual(file.rules, update.rules);
+  assert.equal(file.applicability.effect_kind, 'mapped_update_or_delete; at-least-one-correlated-delete');
+  assert.deepEqual(file.applicability.change_sources, ['update:field', 'update:scalar_literal', 'delete:none']);
+  assert.deepEqual(file.applicability.normalization_journal_limits, update.applicability.normalization_journal_limits);
+  const catalog = 'sha256:285121175723e4625c80ad55a9603140a83035d4ee2d4a38ff3ea581f61f8523';
+  assert.equal(machineCid(file), catalog);
+  const journal = JSON.stringify({entries: [], rule_catalog_cid: catalog, version: 'actql-normalization-journal/0.1'});
+  assert.equal(cid(journal), 'sha256:7093ad10f844e6858a99c0c42325fcf987c80a1469a1b4732a1bf18f73242813');
+  const issuer = readFileSync(new URL('../src/run_publication_host/client_effect_normalization.mbt', import.meta.url), 'utf8');
+  assert(issuer.includes('"' + catalog + '"'));
 });

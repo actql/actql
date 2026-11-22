@@ -19,6 +19,7 @@ enum ClientEffectNormalizationInventory {
   LocalUpdate(@checked.LocalUpdateCompletionFreeInventory)
   CommonUpdate(@checked.LocalCommonUpdateCompletionFreeInventory)
   SourceCompletedUpdate(@checked.LocalCommonUpdateSourceNormalizationInventory)
+  FileMutation(@checked.LocalCommonFileMutationNormalizationInventory)
 }
 
 ///|
@@ -46,6 +47,11 @@ fn client_effect_common_update_completion_free_catalog_cid() -> String {
 ///|
 fn client_effect_source_update_normalization_catalog_cid() -> String {
   "sha256:2ec2fd95b3aa1bfcddaf87bcf2a383321fb0d17b39917b65da6f3cde10a6dae8"
+}
+
+///|
+fn client_effect_file_mutation_normalization_catalog_cid() -> String {
+  "sha256:285121175723e4625c80ad55a9603140a83035d4ee2d4a38ff3ea581f61f8523"
 }
 
 ///|
@@ -82,6 +88,11 @@ fn client_effect_normalization_inventory_profile(
         "actql-local-common-update-source-normalization/0.1",
         client_effect_source_update_normalization_catalog_cid(),
       )
+    FileMutation(_) =>
+      (
+        "actql-local-common-file-mutation-normalization/0.1",
+        client_effect_file_mutation_normalization_catalog_cid(),
+      )
   }
 }
 
@@ -102,7 +113,7 @@ fn client_effect_normalization_inventory_journal_cid(
       Some(
         "sha256:8b5172ca35db5cd4f35b8e6bbde52243d92b9e9027c2fc4568b8d66a5334ffb1",
       )
-    SourceCompletedUpdate(_) => None
+    SourceCompletedUpdate(_) | FileMutation(_) => None
   }
 }
 
@@ -118,7 +129,8 @@ fn same_client_effect_normalization_profile(
     | (Some(MappedCreate(_)), Some(MappedCreate(_)))
     | (Some(LocalUpdate(_)), Some(LocalUpdate(_)))
     | (Some(CommonUpdate(_)), Some(CommonUpdate(_)))
-    | (Some(SourceCompletedUpdate(_)), Some(SourceCompletedUpdate(_))) => true
+    | (Some(SourceCompletedUpdate(_)), Some(SourceCompletedUpdate(_)))
+    | (Some(FileMutation(_)), Some(FileMutation(_))) => true
     _ => false
   }
 }
@@ -126,15 +138,31 @@ fn same_client_effect_normalization_profile(
 ///|
 fn checked_client_effect_normalization_inventory(
   owner : PreparedClientEffectComputation,
+  allow_file_mutation? : Bool = false,
 ) -> Result[ClientEffectNormalizationInventory, ClientEffectNormalizationIssue] {
   if owner.normalization is Some(original) &&
     physical_equal(original.owner, owner) &&
     client_effect_normalization_inventory_matches(original.inventory, owner) {
+    if original.inventory is FileMutation(_) && !allow_file_mutation {
+      return Err(Inventory(ProfileNotInstalled))
+    }
     return Ok(original.inventory)
   }
   let headers = @checked.effect_program_static_headers(owner.candidate)
   guard @syntax.effect_header_at(headers, 0) is Some(header) else {
     return Err(Inventory(ProfileNotInstalled))
+  }
+  if allow_file_mutation {
+    for index in 0..<@syntax.effect_header_count(headers) {
+      let checked_header = @syntax.effect_header_at(headers, index).unwrap()
+      if @syntax.effect_header_kind(checked_header) == "delete" {
+        return @checked.effect_program_common_file_mutation_normalization_inventory(
+            owner.candidate,
+          )
+          .map(fn(value) { FileMutation(value) })
+          .map_err(fn(issue) { Inventory(issue) })
+      }
+    }
   }
   match @syntax.effect_header_kind(header) {
     "create" if @syntax.effect_header_count(headers) == 1 =>
@@ -199,6 +227,11 @@ fn client_effect_normalization_inventory_matches(
         inventory,
         owner.candidate,
       )
+    FileMutation(inventory) =>
+      @checked.local_common_file_mutation_normalization_inventory_matches(
+        inventory,
+        owner.candidate,
+      )
   }
 }
 
@@ -211,8 +244,10 @@ pub fn issue_prepared_client_effect_normalization(
   if owner.normalization is Some(original) {
     return match original.inventory {
       MappedCreate(_) => Ok(original)
-      LocalUpdate(_) | CommonUpdate(_) | SourceCompletedUpdate(_) =>
-        Err(Inventory(ProfileNotInstalled))
+      LocalUpdate(_)
+      | CommonUpdate(_)
+      | SourceCompletedUpdate(_)
+      | FileMutation(_) => Err(Inventory(ProfileNotInstalled))
     }
   }
   let inventory = match
@@ -245,8 +280,10 @@ pub fn issue_prepared_client_effect_local_update_normalization(
   if owner.normalization is Some(original) {
     return match original.inventory {
       LocalUpdate(_) => Ok(original)
-      MappedCreate(_) | CommonUpdate(_) | SourceCompletedUpdate(_) =>
-        Err(Inventory(ProfileNotInstalled))
+      MappedCreate(_)
+      | CommonUpdate(_)
+      | SourceCompletedUpdate(_)
+      | FileMutation(_) => Err(Inventory(ProfileNotInstalled))
     }
   }
   let inventory = match
@@ -278,8 +315,10 @@ pub fn issue_prepared_client_effect_local_update_normalization(
 pub fn issue_prepared_client_effect_selected_normalization(
   owner : PreparedClientEffectComputation,
   allow_source_completion? : Bool = false,
+  allow_file_mutation? : Bool = false,
 ) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
-  let selected = match checked_client_effect_normalization_inventory(owner) {
+  let selected = match
+    checked_client_effect_normalization_inventory(owner, allow_file_mutation~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -288,9 +327,20 @@ pub fn issue_prepared_client_effect_selected_normalization(
     LocalUpdate(_) =>
       issue_prepared_client_effect_local_update_normalization(owner)
     CommonUpdate(_) => issue_common_update_normalization(owner, selected)
-    SourceCompletedUpdate(inventory) if allow_source_completion =>
-      issue_source_completed_update_normalization(owner, selected, inventory)
+    SourceCompletedUpdate(_) if allow_source_completion =>
+      issue_effect_source_normalization(owner, selected)
     SourceCompletedUpdate(_) => Err(Inventory(CompletionObserved))
+    FileMutation(inventory) => {
+      let computation = @checked.local_common_file_mutation_normalization_computation(
+        inventory,
+      )
+      if !allow_source_completion &&
+        @checked.local_common_normalization_entry_count(computation) != 0 {
+        Err(Inventory(CompletionObserved))
+      } else {
+        issue_effect_source_normalization(owner, selected)
+      }
+    }
   }
   match original {
     Err(issue) => Err(issue)
@@ -382,21 +432,50 @@ fn issue_common_update_normalization(
 }
 
 ///|
-fn issue_source_completed_update_normalization(
+fn client_effect_normalization_source_inventory(
+  selected : ClientEffectNormalizationInventory,
+) -> (@checked.LocalCommonNormalizationInventory, String)? {
+  match selected {
+    SourceCompletedUpdate(inventory) =>
+      Some(
+        (
+          @checked.local_common_update_source_normalization_computation(
+            inventory,
+          ),
+          client_effect_source_update_normalization_catalog_cid(),
+        ),
+      )
+    FileMutation(inventory) =>
+      Some(
+        (
+          @checked.local_common_file_mutation_normalization_computation(
+            inventory,
+          ),
+          client_effect_file_mutation_normalization_catalog_cid(),
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
+fn issue_effect_source_normalization(
   owner : PreparedClientEffectComputation,
   selected : ClientEffectNormalizationInventory,
-  source : @checked.LocalCommonUpdateSourceNormalizationInventory,
 ) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
   if owner.normalization is Some(original) {
-    guard original.inventory is SourceCompletedUpdate(_) else {
+    guard same_client_effect_normalization_profile(
+      Some(original.inventory),
+      Some(selected),
+    ) else {
       return Err(Inventory(ProfileNotInstalled))
     }
     return Ok(original)
   }
-  let computation = @checked.local_common_update_source_normalization_computation(
-    source,
-  )
-  let catalog = client_effect_source_update_normalization_catalog_cid()
+  guard client_effect_normalization_source_inventory(selected)
+    is Some((computation, catalog)) else {
+    return Err(Inventory(ProfileNotInstalled))
+  }
   let wire = match
     local_common_normalization_journal_body(
       computation,

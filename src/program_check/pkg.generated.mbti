@@ -241,6 +241,8 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
+pub fn effect_program_common_file_mutation_normalization_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonFileMutationNormalizationInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_common_update_normalization_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateNormalizationInventory, CompletionFreeInventoryIssue]
@@ -422,6 +424,10 @@ pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
 pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
+
+pub fn local_common_file_mutation_normalization_computation(LocalCommonFileMutationNormalizationInventory) -> LocalCommonNormalizationInventory
+
+pub fn local_common_file_mutation_normalization_inventory_matches(LocalCommonFileMutationNormalizationInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 
@@ -1509,6 +1515,8 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+type LocalCommonFileMutationNormalizationInventory
 
 type LocalCommonNormalizationInventory
 
