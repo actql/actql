@@ -3,7 +3,6 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {recoverCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
 import {PublicationStoreError} from '../store-local/publication-store.mjs';
-// @ts-expect-error The update-target original shape owner is still authored in JavaScript.
 import {runUpdateSelectionCid, originalUpdateTargetSelectionsCid} from './update-target-original-shape.mjs';
 import type {openClientRequestJournal} from './client-request-journal.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
@@ -15,7 +14,7 @@ type Journal = ReturnType<typeof openClientRequestJournal>;
 type Lookup = Journal['lookupOwnedDefinition'];
 type RetainedDefinition = NonNullable<ReturnType<Lookup>>;
 type RecoveryControl = RecoveryPublication['control'] & Parameters<Lookup>[2];
-type RecoveryRuntime = Parameters<Lookup>[1] & Readonly<{
+type RecoveryRuntime = Parameters<Lookup>[1] & Parameters<typeof runUpdateSelectionCid>[1] & Readonly<{
   clientRequestAuthorityScopeCid(identity: unknown): string;
   clientRequestCallerId(identity: unknown): string;
   clientRequestLogicalScope(identity: unknown): unknown;
@@ -119,7 +118,7 @@ export async function recoverAdmittedEffectRun({
     void Promise.resolve(original).catch(() => {});
     fail('EffectRecoveryOriginalSelectionUnavailable');
   }
-  const selectionCid: string | undefined = runUpdateSelectionCid(retained.runDefinition, moon);
+  const selectionCid = runUpdateSelectionCid(retained.runDefinition, moon);
   let originalMatches = false;
   try {
     originalMatches = selectionCid === undefined ? original.updateTargetSelections === undefined :

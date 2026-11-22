@@ -4,7 +4,18 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
-const moon = await import(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME === undefined
+import type {UpdateTargetRuntime} from './update-target-original-shape.mjs';
+
+type SelectionTestRuntime = Pick<UpdateTargetRuntime,
+  'clientProgramEffectTargetSelectionDataCid' | 'clientProgramEffectTargetOriginalDataEqual' |
+  'clientProgramIssueEffectTargetInstallation' | 'clientProgramEffectTargetInstallationsShape' |
+  'clientProgramEffectTargetPreparedOriginalShape'> &
+  Readonly<{clientProgramEffectTargetOriginalCodecLimits(): unknown}>;
+
+type Corpus = Readonly<{
+  cases: readonly Readonly<{id: string; preimage: readonly Record<string, unknown>[]; expected_cid: string}>[];
+}>;
+const moon: SelectionTestRuntime = await import(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME === undefined
   ? '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'
   : pathToFileURL(process.env.ACTQL_TEST_UPDATE_ORIGINAL_RUNTIME).href);
 import {encodeUpdateTargetData, encodeUpdateTargetOriginalData} from './update-target-data.generated.mjs';
@@ -14,7 +25,8 @@ import {updateTargetSelectionsCid, updateTargetOriginalDataEqual,
 import {generateUpdateTargetDataCodec} from '../../scripts/generate-update-target-data-codec.mjs';
 
 test('actual selection DATA reader retains every independent original identity vector', async () => {
-  const corpus = JSON.parse(await readFile(new URL('../../portability/corpus/effect-target-selection.json', import.meta.url)));
+  const corpus = JSON.parse(await readFile(
+    new URL('../../portability/corpus/effect-target-selection.json', import.meta.url)) as unknown as string) as Corpus;
   assert.ok(corpus.cases.length >= 9);
   for (const entry of corpus.cases) {
     assert.equal(updateTargetSelectionsCid(entry.preimage, moon), entry.expected_cid, entry.id);
@@ -70,8 +82,8 @@ test('complete material envelope keeps the independent metadata and inner-materi
 test('transport bounds reject limit plus one cycles invalid text and non-JSON values before encoding', () => {
   assert.deepEqual(moon.clientProgramEffectTargetOriginalCodecLimits(), [65536, 65536, 64]);
   assert.equal(Buffer.byteLength(encodeUpdateTargetData('a'.repeat(65534))), 65536);
-  const cycle = {}; cycle.self = cycle;
-  let depth = null;
+  const cycle: {self?: object} = {}; cycle.self = cycle;
+  let depth: unknown = null;
   for (let index = 0; index < 64; index++) depth = [depth];
   for (const invalid of ['a'.repeat(65535), '\\'.repeat(32768), '\ud800',
     {value: undefined}, 1n, -0, Infinity, cycle, depth]) {
@@ -108,6 +120,16 @@ test('normal codec generation checks the single Owner source and refuses generat
     }
     generateUpdateTargetDataCodec(root, true);
     generateUpdateTargetDataCodec(root);
+    const runtimePath = join(root, 'adapters/host-node/update-target-data.generated.mjs');
+    const declarationsPath = join(root, 'adapters/host-node/update-target-data.generated.d.mts');
+    const originalRuntime = await readFile(runtimePath, 'utf8');
+    const originalDeclarations = await readFile(declarationsPath, 'utf8');
+    const stale = '// stale declarations\n';
+    await writeFile(declarationsPath, stale);
+    assert.throws(() => generateUpdateTargetDataCodec(root), {message: 'Stale UPDATE transport codec declarations'});
+    assert.equal(await readFile(declarationsPath, 'utf8'), stale);
+    assert.equal(await readFile(runtimePath, 'utf8'), originalRuntime);
+    await writeFile(declarationsPath, originalDeclarations);
     await writeFile(join(root, 'adapters/host-node/update-target-data.generated.mjs'), '// drift\n');
     assert.throws(() => generateUpdateTargetDataCodec(root), {message: 'Stale UPDATE transport codec'});
   } finally { await rm(root, {recursive: true, force: true}); }

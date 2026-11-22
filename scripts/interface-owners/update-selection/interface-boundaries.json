@@ -202,8 +202,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -212,8 +212,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -232,8 +232,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -242,8 +242,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -252,8 +252,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -262,8 +262,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -272,8 +272,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -282,8 +282,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",

@@ -1924,3 +1924,7 @@ target/
 /adapters/host-node/effect-run-completion.d.mts
 /adapters/host-node/effect-run-recovery.mjs
 /adapters/host-node/effect-run-recovery.d.mts
+/adapters/host-node/update-target-original-shape.mjs
+/adapters/host-node/update-target-original-shape.d.mts
+/adapters/host-node/update-target-original-owner.test.mjs
+/adapters/host-node/update-target-original-owner.test.d.mts
