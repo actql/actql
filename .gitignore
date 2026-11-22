@@ -1960,3 +1960,11 @@ target/
 /scripts/fixtures/record-approval/cases.d.mts
 /scripts/fixtures/record-approval/workflow.mjs
 /scripts/fixtures/record-approval/workflow.d.mts
+/scripts/fixtures/record-approval/command.mjs
+/scripts/fixtures/record-approval/command.d.mts
+/scripts/fixtures/hubspot-approval/workflow.mjs
+/scripts/fixtures/hubspot-approval/workflow.d.mts
+/scripts/fixtures/kintone-approval/workflow.mjs
+/scripts/fixtures/kintone-approval/workflow.d.mts
+/scripts/fixtures/salesforce-approval/workflow.mjs
+/scripts/fixtures/salesforce-approval/workflow.d.mts

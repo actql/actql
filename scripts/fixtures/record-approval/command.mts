@@ -6,18 +6,41 @@ import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createPrivateKey, sign} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
+import type {NodeConnectionOptions} from '@actql/node';
+import type {Client} from '@actql/sdk';
 import {admitAuthoredRecordApprovalCase} from './workflow.mjs';
+import type {AuthoredRecordApprovalCase, runRecordUpdateApprovalPhase} from './workflow.mjs';
 
-const text = value => typeof value === 'string' && value.trim().length > 0;
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+type Data = Record<string, unknown>;
+type Programs = {read: string; update: string};
+type Decision = 'approved' | 'rejected';
+type Phase = Parameters<typeof runRecordUpdateApprovalPhase<Client>>[0];
+type Fixture = NonNullable<AuthoredRecordApprovalCase['fixture']>;
+export type ConnectorPhaseOptions<Selection> = Phase & (
+  | {definition: AuthoredRecordApprovalCase; programs?: never; selection?: never}
+  | {definition?: undefined; programs: Programs; selection: Selection});
+type CommandOptions<Selection> = {
+  argv: readonly string[];
+  programDirectory: URL;
+  connect: (options: NodeConnectionOptions) => Promise<Client>;
+  runPhase: (options: ConnectorPhaseOptions<Selection>) => unknown;
+  createDefinition: (programs: Programs, selection: Selection) => AuthoredRecordApprovalCase;
+  retainProgramInputs?: boolean;
+  fixtureReplyLossExpectation?: NonNullable<Fixture['faults']>[number]['expected'];
+  fixtureSourceSchema?: Fixture['schema'];
+  log?: (value: Data) => unknown;
+};
+
+const text = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+const object = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
 const maxAuthoredCaseBytes = 1024 * 1024;
 
-async function readCaseText(path, maxBytes, flags) {
+async function readCaseText(path: string, maxBytes: number, flags: number) {
   const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK | flags);
   try {
     const info = await file.stat();
     if (!info.isFile() || info.size > maxBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
-    const chunks = [];
+    const chunks: Buffer[] = [];
     let size = 0;
     for await (const bytes of file.createReadStream({start: 0, end: maxBytes, autoClose: false})) {
       size += bytes.length;
@@ -28,11 +51,11 @@ async function readCaseText(path, maxBytes, flags) {
   } finally {await file.close();}
 }
 
-export async function readAuthoredCase(path) {
+export async function readAuthoredCase(path: string) {
   const bytes = await readCaseText(path, maxAuthoredCaseBytes, 0);
-  const decode = bytes => new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes);
+  const decode = (bytes: Uint8Array) => new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes);
   try {
-    const value = JSON.parse(decode(bytes));
+    const value = JSON.parse(decode(bytes)) as Data;
     let remaining = maxAuthoredCaseBytes - bytes.length;
     for (const kind of ['effect', 'read']) {
       if (!object(value?.[kind]) || !Object.hasOwn(value[kind], 'documentPath')) continue;
@@ -55,9 +78,9 @@ export async function readAuthoredCase(path) {
   }
 }
 
-export async function runRecordApprovalCommand({argv, programDirectory, connect,
+export async function runRecordApprovalCommand<Selection>({argv, programDirectory, connect,
   runPhase, createDefinition, retainProgramInputs = false, fixtureReplyLossExpectation, fixtureSourceSchema,
-  log = value => console.log(JSON.stringify(value))}) {
+  log = value => console.log(JSON.stringify(value))}: CommandOptions<Selection>) {
   if (typeof retainProgramInputs !== 'boolean') throw new TypeError('InvalidRecordApprovalFixtureMode');
   const [phase, configurationPath, receiptPrefix] = argv;
   if (argv.length !== 3 || !['check', 'capture', 'approve', 'reject', 'recover'].includes(phase) ||
@@ -65,14 +88,14 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     throw new TypeError('Expected check|capture|approve|reject|recover CONFIGURATION RECEIPT_PREFIX');
   }
   const path = resolve(configurationPath);
-  let configuration;
+  let configuration: unknown;
   const wire = await readFile(path, 'utf8');
   try {configuration = JSON.parse(wire);}
   catch {throw new TypeError('InvalidRecordApprovalConfiguration');}
   if (!object(configuration) || !object(configuration.connect)) {
     throw new TypeError('InvalidRecordApprovalConfiguration');
   }
-  const {decision = 'approved'} = configuration;
+  const {decision = 'approved'} = configuration as {decision?: Decision};
   if (!['approved', 'rejected'].includes(decision) ||
       (phase === 'approve' && decision !== 'approved') || (phase === 'reject' && decision !== 'rejected')) {
     throw new TypeError('InvalidRecordApprovalDecision');
@@ -80,12 +103,12 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   if (configuration.operatorModulePath !== undefined && !text(configuration.operatorModulePath)) {
     throw new TypeError('InvalidRecordApprovalOperatorModule');
   }
-  const signer = configuration.signer;
+  const signer = configuration.signer as {keyId: string; reviewerId: string; privateKeyPath: string} | undefined;
   if (signer !== undefined && (!object(signer) ||
-      !['keyId', 'reviewerId', 'privateKeyPath'].every(name => text(signer[name])))) {
+      !(['keyId', 'reviewerId', 'privateKeyPath'] as const).every(name => text(signer[name])))) {
     throw new TypeError('InvalidRecordApprovalSigner');
   }
-  let definition, programs;
+  let definition: AuthoredRecordApprovalCase | undefined, programs: Programs | undefined;
   if (Object.hasOwn(configuration, 'casePath')) {
     if (!text(configuration.casePath) || Object.hasOwn(configuration, 'selection') || retainProgramInputs) {
       throw new TypeError('InvalidRecordApprovalCaseSelection');
@@ -102,7 +125,7 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   } else if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
     try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}
     catch (cause) {
-      if (cause?.code === 'ENOENT') throw cause;
+      if ((cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') throw cause;
       throw new TypeError('InvalidRecordApprovalRetainedPrograms');
     }
     if (!object(programs) || Object.keys(programs).sort().join(',') !== 'read,update' ||
@@ -113,7 +136,7 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     read: await readFile(new URL('read.aql', programDirectory), 'utf8')};
   // Use the connector's existing independent case contract before connecting.
   // This is configuration readiness, not Program/Host/provider admission.
-  if (definition === undefined) createDefinition(programs, configuration.selection);
+  if (definition === undefined) createDefinition(programs!, configuration.selection as Selection);
   if (phase === 'check') {
     log({phase, status: 'ready', connected: false});
     return;
@@ -127,7 +150,7 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   }
   // Capture and recovery leave the operator key closed. A resolution loads it after
   // the existing workflow has re-read the SAME original sealed Review.
-  const resolveDecision = signer === undefined ?
+  const resolveDecision: NonNullable<Phase['approve']> = signer === undefined ?
     (client, captured) => client[decision === 'approved' ? 'approve' : 'reject'](captured.checkpointId) : async (client, captured) => {
       const key = createPrivateKey(await readFile(resolve(dirname(path), signer.privateKeyPath), 'utf8'));
       return client.resolveCheckpoints([{checkpoint: captured.summary, decision}],
@@ -147,9 +170,9 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     connection = await operator.configureConnection(connection);
     if (!object(connection)) throw new TypeError('InvalidRecordApprovalConnection');
   }
-  const client = await connect(connection);
+  const client = await connect(connection as NodeConnectionOptions);
   await runPhase({phase, client,
-    ...(definition === undefined ? {programs, selection: configuration.selection} : {definition}),
+    ...(definition === undefined ? {programs: programs!, selection: configuration.selection as Selection} : {definition}),
     ...(decision === 'approved' ? {approve: resolveDecision} : {decision, reject: resolveDecision}),
     load: async name => JSON.parse(await readFile(receiptPrefix + '.' + name + '.json', 'utf8')),
     save: (name, value) => writeFile(receiptPrefix + '.' + name + '.json',
