@@ -212,6 +212,37 @@ fn captured_effect_proposal_plan_current(
 }
 
 ///|
+/// Selects the measured Mapping projector only for a flat Result schema that
+/// cannot collect an opaque reference inventory. This bounded inspection
+/// borrows the same Result port as export preparation and allocates no stack.
+pub fn captured_effect_proposal_plan_staged_rows(
+  value : CapturedEffectProposalPlan,
+  max_nodes : Int,
+) -> Int? {
+  if value.terminal is None || value.command is Some(_) {
+    return None
+  }
+  let port = @execution.managed_result_occurrence_port(
+    value.input.source.occurrence,
+  )
+  let schema = @ports.port_schema(port)
+  let fields = @schema.field_count(schema)
+  if fields > max_nodes {
+    return None
+  }
+  for index in 0..<fields {
+    match @schema.field_at(schema, index).unwrap().contract.shape {
+      @contract.ResourceRef(..)
+      | @contract.ContentRef(..)
+      | @contract.Array(_, ..)
+      | @contract.Object(_) => return None
+      _ => ()
+    }
+  }
+  captured_any_result_borrow_row_count(value.input.borrow)
+}
+
+///|
 /// Project one checked Result row. This proposal is not a payload proof or
 /// apply permit; the later Preview binding verifies the same captured input.
 /// For a checked mapping, before_encode receives the measured next writer
@@ -300,14 +331,14 @@ pub fn project_captured_effect_proposal_row(
         let selected = @results.effect_plan_row_selector(row)
         let selector = try {
           if before_encode is Some(fund) {
-            let measured = @encode.measuring_writer(
-              max_bytes, max_nodes, max_depth,
-            )
-            defer @encode.cancel_writer(measured)
-            @identity.emit_value(selected, measured)
-            let (bytes, nodes, depth) = @encode.finish_measurement_usage(
-              measured,
-            )
+            let (bytes, nodes, depth) = {
+              let measured = @encode.measuring_writer(
+                max_bytes, max_nodes, max_depth,
+              )
+              defer @encode.cancel_writer(measured)
+              @identity.emit_value(selected, measured)
+              @encode.finish_measurement_usage(measured)
+            }
             let funded = fund(bytes, nodes, depth, changes.length())
             if !captured_effect_proposal_plan_current(value) {
               value.phase = Closed

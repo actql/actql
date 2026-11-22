@@ -244,6 +244,14 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
         .native_effect_proposal(self.original)
+      let staged_rows = if entry == 0 {
+        @strategy.captured_effect_proposal_plan_staged_rows(
+          plan,
+          wire.max_nodes,
+        )
+      } else {
+        None
+      }
       let current = native_mock_effect_proposal_member(plan)
       held.members.push(current)
       // Retain the original member capture before its fallible semantic
@@ -342,7 +350,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
           .native_effect_proposal(self.original),
         )
-        self.prepare_mock_effect_source_imports(state, held)
+        self.prepare_mock_effect_source_imports(
+          state,
+          held,
+          staged_rows is Some(_),
+        )
         let acquired = business.model_work[0]
           .local_effect_model_acquired_evidence(
             retention,
@@ -442,6 +454,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           stop("LocalOriginalEffectResultUnavailable")
         },
       )
+      let measure_proposal_rows = staged_rows is Some(_) &&
+        held.imports is Some(_)
+      if measure_proposal_rows {
+        let capacity = native_mock_effect_proposal_order_capacity(
+          Int::min(staged_rows.unwrap(), limits.output_workspace),
+        )
+        if !held.construction.unwrap().prepare_body(self.original, capacity) {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+      }
       let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
           @strategy.captured_effect_local_result_borrow(result),
         ) {
@@ -479,6 +501,31 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       } else {
         None
       }
+      // The managed export owns its own copied prefix. For a nonempty row
+      // stream keep the entire old one-row construction space before the
+      // original writer emits. Rows never keep this workspace individually.
+      let original_row_workspace = if measure_proposal_rows &&
+        !@execution.completed_output_export_rows_complete(stream)
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal(self.original) {
+        let original = state._retained_import_recipes[1]
+        let fixed = original[0]
+        let workspace = @execution.checked_preparation_add_product(
+          @execution.execution_capacity_execution_bytes(fixed) -
+          @execution.execution_capacity_retained_bytes(fixed),
+          @execution.execution_capacity_retained_bytes(original[1]),
+          1L,
+        )
+        let capacity = workspace.bind(workspace => {
+          @execution.execution_capacity(0L, workspace)
+        })
+        if !construction.unwrap().prepare_body(self.original, capacity) {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        workspace.unwrap()
+      } else {
+        0L
+      }
       let row_decode_workspace = Ref(0L)
       let before_decode = construction.map(construction => {
         fn(bytes, nodes, depth) {
@@ -503,7 +550,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           construction.prepare_body(
             self.original,
             native_mock_effect_proposal_write_workspace(
-              row_decode_workspace.val,
+              Int64::max(row_decode_workspace.val, original_row_workspace),
               bytes,
               nodes,
               depth,
@@ -512,19 +559,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           )
         }
       })
-      while @execution.next_completed_output_export_canonical_row(
-              stream,
-              wire.max_nodes,
-              wire.max_depth,
-              limits.output_work,
-              before_decode~,
-            )
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original)
-            is Some((row_index, _, row)) {
-        let proposal = @strategy.project_captured_effect_proposal_row(
+      // The row and its encoded batch are local to this synchronous return.
+      // Only the selector/changes pair crosses into the growing member array.
+      let next_proposal = fn() raise ClientStop {
+        guard @execution.next_completed_output_export_canonical_row(
+            stream,
+            wire.max_nodes,
+            wire.max_depth,
+            limits.output_work,
+            before_decode~,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+          is Some((row_index, _, row)) else {
+          return None
+        }
+        Some(
+          @strategy.project_captured_effect_proposal_row(
             plan,
             row,
             row_index,
@@ -536,8 +587,18 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             before_encode~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
+          .native_effect_proposal(self.original),
+        )
+      }
+      while next_proposal() is Some(proposal) {
+        if measure_proposal_rows {
+          construction
+          .unwrap()
+          .append_proposal_row(current.rows, proposal)
           .native_effect_proposal(self.original)
-        current.rows.push(proposal)
+        } else {
+          current.rows.push(proposal)
+        }
       }
       let (receipt, _) = @execution.finish_completed_relation_export(stream)
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
@@ -576,6 +637,24 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       current._retained_artifact = Some(artifact)
       // Preserve the SAME finished export/receipt. This first durable row
       // snapshot neither re-exports a Result nor reruns its identity scan.
+      if measure_proposal_rows {
+        let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
+            stream, receipt,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        if !construction
+          .unwrap()
+          .prepare_snapshot(
+            self.original,
+            Int::max(1, bytes),
+            Int::max(1, nodes),
+            Int::max(1, depth),
+            previous_workspace_returned=true,
+          ) {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+      }
       let snapshot = @execution.start_completed_relation_export_snapshot(
           stream,
           receipt,
@@ -755,9 +834,8 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
 }
 
 ///|
-// The existing warm recipe still funds projected fields, change ordering and
-// the measuring pass. This is the separately observed output writer peak;
-// prior_text_units is the actual UTF-16 length of a co-held returned wire.
+// Add the observed output writer to the still-live row/projection workspace.
+// prior_text_units is the length of the co-held returned changes wire.
 fn native_mock_effect_proposal_write_workspace(
   row_decode_workspace : Int64,
   bytes : Int,

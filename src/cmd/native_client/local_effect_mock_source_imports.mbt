@@ -55,6 +55,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   self : Self,
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
+  measure_proposal_rows : Bool,
 ) -> Unit raise ClientStop {
   let occurrence = state.model_graph().occurrence
   let program = @checked.effect_program_static_checked_computation(
@@ -430,7 +431,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   if !construction.prepare_body(
       self.original,
       native_mock_effect_contract_extent_walk_capacity(20),
-      source_imports_returned=true,
+      previous_workspace_returned=true,
     ) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
@@ -440,14 +441,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
   if !construction.prepare_body(
       self.original,
       backing,
-      source_imports_returned=true,
+      previous_workspace_returned=true,
     ) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
-  // Only now can the next capture phase start. Restore the original full
-  // Preview/row recipe beside ALL retained import originals, before the
-  // caller constructs Model evidence, member output or target requests.
-  if !construction.finish(self.original, state._retained_import_recipes[1]) {
+  // Restore the full fixed Preview/evidence recipe beside ALL retained
+  // imports. Only the measured Mapping projector pays for returned rows
+  // individually; other projectors keep the original per-checked-row term.
+  let warm = state._retained_import_recipes[1]
+  let capture = if measure_proposal_rows {
+    let staged = warm.copy()
+    staged[1] = @execution.execution_capacity(0L, 0L).unwrap()
+    staged
+  } else {
+    warm
+  }
+  if !construction.finish(self.original, capture) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
 }

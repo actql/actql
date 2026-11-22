@@ -177,14 +177,16 @@ pub fn effect_plan_row_intended_changes_wire(
   }
   let output = try {
     if before_encode is Some(fund) {
-      let measured = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
-      defer @encode.cancel_writer(measured)
-      emit_effect_plan_row_intended_changes(
-        measured,
-        terminal.operation,
-        changes,
-      )
-      let (bytes, nodes, depth) = @encode.finish_measurement_usage(measured)
+      let (bytes, nodes, depth) = {
+        let measured = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
+        defer @encode.cancel_writer(measured)
+        emit_effect_plan_row_intended_changes(
+          measured,
+          terminal.operation,
+          changes,
+        )
+        @encode.finish_measurement_usage(measured)
+      }
       if !fund(bytes, nodes, depth) {
         return Err(OutputLimit)
       }

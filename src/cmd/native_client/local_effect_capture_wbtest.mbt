@@ -26,7 +26,10 @@ test "Native Work capture exposes the original owner method without a supplied j
 ///|
 // Real Native Request/Plan/operation owners. No Source, Provider, Account,
 // Journal or mutation is executed by this constructor-lifetime control.
-test "Native first member retains one original capture before input and full recipe growth" {
+fn with_native_mock_capture_construction(
+  check : (LocalNativeMockEffectImportConstruction) -> Unit raise,
+  max_retained? : Int64 = 10000L,
+) -> Unit raise {
   let facility = native_mock_readme_request_facility()
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let environment = @run_host.admit_client_check_environment(
@@ -75,7 +78,7 @@ test "Native first member retains one original capture before input and full rec
   let future = initial.copy()
   future[0] = @execution.execution_capacity(30L, 50L).unwrap()
   let maximum = initial.copy()
-  maximum[0] = @execution.execution_capacity(10000L, 20000L).unwrap()
+  maximum[0] = @execution.execution_capacity(max_retained, 20000L).unwrap()
   let capture = @local_values.prepare_installed_effect_staged_extent(
     @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.capture", initial,
@@ -157,31 +160,9 @@ test "Native first member retains one original capture before input and full rec
         retained: 0L,
         workspace: 20L,
         source_snapshot: None,
-        source_copy: Some(0L),
+        source_copy: None,
       }
-      construction.reserve_source_row_copy(40L, 20L).unwrap()
-      assert_eq(construction.source_copy, Some(40L))
-      assert_eq(construction.workspace, 60L)
-      // The previous Source frame returned. The next copy begins at zero
-      // and uses the same reservation, including its earlier execution peak.
-      construction.source_copy = None
-      construction.source_copy = Some(0L)
-      construction.reserve_source_row_copy(30L, 20L).unwrap()
-      assert_eq(construction.source_copy, Some(30L))
-      assert_eq(construction.workspace, 60L)
-      assert_eq(construction.retained, 0L)
-      // Checked cap: 20000 E minus base 30, decoder 20, live copy 30.
-      assert_true(
-        construction.reserve_source_row_copy(19921L, 20L)
-        is Err(Managed(InsufficientCapacity)),
-      )
-      assert_eq(construction.source_copy, Some(30L))
-      assert_eq(construction.workspace, 60L)
-      construction.reserve_source_row_copy(19920L, 20L).unwrap()
-      assert_eq(construction.source_copy, Some(19950L))
-      assert_eq(construction.workspace, 19970L)
-      assert_eq(construction.retained, 0L)
-      construction.source_copy = None
+      check(construction)
       @local_values.complete_installed_effect_operation_construction(child).unwrap()
       None
     }
@@ -198,6 +179,71 @@ test "Native first member retains one original capture before input and full rec
   facility.arena.try_close().unwrap()
   if issue is Some(message) {
     fail(message)
+  }
+}
+
+///|
+test "Native first member retains one original capture before input and full recipe growth" {
+  with_native_mock_capture_construction(fn(construction) raise {
+    construction.source_copy = Some(0L)
+    construction.reserve_source_row_copy(40L, 20L).unwrap()
+    assert_eq(construction.source_copy, Some(40L))
+    assert_eq(construction.workspace, 60L)
+    // The previous Source frame returned. The next copy begins at zero
+    // and uses the same reservation, including its earlier execution peak.
+    construction.source_copy = None
+    construction.source_copy = Some(0L)
+    construction.reserve_source_row_copy(30L, 20L).unwrap()
+    assert_eq(construction.source_copy, Some(30L))
+    assert_eq(construction.workspace, 60L)
+    assert_eq(construction.retained, 0L)
+    // Checked cap: 20000 E minus base 30, decoder 20, live copy 30.
+    assert_true(
+      construction.reserve_source_row_copy(19921L, 20L)
+      is Err(Managed(InsufficientCapacity)),
+    )
+    assert_eq(construction.source_copy, Some(30L))
+    assert_eq(construction.workspace, 60L)
+    construction.reserve_source_row_copy(19920L, 20L).unwrap()
+    assert_eq(construction.source_copy, Some(19950L))
+    assert_eq(construction.workspace, 19970L)
+    assert_eq(construction.retained, 0L)
+    construction.source_copy = None
+  })
+}
+
+///|
+test "Native proposal append reserves the returned strings and replacement slots" {
+  // Base 30, first pair 3H+2R+2W+2 UTF16 units =84. Next pair has
+  // three UTF16 units (two supplementary, one BMP), costing 86. Replacing
+  // the one-slot backing with eight adds seven retained slots =56. The
+  // co-held replaced backing (1H+1R) belongs only to execution.
+  let exact = 30L + 84L + 86L + 56L
+  for limit in [exact - 1L, exact] {
+    with_native_mock_capture_construction(max_retained=limit, fn(
+      construction,
+    ) raise {
+      let rows : Array[(String, String)] = Array(capacity=1)
+      construction.append_proposal_row(rows, ("a", "b")).unwrap()
+      assert_eq(rows.capacity(), 1)
+      assert_eq(construction.retained, 84L)
+      if limit < exact {
+        assert_true(
+          construction.append_proposal_row(rows, ("😀", "é"))
+          is Err(Managed(InsufficientCapacity)),
+        )
+        assert_eq(rows, [("a", "b")])
+        assert_eq(rows.capacity(), 1)
+        assert_eq(construction.retained, 84L)
+        assert_eq(construction.workspace, 20L)
+      } else {
+        construction.append_proposal_row(rows, ("😀", "é")).unwrap()
+        assert_eq(rows, [("a", "b"), ("😀", "é")])
+        assert_eq(rows.capacity(), 8)
+        assert_eq(construction.retained, 84L + 86L + 56L)
+        assert_eq(construction.workspace, 24L)
+      }
+    })
   }
 }
 

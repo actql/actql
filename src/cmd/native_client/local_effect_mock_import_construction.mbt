@@ -250,6 +250,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_snapshot(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  previous_workspace_returned? : Bool = false,
 ) -> Bool {
   let capacity = native_mock_effect_dependency_body_capacity(
     bytes, nodes, depth,
@@ -279,7 +280,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_snapshot(
       @execution.execution_capacity_execution_bytes(value),
     )
   }
-  self.prepare_body(original, capacity)
+  self.prepare_body(original, capacity, previous_workspace_returned~)
 }
 
 ///|
@@ -346,10 +347,10 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
   self : Self,
   original : LocalCommandPreparationOriginal,
   capacity : @execution.ExecutionCapacity?,
-  source_imports_returned? : Bool = false,
+  previous_workspace_returned? : Bool = false,
 ) -> Bool {
   self
-  .prepare_body_result(capacity, source_imports_returned~)
+  .prepare_body_result(capacity, previous_workspace_returned~)
   .retain_mock_effect_proposal_issue(issue => {
     original.retain_primary(CommandBusinessEffectProposals(issue))
   })
@@ -359,15 +360,15 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
 fn LocalNativeMockEffectImportConstruction::prepare_body_result(
   self : Self,
   capacity : @execution.ExecutionCapacity?,
-  source_imports_returned? : Bool = false,
+  previous_workspace_returned? : Bool = false,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
-  if source_imports_returned &&
+  if previous_workspace_returned &&
     (self.source_snapshot is Some(_) || self.source_copy is Some(_)) {
     return Err(Managed(InsufficientCapacity))
   }
-  // At the returned import boundary the original Source transients are
-  // closed. Keep the installed absolute peak independently of later data.
-  let previous_workspace = if source_imports_returned {
+  // Only a synchronous caller that has returned its whole previous workspace
+  // can rebase the relative peak. The installed absolute peak remains held.
+  let previous_workspace = if previous_workspace_returned {
     0L
   } else {
     self.workspace
@@ -630,4 +631,109 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_direct_result_export(
     LocalNativeMockEffectProposalIssue::ManagedExport(Binding(issue))
   })
   .native_effect_proposal(self.original)
+}
+
+///|
+// Only the pair and its two Strings cross the projection's synchronous return.
+// The fixed member inventory already keeps the array wrapper and one backing
+// header. With growth, charge the exact new spare slots before replacement;
+// the old backing header and slots remain live until that replacement returns.
+fn LocalNativeMockEffectImportConstruction::append_proposal_row(
+  self : Self,
+  rows : Array[(String, String)],
+  proposal : (String, String),
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  let previous = rows.capacity()
+  guard @shape.reference_array_push_construction_extent(rows.length(), previous)
+    is Some(growth) &&
+    growth.reference_slots <= 2147483647L else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  let next = if growth.record_headers == 0L {
+    previous
+  } else {
+    growth.reference_slots.to_int()
+  }
+  guard @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: 3L,
+        reference_slots: 2L + (next - previous).to_int64(),
+        scalar_words: 2L,
+        owned_utf16_units: proposal.0.length().to_int64() +
+        proposal.1.length().to_int64(),
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: growth.record_headers,
+        reference_slots: if next == previous {
+          0L
+        } else {
+          previous.to_int64()
+        },
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(capacity) else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  match self.prepare_body_result(Some(capacity)) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      rows.reserve_capacity(next)
+      rows.push(proposal)
+      Ok(())
+    }
+  }
+}
+
+///|
+// The checked export can sort two growing index arrays at once. The selected
+// order remains with the finished view and its snapshot; the other array and
+// replacement buffers unwind during preparation. Existing fixed capture
+// backing continues to fund schema/column metadata and comparison controls.
+fn native_mock_effect_proposal_order_capacity(
+  rows : Int,
+) -> @execution.ExecutionCapacity? {
+  if rows < 0 {
+    return None
+  }
+  let count = rows.to_int64()
+  let slots = if rows == 0 { 0L } else { Int64::max(8L, 2L * count) }
+  guard @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 2L,
+      scalar_items: 2L * count,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(peak) &&
+    @execution.preparation_representation_cost({
+      record_headers: peak.record_headers,
+      reference_slots: peak.reference_slots,
+      scalar_words: peak.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(execution) &&
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 1L,
+      scalar_words: 2L + slots,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
 }

@@ -289,6 +289,13 @@ test "captured Mapping funds original changes and selector before their writers"
   let exact = @strategy.prepare_captured_effect_proposal_plan(
     inputs, 0, 10, 10000,
   ).unwrap()
+  assert_eq(
+    @strategy.captured_effect_proposal_plan_staged_rows(exact, 1000),
+    Some(2),
+  )
+  assert_true(
+    @strategy.captured_effect_proposal_plan_staged_rows(exact, 1) is None,
+  )
   let seen = []
   let fenced = Ref(true)
   let rendered = @strategy.project_captured_effect_proposal_row(
