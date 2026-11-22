@@ -122,6 +122,12 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
         projects.add(cwd);
         assert.deepEqual(args.slice(-2), ['adopt', '--initialize-signing']);
         assert.equal(await readFile(target, 'utf8'), nullable.before);
+        const catalog = JSON.parse(await readFile(join(cwd, 'mock/catalog.json'), 'utf8'));
+        const [write] = catalog.connections.salesforce.writes;
+        assert(write.writable_fields.includes('omitted_value'));
+        assert(!write.writable_fields.includes('protected_value'));
+        assert(!write.write_null_fields.includes('omitted_value'));
+        assert(!Object.hasOwn(nullable.definition.review.changes, 'omitted_value'));
       } else if (command === 'run') {
         assert.equal(await readFile(join(cwd, file), 'utf8'), nullable.files[file]);
         const kind = file === 'nullable-update.aql' ? 'effect' : 'read';
