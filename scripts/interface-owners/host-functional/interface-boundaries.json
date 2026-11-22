@@ -70855,7 +70855,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73a113f6c3320a675409e80ee60e34d1aa114294277183c968fdd144faa3aee2",
+      "sha256": "dfff3629a3bc36bf1f4a6a0ce6a43edc419fc1436f09efe26726bca986bb926e",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -71142,8 +71142,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71154,8 +71154,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71164,8 +71164,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -71176,8 +71176,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71186,7 +71186,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
@@ -71198,8 +71198,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71208,7 +71208,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71220,8 +71220,8 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71230,8 +71230,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71242,8 +71242,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71252,8 +71252,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -71264,8 +71264,8 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71274,7 +71274,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';"
               },
               {
@@ -71292,7 +71292,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';"
               },
               {
@@ -71310,7 +71310,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71322,8 +71322,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               },
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
@@ -71361,8 +71361,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71373,14 +71373,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -71391,13 +71391,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
@@ -71409,13 +71409,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71427,14 +71427,14 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71445,14 +71445,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -71463,13 +71463,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';"
               },
               {
@@ -71483,7 +71483,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';"
               },
               {
@@ -71497,7 +71497,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71509,8 +71509,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "verification": [
@@ -71533,8 +71533,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71545,14 +71545,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -71563,13 +71563,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
@@ -71581,13 +71581,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71599,14 +71599,14 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function validPluralEffectPaths(paths) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function validPluralEffectPaths(paths: unknown): paths is readonly string[] {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -71617,14 +71617,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new TypeError(code), {code}); };"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -71635,13 +71635,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';"
               },
               {
@@ -71655,7 +71655,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';"
               },
               {
@@ -71669,7 +71669,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "// Private installation routing over published facts. Selecting an owner never"
               },
               {
@@ -71681,8 +71681,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+                "path": "adapters/host-node/installed-effect-inventory.mts",
+                "anchor": "export function installedUpdateTargets<Target extends Alias>(effect: Inventory, aliases: readonly Target[],"
               }
             ],
             "verification": [
@@ -71744,7 +71744,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -71806,7 +71806,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71820,7 +71820,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71834,7 +71834,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71848,7 +71848,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71862,7 +71862,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71876,7 +71876,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71890,7 +71890,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71904,7 +71904,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "// be admitted. Its byte/node/depth limits still apply to every composition."
               },
               {
@@ -71918,7 +71918,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "// Each plural installation owns at least one distinct Mapping. The standard"
               },
               {
@@ -71950,7 +71950,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71964,7 +71964,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71978,7 +71978,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -71992,7 +71992,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -72006,7 +72006,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -72020,7 +72020,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -72034,7 +72034,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "export const MAX_INSTALLED_EFFECT_PROFILES = 256;"
               },
               {
@@ -72048,7 +72048,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "// be admitted. Its byte/node/depth limits still apply to every composition."
               },
               {
@@ -72062,7 +72062,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-limits.mjs",
+                "path": "adapters/host-node/installed-effect-limits.mts",
                 "anchor": "// Each plural installation owns at least one distinct Mapping. The standard"
               },
               {

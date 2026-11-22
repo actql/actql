@@ -50124,7 +50124,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -57429,7 +57429,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -102370,7 +102370,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "path": "adapters/host-node/installed-effect-inventory.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],

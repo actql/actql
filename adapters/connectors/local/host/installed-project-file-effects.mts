@@ -8,7 +8,6 @@ import {authorizationDispatchFacts,assertAuthorizationAccountCurrent}
   from '../../../host-common/authorization-gate.mjs';
 // @ts-expect-error TS7016: the original Row Effect is still authored in JavaScript.
 import {createInstalledRowEffect,retainInstalledRowEffectAdapter,installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
-// @ts-expect-error TS7016: the original Effect inventory is still authored in JavaScript.
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -29,10 +28,7 @@ type Borrow = WriteOptions['content'] & Readonly<{wire(): string}>;
 type ContentOwner = WriteOptions['contentOwner'];
 type Decision = Parameters<typeof assertAuthorizationAccountCurrent>[0];
 type Runtime = NonNullable<Parameters<typeof prepareLocalFileStoreTarget>[0]> &
-  Parameters<typeof prepareLocalFileStorePlanRecipe>[0]['moon'] & Readonly<{
-    clientProgramInstalledSourceConstructionCapacity(nodes: bigint, fields: bigint, objects: bigint,
-      arrays: bigint, text: bigint, wire: bigint): unknown;
-  }>;
+  Parameters<typeof prepareLocalFileStorePlanRecipe>[0]['moon'] & Parameters<typeof composeInstalledEffects>[1]['moon'];
 type Entry = Readonly<{connection: string; connectorId: string; rootPath: string; scopeCid: string;
   wire: string; queryAliases: unknown; limits: Readonly<{maxPathBytes: number; maxFileBytes: number}>}>;
 type Bundle = Readonly<{project: unknown; connections: unknown; sources: readonly Entry[]}>;
@@ -158,7 +154,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
   // These selectors name already admitted Project entries, not new profile
   // reads. Reuse the existing installation inventory and partial-close owner.
   const effects=await composeInstalledEffects(bundle.sources.map(entry=>entry.connection),
-    {moon,baseEnvironmentWire,installationServices},async(connection: string,_options: unknown,retain: (effect: object) => void)=>{
+    {moon,baseEnvironmentWire,installationServices},async(connection,_options,retain)=>{
       current();
       const entries=bundle.sources.filter(entry=>entry.connection===connection);
       if(entries.length!==1)fail('InvalidLocalFileEffectInstallation');
