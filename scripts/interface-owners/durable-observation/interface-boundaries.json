@@ -6633,11 +6633,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "responseRepresentation: response.responseRepresentation"
               },
               {
@@ -7052,11 +7052,11 @@
                 "anchor": "- Run response inputs and outputs:"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestBodyText"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
@@ -7427,11 +7427,11 @@
                 "anchor": "### Original Run current fences"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "requestRepresentation: response.requestRepresentation"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "responseRepresentation: response.responseRepresentation"
               },
               {
@@ -7930,7 +7930,7 @@
           }
         }
       ],
-      "sha256": "9824cae80ff4474db7c1a605e9b5980e3df42917384d677bbbddd6afe9c04c8b",
+      "sha256": "b8b5fcc2fa1f97bd6ab628f2e9f2f33f0afdaee4b3d2568de5a9d9a43cabdbe1",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

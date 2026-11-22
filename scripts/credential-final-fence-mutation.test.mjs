@@ -17,7 +17,7 @@ function mutation(transform, pattern, expected) {
     symlinkSync(join(root, 'adapters/host-common'), join(scratch, 'adapters/host-common'));
     symlinkSync(join(root, '_build'), join(scratch, '_build'));
     for (const name of ['sqlite-credential-journal.mjs', 'remote-credential-signature.mjs',
-      'https-credential-response.mjs', 'google-service-account-assertion.mjs',
+      'https-credential-request.mjs', 'https-credential-response.mjs', 'google-service-account-assertion.mjs',
       'https-exchange-fixture.mjs', 'https-exchange-fixture.test.mjs']) symlinkSync(join(root, 'adapters/site-node', name),
         join(scratch, 'adapters/site-node', name));
     copyFileSync(join(root, 'adapters/site-node/https-credential-resource.test.mjs'),
@@ -52,7 +52,7 @@ function mutation(transform, pattern, expected) {
 
 test('dropping final credential authorization fails the actual post-await revocation assertion', () => {
   mutation(source => {
-    const fence = '    journal.authorize(\n      claimed.use,\n      BigInt(now()),\n      scope,\n      control,\n    );';
+    const fence = '\n        journal.authorize(claimed.use, BigInt(now()), scope, control);';
     assert.equal(source.split(fence).length, 2);
     return source.replace(fence, '');
   }, '^revocation during secret resolution fences the final request',
@@ -63,10 +63,11 @@ test('dropping retained-material comparison fails the real wrong-account no-send
   mutation(source => {
     const comparison = [
       '',
-      '    if (originalSecret?.secret !== undefined && originalSecret.secret !== currentSecret) {',
-      '      originalSecret.changed = true;binding.changed = true;',
-      "      fail('RemoteCredentialBindingChanged');",
-      '    }',
+      '        if (originalSecret?.secret !== undefined && originalSecret.secret !== currentSecret) {',
+      '            originalSecret.changed = true;',
+      '            binding.changed = true;',
+      "            fail('RemoteCredentialBindingChanged');",
+      '        }',
     ].join('\n');
     assert.equal(source.split(comparison).length, 2);
     return source.replace(comparison, '');

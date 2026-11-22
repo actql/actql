@@ -105,13 +105,13 @@
                 "anchor": "pub fn recheck_account_identity("
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "function acquireBinding("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               },
               {
@@ -121,7 +121,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               },
               {
@@ -145,7 +145,7 @@
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],
@@ -427,7 +427,7 @@
                 "anchor": "pub fn recheck_property_catalog("
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "function acquireBinding("
               }
             ],
@@ -437,7 +437,7 @@
                 "anchor": "Object.defineProperty(this, 'observations'"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],
@@ -447,7 +447,7 @@
                 "anchor": "currentBeforeSend: () => verify(operation)"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               }
             ],
@@ -467,7 +467,7 @@
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "export function closeHttpsCredentialBinding("
               }
             ],

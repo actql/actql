@@ -398,7 +398,7 @@ export function openSqliteCredentialJournal(root: string, {
             fail('RemoteCredentialUseCollision');
           }
           return Object.freeze({
-            replayed: true,
+            replayed: true as const,
             record: record(existing),
             // This exact signature-admitted grant is already held by use.
             // Expose only that original, not another equal-data admission.
@@ -411,7 +411,7 @@ export function openSqliteCredentialJournal(root: string, {
         }
         insertUse.run(useCid, grantCid, useId, usedCount + 1, useJson);
         return Object.freeze({
-          replayed: false,
+          replayed: false as const,
           record: record(selectUse.get(useCid)!),
           grant,
           use,

@@ -1727,6 +1727,8 @@ target/
 /adapters/site-node/google-service-account-assertion.test.d.mts
 /adapters/site-node/https-credential-request.mjs
 /adapters/site-node/https-credential-request.d.mts
+/adapters/site-node/https-credential-resource.mjs
+/adapters/site-node/https-credential-resource.d.mts
 /adapters/site-node/https-credential-response.mjs
 /adapters/site-node/https-credential-response.d.mts
 /adapters/site-node/remote-credential-signature.mjs

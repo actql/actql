@@ -185,7 +185,7 @@
                 "anchor": "await context.callbacks.consumeObservation(observed.charge);"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               }
             ],
