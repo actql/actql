@@ -1999,7 +1999,7 @@ pub fn issue_client_effect_keyed_captured_invocation(ClientEffectKeyedOriginal, 
 
 pub fn issue_client_effect_keyed_plan_graph(ClientEffectKeyedPlanConstruction, Int, Int, Int) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue]
 
-pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
+pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int, funding? : ((Int, Int, Int) -> Bool, (@encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
 
 pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
 

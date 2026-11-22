@@ -235,6 +235,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
     .native_effect_proposal(self.original)
+    let mut measure_unit_manifest = false
     for entry in 0..<@strategy.captured_effect_inputs_count(inputs) {
       let plan = @strategy.prepare_captured_effect_proposal_plan(
           inputs,
@@ -350,6 +351,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         self.prepare_mock_effect_source_imports(state, held)
         let construction = held.construction.unwrap()
         let measured = staged_rows is Some(_) && held.imports is Some(_)
+        measure_unit_manifest = measured
         if measured {
           construction
           .yield_source_import_workspace()
@@ -685,6 +687,37 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         ) {
         stop("LocalOriginalEffectResultUnavailable")
       }
+      if measure_proposal_rows {
+        // Validate the captured pin before measuring. The issuer below
+        // rechecks it after the original Ledger growth can observe current.
+        if !@strategy.captured_effect_inputs_match_computation(
+            inputs,
+            @run_host.prepared_client_effect_computation_graph(
+              state._retained_prepared,
+            ),
+          ) {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Definition(ForeignCapturedInput)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) else {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Definition(MissingCapturedInput)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        construction
+        .unwrap()
+        .fund_result_definition(
+          self.original,
+          state._retained_prepared,
+          @strategy.captured_effect_input_stage(input),
+          @execution.managed_result_occurrence_name(
+            @strategy.captured_effect_input_occurrence(input),
+          ),
+        )
+      }
       let definition = @run_host.issue_captured_client_effect_local_result_definition(
           state._retained_prepared,
           inputs,
@@ -790,6 +823,53 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     // The owner requires every declared Result and Effect-consumed Table of
     // the Unit. A consumed subset must not be presented as a whole Manifest.
     self.prepare_mock_effect_unit_results(state, held, max_capture_bytes)
+    let manifest_funding = if measure_unit_manifest {
+      let construction = held.construction.unwrap()
+      // The caller's temporary collection coexists with the original
+      // issuer's private copy. Reserve it before collecting the borrows.
+      let items = held.members.length().to_int64() +
+        held.unit_results.length().to_int64()
+      let view = @execution.preparation_array_representation(1L, items, true)
+        .bind(@execution.preparation_representation_cost)
+        .bind(bytes => @execution.execution_capacity(0L, bytes))
+      if !construction.prepare_body(self.original, view) {
+        stop("LocalOriginalEffectProposalsUnavailable")
+      }
+      let mut workspace = 0L
+      let fund_inventory = fn(results, headers, artifacts) {
+        let capacity = native_mock_effect_manifest_inventory(
+          results,
+          headers,
+          artifacts,
+          wire.max_nodes,
+          wire.max_depth,
+        ).bind(inventory => {
+          @execution.add_execution_capacity(view.unwrap(), inventory)
+        })
+        if !construction.prepare_body(self.original, capacity) {
+          return false
+        }
+        let capacity = capacity.unwrap()
+        workspace = @execution.execution_capacity_execution_bytes(capacity) -
+          @execution.execution_capacity_retained_bytes(capacity)
+        true
+      }
+      let invocation = held.invocation.unwrap()
+      let fund_wire = fn(shape) {
+        construction.prepare_body(
+          self.original,
+          @local_values.installed_effect_imported_model_evidence_body_capacity(
+            "local_manifest",
+            shape,
+            @run_host.client_effect_local_invocation_cid(invocation),
+            workspace,
+          ),
+        )
+      }
+      Some((fund_inventory, fund_wire))
+    } else {
+      None
+    }
     let artifacts = held.members.map(entry => entry._retained_artifact.unwrap())
     for result in held.unit_results {
       artifacts.push(result.artifact.unwrap())
@@ -802,6 +882,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         max_capture_bytes,
         wire.max_nodes,
         wire.max_depth,
+        funding=manifest_funding,
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Manifest(issue))
       .native_effect_proposal(self.original),
