@@ -2370,3 +2370,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect-inventory.d.mts
 /adapters/host-node/installed-effect-limits.mjs
 /adapters/host-node/installed-effect-limits.d.mts
+/adapters/host-node/installed-effect-member-routing.test.mjs
+/adapters/host-node/installed-effect-member-routing.test.d.mts

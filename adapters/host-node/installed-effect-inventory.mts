@@ -56,14 +56,15 @@ type EffectOwner = EffectRegistration & Readonly<{
   queryUpdateTargets?: readonly Alias[]; queryTableBindings?: readonly unknown[]; queryTableWriteAccesses?: readonly unknown[];
 }>;
 type Inventory = EffectOwner & Readonly<{effects?: readonly EffectOwner[]}>;
-type CompoundInventory<Member extends EffectOwner> = Readonly<{
-  effects: readonly Member[]; environmentWire: string | undefined;
+type RoutingMember = Readonly<{effectSelectors: readonly Selector[]}>;
+type CompoundInventory<Member> = Readonly<{
+  effects: readonly Member[]; environmentWire?: string;
 }>;
 type ReadAccess = Readonly<{authorization: object; connection: string; resources: readonly string[]}>;
 type ReadObservation = Readonly<{principalId: string; signal?: AbortSignal}>;
 type InstallationBinding = ReturnType<typeof issueUpdateTargetInstallation>;
 type Stage = Readonly<{
-  environmentWire: string; assertPrepared(facts: unknown): void;
+  environmentWire: string | undefined; assertPrepared(facts: unknown): void;
   prepareManagedPlan(facts: unknown, inputs: unknown): unknown;
   prepareCaptured(facts: unknown): unknown; prepareRecovered(facts: unknown): unknown;
 }>;
@@ -387,8 +388,8 @@ export async function composeInstalledEffects<Path, Options extends InventoryOpt
   }
 }
 
-export function installedEffectFor<Member extends EffectOwner>(inventory: (Member & {effects?: undefined}) |
-  CompoundInventory<Member> | undefined, descriptors: unknown): Member | Stage {
+export function installedEffectFor<Member extends object>(inventory: (Member & {effects?: undefined}) |
+  CompoundInventory<Member & RoutingMember> | undefined, descriptors: unknown): Member | Stage {
   // Legacy singular installations keep their original adapter admission and
   // need not publish the metadata required only by plural installation.
   if (inventory === undefined) fail('InstalledEffectProgramMismatch');
@@ -400,7 +401,7 @@ export function installedEffectFor<Member extends EffectOwner>(inventory: (Membe
   const owners: Member[] = [];
   for (const descriptor of descriptors as readonly CandidateSelector[]) {
     if (!validSelector(descriptor)) fail('InstalledEffectProgramMismatch');
-    const matches = inventory.effects.filter(effect => effect.effectSelectors!.some(selector =>
+    const matches = inventory.effects.filter(effect => effect.effectSelectors.some(selector =>
       selector.kind === descriptor.kind && selector.target === descriptor.target &&
       (descriptor.kind === 'command'
         ? selector.commandRef === descriptor.commandRef && selector.commandCid === descriptor.commandCid
