@@ -83,6 +83,17 @@
       ],
       "files": 4
     },
+    "encoding/base64": {
+      "digest": "dee4a7b041ff9f23c2ce5d86006698a9d121a956022f2376d8545413a1794964",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/buffer",
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/v128"
+      ],
+      "files": 6
+    },
     "encoding/utf8": {
       "digest": "7dedc62959067b8b7420a2eb8fce8a633126debec875ba05e64523b4179b6540",
       "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
