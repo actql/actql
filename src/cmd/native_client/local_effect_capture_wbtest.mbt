@@ -717,3 +717,58 @@ test "Native inventory Source binding funds the same operation before checking r
     )
   }
 }
+
+///|
+test "Native Preview target parsing funds overlapping original rows before entry" {
+  let first = "{\"target\":1,\"value\":{},\"before\":{}}"
+  let second = "{\"target\":2,\"value\":{\"name\":\"é\"},\"before\":{\"items\":[{\"n\":1.25}]}}"
+  let (first_retained, first_workspace) = native_mock_effect_preview_target_row_capacity(
+    native_mock_effect_preview_target_geometry(first),
+  ).unwrap()
+  let (second_retained, second_workspace) = native_mock_effect_preview_target_row_capacity(
+    native_mock_effect_preview_target_geometry(second),
+  ).unwrap()
+  assert_true(second_retained + second_workspace > first_workspace)
+  // The selected operation keeps its original R30 basis with one workspace
+  // peak. Only the first row survives beside the second parser's workspace.
+  let workspace = first_retained + second_retained + second_workspace
+  let exact = 30L + workspace
+  for maximum in [exact - 1L, exact] {
+    with_native_mock_capture_construction(
+      max_retained=30L,
+      max_execution=maximum,
+      fn(construction) raise {
+        let operation = construction.operation
+        let mut refusal : LocalNativeMockEffectProposalIssue? = None
+        let report = fn(issue) { refusal = Some(issue) }
+        let first_held = construction.fund_preview_target_row(first, 0L, report)
+        let first_row = native_mock_preview_json(first)
+        assert_eq(first_held, first_retained)
+        assert_eq(construction.workspace, first_retained + first_workspace)
+        let second_row = try {
+          let held = construction.fund_preview_target_row(
+            second, first_held, report,
+          )
+          assert_eq(held, first_retained + second_retained)
+          Some(native_mock_preview_json(second))
+        } catch {
+          ClientStop(_) => None
+          error => raise error
+        }
+        assert_true(physical_equal(construction.operation, operation))
+        assert_eq(construction.retained, 0L)
+        assert_eq(first_row, @json.parse(first))
+        if maximum == exact {
+          assert_eq(second_row, Some(@json.parse(second)))
+          assert_eq(construction.workspace, workspace)
+          assert_true(refusal is None)
+        } else {
+          assert_true(
+            second_row is None && refusal is Some(Managed(InsufficientCapacity)),
+          )
+          assert_true(construction.workspace < workspace)
+        }
+      },
+    )
+  }
+}

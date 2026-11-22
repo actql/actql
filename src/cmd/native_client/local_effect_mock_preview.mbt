@@ -255,276 +255,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let run_cid = @publication.publication_contract_identity(
     materials.run_definition,
   )
-  let model_cids : Array[String] = []
-  let response_cids : Array[String] = []
-  for original in models {
-    guard native_mock_preview_json(
-        @publication.run_evidence_value_json(original),
-      )
-      is Object(fields) &&
-      task_cid is Some(_) &&
-      json_text(fields, "model_task_contract_cid") == task_cid &&
-      json_text(fields, "structured_response_artifact_cid") is Some(response) else {
-      stop("LocalOriginalEffectPreviewModelProvenanceUnavailable")
-    }
-    model_cids.push(@publication.run_evidence_value_identity(original))
-    if !response_cids.contains(response) {
-      response_cids.push(response)
-    }
-  }
-  model_cids.sort()
-  response_cids.sort()
-  let barriers = if state.lookup is Some(lookup) {
-    let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap_or_else(() => {
-        stop("LocalOriginalEffectPreviewLookupUnavailable")
-      },
-    )
-    [
-      Json::string(
-        @publication.publication_contract_identity(completed.evidence),
-      ),
-    ]
-  } else {
-    []
-  }
-  let effects : Array[Json] = []
-  let sources : Array[@publication.PublicationContract] = []
-  let identities : Array[@run_host.ClientEffectLocalIdentity] = []
-  let pending = "sha256:" + "0".repeat(64)
-  let mut target_index = 0
-  for index, entry in proposals.members {
-    let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
-        stop("LocalOriginalEffectPreviewUnavailable")
-      },
-    )
-    let stage = @strategy.captured_effect_input_stage(input)
-    let headers = @checked.effect_program_static_headers(
-      @run_host.prepared_client_effect_computation_candidate(materials.prepared),
-    )
-    let header = @syntax.effect_header_at(headers, index).unwrap_or_else(() => {
-      stop("LocalOriginalEffectPreviewUnavailable")
-    })
-    let descriptor = @run_host.client_effect_member_descriptor(
-      materials.prepared,
-      stage,
-      @syntax.effect_header_id(header),
-      max_work,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
-    guard descriptor.0 == index &&
-      descriptor.2 == "update" &&
-      descriptor.6 is Some(result_name) &&
-      installations
-      .iter()
-      .find_first(selected => {
-        selected.target == descriptor.3 &&
-        selected.write.mapping.mapping_ref == descriptor.4 &&
-        selected.write.mapping.mapping_cid == descriptor.5
-      })
-      is Some(selected) &&
-      entry._retained_artifact is Some(artifact) &&
-      native_mock_preview_json(selected.owner.1) is Object(owner) &&
-      native_mock_preview_json(selected.write.mapping.body) is Object(mapping) &&
-      mapping.get("required_permissions") is Some(permissions) else {
-      stop("LocalOriginalEffectPreviewUnavailable")
-    }
-    let source = @run_host.issue_client_effect_local_source_artifact(
-        materials,
-        proposals.inputs,
-        index,
-        artifact,
-        invocation,
-        @run_host.client_effect_local_result_retention(artifact),
-        selected.binding,
-        store_authority_cid,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewSource(issue))
-      .native_effect_proposal_with_cause(report)
-    sources.push(source)
-    let identity = @run_host.issue_source_free_client_effect_local_identity(
-        materials.prepared,
-        proposals.inputs,
-        index,
-        artifact,
-        max_work,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      )
-      .map_err(issue => {
-        LocalNativeMockEffectProposalIssue::PreviewIdentity(issue)
-      })
-      .native_effect_proposal_with_cause(report)
-    identities.push(identity)
-    let changes : Array[Json] = []
-    let requests : Array[Json] = []
-    for _ in 0..<entry.rows.length() {
-      guard state.targets.get(target_index) is Some(target) &&
-        target._retained_request is Some((request_wire, request_cid)) &&
-        native_mock_preview_json(request_wire) is Object(request) &&
-        request.get("target") is Some(target_value) &&
-        request.get("before") is Some(before) &&
-        request.get("value") is Some(value) &&
-        json_text(request, "binding") == Some(selected.binding) &&
-        json_text(request, "mapping") == Some(descriptor.5) &&
-        json_text(request, "version") is Some(version) else {
-        stop("LocalOriginalEffectPreviewTargetUnavailable")
-      }
-      target_index += 1
-      requests.push(Json::string(request_cid))
-      changes.push({
-        "target_row_identity": target_value,
-        "target_guard": {
-          "state": "version",
-          "version_cid": Json::string(version),
-        },
-        "before": { "state": "present", "value": before },
-        "after": { "state": "present", "value": value },
-        "intended_changes": { "state": "present", "value": value },
-        "row_preview_cid": Json::string(pending),
-        "row_idempotency_key": Json::string(pending),
-      })
-    }
-    // Wire projection of the existing installed row-driver contract: the
-    // selected implementation is single-serial without provider idempotency.
-    // This identity is not an Account decision, claim or send permission.
-    let registration = json_text(owner, "connector_registration").unwrap_or_else(() => {
-        stop("LocalOriginalEffectPreviewInstallationUnavailable")
-      },
-    )
-    let capability = digest({
-      "version": "actql-installed-row-effect-capability/0.1",
-      "connector_registration": Json::string(registration),
-      "connector_revision": owner["connector_revision"],
-      "runtime_bundle_cid": owner["runtime_bundle_cid"],
-      "binding_cid": Json::string(selected.binding),
-      "connection": owner["connection"],
-      "resource": Json::string(selected.write.mapping.resource),
-      "mapping_cid": Json::string(descriptor.5),
-      "operation": "update",
-      "route": "single_serial",
-      "idempotency": "unavailable",
-      "request_cids": Json::array(requests),
-    })
-    let scheme = digest({
-      "version": "actql-installed-row-effect-identity-scheme/0.1",
-      "connector_registration": Json::string(registration),
-      "resource": Json::string(selected.write.mapping.resource),
-      "mapping_cid": Json::string(descriptor.5),
-      "primary_identity": mapping["primary_identity"],
-    })
-    let body : Json = {
-      "effect_id": Json::string(descriptor.1),
-      "effect_kind": Json::string(descriptor.2),
-      "target": Json::string(descriptor.3),
-      "mapping": Json::string(descriptor.4),
-      "resolved_mapping_contract_cid": Json::string(descriptor.5),
-      "effect_identity_cid": Json::string(
-        @run_host.client_effect_local_identity_cid(identity),
-      ),
-      "source_result": Json::string(result_name),
-      "result_artifact_cid": Json::string(
-        @run_host.client_effect_local_result_artifact_cid(artifact),
-      ),
-      "preview_strength": "full_diff",
-      "source_binding_cid": Json::string(selected.binding),
-      "capability_evidence_cid": Json::string(capability),
-      "authority_scope_cid": Json::string(
-        @request_scope.logical_request_scope_authority(scope),
-      ),
-      "required_permissions": permissions,
-      "approval": "required",
-      "on_item_failure": Json::string(descriptor.7),
-      "write_footprint": {
-        "kind": "opaque",
-        "provider_namespace": "local-mock-file",
-        "provider_boundary_cid": Json::string(selected.binding),
-        "resource_kind": Json::string(selected.write.mapping.resource),
-        "resource_identity_scheme_cid": Json::string(scheme),
-        "provider_object_identity_cids": [],
-      },
-      "count": Json::number(changes.length().to_double()),
-      "max_items": Json::number(changes.length().to_double()),
-      "changes": Json::array(changes),
-      "row_order": [],
-      "effect_member_preview_cid": Json::string(pending),
-      "executed": false,
-    }
-    let rules = @stage_results.effect_static_candidate_mapping_rules(
-      @checked.effect_program_static_effects(
-        @run_host.prepared_client_effect_computation_candidate(
-          materials.prepared,
-        ),
-      ),
-    )
-    let terminal = @stage_results.effect_plan_terminal_for_member(
-      rules, index, max_fields, max_work,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewPlanUnavailable"))
-    if terminal is Some(terminal) {
-      let cid = @stage_results.effect_plan_pipeline_cid(
-        terminal, max_bytes, max_nodes, max_depth,
-      ) catch {
-        _ => stop("LocalOriginalEffectPreviewPlanUnavailable")
-      }
-      guard body is Object(fields) else {
-        stop("LocalOriginalEffectPreviewUnavailable")
-      }
-      fields["effect_plan_logical_cid"] = Json::string(cid)
-    }
-    effects.push(body)
-  }
-  if target_index != state.targets.length() {
-    stop("LocalOriginalEffectPreviewTargetUnavailable")
-  }
-  let (draft, draft_bytes, draft_nodes, draft_depth) = encode_with_usage({
-    "version": "actql-effect-preview/0.1",
-    "sensitivity": "private",
-    "retention_class": "authority-evidence",
-    "encryption_required": true,
-    "program_semantics_cid": Json::string(
-      @run_host.prepared_client_effect_computation_semantics_cid(
-        materials.prepared,
-      ),
-    ),
-    "program_definition_cid": Json::string(definition_cid),
-    "invocation_cid": Json::string(
-      @publication.publication_contract_identity(invocation),
-    ),
-    "run_identity_cid": Json::string(run_cid),
-    "compiled_plan_cid": Json::string(
-      @publication.publication_contract_identity(
-        @run_host.client_effect_compilation_compiled_plan(materials.compilation),
-      ),
-    ),
-    "check_environment_cid": Json::string(
-      @run_host.prepared_client_effect_computation_environment_cid(
-        materials.prepared,
-      ),
-    ),
-    "authoring_context": native_mock_preview_json(
-      @publication.run_evidence_value_json(authoring),
-    ),
-    "barrier_provenance_cids": Json::array(barriers),
-    "model_derived": Json::boolean(task_cid is Some(_)),
-    "model_task_contract_cids": Json::array(
-      match task_cid {
-        Some(task) => [Json::string(task)]
-        None => []
-      },
-    ),
-    "model_invocation_evidence_cids": Json::array(
-      model_cids.map(cid => Json::string(cid)),
-    ),
-    "model_response_artifact_cids": Json::array(
-      response_cids.map(cid => Json::string(cid)),
-    ),
-    "effects": Json::array(effects),
-    "executed": false,
-    "effect_preview_cid": Json::string(pending),
-  })
-  let measured_keys = !state.first._retained_models.is_empty() &&
+  let measured_preview = !state.first._retained_models.is_empty() &&
     proposals.imports is Some(_) &&
     proposals.members
     .get(0)
@@ -532,7 +263,326 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       @strategy.captured_effect_proposal_plan_staged_rows(entry.plan)
     })
     is Some(_)
-  let (semantic, authored, identity) = if measured_keys {
+  let (
+    draft,
+    draft_bytes,
+    draft_nodes,
+    draft_depth,
+    sources,
+    identities,
+    target_index,
+  ) = {
+    let mut draft_row_bytes = 0L
+    let model_cids : Array[String] = []
+    let response_cids : Array[String] = []
+    for original in models {
+      guard native_mock_preview_json(
+          @publication.run_evidence_value_json(original),
+        )
+        is Object(fields) &&
+        task_cid is Some(_) &&
+        json_text(fields, "model_task_contract_cid") == task_cid &&
+        json_text(fields, "structured_response_artifact_cid") is Some(response) else {
+        stop("LocalOriginalEffectPreviewModelProvenanceUnavailable")
+      }
+      model_cids.push(@publication.run_evidence_value_identity(original))
+      if !response_cids.contains(response) {
+        response_cids.push(response)
+      }
+    }
+    model_cids.sort()
+    response_cids.sort()
+    let barriers = if state.lookup is Some(lookup) {
+      let completed = @run_host.client_keyed_lookup_native_completion(lookup).unwrap_or_else(() => {
+          stop("LocalOriginalEffectPreviewLookupUnavailable")
+        },
+      )
+      [
+        Json::string(
+          @publication.publication_contract_identity(completed.evidence),
+        ),
+      ]
+    } else {
+      []
+    }
+    let effects : Array[Json] = []
+    let sources : Array[@publication.PublicationContract] = []
+    let identities : Array[@run_host.ClientEffectLocalIdentity] = []
+    let pending = "sha256:" + "0".repeat(64)
+    let mut target_index = 0
+    for index, entry in proposals.members {
+      let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
+          stop("LocalOriginalEffectPreviewUnavailable")
+        },
+      )
+      let stage = @strategy.captured_effect_input_stage(input)
+      let headers = @checked.effect_program_static_headers(
+        @run_host.prepared_client_effect_computation_candidate(
+          materials.prepared,
+        ),
+      )
+      let header = @syntax.effect_header_at(headers, index).unwrap_or_else(() => {
+        stop("LocalOriginalEffectPreviewUnavailable")
+      })
+      let descriptor = @run_host.client_effect_member_descriptor(
+        materials.prepared,
+        stage,
+        @syntax.effect_header_id(header),
+        max_work,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
+      guard descriptor.0 == index &&
+        descriptor.2 == "update" &&
+        descriptor.6 is Some(result_name) &&
+        installations
+        .iter()
+        .find_first(selected => {
+          selected.target == descriptor.3 &&
+          selected.write.mapping.mapping_ref == descriptor.4 &&
+          selected.write.mapping.mapping_cid == descriptor.5
+        })
+        is Some(selected) &&
+        entry._retained_artifact is Some(artifact) &&
+        native_mock_preview_json(selected.owner.1) is Object(owner) &&
+        native_mock_preview_json(selected.write.mapping.body) is Object(mapping) &&
+        mapping.get("required_permissions") is Some(permissions) else {
+        stop("LocalOriginalEffectPreviewUnavailable")
+      }
+      let source = @run_host.issue_client_effect_local_source_artifact(
+          materials,
+          proposals.inputs,
+          index,
+          artifact,
+          invocation,
+          @run_host.client_effect_local_result_retention(artifact),
+          selected.binding,
+          store_authority_cid,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PreviewSource(issue)
+        })
+        .native_effect_proposal_with_cause(report)
+      sources.push(source)
+      let identity = @run_host.issue_source_free_client_effect_local_identity(
+          materials.prepared,
+          proposals.inputs,
+          index,
+          artifact,
+          max_work,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::PreviewIdentity(issue)
+        })
+        .native_effect_proposal_with_cause(report)
+      identities.push(identity)
+      if measured_preview {
+        // Both growing per-member vectors remain live through their digest
+        // and member construction. Keep their backing with all earlier rows.
+        guard @execution.preparation_array_representation(
+            2L,
+            2L * entry.rows.length().to_int64(),
+            true,
+          )
+          .bind(@execution.preparation_representation_cost)
+          .bind(bytes => {
+            @execution.checked_preparation_add_product(
+              draft_row_bytes, bytes, 1L,
+            )
+          })
+          is Some(retained) else {
+          report(Managed(InsufficientCapacity))
+          stop("LocalOriginalEffectPreviewTargetUnavailable")
+        }
+        draft_row_bytes = retained
+        construction
+        .prepare_body_result(@execution.execution_capacity(0L, draft_row_bytes))
+        .native_effect_proposal_with_cause(report)
+      }
+      let changes : Array[Json] = []
+      let requests : Array[Json] = []
+      for _ in 0..<entry.rows.length() {
+        guard state.targets.get(target_index) is Some(target) &&
+          target._retained_request is Some((request_wire, request_cid)) else {
+          stop("LocalOriginalEffectPreviewTargetUnavailable")
+        }
+        if measured_preview {
+          draft_row_bytes = construction.fund_preview_target_row(
+            request_wire, draft_row_bytes, report,
+          )
+        }
+        guard native_mock_preview_json(request_wire) is Object(request) &&
+          request.get("target") is Some(target_value) &&
+          request.get("before") is Some(before) &&
+          request.get("value") is Some(value) &&
+          json_text(request, "binding") == Some(selected.binding) &&
+          json_text(request, "mapping") == Some(descriptor.5) &&
+          json_text(request, "version") is Some(version) else {
+          stop("LocalOriginalEffectPreviewTargetUnavailable")
+        }
+        target_index += 1
+        requests.push(Json::string(request_cid))
+        changes.push({
+          "target_row_identity": target_value,
+          "target_guard": {
+            "state": "version",
+            "version_cid": Json::string(version),
+          },
+          "before": { "state": "present", "value": before },
+          "after": { "state": "present", "value": value },
+          "intended_changes": { "state": "present", "value": value },
+          "row_preview_cid": Json::string(pending),
+          "row_idempotency_key": Json::string(pending),
+        })
+      }
+      // Wire projection of the existing installed row-driver contract: the
+      // selected implementation is single-serial without provider idempotency.
+      // This identity is not an Account decision, claim or send permission.
+      let registration = json_text(owner, "connector_registration").unwrap_or_else(() => {
+          stop("LocalOriginalEffectPreviewInstallationUnavailable")
+        },
+      )
+      let capability = digest({
+        "version": "actql-installed-row-effect-capability/0.1",
+        "connector_registration": Json::string(registration),
+        "connector_revision": owner["connector_revision"],
+        "runtime_bundle_cid": owner["runtime_bundle_cid"],
+        "binding_cid": Json::string(selected.binding),
+        "connection": owner["connection"],
+        "resource": Json::string(selected.write.mapping.resource),
+        "mapping_cid": Json::string(descriptor.5),
+        "operation": "update",
+        "route": "single_serial",
+        "idempotency": "unavailable",
+        "request_cids": Json::array(requests),
+      })
+      let scheme = digest({
+        "version": "actql-installed-row-effect-identity-scheme/0.1",
+        "connector_registration": Json::string(registration),
+        "resource": Json::string(selected.write.mapping.resource),
+        "mapping_cid": Json::string(descriptor.5),
+        "primary_identity": mapping["primary_identity"],
+      })
+      let body : Json = {
+        "effect_id": Json::string(descriptor.1),
+        "effect_kind": Json::string(descriptor.2),
+        "target": Json::string(descriptor.3),
+        "mapping": Json::string(descriptor.4),
+        "resolved_mapping_contract_cid": Json::string(descriptor.5),
+        "effect_identity_cid": Json::string(
+          @run_host.client_effect_local_identity_cid(identity),
+        ),
+        "source_result": Json::string(result_name),
+        "result_artifact_cid": Json::string(
+          @run_host.client_effect_local_result_artifact_cid(artifact),
+        ),
+        "preview_strength": "full_diff",
+        "source_binding_cid": Json::string(selected.binding),
+        "capability_evidence_cid": Json::string(capability),
+        "authority_scope_cid": Json::string(
+          @request_scope.logical_request_scope_authority(scope),
+        ),
+        "required_permissions": permissions,
+        "approval": "required",
+        "on_item_failure": Json::string(descriptor.7),
+        "write_footprint": {
+          "kind": "opaque",
+          "provider_namespace": "local-mock-file",
+          "provider_boundary_cid": Json::string(selected.binding),
+          "resource_kind": Json::string(selected.write.mapping.resource),
+          "resource_identity_scheme_cid": Json::string(scheme),
+          "provider_object_identity_cids": [],
+        },
+        "count": Json::number(changes.length().to_double()),
+        "max_items": Json::number(changes.length().to_double()),
+        "changes": Json::array(changes),
+        "row_order": [],
+        "effect_member_preview_cid": Json::string(pending),
+        "executed": false,
+      }
+      let rules = @stage_results.effect_static_candidate_mapping_rules(
+        @checked.effect_program_static_effects(
+          @run_host.prepared_client_effect_computation_candidate(
+            materials.prepared,
+          ),
+        ),
+      )
+      let terminal = @stage_results.effect_plan_terminal_for_member(
+        rules, index, max_fields, max_work,
+      ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewPlanUnavailable"))
+      if terminal is Some(terminal) {
+        let cid = @stage_results.effect_plan_pipeline_cid(
+          terminal, max_bytes, max_nodes, max_depth,
+        ) catch {
+          _ => stop("LocalOriginalEffectPreviewPlanUnavailable")
+        }
+        guard body is Object(fields) else {
+          stop("LocalOriginalEffectPreviewUnavailable")
+        }
+        fields["effect_plan_logical_cid"] = Json::string(cid)
+      }
+      effects.push(body)
+    }
+    if target_index != state.targets.length() {
+      stop("LocalOriginalEffectPreviewTargetUnavailable")
+    }
+    let (draft, draft_bytes, draft_nodes, draft_depth) = encode_with_usage({
+      "version": "actql-effect-preview/0.1",
+      "sensitivity": "private",
+      "retention_class": "authority-evidence",
+      "encryption_required": true,
+      "program_semantics_cid": Json::string(
+        @run_host.prepared_client_effect_computation_semantics_cid(
+          materials.prepared,
+        ),
+      ),
+      "program_definition_cid": Json::string(definition_cid),
+      "invocation_cid": Json::string(
+        @publication.publication_contract_identity(invocation),
+      ),
+      "run_identity_cid": Json::string(run_cid),
+      "compiled_plan_cid": Json::string(
+        @publication.publication_contract_identity(
+          @run_host.client_effect_compilation_compiled_plan(
+            materials.compilation,
+          ),
+        ),
+      ),
+      "check_environment_cid": Json::string(
+        @run_host.prepared_client_effect_computation_environment_cid(
+          materials.prepared,
+        ),
+      ),
+      "authoring_context": native_mock_preview_json(
+        @publication.run_evidence_value_json(authoring),
+      ),
+      "barrier_provenance_cids": Json::array(barriers),
+      "model_derived": Json::boolean(task_cid is Some(_)),
+      "model_task_contract_cids": Json::array(
+        match task_cid {
+          Some(task) => [Json::string(task)]
+          None => []
+        },
+      ),
+      "model_invocation_evidence_cids": Json::array(
+        model_cids.map(cid => Json::string(cid)),
+      ),
+      "model_response_artifact_cids": Json::array(
+        response_cids.map(cid => Json::string(cid)),
+      ),
+      "effects": Json::array(effects),
+      "executed": false,
+      "effect_preview_cid": Json::string(pending),
+    })
+    (
+      draft, draft_bytes, draft_nodes, draft_depth, sources, identities, target_index,
+    )
+  }
+  let (semantic, authored, identity) = if measured_preview {
     // Member/row/digest placeholders use the same 71 ASCII units as their
     // issued CIDs. The emitted shape adds only row_order strings to this
     // draft; target_index is the number of changes already constructed.
@@ -828,4 +878,120 @@ fn native_mock_effect_preview_admission_capacity(
     owned_utf16_units: admission.owned_utf16_units + bytes.to_int64(),
     owned_wire_bytes: admission.owned_wire_bytes,
   }).bind(bytes => @execution.execution_capacity(0L, bytes))
+}
+
+///|
+// Keep the actual Native @json.parse route. The closed producer's original
+// request limits also bound this size-only scan, which returns no grammar
+// tree or authority. Both phases use the same capture reservation.
+fn LocalNativeMockEffectImportConstruction::fund_preview_target_row(
+  self : Self,
+  wire : String,
+  prior : Int64,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> Int64 raise ClientStop {
+  let preflight = @source.json_source_preflight_control_extent()
+  self
+  .prepare_body_result(
+    @execution.preparation_representation_cost({
+      record_headers: preflight.record_headers,
+      reference_slots: preflight.reference_slots,
+      scalar_words: preflight.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    .bind(bytes => @execution.checked_preparation_add_product(prior, bytes, 1L))
+    .bind(bytes => @execution.execution_capacity(0L, bytes)),
+  )
+  .native_effect_proposal_with_cause(report)
+  let geometry = native_mock_effect_preview_target_geometry(wire)
+  let capacity = native_mock_effect_preview_target_row_capacity(geometry)
+  let result = match capacity {
+    Some((retained, workspace)) =>
+      @execution.checked_preparation_add_product(prior, retained, 1L).bind(held => {
+        @execution.checked_preparation_add_product(held, workspace, 1L).map(peak => {
+          (held, peak)
+        })
+      })
+    None => None
+  }
+  self
+  .prepare_body_result(
+    result.bind(value => @execution.execution_capacity(0L, value.1)),
+  )
+  .native_effect_proposal_with_cause(report)
+  result.unwrap().0
+}
+
+///|
+fn native_mock_effect_preview_target_geometry(
+  wire : String,
+) -> @source.JsonSourceGeometry raise ClientStop {
+  let cursor = @source.start_json_source_preflight(
+    wire,
+    {
+      max_input_bytes: local_project_mock_relation_wire_bytes,
+      max_nodes: local_project_mock_relation_wire_nodes,
+      max_depth: local_project_mock_relation_wire_depth,
+    },
+    data_keys=true,
+  ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewEncodingUnavailable"))
+  defer @source.cancel_json_source_preflight(cursor)
+  while true {
+    match @source.advance_json_source_preflight(cursor, 4096) {
+      Ok(@source.JsonSourceReady(value, ..)) => break value
+      Ok(@source.JsonSourceContinue(..)) => ()
+      _ => stop("LocalOriginalEffectPreviewEncodingUnavailable")
+    }
+  } nobreak {
+    stop("LocalOriginalEffectPreviewEncodingUnavailable")
+  }
+}
+
+///|
+// Native Json retains Map and Array backing. A row adds five objects and
+// fifteen fields (row, guard, three presence alternatives) and one request
+// CID entry. The parsed request's whole tree bounds the retained subtrees.
+// One lexical token, including the pinned 800-byte decimal fallback, is
+// temporary. Its scratch coexists with every preceding row prefix.
+fn native_mock_effect_preview_target_row_capacity(
+  geometry : @source.JsonSourceGeometry,
+) -> (Int64, Int64)? {
+  let nodes = geometry.node_upper.to_int64()
+  let fields = geometry.fields.to_int64()
+  let depth = geometry.depth_upper.to_int64()
+  let text = geometry.input_utf16_units.to_int64()
+  guard @shape.collection_construction_extent({
+      records: nodes + geometry.quoted_tokens.to_int64() + 20L,
+      record_references: 2L * nodes + 24L,
+      record_words: 3L * nodes + 20L,
+      reference_arrays: geometry.arrays.to_int64(),
+      reference_items: Int64::max(0L, nodes - fields - 1L),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: geometry.objects.to_int64() + 5L,
+      map_entries: fields + 15L,
+    })
+    is Some(tree) &&
+    @execution.preparation_representation_cost({
+      record_headers: tree.record_headers,
+      reference_slots: tree.reference_slots,
+      scalar_words: tree.scalar_words,
+      owned_utf16_units: text,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      // One Native parser context, lexer result and views, string builder
+      // controls, active property/array tokens and failed token controls.
+      record_headers: 16L + 2L * depth,
+      reference_slots: 22L + 3L * depth,
+      scalar_words: 32L + 4L * depth,
+      owned_utf16_units: 16L + 4L * text,
+      owned_wire_bytes: 800L,
+    })
+    is Some(workspace) else {
+    return None
+  }
+  Some((retained, workspace))
 }
