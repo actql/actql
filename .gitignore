@@ -2352,3 +2352,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/acquired-effect-model-publication.d.mts
 /adapters/host-node/fixtures/acquired-effect-model-group.fixture.mjs
 /adapters/host-node/fixtures/acquired-effect-model-group.fixture.d.mts
+/adapters/host-node/acquired-effect-startup-cleanup.test.mjs
+/adapters/host-node/acquired-effect-startup-cleanup.test.d.mts
