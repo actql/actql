@@ -224,6 +224,18 @@ extern "C" fn client_start_bearer_post_ffi(
 ) -> Int = "actql_native_http_client_start_bearer_post"
 
 ///|
+#borrow(client, url, body, credential)
+extern "C" fn client_start_projected_bearer_post_ffi(
+  client : Client,
+  url : Bytes,
+  url_length : Int,
+  body : Bytes,
+  body_length : Int,
+  credential : @filesystem.PrivateFileProjection,
+  expires_at_milliseconds : Int64,
+) -> Int = "actql_native_http_client_start_projected_bearer_post"
+
+///|
 #borrow(client)
 extern "C" fn client_poll_bearer_post_ffi(
   client : Client,
@@ -790,6 +802,38 @@ pub fn Client::start_bearer_post(
       body.length(),
       encoded_secret_path,
       encoded_secret_path.length(),
+      expires_at_milliseconds,
+    ) {
+    0 => Ok(())
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+/// Start one JSON POST using the retained private-file projection. The native
+/// transport checks the file generation and reads it only during this start.
+pub fn Client::start_projected_bearer_post(
+  self : Client,
+  url : String,
+  body : Bytes,
+  credential : @filesystem.PrivateFileProjection,
+  expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    expires_at_milliseconds < 1L {
+    return Err(InvalidRequest)
+  }
+  let encoded_url = @utf8.encode(url)
+  match
+    client_start_projected_bearer_post_ffi(
+      self,
+      encoded_url,
+      encoded_url.length(),
+      body,
+      body.length(),
+      credential,
       expires_at_milliseconds,
     ) {
     0 => Ok(())

@@ -168,8 +168,53 @@ test "incremental bearer POST retains the original client until completion or ph
       9223372036854775807L,
     )
   }
-  start(original, "/incremental-complete").unwrap()
-  assert_true(start(original, "/incremental-complete") is Err(Closed))
+  let fixture = @filesystem.open_root(
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT").unwrap(),
+  ).unwrap()
+  let credential = fixture
+    .adopt_private_file_projection("credential.secret")
+    .unwrap()
+  let write_fixture_key = (bytes : Bytes) => {
+    let writer = fixture
+      .create_writer("alternate.stage", bytes.length().to_int64())
+      .unwrap()
+    writer.append(bytes).unwrap()
+    writer.seal("alternate.secret").unwrap()
+  }
+  let old = write_fixture_key(b"native-secret\n")
+  let stale = fixture.adopt_private_file_projection("alternate.secret").unwrap()
+  fixture.reclaim_generation("alternate.secret", old).unwrap()
+  ignore(write_fixture_key(b"forged-secret\n"))
+  let refused = create()
+  let payload = b"{\"original\":true}"
+  assert_true(
+    refused.start_projected_bearer_post(
+      url + "/incremental-complete",
+      payload,
+      stale,
+      9223372036854775807L,
+    )
+    is Err(CredentialUnavailable),
+  )
+  assert_true(refused.poll_bearer_post() is Err(Closed))
+  refused.close_checked().unwrap()
+  original
+  .start_projected_bearer_post(
+    url + "/incremental-complete",
+    payload,
+    credential,
+    9223372036854775807L,
+  )
+  .unwrap()
+  assert_true(
+    original.start_projected_bearer_post(
+      url + "/incremental-complete",
+      payload,
+      credential,
+      9223372036854775807L,
+    )
+    is Err(Closed),
+  )
   assert_true(
     original.poll_bearer_post(wait_milliseconds=51) is Err(InvalidRequest),
   )
@@ -186,9 +231,6 @@ test "incremental bearer POST retains the original client until completion or ph
   original.close_checked().unwrap()
 
   let interrupted = create()
-  let fixture = @filesystem.open_root(
-    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT").unwrap(),
-  ).unwrap()
   start(interrupted, "/incremental-stop").unwrap()
   for _ in 0..<100 {
     if fixture.observe_file("incremental-entered") is Ok(_) {

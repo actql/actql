@@ -1778,7 +1778,7 @@ static int32_t actql_native_http_client_request_owned(
   moonbit_bytes_t body,
   int32_t body_length,
   const char *bearer_path,
-  actql_native_private_file_projection *preparation_projection,
+  actql_native_private_file_projection *credential_projection,
   bool require_deadline,
   int64_t expires_at_milliseconds,
   bool incremental
@@ -1795,7 +1795,8 @@ static int32_t actql_native_http_client_request_owned(
   bool is_patch = method_text != NULL && strcmp(method_text, "PATCH") == 0;
   if (url_text == NULL || (!is_get && !is_post && !is_put && !is_patch) ||
       body_length < 0 || (is_get && body_length != 0) ||
-      (preparation_projection != NULL && (!is_get || !require_deadline))) {
+      (credential_projection != NULL && (!require_deadline ||
+        (incremental ? !is_post : !is_get)))) {
     actql_http_free(library, method_text);
     actql_http_free(library, url_text);
     actql_set_client_error(client, "invalid HTTPS request");
@@ -1806,7 +1807,7 @@ static int32_t actql_native_http_client_request_owned(
     client,
     headers_block,
     headers_length,
-    bearer_path != NULL || preparation_projection != NULL,
+    bearer_path != NULL || credential_projection != NULL,
     &headers_valid
   );
   if (!headers_valid) {
@@ -1814,14 +1815,14 @@ static int32_t actql_native_http_client_request_owned(
     actql_http_free(library, url_text);
     return 6;
   }
-  if (bearer_path != NULL || preparation_projection != NULL) {
+  if (bearer_path != NULL || credential_projection != NULL) {
     char *authorization = NULL;
     size_t authorization_length = 0;
     if (!actql_read_bearer_authorization(client,
           bearer_path,
-          preparation_projection,
+          credential_projection,
           require_deadline ? 8192 : ACTQL_BEARER_FILE_MAX_BYTES,
-          preparation_projection != NULL || !require_deadline,
+          credential_projection != NULL || !require_deadline,
           &authorization,
           &authorization_length
         )) {
@@ -1923,10 +1924,10 @@ static int32_t actql_native_http_client_request_owned(
 #undef ACTQL_SET
   // Recheck the original installation after configuration, immediately before
   // entering transport. This never adopts a newly replaced credential file.
-  if (configured && preparation_projection != NULL) {
+  if (configured && credential_projection != NULL) {
     int descriptor = -1;
     bool current_installation = actql_native_private_file_projection_open_with_custody(
-      preparation_projection, &descriptor
+      credential_projection, &descriptor
     );
     if (descriptor >= 0 && close(descriptor) != 0) {
       // This second original credential descriptor has the same physical
@@ -2068,6 +2069,28 @@ int32_t actql_native_http_client_start_bearer_post(
       url, url_length, headers, headers_length, body, body_length, path, NULL,
       true, expires_at_milliseconds, true) : 6;
     actql_http_free(library, path);
+  }
+  actql_http_end_request(client);
+  return result;
+}
+
+int32_t actql_native_http_client_start_projected_bearer_post(
+  actql_native_http_client *client,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t body, int32_t body_length,
+  actql_native_private_file_projection *projection, int64_t expires_at_milliseconds
+) {
+  if (!actql_http_begin_request(client)) return 3;
+  int32_t result = ACTQL_HTTP_INCREMENTAL_UNAVAILABLE;
+  if (client->library->multi.init) {
+    // Both literals are borrowed for this setup only. request_owned keeps the
+    // exact managed body through transfer retirement and copies other inputs.
+    const char method[] = "POST";
+    const char headers[] = "content-type: application/json\n";
+    result = projection ? actql_native_http_client_request_owned(client,
+      (moonbit_bytes_t)method, sizeof(method) - 1, url, url_length,
+      (moonbit_bytes_t)headers, sizeof(headers) - 1, body, body_length,
+      NULL, projection, true, expires_at_milliseconds, true) : 5;
   }
   actql_http_end_request(client);
   return result;

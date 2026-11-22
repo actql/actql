@@ -152,6 +152,17 @@ pub fn Client::start_bearer_post(
 }
 
 ///|
+pub fn Client::start_projected_bearer_post(
+  _self : Client,
+  _url : String,
+  _body : Bytes,
+  _credential : @filesystem.PrivateFileProjection,
+  _expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::poll_bearer_post(
   _self : Client,
   wait_milliseconds? : Int = 0,
