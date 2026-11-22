@@ -38816,7 +38816,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "path": "adapters/host-node/installed-effect-plan-current.test.mts",
                 "anchor": "test('actual public acquired owner refuses a prepared identity replaced by its bound getter'"
               }
             ]

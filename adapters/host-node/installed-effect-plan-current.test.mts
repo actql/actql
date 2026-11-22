@@ -2,70 +2,88 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectManagedPlanRun as prepare, readInstalledEffectManagedPlanRun as read}
   from './installed-effect-managed-run.mjs';
+// @ts-expect-error TS7016: the actual acquired Effect owner is still authored in JavaScript.
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+
+type Options = Parameters<typeof prepare>[0];
+type Run = ReturnType<typeof read>;
+type Mutable<T> = {-readonly [Key in keyof T]: T[Key]};
+type FixtureOptions = Omit<Mutable<Options>, 'runtime'> & {runtime: Mutable<Options['runtime']>};
+type Result = Readonly<{$tag: number; _0: unknown}>;
+type Refusal = Error & {code?: string};
+type BoundaryCustody = Readonly<{close(): unknown; cleanup(): Promise<boolean>; cleanupPending(): boolean}>;
+type Controls = {
+  getters: number; checks: number; quotes: number; selected: number; demands: number;
+  onRead?: (run: Run | undefined) => void;
+  onCurrent?: (run: Run | undefined) => void;
+  returnedPlan: unknown;
+  failBegin: boolean;
+};
 
 // Actual public Node owner with explicit nominal Core/Model/Scope ports.
 // Counts here are getter invocations, not actual Core origin.current calls,
 // Root funding, provider work, physical cleanup or ordinary acceptance.
-const ok = value => ({$tag: 1, _0: value});
-const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
+const ok = (value?: unknown): Result => ({$tag: 1, _0: value});
+const checked = (result: unknown) => {if ((result as Result).$tag !== 1) throw (result as Result)._0; return (result as Result)._0;};
 function fixture(withModel = false) {
   const prepared = {}, request = {}, plan = {}, parent = {}, original = {}, admission = {}, scope = {}, demand = {};
   const model = withModel ? Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}}) : undefined;
   const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {},
     definition: model?.definition ?? {}, modelCompiled: model?.compiled, queryTimePreparation: undefined});
-  const runs = new WeakMap(), liveRuns = new Set(), inputs = Object.freeze({}), sourceProfile = {};
-  const controls = {getters: 0, checks: 0, quotes: 0, selected: 0, demands: 0,
+  const runs: Options['runs'] = new WeakMap(), liveRuns: Options['liveRuns'] = new Set(), inputs = Object.freeze({}), sourceProfile = {};
+  const controls: Controls = {getters: 0, checks: 0, quotes: 0, selected: 0, demands: 0,
     onRead: undefined, onCurrent: undefined, returnedPlan: plan, failBegin: false};
   const runtime = {
     clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {return ok();},
-    clientProgramInstalledManagedRunQuiesce(value) {assert.equal(value, parent); return ok();},
+    clientProgramInstalledManagedRunQuiesce(value: unknown) {assert.equal(value, parent); return ok();},
     clientProgramNodeEffectManagedPlanCleanup() {return ok();},
-    clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
+    clientProgramInstalledEffectManagedOperationPlan(value: unknown, p: unknown, r: unknown) {
       assert.equal(this, runtime); assert.equal(arguments.length, 3);
       assert.equal(value, parent); assert.equal(p, prepared); assert.equal(r, request);
       controls.getters++; controls.onRead?.(runs.get(prepared)); return ok(controls.returnedPlan);
     },
-    clientProgramInstalledEffectModelDemandPrepare(p, compiled, compilation, definition, occurrence, graph) {
-      assert(withModel); assert.equal(p, prepared); assert.equal(compiled, model.compiled);
-      assert.equal(compilation, facts.compilation); assert.equal(definition, model.definition);
-      assert.equal(occurrence, model.occurrence); assert.equal(graph, model.graph);
+    clientProgramInstalledEffectModelDemandPrepare(p: unknown, compiled: unknown, compilation: unknown,
+      definition: unknown, occurrence: unknown, graph: unknown) {
+      assert(withModel); assert.equal(p, prepared); assert.equal(compiled, model!.compiled);
+      assert.equal(compilation, facts.compilation); assert.equal(definition, model!.definition);
+      assert.equal(occurrence, model!.occurrence); assert.equal(graph, model!.graph);
       controls.demands++; return ok(demand);
     },
-    clientProgramInstalledEffectPlanMatchesModelDemand(selected, originalDemand) {
+    clientProgramInstalledEffectPlanMatchesModelDemand(selected: unknown, originalDemand: unknown) {
       assert(withModel); return selected === plan && originalDemand === demand;
     },
     clientProgramFinishInferOriginalReadScope() {return ok(false);},
   };
   const requestInput = {};
   const manager = {
-    adoptEffectModelPreparation(p, actualInput, identity, selected, run) {
+    adoptEffectModelPreparation(p: unknown, actualInput: unknown, identity: unknown, selected: unknown, run: Run) {
       assert.equal(this, manager); assert(withModel); assert.equal(p, prepared);
       assert.equal(actualInput, requestInput); assert.equal(identity, request); assert.equal(selected, plan);
       assert.equal(run, runs.get(prepared)); run.original = original; run.modelScope = scope;
       controls.quotes++; if (controls.failBegin) throw undefined;
       return {original, value: parent, operationPlan: plan};
     },
-    adoptEffectPreparation(p, actualInput, identity, selected) {
+    adoptEffectPreparation(p: unknown, actualInput: unknown, identity: unknown, selected: unknown) {
       assert.equal(this, manager); assert(!withModel); assert.equal(p, prepared);
       assert.equal(actualInput, requestInput); assert.equal(identity, request); assert.equal(selected, plan);
       controls.quotes++;
       if (controls.failBegin) throw undefined;
       return {original, value: parent, operationPlan: plan};
     }};
-  const selection = Object.freeze({prepareManagedPlan(f, actualInputs) {
+  const selection = Object.freeze({prepareManagedPlan(f: Options['facts'], actualInputs: Options['inputs']) {
     assert.equal(this, selection); assert.equal(f, facts);
     if (withModel) assert.equal(actualInputs.modelDemand, demand); else assert.equal(actualInputs, inputs);
     controls.selected++; return plan;
   }});
   const options = {runs, liveRuns, runtime, manager, prepared, request, requestInput, facts, selection, inputs,
     sourceProfile, model, checked, assertCurrent() {controls.onCurrent?.(runs.get(prepared));}};
-  return {options, runs, liveRuns, prepared, request, plan, parent, scope, model, demand, admission, original, controls};
+  // Only the original ports exercised by this fixture are supplied.
+  return {options: options as unknown as FixtureOptions, runs, liveRuns, prepared, request, plan, parent, scope, model, demand, admission, original, controls};
 }
-function thrown(operation) {
+function thrown(operation: () => unknown): unknown {
   let observed = false, result;
   try {operation();} catch (cause) {observed = true; result = cause;}
   assert(observed, 'the original failure must be thrown'); return result;
@@ -92,7 +110,7 @@ test('public Plan getter cannot replace the original tuple or retained Model Sco
       'definitionOriginal', 'manager', 'selection', 'sourceProfile', 'model', 'modelDemand', 'modelScope',
       'modelSelection', 'modelComponent', 'sourceInputs', 'publicationControl', 'modelRunDefinition']) {
       const f = fixture(withModel); prepare(f.options);
-      f.controls.onRead = run => {run[field] = {};};
+      f.controls.onRead = run => {(run as Record<string, unknown>)[field] = {};};
       assert.throws(() => read(f.options), {code: 'ForeignInstalledEffectManagedRun'});
       assert.equal(f.controls.getters, 1); assert.equal(f.controls.checks, 0);
     }
@@ -103,7 +121,7 @@ test('public Plan getter retains every recorded primary before secondary shape o
   for (const primary of [new Error('OriginalGetterFailure'), undefined, false, 0]) {
     for (const withModel of [false, true]) {
       const f = fixture(withModel); prepare(f.options); let returned = false;
-      f.controls.onRead = run => {run.failure = primary; returned = true;};
+      f.controls.onRead = run => {run!.failure = primary; returned = true;};
       f.controls.returnedPlan = {};
       f.controls.onCurrent = () => {if (returned) throw new Error('SecondaryCurrent');};
       assert.equal(thrown(() => read(f.options)), primary);
@@ -116,7 +134,7 @@ test('public partial Record and Model Begin retains an undefined primary without
   for (const withModel of [false, true]) {
     const f = fixture(withModel); f.controls.failBegin = true;
     assert.equal(thrown(() => prepare(f.options)), undefined);
-    const run = f.runs.get(f.prepared);
+    const run = f.runs.get(f.prepared)!;
     assert.equal(run.original, withModel ? f.original : undefined);
     assert.equal(run.admission, undefined);
     assert.equal(run.modelScope, withModel ? f.scope : undefined);
@@ -133,10 +151,10 @@ test('public Plan post-current fence retains same-parent retirement and Model as
     f.controls.onRead = () => {returned = true;};
     f.controls.onCurrent = run => {
       if (!returned) return;
-      if (action === 'closed') run.closed = true;
+      if (action === 'closed') run!.closed = true;
       if (action === 'map') f.runs.delete(f.prepared);
-      if (action === 'set') f.liveRuns.delete(run);
-      if (action === 'modelScope') run.modelScope = {};
+      if (action === 'set') f.liveRuns.delete(run!);
+      if (action === 'modelScope') run!.modelScope = {};
     };
     assert.throws(() => read(f.options), {code: 'ForeignInstalledEffectManagedRun'});
     assert.equal(f.controls.getters, 1); assert.equal(f.controls.checks, 0);
@@ -145,13 +163,13 @@ test('public Plan post-current fence retains same-parent retirement and Model as
 
 // Stop after the actual acquired owner's first bound getter. No Source open,
 // provider/Content construction or Compute is manufactured by this fixture.
-async function acquiredBoundary(change) {
+async function acquiredBoundary(change: boolean) {
   const prepared = {}, request = {}, parent = {}, plan = {}, acquired = {prepared, requestIdentity: request};
   const primary = new Error('post-getter outer current');
-  let returned = false, getters = 0, checks = 0, custody;
+  let returned = false, getters = 0, checks = 0, custody: BoundaryCustody | undefined;
   const moon = {clientProgramEffectAcquisitionCount: () => 0,
     clientProgramEffectSerializationOccurrences: () => [{}],
-    clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
+    clientProgramInstalledEffectManagedOperationPlan(value: unknown, p: unknown, r: unknown) {
       assert.equal(this, moon); assert.equal(arguments.length, 3);
       assert.equal(value, parent); assert.equal(p, prepared); assert.equal(r, request);
       getters++; returned = true; if (change) acquired.prepared = {}; return ok(plan);
@@ -159,12 +177,12 @@ async function acquiredBoundary(change) {
     clientProgramInstalledEffectManagedHostOpen() {assert.fail('no Compute after boundary refusal');},
   };
   await assert.rejects(openAcquiredEffectComputation({moon, acquired, managedRun: parent,
-    retainComputationOwner(value) {custody = value;},
+    retainComputationOwner(value: BoundaryCustody) {custody = value;},
     assertContinuationCurrent() {if (returned && !change) throw primary;},
-  }), cause => change ? cause.code === 'ForeignInstalledEffectManagedRun' : cause === primary);
+  }), (cause: unknown) => change ? (cause as Refusal).code === 'ForeignInstalledEffectManagedRun' : cause === primary);
   assert.equal(getters, 1); assert.equal(checks, 0);
-  assert.equal(custody.cleanupPending(), true);
-  await custody.close(); assert.equal(await custody.cleanup(), true);
+  assert.equal(custody!.cleanupPending(), true);
+  await custody!.close(); assert.equal(await custody!.cleanup(), true);
 }
 
 test('actual public acquired owner uses one bound getter before its next original current boundary', async () => {
@@ -180,11 +198,11 @@ test('original Effect control debit follows Request adoption once before a consu
     const f=fixture(withModel);let debits=0;
     f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=function(owner,prepared,request,plan){
       assert.equal(this,f.options.runtime);assert.equal(owner,f.parent);assert.equal(prepared,f.prepared);assert.equal(request,f.request);assert.equal(plan,f.plan);
-      assert.equal(f.runs.get(f.prepared).value,f.parent);assert.equal(f.controls.quotes,1);debits++;return ok(plan);
+      assert.equal(f.runs.get(f.prepared)!.value,f.parent);assert.equal(f.controls.quotes,1);debits++;return ok(plan);
     };
     f.controls.onRead=()=>assert.equal(debits,1);
     assert.equal(prepare(f.options),f.parent);assert.equal(prepare(f.options),f.parent);read(f.options);
-    assert.equal(debits,1);assert.equal(f.runs.get(f.prepared).operationsBegun,true);
+    assert.equal(debits,1);assert.equal(f.runs.get(f.prepared)!.operationsBegun,true);
   }
 });
 
@@ -193,7 +211,7 @@ test('failed original Effect control debit remains attached to its same adopted 
     const f=fixture();let debits=0;
     f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{debits++;throw failure;};
     assert.equal(thrown(()=>prepare(f.options)),failure);
-    const original=f.runs.get(f.prepared);
+    const original=f.runs.get(f.prepared)!;
     assert.equal(original.value,f.parent);assert.equal(original.operationsBegun,false);assert.equal(original.failure,failure);
     assert.equal(thrown(()=>prepare(f.options)),failure);assert.equal(thrown(()=>read(f.options)),failure);
     assert.equal(debits,1);assert.equal(f.controls.quotes,1);assert.equal(f.controls.selected,1);
@@ -203,7 +221,7 @@ test('failed original Effect control debit remains attached to its same adopted 
 test('control Begin preserves a recorded primary before its secondary native refusal',()=>{
   for(const primary of [undefined,false,new Error('original current failure')]){
     const f=fixture(),secondary=new Error('secondary native refusal');
-    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{f.runs.get(f.prepared).failure=primary;return {$tag:0,_0:secondary};};
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{f.runs.get(f.prepared)!.failure=primary;return {$tag:0,_0:secondary};};
     assert.equal(thrown(()=>prepare(f.options)),primary);
     assert.equal(thrown(()=>read(f.options)),primary);
     assert.equal(f.controls.quotes,1);
@@ -229,8 +247,8 @@ test('initial Effect controls refuse a Unit or foreign returned Plan on the same
   for(const returned of [undefined,{},null]){
     const f=fixture();let calls=0;
     f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{calls++;return ok(returned);};
-    const cause=thrown(()=>prepare(f.options));assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
-    assert.equal(f.runs.get(f.prepared).value,f.parent);assert.equal(f.controls.getters,0);
+    const cause=thrown(()=>prepare(f.options));assert.equal((cause as Refusal).code,'ForeignInstalledEffectManagedRun');
+    assert.equal(f.runs.get(f.prepared)!.value,f.parent);assert.equal(f.controls.getters,0);
     assert.equal(thrown(()=>prepare(f.options)),cause);assert.equal(calls,1);
   }
 });
@@ -238,13 +256,13 @@ test('initial Effect controls refuse a Unit or foreign returned Plan on the same
 
 test('initial Effect facts must be the actual frozen own DATA shape before native entry',()=>{
   for(const kind of ['mutable','accessor','proxy','missing']){
-    const f=fixture();let getters=0,begins=0;const copy={...f.options.facts};let facts;
+    const f=fixture();let getters=0,begins=0;const copy={...f.options.facts};let facts: Options['facts'] | undefined;
     if(kind==='mutable')facts=copy;
     if(kind==='accessor'){Object.defineProperty(copy,'prepared',{get(){getters++;return f.prepared;},enumerable:true});facts=Object.freeze(copy);}
     if(kind==='proxy')facts=new Proxy(f.options.facts,{get(){getters++;throw new Error('No proxy operation');}});
     if(kind==='missing'){delete copy.queryTimePreparation;facts=Object.freeze(copy);}
-    f.options.facts=facts;f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{begins++;return ok(f.plan);};
-    const cause=thrown(()=>prepare(f.options));assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
+    f.options.facts=facts!;f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{begins++;return ok(f.plan);};
+    const cause=thrown(()=>prepare(f.options));assert.equal((cause as Refusal).code,'ForeignInstalledEffectManagedRun');
     assert.equal(thrown(()=>prepare(f.options)),cause);assert.equal(getters,0);assert.equal(begins,0);
     assert.equal(f.controls.selected,0);assert.equal(f.controls.quotes,0);
   }
@@ -255,22 +273,22 @@ test('initial Effect Plan result preserves original primary and Model post-callb
     'manager','selection','sourceProfile','model','modelDemand','modelScope','admission','original','requestInput','closed','map','set']){
     const f=fixture(true);
     f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{
-      const run=f.runs.get(f.prepared);
+      const run=f.runs.get(f.prepared)!;
       if(field==='map')f.runs.delete(f.prepared);else if(field==='set')f.liveRuns.delete(run);
-      else run[field]=field==='closed'?true:{};
+      else (run as Record<string, unknown>)[field]=field==='closed'?true:{};
       return ok(f.plan);
     };
     assert.throws(()=>prepare(f.options),{code:'ForeignInstalledEffectManagedRun'});assert.equal(f.controls.getters,0);
   }
   for(const primary of [undefined,false,new Error('Original controls primary')]){
     const f=fixture(true);f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{
-      f.runs.get(f.prepared).failure=primary;return ok({});
+      f.runs.get(f.prepared)!.failure=primary;return ok({});
     };
     assert.equal(thrown(()=>prepare(f.options)),primary);assert.equal(thrown(()=>read(f.options)),primary);
     assert.equal(f.controls.getters,0);
   }
   const f=fixture(true);let begun=false;
   f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{begun=true;return ok(f.plan);};
-  f.controls.onCurrent=run=>{if(begun)run.modelScope={};};
+  f.controls.onCurrent=run=>{if(begun)run!.modelScope={};};
   assert.throws(()=>prepare(f.options),{code:'ForeignInstalledEffectManagedRun'});assert.equal(f.controls.getters,0);
 });

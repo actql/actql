@@ -134182,11 +134182,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "path": "adapters/host-node/installed-effect-plan-current.test.mts",
                 "anchor": "test('public Record and Model Plan readers use one exact bound getter and no preceding check'"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "path": "adapters/host-node/installed-effect-plan-current.test.mts",
                 "anchor": "test('public Plan getter cannot replace the original tuple or retained Model Scope'"
               }
             ]
@@ -134275,7 +134275,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "path": "adapters/host-node/installed-effect-plan-current.test.mts",
                 "anchor": "initial Effect controls return the same original Plan without another getter; later reads stay current"
               }
             ]
