@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parse} from 'acorn';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
 import * as githubComment from '../connectors/github/site/github-comment-create.mjs';
@@ -874,26 +875,55 @@ test('actual Sheets constructor binding forwards the original opaque profile wit
   assert.equal(getters,0);
 });
 
-test('actual automatic CREATE factory forwards the same earlier proposal bounds separately from Preview', () => {
-  const found=[];
-  const walk=node=>{
-    if(!node||typeof node!=='object')return;
-    if(node.type==='VariableDeclarator'&&node.id.name==='planRecipe')found.push(node.init);
-    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else walk(value);
+test('actual automatic CREATE factory forwards the same earlier proposal bounds separately from Preview', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-standard-create-geometry-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const keyPath = join(root, 'issuer.pem');
+  const {privateKey} = generateKeyPairSync('ed25519');
+  await writeFile(keyPath, privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600});
+  const unexpected = () => assert.fail('Constructor must not acquire authorization, read credentials or send');
+  const proposal = [100000, 10000, 16], preview = [1000000, 100000, 64];
+  const profile = Object.freeze({}), calls = [];
+  const providerMoon = {installedStandardCreateConstructionProfile(...geometry) {
+    assert.strictEqual(this, providerMoon); assert.deepEqual(geometry, proposal);
+    calls.push('provider-profile'); return profile;
+  }};
+  const quote = () => ({$tag: 1, _0: {}});
+  const moon = {
+    strategyRemoteManagedOutputEvidenceKind: () => 'unused-kind',
+    clientProgramInstalledStandardCreateRequestRecipeCapacities(original, ...geometry) {
+      assert.strictEqual(this, moon); assert.strictEqual(original, profile);
+      assert.deepEqual(geometry.slice(0, 6), [...preview, ...proposal]);
+      calls.push('create-capacity'); return {$tag: 1, _0: Array.from({length: 5}, () => ({}))};
+    },
+    clientProgramInstalledDescribedEffectInputRecipeCapacities: unexpected,
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare: quote,
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare: quote,
   };
-  walk(rowTree);assert.equal(found.length,1);
-  const node=found[0],moon={},providerMoon={},construction={},credential={},credentialSite={},selected={};
-  const limits={preview:{maxWireBytes:1000000,maxNodes:100000,maxDepth:64},body:{maxBytes:100000,maxNodes:10000,maxDepth:16}};
-  const choose=Function('automatic','prepareInstalledStandardCreatePlanRecipe','moon','providerMoon','construction',
-    'installedRowCredentialOperationSite','site','limits','resourceTextUnits','suppliedRecipe',`return (${rowSource.slice(node.start,node.end)});`);
-  const result=choose(true,options=>{
-    assert.equal(options.moon,moon);assert.equal(options.providerMoon,providerMoon);assert.equal(options.construction,construction);
-    assert.equal(options.credentialSite,credentialSite);assert.equal(options.limits,limits.preview);
-    assert.deepEqual(options.requestInput,{maxWireBytes:100000,maxNodes:10000,maxDepth:16});assert(Object.isFrozen(options.requestInput));
-    return selected;
-  },moon,providerMoon,construction,original=>{assert.equal(original,credential);return credentialSite;},
-  {credential},limits,7,undefined);
-  assert.equal(result,selected);
+  const authorization = {authorize: unexpected};
+  const site = await openRowSourceCredentialSite({
+    profile: Object.freeze({credentialPrivateKeyPath: keyPath, credentialAuthorityId: 'issuer',
+      credentialKeyId: 'fixture-key', journalRoot: join(root, 'journal'), resourceOrigin: origin,
+      namespaceId: 'namespace', environment: 'test', siteKey: 'fixture-site', siteGeneration: 1}),
+    principalId: 'principal', authorization, connection: 'original', connectorRegistration: 'fixture',
+    connectorRevision: 'fixture/0.1', runtimeBundleCid: providerCid, commonMoon: moon,
+    resolveSecret: unexpected, admitsApprovalTarget: unexpected, runAcquisitionLimits: {maxBindings: 1, maxSecretBytes: 16},
+  });
+  let effect;
+  try {
+    effect = await createInstalledRowEffect({moon, providerMoon, site, authorization,
+      mappings: [{resource: 'records', mappingRef: 'mapping:fixture/create.v1', mappingCid: providerCid,
+        body: JSON.stringify({mapping_contract_cid: providerCid, target_ref: 'connector://fixture/records',
+          minimum_approval: 'required', permission_rules: [{effect_kind: 'create', permissions: ['write']}]})}],
+      environmentWire: '{}', connectorId: 'fixture', connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+      connection: 'original', runtimeBundleCid: providerCid, bindingCid: boundaryCid, ledgerRoot: join(root, 'ledger'),
+      write: declaration({request: unexpected, classify: unexpected}),
+      limits: {preview: {maxWireBytes: preview[0], maxNodes: preview[1], maxDepth: preview[2]},
+        body: {maxBytes: proposal[0], maxNodes: proposal[1], maxDepth: proposal[2]}}});
+    assert.deepEqual(calls, ['provider-profile', 'create-capacity']);
+  } finally {
+    await (effect === undefined ? site.close() : effect.close());
+  }
 });
 
 function selectedSheetsInitialization(ports, name = 'load') {

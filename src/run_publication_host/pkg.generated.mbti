@@ -1913,6 +1913,8 @@ pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, Clie
 
 pub fn[E] inspect_client_cancellation_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientCancellationRunJournalInspection, E], E) -> Result[(Int, Int64), E]
 
+pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[ClientCancellationRunJournalInspection, E], E) -> Result[(Int, Int64), E]
+
 pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
 
 pub fn inspect_client_named_submitted_original(ClientSubmittedNameKey, String, ClientSubmittedIntent, ClientSubmittedNameBinding, ClientSubmissionReferenceRecord?, ClientSubmittedIntent?) -> Result[ClientSubmissionReferenceRecord, ClientSubmittedNameIssue]

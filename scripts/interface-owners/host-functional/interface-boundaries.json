@@ -1404,14 +1404,41 @@
     {
       "module": "adapters/host-common/checkpoint-approval.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a140ed7ef49554eda56412cd239e02b64274fcc36362fe629fdcc3b6f7c97566",
+      "sha256": "a63bc8c864424b94da713d47c92a51ca385b0852c22e65cd529dfd7992bf0432",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
+        "admitCheckpointPhysicalRead",
         "checkpointApprovalFacts",
         "recordCheckpointApproval"
       ],
       "operations": [
+        {
+          "name": "admitCheckpointPhysicalRead",
+          "parameters": [
+            "decision",
+            "expected",
+            "operation",
+            "admit",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched/matched",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
         {
           "name": "checkpointApprovalFacts",
           "parameters": [
@@ -1431,10 +1458,14 @@
       "contracts": [
         {
           "operations": [
+            "admitCheckpointPhysicalRead",
+            "admitCheckpointPhysicalRead/matched/matched",
+            "admitCheckpointPhysicalRead/matched/matched/matched",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
           "exports": [
+            "admitCheckpointPhysicalRead",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
@@ -1479,6 +1510,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "anchor": "return admit(decision, matched, operation);"
               }
             ],
             "ownership": [
@@ -1573,6 +1608,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
+                "anchor": "test('kintone driver delegates only the actual matching original Checkpoint physical binding'"
               }
             ]
           }
@@ -1723,7 +1762,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "../../packages/sdk/host-port.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -5907,7 +5948,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9bafc3a2dafd66a446cc6bf9f1f5e77dfc80160ea869208c4e215df90e96c6e3",
+      "sha256": "ed87a5341bfd81d029006d57453ff1a75e9da3acbca17814cba67b88c19ff65b",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -6006,7 +6047,8 @@
           "parameters": [
             "path",
             "query",
-            "maxQueryBytes"
+            "maxQueryBytes",
+            "maxTargetBytes"
           ],
           "async": false
         },
@@ -7345,6 +7387,216 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-common/installed-row-update-recovery.mjs",
+      "sha256": "897c802a4b037d029e970791b177483028045c4e146508d8956e6d667666f6bf",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Row Effect saved update member selection",
+      "referenceQualification": "Source and retained-codec component references for exact original member selection",
+      "exports": [
+        "assertInstalledRowUpdateClaim",
+        "installedRowUpdateRequestWires",
+        "packInstalledRowUpdateRecovery",
+        "restoreInstalledRowUpdateMembers",
+        "unpackInstalledRowUpdateRecovery"
+      ],
+      "operations": [
+        {
+          "name": "assertInstalledRowUpdateClaim",
+          "parameters": [
+            "rebuilt",
+            "facts",
+            "claims",
+            "changes",
+            "row",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires",
+          "parameters": [
+            "entries",
+            "maxRows",
+            "requests",
+            "invalidCode",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "packInstalledRowUpdateRecovery",
+          "parameters": [
+            "kind",
+            "recovery",
+            "maxRecoveryBytes",
+            "limitCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "context",
+            "maxMembers",
+            "invalidCode",
+            "restoreMember"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "index",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "unpackInstalledRowUpdateRecovery",
+          "parameters": [
+            "saved",
+            "kind",
+            "maxRecoveryBytes",
+            "changes",
+            "claims",
+            "maxRows",
+            "invalidCode"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertInstalledRowUpdateClaim",
+            "installedRowUpdateRequestWires",
+            "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
+            "restoreInstalledRowUpdateMembers",
+            "restoreInstalledRowUpdateMembers/indexes/indexes",
+            "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
+          ],
+          "exports": [
+            "assertInstalledRowUpdateClaim",
+            "installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
+            "restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "export function restoreInstalledRowUpdateMembers("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const {durable, recorded, members, memberIndexes} = context;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "byIndex.has(entry.memberIndex)) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "rebuilt.requestCid !== claims[row].canonicalRequestCid"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "wireCid(saved.wire) !== saved.observationCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "index <= indexes[offset - 1])) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "encode(facts.target) !== encode(changes[row].target_row_identity)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const requests = new Array(indexes.length);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Buffer.byteLength(wire) > maxRecoveryBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery retains original global indexes"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
+                "anchor": "test('HubSpot cold row driver refuses changed approved value target dispatch binding and claim rather than sending'"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery keeps the exact bounded provider wire"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-common/managed-failure.mjs",

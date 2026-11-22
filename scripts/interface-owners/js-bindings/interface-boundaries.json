@@ -83787,7 +83787,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "36ee7b6fd2d4600428fa0a2fbbc4c4f6bf44ca06975fc177f2bb8075baeb1dac",
+      "sha256": "02a17135229e6ab80e6908261ffeccbe964b96334a1ba623f9156006d93074df",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84727,7 +84727,8 @@
             "input",
             "rowIndex",
             "slot",
-            "project"
+            "project",
+            "prepareOperations"
           ],
           "async": false
         },
@@ -84763,6 +84764,13 @@
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
+          "parameters": [
+            "readTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observeRows#2",
           "parameters": [
             "row",
             "index"
@@ -87459,6 +87467,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",

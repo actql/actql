@@ -17,6 +17,11 @@ export function hubSpotEffectPlanFixture() {
     },
     clientProgramInstalledOpaqueBoundaryFootprintCapacity(origin, account, units) {return freeze({opaqueBoundary: true, origin, account, units});},
     clientProgramInstalledEffectControlWireBound() {return ok(4096);},
+    clientProgramInstalledSourceConstructionCapacity(...counts) {return ok(freeze({counts}));},
+    clientProgramComposeInstalledSourceConstructionCapacity(original, targets) {
+      assert.equal(targets.length, 1);
+      return ok(freeze({original, target: targets[0]}));
+    },
     clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare(original, remaining) {
       return ok(freeze({...original, discardedProjection:remaining}));
     },

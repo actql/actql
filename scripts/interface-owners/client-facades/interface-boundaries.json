@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "434c8ec9b2b6cd0029ad5b926480226b7ad45031774d66de3a966e6f550d2fa5",
+      "sha256": "7963ea8cddad403ca2b87ea9c96460de96faf6a680a96fa3058cdec369046596",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -62,6 +62,10 @@
         "RowEffectRequestChild",
         "RowEffectRequestFacts",
         "RowEffectTargetObservation",
+        "RowEffectUpdateConstructionProvider",
+        "RowEffectUpdateRequest",
+        "RowEffectUpdateTransportBounds",
+        "RowEffectUpdateWrite",
         "RowEffectValue",
         "RowEffectValueKind",
         "RowEffectWriteHttp",
@@ -599,6 +603,85 @@
           "result": "Readonly<{pending: boolean}>"
         },
         {
+          "name": "RowEffectUpdateConstructionProvider/installedDeclaredUpdateCaptureConstructionProfile",
+          "parameters": [
+            "previewBytes: number",
+            "previewNodes: number",
+            "previewDepth: number",
+            "rowBytes: number",
+            "rowNodes: number",
+            "rowDepth: number"
+          ],
+          "result": "object"
+        },
+        {
+          "name": "RowEffectUpdateConstructionProvider/installedDeclaredUpdateConstructionProfile",
+          "parameters": [
+            "previewBytes: number",
+            "previewNodes: number",
+            "previewDepth: number",
+            "rowBytes: number",
+            "rowNodes: number",
+            "rowDepth: number"
+          ],
+          "result": "object"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    entries: readonly RowEffectEntry<Request, 'update'>[]; current: Current | undefined;\n    /** If present, query and header arrays and their pairs must be frozen\n     * so the original physical child can encode the same DATA after acquire. */\n    readTarget<T extends RowEffectTargetObservation<'update'>>(rowIndex: number,\n      request: RowEffectUpdateRequest<'GET' | 'POST'>,\n      project: (originalResponse: CredentialResponse) => T, assertCurrent: () => Awaitable<void>):\n      Promise<T>;\n    signal?: AbortSignal}>"
+          ],
+          "result": "Awaitable<readonly RowEffectTargetObservation<'update'>[]>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget",
+          "parameters": [
+            "rowIndex: number",
+            "request: RowEffectUpdateRequest<'GET' | 'POST'>",
+            "project: (originalResponse: CredentialResponse) => T",
+            "assertCurrent: () => Awaitable<void>"
+          ],
+          "result": "Promise<T>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget/<call>",
+          "parameters": [
+            "originalResponse: CredentialResponse"
+          ],
+          "result": "T"
+        },
+        {
+          "name": "RowEffectUpdateWrite/observeTargets/readTarget/<call>#2",
+          "parameters": [],
+          "result": "Awaitable<void>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/prepareUpdateWrite",
+          "parameters": [
+            "member: RowEffectMember<'update'>",
+            "request: Request",
+            "current: Current | undefined",
+            "resourceOrigin: string",
+            "connectorRegistration: string",
+            "signal?: AbortSignal"
+          ],
+          "result": "Readonly<RowEffectUpdateRequest & {body: string; responseHeaders?: readonly string[]}>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/recoveryEntry",
+          "parameters": [
+            "options: Readonly<{member: RowEffectMember<'update'>;\n    current: Current | undefined; entries: readonly RowEffectEntry<Request, 'update'>[]}>"
+          ],
+          "result": "Readonly<{kind: string; observationCid: string; wire: string}>"
+        },
+        {
+          "name": "RowEffectUpdateWrite/requestCid",
+          "parameters": [
+            "request: Request"
+          ],
+          "result": "string"
+        },
+        {
           "name": "RowPageRequest/authorizationFor",
           "parameters": [
             "index: number"
@@ -674,7 +757,8 @@
             "declaration: ConnectorRuntimeHandle",
             "writesJson: string",
             "resource: string",
-            "sources: readonly RowMappingSource[]"
+            "sources: readonly RowMappingSource[]",
+            "operation?: 'create' | 'update'"
           ],
           "result": "RowSourceMapping"
         }
@@ -767,7 +851,16 @@
             "RowEffectCreateWrite/project#2",
             "RowEffectCreateWrite/request",
             "RowEffectCreateWrite/request#2",
-            "RowEffectCreateWrite/restore"
+            "RowEffectCreateWrite/restore",
+            "RowEffectUpdateWrite/observeTargets",
+            "RowEffectUpdateWrite/observeTargets/readTarget",
+            "RowEffectUpdateWrite/observeTargets/readTarget/<call>",
+            "RowEffectUpdateWrite/observeTargets/readTarget/<call>#2",
+            "RowEffectUpdateWrite/prepareUpdateWrite",
+            "RowEffectUpdateWrite/recoveryEntry",
+            "RowEffectUpdateWrite/requestCid",
+            "RowEffectUpdateConstructionProvider/installedDeclaredUpdateCaptureConstructionProfile",
+            "RowEffectUpdateConstructionProvider/installedDeclaredUpdateConstructionProfile"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -843,7 +936,11 @@
             "RowEffectCreateWrite",
             "RowEffectWriteHttp",
             "RowEffectWriteInput",
-            "RowEffectWriteObservation"
+            "RowEffectWriteObservation",
+            "RowEffectUpdateRequest",
+            "RowEffectUpdateWrite",
+            "RowEffectUpdateConstructionProvider",
+            "RowEffectUpdateTransportBounds"
           ],
           "attributes": {
             "responsibility": [
@@ -4659,7 +4756,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15e31dfda636cdfd72af9830d64b847390aee284e5d7953b559978959ef51901",
+      "sha256": "f5a35020b9fa6a256c57413e3b2928c273ce3b648a32e8673e0b4f181fabcaa8",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -15519,7 +15616,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "81ced88517b5078c1d36616beda88211f435c3e4119cb21364aaab2694ab3c96",
+      "sha256": "2ae87f2ac380352b36265a8d7476ebf622dc07ebcd37d986000a10fe8707e51c",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
@@ -15643,6 +15740,13 @@
           "parameters": [
             "key",
             "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "encodeSignerSignature",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -15776,6 +15880,7 @@
             "document/document",
             "document/document/document",
             "document/document#2",
+            "encodeSignerSignature",
             "sameConstant/sameConstant",
             "sameConstant/sameConstant#2",
             "shape/shape",

@@ -56,3 +56,34 @@ test('canonical original identities stay exact while display text does not enter
   assert.deepEqual(displayed, original);
   assert.equal(after.length, 2);
 });
+
+test('signer byte capacity and encoding use the original typed array storage', async () => {
+  const tooLong = new Uint8Array(65);
+  Object.defineProperty(tooLong, 'byteLength', {value: 64});
+  tooLong[Symbol.iterator] = () => new Uint8Array(64).values();
+  const signer = sign => ({keyId: 'fixture-key', reviewerId: 'fixture-reviewer', sign});
+  await assert.rejects(signedAnswer(summary, 'rejected', signer(() => tooLong), decidedAt),
+    {message: 'InvalidCheckpointSignature'});
+
+  const exact = new Uint8Array(64);
+  exact[Symbol.iterator] = () => assert.fail('Use the original byte storage');
+  const fromBytes = await signedAnswer(summary, 'rejected', signer(() => exact), decidedAt);
+  const fromText = await signedAnswer(summary, 'rejected',
+    signer(() => 'A'.repeat(86) + '=='), decidedAt);
+  assert.deepEqual(fromBytes, fromText);
+});
+
+test('unsupported signer output refuses without consulting its prototype', async () => {
+  let prototypeReads = 0;
+  const unsupported = new Proxy(new Uint8Array(64), {
+    getPrototypeOf() {
+      prototypeReads++;
+      throw new Error('External signer output prototype');
+    },
+  });
+  const signer = {keyId: 'fixture-key', reviewerId: 'fixture-reviewer',
+    sign: () => unsupported};
+  await assert.rejects(signedAnswer(summary, 'rejected', signer, decidedAt),
+    {message: 'InvalidCheckpointSignature'});
+  assert.equal(prototypeReads, 0);
+});

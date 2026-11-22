@@ -1,5 +1,4 @@
 """Existing Checkpoint artifact preimages, signed by an application callback."""
-import base64
 from dataclasses import dataclass
 import inspect
 import re
@@ -34,22 +33,10 @@ async def _signature(signer, cid):
     signed = signer.sign(cid.encode('utf-8'))
     if inspect.isawaitable(signed):
         signed = await signed
-    if type(signed) is str:
-        if len(signed) != 88:
-            raise ClientError('InvalidCheckpointSignature')
-        try:
-            raw = base64.b64decode(signed, validate=True)
-        except ValueError:
-            raise ClientError('InvalidCheckpointSignature') from None
-        if base64.b64encode(raw).decode('ascii') != signed:
-            raise ClientError('InvalidCheckpointSignature')
-    elif type(signed) is bytes:
-        raw = signed
-    else:
-        raise ClientError('InvalidCheckpointSignature')
-    if len(raw) != 64:
-        raise ClientError('InvalidCheckpointSignature')
-    return base64.b64encode(raw).decode('ascii')
+    try:
+        return _ANSWER_CODEC.encode_signer_signature(signed)
+    except CheckpointCandidateError:
+        raise ClientError('InvalidCheckpointSignature') from None
 
 
 def review_bytes_match_cid(raw, cid):

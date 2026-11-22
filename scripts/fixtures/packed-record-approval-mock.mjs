@@ -5,9 +5,10 @@ import test from 'node:test';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {mkdir, mkdtemp, readFile, writeFile, lstat, unlink} from 'node:fs/promises';
-import {join, dirname} from 'node:path';
+import {join, dirname, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {sharedRecordUpdateSelections, recordUpdateFixtureState} from './record-approval/cases.mjs';
+import {readAuthoredCase} from './record-approval/command.mjs';
 
 const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR;
 const variant = process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined;
@@ -20,6 +21,18 @@ const safe = error => ({name: error?.name, code: error?.code, message: error?.me
 test(`ordinary installed ${connector} mock reviews, explicitly approves and reads original Saved first`,
   {timeout: 100000}, async t => {
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
+  const removePrograms = process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1';
+  const input = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
+  const supportsAuthored = connector !== 'salesforce' && variant === undefined && !removePrograms;
+  let authored;
+  if (input !== undefined) {
+    assert(isAbsolute(input) && supportsAuthored, 'Select one supported authored mock case');
+  }
+  if (supportsAuthored) {
+    const caseFile = input ?? fileURLToPath(new URL(`./${connector}-approval/case.json`, import.meta.url));
+    authored = await readAuthoredCase(caseFile);
+    assert(authored.fixture !== undefined, 'An authored mock case requires a seed and state oracle');
+  }
   const parent = join(process.cwd(), connector + '-mock-original-roots');
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'approval-'));
@@ -32,8 +45,8 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
     : sharedRecordUpdateSelections[connector]),
     ...(variant === undefined ? {} : {variant})};
   const fixture = variant === 'binary-source' ? 'binary-source-mock-project.mjs' : 'mock-project.mjs';
-  const {mockProjectFiles} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url));
-  const files = mockProjectFiles(selection);
+  const {mockProjectFiles, mockProjectFilesFromSeed} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url));
+  const files = authored === undefined ? mockProjectFiles(selection) : mockProjectFilesFromSeed(authored.fixture.seed);
   for (const [name, body] of Object.entries(files)) {
     const path = join(project, name); await mkdir(dirname(path), {recursive: true});
     await writeFile(path, body, privateFile);
@@ -41,21 +54,29 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   const initial = JSON.parse(files['mock/data.json']), changed = structuredClone(initial);
   const [resource, idField, field] = {salesforce: ['Account', 'Id', 'Name'], hubspot: ['companies', 'id', 'name'],
     kintone: ['inquiries', '$id', 'Subject']}[connector];
-  changed[connector][resource].rows[0][field] = selection.nextName;
-  if (connector !== 'salesforce' && variant === undefined) {
-    const expected = recordUpdateFixtureState(selection);
+  if (authored !== undefined || connector !== 'salesforce' && variant === undefined) {
+    const expected = authored?.fixture.expected ?? recordUpdateFixtureState(selection);
     const rows = state => [state.target, state.control].map(value => ({[idField]: value.id, [field]: value.name}));
+    assert.deepEqual(expected.after.control, expected.before.control, 'The mock control row remains unchanged');
+    assert.equal(expected.after.target.id, expected.before.target.id);
     assert.deepEqual(initial[connector][resource].rows, rows(expected.before));
-    assert.deepEqual(changed[connector][resource].rows, rows(expected.after));
-  }
+    changed[connector][resource].rows = rows(expected.after);
+  } else changed[connector][resource].rows[0][field] = selection.nextName;
   const configuration = join(root, 'configuration.json'), prefix = join(root, 'receipt');
-  await writeFile(configuration, JSON.stringify({selection,
+  const casePath = 'case.json';
+  if (authored !== undefined) {
+    // Copy the business case and leave HTTP protocol inputs with the provider.
+    const {seed, expected} = authored.fixture;
+    await writeFile(join(root, casePath), JSON.stringify({...authored, fixture: {seed, expected}}), privateFile);
+  }
+  await writeFile(configuration, JSON.stringify({...(authored === undefined ? {selection} : {casePath}),
     connect: {mode: 'local', profile: 'mock', installation: {directory: state}}}), privateFile);
   const env = {...process.env, HOME: home, NODE_OPTIONS: '', NODE_PATH: ''};
   for (const name of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[name];
+  delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
+  delete env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA;
   let failed = false, primary;
   const phases = [];
-  const removePrograms = process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1';
   const programs = removePrograms ? await Promise.all(['update', 'read'].map(async name => {
     const path = fileURLToPath(new URL(`./${connector}-approval/${name}.aql`, import.meta.url));
     const info = await lstat(path); assert(info.isFile() && info.nlink === 1);
@@ -119,6 +140,7 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   } catch (error) {failed = true; primary = error;}
   finally {
     await writeFile(join(root, 'summary.json'), JSON.stringify({connector, passed: !failed, phases,
+      ...(authored === undefined ? {} : {authoredCase: authored.name}),
       qualification: 'Declared mock ordinary public consumer only; not provider authentication or installed Effect acceptance',
       publicFailure: failed ? safe(primary) : null}, null, 2) + '\n', privateFile);
   }

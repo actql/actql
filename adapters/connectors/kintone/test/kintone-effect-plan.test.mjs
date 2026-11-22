@@ -11,7 +11,7 @@ function fixture() {
   const f = nativeFixture(), moon = f.moon;
   const prepare = captureKintoneEffectPlanRecipeBuilder({moon});
   const options = {mapping: f.options.mapping, fields: Object.freeze(['Computed', 'Subject', 'Tags']),
-    formResource: 'inquiries-form', bindingUnits: 1000,
+    formResource: 'inquiries-form', bindingUnits: 1000, maxTargetBytes: '/k/guest/12/v1/records.json'.length,
     credentialSite: {construction: {scope: {connectorRegistration: 'kintone', resourceOrigin: f.options.origin},
       issuer: {keyId: 'component'}, limits: {maxSecretBytes: 256}}}, limits: Object.freeze({...policy}),
     inputLimits: {body: {maxBytes: 2048, maxNodes: 8000, maxDepth: 32},
@@ -42,6 +42,7 @@ test('kintone recipe constructs thirteen distinct original physical slots in the
   }
   const write = selectInstalledEffectCredentialOperation(plan, 'write', undefined);
   assert.equal(plan.rowOperations[write.operationIndex].operation, 'kintone:records:update');
+  assert.equal(write.maxTargetBytes, '/k/guest/12/v1/records.json'.length);
   assert.notEqual(plan.requestConstruction.operationIndex, plan.requestFinalization.operationIndex);
   assert.equal(f.f.calls.clientProgramKintoneUpdateRecipeCapacities > 0, true);
 });
