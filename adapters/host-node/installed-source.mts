@@ -1,10 +1,7 @@
-import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
-import {installedCanonicalTextConstructionShape} from './installed-check-environment-construction.mjs';
 import {captureSourceAliasConstruction,
-  sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry,
-  sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
-  sourceBindingCollectionConstructionGeometry, sourceCheckpointInventoryConstructionGeometry} from './source-alias-construction.mjs';
+  sourceAliasIdentityConstructionGeometry} from './source-alias-construction.mjs';
 // The standard Host's installed source binding, selected by the Host
 // profile's version from the installed connector table. Each installation
 // adapter keeps its own physical I/O, grants and cleanup; the Host's Run,
@@ -41,21 +38,17 @@ import {createHash, randomUUID} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
-import {verifyInstalledConnectorBindings} from
-  './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
   from './installed-host-cleanup.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,
   installedConfigurationByteLimit} from './source-profile-json.mjs';
-import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
-  beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization, finishInstalledSourceInitialization,
-  bindInstalledSourceConstruction, retainBoundInstalledSourceFailure,
-  reserveInstalledSourceRuntimeIdentity,
-  withInstalledSourceLoading} from './installed-host-services.mjs';
+// @ts-expect-error TS7016: remove after installed-host-services has an authored TypeScript entry.
+import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader, beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization, finishInstalledSourceInitialization, bindInstalledSourceConstruction, retainBoundInstalledSourceFailure, reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {createInstalledSourcePublicationRequests} from './installed-source-publication.mjs';
-import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile, checkInstalledDuckDBSourceProfile, createInstalledDuckDBSource} from
-  './installed-duckdb-source.mjs';
+import {createInstalledSourceInventoryLoader} from './installed-source-inventory.mjs';
+// @ts-expect-error TS7016: remove after installed-duckdb-source has an authored TypeScript entry.
+import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile, checkInstalledDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -63,14 +56,44 @@ import {installedConnectorFor, installedConnectorForTable, installedConnectorTab
   loadInstalledConnectorModule, providerBundleUrl,
   verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
+import type {ConfigurationReader} from './source-alias-construction.mjs';
+import type {InventoryMember, LoadOptions} from './installed-source-inventory.mjs';
+import type {OriginalPublication} from './installed-source-publication.mjs';
+
+type Installation = ReturnType<typeof installedConnectorFor>;
+type Constructor = ReturnType<typeof captureSourceAliasConstruction>;
+type AliasProfile = ReturnType<typeof splitSourceAliasProfile>;
+type QueryAliases = AliasProfile['queryAliases'];
+type SnapshottedProfile = {
+  queryAliases?: QueryAliases;
+} & Record<string, unknown>;
+type ProfileConstruction = Readonly<{
+  value: ProfileSnapshot;
+  construct: <Value>(project: () => Value) => Value;
+}>;
+type ProfileSnapshot = Readonly<{profile: SnapshottedProfile}> & AliasProfile;
+type AliasProfileRead = ProfileSnapshot & Readonly<{construction?: ProfileConstruction}>;
+type CapturedReaders = ReturnType<typeof captureConfigurationReaders>;
+type IdentityOptions = Readonly<{connectorTable?: unknown; configurationReader?: ConfigurationReader; moon?: unknown}>;
+type CleanupFault = Readonly<{cleanupHandle?: unknown; cleanupPending?: unknown}> | null | undefined;
+type PublicationFacts = Readonly<{path: string; revision: string; aliases: QueryAliases}>;
+type PublishOptions = Pick<LoadOptions, 'root' | 'principalId' | 'runtimeUrl' | 'resolveSecret' | 'connectorTable'> &
+  Readonly<{moon: unknown; signal?: AbortSignal}>;
+type SourceCheck = Readonly<{sourceRef?: unknown; checkEnvironmentWire?: unknown; connectorId?: unknown}>;
+type DuckDBLoadOptions = Pick<LoadOptions, 'root' | 'principalId' | 'moon'> & Readonly<{
+  construction?: {createDuckDBSource(): unknown};
+  sourceInitialization?: unknown;
+  installation: Installation;
+}>;
+
 // DuckDB is the Host's built-in source binding: it needs no provider bundle
 // or credential Site. It enters the same table as every declared connector;
 // moving it behind its own manifest is a separate change.
 const duckdbSourceModule = Object.freeze({
   check: checkInstalledDuckDBSourceProfile,
   // Logical profile canonicalization must not alias distinct provider names.
-  identityParts: profile => [profile, duckDBPhysicalTarget(profile)],
-  load: async (profile, {root, principalId, moon, construction, sourceInitialization, installation}) => {
+  identityParts: (profile: Parameters<typeof duckDBPhysicalTarget>[0]) => [profile, duckDBPhysicalTarget(profile)],
+  load: async (profile: unknown, {root, principalId, moon, construction, sourceInitialization, installation}: DuckDBLoadOptions) => {
     if (construction !== undefined) return construction.createDuckDBSource();
     if (sourceInitialization !== undefined) throw new TypeError('InstalledSourceConstructorUnavailable');
     return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}), moon,
@@ -91,14 +114,14 @@ const installations = installedConnectorTable([duckdbInstallation,
 
 // Original adapters whose metadata generation was stable through installation.
 // This is process-local custody, not a second catalog or a durable certificate.
-const sourcePublications = new WeakMap();
+const sourcePublications = new WeakMap<object, PublicationFacts>();
 
 const {publicationRequests, installedSourcePublicationRequestId, assertInstalledSourcePublicationRequest,
   observeInstalledSourcePublicationCurrent} = createInstalledSourcePublicationRequests(readProfile);
 export {installedSourcePublicationRequestId, assertInstalledSourcePublicationRequest,
   observeInstalledSourcePublicationCurrent};
 
-export function installedSourcePublicationFacts(source) {
+export function installedSourcePublicationFacts(source: unknown) {
   return source !== null && typeof source === 'object'
     ? sourcePublications.get(source) : undefined;
 }
@@ -106,7 +129,7 @@ export function installedSourcePublicationFacts(source) {
 // Select the installed connector of a Host profile and load its
 // installation module. An explicit table is complete, including built-ins;
 // an unknown version is refused before any installation I/O.
-async function selectInstallation(profile, connectorTable) {
+async function selectInstallation(profile: unknown, connectorTable: unknown) {
   const entry = connectorTable === undefined
     ? installedConnectorFor(installations, profile)
     : installedConnectorForTable(connectorTable, 'source', profile);
@@ -120,7 +143,7 @@ async function selectInstallation(profile, connectorTable) {
 // physical Source still binds credential grants to the actual Host runtime;
 // it must not add a dummy provider bundle merely to receive that identity.
 // A built-in binding without a Site or supplied runtime needs neither.
-async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installedRuntimeBundleCid) {
+async function providerRuntime(entry: Installation, runtimeUrl: unknown, readRuntimeIdentity = installedRuntimeBundleCid) {
   const bundle = providerBundleUrl(entry);
   if (bundle === undefined) return runtimeUrl === undefined ? {}
     : {runtimeBundleCid: await readRuntimeIdentity(runtimeUrl)};
@@ -131,27 +154,27 @@ async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installe
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
 // without reading a credential value or probing the provider.
-export async function installedSourceIdentity(path, {connectorTable, configurationReader, moon} = {}) {
+export async function installedSourceIdentity(path: unknown, {connectorTable, configurationReader, moon}: IdentityOptions = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const construct = captureSourceAliasConstruction(configurationReader, moon);
+  const construct = captureSourceAliasConstruction(configurationReader!, moon);
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
   return identityFromAliasProfile(await readAliasProfile(path, readers, configurationReader),
     {connectorTable, configurationReader}, readers.readJson, construct);
 }
 
-async function identityFromAliasProfile({profile, providerProfile, queryAliases},
-  {connectorTable, configurationReader}, read, construct, optional = false) {
+async function identityFromAliasProfile({profile, providerProfile, queryAliases}: ProfileSnapshot,
+  {connectorTable, configurationReader}: IdentityOptions, read: unknown, construct: Constructor, optional = false) {
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  let parts;
+  let parts: unknown;
   try {
     const {entry, module} = await selectInstallation(profile, connectorTable);
     parts = await module.identityParts(profile, providerProfile, read, entry, {configurationReader});
   } catch (cause) {
-    if (!optional || cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+    if (!optional || (cause as CleanupFault)?.cleanupHandle !== undefined || (cause as CleanupFault)?.cleanupPending === true) throw cause;
     return undefined;
   }
   // A funding refusal is not optional missing metadata. Keep the unchanged
@@ -161,30 +184,32 @@ async function identityFromAliasProfile({profile, providerProfile, queryAliases}
 
 // The retained original wire selects the complete parse/snapshot demand before
 // either constructor runs. No mutable parsed request crosses a quote callback.
-async function readAliasProfile(path, readers, configurationReader) {
-  const snapshot = profile => {
+async function readAliasProfile(path: string, readers: CapturedReaders,
+  configurationReader: ConfigurationReader | undefined): Promise<AliasProfileRead> {
+  const snapshot = (profile: unknown) => {
     const split = splitSourceAliasProfile(profile);
     // Identity providers borrow the same immutable request DATA. The parsed
     // caller tree is never left as an unfrozen alias behind a quote callback.
-    if (Object.hasOwn(profile, 'queryAliases')) profile.queryAliases = split.queryAliases;
-    return Object.freeze({profile, ...split});
+    if (Object.hasOwn(profile as object, 'queryAliases')) (profile as SnapshottedProfile).queryAliases = split.queryAliases;
+    return Object.freeze({profile: profile as SnapshottedProfile, ...split});
   };
   // Standalone diagnostics retain their historical read/parse/close ordering.
   // They have no installed material to fund and cannot impersonate its reader.
-  if (configurationReader === undefined) return snapshot(await readers.readJson(path));
-  const wire = await readers.readText(path, {maxBytes: installedConfigurationByteLimit});
-  const construction = readers.prepareProfile(wire, () => snapshot(JSON.parse(wire)));
+  if (configurationReader === undefined) return snapshot(await (readers.readJson as (path: string) => unknown)(path));
+  const wire = await readers.readText(path, {maxBytes: installedConfigurationByteLimit}) as string;
+  const construction = (readers as {prepareProfile?: (wire: string, snapshot: () => ProfileSnapshot) => ProfileConstruction})
+    .prepareProfile!(wire, () => snapshot(JSON.parse(wire)));
   return Object.freeze({...construction.value, construction});
 }
 
-function constructAliasIdentity(construct, parts, aliases) {
+function constructAliasIdentity(construct: Constructor, parts: unknown, aliases: QueryAliases) {
   if (aliases.length === 0) return sourceIdentityFromParts(parts, aliases);
   return construct(sourceAliasIdentityConstructionGeometry(aliases), () => Object.freeze({
     identity: sourceIdentityFromParts(parts, aliases),
   })).identity;
 }
 
-function sourceIdentityFromParts(parts, queryAliases) {
+function sourceIdentityFromParts(parts: unknown, queryAliases: QueryAliases) {
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
@@ -209,7 +234,8 @@ function sourceIdentityFromParts(parts, queryAliases) {
 }
 
 
-async function readProfile(path, read = readSourceProfileJson) {
+async function readProfile<Profile = unknown>(path: unknown,
+  read: (path: string) => Promise<Profile> = readSourceProfileJson as (path: string) => Promise<Profile>) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
@@ -217,9 +243,9 @@ async function readProfile(path, read = readSourceProfileJson) {
   catch (cause) {
     const failure = Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
-    if (cause?.cleanupHandle !== undefined) {
-      Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
-        cleanupPending: cause.cleanupPending});
+    if ((cause as CleanupFault)?.cleanupHandle !== undefined) {
+      Object.assign(failure, {cleanupHandle: (cause as NonNullable<CleanupFault>).cleanupHandle,
+        cleanupPending: (cause as NonNullable<CleanupFault>).cleanupPending});
     }
     throw failure;
   }
@@ -228,10 +254,10 @@ async function readProfile(path, read = readSourceProfileJson) {
 // The explicit publication step of an installed source whose connector has
 // one (a Salesforce source publishes its targeted declaration). A Host start
 // never runs it; it uses the same state root and principal the Host will.
-export async function publishInstalledSourceProfile(path, {root, principalId,
-  moon, runtimeUrl, resolveSecret, signal, connectorTable}) {
+export async function publishInstalledSourceProfile(path: unknown, {root, principalId,
+  moon, runtimeUrl, resolveSecret, signal, connectorTable}: PublishOptions) {
   const request = Object.freeze({});
-  const original = {path, requestId: randomUUID(), signal, phase: 'preparing',
+  const original: OriginalPublication = {path, requestId: randomUUID(), signal, phase: 'preparing',
     used: false, bindings: undefined, profileWire: undefined};
   publicationRequests.set(request, original);
   const retire = () => publicationRequests.delete(request);
@@ -276,29 +302,31 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 // Load the Host's installed source from `path`, or none. An unknown version
 // or an invalid profile is refused before any provider or Site I/O. Only the
 // selected connector's module and provider bundle are loaded.
-export async function loadInstalledSource(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
+export function loadInstalledSource(path: string, options: LoadOptions): Promise<InventoryMember>;
+export function loadInstalledSource(path: string | undefined, options: LoadOptions): Promise<InventoryMember | undefined>;
+export async function loadInstalledSource(path: string | undefined, {root, principalId, moon,
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}: LoadOptions) {
   if (path === undefined) return undefined;
   return withInstalledSourceLoading(installationServices, () => loadInstalledSourceMember(path,
     {root, principalId, moon, runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}));
 }
 
-async function loadInstalledSourceMember(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
+async function loadInstalledSourceMember(path: string, {root, principalId, moon,
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}: LoadOptions): Promise<InventoryMember> {
   // The original initial reservation precedes shared profile parsing and
   // identity metadata reads, not merely the selected provider's load call.
   const configurationReader = installationServices === undefined ? undefined
-    : installedSourceConfigurationReader(installationServices);
-  const construct = captureSourceAliasConstruction(configurationReader, moon);
+    : installedSourceConfigurationReader(installationServices) as ConfigurationReader | undefined;
+  const construct = captureSourceAliasConstruction(configurationReader!, moon);
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
   const read = readers.readJson;
   const {profile, providerProfile, queryAliases, construction} = await readProfile(path,
     selected => readAliasProfile(selected, readers, configurationReader));
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  const checked = construction === undefined ? module.check(providerProfile)
-    : construction.construct(() => module.check(providerProfile));
-  let identityParts, publicationRevision;
+  const checked = (construction === undefined ? module.check(providerProfile)
+    : construction.construct(() => module.check(providerProfile))) as SourceCheck;
+  let identityParts: unknown, publicationRevision: string | undefined;
   try {
     // Metadata reads only: no provider request or credential resolution.
     const identityProfile = {...profile};
@@ -306,7 +334,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
     identityParts = await module.identityParts(
       identityProfile, providerProfile, read, entry, {configurationReader});
   } catch (cause) {
-    if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+    if ((cause as CleanupFault)?.cleanupHandle !== undefined || (cause as CleanupFault)?.cleanupPending === true) throw cause;
     // Usable positive installation metadata alone cannot prove completeness.
   }
   if (identityParts !== undefined) {
@@ -321,13 +349,13 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
       ? beginInstalledPublishedSourceInitialization(installationServices, entry,
         checked.sourceRef, checked.checkEnvironmentWire, baseEnvironmentWire)
       : beginInstalledSourceInitialization(installationServices, entry, checked.connectorId, baseEnvironmentWire);
-  let adapter;
+  let adapter: InventoryMember | undefined;
   try {
     adapter = await module.load(checked, {root, principalId, moon,
       baseEnvironmentWire, resolveSecret, installation: entry, installationServices,
       sourceInitialization, configurationReader,
       construction: sourceInitialization === undefined ? undefined
-        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction), ...runtime});
+        : bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction), ...runtime}) as InventoryMember;
     verifyInstalledConnectorRegistration(entry, adapter);
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {
@@ -336,7 +364,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
         // Preserve the standalone diagnostic's historical optional reread.
         try { current = await installedSourceIdentity(path, {connectorTable, moon}); }
         catch (cause) {
-          if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+          if ((cause as CleanupFault)?.cleanupHandle !== undefined || (cause as CleanupFault)?.cleanupPending === true) throw cause;
         }
       } else {
         // Managed profile construction is funded before optional identity
@@ -366,242 +394,8 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
   }
 }
 
-// Installation inventory is bounded and inert. Only a checked acquisition
-// occurrence selects a member later; installing a binding never reads it.
-export function installedSourceReadAccesses(source) {
-  const accesses = source.sourceReadAccesses ?? [source.sourceAccess];
-  if (!Array.isArray(accesses) || accesses.length === 0) {
-    throw new TypeError('InvalidInstalledSourceReadAccesses');
-  }
-  if (source.sourceReadAccesses !== undefined) {
-    const refs = new Set();
-    for (const access of accesses) {
-      if (typeof access?.sourceRef !== 'string' ||
-          typeof access.connection !== 'string' ||
-          access.connection !== source.sourceAccess?.connection ||
-          typeof access.resource !== 'string' ||
-          access.authorization !== source.sourceAccess?.authorization ||
-          typeof source.admitsSource !== 'function' ||
-          !source.admitsSource(access.sourceRef) ||
-          refs.has(access.sourceRef)) {
-        throw new TypeError('InvalidInstalledSourceReadAccesses');
-      }
-      refs.add(access.sourceRef);
-    }
-  }
-  return accesses;
-}
-
-export function installedSourceReadBindings(source) {
-  if (typeof source.sourceAccess?.authorization?.authorize !== 'function' ||
-      typeof source.ledgerCapacity !== 'function' ||
-      typeof source.admitsSource !== 'function') {
-    throw new TypeError('InstalledMultiSourceUnsupported');
-  }
-  const refs = [];
-  for (const access of installedSourceReadAccesses(source)) {
-    if (typeof access?.sourceRef !== 'string' ||
-        typeof access.connection !== 'string' ||
-        typeof access.resource !== 'string' ||
-        access.authorization !== source.sourceAccess.authorization ||
-        !source.admitsSource(access.sourceRef)) {
-      throw new TypeError('InstalledMultiSourceUnsupported');
-    }
-    refs.push(access.sourceRef);
-  }
-  if (new Set(refs).size !== refs.length) {
-    throw new TypeError('InstalledSourceBindingAmbiguous');
-  }
-  return refs;
-}
-
-export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {},
-  fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE, construct) {
-  const select = () => {
-    if (sourceProfilePaths !== undefined) {
-      if (sourceProfilePath !== undefined || fallback !== undefined ||
-          !validPluralSourcePaths(sourceProfilePaths)) {
-        throw new TypeError('InvalidInstalledSourceProfiles');
-      }
-      return Object.freeze([...sourceProfilePaths]);
-    }
-    const path = sourceProfilePath ?? fallback;
-    return path === undefined ? Object.freeze([]) : Object.freeze([path]);
-  };
-  if (construct === undefined) return select();
-  // The normal caller borrows the same detached Host input. Quote the actual
-  // returned array and plural validation's temporary array/Set before either
-  // constructor; retain an environment-selected path's text on this material.
-  const count = Array.isArray(sourceProfilePaths) ? BigInt(sourceProfilePaths.length)
-    : sourceProfilePath !== undefined || fallback !== undefined ? 1n : 0n;
-  const text = sourceProfilePath === undefined && sourceProfilePaths === undefined &&
-    typeof fallback === 'string' ? 2n * BigInt(fallback.length) : 0n;
-  return construct({retained: {nodes: count + 1n, text, wire: 0n},
-    workspace: {nodes: 2n * count + 2n, text: 0n, wire: 0n}}, select);
-}
-
-function validPluralSourcePaths(paths) {
-  return Array.isArray(paths) && paths.length >= 2 &&
-    Array.from(paths).every(path => typeof path === 'string' && isAbsolute(path)) &&
-    new Set(paths).size === paths.length;
-}
-
-// Prepare the plural Checkpoint DATA before completing the SAME initial
-// Source material. Account admission/currentness still occurs in Checkpoints;
-// these slots and the existing body borrow issue no read or resume permission.
-export function prepareInstalledSourceCheckpointInventory(profile, construct) {
-  if (profile === undefined) return undefined;
-  const members = profile.sources;
-  let count = 0n, sourceRefUnits = 0n;
-  const sourceRefShape = {output: 0n, normalized: 0n};
-  const observe = source => {
-    for (const access of installedSourceReadAccesses(source)) {
-      count++;
-      sourceRefUnits += BigInt(access.sourceRef.length);
-      const shape = installedCanonicalTextConstructionShape(access.sourceRef);
-      sourceRefShape.output += shape.output;
-      sourceRefShape.normalized += shape.normalized;
-    }
-  };
-  if (members === undefined) observe(profile);
-  else for (const member of members) observe(member);
-  // Preserve the singular installation's existing ordering.
-  if (members === undefined && count === 1n) return undefined;
-  return construct(sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits, sourceRefShape), () => {
-    const sources = [], installedSources = [], bindings = [], accesses = [], connections = new Set();
-    const retain = source => {
-      const authorization = source.readAuthorization;
-      // Normal Source installers already own this immutable original context.
-      if (authorization?.context !== undefined && !Object.isFrozen(authorization.context)) {
-        throw new TypeError('InvalidInstalledSourceCheckpointContext');
-      }
-      for (const access of installedSourceReadAccesses(source)) {
-        accesses.push(access);
-        connections.add(access.connection);
-        const configuration = Object.freeze({sourceRef: access.sourceRef,
-          accountConfiguration: authorization?.accountConfiguration, context: authorization?.context});
-        sources.push(configuration);
-        installedSources.push({configuration, gate: undefined, resumeGate: undefined});
-        bindings.push({source_ref: access.sourceRef, configuration_cid: undefined, context_cid: undefined});
-      }
-    };
-    if (members === undefined) retain(profile);
-    else for (const member of members) retain(member);
-    // The original Host attaches a real completed-body borrow immediately
-    // after Source completion, before later Checkpoint construction. Before
-    // that caller enters, no Checkpoint consumer exists. It replaces this
-    // cleanup callback before its first await with the actual Account flight.
-    const custody = {holder: undefined, retire() {
-      if (custody.holder !== undefined) {
-        custody.holder.release();
-        custody.holder = undefined;
-      }
-      return true;
-    }};
-    return Object.freeze({sources: Object.freeze(sources), installedSources, bindings, custody,
-      accesses: Object.freeze(accesses), connections: Object.freeze([...connections].sort())});
-  });
-}
-
-export async function loadInstalledSources(paths, options) {
-  // Capture the options once: later callbacks cannot switch the admitted
-  // service/runtime or revive a missing-services diagnostic path.
-  options = Object.freeze({...options});
-  installedSourceEnvironmentConstructionReader(options?.installationServices, options?.moon);
-  if (paths.length < 2) return loadInstalledSource(paths[0], options);
-  if (!validPluralSourcePaths(paths)) {
-    throw new TypeError('InvalidInstalledSourceProfiles');
-  }
-  const configurationReader = options.installationServices === undefined ? undefined
-    : installedSourceConfigurationReader(options.installationServices);
-  const construct = captureSourceAliasConstruction(configurationReader, options.moon);
-  const {sources, closed} = construct(sourceMemberCollectionConstructionGeometry(BigInt(paths.length)),
-    () => ({sources: [], closed: new Set()}));
-  const close = async () => {
-    const failures = [];
-    for (const source of sources) {
-      if (closed.has(source)) continue;
-      try { await source.close(); closed.add(source); }
-      catch (error) { failures.push(error); }
-    }
-    if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
-  };
-  try {
-    for (const path of paths) {
-      const source = await loadInstalledSource(path, options);
-      sources.push(source);
-    }
-    // All original member constructors are now retained. Observe their exact
-    // inventory before allocating the aggregate membership Set; no provider
-    // read can start before this complete duplicate check and composition.
-    let references = 0n, bindingCount = 0n;
-    for (const source of sources) {
-      references += BigInt(source.sourceReadAccesses?.length ?? 1);
-      bindingCount += BigInt(source.connectorBindings?.length ?? 0);
-    }
-    construct(sourceReferenceCollectionConstructionGeometry(references), () => {
-      const refs = new Set();
-      for (const source of sources) {
-      // Each independently installed source must have an exact checked
-      // occurrence and an owned capacity before any read may start.
-        for (const ref of installedSourceReadBindings(source)) {
-          if (refs.has(ref)) throw new TypeError('InstalledSourceBindingAmbiguous');
-          refs.add(ref);
-        }
-      }
-      return Object.freeze({});
-    });
-    let environmentWire, environmentOriginal;
-    const bindings = construct(sourceBindingCollectionConstructionGeometry(bindingCount), () => new Map());
-    for (const source of sources) {
-      if (source.environmentOriginal !== undefined && source.environmentOriginal.wire !== source.environmentWire) {
-        throw new TypeError('ForeignInstalledEnvironmentOriginal');
-      }
-      const combinedOriginal = composeInstalledInventoryEnvironment(options.installationServices, options.moon,
-          options.baseEnvironmentWire, environmentOriginal, source.environmentOriginal ?? source.environmentWire, () => {
-            verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
-              : {environmentWire, connectorBindings: [...bindings.values()]}, source);
-            return source === sources.at(-1);
-          });
-      const combined = combinedOriginal.wire;
-      environmentWire = combined;
-      environmentOriginal = combinedOriginal;
-      // Validate a member's own duplicates before coalescing matching physical
-      // bindings across members. Preserve the original declaration order.
-      for (const binding of source.connectorBindings ?? []) {
-        if (!bindings.has(binding.connectorId)) {
-          bindings.set(binding.connectorId, binding);
-        }
-      }
-    }
-    Object.freeze(sources);
-    const {queryAliases} = construct(sourceAliasCollectionConstructionGeometry(sources), () => {
-      // Every row/request is the original immutable profile snapshot. This
-      // stage owns only the aggregate list and duplicate-name collections.
-      const queryAliases = Object.freeze(sources.flatMap(source => source.queryAliases));
-      if (new Set(queryAliases.map(alias => alias.name)).size !== queryAliases.length) {
-        throw new TypeError('InvalidPublicSourcePublication');
-      }
-      return Object.freeze({queryAliases});
-    });
-    return Object.freeze({
-      realizationKey: sources.every(source =>
-        source.realizationKey === 'duckdb-acquired')
-        ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire, environmentOriginal,
-      sources: Object.freeze(sources),
-      connectorBindings: Object.freeze([...bindings.values()]),
-      queryAliases,
-      admitsSource: ref => sources.some(source => source.admitsSource(ref)),
-      close,
-    });
-  } catch (cause) {
-    throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: {close}});
-  }
-}
-
-export function installedSourceFor(profile, sourceRef) {
-  const matches = (profile?.sources ?? (profile === undefined ? [] : [profile]))
-    .filter(source => source.admitsSource(sourceRef));
-  if (matches.length !== 1) throw new Error('InstalledSourceProgramMismatch');
-  return matches[0];
-}
+export {installedSourceReadAccesses, installedSourceReadBindings, installedSourcePaths,
+  prepareInstalledSourceCheckpointInventory, installedSourceFor} from './installed-source-inventory.mjs';
+export const loadInstalledSources = createInstalledSourceInventoryLoader({
+  loadInstalledSource, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
+});

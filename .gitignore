@@ -1197,6 +1197,10 @@ target/
 /adapters/host-node/client-dispatch-cleanup.d.mts
 /adapters/host-node/installed-source-publication.mjs
 /adapters/host-node/installed-source-publication.d.mts
+/adapters/host-node/installed-source-inventory.mjs
+/adapters/host-node/installed-source-inventory.d.mts
+/adapters/host-node/installed-source.mjs
+/adapters/host-node/installed-source.d.mts
 /adapters/local-node/managed-row-cause-diagnostic.test.mjs
 /adapters/local-node/managed-row-cause-diagnostic.test.d.mts
 /adapters/local-node/managed-advance-diagnostic.test.mjs

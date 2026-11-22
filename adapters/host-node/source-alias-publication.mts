@@ -7,7 +7,6 @@ import {isAbsolute} from 'node:path';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: The installed-source loader still owns this JS custody lookup.
 import {installedSourcePublicationFacts} from './installed-source.mjs';
 
 type SourceAlias = Readonly<{

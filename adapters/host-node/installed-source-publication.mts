@@ -10,7 +10,7 @@ type PublicationBindings = Readonly<{
   runtimeBundleCid?: string;
   providerMoon?: unknown;
 }>;
-type OriginalPublication = {
+export type OriginalPublication = {
   path: unknown;
   requestId: string;
   signal?: AbortSignal;

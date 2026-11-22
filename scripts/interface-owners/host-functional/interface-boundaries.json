@@ -69894,8 +69894,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -69912,8 +69912,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -69926,7 +69926,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -69944,7 +69944,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -69962,7 +69962,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,\n  installedConfigurationByteLimit} from './source-profile-json.mjs';"
               },
               {
@@ -69976,7 +69976,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// an unknown version is refused before any installation I/O."
               },
               {
@@ -69990,7 +69990,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -70004,7 +70004,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "//   installed capacity for restoring that exact capture on the existing Run"
               },
               {
@@ -70022,7 +70022,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -70161,8 +70161,8 @@
           "attributes": {
             "responsibility": [
               {
-                "anchor": "export function installedSourcePublicationFacts(source) {",
-                "path": "adapters/host-node/installed-source.mjs"
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {",
+                "path": "adapters/host-node/installed-source.mts"
               },
               {
                 "anchor": "# Resident Source acquisition",
@@ -70183,8 +70183,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -70202,7 +70202,7 @@
             "identity": [
               {
                 "anchor": "// The standard Host's installed source binding, selected by the Host",
-                "path": "adapters/host-node/installed-source.mjs"
+                "path": "adapters/host-node/installed-source.mts"
               },
               {
                 "anchor": "### Query-shaped acquisition",
@@ -70224,7 +70224,7 @@
             "ownership": [
               {
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,",
-                "path": "adapters/host-node/installed-source.mjs"
+                "path": "adapters/host-node/installed-source.mts"
               },
               {
                 "anchor": "## Composition and Host lifetime",
@@ -70245,7 +70245,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
@@ -70263,7 +70263,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// an unknown version is refused before any installation I/O."
               },
               {
@@ -70281,7 +70281,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -70300,7 +70300,7 @@
             "resources": [
               {
                 "anchor": "//   installed capacity for restoring that exact capture on the existing Run",
-                "path": "adapters/host-node/installed-source.mjs"
+                "path": "adapters/host-node/installed-source.mts"
               },
               {
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?",
@@ -70321,7 +70321,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -82291,7 +82291,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "adb4c767b48ed2216e4da1bad2ffe629747c1569075b38f9e3b566cdd2fa29c4",
+      "sha256": "aab9d3afa3fbfe099aa92df90d7f4e4dd56fd71d26ea5894b4921fc5d77bf4f7",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -82341,21 +82341,6 @@
           "async": true
         },
         {
-          "name": "installedSourceFor",
-          "parameters": [
-            "profile",
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceFor/matches/matches",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
           "name": "installedSourceIdentity",
           "parameters": [
             "path",
@@ -82371,36 +82356,7 @@
           "async": false
         },
         {
-          "name": "installedSourcePaths",
-          "parameters": [
-            "sourceProfilePath",
-            "sourceProfilePaths",
-            "fallback",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourcePaths/select/select",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installedSourcePublicationFacts",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceReadAccesses",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourceReadBindings",
           "parameters": [
             "source"
           ],
@@ -82444,97 +82400,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSources",
-          "parameters": [
-            "paths",
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledSources/bindings/bindings",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/close/close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "loadInstalledSources/combinedOriginal/combinedOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources/loadInstalledSources",
-          "parameters": [
-            "alias"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources/queryAliases/queryAliases",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources#4",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources#5",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledSourceCheckpointInventory",
-          "parameters": [
-            "profile",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "publishInstalledSourceProfile",
           "parameters": [
             "path",
@@ -82565,13 +82430,6 @@
             "read"
           ],
           "async": true
-        },
-        {
-          "name": "validPluralSourcePaths/validPluralSourcePaths",
-          "parameters": [
-            "path"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -82580,32 +82438,12 @@
             "duckdbInstallation/duckdbInstallation",
             "duckdbSourceModule/duckdbSourceModule",
             "duckdbSourceModule/duckdbSourceModule#2",
-            "installedSourceFor",
-            "installedSourceFor/matches/matches",
             "installedSourceIdentity",
-            "installedSourcePaths",
-            "installedSourcePaths/select/select",
             "installedSourcePublicationFacts",
-            "installedSourceReadAccesses",
-            "installedSourceReadBindings",
             "loadInstalledSource",
             "loadInstalledSourceMember/checked/checked",
-            "loadInstalledSources",
-            "loadInstalledSources/bindings/bindings",
-            "loadInstalledSources/close/close",
-            "loadInstalledSources/combinedOriginal/combinedOriginal",
-            "loadInstalledSources/loadInstalledSources",
-            "loadInstalledSources/loadInstalledSources#2",
-            "loadInstalledSources/loadInstalledSources#3",
-            "loadInstalledSources/loadInstalledSources#4",
-            "loadInstalledSources/loadInstalledSources#5",
-            "loadInstalledSources/loadInstalledSources/loadInstalledSources",
-            "prepareInstalledSourceCheckpointInventory",
-            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
-            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
             "publishInstalledSourceProfile",
             "readAliasProfile/construction/construction",
-            "validPluralSourcePaths/validPluralSourcePaths",
             "readProfile"
           ],
           "exports": [
@@ -82623,8 +82461,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -82649,8 +82487,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -82671,7 +82509,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -82693,7 +82531,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -82715,7 +82553,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
@@ -82737,7 +82575,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// an unknown version is refused before any installation I/O."
               },
               {
@@ -82759,7 +82597,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -82781,7 +82619,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "//   installed capacity for restoring that exact capture on the existing Run"
               },
               {
@@ -82807,7 +82645,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -82905,7 +82743,7 @@
                 "anchor": "failure with pending child cleanup retains that same request and all original"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "throw retainInstalledHostRuntimeFailure(cause, retire);"
               }
             ],
@@ -82915,11 +82753,11 @@
                 "anchor": "const descriptors = Object.getOwnPropertyDescriptors(originals);"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "original.phase = 'active';"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "await observeInstalledSourcePublicationCurrent(request, original.bindings);"
               }
             ],
@@ -82953,7 +82791,7 @@
                 "anchor": "references behind the existing Host reference finalizer."
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "original.profileWire = JSON.stringify(profile);"
               },
               {
@@ -82967,7 +82805,7 @@
                 "anchor": "consume this private seam retain their former publication behavior."
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "if (original.used) {"
               }
             ],
@@ -82983,72 +82821,6 @@
               {
                 "path": "adapters/host-node/installed-source-publication-original.test.mjs",
                 "anchor": "publication cleanup without an original status cannot retire or manufacture an ACK"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Each real prepared Source is privately associated with its original checked"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Program and parent after the preparation await and a second current fence."
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "Plural installations forward the same parent through every selected capacity;"
               }
             ]
           }
@@ -83169,8 +82941,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -83183,8 +82955,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationFacts(source) {"
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -83197,7 +82969,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -83211,7 +82983,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -83225,7 +82997,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
@@ -83239,7 +83011,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// an unknown version is refused before any installation I/O."
               },
               {
@@ -83253,7 +83025,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
               },
               {
@@ -83267,7 +83039,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "//   installed capacity for restoring that exact capture on the existing Run"
               },
               {
@@ -83281,7 +83053,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "// The standard Host's installed source binding, selected by the Host"
               },
               {
@@ -83310,9 +83082,7 @@
             "constructAliasIdentity/constructAliasIdentity",
             "installedSourceIdentity/readers/readers",
             "loadInstalledSourceMember/loadInstalledSourceMember",
-            "loadInstalledSourceMember/readers/readers",
-            "loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
-            "loadInstalledSources/loadInstalledSources/queryAliases/queryAliases"
+            "loadInstalledSourceMember/readers/readers"
           ],
           "exports": [],
           "attributes": {
@@ -83383,14 +83153,13 @@
       "imports": [
         "../connectors-builtin/installations.generated.mjs",
         "./duckdb-physical-target.mjs",
-        "./installed-check-environment-construction.mjs",
-        "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
+        "./installed-source-inventory.mjs",
         "./installed-source-publication.mjs",
         "./local-account-config.mjs",
         "./source-alias-construction.mjs",
@@ -83398,6 +83167,524 @@
         "./source-alias-request.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-source-inventory.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c836dcc6ce2b42d1ee00fbd99fb6772b7638cf5563e5f989bfee7f2f035d0106",
+      "role": "physical-io",
+      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
+      "exports": [
+        "createInstalledSourceInventoryLoader",
+        "installedSourceFor",
+        "installedSourcePaths",
+        "installedSourceReadAccesses",
+        "installedSourceReadBindings",
+        "prepareInstalledSourceCheckpointInventory"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledSourceInventoryLoader",
+          "parameters": [
+            "loadInstalledSource",
+            "installedSourceConfigurationReader",
+            "installedSourceEnvironmentConstructionReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources",
+          "parameters": [
+            "paths",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/bindings/bindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/combinedOriginal/combinedOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/loadInstalledSources",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/queryAliases/queryAliases",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#4",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#5",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceFor",
+          "parameters": [
+            "profile",
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceFor/matches/matches",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourcePaths",
+          "parameters": [
+            "sourceProfilePath",
+            "sourceProfilePaths",
+            "fallback",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourcePaths/select/select",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSourceReadAccesses",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceReadBindings",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory",
+          "parameters": [
+            "profile",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "validPluralSourcePaths/validPluralSourcePaths",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledSourceInventoryLoader",
+            "installedSourceFor",
+            "installedSourceFor/matches/matches",
+            "installedSourcePaths",
+            "installedSourcePaths/select/select",
+            "installedSourceReadAccesses",
+            "installedSourceReadBindings",
+            "createInstalledSourceInventoryLoader/loadInstalledSources",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/bindings/bindings",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/close/close",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/combinedOriginal/combinedOriginal",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#2",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#3",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#4",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources#5",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/loadInstalledSources",
+            "prepareInstalledSourceCheckpointInventory",
+            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
+            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
+            "validPluralSourcePaths/validPluralSourcePaths"
+          ],
+          "exports": [
+            "installedSourceFor",
+            "installedSourcePaths",
+            "installedSourceReadAccesses",
+            "installedSourceReadBindings",
+            "prepareInstalledSourceCheckpointInventory",
+            "createInstalledSourceInventoryLoader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The normal installation identity and Host opening select profile paths under"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "export function installedSourcePublicationFacts(source: unknown) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "// The standard Host's installed source binding, selected by the Host"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "// an unknown version is refused before any installation I/O."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "//   installed capacity for restoring that exact capture on the existing Run"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-source.mts",
+                "anchor": "// The standard Host's installed source binding, selected by the Host"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-reference-recovery.test.mjs",
+                "anchor": "test('Source reference recovery requires current issuer and preserves original captured bytes', async () => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/embedded-installation.test.mjs",
+                "anchor": "test(`installed connector identity preserves physical ${field} UTF-8 bytes`"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
+            "createInstalledSourceInventoryLoader/loadInstalledSources/loadInstalledSources/queryAliases/queryAliases"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "The ordinary installed Source inventory, selection and aggregate close remain under the existing Source owner.",
+      "imports": [
+        "./installed-check-environment-construction.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-funded-environment.mjs",
+        "./installed-host-cleanup.mjs",
+        "./source-alias-construction.mjs",
         "node:path"
       ],
       "compilerFields": [],
@@ -83497,7 +83784,7 @@
                 "anchor": "failure with pending child cleanup retains that same request and all original"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "throw retainInstalledHostRuntimeFailure(cause, retire);"
               }
             ],
@@ -83507,11 +83794,11 @@
                 "anchor": "const descriptors = Object.getOwnPropertyDescriptors(originals);"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "original.phase = 'active';"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "await observeInstalledSourcePublicationCurrent(request, original.bindings);"
               }
             ],
@@ -83545,7 +83832,7 @@
                 "anchor": "references behind the existing Host reference finalizer."
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "original.profileWire = JSON.stringify(profile);"
               },
               {
@@ -83559,7 +83846,7 @@
                 "anchor": "consume this private seam retain their former publication behavior."
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source.mts",
                 "anchor": "if (original.used) {"
               }
             ],
@@ -97755,7 +98042,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ee8071e84b23dcfc8415d7fe2f0e1fd0339acd92cbb8674659fb7c887fb0d455",
+      "sha256": "436e0c8f9b8eb981e1c48be2d7b133622cfb41d3e0d3e4d6de3009b495120ab3",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
