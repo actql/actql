@@ -190,12 +190,12 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
 }
 
 ///|
-fn LocalCommandPreparationOriginal::require_model_step(
+fn[T] LocalCommandPreparationOriginal::require_model_step(
   self : Self,
-  result : Result[Unit, @local_host.NativeClientMockModelIssue],
-) -> Unit raise ClientStop {
+  result : Result[T, @local_host.NativeClientMockModelIssue],
+) -> T raise ClientStop {
   match result {
-    Ok(_) => ()
+    Ok(value) => value
     Err(issue) => {
       self.retain_primary(CommandBusinessModel(issue))
       stop("LocalOriginalModelExecutionUnavailable")

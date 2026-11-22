@@ -239,6 +239,10 @@ pub fn original_model_unparked_read_capacity_available(Execution, @run_publicati
 
 pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
 
+pub fn original_source_free_model_observation_requirements(Array[Execution], Array[@run_publication_host.ClientInferPlanGraph]) -> (ObservationIssuanceLimits, Int64)?
+
+pub fn original_source_free_model_publication_inputs(ObservationIssuance, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> (Array[String], Array[@run_publication.RunEvidenceValue])?
+
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn park_original_model_resources(Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Issue]

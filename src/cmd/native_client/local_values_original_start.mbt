@@ -93,6 +93,21 @@ fn local_execute_original_publish_values(
   .enter_business_from_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeUnavailable"))
   let work = selection.open_values_work(run, compiled, definition, request)
+  if business.model_run is Some(model) {
+    guard business.model_work.get(0) is Some(leader) else {
+      stop("LocalOriginalModelUnavailable")
+    }
+    selection.original.require_model_step(
+      leader.prepare_source_free_model_observation(
+        business.model_work,
+        model.graphs,
+      ),
+    )
+    while !selection.original.require_model_step(leader.advance_observation()) {
+
+    }
+  }
+
   let (row_limits, limits) = work
     .publication_limits(payload_limit)
     .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))

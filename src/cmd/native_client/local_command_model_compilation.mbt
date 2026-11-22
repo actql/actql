@@ -206,11 +206,11 @@ fn native_model_compilation_storage(
   }
   let arrays = @execution.preparation_array_representation(
     if count == 1 {
-      7L
+      8L
     } else {
-      6L
+      7L
     },
-    6L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
+    7L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
     true,
   ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
   @execution.compose_preparation_representation([
@@ -223,7 +223,8 @@ fn native_model_compilation_storage(
       // provider owns open/retain/cleanup and two step callbacks, their tuple
       // and optional carriers, a retained Read slot and one OutputUse.
       // The configured Result limits retain the exact Plan, capacity, limits
-      // and simultaneous extent pair. The Work vector is preallocated above.
+      // and simultaneous extent pair. The Work vector and the simultaneous
+      // publication constructor's original execution vector are funded above.
       // The task driver and physical cleanup callbacks coexist with one
       // synchronous Read-side action and its returned result.
       record_headers: 23L + 11L * count.to_int64(),

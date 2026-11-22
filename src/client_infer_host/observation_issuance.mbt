@@ -56,11 +56,19 @@ pub fn original_observation_issuance_metadata_bytes(
   active : Execution,
   limits : ObservationIssuanceLimits,
 ) -> Int64? {
-  guard limits.max_slots >= 0 &&
-    limits.max_wire_bytes >= 1 &&
-    limits.max_wire_bytes <= 16384 &&
-    limits.max_work >= 1 &&
-    !active.advancing &&
+  if prepared_observation_issuance_metadata_bytes(limits) is None {
+    return None
+  }
+  guard original_observation_slot_count(active) is Some(count) &&
+    count <= limits.max_slots else {
+    return None
+  }
+  Some(observation_issuance_metadata_bytes(limits.max_wire_bytes, count, 1, 0))
+}
+
+///|
+fn original_observation_slot_count(active : Execution) -> Int? {
+  guard !active.advancing &&
     !active.reclaimed &&
     !active.cancelled &&
     active.phase is Terminal &&
@@ -72,11 +80,88 @@ pub fn original_observation_issuance_metadata_bytes(
     active.rows is Some(rows) else {
     return None
   }
-  let count = @relation.prepared_infer_rows_count(rows)
-  if count > limits.max_slots {
+  Some(@relation.prepared_infer_rows_count(rows))
+}
+
+///|
+/// Quote the complete original Source-free Model issuer, plus its ordered
+/// Result input IDs and Model evidence reference arrays. This performs no
+/// capture acquisition and issues no additional reservation.
+pub fn original_source_free_model_observation_requirements(
+  owners : Array[Execution],
+  plans : Array[@publication_host.ClientInferPlanGraph],
+) -> (ObservationIssuanceLimits, Int64)? {
+  guard owners.get(0) is Some(first) &&
+    first.run_binding is Some(original) &&
+    @publication_host.client_compiled_run_serialization(original.compiled)
+    is None &&
+    @publication_host.client_compiled_run_infer_originals_match(
+      original.compiled,
+      plans,
+    ) else {
     return None
   }
-  Some(observation_issuance_metadata_bytes(limits.max_wire_bytes, count, 1, 0))
+  if plans.length() != owners.length() {
+    return None
+  }
+  let mut count = 0
+  for index, active in owners {
+    guard active.run_binding is Some(bound) &&
+      physical_equal(bound.compiled, original.compiled) &&
+      physical_equal(bound.definition, original.definition) &&
+      active.plan is Some(plan) &&
+      physical_equal(plan, plans[index]) &&
+      active.call_scope is Some(scope) &&
+      scope.source is None &&
+      scope.sources.is_empty() &&
+      original_observation_slot_count(active) is Some(slots) &&
+      slots <= 2147483645 - count else {
+      return None
+    }
+    count += slots
+  }
+  let limits : ObservationIssuanceLimits = {
+    max_slots: count,
+    max_wire_bytes: 16384,
+    max_work: count + 2,
+  }
+  source_free_model_observation_bytes(
+    limits.max_wire_bytes,
+    count,
+    owners.length(),
+  ).map(bytes => (limits, bytes))
+}
+
+///|
+fn source_free_model_observation_bytes(
+  max_wire_bytes : Int,
+  count : Int,
+  owners : Int,
+) -> Int64? {
+  guard @relation.preparation_array_representation(
+      2L,
+      count.to_int64() + owners.to_int64(),
+      true,
+    )
+    is Some(arrays) else {
+    return None
+  }
+  // The two arrays borrow existing strings and evidence. The quote also
+  // covers the returned pair, its optional carrier and transient scan frame.
+  guard @relation.preparation_representation_cost({
+      ..arrays,
+      record_headers: arrays.record_headers + 3L,
+      reference_slots: arrays.reference_slots + 5L,
+      scalar_words: arrays.scalar_words + 1L,
+    })
+    is Some(projection) else {
+    return None
+  }
+  @relation.checked_preparation_add_product(
+    observation_issuance_metadata_bytes(max_wire_bytes, count, owners, 0),
+    projection,
+    1L,
+  )
 }
 
 ///|
@@ -866,6 +951,62 @@ pub fn observation_issuance_source_originals(
       @publication.model_source_observation_originals(source).0
     }),
   )
+}
+
+///|
+/// Result derivation borrows exactly the input IDs and invocation evidence
+/// associated with this completed issuer. The caller has already reserved
+/// the two output arrays on the same original publication capacity.
+pub fn original_source_free_model_publication_inputs(
+  active : ObservationIssuance,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> (Array[String], Array[@publication.RunEvidenceValue])? {
+  let state = active.state
+  guard state.funding is Some(Original(capacity)) &&
+    physical_equal(state.compiled, compiled) &&
+    physical_equal(state.definition, definition) &&
+    state.sources.is_empty() &&
+    state.generations.is_empty() &&
+    observation_issuance_value(active) is Some(_) &&
+    state.bindings.length() == state.count &&
+    source_free_model_observation_bytes(
+      state.limits.max_wire_bytes,
+      state.count,
+      state.owners.length(),
+    )
+    is Some(bytes) &&
+    @model.original_model_publication_payload_extent(bytes) is Some(extent) &&
+    @model.original_model_publication_capacity_covers(capacity, extent, extent) else {
+    return None
+  }
+  let inputs = Array(capacity=state.artifacts.length())
+  for artifact in state.artifacts {
+    inputs.push(@publication.run_evidence_value_identity(artifact))
+  }
+  let evidence = Array(capacity=state.count)
+  let mut absolute = 0
+  for owner in state.owners {
+    guard original_observation_slot_count(owner) is Some(count) else {
+      return None
+    }
+    for slot in 0..<count {
+      guard observation_issuance_slot_outcome(active, absolute) is Some(outcome) else {
+        return None
+      }
+      if outcome == "ok" {
+        guard invocation_evidence(owner, slot) is Some(original) else {
+          return None
+        }
+        evidence.push(original)
+      }
+      absolute += 1
+    }
+  }
+  if absolute != state.count || observation_issuance_value(active) is None {
+    return None
+  }
+  Some((inputs, evidence))
 }
 
 ///|
