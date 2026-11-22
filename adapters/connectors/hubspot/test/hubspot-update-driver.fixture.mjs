@@ -1,4 +1,5 @@
-import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../../../host-common/owned-invocation-context.mjs';
+import {invokeDeclaredRowUpdate, ownInvocationAuthorization,
+  withDeclaredUpdateTargetReads} from '../../../host-common/owned-invocation-context.mjs';
 // Real provider constructors/decoders with explicit Account/Site/physical
 // ports. The common Host owns actual approval, Ledger claims and cleanup;
 // these tests do not manufacture their acceptance or send to a real service.
@@ -26,6 +27,9 @@ const canonical = data => data !== null && typeof data === 'object'
     : '{' + Object.keys(data).sort().map(key => JSON.stringify(key) + ':' + canonical(data[key])).join(',') + '}'
   : JSON.stringify(data);
 const rehash = entry => ({...entry, observationCid: 'sha256:' + createHash('sha256').update(entry.wire).digest('hex')});
+const updateAuthorization = resourceOrigin => ownInvocationAuthorization({grant: {}, useId: 'original-write',
+  scope: {...Object.fromEntries(credentialInvocationBindingKeys.map(key => [key, 'same'])),
+    resourceOrigin, operation: 'hubspot:objects:batch-update'}});
 function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
   const native = hubspotUpdateRequestFixture(moon), selected = Object.freeze({...native.installed,
     fields: Object.freeze(['amount', 'tags'])});
@@ -77,15 +81,13 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
     const logical = driver.prepareRequest({member, current, value, selector});
     return {logical, finalized: driver.finalizeRequest({member, request: logical.request, requestTag: tag})};
   };
-  const send = (current, request, changed = {}) => invokeDeclaredRowUpdate(driver, {member, current, request,
-    credential: {binding: {}}, authorization: {grant: {}, useId: 'original-write',
-      scope: Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(key => [key, 'same'])),
-        resourceOrigin: origin, operation: 'hubspot:objects:batch-update'})},
+  const send = (current, request, authorization = updateAuthorization(origin)) => invokeDeclaredRowUpdate(driver, {
+    member, current, request, credential: {binding: {}}, authorization,
     async callResource(input) {
       state.writes.push(input);
       if (state.writeError) throw state.writeError;
       return state.response;
-    }, ...changed}, 'hubspot:objects:batch-update', {phase: 'write',
+    }}, 'hubspot:objects:batch-update', {phase: 'write',
     maxRequestBytes: writeLimits.maxRequestBytes, maxResponseBytes: writeLimits.maxResponseBytes,
     maxTargetBytes: '/crm/v3/objects/companies/batch/update'.length});
   const recover = entry => ({durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
@@ -248,9 +250,17 @@ export function registerHubSpotUpdateDriverTests(moon) {
         statusCode, body: Buffer.from(body)}}), {kind: 'unclassified-response'});
     }
     assert.equal(f.state.writes.length, 1);
-    await assert.rejects(f.send(current, finalized.request, {authorization: {scope: {resourceOrigin: 'https://foreign.invalid'}}}),
+  });
+
+  test('HubSpot UPDATE refuses malformed authorization and an owned foreign origin before dispatch', async () => {
+    const f = fixture(moon), current = await f.describe(), {finalized} = f.prepare(current);
+    const resourceOrigin = 'https://foreign.invalid';
+    await assert.rejects(f.send(current, finalized.request, {scope: {resourceOrigin}}),
+      {code: 'InvalidOwnedInvocationContext'});
+    assert.equal(f.state.writes.length, 0);
+    await assert.rejects(f.send(current, finalized.request, updateAuthorization(resourceOrigin)),
       {code: 'ForeignHubSpotUpdateOrigin'});
-    assert.equal(f.state.writes.length, 1);
+    assert.equal(f.state.writes.length, 0);
   });
 
   test('HubSpot cold row driver reconstructs exact claimed requests from fresh Native originals without IO', async () => {
