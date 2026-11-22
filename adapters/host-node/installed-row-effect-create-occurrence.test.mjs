@@ -4,7 +4,7 @@ import {readFile, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
@@ -435,8 +435,11 @@ test('managed create checks and cold routes refuse missing original parent reten
 });
 
 test('pre-write check selection captures original callback and refuses unfunded or accessor flags before use',()=>{
-  const node=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureBeforeSendCheck').node;
-  const capture=Function('nodeTypes','fail','text',`return (${source.slice(node.start,node.end)});`)(nodeTypes,fail,value=>typeof value==='string'&&value.length>0);
+  const captureOnly = () => assert.fail('The hook fixture does not admit another driver');
+  const {captureBeforeSendCheck: capture} = createInstalledRowEffectDriverControls({
+    fail, text: value => typeof value === 'string' && value.length > 0,
+    optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+  });
   const recipe={rowOperations:[{operation:'form-read'}],credentialOperations:[{phase:'write-check',operationIndex:0}]};
   let called=0;
   const original=function(){called++;},driver={kinds:['create'],check:Object.freeze({resource:'forms',operation:'form-read',beforeSend:true}),checkRequest:original};

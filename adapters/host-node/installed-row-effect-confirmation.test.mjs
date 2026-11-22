@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {parse} from 'acorn';
 import * as providerMoon from '../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import * as provider from '../connectors/github/site/github-comment-create.mjs';
@@ -62,7 +62,10 @@ function recipe() {
       {phase: 'apply-confirm', operationIndex: 3, ...limits},
       {phase: 'resume-confirm', operationIndex: 4, ...limits}]};
 }
-const capture = source.fn('captureResponseConfirmation', {nodeTypes, text, fail});
+const captureOnly = () => assert.fail('The hook fixture does not admit another driver');
+const {captureResponseConfirmation: capture} = createInstalledRowEffectDriverControls({
+  fail, text, optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+});
 function fixture(options = {}) {
   const events = [], readCalls = [];
   let current = true, grantCount = 0, decision = {action: options.action ?? 'dispatch'};

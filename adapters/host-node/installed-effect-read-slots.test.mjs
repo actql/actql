@@ -6,8 +6,14 @@ import {readFileSync} from 'node:fs';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation} from './installed-effect-plan.mjs';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
+const captureOnly = () => assert.fail('The read fixture does not admit another driver');
+const {requireSynchronousEffectResource} = createInstalledRowEffectDriverControls({
+  fail, text: value => typeof value === 'string' && value.length > 0,
+  optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+});
 const freeze = value => Object.freeze(value);
 function recipeInput() {
   const operation = operation => freeze({operation, extent: freeze({testExtent: true})});
@@ -95,7 +101,7 @@ function readFixture() {
   const member = {resource: 'companies'}, originalTarget = {grant: {}}, targetView = {grant: originalTarget.grant};
   const managedReadChild = privateArrow('managedReadChild', {recipeOf: () => recipe,
     ownerOf: () => ({site}), fail, selectInstalledEffectCredentialOperation, nodeTypes,
-    requireSynchronousEffectResource: privateArrow('requireSynchronousEffectResource', {fail})});
+    requireSynchronousEffectResource});
   const read = managedReadChild({member, phase: 'capture-target',
     physicalOperations: options => {calls.push(options); return options;},
     runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch', assertCurrent() {},
@@ -136,7 +142,7 @@ test('named credential read caller preserves child binding and immutable request
   let received;
   const managedReadChild = privateArrow('managedReadChild', {recipeOf: () => recipe,
     ownerOf: () => ({site}), fail, selectInstalledEffectCredentialOperation, nodeTypes,
-    requireSynchronousEffectResource: privateArrow('requireSynchronousEffectResource', {fail})});
+    requireSynchronousEffectResource});
   const read = managedReadChild({member: {resource: 'companies'}, phase: 'capture-target',
     physicalOperations: options => options.invoke({authorization: {grant, scope, useId: 'actual-use'},
       credential: {binding}, callResource: input => {received = input; return 'original-response';}}),

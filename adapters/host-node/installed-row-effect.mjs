@@ -100,7 +100,8 @@ import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
-import {declaredRowUpdateKinds, invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
+import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -474,27 +475,9 @@ export function prepareInstalledTargetPlanRecipes(mappings, recipes) {
     managedTargetPlanOriginals);
 }
 
-function captureEffectResources(receiver) {
-  if (receiver === undefined) return undefined;
-  const methods = {};
-  for (const name of ['bindRunOriginal', 'assertCurrent', 'limits']) {
-    const field = receiver === null || typeof receiver !== 'object'
-      ? undefined : Object.getOwnPropertyDescriptor(receiver, name);
-    if (field === undefined || !Object.hasOwn(field, 'value') ||
-        typeof field.value !== 'function') fail('InstalledEffectResourcesUnavailable');
-    const method = field.value;
-    methods[name] = (...args) => Reflect.apply(method, receiver, args);
-  }
-  return Object.freeze(methods);
-}
-
-function requireSynchronousEffectResource(value) {
-  if (typeof value?.then === 'function') {
-    void Promise.resolve(value).catch(() => {});
-    fail('InstalledEffectResourcesUnavailable');
-  }
-  return value;
-}
+const {captureEffectResources, requireSynchronousEffectResource, installedEffectKinds,
+  installedEffectWriteOperation, checkDriver, captureBeforeSendCheck, captureResponseConfirmation} =
+  createInstalledRowEffectDriverControls({fail, text, optionalFunction, kinds, guarded});
 
 // One member's original CREATE values and canonical row identities. The
 // Common inventory owns ordering; the Host never derives identities itself.
@@ -518,142 +501,6 @@ function prepareInstalledCreateRows(moon, proposals, limits) {
       identity: Object.freeze(parseExactJson(runtimeField(item, 1)))};
   });
   return {rows: createRows.map(item => item.entry), createRows};
-}
-
-// Reobserve a legacy driver's kinds at each owner check. An admitted
-// declaration has the one fixed UPDATE kind from its selected write slot.
-function installedEffectKinds({owned, updateWriteSlot}) {
-  return updateWriteSlot === undefined ? owned.kinds : declaredRowUpdateKinds;
-}
-
-function installedEffectWriteOperation(driver, member, updateWriteSlot) {
-  return updateWriteSlot === undefined ? driver.writeOperation(member) : driver.operation;
-}
-
-function checkDriver(driver, declaredUpdate = false) {
-  const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : driver?.kinds;
-  if (driver === null || typeof driver !== 'object' ||
-      !Array.isArray(supportedKinds) || supportedKinds.length === 0 ||
-      supportedKinds.some(kind => !kinds.includes(kind)) ||
-      typeof driver.prepareRequest !== 'function' ||
-      typeof driver.requestFacts !== 'function' ||
-      (declaredUpdate
-        ? !Object.isFrozen(driver) || ![Object.prototype, null].includes(Object.getPrototypeOf(driver)) ||
-          'kinds' in driver || 'writeOperation' in driver ||
-          'send' in driver || !text(Object.getOwnPropertyDescriptor(driver, 'operation')?.value) ||
-          typeof Object.getOwnPropertyDescriptor(driver, 'prepareUpdateWrite')?.value !== 'function' ||
-          nodeTypes.isProxy(driver.prepareUpdateWrite) || nodeTypes.isAsyncFunction(driver.prepareUpdateWrite)
-        : typeof driver.writeOperation !== 'function' || typeof driver.send !== 'function') ||
-      typeof driver.project !== 'function' ||
-      typeof driver.footprint !== 'function' ||
-      ![driver.describe, driver.recheckRequests, driver.issueCapability,
-        driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
-        driver.recoverMemberRequests,
-        driver.requestCid, driver.checkRequest, driver.confirmResponse, driver.finalizeRequest,
-        driver.capabilityRequestCid, driver.assertRequestFinalized,
-        driver.admitTargetReadApproval, driver.prepareRequestChild,
-        driver.prepareRecoveredContentChild].every(optionalFunction) ||
-      (driver.check !== undefined && (!text(driver.check?.resource) ||
-        !text(driver.check.operation) ||
-        typeof driver.checkRequest !== 'function')) ||
-      (supportedKinds.some(guarded) && (!text(driver.targetRead?.operation) ||
-        typeof driver.observeTargets !== 'function' ||
-        typeof driver.recoverRequests !== 'function' ||
-        typeof driver.requestCid !== 'function')) ||
-      (supportedKinds.includes('command') &&
-        (typeof driver.recheckRequests !== 'function' ||
-          typeof driver.recoveryEntry !== 'function' ||
-          typeof driver.recoverRequests !== 'function' ||
-          typeof driver.requestCid !== 'function')) ||
-      ((driver.recoveryEntry === undefined) !==
-        (driver.recoverRequests === undefined)) ||
-      (driver.recoverMemberRequests !== undefined &&
-        driver.recoverRequests === undefined) ||
-      ((driver.finalizeRequest === undefined) !== (driver.capabilityRequestCid === undefined)) ||
-      ((driver.finalizeRequest === undefined) !== (driver.assertRequestFinalized === undefined)) ||
-      ((driver.confirmation === undefined) !== (driver.confirmResponse === undefined)) ||
-      // Recovery identifies each rebuilt request by `requestCid`.
-      (driver.recoverRequests !== undefined &&
-        typeof driver.requestCid !== 'function')) {
-    fail('InvalidInstalledRowEffectDriver');
-  }
-  return driver;
-}
-
-// Optional fixed CREATE check repeated immediately before its mutation. This
-// captures the original pure descriptor/callback, not a read decision/grant.
-// The corresponding DISTINCT physical occurrence must already be declared.
-function captureBeforeSendCheck(driver, recipe) {
-  const selected = recipe?.credentialOperations?.find(entry => entry.phase === 'write-check');
-  const checkField = Object.getOwnPropertyDescriptor(driver, 'check');
-  const check = checkField !== undefined && Object.hasOwn(checkField, 'value') ? checkField.value : undefined;
-  if (check === undefined) {
-    if (selected !== undefined) fail('InstalledEffectWriteCheckUnavailable');
-    return undefined;
-  }
-  if (nodeTypes.isProxy(check)) fail('InvalidInstalledEffectWriteCheck');
-  const flag = Object.getOwnPropertyDescriptor(check, 'beforeSend');
-  if (flag === undefined || (Object.hasOwn(flag, 'value') && flag.value === false)) {
-    if (selected !== undefined) fail('InstalledEffectWriteCheckUnavailable');
-    return undefined;
-  }
-  if (!Object.hasOwn(flag, 'value') || flag.value !== true || !Object.isFrozen(check) ||
-      !Object.hasOwn(checkField, 'value') || selected === undefined ||
-      driver.kinds.length !== 1 || driver.kinds[0] !== 'create') fail('InvalidInstalledEffectWriteCheck');
-  const fields = Object.getOwnPropertyDescriptors(check);
-  const request = Object.getOwnPropertyDescriptor(driver, 'checkRequest');
-  if (Reflect.ownKeys(fields).length !== 3 ||
-      ['resource','operation','beforeSend'].some(name => !Object.hasOwn(fields[name] ?? {}, 'value')) ||
-      !text(fields.resource.value) || !text(fields.operation.value) ||
-      !request || !Object.hasOwn(request, 'value') || typeof request.value !== 'function' ||
-      recipe.rowOperations[selected.operationIndex].operation !== fields.operation.value) {
-    fail('InvalidInstalledEffectWriteCheck');
-  }
-  return Object.freeze({resource: fields.resource.value, operation: fields.operation.value,
-    request: request.value, receiver: driver});
-}
-
-// Original fixed read hook, not a credential or mutation capability. Initial
-// and cold confirmation must each have its own existing physical occurrence.
-function captureResponseConfirmation(driver, recipe) {
-  const phases = ['apply-confirm', 'resume-confirm'];
-  const selected = recipe?.credentialOperations?.filter(entry => phases.includes(entry.phase)) ?? [];
-  const field = Object.getOwnPropertyDescriptor(driver, 'confirmation');
-  if (field === undefined) {
-    if (selected.length !== 0) fail('InstalledEffectConfirmationUnavailable');
-    return undefined;
-  }
-  if (!Object.hasOwn(field, 'value') || field.value === null || typeof field.value !== 'object' ||
-      nodeTypes.isProxy(field.value) || !Object.isFrozen(field.value)) fail('InvalidInstalledEffectConfirmation');
-  const fields = Object.getOwnPropertyDescriptors(field.value);
-  const request = Object.getOwnPropertyDescriptor(driver, 'confirmResponse');
-  if (Reflect.ownKeys(fields).length !== 4 ||
-      ['resource', 'operation', 'maxRequestBytes', 'maxResponseBytes'].some(name =>
-        !Object.hasOwn(fields[name] ?? {}, 'value')) ||
-      !text(fields.resource.value) || !text(fields.operation.value) ||
-      ![fields.maxRequestBytes.value, fields.maxResponseBytes.value].every(value => Number.isSafeInteger(value) && value > 0) ||
-      !request || !Object.hasOwn(request, 'value') || typeof request.value !== 'function') {
-    fail('InvalidInstalledEffectConfirmation');
-  }
-  const used = new Set((recipe?.credentialOperations ?? [])
-    .filter(entry => !phases.includes(entry.phase)).map(entry => entry.operationIndex));
-  for (const original of [recipe?.requestConstruction, recipe?.requestFinalization]) {
-    if (original !== undefined) used.add(original.operationIndex);
-  }
-  for (const phase of phases) {
-    const matches = selected.filter(entry => entry.phase === phase);
-    const entry = matches[0], index = entry?.operationIndex;
-    if (matches.length !== 1 || !Number.isSafeInteger(index) || index < 0 ||
-        index >= (recipe?.rowOperations?.length ?? 0) || used.has(index) ||
-        recipe.rowOperations[index].operation !== fields.operation.value ||
-        ![entry.maxRequestBytes, entry.maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0) ||
-        entry.maxRequestBytes < fields.maxRequestBytes.value || entry.maxResponseBytes < fields.maxResponseBytes.value) {
-      fail('InstalledEffectConfirmationPlanUnavailable');
-    }
-    used.add(index);
-  }
-  return Object.freeze({resource: fields.resource.value, operation: fields.operation.value,
-    request: request.value, receiver: driver});
 }
 
 // The identity profile of an installation: the one its connector registered
