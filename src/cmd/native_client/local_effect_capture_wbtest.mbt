@@ -352,6 +352,60 @@ test "Native Model Result Artifact reserves measured bodies beside its original 
 }
 
 ///|
+test "Native Unit Result row funding keeps its own writer beside its decoder" {
+  let fixed = 20L
+  let first_writer = 47L
+  let second_writer = 91L
+  let decode = @local_values.installed_effect_capture_row_decode_workspace(
+    96, 5, 3,
+  ).unwrap()
+  let decode_bytes = @execution.execution_capacity_execution_bytes(decode)
+  let retained = 30L
+  let required = retained + fixed + second_writer + decode_bytes
+  for maximum in [required - 1L, required] {
+    with_native_mock_capture_construction(
+      max_retained=retained,
+      max_execution=maximum,
+      fn(construction) raise {
+        let original = construction.operation
+        let reports : Array[LocalNativeMockEffectProposalIssue] = []
+        let report = issue => reports.push(issue)
+        {
+          let (emit, admit, observed) = construction.export_row_funding(
+            fixed, report,
+          )
+          assert_true(
+            emit(@execution.execution_capacity(0L, first_writer).unwrap()),
+          )
+          assert_true(admit(96, 5, 3))
+          assert_eq(observed.val, fixed + first_writer + decode_bytes)
+        }
+        let (emit, admit, observed) = construction.export_row_funding(
+          fixed, report,
+        )
+        assert_true(
+          emit(@execution.execution_capacity(0L, second_writer).unwrap()),
+        )
+        let previous = construction.workspace
+        let entered = admit(96, 5, 3)
+        assert_true(physical_equal(original, construction.operation))
+        assert_eq(construction.retained, 0L)
+        if maximum == required {
+          assert_true(entered && reports.is_empty())
+          assert_eq(observed.val, required - retained)
+          assert_eq(construction.workspace, required - retained)
+        } else {
+          assert_false(entered)
+          assert_true(reports is [Managed(InsufficientCapacity)])
+          assert_eq(observed.val, 0L)
+          assert_eq(construction.workspace, previous)
+        }
+      },
+    )
+  }
+}
+
+///|
 test "Native proposal return drops only its old workspace before the next construction" {
   with_native_mock_capture_construction(fn(construction) raise {
     let original_recipe = construction.recipe

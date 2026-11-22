@@ -571,55 +571,19 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       } else {
         0L
       }
-      let writer_workspace = Ref(0L)
-      let before_emit = if measure_proposal_rows &&
-        construction is Some(original) {
-        Some(capacity => {
-          // The exporter includes earlier backing retained by its drained
-          // buffer. Carry that quote beside this row's remaining constructors.
-          let next = @execution.execution_capacity_execution_bytes(capacity)
-          let quote = @execution.checked_preparation_add_product(
-            fixed_workspace, next, 1L,
-          ).bind(peak => @execution.execution_capacity(0L, peak))
-          if !original.prepare_body(self.original, quote) {
-            return false
-          }
-          writer_workspace.val = next
-          true
+      let export_funding = construction.map(original => {
+        original.export_row_funding(fixed_workspace, issue => {
+          self.original.retain_primary(CommandBusinessEffectProposals(issue))
         })
+      })
+      let before_emit = if measure_proposal_rows {
+        export_funding.map(funding => funding.0)
       } else {
         None
       }
-      let row_decode_workspace = Ref(0L)
-      let before_decode = construction.map(construction => {
-        fn(bytes, nodes, depth) {
-          let capacity = @local_values.installed_effect_capture_row_decode_workspace(
-            bytes, nodes, depth,
-          )
-          guard capacity is Some(quote) &&
-            @execution.checked_preparation_add_product(
-              fixed_workspace,
-              writer_workspace.val,
-              1L,
-            )
-            is Some(coheld) &&
-            @execution.checked_preparation_add_product(
-              coheld,
-              @execution.execution_capacity_execution_bytes(quote),
-              1L,
-            )
-            is Some(peak) &&
-            construction.prepare_body(
-              self.original,
-              @execution.execution_capacity(0L, peak),
-            ) else {
-            return false
-          }
-          row_decode_workspace.val = peak
-          true
-        }
-      })
+      let before_decode = export_funding.map(funding => funding.1)
       let before_encode = construction.map(construction => {
+        let (_, _, row_decode_workspace) = export_funding.unwrap()
         fn(bytes, nodes, depth, prior_text_units) {
           // The exported bytes and decoded row are still held here. Keep
           // their conservative decoder envelope beside the next writer and
@@ -836,7 +800,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       state,
       held,
       max_capture_bytes,
-      measure_artifacts=measure_unit_manifest,
+      measure_results=measure_unit_manifest,
     )
     let manifest_funding = if measure_unit_manifest {
       let construction = held.construction.unwrap()

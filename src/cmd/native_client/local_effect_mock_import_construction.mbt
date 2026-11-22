@@ -957,3 +957,55 @@ fn native_mock_effect_export_schema_workspace(
   })
   .bind(workspace => @execution.execution_capacity(0L, workspace))
 }
+
+///|
+// The drained writer still owns its earlier buffer while the current row
+// is decoded. Both the Effect member and the additional Unit Result use
+// this quote against their original capture before either constructor runs.
+fn LocalNativeMockEffectImportConstruction::export_row_funding(
+  self : Self,
+  fixed_workspace : Int64,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> (
+  (@execution.ExecutionCapacity) -> Bool,
+  (Int, Int, Int) -> Bool,
+  Ref[Int64],
+) {
+  let mut writer = 0L
+  let decoded = Ref(0L)
+  let before_emit = fn(capacity) {
+    let next = @execution.execution_capacity_execution_bytes(capacity)
+    let quote = @execution.checked_preparation_add_product(
+      fixed_workspace, next, 1L,
+    ).bind(bytes => @execution.execution_capacity(0L, bytes))
+    if !self
+      .prepare_body_result(quote)
+      .retain_mock_effect_proposal_issue(report) {
+      return false
+    }
+    writer = next
+    true
+  }
+  let before_decode = fn(bytes, nodes, depth) {
+    let capacity = @local_values.installed_effect_capture_row_decode_workspace(
+      bytes, nodes, depth,
+    )
+    guard capacity is Some(quote) &&
+      @execution.checked_preparation_add_product(fixed_workspace, writer, 1L)
+      is Some(coheld) &&
+      @execution.checked_preparation_add_product(
+        coheld,
+        @execution.execution_capacity_execution_bytes(quote),
+        1L,
+      )
+      is Some(peak) &&
+      self
+      .prepare_body_result(@execution.execution_capacity(0L, peak))
+      .retain_mock_effect_proposal_issue(report) else {
+      return false
+    }
+    decoded.val = peak
+    true
+  }
+  (before_emit, before_decode, decoded)
+}
