@@ -1,14 +1,16 @@
 import {types} from 'node:util';
-import {fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
+import {fixedOriginalTransportTimeouts, unboundOpenAICredential} from './original-undici-transport.mjs';
 import {createConfiguredUndiciOpenAIChatRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 import type {OpenAIChatProviderOptions} from '../index.d.ts';
 
+type ProjectSelection = Readonly<{providerId: string}>;
 type Registration = ReturnType<typeof createConfiguredUndiciOpenAIChatRegistration>;
 type Entry = ReturnType<Registration>[number];
 type Runtime = Parameters<Registration>[0] & {
   clientProgramInstalledNodeModelSdkV4RequestCapacity?(rows: number, bytes: number, nodes: number, depth: number): unknown;
   clientProgramInstalledNodeModelDeadlineCapacity?(): unknown;
+  clientProgramStandardInferModelTransferBytes?(maxCalls: bigint): unknown;
 };
 // Views of the original Host configuration ports and checked Task fields, not
 // constructors, proof receipts or a replacement for the same Host's guards.
@@ -23,6 +25,7 @@ interface SelectedTasks {
 }
 interface ConfigurationContext {
   [name: string]: unknown;
+  projectOpenAIProvider?(): Promise<ProjectSelection>;
   prepareConfiguration<T>(project: () => T): Promise<T>;
   runtimeIdentity(): Promise<string>;
   artifactIdentity(path: string): Promise<string>;
@@ -88,17 +91,23 @@ const readEnvelopeBytes = (rows: number, physical = limits) => BigInt(rows) * (1
   256n * BigInt(limits.parse_nodes + limits.metadata_nodes)) +
   BigInt(physical.adapter_holding_bytes + physical.adapter_workspace_bytes);
 
-function configuration(options: unknown) {
-  const value = data(options, ['providerId', 'modelId', 'apiKeyFile', 'generation', 'budget', 'observeEgress'],
-    ['modelSelector', 'baseURL', 'maxSecretBytes', 'transportTimeouts']) as unknown as OpenAIChatProviderOptions;
+function configuration(options: unknown, project?: ProjectSelection) {
+  const required = ['modelId', 'generation', 'budget', 'observeEgress'];
+  const optional = ['modelSelector', 'maxSecretBytes', 'transportTimeouts'];
+  if (project === undefined) {
+    required.push('providerId', 'apiKeyFile');
+    optional.push('baseURL');
+  }
+  const value = data(options, required, optional) as unknown as OpenAIChatProviderOptions;
   const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']) as unknown as OpenAIChatProviderOptions['generation'];
   const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']) as unknown as OpenAIChatProviderOptions['budget'];
   const selector = value.modelSelector ?? value.modelId;
-  const baseURL = value.baseURL ?? 'https://api.openai.com/v1';
+  const baseURL = (project === undefined ? value.baseURL : undefined) ?? 'https://api.openai.com/v1';
   const maxSecretBytes = value.maxSecretBytes ?? 4096;
+  const providerId = project === undefined ? value.providerId : project.providerId;
   const transportTimeouts = fixedOriginalTransportTimeouts(value.transportTimeouts);
-  if (!text(value.providerId, 256) || !text(value.modelId, 256) || !text(selector, 256) ||
-      !text(baseURL, 2048) || !text(value.apiKeyFile, 4096) ||
+  if (!text(providerId, 256) || !text(value.modelId, 256) || !text(selector, 256) ||
+      !text(baseURL, 2048) || project === undefined && !text(value.apiKeyFile, 4096) ||
       !integer(maxSecretBytes, 1, 4096) || typeof value.observeEgress !== 'function' ||
       !Number.isFinite(generation.temperature) || !Number.isFinite(generation.topP) ||
       !integer(generation.maxOutputTokens, 1) ||
@@ -115,7 +124,10 @@ function configuration(options: unknown) {
       endpoint.search || endpoint.hash || endpoint.href !== baseURL + '/chat/completions' || baseURL.endsWith('/')) {
     refuse('InvalidOpenAIProviderConfiguration');
   }
-  return Object.freeze({...value, modelSelector: selector, baseURL, maxSecretBytes,
+  if (project !== undefined && transportTimeouts?.callMs === undefined) {
+    refuse('InvalidProjectOpenAIProviderConfiguration');
+  }
+  return Object.freeze({...value, providerId, modelSelector: selector, baseURL, maxSecretBytes,
     generation: Object.freeze(generation), budget: Object.freeze(budget),
     ...(transportTimeouts === undefined ? {} : {transportTimeouts})});
 }
@@ -136,6 +148,15 @@ function observation(callback: () => unknown) {
 // The original low-level explicit-material installers remain unchanged.
 export function createOpenAIChatProvider(options: unknown):
   (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
+  return configureOpenAIChatProvider(options, false);
+}
+
+export function createProjectOpenAIChatProvider(options: unknown):
+  (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
+  return configureOpenAIChatProvider(options, true);
+}
+
+function configureOpenAIChatProvider(options: unknown, projectMode: boolean) {
   let used = false;
   return async (moon: Runtime, context: ConfigurationContext) => {
     if (used) refuse('OpenAIProviderConfigurationReused');
@@ -144,8 +165,16 @@ export function createOpenAIChatProvider(options: unknown):
       'prepareBindingOriginals', 'prepareTasks', 'prepareRawPolicies'].every(key => typeof context?.[key] === 'function')) {
       refuse('OpenAIProviderConfigurationContextUnavailable');
     }
+    if (projectMode && typeof context.projectOpenAIProvider !== 'function') {
+      refuse('OpenAIProviderConfigurationContextUnavailable');
+    }
+    const project = projectMode ? await context.projectOpenAIProvider!() : undefined;
     const config = await context.prepareConfiguration(() => {
-      const selected = configuration(options);
+      const selected = configuration(options, project);
+      const maxWireBytes = moon.clientProgramStandardInferModelTransferBytes?.(selected.budget.maxCalls);
+      if (!amount(maxWireBytes)) {
+        refuse('OpenAIProviderTransferCapacityUnavailable');
+      }
       if (typeof moon.clientProgramInstalledNodeModelSdkV4RequestCapacity !== 'function') {
         refuse('OpenAIProviderRequestCapacityUnavailable');
       }
@@ -162,8 +191,12 @@ export function createOpenAIChatProvider(options: unknown):
         deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity() as readonly [bigint, bigint];
         if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
       }
-      const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0];
-      const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1];
+      // A prepared request retains the extra callback and header binding.
+      // Also cover the bounded key and final Bearer string while they overlap.
+      const credentialHolding = projectMode
+        ? BigInt(selected.budget.maxRows) * (1024n + 8n * BigInt(selected.maxSecretBytes)) : 0n;
+      const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0] + credentialHolding;
+      const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1] + credentialHolding;
       if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
         refuse('OpenAIProviderRequestCapacityUnavailable');
       }
@@ -171,8 +204,8 @@ export function createOpenAIChatProvider(options: unknown):
       // overlap). Add all-row expected wires only to retained; the SAME serial
       // writer/parse/compare workspace contributes only to execution peak.
       // These are demands on the original initial Owner, never a budget uplift.
-      const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1];
-      return Object.freeze({...selected,
+      const previousRead = readEnvelopeBytes(selected.budget.maxRows) + deadline[0] + deadline[1] + credentialHolding;
+      return Object.freeze({...selected, maxWireBytes: maxWireBytes as bigint,
         readRetainedBytes: previousRead + sdkQuote[0],
         readExecutionBytes: previousRead + sdkQuote[1],
         physicalLimits: Object.freeze({...limits,
@@ -183,12 +216,17 @@ export function createOpenAIChatProvider(options: unknown):
     const builderCid = await context.artifactIdentity(builderArtifactUrl);
     const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
     const lockCid = await context.artifactIdentity(lockArtifactUrl);
-    const apiKey = await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
+    const apiKey = projectMode ? unboundOpenAICredential
+      : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
     const sdk = Object.freeze({package_name: '@ai-sdk/openai', version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
+    // The same original selector could formerly name different Chat models.
+    // Record the resolved route even when the selector equals the model ID so
+    // a current fixed route cannot match a historical selector-only binding.
     const bindings = await context.prepareBindingOriginals(() => [
       JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid}),
-      JSON.stringify({provider_id: config.providerId, required: ['endpoint', 'selector', 'model_defaults'],
+      JSON.stringify({provider_id: config.providerId,
+        required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode'],
         physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
@@ -197,7 +235,8 @@ export function createOpenAIChatProvider(options: unknown):
         model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
         model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
-        selector: config.modelSelector,
+        selector: config.modelSelector, model_id: config.modelId, adapter_kind: 'ai-sdk', api_mode: 'chat_completions',
+        ...(projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
           models: [{model: config.modelSelector, data_handling: handling,
             generation_config: {temperature: config.generation.temperature, top_p: config.generation.topP,
@@ -228,7 +267,7 @@ export function createOpenAIChatProvider(options: unknown):
       profiles.set(task.taskCid, profile);
       await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
         maxCostUnits: config.budget.maxCostUnits, maxDurationMs: config.budget.maxDurationMs,
-        maxWireBytes: config.budget.maxCalls * BigInt(limits.request_bytes + limits.response_bytes),
+        maxWireBytes: config.maxWireBytes,
         maxTokens: config.budget.maxTokens});
     }
     return selected.providerEntries(() => {
@@ -276,14 +315,16 @@ export function createOpenAIChatProvider(options: unknown):
           selectionAvailable: () => Date.now() < now + 86400000});
         const register = createConfiguredUndiciOpenAIChatRegistration({providerId: config.providerId,
           modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
-          originalStringLimits: {maxApiKeyCodeUnits: config.maxSecretBytes, maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256},
+          originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
+            maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256},
           taskCid: task.taskCid, promptCid: task.promptCid, outputSchemaCid: task.outputSchemaCid,
           promptPayloadWire: task.promptPayloadWire, bindingOriginals, quantityCapacity, originalReadRecipe, rawCaptureSelection,
           projectionLimits: bodyLimits, requestLimits: {maxBytes: limits.request_bytes, maxHeaderBytes: limits.header_bytes, maxHeaders: 32},
           responseLimits: {maxBytes: limits.response_bytes, maxChunkBytes: limits.chunk_bytes, maxChunks: limits.chunks,
             maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
           physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
-          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts);
+          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts,
+        projectMode ? config.maxSecretBytes : undefined);
         return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
       });
       return [Object.freeze({...entries[0]!.entry,

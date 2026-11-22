@@ -10,9 +10,20 @@ import {createResultFactory} from './result-read.mjs';
 import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
   validCancellationLookup, validCancellationRef, validClientBody,
   validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
-  validWireRunViewShape, validWireRunExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
+  validWireRunViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape,
+  withinResultDescriptionLimits} from '@actql/client-wire';
 
-import type {ClientHostOperation, WireClientAdmission,
+async function validateExplanationFacts(facts: WireExplanationFacts) {
+  const {self_cid: observed, ...body} = facts;
+  if (await contentCid(body) !== observed) fail('InvalidClientHostRunExplanationView');
+  for (const step of facts.steps) {
+    const {self_cid: keyCid, ...key} = step.key;
+    if (step.step_id !== keyCid || key.compiled_plan_cid !== facts.compiled_plan_cid ||
+        await contentCid(key) !== keyCid) fail('InvalidClientHostRunExplanationView');
+  }
+}
+
+import type {ClientHostOperation, WireClientAdmission, WireExplanationFacts,
   WireOwnerObservations, WireOwnerCursor, WireRunState} from '@actql/client-wire';
 import type {CancellationExplanation, ConfirmedProfile, EffectUncertaintyExplanation,
   Execution, OperationExplanationOptions, OwnerObservationsExplanation, RunObservationFailureExplanation,
@@ -253,15 +264,33 @@ export function createExecutionFactory(selected: SelectedConnection & {redactCre
             !validWireRunExplanationViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
           fail('InvalidClientHostRunExplanationView');
         }
+        if (view.explanation.state === 'projected') await validateExplanationFacts(view.explanation.facts);
+        signal?.throwIfAborted();
+        return freezeInput(view);
+      },
+      async explainContext({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}) as {ref: RunReference; maxWireBytes: number; maxNodes: number; maxDepth: number});
+        if (!validClientBody('run-explanation-context', {connection: selected.wire, ...input})) {
+          fail('InvalidRunExplanationRequest');
+        }
+        const response = await runRequest('run-explanation-context', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        if (!withinResultDescriptionLimits(view, input) ||
+            !validWireRunExplanationContextViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunExplanationView');
+        }
         if (view.explanation.state === 'projected') {
-          const facts = view.explanation.facts;
-          const {self_cid: observed, ...body} = facts;
-          if (await contentCid(body) !== observed) fail('InvalidClientHostRunExplanationView');
-          for (const step of facts.steps) {
-            const {self_cid: keyCid, ...key} = step.key;
-            if (step.step_id !== keyCid || key.compiled_plan_cid !== facts.compiled_plan_cid ||
-                await contentCid(key) !== keyCid) fail('InvalidClientHostRunExplanationView');
-          }
+          const {plan, facts, context: {binding}} = view.explanation.view;
+          const {self_cid: mapCid, ...map} = plan.logical_map;
+          if (plan.compiled_plan_cid !== map.compiled_plan_cid ||
+              facts.compiled_plan_cid !== map.compiled_plan_cid ||
+              binding.compiled_plan_cid !== map.compiled_plan_cid ||
+              facts.logical_map_cid !== mapCid || binding.logical_map_cid !== mapCid ||
+              facts.program_definition_cid !== map.program_definition_cid ||
+              binding.program_definition_cid !== map.program_definition_cid ||
+              binding.parameter_values_cid !== facts.parameter_values_cid ||
+              await contentCid(map) !== mapCid) fail('InvalidClientHostRunExplanationView');
+          await validateExplanationFacts(facts);
         }
         signal?.throwIfAborted();
         return freezeInput(view);

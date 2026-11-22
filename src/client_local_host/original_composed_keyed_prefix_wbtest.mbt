@@ -793,6 +793,7 @@ fn original_composed_keyed_consumer(
   let body_observed = Ref(false)
   let body_reentry_refused = Ref(false)
   let body_cleanup_deferred = Ref(false)
+  let body_backing_preserved = Ref(false)
   let accepted = wire => {
     // The keyset emits Resource references; the one body scan emits the
     // actual Content reference. No callback-count or fabricated current proof.
@@ -801,10 +802,18 @@ fn original_composed_keyed_consumer(
       body_observed.val = true
       if body_lookup.val is Some(lookup) {
         if keyed_body_stop {
+          let before = @resources.ledger_usage(ledger)
           body_cleanup_deferred.val = @publication_host.cleanup_client_keyed_lookup_input(
               lookup, 10000,
             )
             is Ok(false)
+          let after = @resources.ledger_usage(ledger)
+          body_backing_preserved.val = before.reserved_retention_bytes > 0L &&
+            before.reserved_execution_bytes > 0L &&
+            before.reserved_retention_bytes == after.reserved_retention_bytes &&
+            before.reserved_execution_bytes == after.reserved_execution_bytes &&
+            before.held_bytes == after.held_bytes &&
+            before.live_reservations == after.live_reservations
         } else if keyed_body_reentry {
           body_reentry_refused.val = @publication_host.finish_client_keyed_lookup_input(
               lookup,
@@ -3007,6 +3016,7 @@ fn original_composed_keyed_consumer(
   }
   if keyed_body_stop {
     assert_true(body_observed.val && body_cleanup_deferred.val)
+    assert_true(body_backing_preserved.val)
     assert_true(right_result is Err(_))
     assert_true(
       @publication_host.client_keyed_lookup_input_identity(lookup) is None,
@@ -3029,9 +3039,11 @@ fn original_composed_keyed_consumer(
         true,
       ).unwrap(),
     )
-    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
-    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
-    assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+    let retired = @resources.ledger_usage(ledger)
+    assert_eq(retired.held_bytes, 0L)
+    assert_eq(retired.reserved_retention_bytes, 0L)
+    assert_eq(retired.reserved_execution_bytes, 0L)
+    assert_eq(retired.attempts, prior_attempts + 3)
     return
   }
   let right = match right_result {
@@ -4286,9 +4298,13 @@ fn original_composed_keyed_consumer(
   if managed is Some((owner, _)) {
     retire_installed_managed_run(owner).unwrap()
   }
-  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  if declared_dependency_closure {
+    assert_eq(usage.reserved_execution_bytes, 0L)
+  }
+  assert_eq(usage.attempts, prior_attempts + 3)
 }
 
 ///|

@@ -6,7 +6,8 @@ import {types as nodeTypes} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe,
+  prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
   prepareInstalledEffectControlConstruction, installedEffectSavedControlEntryLimit,
   installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit}
   from './installed-effect-plan.mjs';
@@ -99,6 +100,67 @@ test('automatic standard recipe forwards original constructor capacities and kee
     }
     assert.equal(new Set(extents).size,extents.length);
   }
+});
+
+test('installed author UPDATE funds the outgoing request and codec on the original physical slots', () => {
+  const native = Object.freeze({}), capture = Object.freeze({});
+  const capacities = Array.from({length: 8}, () => Object.freeze({}));
+  const quantities = [];
+  const moon = {
+    clientProgramInstalledDescribedEffectInputRecipeCapacities(profile, captureProfile) {
+      assert.strictEqual(profile, native);
+      assert.strictEqual(captureProfile, capture);
+      return {$tag: 1, _0: capacities};
+    },
+    clientProgramInstalledSourceConstructionCapacity(...units) {
+      const quote = Object.freeze(units);
+      quantities.push(quote);
+      return {$tag: 1, _0: quote};
+    },
+    clientProgramComposeInstalledSourceConstructionCapacity(original, inputs) {
+      return {$tag: 1, _0: {original, inputs}};
+    },
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare() {
+      return {$tag: 1, _0: {}};
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
+      return {$tag: 1, _0: {operation, capacity, transfer, physical}};
+    },
+  };
+  const providerMoon = {
+    installedDeclaredUpdateConstructionProfile: () => native,
+    installedDeclaredUpdateCaptureConstructionProfile: () => capture,
+  };
+  const targetRead = {operation: 'observe', transport: {
+    maxTargetBytes: 80, maxRequestBytes: 32, maxResponseBytes: 64,
+  }};
+  const recipe = prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon,
+    write: {operation: 'mutate', transport: {maxTargetBytes: 80, maxRequestBytes: 512, maxResponseBytes: 64}, targetRead},
+    limits: {preview: {maxWireBytes: 256, maxNodes: 32, maxDepth: 8}, body: {maxBytes: 128, maxNodes: 16, maxDepth: 4}},
+    resourceTextUnits: 7, connectorRegistration: 'fixture',
+    credentialSite: {construction: {scope: {}, issuer: {}, limits: {maxSecretBytes: 32}}},
+  });
+  assert.equal(quantities.length, 2);
+  assert.deepEqual(recipe.credentialOperations.map(({phase, operationIndex}) => [phase, operationIndex]),
+    [['capture-target', 1], ['apply-target', 2], ['resume-target', 3], ['write', 4]]);
+  assert.strictEqual(recipe.rowOperations[0].extent.capacity, capacities[2]);
+  for (const {extent} of recipe.rowOperations.slice(1, 4)) {
+    assert.equal(extent.physical, true);
+    assert.equal(extent.transfer, 97n);
+    assert.strictEqual(extent.capacity.original, capacities[7]);
+    assert.strictEqual(extent.capacity.inputs[0], quantities[0]);
+  }
+  const {extent} = recipe.rowOperations[4];
+  assert.equal(extent.physical, true);
+  assert.equal(extent.transfer, 577n);
+  assert.strictEqual(extent.capacity.original, capacities[3]);
+  assert.strictEqual(extent.capacity.inputs[0], capacities[2]);
+  assert.strictEqual(extent.capacity.inputs[1], quantities[1]);
+  // The closed default header/response-name shape also occupies storage
+  // when the target and body are small. Only the body+observed names differ.
+  assert(quantities[0][0] > 16n);
+  assert.equal(quantities[0][1], 160n);
+  assert.equal(quantities[1][5] - quantities[0][5], 480n + 16n * 64n);
 });
 
 test('confirmed CREATE forwards the original seven-role Native profile and owns separate finalization and read occurrences', () => {

@@ -25,6 +25,8 @@ interface TransportState {
   failure: string | undefined; readerRetired: boolean; retiring: boolean;
   unreadResponse: unknown;
   finishResponse?: () => void;
+  bindCredential?: () => void;
+  credentialAttempted?: boolean;
 }
 interface PreparationState {
   controller: AbortController | undefined;
@@ -246,6 +248,21 @@ export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, obs
   // Extend the SAME already admitted record only for the selected clock.
   // No temporary spread/empty record on the legacy NONE path.
   if (physical?.finishResponse !== undefined) state.transport.finishResponse = physical.finishResponse;
+  if (physical?.bindCredential !== undefined) state.transport.bindCredential = physical.bindCredential;
+}
+
+export function bindSdkTransportCredential(handle: unknown) {
+  const state = record(handle), transport = state.transport;
+  if (transport?.bindCredential === undefined || transport.credentialAttempted ||
+      transport.started || state.stopped || state.settled) {
+    throw issue('OpenAIProjectCredentialPreparationUnavailable');
+  }
+  // An error may stop this original preparation. It must not trigger another
+  // attempt at credential acquisition, SDK preparation or dispatch.
+  transport.credentialAttempted = true;
+  const bind = transport.bindCredential;
+  bind();
+  delete transport.bindCredential;
 }
 
 // Original fixed transport start only. The caller must first cross Common's
@@ -255,7 +272,7 @@ export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, obs
 export function startSdkTransport(handle: unknown) {
   const state = record(handle);
   const transport = state.transport;
-  if (transport === undefined || transport.started ||
+  if (transport === undefined || transport.bindCredential !== undefined || transport.started ||
       state.failure || state.violation || state.stopped ||
       state.delivered || state.settled || state.request === undefined) {
     throw issue('SdkTransportStartRefused');

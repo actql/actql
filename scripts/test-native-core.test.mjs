@@ -977,7 +977,7 @@ test('Native Core retains admitted Darwin profiles and selects Linux for common 
 // than pinning how many physical invocations an earlier workflow happened to use.
 function coreInvocationRoles(records, target) {
   const wasmCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
-    'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt'];
+    'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt', 'submission_decode_prefix_wbtest.mbt'];
   const requireFullSelection = args => {
     assert.equal(classifyMoon('test', args).classification, 'full');
     // The cost classifier deliberately treats case filters as full builds.
@@ -1098,11 +1098,14 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   }
   copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
     join(checkout, 'proofs/relation-pipeline/proof-parts.mjs'));
-  // Keep the public authored template import real in the copied wrapper
-  // checkout; no second handwritten Mock project fixture is maintained here.
-  mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
-  copyFileSync(new URL('../packages/native-cli/lib/project-template.mjs', import.meta.url),
-    join(checkout, 'packages/native-cli/lib/project-template.mjs'));
+  // Keep both authored Project inputs at their original relative paths in
+  // the isolated wrapper checkout.
+  for (const path of ['packages/native-cli/lib/project-template.mjs',
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs']) {
+    const target = join(checkout, path);
+    mkdirSync(dirname(target), {recursive: true});
+    copyFileSync(new URL('../' + path, import.meta.url), target);
+  }
   mkdirSync(join(checkout, 'spec/contracts'), {recursive: true});
   for (const name of ['actql-query-acquisition.json', 'actql-query-process-evidence.json']) {
     copyFileSync(new URL('../spec/contracts/' + name, import.meta.url),
@@ -1413,7 +1416,7 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
     assert.equal(process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT, undefined);
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
-    assert(Number.isInteger(index) && index >= 0 && index < 4);
+    assert(Number.isInteger(index) && index >= 0 && index < 5);
     const resolution = JSON.parse(process.env.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE);
     assert.equal(resolution.checkpoint_cid, 'sha256:' + '9'.repeat(64));
     assert.equal(resolution.required_artifact_cid, 'sha256:' + '8'.repeat(64));
@@ -1449,8 +1452,9 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
     const root = process.env.ACTQL_TEST_NATIVE_TARGET_IO_ROOT;
     assert.equal(statSync(root).mode & 0o777, 0o700);
     assert.equal(statSync(join(root, 'target-backing-' + suffix)).size, 384 * 1024 ** 2);
+    const sibling = lineage ? '"other":[{"id":"middle","value":3}],' : '';
     assert.equal(require('node:fs').readFileSync(join(root, 'target-' + suffix + '.json'), 'utf8'),
-      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],"keep":"untouched"}\\n');
+      ' {"items":[{"id":"first","value":1},{"id":"second","value":2}],' + sibling + '"keep":"untouched"}\\n');
     if (process.env.ACTQL_FIXTURE_TARGET_ZERO === '1') console.log('Total tests: 0, passed: 0, failed: 0.');
     else console.log('Total tests: 1, passed: 1, failed: 0.');
     process.exit(0);
@@ -2683,7 +2687,7 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     for (const call of selected.filter(call => !targets.includes(call) && !lineage.includes(call))) assert.equal(call.targetRoot, undefined);
     const responses = selected.filter(call => call.args.includes(responseFile));
-    assert.deepEqual(responses.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : fileZero ? ['0', '1'] : ['0', '1', '2', '3']);
+    assert.deepEqual(responses.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? [] : fileZero ? ['0', '1'] : ['0', '1', '2', '3', '4']);
     assert.equal(new Set(responses.slice(1).map(call => call.fileReceiptRoot)).size, Math.max(0, responses.length - 1));
     for (const [index, call] of responses.entries()) {
       assert.equal(call.profile, 'scoped-review-values');
@@ -2698,9 +2702,9 @@ test('Native Core routes Content, target lineage and original file receipts with
     }
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!failed) {
-      assert.equal(calls.length, 20 + 4 + 3 + 4 + 11,
-        'all old cases plus three lineage/four file-response cases and their original signing producer');
-      assert.match(result.stdout, /"scoped":38,"physical":37,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 20 + 4 + 3 + 5 + 11,
+        'all old cases plus three lineage/five file-response cases and their original signing producer');
+      assert.match(result.stdout, /"scoped":39,"physical":38,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

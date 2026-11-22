@@ -1,6 +1,7 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import './host-journal-facility-fields.cjs';
+import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {throwSqliteInitializationFailure} from
@@ -20,9 +21,9 @@ import {admission, admissionEvidenceShape, assertKeyedInventoryRequest, assertSo
   admitJournalRunDefinitionRow, readJournalRunDefinitionRow, retainJournalRunStateFrame, sameRunStateRow,
   reinspectJournalRunAfterPhysicalClose, reinspectJournalRunForSigning, reinspectJournalRunStopAfterStatePublication,
   structuralExplanationOriginalShape, text, validateSourceInventory} from './client-request-journal-records.mjs';
-import {explanationOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
+import {explanationOriginalTable, explanationContextOriginalTable, admitJournalDirectory, syncDirectory, columns, selectColumns,
   snapshotJournalConfiguration, initializeJournalPrimaryStorage, readJournalExplanationOriginal, probeJournalExplanation, readJournalExplanation,
-  insertJournalExplanationOriginal,
+  insertJournalExplanationOriginal, verifyJournalExplanationContext,
   validLocalExecutionOwnerReceipt, assertJournalSubmissionCustody,
   assertJournalIntentCustody, assertJournalCancellationCustody} from './client-request-journal-format.mjs';
 import {captureOriginalClientRequestJournalFacility} from './client-request-journal-facility.mjs';
@@ -116,6 +117,7 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     primaryCurrent, primaryDirectoryInspection, inspectionTemporaryDirectory,
     maxRunDefinitionWireBytes, submissionEpochNow, updateOriginalControl,
     sourceOperationLimits, inspectionBytes, walFrames} = configuration;
+  const maxOriginalExplanationWireBytes = Math.min(65536, maxRunDefinitionWireBytes);
   // Only the actual selected Root supplies this captured current fence. It
   // does not issue capacity; execute it before the first original directory,
   // copy or native acquisition, and again at each covered SQL boundary.
@@ -298,10 +300,10 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
 
   const readExplanationOriginal = (ref: WireRunRef) =>
     readJournalExplanationOriginal(database, ref, maxRunDefinitionWireBytes);
-  const probeExplanationRead = (ref: WireRunRef) =>
-    probeJournalExplanation(database, ensureOpen, ref, maxRunDefinitionWireBytes);
-  const readExplanationSelection = (ref: WireRunRef, extent: Parameters<typeof readJournalExplanation>[3]) =>
-    readJournalExplanation(database, ensureOpen, ref, extent, maxRunDefinitionWireBytes);
+  const probeExplanationRead = (ref: WireRunRef, includeContext: boolean) =>
+    probeJournalExplanation(database, ensureOpen, ref, maxRunDefinitionWireBytes, includeContext);
+  const readExplanationSelection = (ref: WireRunRef, extent: Parameters<typeof readJournalExplanation>[3], includeContext: boolean) =>
+    readJournalExplanation(database, ensureOpen, ref, extent, maxRunDefinitionWireBytes, includeContext);
   const insertExplanationOriginal = (ref: WireRunRef, original: Parameters<typeof insertJournalExplanationOriginal>[2]) =>
     insertJournalExplanationOriginal(database, ref, original);
 
@@ -310,8 +312,10 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
       cancellationIssued, intentSelect, insert, advanceSubmissionCustody},
     {ensureOpen, transact, checkSubmissionBinding, refuseEpoch, retainedIntent,
       assertJournalSubmissionCustody, assertJournalCancellationCustody,
-      readExplanationOriginal, insertExplanationOriginal},
-    configuration as Parameters<typeof createJournalRunRecords>[2]);
+      readExplanationOriginal, insertExplanationOriginal,
+      verifyExplanationContext: (runDefinitionCid, original) =>
+        verifyJournalExplanationContext(database, runDefinitionCid, original)},
+    {...configuration, maxOriginalExplanationWireBytes} as Parameters<typeof createJournalRunRecords>[2]);
 
   const observationConnection = createJournalObservationConnection(path, ensureOpen, primaryCurrent,
     primarySqlLimits, primaryExecutionLimits, walFrames, maxDatabaseBytes);
@@ -380,6 +384,15 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
       return primarySchemaSqlSupport === undefined ||
         primarySchemaSqlSupport.includes(explanationOriginalTable);
     },
+    supportsOriginalExplanationContext() {
+      ensureOpen();
+      return primarySchemaSqlSupport === undefined ||
+        primarySchemaSqlSupport.includes(explanationOriginalTable) &&
+        primarySchemaSqlSupport.includes(explanationContextOriginalTable);
+    },
+    originalExplanationContextLimit(): number | undefined {
+      return journal.supportsOriginalExplanationContext() ? maxOriginalExplanationWireBytes : undefined;
+    },
     acceptDefinition(identity: unknown, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalExplanation, originalInferRun,
       revision = 0, lookupExpiresAt, submission}: DefinitionAdmission,
       requestControl: RequestControl, publicationControl: AdmissionPublication): AdmittedDefinition {
@@ -419,15 +432,42 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
             definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
           if (original === null || typeof original !== 'object' || Array.isArray(original)) fail('InvalidClientRunExplanationOriginal');
           const fields = operationDescriptors(original), field = fields.factsWire;
-          if (operationKeys(fields).length !== 1 || field === undefined ||
+          const companion = fields.contextWire;
+          const template = fields.invocationTemplateWire;
+          if (operationKeys(fields).length !== (companion === undefined ? 1 : 3) || field === undefined ||
               !Object.hasOwn(field, 'value') || typeof field.value !== 'string' || field.value.length === 0) {
             fail('InvalidClientRunExplanationOriginal');
           }
           const factsWire = field.value;
-          if (Buffer.byteLength(factsWire) > maxRunDefinitionWireBytes) fail('InvalidClientRunAdmissionEvidence');
-          explanationOriginal = Object.freeze({factsWire});
+          let bytes = Buffer.byteLength(factsWire);
+          const captured: {factsWire: string; contextWire?: string; contextWireSha256?: string; invocationTemplateWire?: string} = {factsWire};
+          if (companion !== undefined) {
+            if (!Object.hasOwn(companion, 'value') || typeof companion.value !== 'string' || companion.value.length === 0 ||
+                template === undefined || !Object.hasOwn(template, 'value') ||
+                typeof template.value !== 'string' || template.value.length === 0) {
+              fail('InvalidClientRunExplanationOriginal');
+            }
+            if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(explanationContextOriginalTable)) {
+              fail('ClientRequestExplanationStorageUnavailable');
+            }
+            captured.contextWire = companion.value;
+            captured.invocationTemplateWire = template.value;
+            bytes += Buffer.byteLength(captured.contextWire) + Buffer.byteLength(captured.invocationTemplateWire);
+          }
+          if (bytes > (companion === undefined ? maxRunDefinitionWireBytes : maxOriginalExplanationWireBytes)) {
+            fail('InvalidClientRunAdmissionEvidence');
+          }
+          if (companion !== undefined) {
+            // Preserve the first committed bytes for the authorized cold
+            // validator. Prefix the fixed 71-byte original Run CID so a
+            // companion copied from another Run also fails this comparison.
+            captured.contextWireSha256 = createHash('sha256')
+              .update(definition.identity).update(captured.contextWire!).digest('hex');
+          }
+          explanationOriginal = Object.freeze(captured);
         } catch (cause) {
-          if ((cause as Failure)?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          if ((cause as Failure)?.code === 'InvalidClientRunAdmissionEvidence' ||
+              (cause as Failure)?.code === 'ClientRequestExplanationStorageUnavailable') throw cause;
           fail('InvalidClientRunExplanationOriginal', cause);
         }
       }
@@ -470,7 +510,8 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
         runDefinitionWire: definition.wire,
         resultNames, runAdmissionEvidence, revision, lookupExpiresAt, submission}, requestControl, explanationOriginal);
       // acceptRecord returned only after this SAME transaction's native
-      // COMMIT ACK. Unknown/rollback throws never reach this release. Drop the
+      // COMMIT ACK (or its acknowledged selection of the existing winner).
+      // Unknown/rollback throws never reach this release. Drop the
       // transient Facts wrapper before the compiler owner cuts its last alias
       // and returns the same funded loan; it may still report cleanup failure.
       explanationOriginal = undefined;
@@ -548,8 +589,10 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     },
     // Private explicit-read DATA only. The installed caller must admit entry
     // before probe, then the complete original/codec overlap before full read.
-    probeRunExplanationOriginal: probeExplanationRead,
-    readRunExplanationOriginal: readExplanationSelection,
+    probeRunExplanationOriginal(ref: WireRunRef) {return probeExplanationRead(ref, false);},
+    readRunExplanationOriginal(ref: WireRunRef, extent: Parameters<typeof readJournalExplanation>[3]) {return readExplanationSelection(ref, extent, false);},
+    probeRunExplanationContextOriginal(ref: WireRunRef) {return probeExplanationRead(ref, true);},
+    readRunExplanationContextOriginal(ref: WireRunRef, extent: Parameters<typeof readJournalExplanation>[3]) {return readExplanationSelection(ref, extent, true);},
     canReinspectRunStopAfterStatePublication(beforeFrame: object, afterFrame: object) {
       ensureOpen();
       return reinspectJournalRunStopAfterStatePublication(runStateFrames, beforeFrame, afterFrame);

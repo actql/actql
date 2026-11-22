@@ -773,6 +773,7 @@ test('global check continues to require the final pipeline-evidence verdict', t 
   assert.equal(selection.profile, 'full');
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
+  needs['python-wheels'].outputs = {'linux-x64': revision, 'darwin-arm64': revision};
   const gateEnv = { GITHUB_EVENT_PATH: eventPath, GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: '',
     CI_PLAN: '', RESULTS: '', CI_PLAN_PATH: join(root, 'plan.json'), RESULTS_PATH: join(root, 'results.json') };
   const invoke = outcomes => shell(script

@@ -69,6 +69,31 @@ pub fn client_program_row_source_advance_cursor_progress(
 }
 
 ///|
+/// A provider codec may live in its own module namespace. Transfer only the
+/// original page's count and cursor DATA, not its nominal page handle.
+#export_name("clientProgramRowSourceAdvanceProviderPageCursor")
+pub fn client_program_row_source_advance_provider_page_cursor(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  page_rows : Int,
+  cursor_present : Bool,
+  cursor : String,
+) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.advance_row_source_cursor_progress_from_provider_page(
+    progress,
+    page_index,
+    row_count,
+    page_rows,
+    if cursor_present {
+      Some(cursor)
+    } else {
+      None
+    },
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceCursorHasNext")
 pub fn client_program_row_source_cursor_has_next(
   progress : @client_row_source_host.RowSourceCursorProgress,

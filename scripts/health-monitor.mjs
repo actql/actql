@@ -135,7 +135,8 @@ export async function applyComparison(report, options, root = repository) {
 }
 
 export async function executeMonitor({mode, options, report, directory}) {
-  const {execute, prepareHealthPackages, distributionMetrics, quickNodeMetrics, mockWorkflowMetrics} = await import('./health-monitor-adapters.mjs');
+  const {execute, prepareHealthPackages, distributionMetrics, observeInstalledHealthNodeModules,
+    quickNodeMetrics, mockWorkflowMetrics} = await import('./health-monitor-adapters.mjs');
   const raw = join(directory, 'raw'); await mkdir(raw, {recursive: true});
   const onMetric = async metric => {
     if (metric.kind === 'latency' && metric.samples?.length) metric = {...metric,
@@ -152,8 +153,9 @@ export async function executeMonitor({mode, options, report, directory}) {
   let prepared;
   try {
     prepared = await prepareHealthPackages({repository, root: raw, source: report.source, retained: options.packages, command});
-    const {inventory} = await import('./package-release.mjs');
-    report.installedInventoryBefore = await inventory(join(prepared.consumer, 'node_modules'));
+    const installed = await observeInstalledHealthNodeModules(prepared.consumer);
+    report.installedInventoryBefore = installed.files;
+    report.installedBinLinksBefore = installed.binLinks;
     await onMetric({id: 'build-packaging', kind: 'reference', target: 'distribution', value: Number(process.hrtime.bigint() - started) / 1e6,
       unit: 'ms', required: true, fixtureSha256: jsonDigest({packages: 'canonical5', retained: Boolean(options.packages)}), evidence: raw,
       scope: options.packages ? 'verified retained artifacts plus fresh installation; no build' : 'normal prepack/build, npm pack and fresh installation; excluded from runtime samples'});
@@ -204,9 +206,16 @@ export async function executeMonitor({mode, options, report, directory}) {
       try {
         const {verifyNodeBenchmarkPackages} = await import('./benchmark-node-operations.mjs');
         await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
-        const {inventory} = await import('./package-release.mjs');
-        report.installedInventoryAfter = await inventory(join(prepared.consumer, 'node_modules'));
-        if (jsonDigest(report.installedInventoryBefore) !== jsonDigest(report.installedInventoryAfter)) throw new Error('Installed package inventory changed');
+        const installed = await observeInstalledHealthNodeModules(prepared.consumer);
+        report.installedInventoryAfter = installed.files;
+        report.installedBinLinksAfter = installed.binLinks;
+        if (report.installedInventoryBefore === undefined ||
+            jsonDigest(report.installedInventoryBefore) !== jsonDigest(report.installedInventoryAfter)) {
+          throw new Error('Installed package inventory changed');
+        }
+        if (jsonDigest(report.installedBinLinksBefore) !== jsonDigest(report.installedBinLinksAfter)) {
+          throw new Error('Installed command links changed');
+        }
         report.installedPayloadsUnchanged = true;
       } catch (error) {report.errors.push({target: 'package-after', message: error.message});}
     }
@@ -299,7 +308,8 @@ export async function fixtureIdentities(mode = 'quick', {root = repository} = {}
     'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
     'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',
-    'scripts/package-release.mjs', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
+    'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
+    'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
   if (mode === 'release') files.push('scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
     'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs');
   return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(root, file)))])));

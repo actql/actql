@@ -162,7 +162,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
   let selected = self.original.with_business_request(self.capture, () => {
     let selected = @run_host.select_client_effect_composed_model_keyed_acquisition(
       state._retained_prepared,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalModelContentUnavailable"))
     // Absence is the checked original's legitimate no-Content shape. Its whole
     // Source evidence and producer reads use the SAME later Model Read.
@@ -175,7 +175,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       scope,
       compiled,
       first.definition,
-      state.graph,
+      state.model_graph(),
       keyed,
       state.captured_inputs,
       limits.input,
@@ -347,7 +347,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
   )
   self.original.with_business_request(self.capture, () => {
     let profile = @run_host.client_infer_plan_native_keyed_read_profile(
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalModelKeyedPlanUnavailable"))
     @run_host.start_client_keyed_lookup_request_plan(
       lookup,

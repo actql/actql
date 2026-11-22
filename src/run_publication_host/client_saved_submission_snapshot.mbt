@@ -73,7 +73,7 @@ pub fn[E] reobserve_client_saved_submission_original(
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   guard original.record.run_admission is Some(_) &&
     original.run is Some(run) &&
-    original.inspection is Some(_) else {
+    original.inspection is Some(inspection) else {
     return Ok(None)
   }
   let submission = match
@@ -95,14 +95,16 @@ pub fn[E] reobserve_client_saved_submission_original(
       match original.task_materials {
         None => Ok(Some(original))
         Some(wire) => {
-          let cid = match client_task_material_original_cid(wire) {
-            Ok(cid) => cid
-            Err(_) => return Ok(None)
+          // Snapshot construction checked this wire under this inspection CID.
+          // Reuse it only after the complete fresh exact material observation.
+          guard inspection.task_materials_cid is Some(cid) else {
+            return Ok(None)
           }
           match
-            read_client_task_material_original(
+            read_saved_task_material_original(
               run.key,
               cid,
+              original.task_materials,
               (table, key) => read(table, key).map_err(issue => Some(issue)),
               None,
             ) {
@@ -165,6 +167,32 @@ fn[Plan, E] read_client_saved_submission_row_with_task_original(
     Ok(value) => value
     Err(_) => return Err(custody_lost)
   }
+  read_decoded_client_saved_submission_row(
+    row,
+    record,
+    read,
+    validate_run,
+    custody_lost,
+    task_original,
+    expected_reference~,
+  )
+}
+
+///|
+// Only the canonical constructors in this module supply this local value.
+// No decoded record is accepted from a physical or public caller.
+fn[Plan, E] read_decoded_client_saved_submission_row(
+  row : ClientJournalPhysicalRow,
+  record : ClientSubmittedJournalEncoding,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  expected_reference? : ClientSubmissionReferenceRecord? = None,
+) -> Result[ClientSavedSubmissionSnapshot, E] {
   if row.revision < 0L ||
     row.key != client_submission_reference_record_request_id(record.reference) {
     return Err(custody_lost)
@@ -252,6 +280,79 @@ fn[Plan, E] read_client_saved_submission_row_with_task_original(
     state_original,
     task_materials,
   })
+}
+
+///|
+/// Validate one scanned row within its SAME original read call. Its canonical
+/// decode remains local across the fresh point read; exact key/revision/whole
+/// bytes permit reuse, never a normalized replacement or earlier transaction.
+/// All Run/task/snapshot validation remains in the original reader below.
+/// Complete inventories, current and transaction fences stay with the caller.
+/// The caller retains original construction backing through this same call
+/// and its existing snapshot consumption; this creates no new retained owner.
+pub fn[Plan, E] read_client_scanned_submission_with_task_original(
+  scanned : ClientJournalPhysicalRow,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
+) -> Result[ClientSavedSubmissionSnapshot, E] {
+  // Keep malformed canonical input before physical IO, as in the original
+  // scan/decode/reference-reader composition. Carry only this canonical local
+  // result; do not infer backing or object liveness from compiler optimizations.
+  let record = match
+    decode_client_submitted_journal_row(scanned.body, before_construction~) {
+    Ok(value) => value
+    Err(_) => return Err(custody_lost)
+  }
+  let reference = record.reference
+  let key = client_submission_reference_record_request_id(reference)
+  let actual = match read("client_submitted_intents", key) {
+    Ok(Some(row)) if row.key == key => row
+    Err(issue) => return Err(issue)
+    _ => return Err(custody_lost)
+  }
+  let same = actual.key == scanned.key &&
+    actual.revision == scanned.revision &&
+    actual.body == scanned.body
+  let observed = if same {
+    read_decoded_client_saved_submission_row(
+      actual,
+      record,
+      read,
+      validate_run,
+      custody_lost,
+      task_original,
+      expected_reference=Some(reference),
+    )
+  } else {
+    // A miss retains the original validator and its failure/callback order.
+    // No changed body or revision borrows the earlier pure result.
+    read_client_saved_submission_row_with_task_original(
+      actual,
+      read,
+      validate_run,
+      custody_lost,
+      task_original,
+      expected_reference=Some(reference),
+      before_construction~,
+    )
+  }
+  let snapshot = match observed {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !same {
+    return Err(custody_lost)
+  }
+  Ok(snapshot)
 }
 
 ///|

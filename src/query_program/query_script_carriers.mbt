@@ -95,12 +95,7 @@ fn script_carrier_field_name(
   sources : ScriptSources,
 ) -> String raise Abort {
   let resolved = match
-    script_input_scope(
-      construction,
-      sources,
-      input.name,
-      query_range_name(query),
-    ) {
+    script_input_scope(construction, sources, input, query_range_name(query)) {
     Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
     None => resolve_column(path, query, input, columns(input))
   }
@@ -225,6 +220,7 @@ fn retain_script_carrier_column_scope(
     key_labels: script_carrier_key_labels(
       construction, sources, scope, pipeline, target, known, fields, call,
     ),
+    result_columns: None,
     scalar_ranges: [],
   }
 }

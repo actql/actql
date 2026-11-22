@@ -2,4 +2,4 @@
 // profile nor original funding, approval, saved evidence or send authority.
 export {createInstalledOpenAIChatRegistration,
   createInstalledUndiciOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
-export {createOpenAIChatProvider} from './_internal/normal-openai-chat.mjs';
+export {createOpenAIChatProvider, createProjectOpenAIChatProvider} from './_internal/normal-openai-chat.mjs';

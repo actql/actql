@@ -1117,12 +1117,13 @@
     {
       "module": "packages/explorer-ui/flow-layout-engine.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5e1a16b75e8dba6aee98e4ec7072655b1e29aa6035445cb34a8c3fb09f495456",
+      "sha256": "d14e231561012f666108f7d487794b17abf8fe280884229aea3ba8d829db9a03",
       "exports": [
         "elkGraph",
         "flowLayoutDeadlineMs",
         "flowNodeHeight",
         "flowNodeWidth",
+        "flowPortOffsets",
         "layoutInput",
         "layoutPositions"
       ],
@@ -1144,6 +1145,13 @@
         {
           "name": "elkGraph/children/children/declared/declared",
           "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "elkGraph/children/children/positioned/positioned",
+          "parameters": [
             "port",
             "index"
           ],
@@ -1160,6 +1168,20 @@
           "name": "flowNodeHeight/flowNodeHeight",
           "parameters": [
             "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "flowPortOffsets",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "flowPortOffsets/flowPortOffsets",
+          "parameters": [
+            "role"
           ],
           "async": false
         },
@@ -1243,8 +1265,11 @@
             "elkGraph",
             "elkGraph/children/children",
             "elkGraph/children/children/declared/declared",
+            "elkGraph/children/children/positioned/positioned",
             "elkGraph/edges/edges",
             "flowNodeHeight/flowNodeHeight",
+            "flowPortOffsets",
+            "flowPortOffsets/flowPortOffsets",
             "layoutInput",
             "layoutInput/edges/edges",
             "layoutInput/nodes/nodes",
@@ -1260,6 +1285,7 @@
             "flowLayoutDeadlineMs",
             "flowNodeHeight",
             "flowNodeWidth",
+            "flowPortOffsets",
             "layoutInput",
             "layoutPositions"
           ],
@@ -1480,11 +1506,12 @@
     {
       "module": "packages/explorer-ui/flow-layout.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b69c5101758159daadbe6e284a7b74830667966c1cbb63b48797e29d994f4040",
+      "sha256": "7240ad29816ccf81ffae4943af8e4b087971f61b84514149596355191e172245",
       "exports": [
         "flowLayoutDeadlineMs",
         "flowNodeHeight",
         "flowNodeWidth",
+        "flowPortOffsets",
         "layoutInput",
         "requestFlowLayout"
       ],
@@ -1572,6 +1599,7 @@
             "flowLayoutDeadlineMs",
             "flowNodeHeight",
             "flowNodeWidth",
+            "flowPortOffsets",
             "layoutInput",
             "requestFlowLayout"
           ],
@@ -1830,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "be1ca03d859c028c999649e1ae5c4e7bb584b31b36f0426f77d8dffdf64eb2fc",
+      "sha256": "994b13f07e5809aab12d4e9f43ab3aaa9fe99449a5aa3d319104e08e8f680c0d",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1843,11 +1871,25 @@
       ],
       "operations": [
         {
+          "name": "label",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string}"
+        },
+        {
           "name": "PlanExplorer",
           "parameters": [
             "props: PlanExplorerProps"
           ],
           "result": "ReactElement"
+        },
+        {
+          "name": "select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
         }
       ],
       "imports": [
@@ -1866,7 +1908,9 @@
         {
           "operations": [
             "<module>",
-            "PlanExplorer"
+            "label",
+            "PlanExplorer",
+            "select"
           ],
           "exports": [
             "CancellationObservation",
@@ -1969,6 +2013,10 @@
               {
                 "path": "packages/explorer-ui/plan-explorer.test.mjs",
                 "anchor": "array reversal changes presentation positions"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "assert((await step.textContent()).includes(originalStep));"
               }
             ]
           }
@@ -1978,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "14e9161180a09482b254716928fe25a8472260a666575d9225855c7d41ec2c03",
+      "sha256": "1d5bc4507d449ffc8994be687fb1cac43f51d1fc35e179ef9d5b54861c6758e9",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -1990,7 +2038,7 @@
         {
           "name": "BoundPlanExplorer",
           "parameters": [
-            "{model}: {model: PlanReadModel}"
+            "{model, initialView, workspace}: Omit<PlanExplorerProps, 'scopeKey'>"
           ],
           "result": null
         },
@@ -2018,10 +2066,7 @@
         },
         {
           "name": "BoundPlanExplorer/<call>/<call>#4",
-          "parameters": [
-            "node",
-            "index"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -2030,14 +2075,47 @@
           "result": null
         },
         {
+          "name": "BoundPlanExplorer/<call>/<call>#6",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>/<call>#7",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "BoundPlanExplorer/<call>#10",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#11",
           "parameters": [
             "node"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#11",
+          "name": "BoundPlanExplorer/<call>#12",
+          "parameters": [
+            "_",
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#13",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#14",
           "parameters": [
             "port"
           ],
@@ -2060,19 +2138,21 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#5",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "BoundPlanExplorer/<call>#6",
           "parameters": [
             "node"
           ],
           "result": null
         },
         {
-          "name": "BoundPlanExplorer/<call>#6",
-          "parameters": [],
-          "result": null
-        },
-        {
           "name": "BoundPlanExplorer/<call>#7",
-          "parameters": [],
+          "parameters": [
+            "node"
+          ],
           "result": null
         },
         {
@@ -2084,11 +2164,145 @@
         },
         {
           "name": "BoundPlanExplorer/<call>#9",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs",
           "parameters": [
-            "_",
+            "nodes: LogicalNode[]",
+            "edges: Edge[]"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#10",
+          "parameters": [
+            "{id}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#11",
+          "parameters": [
             "node"
           ],
           "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#6",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#7",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#8",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "groupUnlinkedInputs/<call>#9",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes",
+          "parameters": [
+            "placed: LogicalNode[]",
+            "focus: LogicalNode | undefined",
+            "canvasWidth: number"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#2",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#3",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#4",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "initialViewportNodes/<call>#5",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "label",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "NodePresentation"
         },
         {
           "name": "LogicalCard",
@@ -2099,6 +2313,13 @@
         },
         {
           "name": "LogicalCard/<call>",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "LogicalCard/<call>#2",
           "parameters": [
             "port",
             "index"
@@ -2115,9 +2336,16 @@
         {
           "name": "PlanExplorer",
           "parameters": [
-            "{model, scopeKey}: PlanExplorerProps"
+            "{model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps"
           ],
           "result": null
+        },
+        {
+          "name": "select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
         }
       ],
       "imports": [
@@ -2150,6 +2378,7 @@
             "BoundPlanExplorer/<call>/<call>#5",
             "BoundPlanExplorer/<call>#10",
             "BoundPlanExplorer/<call>#11",
+            "BoundPlanExplorer/<call>#12",
             "BoundPlanExplorer/<call>#2",
             "BoundPlanExplorer/<call>#3",
             "BoundPlanExplorer/<call>#4",
@@ -2158,10 +2387,35 @@
             "BoundPlanExplorer/<call>#7",
             "BoundPlanExplorer/<call>#8",
             "BoundPlanExplorer/<call>#9",
+            "label",
             "LogicalCard",
             "LogicalCard/<call>",
             "OriginalEdge",
-            "PlanExplorer"
+            "PlanExplorer",
+            "select",
+            "BoundPlanExplorer/<call>/<call>#6",
+            "BoundPlanExplorer/<call>/<call>#7",
+            "BoundPlanExplorer/<call>#13",
+            "initialViewportNodes",
+            "initialViewportNodes/<call>",
+            "initialViewportNodes/<call>#2",
+            "initialViewportNodes/<call>#3",
+            "initialViewportNodes/<call>#4",
+            "initialViewportNodes/<call>#5",
+            "LogicalCard/<call>#2",
+            "BoundPlanExplorer/<call>#14",
+            "groupUnlinkedInputs",
+            "groupUnlinkedInputs/<call>",
+            "groupUnlinkedInputs/<call>#10",
+            "groupUnlinkedInputs/<call>#11",
+            "groupUnlinkedInputs/<call>#2",
+            "groupUnlinkedInputs/<call>#3",
+            "groupUnlinkedInputs/<call>#4",
+            "groupUnlinkedInputs/<call>#5",
+            "groupUnlinkedInputs/<call>#6",
+            "groupUnlinkedInputs/<call>#7",
+            "groupUnlinkedInputs/<call>#8",
+            "groupUnlinkedInputs/<call>#9"
           ],
           "exports": [
             "CancellationPanel",
@@ -2261,6 +2515,10 @@
               {
                 "path": "packages/explorer-ui/plan-explorer.test.mjs",
                 "anchor": "array reversal changes presentation positions"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "assert((await step.textContent()).includes(originalStep));"
               }
             ]
           }
@@ -2400,7 +2658,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ead348260dbd142252944419433e0135fcc37a18b0648fe9edc97a75b2929644",
+      "sha256": "ba0d28027d163fcca52e1b7fa208bf189c6b649e973b19bb7e8556cdafb0adab",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2410,6 +2668,8 @@
         "PlanReadModel",
         "PlanStoryModel",
         "ReadTicket",
+        "SavedExplanationReadModel",
+        "StaticExplanationReadModel",
         "createReadEpoch",
         "describeExistingResult",
         "explanationStoryModel",
@@ -2417,11 +2677,14 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunContext",
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
         "readExistingRunStory",
-        "readStaticPlan"
+        "readStaticExplanation",
+        "readStaticPlan",
+        "staticExplanationReadModel"
       ],
       "operations": [
         {
@@ -2488,6 +2751,16 @@
           "result": "Promise<WireRunView>"
         },
         {
+          "name": "readExistingRunContext",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "presentation: StaticExplanationPresentation",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<SavedExplanationReadModel>"
+        },
+        {
           "name": "readExistingRunExplanation",
           "parameters": [
             "client: Pick<Client, 'attach'>",
@@ -2526,6 +2799,17 @@
           "result": "Promise<OriginalRunStoryReadModel>"
         },
         {
+          "name": "readStaticExplanation",
+          "parameters": [
+            "client: Pick<Client, 'explain'>",
+            "input: Parameters<Client['explain']>[0]",
+            "options: Parameters<Client['explain']>[1]",
+            "presentation: StaticExplanationPresentation",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<StaticExplanationReadModel>"
+        },
+        {
           "name": "readStaticPlan",
           "parameters": [
             "client: Pick<Client, 'plan'>",
@@ -2534,6 +2818,22 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<PlanReadModel>"
+        },
+        {
+          "name": "render",
+          "parameters": [
+            "view: WireStaticExplanationView",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "Readonly<{context: readonly string[]; steps: readonly string[]}>"
+        },
+        {
+          "name": "staticExplanationReadModel",
+          "parameters": [
+            "view: WireStaticExplanationView",
+            "presentation: StaticExplanationPresentation"
+          ],
+          "result": "StaticExplanationReadModel"
         }
       ],
       "imports": [
@@ -2763,11 +3063,14 @@
         },
         {
           "operations": [
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext"
           ],
           "exports": [
             "OriginalRunPresentationReadModel",
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext",
+            "SavedExplanationReadModel"
           ],
           "attributes": {
             "responsibility": [
@@ -2832,6 +3135,88 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readStaticExplanation",
+            "render",
+            "staticExplanationReadModel"
+          ],
+          "exports": [
+            "StaticExplanationReadModel",
+            "readStaticExplanation",
+            "staticExplanationReadModel"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "export function staticExplanationReadModel("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mjs",
+                "anchor": "const value = await read('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const narrative = render(view, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
           }
@@ -2841,7 +3226,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c6cc7fed3ff92e729d24101e5a70ded5dbb5a789da0843ea3d0d7dba8806e0e1",
+      "sha256": "17b4233a00e23e997b2f7609f452cfa1c8534911e6bb08c829ab6be08efad9e6",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -2851,13 +3236,62 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunContext",
         "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunPresentation",
         "readExistingRunStory",
-        "readStaticPlan"
+        "readStaticExplanation",
+        "readStaticPlan",
+        "staticExplanationReadModel"
       ],
       "operations": [
+        {
+          "name": "attachExplanationFacts/attachExplanationFacts",
+          "parameters": [
+            "occurrence",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/checkedContext",
+          "parameters": [
+            "port",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/checkedContext#2",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/checkedContext#3",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/locator/locator",
+          "parameters": [
+            "stage_ordinal",
+            "input_port_ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/steps/steps",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
         {
           "name": "createReadEpoch",
           "parameters": [],
@@ -2899,6 +3333,28 @@
           "async": false
         },
         {
+          "name": "explanationContextReadModel/explanationContextReadModel",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationContextReadModel/scope/scope",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationContextReadModel/story/story",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "explanationStoryModel",
           "parameters": [
             "view",
@@ -2910,7 +3366,6 @@
         {
           "name": "explanationStoryModel/explanationStoryModel",
           "parameters": [
-            "occurrence",
             "index"
           ],
           "async": false
@@ -2959,24 +3414,24 @@
           "async": false
         },
         {
-          "name": "planStoryModel",
-          "parameters": [
-            "view",
-            "locale"
-          ],
-          "async": false
-        },
-        {
-          "name": "planStoryModel/planStoryModel",
+          "name": "planStory/planStory",
           "parameters": [
             "node"
           ],
           "async": false
         },
         {
-          "name": "planStoryModel/planStoryModel#2",
+          "name": "planStory/planStory#2",
           "parameters": [
             "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "planStoryModel",
+          "parameters": [
+            "view",
+            "locale"
           ],
           "async": false
         },
@@ -3003,6 +3458,27 @@
         },
         {
           "name": "readExistingRun/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunContext",
+          "parameters": [
+            "client",
+            "ref",
+            "locale",
+            "render",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readExistingRunContext/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunContext/view/view",
           "parameters": [],
           "async": false
         },
@@ -3055,6 +3531,23 @@
           "async": true
         },
         {
+          "name": "readStaticExplanation",
+          "parameters": [
+            "client",
+            "input",
+            "options",
+            "locale",
+            "render",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readStaticExplanation/readStaticExplanation",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "readStaticPlan",
           "parameters": [
             "client",
@@ -3070,6 +3563,13 @@
           "async": true
         },
         {
+          "name": "sameDeclaration/sameDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "sameIds/sameIds/original/original",
           "parameters": [
             "port"
@@ -3081,6 +3581,15 @@
           "parameters": [
             "id",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "staticExplanationReadModel",
+          "parameters": [
+            "view",
+            "locale",
+            "render"
           ],
           "async": false
         },
@@ -3122,6 +3631,7 @@
         {
           "operations": [
             "<module>",
+            "attachExplanationFacts/attachExplanationFacts",
             "createReadEpoch",
             "createReadEpoch/init:capture/init:capture",
             "createReadEpoch/init:capture/init:capture/init:assertCurrent/init:assertCurrent",
@@ -3136,9 +3646,9 @@
             "planReadModel",
             "planReadModel/planReadModel",
             "planReadModel/planReadModel/planReadModel",
+            "planStory/planStory",
+            "planStory/planStory#2",
             "planStoryModel",
-            "planStoryModel/planStoryModel",
-            "planStoryModel/planStoryModel#2",
             "predicateStory/predicateStory",
             "readExistingRun",
             "readExistingRun/readExistingRun",
@@ -3366,10 +3876,14 @@
             "originalRunExplanationOnExecution/view/view",
             "originalRunPlanOnExecution/view/view",
             "readExistingRunPresentation",
-            "readExistingRunPresentation/run/run"
+            "readExistingRunPresentation/run/run",
+            "readExistingRunContext",
+            "readExistingRunContext/run/run",
+            "readExistingRunContext/view/view"
           ],
           "exports": [
-            "readExistingRunPresentation"
+            "readExistingRunPresentation",
+            "readExistingRunContext"
           ],
           "attributes": {
             "responsibility": [
@@ -3434,6 +3948,96 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "checkedContext/checkedContext",
+            "checkedContext/checkedContext#2",
+            "checkedContext/checkedContext#3",
+            "checkedContext/locator/locator",
+            "checkedContext/steps/steps",
+            "readStaticExplanation",
+            "readStaticExplanation/readStaticExplanation",
+            "sameDeclaration/sameDeclaration",
+            "staticExplanationReadModel",
+            "explanationContextReadModel/explanationContextReadModel",
+            "explanationContextReadModel/scope/scope",
+            "explanationContextReadModel/story/story"
+          ],
+          "exports": [
+            "readStaticExplanation",
+            "staticExplanationReadModel"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "export function staticExplanationReadModel("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mjs",
+                "anchor": "const value = await read('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const narrative = render(view, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
           }
@@ -3994,7 +4598,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "8ff228d942790ac14229cdbddfcfdea2b37c06798fa610449e0041be44bab413",
+      "sha256": "d41c97abfc07948d9b85c3ec110c91e78d81145c8a1fbb353f19737e3dd233d6",
       "exports": [],
       "operations": [
         {
@@ -4023,50 +4627,162 @@
           "result": null
         },
         {
+          "name": "App/<call>/<call>#3",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#4",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/<call>#5",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle",
+          "parameters": [
+            "event: KeyboardEvent"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle/<call>",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>/toggle/<call>#2",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#10",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#11",
+          "parameters": [
+            "line",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#12",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#13",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#14",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#15",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#16",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#17",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#18",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#19",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
           "name": "App/<call>#2",
           "parameters": [],
           "result": null
         },
         {
-          "name": "App/<call>#3",
+          "name": "App/<call>#20",
           "parameters": [
             "event"
           ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#3",
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#4",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#5",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#6",
-          "parameters": [
-            "occurrence"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#7",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "App/<call>#8",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/<call>#9",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/closeDrawer",
+          "parameters": [],
           "result": null
         },
         {
@@ -4079,6 +4795,13 @@
         {
           "name": "App/invalidate",
           "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/label",
+          "parameters": [
+            "id"
+          ],
           "result": null
         },
         {
@@ -4102,6 +4825,27 @@
           "result": null
         },
         {
+          "name": "App/openDraft",
+          "parameters": [
+            "event: ChangeEvent<HTMLInputElement>"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/openDraft/<call>",
+          "parameters": [
+            "value"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/openDrawer",
+          "parameters": [
+            "next: 'connect' | 'open-run'"
+          ],
+          "result": null
+        },
+        {
           "name": "App/perform",
           "parameters": [
             "action: () => Promise<void>"
@@ -4115,6 +4859,30 @@
         },
         {
           "name": "App/prepareCancellation",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal",
+          "parameters": [
+            "original: RunReference",
+            "action: string",
+            "name = ''"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/adopt",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/readOriginal/current",
           "parameters": [],
           "result": null
         },
@@ -4150,11 +4918,6 @@
           "result": null
         },
         {
-          "name": "App/readRun/<call>",
-          "parameters": [],
-          "result": null
-        },
-        {
           "name": "App/requestCancellation",
           "parameters": [],
           "result": null
@@ -4175,6 +4938,420 @@
           "name": "App/session/<call>",
           "parameters": [],
           "result": null
+        },
+        {
+          "name": "App/setSelection",
+          "parameters": [
+            "id: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary",
+          "parameters": [
+            "story: ExplanationStoryModel"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>",
+          "parameters": [
+            "{explanation}"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#2",
+          "parameters": [
+            "join"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#3",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "computationSummary/<call>#4",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "declaredTargetLabel",
+          "parameters": [
+            "target: string",
+            "locale: ExplanationStoryModel['locale']"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels",
+          "parameters": [
+            "story: ExplanationStoryModel | undefined",
+            "context: StoryContext"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#2",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#3",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#4",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/add",
+          "parameters": [
+            "index: Map<string, T[]>",
+            "stepId: string",
+            "value: T"
+          ],
+          "result": null
+        },
+        {
+          "name": "headlineLabels",
+          "parameters": [
+            "labels: string[]",
+            "locale: ExplanationStoryModel['locale']"
+          ],
+          "result": null
+        },
+        {
+          "name": "headlineLabels/<call>",
+          "parameters": [
+            "label"
+          ],
+          "result": null
+        },
+        {
+          "name": "parseLocalJson",
+          "parameters": [
+            "text: string"
+          ],
+          "result": "unknown"
+        },
+        {
+          "name": "sameRun",
+          "parameters": [
+            "original: RunReference",
+            "other: RunReference | undefined"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin",
+          "parameters": [
+            "{step, label}: {step: Step; label?: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>#2",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "stepState",
+          "parameters": [
+            "stepId: string",
+            "saved: boolean",
+            "boundary?: {stepId: string; state: StepState}"
+          ],
+          "result": "StepState"
+        },
+        {
+          "name": "stepTitle",
+          "parameters": [
+            "step: Step",
+            "label?: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "stepTitle/<call>",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "stepTitle/<call>#2",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard",
+          "parameters": [
+            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard/<call>",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryCard/onToggle",
+          "parameters": [],
+          "result": "void"
+        },
+        {
+          "name": "StoryHeading",
+          "parameters": [
+            "{story, context}: {story: ExplanationStoryModel; context: StoryContext}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#2",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#3",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#4",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#5",
+          "parameters": [
+            "{declaration, write_fields}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryHeading/<call>#6",
+          "parameters": [
+            "part"
+          ],
+          "result": "part is string"
+        },
+        {
+          "name": "StoryHeading/<call>#7",
+          "parameters": [
+            "part"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps",
+          "parameters": [
+            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#3",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#4",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#5",
+          "parameters": [
+            "{origin, text}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#6",
+          "parameters": [
+            "{declaration,write_fields}",
+            "position"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#3",
+          "parameters": [
+            "{origin,text}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#4",
+          "parameters": [
+            "group"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>#5",
+          "parameters": [
+            "{origin,text}",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/card",
+          "parameters": [
+            "id: string",
+            "defaultOpen: boolean",
+            "selected?: string"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/card/onToggle",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/card/onToggle/<call>",
+          "parameters": [
+            "values"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/selectStep",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "StoryText",
+          "parameters": [
+            "{text}: {text: string}"
+          ],
+          "result": null
+        },
+        {
+          "name": "StoryText/<call>",
+          "parameters": [
+            "part",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog",
+          "parameters": [
+            "{title, close, children}: {title: string; close(): void; children: ReactNode}"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>#2",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/<call>#3",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "WorkspaceDialog/close",
+          "parameters": [],
+          "result": "void"
         }
       ],
       "imports": [
@@ -4186,6 +5363,7 @@
         "@actql/explorer-ui/run-observation",
         "@actql/explorer-ui/styles.css",
         "@actql/explorer/browser-source",
+        "@actql/sdk",
         "react",
         "react-dom/client"
       ],
@@ -4202,31 +5380,71 @@
             "App/<call>/<call>",
             "App/<call>/<call>/<call>",
             "App/<call>/<call>#2",
+            "App/<call>/<call>#3",
+            "App/<call>/<call>#4",
+            "App/<call>/<call>#5",
+            "App/<call>/toggle",
+            "App/<call>/toggle/<call>",
+            "App/<call>/toggle/<call>#2",
+            "App/<call>#10",
+            "App/<call>#11",
+            "App/<call>#12",
+            "App/<call>#13",
+            "App/<call>#14",
+            "App/<call>#15",
+            "App/<call>#16",
+            "App/<call>#17",
+            "App/<call>#18",
+            "App/<call>#19",
             "App/<call>#2",
             "App/<call>#3",
             "App/<call>#4",
             "App/<call>#5",
             "App/<call>#6",
             "App/<call>#7",
+            "App/<call>#8",
+            "App/<call>#9",
+            "App/closeDrawer",
             "App/importCancellation",
             "App/invalidate",
+            "App/label",
             "App/listCheckpoints",
             "App/listCheckpoints/<call>",
             "App/lookupCancellation",
             "App/lookupCancellation/<call>",
+            "App/openDraft",
+            "App/openDraft/<call>",
+            "App/openDrawer",
             "App/perform",
             "App/perform/<call>",
             "App/prepareCancellation",
-            "App/readPlan",
-            "App/readPlan/<call>",
             "App/readReview",
             "App/readReview/<call>",
-            "App/readRun",
-            "App/readRun/<call>",
             "App/requestCancellation",
             "App/requestCancellation/<call>",
             "App/session",
-            "App/session/<call>"
+            "App/session/<call>",
+            "App/setSelection",
+            "WorkspaceDialog",
+            "WorkspaceDialog/<call>",
+            "WorkspaceDialog/<call>#2",
+            "WorkspaceDialog/<call>#3",
+            "WorkspaceDialog/close",
+            "App/<call>#20",
+            "declaredTargetLabel",
+            "graphStepLabels",
+            "graphStepLabels/<call>",
+            "graphStepLabels/<call>#2",
+            "graphStepLabels/<call>#3",
+            "graphStepLabels/add",
+            "graphStepLabels/<call>#4",
+            "computationSummary",
+            "computationSummary/<call>",
+            "computationSummary/<call>#2",
+            "computationSummary/<call>#3",
+            "computationSummary/<call>#4",
+            "StepOrigin/<call>#2",
+            "stepTitle/<call>#2"
           ],
           "exports": [],
           "attributes": {
@@ -4326,7 +5544,13 @@
         },
         {
           "operations": [
-            "App/<call>#8"
+            "App/readOriginal",
+            "App/readOriginal/<call>",
+            "App/readOriginal/adopt",
+            "App/readOriginal/current",
+            "App/readRun",
+            "parseLocalJson",
+            "sameRun"
           ],
           "exports": [],
           "attributes": {
@@ -4392,6 +5616,123 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "App/readPlan",
+            "App/readPlan/<call>",
+            "headlineLabels",
+            "headlineLabels/<call>",
+            "StepOrigin",
+            "StepOrigin/<call>",
+            "stepState",
+            "stepTitle",
+            "stepTitle/<call>",
+            "StoryCard",
+            "StoryCard/<call>",
+            "StoryCard/onToggle",
+            "StoryHeading",
+            "StoryHeading/<call>",
+            "StoryHeading/<call>#2",
+            "StoryHeading/<call>#3",
+            "StoryHeading/<call>#4",
+            "StoryHeading/<call>#5",
+            "StoryHeading/<call>#6",
+            "StoryHeading/<call>#7",
+            "StorySteps",
+            "StorySteps/<call>",
+            "StorySteps/<call>/<call>",
+            "StorySteps/<call>/<call>#2",
+            "StorySteps/<call>/<call>#3",
+            "StorySteps/<call>/<call>#4",
+            "StorySteps/<call>/<call>#5",
+            "StorySteps/<call>/<call>#6",
+            "StorySteps/<call>#2",
+            "StorySteps/<call>#3",
+            "StorySteps/<call>#4",
+            "StorySteps/<call>#5",
+            "StorySteps/card",
+            "StorySteps/card/onToggle",
+            "StorySteps/card/onToggle/<call>",
+            "StorySteps/selectStep",
+            "StoryText",
+            "StoryText/<call>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/app/main.tsx",
+                "anchor": "value=\"static-explanation\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mjs",
+                "anchor": "const value = await read('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const narrative = render(view, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
+              },
+              {
+                "path": "scripts/fixtures/packed-explorer-saved-context.mjs",
+                "anchor": "const staticSteps = page.getByRole('region', {name: 'Original story', exact: true});"
               }
             ]
           }
@@ -4401,7 +5742,7 @@
     {
       "module": "packages/explorer/assets.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7966ce983bdff94eae62d3b32cdf5ff7bd19b710357c81a1739643f42d76c173",
+      "sha256": "151fde18ebace0f815b67a9267497c13c44f041e10bd11feff07d1e90ce10572",
       "exports": [
         "loadExplorerAssets"
       ],
@@ -4532,7 +5873,7 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "7087a879b922734e79e81ccf5543e285751a3b0fe6cab72f6300ffdf14da8ad7",
+      "sha256": "dd281955fa24c2f3d5294f2eb5de06f80133c45ce1764cc0779ea4c21bee18fb",
       "exports": [
         "ExplorerCapabilities",
         "createExplorerBrowserSource"
@@ -4543,7 +5884,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -4631,6 +5972,14 @@
           "result": "Promise<ReviewObservation>"
         },
         {
+          "name": "createExplorerBrowserSource/runContext",
+          "parameters": [
+            "ref: RunReference",
+            "locale?: 'en' | 'ja'"
+          ],
+          "result": "Promise<SavedExplanationReadModel>"
+        },
+        {
           "name": "createExplorerBrowserSource/runPlan",
           "parameters": [
             "ref: RunReference"
@@ -4644,6 +5993,15 @@
             "options?: {locale?: 'en' | 'ja'}"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/staticExplanation",
+          "parameters": [
+            "input: Parameters<Client['explain']>[0]",
+            "options?: Parameters<Client['explain']>[1]",
+            "locale?: 'en' | 'ja'"
+          ],
+          "result": "Promise<StaticExplanationReadModel>"
         }
       ],
       "imports": [
@@ -4850,7 +6208,8 @@
         },
         {
           "operations": [
-            "createExplorerBrowserSource/runPresentation"
+            "createExplorerBrowserSource/runPresentation",
+            "createExplorerBrowserSource/runContext"
           ],
           "exports": [],
           "attributes": {
@@ -4916,6 +6275,82 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExplorerBrowserSource/staticExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "export function staticExplanationReadModel("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mjs",
+                "anchor": "const value = await read('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const narrative = render(view, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
           }
@@ -4925,7 +6360,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "973b70ddf1597637b739eedc0dfbf9f426e34d0f03355e0c6790e04baaa20b74",
+      "sha256": "3dbc895420a0beed5af89c1935c1a496f243c6a13660be9a02c04d00bdf350c1",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -5015,6 +6450,14 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:runContext/init:runContext",
+          "parameters": [
+            "ref",
+            "locale"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:runPlan/init:runPlan",
           "parameters": [
             "ref"
@@ -5030,6 +6473,15 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:staticExplanation/init:staticExplanation",
+          "parameters": [
+            "input",
+            "options",
+            "locale"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/invalidate/invalidate",
           "parameters": [],
           "async": false
@@ -5037,6 +6489,13 @@
         {
           "name": "jsonReply/jsonReply",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "validNarrative/validNarrative",
+          "parameters": [
+            "item"
+          ],
           "async": false
         }
       ],
@@ -5242,7 +6701,8 @@
         },
         {
           "operations": [
-            "createExplorerBrowserSource/init:runPresentation/init:runPresentation"
+            "createExplorerBrowserSource/init:runPresentation/init:runPresentation",
+            "createExplorerBrowserSource/init:runContext/init:runContext"
           ],
           "exports": [],
           "attributes": {
@@ -5308,6 +6768,83 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExplorerBrowserSource/init:staticExplanation/init:staticExplanation",
+            "validNarrative/validNarrative"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "export function staticExplanationReadModel("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer-ui/read-model.mts",
+                "anchor": "return freeze({plan, story, context:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "binding.logical_map_cid !== story.logicalMapCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/browser-source.mjs",
+                "anchor": "const value = await read('static-explanation',"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation discards a late read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "const narrative = render(view, locale);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Static Context renders deterministic EN and JA"
               }
             ]
           }
@@ -5919,7 +7456,7 @@
     {
       "module": "packages/explorer/gateway.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "44730cbf9dcdb2ecf9c2e56c1547bc9f6da55a922083074465489cbac782033d",
+      "sha256": "cf6995c3b9c67acb5d2af7f6a8776abfb7c03497b322da4537ee7b5ca5a2debc",
       "exports": [
         "ExplorerAsset",
         "ExplorerBootstrap",
@@ -6109,6 +7646,10 @@
               {
                 "path": "packages/explorer/gateway.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
               }
             ]
           }
@@ -6118,7 +7659,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "52b578cd2dec32082f14fd14307aa4b52b3a169a4083b255b949a1130c8689be",
+      "sha256": "95aee68ed16fab23e451e4cf5be4ce1a99f8c99208b7c31a84930ac009c4df0f",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -6258,6 +7799,14 @@
           "async": false
         },
         {
+          "name": "loadExplanationRenderer/loadExplanationRenderer",
+          "parameters": [
+            "view",
+            "locale"
+          ],
+          "async": false
+        },
+        {
           "name": "readJson/readJson",
           "parameters": [],
           "async": false
@@ -6356,6 +7905,8 @@
         "@actql/client-wire",
         "@actql/explorer-ui/read-model",
         "@actql/explorer-ui/run-observation",
+        "@actql/local-node/_internal/explanation-narrative",
+        "@actql/sdk/host-port",
         "@hono/node-server",
         "hono",
         "node:crypto"
@@ -6371,6 +7922,10 @@
             "<module>",
             "createExplorerGateway",
             "createExplorerGateway/createExplorerGateway",
+            "createExplorerGateway/createExplorerGateway#2",
+            "createExplorerGateway/createExplorerGateway#3",
+            "createExplorerGateway/createExplorerGateway#4",
+            "createExplorerGateway/createExplorerGateway#5",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/matches/matches",
@@ -6378,10 +7933,6 @@
             "createExplorerGateway/createExplorerGateway/read/read",
             "createExplorerGateway/createExplorerGateway/settled/settled",
             "createExplorerGateway/createExplorerGateway/ticket/init:assertCurrent/init:assertCurrent",
-            "createExplorerGateway/createExplorerGateway#2",
-            "createExplorerGateway/createExplorerGateway#3",
-            "createExplorerGateway/createExplorerGateway#4",
-            "createExplorerGateway/createExplorerGateway#5",
             "createExplorerGateway/init:close/init:close",
             "createExplorerGateway/init:close/init:close/init:close",
             "createExplorerGateway/init:invalidateScope/init:invalidateScope",
@@ -6402,7 +7953,8 @@
             "startExplorerGateway/init:close/init:close/socket/socket/socket",
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
-            "startExplorerGateway/startExplorerGateway#2"
+            "startExplorerGateway/startExplorerGateway#2",
+            "loadExplanationRenderer/loadExplanationRenderer"
           ],
           "exports": [
             "createExplorerGateway",
@@ -6548,6 +8100,14 @@
               {
                 "path": "packages/explorer/gateway-server-close.test.mts",
                 "anchor": "a known socket close failure still retains the original outstanding SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "Explorer static explanation uses one SDK read"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
               }
             ]
           }

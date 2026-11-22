@@ -148,12 +148,16 @@ test('query fixture migration changes only declared type-dependent owner and evi
 
 
 test('Signed64 check facts extend exactly the existing expected and actual logical-type alternatives', () => {
-  const expected = structuredClone(prior['spec/contracts/actql-check-reason-catalog.json']);
-  const properties = expected.reason_schema.properties.facts.oneOf;
+  const expected = structuredClone(prior['spec/contracts/actql-check-reason-catalog.json'].reason_schema);
+  const properties = expected.properties.facts.oneOf;
   for (const value of [properties[1].properties.expected_type, properties[1].properties.actual_type,
     properties[2].properties.expected_type]) {
     assert(!value.enum.includes('int64'));
     value.enum.push('int64');
   }
-  assert.deepEqual(read('spec/contracts/actql-check-reason-catalog.json'), expected);
+  // Compare the migration with its retained Signed64 original. Current
+  // diagnostic entries and schema changes have independent vectors.
+  properties[2].properties.admission.properties.contract_schema_cid.const = vectors.canonicalGrammar.cid;
+  assert.deepEqual(expected, vectors.checkSchemas.reason.body);
+  verifyIdentity(expected, vectors.checkSchemas.reason.cid, vectors.checkSchemas.reason.canonicalPreimage);
 });

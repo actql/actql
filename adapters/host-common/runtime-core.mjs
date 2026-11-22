@@ -902,6 +902,19 @@ function publicationControl(moon) {
       originalRunPlanTokens.set(selected, Object.freeze(retained));
       return selected;
     },
+    captureOriginalEffectRunPlan(explanation, definition, prepared, evidence) {
+      token(definition);
+      if (explanation.scope === undefined || explanation.plan === undefined ||
+          moon.strategyPublicationContractIdentity(explanation.definition) !== definition.identity ||
+          moon.strategyPublicationContractJson(explanation.definition) !== definition.wire) {
+        throw new TypeError('Foreign Client original Effect plan admission');
+      }
+      const selected = Object.freeze({});
+      originalRunPlanTokens.set(selected, Object.freeze({explanation,
+        runDefinitionCid: definition.identity, programCid: moon.clientProgramEffectDefinitionCid(prepared),
+        prepared: evidence.prepared, authorization: evidence.authorization}));
+      return selected;
+    },
     originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence) {
       const retained = originalRunPlanTokens.get(selected);
       // Exact first-admission provenance is independent of current read or
@@ -912,7 +925,7 @@ function publicationControl(moon) {
           retained.authorization !== evidence?.authorization) {
         throw new TypeError('Foreign Client original plan admission');
       }
-      return retained.original;
+      return retained.original ?? retained.explanation?.plan;
     },
     originalRunExplanationAdmissionEvidence(selected, definition, programCid, evidence) {
       // Reuse the existing nominal original-Plan selection, not another
@@ -924,7 +937,10 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client original explanation admission');
       }
       explanation.offered = true;
-      return Object.freeze({factsWire: explanation.factsWire});
+      return Object.freeze(explanation.definition === undefined ? {factsWire: explanation.factsWire} : {
+        factsWire: explanation.factsWire, contextWire: explanation.contextWire,
+        invocationTemplateWire: explanation.invocationTemplateWire,
+      });
     },
     originalRunExplanationAdmissionAcknowledged(selected, definition, programCid, evidence) {
       control.originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence);
@@ -942,7 +958,12 @@ function publicationControl(moon) {
       explanation.acknowledged = true;
       explanation.returning = true;
       try {
-        if (typeof acknowledgeExplanationCapture === 'function') {
+        if (explanation.definition !== undefined) {
+          explanation.contextWire = explanation.invocationTemplateWire = explanation.plan = undefined;
+          compiledRunResult(explanation.methods.returnCapture(explanation.scope, explanation.definition, false),
+            'RunHostOriginalExplanationCleanupPending');
+          explanation.scope = undefined;
+        } else if (typeof acknowledgeExplanationCapture === 'function') {
           // The existing manager owns this SAME borrow through execution.
           // Journal ACK drops only committed payload aliases, not that owner.
           compiledRunResult(Reflect.apply(acknowledgeExplanationCapture, moon, [

@@ -9,6 +9,8 @@ import {gzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {inventory, unpack} from './package-release.mjs';
+import {installedModulesPayloadInventory} from './package-inventory.mjs';
+import {inspectInstalledConnectorBins} from './installed-connector-bin.mjs';
 import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
@@ -149,6 +151,16 @@ export async function prepareHealthPackages({repository, root, source, retained,
 }
 let packagesCounter = 0;
 
+export async function observeInstalledHealthNodeModules(consumer) {
+  const modules = join(consumer, 'node_modules');
+  const files = await installedModulesPayloadInventory(modules);
+  const localManifest = '@actql/local-node/package.json';
+  const manifest = files.some(file => file.path === localManifest)
+    ? JSON.parse(await readFile(join(modules, localManifest), 'utf8')) : undefined;
+  const binLinks = await inspectInstalledConnectorBins(modules, manifest);
+  return {files, binLinks};
+}
+
 export async function distributionMetrics({repository, prepared, root, command, source, installedInventory}) {
   const artifacts = [], metrics = [];
   for (const pkg of prepared.manifest.packages) {
@@ -159,7 +171,7 @@ export async function distributionMetrics({repository, prepared, root, command, 
     metrics.push({id: 'tarball:' + pkg.name, kind: 'size', artifactKind: 'npm', target: pkg.name,
       value: pkg.bytes, unit: 'bytes', required: true, fixtureSha256: jsonDigest({kind: 'npm', name: pkg.name}), evidence: prepared.manifestPath});
   }
-  const installed = installedInventory ?? await inventory(join(prepared.consumer, 'node_modules'));
+  const installed = installedInventory ?? (await observeInstalledHealthNodeModules(prepared.consumer)).files;
   for (const [target, names] of [['node-local', CLIENT_PACKAGES], ['remote-sdk', ['sdk', 'client-wire']]]) {
     const value = target === 'node-local' ? installed.reduce((sum, row) => sum + row.bytes, 0)
       : prepared.manifest.packages.filter(row => names.includes(row.name.slice(7))).flatMap(row => row.files).reduce((sum, row) => sum + row.bytes, 0);

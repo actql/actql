@@ -5,6 +5,12 @@
 // construction, not a SQL parser, format authority or operational issuer.
 // Automatic native indexes have NULL SQL and are checked separately.
 const sql = Object.freeze([
+  `CREATE TABLE client_run_explanation_context_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
+  context_wire TEXT NOT NULL,
+  context_wire_sha256 TEXT NOT NULL,
+  invocation_template_wire TEXT NOT NULL
+) STRICT`,
   `CREATE TABLE client_run_explanation_originals (
   namespace_id TEXT NOT NULL,
   authority_scope_cid TEXT NOT NULL,

@@ -273,14 +273,33 @@ fn NativeLocalHostConnection::local_grant_custody(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
   capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[(Int, Int64, Map[String, (Int, Int)]), NativeClientRunJournalIssue] {
-  guard self.database.scan_after("client_local_grant_custody", "") is Ok(host) &&
+  let reads = operations.map(value => value.reads)
+  guard scan_client_journal_value(
+      self.database,
+      "client_local_grant_custody",
+      "",
+      reads,
+    )
+    is Ok(host) &&
     host.key == "host" &&
     host.revision == 0L &&
     host.body == self.adoption_body &&
-    self.database.scan_after("client_local_grant_custody", "host") is Ok(issued) &&
+    scan_client_journal_value(
+      self.database,
+      "client_local_grant_custody",
+      "host",
+      reads,
+    )
+    is Ok(issued) &&
     issued.key == "issued" &&
-    self.database.scan_after("client_local_grant_custody", "issued")
+    scan_client_journal_value(
+      self.database,
+      "client_local_grant_custody",
+      "issued",
+      reads,
+    )
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
@@ -300,7 +319,12 @@ fn NativeLocalHostConnection::local_grant_custody(
   let mut signing_candidates = 0
   while true {
     let row = match
-      self.database.scan_after("client_local_grant_originals", cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_local_grant_originals",
+        cursor,
+        reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -314,7 +338,7 @@ fn NativeLocalHostConnection::local_grant_custody(
       Err(issue) => return Err(issue)
     }
     let scope = local_original_grant_facts(original.grant)
-    let retained_run = match self.journal.retained(original.request) {
+    let retained_run = match self.journal.retained(original.request, reads~) {
       Ok(Some(value)) =>
         @publication.publication_contract_identity(value.definition)
       Ok(None) | Err(_) => return Err(CustodyLost)
@@ -331,12 +355,14 @@ fn NativeLocalHostConnection::local_grant_custody(
           original,
           retained_run,
           capture~,
+          reads~,
         )
       } else {
         self.check_signing_grant_original_locked(
           grant,
           original.request,
           retained_run,
+          reads~,
         )
       }
       match checked {
@@ -380,7 +406,8 @@ fn NativeLocalHostConnection::local_grant_custody(
       original.initial_issue is Some(_) &&
       @credential.local_signing_credential_grant_scope(grant).purpose ==
       @credential.HostAttestation {
-      let prepared = match local_initial_host_prepared_locked(self, original) {
+      let prepared = match
+        local_initial_host_prepared_locked(self, original, reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -388,9 +415,11 @@ fn NativeLocalHostConnection::local_grant_custody(
       signing_candidates += 1
     }
     match
-      self.database.read(
+      read_client_journal_value(
+        self.database,
         "client_local_signing_result_originals",
         original.operation_cid,
+        reads,
       ) {
       Err(@sqlite.NotFound) => ()
       Err(issue) => return Err(Physical(issue))
@@ -407,6 +436,7 @@ fn NativeLocalHostConnection::local_grant_custody(
             self,
             original,
             history.original_use(),
+            reads~,
           ) {
           Ok(value) => value
           Err(issue) => return Err(issue)
@@ -437,7 +467,7 @@ fn NativeLocalHostConnection::local_grant_custody(
     let mut after = ""
     let mut found = 0
     while true {
-      match self.database.scan_after(table, after) {
+      match scan_client_journal_value(self.database, table, after, reads) {
         Err(@sqlite.NotFound) => break
         Err(issue) => return Err(Physical(issue))
         Ok(row) => {
@@ -459,8 +489,11 @@ fn NativeLocalHostConnection::local_grant_custody(
   let mut targets = 0
   while true {
     let row = match
-      self.database.scan_after(
-        "client_local_preparation_target_originals", target_cursor,
+      scan_client_journal_value(
+        self.database,
+        "client_local_preparation_target_originals",
+        target_cursor,
+        reads,
       ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
@@ -471,7 +504,12 @@ fn NativeLocalHostConnection::local_grant_custody(
       return Err(CustodyLost)
     }
     let grant_row = match
-      self.database.read("client_local_grant_originals", row.key) {
+      read_client_journal_value(
+        self.database,
+        "client_local_grant_originals",
+        row.key,
+        reads,
+      ) {
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
     }
@@ -504,7 +542,12 @@ fn NativeLocalHostConnection::local_grant_custody(
     target_cursor = row.key
   }
   guard observed == count &&
-    self.database.capacity_usage("client_local_grant_originals") is Ok(usage) &&
+    client_journal_capacity_usage(
+      self.database,
+      "client_local_grant_originals",
+      operations,
+    )
+    is Ok(usage) &&
     usage.reserved_objects == runs.length().to_int64() &&
     usage.reserved_bytes == runs.length().to_int64() * 65536L else {
     return Err(CustodyLost)
@@ -514,13 +557,15 @@ fn NativeLocalHostConnection::local_grant_custody(
   // transaction rolls back, so lookup cannot persist a replacement reservation.
   for scope in runs.keys() {
     match
-      self.database.reserve_capacity_in_transaction(
+      reserve_client_journal_capacity(
+        self.database,
         "client_local_grant_originals",
         scope,
         65536L,
         1L,
         self.journal.max_records.to_int64() * 65536L,
         self.journal.max_records.to_int64(),
+        operations,
       ) {
       Ok(false) => ()
       Ok(true) => return Err(CustodyLost)

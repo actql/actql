@@ -76,12 +76,13 @@ fn local_reviewer_proof_snapshot_locked(
   request : @host.ClientRequestIdentity,
   expected_run : String,
   expected_checkpoint : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
   // Cold retained reads admit the complete checkpoint in read_checkpoint_record;
   // the existing operation/transaction slot reuses only that admitted record,
   // with its row bytes/revision and normal invalidation checks. Keep its opaque
   // sealed artifact here instead of parsing the same immutable wire again.
-  let record = match journal.retained(request) {
+  let record = match journal.retained(request, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)

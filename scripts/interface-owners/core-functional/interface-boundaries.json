@@ -7234,7 +7234,8 @@
             "runtimeCore/runtimeCore#8",
             "runtimeCore/runtimeCore#9",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
           ],
           "exports": [
             "contentCaptureControl",
@@ -16202,6 +16203,16 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+          "parameters": [
+            "explanation",
+            "definition",
+            "prepared",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
           "parameters": [
             "compiled",
@@ -22122,7 +22133,11 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult"
+            "withNodeInferResult/withNodeInferResult",
+            "isModelCredentialRefusal",
+            "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+            "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+            "openNodeInferOperation/operation/operation#51"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -22133,7 +22148,8 @@
             "selectOriginalInferResourceCodecAcquisition",
             "selectOriginalInferStoreBootstrapAcquisition",
             "startCompleteInferObservation",
-            "withNodeInferResult"
+            "withNodeInferResult",
+            "isModelCredentialRefusal"
           ],
           "attributes": {
             "responsibility": [
@@ -23380,6 +23396,7 @@
         "inferCopyFundingOriginal",
         "inferEvidenceCopyFunded",
         "inferOriginalReadCleanupComplete",
+        "isModelCredentialRefusal",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
         "originalInferCopyFunding",
@@ -23470,6 +23487,18 @@
           "parameters": [
             "read"
           ],
+          "async": false
+        },
+        {
+          "name": "isModelCredentialRefusal",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "ModelCredentialRefusal/constructor:constructor/constructor:constructor",
+          "parameters": [],
           "async": false
         },
         {
@@ -23919,6 +23948,15 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareModelCredentials/init:prepareModelCredentials",
+          "parameters": [
+            "preparedCallSet",
+            "entered",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:prepareOriginalCaptureInventory/init:prepareOriginalCaptureInventory",
           "parameters": [
             "source"
@@ -24239,6 +24277,11 @@
         },
         {
           "name": "openNodeInferOperation/operation/operation#35",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#36",
           "parameters": [
             "control",
             "plan",
@@ -24249,22 +24292,10 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#36",
-          "parameters": [
-            "preparedCallSet",
-            "observe"
-          ],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation/operation/operation#37",
           "parameters": [
             "preparedCallSet",
-            "slot",
-            "record",
-            "proof",
-            "bundle",
-            "attachmentAdmission"
+            "observe"
           ],
           "async": false
         },
@@ -24273,8 +24304,10 @@
           "parameters": [
             "preparedCallSet",
             "slot",
-            "attempt",
-            "authority"
+            "record",
+            "proof",
+            "bundle",
+            "attachmentAdmission"
           ],
           "async": false
         },
@@ -24296,15 +24329,18 @@
         {
           "name": "openNodeInferOperation/operation/operation#40",
           "parameters": [
-            "token",
-            "response"
+            "preparedCallSet",
+            "slot",
+            "attempt",
+            "authority"
           ],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#41",
           "parameters": [
-            "settlement"
+            "token",
+            "response"
           ],
           "async": false
         },
@@ -24318,7 +24354,7 @@
         {
           "name": "openNodeInferOperation/operation/operation#43",
           "parameters": [
-            "slot"
+            "settlement"
           ],
           "async": false
         },
@@ -24339,6 +24375,13 @@
         {
           "name": "openNodeInferOperation/operation/operation#46",
           "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#47",
+          "parameters": [
             "control",
             "compiled",
             "runDefinition",
@@ -24349,12 +24392,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#47",
+          "name": "openNodeInferOperation/operation/operation#48",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#48",
+          "name": "openNodeInferOperation/operation/operation#49",
           "parameters": [
             "ledger",
             "maxSlots",
@@ -24365,7 +24408,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#49",
+          "name": "openNodeInferOperation/operation/operation#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#50",
           "parameters": [
             "control",
             "compiled",
@@ -24375,12 +24423,7 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/operation#50",
+          "name": "openNodeInferOperation/operation/operation#51",
           "parameters": [
             "binding",
             "result",
@@ -24424,7 +24467,9 @@
         {
           "name": "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
           "parameters": [
-            "callback"
+            "callback",
+            "request",
+            "credential"
           ],
           "async": false
         },
@@ -24516,7 +24561,8 @@
         {
           "name": "prepareWithOriginalRawSetter/set/set",
           "parameters": [
-            "callback"
+            "callback",
+            "credential"
           ],
           "async": false
         },
@@ -24644,7 +24690,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
+      "sha256": "cbb8b12c18f1981ef29d641cb54f9624d6cf447631636aeb96f86087b5caefcb"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -26169,7 +26215,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "63b2bcbacf9976c2a7d7891ed5f253eb5c783194174037cb9e6e0bd02cad59a9",
+      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -27378,7 +27424,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
+      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -27567,6 +27613,11 @@
         },
         {
           "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
           "parameters": [],
           "async": false
         },
@@ -28042,7 +28093,8 @@
             "installNodeModelContinuation/verifier/verifier#7",
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
-            "select/select/select"
+            "select/select/select",
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
           ],
           "exports": [
             "installNodeModelContinuation"
@@ -28109,7 +28161,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
+                "anchor": "import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -28315,7 +28367,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
+                "anchor": "import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -32754,6 +32806,442 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "packages/run-host-core/explanation-narrative.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "exports": [
+        "StaticExplanationNarrative",
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire: string",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "StaticExplanationNarrative"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "StaticExplanationNarrative",
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/run-host-core/explanation-narrative.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "b106cc46882c8d60a88fd53d61f488d15e4a6004e7b9c4cbc8a620ecc8832464",
+      "exports": [
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire",
+            "locale"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present one disclosed static Explanation in English or Japanese with the same renderer as Native. The Host retains original read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_render_static_explanation(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/run-host-core/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/explanation-narrative.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "exports": [
+        "StaticExplanationNarrative",
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire: string",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "StaticExplanationNarrative"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present already disclosed static Explanation data through the existing compiled Local runtime and Common renderer. The Host retains current read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "StaticExplanationNarrative",
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_render_static_explanation_narrative(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/local-node/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/explanation-narrative.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "6e95768357d832c8ab4c14100b5652f2285b702c3817e2d0bce1cdd6e50ecc18",
+      "exports": [
+        "renderStaticExplanationNarrative"
+      ],
+      "operations": [
+        {
+          "name": "renderStaticExplanationNarrative",
+          "parameters": [
+            "wire",
+            "locale"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
+        "./adapters/host-common/compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "owner": "existing Common structural Explanation renderer",
+      "rationale": "Present already disclosed static Explanation data through the existing compiled Local runtime and Common renderer. The Host retains current read and egress authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "renderStaticExplanationNarrative"
+          ],
+          "exports": [
+            "renderStaticExplanationNarrative"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_render_static_explanation_narrative(String, String) -> Result[String, Int]"
+              },
+              {
+                "path": "packages/local-node/explanation-narrative.d.ts",
+                "anchor": "export type StaticExplanationNarrative"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "@canonical.object_field(view, \"facts\")"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.mjs",
+                "anchor": "checkedContext(original, view.facts, view.context, saved);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "owns no Host, Run or authorization"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous presentation opens no Host and borrows no live original."
+            },
+            "failure": [
+              {
+                "path": "packages/local-node/explanation-narrative.mjs",
+                "anchor": "fail('InvalidStaticExplanationNarrative');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous presentation reads already disclosed data and owns no cancellable operation."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "explanation_narrative_max_characters = 65536"
+              },
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let reply = @encode.writer("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_explanation_narrative.mbt",
+                "anchor": "let narrative = render_client_explanation_narrative("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "packages/run-host-core/index.mjs",
@@ -49140,7 +49628,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7cac6a2afee245177f87a984638c3c9df8c6307b091cd3ee61c907c256d1c033",
+      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -49159,7 +49647,7 @@
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
-          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , static_models ? : Bool"
         },
         {
           "name": "[I]borrow_request_effect_preparation",
@@ -49544,6 +50032,120 @@
         }
       ],
       "referenceQualification": "Same original checked Effect compiler DATA and distinct actual installed Plan, with Resource borrower-delayed retirement; no Host or ordinary runtime acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
+      "sha256": "c00eb5739658b679c707135a4272b226089211b2bb369b6ffc560cdb5bc72a29",
+      "operations": [
+        {
+          "name": "[I]capture_request_effect_run_explanation",
+          "declaration": "[ I ] capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , journal_bytes ? : Int"
+        },
+        {
+          "name": "[I]discard_original_effect_run_explanation",
+          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , decline ? : Bool"
+        },
+        {
+          "name": "[I]original_effect_run_explanation_facets",
+          "declaration": "[ I ] original_effect_run_explanation_facets ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , ) - > Result [ ClientRequestEffectRunExplanationFacets , ClientRequestStaticContextIssue , ]"
+        },
+        {
+          "name": "[I]try_capture_request_effect_run_explanation",
+          "declaration": "[ I ] try_capture_request_effect_run_explanation ( owner : ClientRequestPreparation [ I ] , input : I , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , journal_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ClientRequestEffectRunExplanation [ I ] ? , ClientRequestStaticContextIssue , ]"
+        }
+      ],
+      "exports": [],
+      "role": "common-semantics",
+      "owner": "Existing Effect Request compiler and working capacity",
+      "rationale": "Project the exact first-admission Effect compilation already held by the Request, bind the Plan and structural facets to its Definition, and drop those aliases before owner retirement.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]capture_request_effect_run_explanation",
+            "[I]discard_original_effect_run_explanation",
+            "[I]original_effect_run_explanation_facets",
+            "[I]try_capture_request_effect_run_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] capture_request_effect_run_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] original_effect_run_explanation_facets("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_effect_compilation.mbt",
+                "anchor": "pub fn client_effect_explanation_compilation_for_run("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "!physical_equal(selected.definition, definition)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "The Request's working reservation holds every new wire"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "with_request_static_effect_explanation("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "if selected.owner.phase == Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "return Err(Preparation(ForeignOriginal))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "guard current() else"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "reserve_static_context_construction(capacity, input, held)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "original.original = None"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_explanation.mbt",
+                "anchor": "pub fn[I] discard_original_effect_run_explanation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "first Effect Run Explanation borrows its issued compilation and holds all facets on the Request"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "referenceQualification": "The Common Request compiler component is separate from the production Journal caller and public Saved read."
     },
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
@@ -51350,7 +51952,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4a03e34e2370e2e8e8a7f7a2fcad0512c5ea9a813d01bef0da877f25ed198120",
+      "sha256": "2ec7285c0fdc3fe7fbe5a54c8d8949b6f4718345b8ecff999420f14e16a38f7a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -68288,11 +68890,18 @@
               {
                 "path": "src/client_local_host/preparation_request_explanation_read_js_wbtest.mbt",
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"first Effect Run Explanation borrows"
               }
             ]
           },
           "operations": [
-            "client_program_read_request_explanation"
+            "client_program_read_request_explanation",
+            "client_program_begin_request_explanation_context_read",
+            "client_program_read_request_explanation_context",
+            "client_program_reserve_request_explanation_context_read"
           ],
           "exports": []
         },
@@ -69176,7 +69785,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -69223,6 +69832,80 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_read_request_checked_static_effect_explanation",
+            "client_program_static_effect_explanation_context_wire",
+            "client_program_static_effect_explanation_facts_wire",
+            "client_program_static_effect_explanation_plan_wire",
+            "client_program_discard_effect_run_explanation",
+            "client_program_effect_run_explanation_wires",
+            "client_program_try_capture_effect_run_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_read_request_checked_static_effect_explanation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "pub struct ClientRequestStaticEffectExplanation {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "guard owner.input is Some(held) && physical_equal(held, input) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, T] with_request_static_effect_explanation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "owner.phase = Selecting"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub suberror ClientRequestStaticExplanationBridgeIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_static_context.mbt",
+                "anchor": "fn[I, P] reserve_static_context_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "/// Request and installed Model graphs. Disclosure stays with the Host."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_effect_plan_wbtest.mbt",
+                "anchor": "test \"checked static Effect Explanation bridge reads the original Request and its three wires\" {"
               }
             ]
           }
@@ -69303,6 +69986,10 @@
           "declaration": "client_program_begin_logical_observation ( value : @ client_local_host . ClientLogicalObservation , phase : String , ) - > Result [ @ client_local_host . ClientLogicalObservationRecord , @ client_local_host . ClientLogicalObservationIssue , ]"
         },
         {
+          "name": "client_program_begin_request_explanation_context_read",
+          "declaration": "client_program_begin_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_begin_request_explanation_read",
           "declaration": "client_program_begin_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -69320,7 +70007,7 @@
         },
         {
           "name": "client_program_borrow_request_effect_plan_input",
-          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , static_models : Bool , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
           "name": "client_program_borrow_request_model_plan_input",
@@ -69375,6 +70062,10 @@
           "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_discard_effect_run_explanation",
+          "declaration": "client_program_discard_effect_run_explanation ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , decline : Bool , ) - > Result [ Unit , @ client_local_host . ClientRequestStaticContextIssue ]"
+        },
+        {
           "name": "client_program_effect_preparation_input_read",
           "declaration": "client_program_effect_preparation_input_read ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > @ publication_host . PreparedClientEffectComputation ?"
         },
@@ -69389,6 +70080,10 @@
         {
           "name": "client_program_effect_preparation_input_sibling",
           "declaration": "client_program_effect_preparation_input_sibling ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_effect_run_explanation_wires",
+          "declaration": "client_program_effect_run_explanation_wires ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , ) - > Result [ Array [ String ] , @ client_local_host . ClientRequestStaticContextIssue ]"
         },
         {
           "name": "client_program_finish_program_json_preparation",
@@ -69703,12 +70398,20 @@
           "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "client_program_read_request_checked_static_effect_explanation",
+          "declaration": "client_program_read_request_checked_static_effect_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ @ client_local_host . ClientRequestStaticEffectExplanation , ClientRequestStaticExplanationBridgeIssue , ]"
+        },
+        {
           "name": "client_program_read_request_checked_static_plan",
-          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
+          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
         {
           "name": "client_program_read_request_explanation",
           "declaration": "client_program_read_request_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
+          "name": "client_program_read_request_explanation_context",
+          "declaration": "client_program_read_request_explanation_context ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , context_wire : String ? , template_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
         {
           "name": "client_program_read_request_policy_subject",
@@ -69831,6 +70534,10 @@
           "declaration": "client_program_reserve_request_effect_original_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , prepared : @ publication_host . PreparedClientEffectComputation , count : Int , wire_at : ( Int ) - > String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_explanation_context_read",
+          "declaration": "client_program_reserve_request_explanation_context_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , context_bytes : Int , template_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_explanation_read",
           "declaration": "client_program_reserve_request_explanation_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -69879,6 +70586,22 @@
           "declaration": "client_program_return_request_original_explanation ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
         },
         {
+          "name": "client_program_static_effect_explanation_context_wire",
+          "declaration": "client_program_static_effect_explanation_context_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_facts_wire",
+          "declaration": "client_program_static_effect_explanation_facts_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_static_effect_explanation_plan_wire",
+          "declaration": "client_program_static_effect_explanation_plan_wire ( original : @ client_local_host . ClientRequestStaticEffectExplanation , ) - > String"
+        },
+        {
+          "name": "client_program_try_capture_effect_run_explanation",
+          "declaration": "client_program_try_capture_effect_run_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , bytes : Int , nodes : Int , depth : Int , work : Int , ) - > Result [ @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] ? , @ client_local_host . ClientRequestStaticContextIssue , ]"
+        },
+        {
           "name": "prepare_request_model_graph_with_file_declarations",
           "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
@@ -69895,7 +70618,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "19b99ec67dd7c7f168440592f5c52c6b90cae582735ba46566ed20e6b6304944"
+      "sha256": "3f9627229b5f97ebdc18b829a22e3ed2a0cde95323caadd8325e7e5dc10ab1d0"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -73087,7 +73810,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "0821413f3e296fd8fee49e75a56ad86b03a575e03bf0f85b2e0c32994b866a00",
+      "sha256": "748d99fd6cd225f0e85c5b6bba0d5a8c6d578ca64d62bc91a30da55c88ea7ff3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -73104,6 +73827,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -73216,10 +73943,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -73230,8 +73959,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -73349,6 +74077,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -75054,7 +75790,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "cd1cc35555ceb1100ba5e67d5a7b3d8c4360f156b7cbf615c2b3b328fd496fdc",
+      "sha256": "59f5f12c53e05a6d1e411185542c8e00e52cc0bf814b2ff1add31726dad25c8a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -75071,6 +75807,10 @@
         {
           "name": "client_program_row_source_advance_cursor_progress",
           "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_provider_page_cursor",
+          "declaration": "client_program_row_source_advance_provider_page_cursor ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , cursor_present : Bool , cursor : String , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_cursor_has_next",
@@ -75183,10 +75923,12 @@
             "<module>",
             "client_program_row_source_accept_charged_projected_page",
             "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_advance_provider_page_cursor",
             "client_program_row_source_cursor_has_next",
             "client_program_row_source_cursor_issue_code",
             "client_program_row_source_cursor_next",
             "client_program_row_source_cursor_remaining_rows",
+            "client_program_row_source_cursor_request_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
             "client_program_row_source_json_page_original",
@@ -75197,8 +75939,7 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count",
-            "client_program_row_source_cursor_request_rows"
+            "client_program_row_source_typed_json_page_row_count"
           ],
           "exports": [],
           "attributes": {
@@ -75316,6 +76057,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -82834,7 +83583,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "8a3a932e669aa6771ef86c674557d5753037e71ab5629f0f33249143ff4e0988",
+      "sha256": "6522c4b4e86335d71b9135cdcc28b9cf8f47e852d47a61aa2ad45033f872ed8f",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -82933,6 +83682,10 @@
           "declaration": "client_effect_compilation_unit_id ( value : ClientEffectCompilation , ) - > String"
         },
         {
+          "name": "client_effect_explanation_compilation_for_run",
+          "declaration": "client_effect_explanation_compilation_for_run ( prepared : PreparedClientEffectComputation , allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , ) - > ClientEffectCompilation ?"
+        },
+        {
           "name": "client_effect_run_start_current",
           "declaration": "client_effect_run_start_current ( allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , at : String , ) - > Bool"
         },
@@ -82981,6 +83734,7 @@
             "client_effect_compilation_result_transformation",
             "client_effect_compilation_template",
             "client_effect_compilation_unit_id",
+            "client_effect_explanation_compilation_for_run",
             "client_effect_run_start_current",
             "issue_client_effect_allowed_run",
             "issue_client_effect_compilation_internal",
@@ -89135,12 +89889,16 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "f6ba3f3cc9809dc68fac4199ed27929c5b1f674bbbafb0a59860371ff51dd856",
+      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
       "exports": [],
       "operations": [
         {
           "name": "[T]installed_effect_model_unit_managed_export_limits",
           "declaration": "[ T ] installed_effect_model_unit_managed_export_limits ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , output : @ execution . ManagedCompletedOutput [ T ] , material : @ execution . ManagedRetainedOutput [ T ] , ) - > Result [ @ publication_host . PublicationOutputExportLimits , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "[T]measure_installed_effect_direct_publication",
+          "declaration": "[ T ] measure_installed_effect_direct_publication ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , capacity : @ execution . ExecutionCapacity , measure : ( ) - > Result [ T , ClientEffectUnitPreparationIssue ] , ) - > Result [ T , ClientEffectUnitPreparationIssue ]"
         },
         {
           "name": "borrow_installed_effect_dispatch_preparation",
@@ -89163,6 +89921,10 @@
           "declaration": "effect_unit_sealed_geometry ( name : String , body : @ encode . EncodingConstructionGeometry , identity : String , ) - > @ encode . EncodingConstructionGeometry ?"
         },
         {
+          "name": "installed_effect_direct_publication_control",
+          "declaration": "installed_effect_direct_publication_control ( entries : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "installed_effect_managed_publication_limits",
           "declaration": "installed_effect_managed_publication_limits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
         },
@@ -89181,6 +89943,14 @@
         {
           "name": "pin_installed_effect_model_unit_results",
           "declaration": "pin_installed_effect_model_unit_results ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_combined_source_result_artifact",
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_combined_source_unit",
+          "declaration": "prepare_installed_effect_combined_source_unit ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , ClientEffectUnitPreparationIssue , ]"
         },
         {
           "name": "prepare_installed_effect_model_source_unit",
@@ -89219,16 +89989,20 @@
           "operations": [
             "<module>",
             "[T]installed_effect_model_unit_managed_export_limits",
+            "[T]measure_installed_effect_direct_publication",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
+            "installed_effect_direct_publication_control",
             "installed_effect_managed_publication_limits",
             "installed_effect_model_unit_parent",
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
             "pin_installed_effect_model_unit_results",
+            "prepare_installed_effect_combined_source_result_artifact",
+            "prepare_installed_effect_combined_source_unit",
             "prepare_installed_effect_model_source_unit",
             "prepare_installed_effect_model_source_unit_artifact",
             "prepare_installed_effect_model_source_unit_catalog",
@@ -89313,6 +90087,14 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
                 "anchor": "test \"Effect publication limits refuse copied plan request and retired original\""
+              },
+              {
+                "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
+                "anchor": "test \"Native shared-file Effect joins and binds both original Source observations without a Model\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+                "anchor": "test \"two Effect Unit measurements return writer workspace on the same adopted Plan\""
               }
             ]
           }
@@ -92076,13 +92858,127 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "admit_buffer_borrow",
+            "borrow_filled_payload_input",
+            "filled_payload_input_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "fn admit_buffer_borrow("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn borrow_filled_payload_input("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn return_buffer_borrow("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn reserve_buffer("
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "fn admit_buffer_borrow("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The SDK delivery encoder consumes filled physical byte fragments"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn filled_payload_input_bytes("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_buffers/buffers_wbtest.mbt",
+                "anchor": "test \"filled delivery fragment uses only the original bounded raw borrow\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "89c5eb32f2aa47aed16a531423eb096f89f74f7258dbfbd670f8da896778ee96",
+      "sha256": "f69c2d7e8276e2786d30fd78356ee7542f0ff4028d5c2f9a849a75dbf593b7bb",
       "operations": [
+        {
+          "name": "admit_buffer_borrow",
+          "declaration": "admit_buffer_borrow ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
+        },
         {
           "name": "borrow_buffer",
           "declaration": "borrow_buffer ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
+        },
+        {
+          "name": "borrow_filled_payload_input",
+          "declaration": "borrow_filled_payload_input ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
         },
         {
           "name": "buffer_byte",
@@ -92131,6 +93027,10 @@
         {
           "name": "fill_buffer",
           "declaration": "fill_buffer ( pool : BufferPool , slot : BufferSlot , start : Int , count : Int , read_byte : ( Int ) - > Byte ? , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "filled_payload_input_bytes",
+          "declaration": "filled_payload_input_bytes ( pool : BufferPool , borrow : BufferBorrow , ) - > Bytes ?"
         },
         {
           "name": "lookup_buffer",
@@ -92238,6 +93138,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "inputsOutputs": [
@@ -92248,6 +93152,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "identity": [
@@ -92258,6 +93166,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "ownership": [
@@ -92268,6 +93180,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "synchronization": [
@@ -92278,6 +93194,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "failure": [
@@ -92288,6 +93208,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "cancellation": [
@@ -92298,6 +93222,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "resources": [
@@ -92308,6 +93236,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "extension": [
@@ -92318,6 +93250,10 @@
               {
                 "path": "src/client_host_wasm/buffers.mbt",
                 "anchor": "pub fn open_platform("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Same-call scanned submission decoding"
               }
             ],
             "verification": [
@@ -92328,12 +93264,16 @@
               {
                 "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
                 "anchor": "test \"platform VM capacity binds exact original Root"
+              },
+              {
+                "path": "src/client_host_wasm/submission_decode_prefix_wbtest.mbt",
+                "anchor": "test \"scanned prefix foreign settlement cannot hide original cause or clear pool owner\""
               }
             ]
           }
         }
       ],
-      "sha256": "e7e958fd0a54bf3b70883a69cd1ec9913cb514641a28dd79561e40213ce62cb7",
+      "sha256": "4f3622adf21314c467db6f6386beee657e2b96af5f917af55411e3df6e6fec20",
       "operations": [
         {
           "name": "allocated",
@@ -96511,7 +97451,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_recovery.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4731da7f215f090dd8880d9baf3df69e53cd90a5f0544ad1541d2978bea6e0b6",
+      "sha256": "85c3dd2f32f5f5e6a9d4338b11169ed98cb92607d7bfda093a3ac491366e16ff",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -100531,7 +101471,7 @@
         },
         {
           "name": "[I]request_prepared_static_plan_view",
-          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , infers ? : Array [ @ publication_host . ClientInferPlanGraph ]"
         },
         {
           "name": "[I]reserve_request_native_document_read",
@@ -100822,7 +101762,7 @@
               },
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "                current();"
+                "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
@@ -100875,7 +101815,7 @@
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "4af982cc2f6bcca3f27e76e00aed819da73c8abb375f4b37b51940dad51dc40e"
+      "sha256": "fbc6b3c5c565d64b64de0961dbfe01664ac1476a39452e770f1110bc3954ee04"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
@@ -104226,7 +105166,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "67da869657eff336ea1565ed1fa231c9d62f9bf6ab677daeebc2e91f2e428bd2",
+      "sha256": "2683f5434a19a94c9a3c94960d3e929d8278f3086f7d90e290b3f93b6de8e78f",
       "exports": [],
       "operations": [
         {
@@ -104248,7 +105188,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
             "LocalCommandPreparationOriginal::select_business_file_source"
@@ -104322,7 +105261,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "8ffa75a356261d2ff866a500af0aa354c2323dd8a9e1e9b8f292140885cc0735",
+      "sha256": "db79899a8be65499b0ba74d663e5481cae165252412bd6f1007a8c7de393a44b",
       "exports": [],
       "operations": [
         {
@@ -104363,7 +105302,7 @@
         },
         {
           "name": "local_command_failure_text",
-          "declaration": "local_command_failure_text ( message : String , json : Bool ) - > String"
+          "declaration": "local_command_failure_text ( message : String , json : Bool , primary ? : LocalCommandPreparationIssue ?"
         },
         {
           "name": "local_command_json_selected",
@@ -105729,12 +106668,12 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "0b9a5ff1a98258b7a89ad9321589948cb1b04e48afd23ae9ebf419afe577ea1d",
+      "sha256": "376f0146de470ddd460f0134d19165130861c0776bcf362745a0c9b4e8b91ca2",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_file_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , source : @ sourceviews . SourceAcquisition , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
         },
         {
           "name": "[T]LocalCommandPreparationOriginal::with_business_request",
@@ -105767,7 +106706,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_whole_file_request_module",
             "[T]LocalCommandPreparationOriginal::with_business_request",
             "LocalCommandBusinessPreparation::adopt_request_run",
@@ -108030,15 +108968,23 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "ccc96409465a4d84b2d1acab2c56e57260c148dd69094337e1cfeb737277aade",
+      "sha256": "73d977ebb0a997f5b96218a118eedac329c4433d810bd6753ceddc725fd1cd4f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",
       "exports": [],
       "operations": [
         {
+          "name": "advance_checked_cursor",
+          "declaration": "advance_checked_cursor ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , remaining : Int , page_rows : Int , next : String ? , retain_exhausted_prefix ? : Bool"
+        },
+        {
           "name": "advance_row_source_cursor_progress",
           "declaration": "advance_row_source_cursor_progress ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : RowSourceProjectedJsonPage , rows : RowSourceProjectedJsonPage , ) - > Result [ Bool , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress_from_provider_page",
+          "declaration": "advance_row_source_cursor_progress_from_provider_page ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , page_rows : Int , next : String ? , ) - > Result [ Bool , RowSourceCursorIssue ]"
         },
         {
           "name": "prepare_row_source_cursor_progress",
@@ -108065,7 +109011,9 @@
         {
           "operations": [
             "<module>",
+            "advance_checked_cursor",
             "advance_row_source_cursor_progress",
+            "advance_row_source_cursor_progress_from_provider_page",
             "prepare_row_source_cursor_progress",
             "row_source_cursor_has_next",
             "row_source_cursor_next",
@@ -108192,6 +109140,14 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "test \"provider page facts join the original finite cursor progress\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
           }
@@ -112053,12 +113009,16 @@
     },
     {
       "module": "src/client_local_host/preparation_request_query_contracts.mbt",
-      "sha256": "f225e63bf9abc9e611992d7d11e04686b38f911a159bd31b2da3292ffd101a08",
+      "sha256": "81889107dd8f8f3e61d8cbf71c139031e703bb9414e4361426eb8add6e93d54f",
       "exports": [],
       "operations": [
         {
           "name": "[I]admit_request_query_acquisition_contracts",
           "declaration": "[ I ] admit_request_query_acquisition_contracts ( owner : ClientRequestPreparation [ I ] , input : I , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]admit_request_query_acquisition_contracts_for_original",
+          "declaration": "[ I ] admit_request_query_acquisition_contracts_for_original ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , direct : @ publication_host . ClientDirectAcquisitionOccurrences , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "request_query_acquisition_constructor_bytes",
@@ -112072,8 +113032,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]admit_request_query_acquisition_contracts",
+            "[I]admit_request_query_acquisition_contracts_for_original",
             "request_query_acquisition_constructor_bytes"
           ],
           "exports": [],
@@ -112144,7 +113104,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "ded1937260fa272e3ab430e5417058c7d34e66807e70f8ea58339355e909e58b",
+      "sha256": "57f75c049c4c16931d33426eb3eb06d56dadfa21fcfa9cdaccc8508d1d0c6e29",
       "exports": [],
       "operations": [
         {
@@ -112167,7 +113127,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]prepare_local_native_file_request_module",
             "[T]local_command_query_preparation_result",
             "local_command_file_row"
@@ -112240,7 +113199,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "439ac3e35e6205951e55c1a4c1e36889fcd5e8d7bed776d4a833e3c64deae2f0",
+      "sha256": "29945269a3b4ebecf04e49dc652bdcc1ccdaccdc9b249b7383340648eaaf689f",
       "exports": [],
       "operations": [
         {
@@ -112348,6 +113307,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt",
+                "anchor": "Native shared-file Effect joins and binds both original Source observations without a Model"
               }
             ]
           }
@@ -112356,7 +113319,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "60436ac9d29efd86faf773289ef77a8097b577dbce831bc9077705394d817339",
+      "sha256": "4c72bf8127b5a75e258554479af084a774ccffbd04cb30185ab8b1ca649072f8",
       "exports": [],
       "operations": [
         {
@@ -112780,7 +113743,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "49ebc4800c5c4d5705b24ff28c34643c9f66dc16e6cd809f6b49ca5b84256463",
+      "sha256": "84262445a5ab71540a483de35ef384f0da6a4206981e9d2daa94f580205a971c",
       "exports": [],
       "operations": [
         {
@@ -113913,7 +114876,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "9a8042366e6e22e42b5fadad0d0f30e2904a303f255da63a3e97dcdb7f65c112",
+      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
       "exports": [],
       "operations": [
         {
@@ -114064,12 +115027,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
-      "sha256": "925c6e5f2dae8cd2c8e218eced70c098e90c4487ecdfd32f46765f098af1b9e5",
+      "sha256": "0107ec3f9f10f8c0b43c49db444d2c32b0ef379658b4181a8d26ecdfd80c6a2d",
       "exports": [],
       "operations": [
         {
           "name": "request_whole_source_route_frontier_bytes",
-          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , ) - > Int64 ?"
+          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , select_query ? : Bool"
         },
         {
           "name": "request_whole_source_route_scan_count",
@@ -114083,7 +115046,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "request_whole_source_route_frontier_bytes",
             "request_whole_source_route_scan_count"
           ],
@@ -114155,12 +115117,12 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "0e3397ed73b35c560a35facf3016d5232812d227fde2ccb046740478438c9dfc",
+      "sha256": "a0b19d838e0ff32c4a89227688468cc981b74ff3df92787f84595556e693a1cd",
       "exports": [],
       "operations": [
         {
           "name": "[I]reserve_request_whole_source_routes",
-          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , select_query ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -114170,7 +115132,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[I]reserve_request_whole_source_routes"
           ],
           "exports": [],
@@ -114332,9 +115293,17 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
-      "sha256": "5dacd96b3a3c8021f06c98678cb2012e1ad56a785fd4e3feeb98009baba8a62d",
+      "sha256": "b83d257f4bdb3f8faa572762275746b1d6bddb8d46fa2be35259a9150529e745",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]prepare_request_native_file_source_inputs",
+          "declaration": "[ I ] prepare_request_native_file_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , bodies : ( String , String ) ? , ) - > Result [ ClientRequestNativeFileSourceInputs , ClientRequestNativeFileSourceIssue , ]"
+        },
+        {
+          "name": "[I]reserve_request_selected_whole_source_inputs",
+          "declaration": "[ I ] reserve_request_selected_whole_source_inputs ( owner : ClientRequestPreparation [ I ] , input : I , sources : Array [ @ sourceviews . SourceAcquisition ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
         {
           "name": "[I]reserve_request_whole_source_construction",
           "declaration": "[ I ] reserve_request_whole_source_construction ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
@@ -114347,7 +115316,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
+            "[I]prepare_request_native_file_source_inputs",
+            "[I]reserve_request_selected_whole_source_inputs",
             "[I]reserve_request_whole_source_construction"
           ],
           "exports": [],
@@ -114655,12 +115625,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
-      "sha256": "4f95177a8376f03eafa704553fc75902bf58383dda66e2869785ae3642255a96",
+      "sha256": "7e15f78c0337bbc5b8afed0bf3d5bdde7de01ee76b6c8c4bf46dcab725e176df",
       "exports": [],
       "operations": [
         {
           "name": "[I]prepare_local_native_whole_files_request_module",
-          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > LocalCommandFileSources raise ClientStop"
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , direct : @ run_host . ClientDirectAcquisitionOccurrences , originals : Array [ @ sourceviews . SourceAcquisition ] , ) - > LocalCommandFileSources raise ClientStop"
+        },
+        {
+          "name": "local_command_file_listing",
+          "declaration": "local_command_file_listing ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , @ row_file . NativeRelationFileListingProvider , LocalProjectMockFileBinding , ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -114670,8 +115644,8 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "[I]prepare_local_native_whole_files_request_module"
+            "[I]prepare_local_native_whole_files_request_module",
+            "local_command_file_listing"
           ],
           "exports": [],
           "attributes": {
@@ -114741,7 +115715,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "d8c55f3c07506b1dee1cf7b24f072b73aa9e4aa0c4926c15eef8afb5e0facbd6",
+      "sha256": "b395ca75482d96bfe03368ca33491968a754c49441dbdfe47278cbde89fcf45d",
       "exports": [],
       "operations": [
         {
@@ -114755,6 +115729,14 @@
         {
           "name": "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
           "declaration": "NativeLocalHostConnection : : prepare_original_managed_whole_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileWholeSource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::matches_provider",
+          "declaration": "NativeRelationFileWholeSource : : matches_provider ( self : Self , acquisition : @ rows . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "NativeRelationFileWholeSource::provider_capacity",
+          "declaration": "NativeRelationFileWholeSource : : provider_capacity ( self : Self , ) - > @ execution . ExecutionCapacity"
         },
         {
           "name": "snapshot_managed_whole_relation_file_sources",
@@ -114772,7 +115754,9 @@
             "managed_relation_file_originals_match",
             "managed_whole_relation_file_sources_match",
             "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
-            "snapshot_managed_whole_relation_file_sources"
+            "snapshot_managed_whole_relation_file_sources",
+            "NativeRelationFileWholeSource::matches_provider",
+            "NativeRelationFileWholeSource::provider_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -114937,7 +115921,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "767786a72446b8180349695a85470cbee7efaed4243f40415b8e3fea1e46b991",
+      "sha256": "590674389e0a27442f6ff9ace8a20b610110ceb1251d73e97fdea5c7e2c59446",
       "exports": [],
       "operations": [
         {
@@ -115028,7 +116012,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "276297f17df9f25922db5e69143a61ce8a8c0cd0f0c3b0b0bdc7b081a7bfc993",
+      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
       "exports": [],
       "operations": [
         {

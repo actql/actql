@@ -6,7 +6,9 @@ import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
-  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory,
+  readStaticPlan, staticExplanationReadModel} from './read-model.mjs';
+import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
 import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
   from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
@@ -648,6 +650,22 @@ test('Effectful static declarations retain unknowns without adding computation e
   assert.throws(() => planReadModel(foreign), {code: 'ExplorerInvalidPlan'});
 });
 
+test('Static Context refuses mixed bindings, foreign ports, and substituted Effect declarations', () => {
+  for (const mutate of [
+    view => {view.context.binding.check_environment_cid = cid('f');},
+    view => {view.context.items[0].consuming_ports[0].port_id = cid('f');},
+    view => {view.context.items.unshift(structuredClone(view.context.items[0]));},
+    view => {view.context.items[1].producer.port_id = cid('f');},
+    view => {view.context.items[3].members[0].declaration.contract.declared_target = 'connector://foreign/account';},
+  ]) {
+    const original = effectfulStaticExplanationFixture();
+    mutate(original);
+    assert.throws(() => staticExplanationReadModel(original, {render() {
+      assert.fail('refuse the mismatched original before rendering');
+    }}), {code: 'ExplorerInvalidExplanation'});
+  }
+});
+
 // Independently authored semantic projection DATA, not a compiler/Host grant.
 const explanationType = kind => ({projection: 'shape_and_nullability', kind, nullable: false});
 const explanationValues = {kind: 'values', schema: {fields: [
@@ -707,6 +725,24 @@ test('structural Story renders original typed parameter and redacted literal wit
     'Keep rows where: (fields."id":number > [redacted number])');
   assert.equal(explanationStoryModel(view, explanationFixture(view, literal), {locale: 'ja'}).occurrences[1].explanation.text,
     'この条件を満たす行を残す: (fields."id":number > [非開示 number])');
+});
+
+test('structural Story renders a singleton AND or OR and refuses an absent operand', () => {
+  const view = explanationUnary('filter');
+  for (const operator of ['and', 'or']) {
+    const type = explanationType('boolean');
+    const meaning = {kind: 'filter', predicate: {state: 'projected', root: 0, nodes: [
+      {form: 'operation', operator, children: [1], type},
+      {form: 'field', scope: 'fields', name: 'flag', type},
+    ]}};
+    const facts = explanationFixture(view, meaning);
+    assert.equal(explanationStoryModel(view, facts).occurrences[1].explanation.text,
+      'Keep rows where: (fields."flag":boolean)');
+    assert.equal(explanationStoryModel(view, facts, {locale: 'ja'}).occurrences[1].explanation.text,
+      'この条件を満たす行を残す: (fields."flag":boolean)');
+    meaning.predicate.nodes[0].children = [];
+    assert.throws(() => explanationStoryModel(view, explanationFixture(view, meaning)), {code: 'ExplorerInvalidExplanation'});
+  }
 });
 
 test('structural Story keeps ordered projection semantics and explicit unprojected meaning', () => {

@@ -338,6 +338,14 @@ fn lower_script_relation_term(
   let nearest_vectors = script_nearest_vector_inputs(
     construction, query, nearest_inputs, context, sources, limits, steps,
   )
+  let exported_columns : Array[Array[ResultColumn]]? = if @query.anonymous_output_context_required(
+      query,
+    ) ||
+    script_result_columns(sources, input.name) is Some(_) {
+    Some([])
+  } else {
+    None
+  }
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -357,7 +365,7 @@ fn lower_script_relation_term(
     initial_scope=script_input_scope(
       construction,
       sources,
-      input.name,
+      input,
       query_range_name(query),
     ),
     preserved_scope=preserved,
@@ -367,6 +375,7 @@ fn lower_script_relation_term(
     prefix_context=Some(context),
     positional_set_output~,
     source_projection_capture~,
+    output_columns=exported_columns,
     checked_nearest_prefix=Some(nodes => {
       script_nearest_prefix_pipeline(
         construction, query, context, sources, nodes, limits,
@@ -413,6 +422,10 @@ fn lower_script_relation_term(
     input.name
   } else {
     output
+  }
+  if exported_columns.bind(columns => columns.get(0)) is Some(columns) &&
+    columns.any(column => column.name is None || column.name_view is Some(_)) {
+    put_script_result_columns(sources, name, columns)
   }
   if preserved is Some(scopes) {
     sources.ranges[name] = scopes[0]
@@ -490,6 +503,7 @@ fn compile_query_script_with_source(
       bound: Map([]),
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
+      result_columns: None,
       value_tables: Map([]),
       binding_ranges: [],
       carriers: Map([]),
@@ -628,7 +642,7 @@ fn compile_query_script_with_source(
       let retained : Array[RetainedResult] = []
       let graph_row_set = script_has_graph_rows(current) &&
         @query.set_part_count(current) > 0
-      let result = if script_has_graph_rows(current) &&
+      let mut result = if script_has_graph_rows(current) &&
         !graph_row_set &&
         !script_has_carrier_calls(current) {
         let graph = require_script_graph_input(
@@ -804,6 +818,14 @@ fn compile_query_script_with_source(
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
       let table_effect = @query.terminal_table_effect(current)
+      result = publish_script_result_columns(
+        construction,
+        stage_sources,
+        result,
+        stage_steps,
+        reserved,
+        limits.max_expression_work,
+      )
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
         ("inputs", construction.object(stage_sources.declarations)),
@@ -1012,6 +1034,7 @@ fn compile_query_script_with_source(
           ]),
         ),
       ])
+      let continued_columns = script_result_columns(stage_sources, result.name)
       stage_sources = {
         declarations: [(input_name, reference)],
         stages: sources.stages,
@@ -1019,10 +1042,14 @@ fn compile_query_script_with_source(
         bound: Map([]),
         unshared: [],
         ranges: Map([]),
+        result_columns: None,
         value_tables: Map([]),
         binding_ranges: sources.binding_ranges,
         carriers: Map([]),
         carrier_work: stage_sources.carrier_work,
+      }
+      if continued_columns is Some(columns) {
+        put_script_result_columns(stage_sources, input_name, columns)
       }
       stage_known = [
         {

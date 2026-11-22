@@ -185,3 +185,47 @@ fn same_group_expression_in_scopes(
     },
   )
 }
+
+///|
+// Name validation uses the original input meaning plus actual private results.
+// It precedes replacing evaluated key subtrees, so equality never promotes an
+// anonymous DATA key. Generic grouped lowering still owns value availability.
+fn grouped_namespace_before_reuse(
+  expression : @query.Expression,
+  resolve_input : (Array[@query.NamePart]) -> String?,
+  input_ranges : Array[(@query.NamePart, Array[(String, String)])],
+  input_profiles : Array[ResultColumn]?,
+  visible : Array[(String, String)],
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+  private_columns : Array[(String, String)],
+  result_profiles : Array[ResultColumn]?,
+  value_ranges : Array[@query.NamePart],
+  max_work : Int,
+) -> NamespaceView? raise Abort {
+  let profiles = match (result_profiles, input_profiles) {
+    (None, None) => return None
+    (Some(_), None) => result_profiles
+    (None, Some(_)) => input_profiles
+    (Some(result), Some(input)) =>
+      if physical_equal(result, input) {
+        result_profiles
+      } else {
+        Some(result + input)
+      }
+  }
+  let resolve = fn(path : Array[@query.NamePart]) -> String? {
+    if path.length() == 1 && pipe_slot(path, private_columns, []) is Some(slot) {
+      return Some(slot)
+    }
+    match resolve_input(path) {
+      Some(slot) => Some(slot)
+      None => profiled_pipe_slot(path, visible, ranges, profiles)
+    }
+  }
+  let row_ranges = input_ranges.filter(range => {
+    !value_ranges.any(name => same_name(name, range.0))
+  })
+  resolved_namespace_before_reuse(
+    expression, resolve, row_ranges, profiles, max_work,
+  )
+}

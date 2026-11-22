@@ -185,3 +185,87 @@ pub fn external_effect_driver_construction_capacity(
     workspace_bytes: 0L,
   })
 }
+
+///|
+// This author decodes at most one bounded event and emits only the closed
+// request, version/claim preimage, or recovery envelope. Price the whole
+// bounded JSON forest plus byte/text copies of its wire, including failure.
+fn external_update_constructor_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @source.json_literal_construction_extent(bytes, nodes, depth)
+    is Some(forest) else {
+    return None
+  }
+  let wire = bytes.to_int64()
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: forest.record_headers,
+      reference_slots: forest.reference_slots,
+      scalar_words: forest.scalar_words,
+      owned_utf16_units: forest.owned_utf16_units + wire,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      // JSON stringify/decode and the CID preimage use the original full
+      // wire bound. Each of these synchronous calls completes before the next.
+      owned_utf16_units: wire,
+      owned_wire_bytes: 2L * wire,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+#export_name("installedDeclaredUpdateConstructionProfile")
+pub fn installed_declared_update_construction_profile(
+  _preview_bytes : Int,
+  _preview_nodes : Int,
+  _preview_depth : Int,
+  _row_bytes : Int,
+  _row_nodes : Int,
+  _row_depth : Int,
+) -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
+  // Accepted event id <=32 ASCII bytes and note <=64 UTF-16 units.
+  // The closed input/output and hash envelopes fit the existing 512-byte
+  // HTTP bounds. Malformed responses can fill the full body before refusal.
+  guard external_update_constructor_capacity(512, 12, 3) is Some(request) &&
+    external_update_constructor_capacity(512, 512, 512) is Some(observation) else {
+    return None
+  }
+  Some([
+    (request, None, None),
+    (request, None, None),
+    (observation, None, None),
+    (observation, None, None),
+  ])
+}
+
+///|
+#export_name("installedDeclaredUpdateCaptureConstructionProfile")
+pub fn installed_declared_update_capture_construction_profile(
+  _preview_bytes : Int,
+  _preview_nodes : Int,
+  _preview_depth : Int,
+  _row_bytes : Int,
+  _row_nodes : Int,
+  _row_depth : Int,
+) -> Array[@execution.ExecutionCapacity]? {
+  // The same 1024-byte original member recovery envelope is checked before
+  // decoding; an invalid envelope still owns its complete bounded peak.
+  guard external_update_constructor_capacity(1024, 1024, 1024) is Some(fixed) &&
+    external_update_constructor_capacity(512, 12, 3) is Some(row) else {
+    return None
+  }
+  Some([fixed, row, row])
+}

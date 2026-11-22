@@ -121,7 +121,10 @@ export function assertTemplateStatic(check: Check, plan: Plan) {
   for (const operator of ['join', 'infer']) assert(steps.some(step => step.operator === operator), operator);
   assert.equal(plan.effect_set?.members.length, 1);
   assert.equal(plan.effect_set.members[0].effect_kind, 'update');
-  assert.deepEqual(plan.effect_set.members[0].input, {kind: 'result', result_name: 'updates'});
+  // Both authored templates evaluate their SET expressions in this checked
+  // private Result (query_program/lower_update_capture), not the separately
+  // exported updates Result checked below by full row/schema/Saved oracles.
+  assert.deepEqual(plan.effect_set.members[0].input, {kind: 'result', result_name: 'aql_private_update'});
 }
 
 export function requiredProjectReplacements(template: Template, beforeBytes: string) {

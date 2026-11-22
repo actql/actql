@@ -10,6 +10,7 @@ fn difference_value(domain : String, text : String) -> Value {
 fn difference_expression(
   unit : String,
   domain? : String = "timestamp",
+  operation? : String = "date_diff",
 ) -> @lower.Expression {
   let start = if domain == "date" {
     "1970-01-01"
@@ -24,7 +25,9 @@ fn difference_expression(
     start +
     "\",\"begin\":\"" +
     start +
-    "\"}]},\"as\":\"seed\"},{\"derive\":{\"difference\":{\"date_diff\":[{\"field\":\"finish\"},{\"field\":\"begin\"},{\"literal\":\"" +
+    "\"}]},\"as\":\"seed\"},{\"derive\":{\"difference\":{\"" +
+    operation +
+    "\":[{\"field\":\"finish\"},{\"field\":\"begin\"},{\"literal\":\"" +
     unit +
     "\"}]}}}]"
   @lower.lower_expression(bound_pipeline(raw), 1, 0, {
@@ -245,4 +248,43 @@ test "date_diff executes on the original typed Relation rows without rewriting t
     table.rows[0][1]
     is Captured(@admitted.Timestamp("1969-12-31T23:59:59.999999999Z")),
   )
+}
+
+///|
+test "timestamp_diff returns exact signed64 whole units through the evaluator" {
+  let first = difference_value("timestamp", "0001-01-01T00:00:00.000Z")
+  let last = difference_value("timestamp", "9999-12-31T23:59:59.999999999Z")
+  let epoch = difference_value("timestamp", "1970-01-01T00:00:00.000Z")
+  let before_hour = difference_value(
+    "timestamp", "1969-12-31T23:00:00.000000001Z",
+  )
+  let after_hour = difference_value(
+    "timestamp", "1970-01-01T01:00:00.000000001Z",
+  )
+  for
+    (finish, begin, unit, expected) in [
+      (last, first, "us", Some(315537897599999999L)),
+      (first, last, "us", Some(-315537897599999999L)),
+      (epoch, after_hour, "h", Some(-1L)),
+      (before_hour, epoch, "h", Some(0L)),
+      (after_hour, epoch, "h", Some(1L)),
+      (Null, epoch, "h", None),
+      (epoch, Null, "h", None),
+    ] {
+    let expr = difference_expression(unit, operation="timestamp_diff")
+    let fields = Map([("finish", finish), ("begin", begin)])
+    let result = evaluate_expression(expr, fields, [], {
+      remaining: 1000,
+      max_frames: 10,
+    }).unwrap()
+    match (result, expected) {
+      (Captured(@admitted.Signed64(actual)), Some(wanted)) =>
+        assert_eq(actual, wanted)
+      (Null, None) => ()
+      _ =>
+        fail(
+          "expected the original Timestamp difference's signed64 or NULL result",
+        )
+    }
+  }
 }

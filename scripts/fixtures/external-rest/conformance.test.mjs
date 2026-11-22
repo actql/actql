@@ -80,6 +80,29 @@ test('conformance caller captures the actual original pending projection before 
   assert.equal(close.fd.aliveAfterClose, true);
 });
 
+test('author conformance submits the original Program and bindings once', async t => {
+  const f = await fixture(t), events = [];
+  const program = {version: 'synthetic'};
+  const parameters = {depth: 9};
+  const pending = Promise.resolve({
+    ref: {run: 'synthetic-author-check'}, wait: async () => ({status: 'succeeded'}),
+    status: async () => ({status: 'succeeded'}), result: () => ({all: async () => [{depth: 9}]}),
+  });
+  const client = {
+    start(original, options) {
+      assert.equal(original, program);
+      assert.deepEqual(options, {parameters});
+      events.push('start');
+      return pending;
+    },
+    async close() {events.push('close');},
+  };
+  await captureStandardRestRead(client, {publicSdk: {getSubmissionInput: () => ({})}, program,
+    parameters, programInput: true, assertRows: rows => assert.deepEqual(rows, [{depth: 9}]),
+    outputRoot: f.outputRoot, stateRoots: [f.state]});
+  assert.deepEqual(events, ['start', 'close']);
+});
+
 test('a pre-ref public rejection keeps original input and failure without an invented refusal', async t => {
   const f = await fixture(t), primary = Object.assign(new Error('original synthetic unknown'), {code: 'SubmissionUnknown'});
   const pending = Promise.reject(primary); let starts = 0, closes = 0;

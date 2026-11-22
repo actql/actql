@@ -5,7 +5,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "26ab57490b0e3a5b278848d4d593048bf423cba9ed6545b41e59e52fe6d2c6b5",
+      "sha256": "e66648f0e9e1161acc100c8e13fcf60f57cbc08869439f48874b0cb0036b1ced",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
         "createInstalledOpenAIChatRegistration",
@@ -30,7 +30,8 @@
           "name": "createConfiguredUndiciOpenAIChatRegistration",
           "parameters": [
             "config",
-            "transportTimeouts"
+            "transportTimeouts",
+            "openAICredentialBytes"
           ],
           "async": false
         },
@@ -542,7 +543,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6e8522c11f1527975afbb53494ade5f50617c72724e1f36f140bd80f64873321",
+      "sha256": "aeeeff7cb1a3ac655d663763bea159fda49adefc38a0d29c2df77100a7f41532",
       "exports": [
         "createSdkModelPreflight",
         "createSdkNativeDecisionPreflight"
@@ -601,11 +602,16 @@
           "async": false
         },
         {
-          "name": "createSdkPhysicalPreflight/bound/bound",
+          "name": "createSdkPhysicalPreflight/bindRaw/bindRaw",
           "parameters": [
             "registration",
             "persistence"
           ],
+          "async": false
+        },
+        {
+          "name": "createSdkPhysicalPreflight/bound/bound",
+          "parameters": [],
           "async": false
         },
         {
@@ -744,7 +750,8 @@
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#4",
             "createSdkPhysicalPreflight/preflight/preflight",
             "createSdkPhysicalPreflight/start/start",
-            "generationPlan"
+            "generationPlan",
+            "createSdkPhysicalPreflight/bindRaw/bindRaw"
           ],
           "exports": [
             "createSdkModelPreflight",

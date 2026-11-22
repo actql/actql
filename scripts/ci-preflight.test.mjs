@@ -138,9 +138,10 @@ test('operation evidence consistency is mandatory admission without changing the
   ]);
   assert.equal(selection.profile, 'full');
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
-  assert.equal(selection.macos, true);
+  assert.equal(selection.macos, false);
   const results = Object.fromEntries(gateJobs.map(name =>
-    [name, {result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
+    [name, {result: ['focused-tests', 'health-quick', 'native-macos'].includes(name) ? 'skipped' : 'success'}]));
+  results['python-wheels'].outputs = {'linux-x64': merge};
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -152,6 +153,7 @@ test('operation evidence consistency is mandatory admission without changing the
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
+  results['python-wheels'].outputs = {'linux-x64': merge, 'darwin-arm64': merge};
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);

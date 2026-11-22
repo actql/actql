@@ -25,4 +25,5 @@ export declare function createCheckpointAnswerCodec(primitives: AnswerPrimitives
   finishAnswerCandidate(stage: AnswerResolution,
     resolutionSignature: unknown): Promise<WireResolveItem>;
   reviewBytesMatchCid(raw: unknown, expected: unknown, limits: AnswerLimits): Promise<boolean>;
+  encodeSignerSignature(value: unknown): string;
 }>;

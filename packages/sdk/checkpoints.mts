@@ -101,12 +101,6 @@ export async function reviewBytesMatchCid(bytes: ArrayBuffer | ArrayBufferView, 
     {maxWireBytes: extent, maxNodes: extent, maxDepth: extent});
 }
 
-const base64 = (bytes: Uint8Array) => {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-};
-
 // `signer` is supplied by the application: {keyId, reviewerId,
 // sign(bytes) -> Uint8Array | base64 string}. It signs the UTF-8 text of an
 // unsigned artifact CID (the pinned Ed25519 preimage). The Client never sees
@@ -123,20 +117,12 @@ export function checkedSigner(signer: Partial<CheckedSigner>): CheckedSigner {
 
 async function signature(signer: CheckedSigner, text: string) {
   const signed = await signer.sign(encoder.encode(text));
-  // Match the existing Common proof codec: canonical Base64 of 64 Ed25519
-  // bytes. Bound decoding before inspecting the external signer's output.
-  // This checks representation only; the Host still verifies the signature.
-  if (typeof signed === 'string' && signed.length === 88 &&
-      /^[A-Za-z0-9+/]+={0,2}$/u.test(signed)) {
-    try {
-      const binary = atob(signed);
-      if (binary.length === 64 && btoa(binary) === signed) return signed;
-    } catch { /* A malformed proof is rejected below, never normalized. */ }
+  try { return answerCodec.encodeSignerSignature(signed); }
+  catch (cause) {
+    if ((cause as {code?: unknown} | null | undefined)?.code !== 'InvalidField' ||
+        (cause as {field?: unknown}).field !== 'proof.signature') throw cause;
+    throw new TypeError('InvalidCheckpointSignature');
   }
-  if (signed instanceof Uint8Array && signed.byteLength === 64) {
-    return base64(signed);
-  }
-  throw new TypeError('InvalidCheckpointSignature');
 }
 
 // One signed answer for one Checkpoint, from its listed safe metadata. An

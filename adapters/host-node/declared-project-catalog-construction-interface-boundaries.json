@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "b78dcdeba10881e6a32902b1628bec08566839df5e7aa3becbc4610a88381344",
+      "sha256": "65560d70aa53adfc5968bb951266bd34375aab983aac0099912fc5d0f1c7246d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
@@ -162,6 +162,13 @@
             "selected"
           ],
           "async": false
+        },
+        {
+          "name": "declaredProjectWritableRuntimeConstructionGeometry/routed/routed",
+          "parameters": [
+            "write"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -261,6 +268,7 @@
             "declaredProjectWritableInventoryConstructionGeometry",
             "declaredProjectWritableInventoryConstructionGeometry/physical/physical",
             "declaredProjectWritableRuntimeConstructionGeometry",
+            "declaredProjectWritableRuntimeConstructionGeometry/routed/routed",
             "declaredProjectMockFootprintConstructionGeometry"
           ],
           "exports": [
@@ -379,6 +387,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "Mock constructor funds an additional operation recipe only for distinct target permissions"
               }
             ]
           }

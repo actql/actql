@@ -10,7 +10,7 @@ import {gatewayLimits} from './gateway.mjs';
 const root = new URL('./dist/', import.meta.url);
 const types = Object.freeze({html: 'text/html; charset=utf-8',
   js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8',
-  svg: 'image/svg+xml'});
+  svg: 'image/svg+xml', woff2: 'font/woff2'});
 const refused:()=>never = () => {throw Object.assign(new Error('ExplorerInvalidBuiltAssets'),
   {code: 'ExplorerInvalidBuiltAssets'});};
 async function boundedFile(path:Parameters<typeof open>[0], limit:number, exactBytes?:number) {
@@ -48,7 +48,7 @@ export async function loadExplorerAssets() {
     if (item === null || typeof item !== 'object' ||
         Object.keys(item).sort().join(',') !== 'bytes,path,sha256' ||
         typeof item.path !== 'string' ||
-        !/^\/(?:index\.html|assets\/[a-zA-Z0-9_-]+\.(?:js|css|svg))$/u.test(item.path) ||
+        !/^\/(?:index\.html|assets\/[a-zA-Z0-9_-]+\.(?:js|css|svg|woff2))$/u.test(item.path) ||
         assets.has(item.path) || !Number.isSafeInteger(item.bytes) || item.bytes <= 0 ||
         typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(item.sha256)) refused();
     size += item.bytes;

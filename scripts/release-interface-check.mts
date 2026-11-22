@@ -20,6 +20,8 @@ import {buildLocalNodeAdapters, localNodeAdapterSourceInputs} from './build-loca
 import {buildLocalNodeAssets} from './build-local-node-assets.mjs';
 import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {initialControlPackageOriginal} from './initial-control-package-images.mjs';
+import {buildConnectorAuthoring} from './build-connector-authoring.mjs';
+import {authoringBinPath, authoringToolkitPath} from './connector-authoring-toolkit.mjs';
 
 import type {BinaryLike} from 'node:crypto';
 
@@ -74,6 +76,26 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
           const original = await unpack(archive, scratch), originalInventory = await inventory(original);
           await buildLocalNodeAdapters({root: repository, destination: original, inputs, check: true});
           buildLocalNodeAssets({root: repository, destination: original, inputs, check: true});
+          const toolkitPrefix = authoringToolkitPath + '/';
+          const toolkitMembers = originalInventory.filter(file => file.path.startsWith(toolkitPrefix));
+          const originalMetadata = JSON.parse(await readFile(join(original, 'package.json')) as unknown as string);
+          if (toolkitMembers.length || originalMetadata.bin?.['actql-connector'] === authoringBinPath) {
+            // The toolkit is an exact authored-copy artifact. Its builder
+            // selects the command and normal consumer entries, and excludes
+            // producer-only imports from the distributed toolkit.
+            const expectedRoot = join(scratch, 'expected-authoring');
+            const {inputs: sourceFiles} = buildConnectorAuthoring(repository, expectedRoot);
+            const expected = await inventory(join(expectedRoot, authoringToolkitPath), toolkitPrefix);
+            assert.deepEqual(expected.map(file => file.path).sort(), sourceFiles.map(path => toolkitPrefix + path).sort());
+            assert.deepEqual(toolkitMembers, expected, 'Original connector authoring toolkit differs from the ordinary copy recipe');
+            for (const member of toolkitMembers) localArtifacts.push({
+              module: member.path, sha256: member.sha256, sourceSha: before.revision,
+              target: 'node-connector-authoring-copy',
+              verification: {manifestSha256, originalSha256: item.originalSha256,
+                build: 'scripts/build-connector-authoring.mjs', sourceFiles: [member.path.slice(toolkitPrefix.length)],
+                qualification: 'ordinary authored-copy identity for the selected toolkit'},
+            });
+          }
           // The normal builder has checked these bytes and their original
           // descriptor. Reuse the existing finite native input references;
           // a filename or the public manifest alone cannot register a binary.

@@ -290,6 +290,102 @@ fn native_mock_readme_request_issue(
 }
 
 ///|
+fn native_mock_readme_static_explain(
+  facility : NativeMockReadmeRequestFacility,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  document : String,
+  original : LocalProjectMockDeclarations,
+) -> String? raise {
+  @local_values.reserve_request_snapshot(
+    facility.parent,
+    facility.input,
+    document.length().to_int64() + 32L,
+    document.length().to_int64() + 32L,
+  ).unwrap()
+  let checked = @local_values.prepare_request_native_document_check(
+    facility.parent,
+    facility.input,
+    document,
+    @frontend.Text,
+    None,
+    None,
+    environment,
+    publication,
+    static_check=false,
+  )
+  match checked {
+    Err(issue) =>
+      return Some(native_mock_readme_request_issue(@local_host.Request(issue)))
+    Ok(_) => ()
+  }
+  match
+    @local_values.finish_request_checked_computation(
+      facility.parent,
+      facility.input,
+      environment,
+      publication,
+    ) {
+    Err(issue) =>
+      return Some(
+        "static compilation: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
+    Ok(kind) => assert_true(kind == @local_values.Effect)
+  }
+  let body = @local_host.borrow_native_client_request_plan_input(
+    facility.parent,
+    facility.input,
+  ).unwrap()
+  guard body is @local_host.Effect(borrow) &&
+    @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) else {
+    fail("static explanation original Effect borrow")
+  }
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let occurrences = @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 1)
+  let models = original
+    .prepare_effect_models(
+      facility.parent,
+      facility.input,
+      occurrences,
+      environment,
+      contracts,
+    )
+    .unwrap()
+  let result = @local_values.request_prepared_static_plan_view(
+    facility.parent,
+    facility.input,
+    native_request_manifests,
+    65536,
+    8192,
+    64,
+    infers=models.map(value => value.graph),
+  )
+  @local_host.return_native_client_submitted_request_body(body).unwrap()
+  |> ignore
+  match result {
+    Err(issue) =>
+      return Some(
+        "static projection: " +
+        native_mock_readme_request_issue(@local_host.Request(issue)),
+      )
+    Ok(view) => {
+      assert_true(view.contains("actql-effectful-static-plan-view/0.1"))
+      assert_true(view.contains("\"provider_io\":0"))
+      assert_true(view.contains("\"state\":\"unknown\""))
+      return None
+    }
+  }
+}
+
+///|
 // All new Request/body aliases leave this frame before its issuer closes the
 // physical payload. Metadata belongs to its separately retained original Read.
 fn native_mock_readme_request_payload(
@@ -307,8 +403,21 @@ fn native_mock_readme_request_payload(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  if static_explain {
+    let issue = native_mock_readme_static_explain(
+      facility, environment, publication, document, original,
+    )
+    ignore(
+      @local_values.abort_request_preparation_after_cleanup(facility.parent),
+    )
+    facility.arena
+    .leave_domain_retained_execution(facility.physical)
+    .native_content_join_stage("leave same original Native Request frame")
+    return issue
+  }
   let wire : Json = {
     "kind": "aql",
     "input": { "text": Json::string(document), "format": "aql-text" },
@@ -861,6 +970,8 @@ fn native_mock_readme_request_in_metadata_read(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  static_explain? : Bool = false,
+  static_lookup_metadata? : Bool = true,
 ) -> String? raise {
   let original = native_project_mock_model_fixture(
     if content_join {
@@ -872,12 +983,15 @@ fn native_mock_readme_request_in_metadata_read(
   original.prepare_source_declarations().unwrap()
   // SAME selected Native file implementation, with the explicit immutable
   // authority metadata port already disclosed for this source component.
-  original.file_sources = Some([
-    local_project_mock_file_source(
-      original.sources[1],
-      "sha256:" + "8".repeat(64),
-    ).unwrap(),
-  ])
+  if static_lookup_metadata {
+    original.file_sources = Some([
+      local_project_mock_file_source(
+        original.sources[1],
+        "sha256:" + "8".repeat(64),
+      ).unwrap(),
+    ])
+  }
+  assert_eq(original.file_lookup_policy() is Some(_), static_lookup_metadata)
   // Exact metadata-only ports of the existing installation projection. This
   // does not qualify Runtime/Account observations or authorize any operation.
   original.write_installations = Some(
@@ -935,6 +1049,7 @@ fn native_mock_readme_request_in_metadata_read(
     effect_recipe~,
     effect_material_restore~,
     effect_prepared_restore~,
+    static_explain~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1893,6 +2008,7 @@ fn native_pure_file_capture_plan(
     facility.input,
     prepared,
     request,
+    source,
     selected._retained_declaration,
     row,
     contracts,
@@ -2013,5 +2129,665 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
     false,
     pure_file_control=true,
     pure_file_query=Some("SELECT trend FROM snowflake.usage_30d"),
+  )
+}
+
+///|
+test "Native shared-file Effect joins and binds both original Source observations without a Model" {
+  let project = native_project_mock_model_fixture(
+    "shared-file-empty-models",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  // The component projects the authored writes using fixed installation
+  // observations. No Account, Journal start, approval or write is issued.
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let (environment, intent) = native_shared_file_effect_input(project)
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value("prepare original Effect Request")
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected the original Effect preparation")
+  }
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  let original = local_effect_first_compilation(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "local-test",
+    "original-request",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+    source_inputs=project.prepare_effect_sources(prepared, direct),
+  )
+  assert_true(original.model_compiled is None)
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let file_limits = local_project_mock_file_limits()
+  let capture_recipes = []
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    original,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: file_limits.max_work,
+      max_bytes: file_limits.page.max_bytes,
+      max_nodes: file_limits.page.max_nodes,
+      max_depth: file_limits.page.max_depth,
+    },
+    file_limits.page.max_bytes,
+    capture_recipes,
+    provider_factory=native_request_provider_factory,
+  )
+  let (_, members, _) = @local_values.prepared_installed_effect_managed_shape(
+    plan,
+  )
+  assert_eq(members, 3)
+  for index, name in ["Account", "Contact"] {
+    let (_, original_source, _) = @local_values.prepared_installed_effect_managed_whole_source(
+      plan, index,
+    ).unwrap()
+    assert_eq(
+      @row_host.row_input_acquisition_target_resource(original_source),
+      name,
+    )
+  }
+  for index in 0..<members {
+    assert_true(
+      @local_values.prepared_installed_effect_managed_operation(
+        plan, index, true, 1, "native.mock.file.write",
+      )
+      is Ok(_),
+    )
+  }
+  let state = retain_native_mock_effect_plan(
+    original, prepared, plan, capture_recipes,
+  )
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).native_file_route_value("complete same Model-free Plan")
+  let run = @local_values.begin_request_effect_managed_run(
+    facility.parent,
+    original.request,
+  ).native_file_route_value("adopt same Model-free Plan")
+  state.source_started_at = Some("2026-10-10T00:00:01.000Z")
+  for index, rows in [3, 2] {
+    let capture = state
+      .prepare_mock_effect_source_capture(
+        run,
+        facility.arena,
+        facility.physical,
+        index,
+      )
+      .native_file_route_value("open original physical file Source")
+    while !state
+          .advance_mock_effect_source_capture(capture)
+          .native_file_route_value("advance original physical file Source") {
+      ()
+    }
+    assert_true(state.retain_mock_effect_source_input(capture) is Some(_))
+    let source = @row_host.row_captured_input_source(
+      state.captured_inputs[index],
+    ).unwrap()
+    assert_eq(@query.captured_source_row_count(source), Some(rows))
+  }
+  state.source_completed_at = Some("2026-10-10T00:00:02.000Z")
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared,
+    original.allowed,
+    original.definition,
+  ).unwrap()
+  state
+  .open_mock_effect_source_host(run, bound)
+  .native_file_route_value("bind both original captures to the same Host")
+  match state.issue_mock_effect_direct_sources(run, bound) {
+    Ok(_) => ()
+    Err(Coverage) => fail("incomplete original Source coverage or extent")
+    Err(Ledger(_)) => fail("original Source evidence reservation refused")
+    Err(Installed(_)) => fail("original Source evidence Plan unavailable")
+    Err(Capture(_)) => fail("original Source identity scan refused")
+    Err(Logical(_)) => fail("original Source logical binding refused")
+    Err(Observation(_)) => fail("original Source observation refused")
+    Err(Invocation(PublicationInvocation(RunEvidenceReferenceMismatch(field)))) =>
+      fail("original Source invocation reference mismatch: " + field)
+    Err(Invocation(_)) => fail("original Source invocation refused")
+    Err(Read(_)) => fail("unexpected Model Read in direct Source evidence")
+  }
+  {
+    let held = state.direct_sources.unwrap()
+    let publication = held._retained_publication.unwrap()
+    let observed = @run_host.client_effect_direct_sources_publication_observation(
+      publication,
+    )
+    let expected = held.observations.map(evidence => {
+      Json::string(@publication.run_evidence_value_identity(evidence))
+    })
+    assert_eq(expected.length(), 2)
+    assert_true(expected[0] != expected[1])
+    guard @json.parse(@publication.run_evidence_value_json(observed))
+      is Object(body) else {
+      fail("missing original Source observation")
+    }
+    assert_eq(body.get("source_evidence_cids"), Some(Json::array(expected)))
+    assert_true(
+      state.issue_mock_effect_direct_sources(run, bound) is Err(Coverage),
+    )
+  }
+  let direct = state.direct_sources.unwrap()
+  let source_live = () => direct.captures.all(@query.captured_source_available)
+  let executed = @local_values.execute_retained_effect_local_tasks_guarded(
+    state.effect_host.unwrap(),
+    state.effect_capture.unwrap(),
+    256,
+    100000,
+    () => {
+      source_live() &&
+      @local_values.check_installed_effect_managed_run(
+        run,
+        prepared,
+        original.request,
+      )
+      is Ok(_) &&
+      @run_host.client_effect_run_start_current(
+        original.allowed,
+        original.definition,
+        local_utc_now(),
+      )
+    },
+    require_live=Some(source_live),
+  ).native_file_route_value("compute original file Effect Result")
+  let rows = executed.rows().unwrap()
+  assert_eq(rows.length(), 1)
+  let expected_row : Json = {
+    "account_id": "a1",
+    "contact_id": "c1",
+    "account_before": "A-old",
+    "contact_before": "C-old",
+    "account_next": "A-new",
+    "contact_next": "C-new",
+    "second_account_id": "a2",
+    "second_account_next": "A2-new",
+  }
+  assert_eq(@json.parse(rows[0]), expected_row)
+  {
+    let original_policy = @run_host.client_local_product_bootstrap_originals(
+      "/fixture/mock-original", "2026-10-10T00:00:00.000Z",
+    ).unwrap()
+    let profile = @run_host.client_local_run_policy_profile(
+      original_policy.common,
+    ).unwrap()
+    let retained = @run_host.issue_client_local_run_retention_policy(
+      profile, "2026-10-10T00:00:00.000Z",
+    ).unwrap()
+    let retention_dependencies = @run_host.client_local_run_policy_retention_bodies(
+      profile,
+      original_policy.common.retention_dependencies,
+    ).unwrap()
+    let primary : Ref[LocalNativeMockEffectProposalIssue?] = Ref(None)
+    state.suffix = Some(executed)
+    state.prepare_direct_mock_effect_proposals(
+      run,
+      retained,
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      _ =>
+        fail(
+          "direct native Effect proposals: " +
+          primary.val
+          .map(issue => {
+            command_preparation_cleanup_cause(
+              CommandBusinessEffectProposals(issue),
+            )
+          })
+          .unwrap_or("no typed cause"),
+        )
+    }
+    let proposals = state.proposals.unwrap()
+    assert_eq(proposals.members.length(), 3)
+    assert_eq(proposals.unit_results.length(), 1)
+    let unit = proposals.unit_results[0]
+    let artifact = unit.artifact.unwrap()
+    let receipt = unit.receipt.unwrap()
+    assert_true(
+      @run_host.client_effect_local_result_artifact_matches_public_result(
+        prepared,
+        proposals.inputs,
+        artifact,
+        0,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @run_host.client_effect_local_relation_export_receipt(artifact),
+        receipt,
+      ),
+    )
+    let snapshot = @json.parse(unit._retained_wire.unwrap())
+    assert_eq(snapshot, Json::array([expected_row]))
+    for index, selector in ["a1", "c1", "a2"] {
+      let proposal = proposals.members[index]
+      assert_true(
+        physical_equal(proposal._retained_artifact.unwrap(), artifact),
+      )
+      assert_true(
+        @run_host.client_effect_dependency_capture_matches_artifact(
+          proposal._retained_dependency.unwrap(),
+          artifact,
+        ),
+      )
+      assert_eq(proposal.rows.length(), 1)
+      assert_eq(@json.parse(proposal.rows[0].0), Json::string(selector))
+      assert_eq(
+        @json.parse(proposal.rows[0].1),
+        (
+          {
+            "state": "present",
+            "value": {
+              "value": Json::string(["A-new", "C-new", "A2-new"][index]),
+            },
+          } : Json),
+      )
+    }
+    assert_true(
+      @run_host.client_effect_local_manifest_matches(
+        proposals._retained_local_manifest.unwrap(),
+        prepared,
+        proposals.invocation.unwrap(),
+        [artifact],
+      ),
+    )
+    @local_values.yield_installed_effect_operation_construction_workspace(
+      proposals.construction.unwrap().operation,
+    ).native_file_route_value(
+      "yield proposal workspace before original target reads",
+    )
+    let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap() +
+      "/shared-file-empty-models/mock"
+    let read_file = fn() raise {
+      @files.read_bounded_text_file(
+        root,
+        "data.json",
+        file_limits.page.max_bytes.to_int64(),
+      ).native_file_route_value("read independent target file")
+    }
+    let before = read_file()
+    let selected_reads : Array[String] = []
+    let target_issue : Ref[LocalCommandPreparationIssue?] = Ref(None)
+    // The CLI restores the captured Read between Request phases. Checking
+    // the live Result borrow for a target must reenter that same Request.
+    facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+    assert_true(@strategy.captured_effect_input_at(proposals.inputs, 0) is None)
+    let mut in_request = false
+    state.observe_mock_effect_targets_in_original_request(
+      run,
+      proposals,
+      installations,
+      (connection, resource) => {
+        guard !in_request &&
+          connection == "salesforce" &&
+          (resource == "Account" || resource == "Contact") else {
+          stop("fixture target read escaped the original Request")
+        }
+        if selected_reads.last() != Some(resource) {
+          selected_reads.push(resource)
+        }
+      },
+      task => {
+        if in_request {
+          stop("fixture entered the same Request twice")
+        }
+        facility.arena
+        .enter_domain_retained_execution(facility.physical)
+        .unwrap()
+        in_request = true
+        defer {
+          in_request = false
+          facility.arena
+          .leave_domain_retained_execution(facility.physical)
+          .unwrap()
+        }
+        @local_values.check_installed_effect_managed_run(
+          run,
+          prepared,
+          original.request,
+        ).unwrap()
+        task()
+      },
+      issue => if target_issue.val is None { target_issue.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native targets: " +
+          message +
+          " / " +
+          target_issue.val
+          .map(command_preparation_cleanup_cause)
+          .unwrap_or("no typed cause"),
+        )
+    }
+    assert_false(in_request)
+    facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+    assert_eq(selected_reads, ["Account", "Contact", "Account"])
+    assert_eq(state.targets.length(), 3)
+    assert_eq(read_file(), before)
+    let same_sources = state.direct_sources.unwrap()
+    let (observation, invocation, _) = proposals.publication_context.unwrap()
+    state.build_mock_effect_preview(
+      proposals,
+      installations,
+      "sha256:" + "a".repeat(64),
+      file_limits.page.max_bytes,
+      100,
+      () => (observation, invocation, [], same_sources.observations, None),
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native Preview: " +
+          message +
+          " / " +
+          primary.val
+          .map(issue => {
+            command_preparation_cleanup_cause(
+              CommandBusinessEffectProposals(issue),
+            )
+          })
+          .unwrap_or("no typed cause"),
+        )
+    }
+    let preview = state.preview.unwrap()
+    assert_true(physical_equal(preview._retained_observation, observation))
+    assert_true(physical_equal(preview._retained_invocation, invocation))
+    assert_eq(preview.proofs.length(), 3)
+    guard @json.parse(preview._retained_wire) is Object(fields) &&
+      fields.get("model_derived") == Some(Json::boolean(false)) &&
+      fields.get("effects") is Some(Array(effects)) else {
+      fail("expected original model-free Effect Preview")
+    }
+    assert_eq(effects.length(), 3)
+    for index, selector in ["a1", "c1", "a2"] {
+      guard effects[index] is Object(effect_body) &&
+        effect_body.get("executed") == Some(Json::boolean(false)) &&
+        effect_body.get("changes") is Some(Array(changes)) &&
+        changes.length() == 1 &&
+        changes[0] is Object(change) &&
+        change.get("before") is Some(Object(old)) &&
+        old.get("value") is Some(Object(old_row)) &&
+        change.get("after") is Some(Object(new)) &&
+        new.get("value") is Some(Object(new_row)) else {
+        fail("expected a before/after pair from the original target")
+      }
+      assert_eq(change.get("target_row_identity"), Some(Json::string(selector)))
+      assert_eq(old_row.get("id"), Some(Json::string(selector)))
+      assert_eq(
+        old_row.get("value"),
+        Some(Json::string(["A-old", "C-old", "A2-old"][index])),
+      )
+      assert_eq(
+        new_row.get("value"),
+        Some(Json::string(["A-new", "C-new", "A2-new"][index])),
+      )
+    }
+    state.prepare_direct_mock_effect_dependencies(
+      run,
+      retention_dependencies,
+      "sha256:" + "a".repeat(64),
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+    ) catch {
+      ClientStop(message) =>
+        fail(
+          "direct native dependencies: " +
+          message +
+          " / " +
+          primary.val
+          .map(issue => {
+            match issue {
+              Managed(ForeignOriginal) => "foreign original"
+              Managed(Unsupported) => "unsupported"
+              Managed(AlreadyBound) => "already bound"
+              Managed(Retired) => "retired"
+              Managed(InsufficientCapacity) => "insufficient capacity"
+              Managed(Resource(resource)) => @debug.to_string(resource)
+              Managed(Ledger(ledger)) => @debug.to_string(ledger)
+              Managed(Preparation(preparation)) => @debug.to_string(preparation)
+              _ =>
+                command_preparation_cleanup_cause(
+                  CommandBusinessEffectProposals(issue),
+                )
+            }
+          })
+          .unwrap_or("no typed cause"),
+        )
+    }
+    let inventory = preview._retained_dependency_inventory.unwrap()
+    assert_true(
+      @publication.captured_effect_dependency_sources_match(
+        preview._retained_local_sources,
+        inventory,
+        file_limits.page.max_bytes,
+        file_limits.page.max_nodes,
+        file_limits.page.max_depth,
+      ),
+    )
+    assert_eq(preview._retained_local_sources.length(), 3)
+    let publication_limits = @local_values.installed_effect_managed_publication_limits(
+      run,
+      prepared,
+      original.request,
+      plan,
+      file_limits.page.max_bytes,
+    ).unwrap()
+    let dag = @strategy.captured_effect_run_dag(state.effect_capture.unwrap())
+    let graph = @strategy.captured_dag_graph(dag)
+    let task = @strategy.graph_result_task(graph, 0).unwrap()
+    let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+    // A separate publication pin under the ordinary admission cannot coexist
+    // with these three original member pins. The public view borrows theirs.
+    match
+      @strategy.borrow_captured_any_result_output(
+        dag,
+        task,
+        occurrence,
+        @strategy.graph_result_count(graph) + 1,
+      ) {
+      Err(Physical(@initial_resources.HoldingLimit)) => ()
+      Err(_) => fail("expected the ordinary Result pin allowance to refuse")
+      Ok(extra) => {
+        @strategy.release_captured_any_result_borrow(extra) |> ignore
+        fail("unexpected separate Result pin")
+      }
+    }
+    state.build_mock_effect_computation(
+      publication_limits,
+      file_limits.page.max_bytes,
+      issue => if primary.val is None { primary.val = Some(issue) },
+      managed_run=Some(run),
+    ) catch {
+      ClientStop(message) => {
+        let output = state.computation.bind(held => held.outputs.get(0))
+        let exported = output
+          .map(value => value.row_count() is Ok(_))
+          .unwrap_or(false)
+        let issued = output
+          .map(value => value.derivation() is Ok(_))
+          .unwrap_or(false)
+        fail(
+          "direct native captured Run: " +
+          message +
+          " / rows exported: " +
+          exported.to_string() +
+          " / Result evidence issued: " +
+          issued.to_string() +
+          " / cause: " +
+          primary.val
+          .map(issue => {
+            match issue {
+              CapturedSource(cause) => @debug.to_string(cause)
+              PublicExport(Evidence(cause)) => @debug.to_string(cause)
+              PublicExport(Artifact(cause)) => @debug.to_string(cause)
+              PublicExport(Capture(cause)) => @debug.to_string(cause)
+              PublicExport(Output(Unavailable)) => "export producer unavailable"
+              PublicExport(Output(NotCellRepresentation)) =>
+                "export representation unavailable"
+              PublicExport(Output(InvalidTarget)) => "export target refused"
+              PublicExport(Output(ForeignMaterial)) => "export foreign material"
+              PublicExport(Output(Schema(_))) => "export schema refused"
+              PublicExport(Output(ResultView(_))) =>
+                "export Result view refused"
+              PublicExport(Output(CanonicalRow)) => "canonical export row"
+              PublicExport(Output(NotFinished)) => "export rows incomplete"
+              PublicExport(Output(Closed)) => "export closed"
+              PublicExport(Output(Wire(_))) => "export row wire"
+              PublicExport(Output(Admission(_))) => "export row admission"
+              _ =>
+                command_preparation_cleanup_cause(
+                  CommandBusinessEffectProposals(issue),
+                )
+            }
+          })
+          .unwrap_or("no typed cause"),
+        )
+      }
+    }
+    let computation = state.computation.unwrap()
+    assert_true(computation._retained_captured is Some(_))
+    assert_eq(computation.snapshots.length(), 1)
+    assert_true(
+      physical_equal(
+        @publication.captured_result_snapshot_artifact(computation.snapshots[0]),
+        computation.artifacts[0],
+      ),
+    )
+    let payload = @publication.start_captured_result_snapshot_payload(
+      computation.snapshots[0],
+      4096,
+    ).unwrap()
+    let published = StringBuilder()
+    while payload.next().unwrap() is Some(chunk) {
+      published.write_string(chunk)
+    }
+    assert_eq(@json.parse(published.to_string()), Json::array([expected_row]))
+    assert_eq(read_file(), before)
+    // The installed run owns the direct issuer through consumer retirement.
+    for output in computation.outputs {
+      output.cancel()
+    }
+    assert_true(@execution.completed_relation_export_receipt_live(receipt))
+    for output in computation.managed_outputs {
+      output.close()
+    }
+    state.computation = None
+    for verifier in preview.verifiers {
+      @strategy.cancel_captured_effect_plan_verifier(verifier)
+    }
+    state.preview = None
+    for target in state.targets {
+      assert_true(target.close().unwrap())
+    }
+    state.targets.clear()
+    assert_eq(read_file(), before)
+    assert_true(proposals.close())
+    state.proposals = None
+    state.suffix = None
+  }
+  assert_true(executed.close())
+  assert_true(
+    @local_values.retire_installed_effect_captured_consumers(run).unwrap(),
+  )
+  state.effect_host = None
+  state.effect_capture = None
+  assert_true(state.stop_mock_effect_direct_source_scan())
+  for capture in state.sources {
+    assert_true(capture.close().unwrap())
+  }
+  for read in state.source_reads {
+    @local_values.retire_installed_source_read(read).unwrap()
+  }
+  state.sources.clear()
+  state.sources.shrink_to_fit()
+  state.source_reads.clear()
+  state.source_reads.shrink_to_fit()
+  state.captured_inputs.clear()
+  state.captured_inputs.shrink_to_fit()
+  state.input_originals.clear()
+  state.input_originals.shrink_to_fit()
+  @local_values.quiesce_installed_managed_run(run).unwrap()
+  state
+  .retire_mock_effect_direct_sources()
+  .native_file_route_value("settle original Source evidence backing")
+  // Release the logical holder in the original frame first. Its final ACK
+  // becomes available only after the same native execution closes.
+  match @local_values.retire_installed_managed_run(run) {
+    Err(@local_values.Resource(@initial_resources.Unavailable)) => ()
+    _ => fail("unexpected Model-free retirement before native frame exit")
+  }
+  facility.arena
+  .leave_domain_retained_execution(facility.physical)
+  .native_file_route_value("leave original Effect execution")
+  facility.arena
+  .close_domain_retained_execution(facility.physical)
+  .native_file_route_value("close original native Effect execution")
+  @local_values.retire_installed_managed_run(run).native_file_route_value(
+    "retire original Effect Run after physical ACK",
+  )
+  facility.arena
+  .close_domain_after_owner_ack(facility.domain)
+  .native_file_route_value("close original Effect domain")
+  facility.arena
+  .try_close()
+  .native_file_route_value("close original Effect host")
+}
+
+///|
+test "Native original README static explain retains its same Request compiler without execution" {
+  native_project_mock_model_backed_read(false, static_explain=true)
+}
+
+///|
+test "Native original README static explain refuses an Environment without original lookup metadata" {
+  native_project_mock_model_backed_read(
+    false,
+    static_explain=true,
+    static_lookup_metadata=false,
   )
 }

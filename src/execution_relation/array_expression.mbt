@@ -122,8 +122,17 @@ fn finish_expression_array(
   frame.arrays.pop() |> ignore
   frame.object_context -= 1
   release_slots(frame.workspace, state.children.length() * 2 + 2)
-  let value = Captured(array)
-  if state.root is Some(root) {
+  measure_assembled_array(frame, expression, Captured(array), state.root)
+}
+
+///|
+fn measure_assembled_array(
+  frame : ExpressionFrame,
+  expression : @lower.Expression,
+  value : Value,
+  root : ExpressionRootLease?,
+) -> Result[Unit, EvalIssue] {
+  if root is Some(root) {
     let budget = root.scope.budget
     if !reserve_slots(frame.workspace, 9) {
       return Err({ kind: WorkspaceLimit, expression, })
@@ -141,7 +150,7 @@ fn finish_expression_array(
       Err(issue) =>
         return Err({ kind: LogicalValue(ValueMeasure(issue)), expression, })
     }
-    frame.state = MeasureArray(state, value, cursor)
+    frame.state = MeasureArray(expression, root, value, cursor)
   } else {
     frame.state = Return(value)
   }

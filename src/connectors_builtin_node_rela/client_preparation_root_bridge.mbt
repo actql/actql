@@ -1724,13 +1724,18 @@ pub fn client_program_borrow_request_effect_plan_input(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
+  static_models : Bool,
 ) -> Result[
   @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientEffectComputation,
   ],
   @client_local_host.ClientRequestPreparationIssue,
 ] {
-  @client_local_host.borrow_request_effect_plan_input(parent, input)
+  @client_local_host.borrow_request_effect_plan_input(
+    parent,
+    input,
+    static_models~,
+  )
 }
 
 ///|
@@ -2852,13 +2857,20 @@ pub fn client_program_read_request_checked_static_plan(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
 ) -> Result[String, ClientRequestStaticPlanBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
   }
   @client_local_host.request_prepared_static_plan_view(
-    parent, input, manifests, max_bytes, max_nodes, max_depth,
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    infers~,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -2874,6 +2886,131 @@ pub fn client_program_request_checked_static_plan_issue_code(
       client_program_request_preparation_issue_code(Err(issue))
     _ => None
   }
+}
+
+///|
+pub suberror ClientRequestStaticExplanationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Projection(@client_local_host.ClientRequestStaticContextIssue)
+}
+
+///|
+/// Borrow this loaded compiler's manifests and forward the same prepared
+/// Request and installed Model graphs. Disclosure stays with the Host.
+#export_name("clientProgramReadRequestCheckedStaticEffectExplanation")
+pub fn client_program_read_request_checked_static_effect_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+  infers : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @client_local_host.ClientRequestStaticEffectExplanation,
+  ClientRequestStaticExplanationBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.request_prepared_static_effect_explanation(
+    parent,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers~,
+  ).map_err(issue => Projection(issue))
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationPlanWire")
+pub fn client_program_static_effect_explanation_plan_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.plan
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationFactsWire")
+pub fn client_program_static_effect_explanation_facts_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.facts
+}
+
+///|
+#export_name("clientProgramStaticEffectExplanationContextWire")
+pub fn client_program_static_effect_explanation_context_wire(
+  original : @client_local_host.ClientRequestStaticEffectExplanation,
+) -> String {
+  original.context
+}
+
+///|
+#export_name("clientProgramTryCaptureEffectRunExplanation")
+pub fn client_program_try_capture_effect_run_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  work : Int,
+) -> Result[
+  @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ]?,
+  @client_local_host.ClientRequestStaticContextIssue,
+] {
+  @client_local_host.try_capture_request_effect_run_explanation(
+    parent, input, allowed, definition, bytes, nodes, depth, work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectRunExplanationWires")
+pub fn client_program_effect_run_explanation_wires(
+  original : @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  definition : @publication.PublicationContract,
+) -> Result[Array[String], @client_local_host.ClientRequestStaticContextIssue] {
+  @client_local_host.original_effect_run_explanation_facets(
+    original, definition,
+  ).map(value => {
+    [
+      value.compiled_plan,
+      value.plan,
+      value.facts,
+      value.context,
+      value.invocation_template,
+    ]
+  })
+}
+
+///|
+#export_name("clientProgramDiscardEffectRunExplanation")
+pub fn client_program_discard_effect_run_explanation(
+  original : @client_local_host.ClientRequestEffectRunExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  definition : @publication.PublicationContract,
+  decline : Bool,
+) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue] {
+  @client_local_host.discard_original_effect_run_explanation(
+    original,
+    definition,
+    decline~,
+  )
 }
 
 ///|
@@ -3053,6 +3190,72 @@ pub fn client_program_read_request_explanation(
     parent, input, definition_wire, plan_wire, plan_view_wire, facts_wire, program_cid,
     parameters_cid, namespace_id, authority_scope_cid, definition_cid, stored_bytes,
     max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramBeginRequestExplanationContextRead")
+pub fn client_program_begin_request_explanation_context_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.begin_request_explanation_context_read(parent, input).map_err(issue => {
+      @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramReserveRequestExplanationContextRead")
+pub fn client_program_reserve_request_explanation_context_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  stored_bytes : Int,
+  context_bytes : Int,
+  template_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.reserve_request_explanation_context_read(
+    parent, input, stored_bytes, context_bytes, template_bytes, max_bytes, max_nodes,
+    max_depth,
+  ).map_err(issue => {
+    @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+  })
+}
+
+///|
+#export_name("clientProgramReadRequestExplanationContext")
+pub fn client_program_read_request_explanation_context(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  definition_wire : String,
+  plan_wire : String?,
+  plan_view_wire : String?,
+  facts_wire : String?,
+  context_wire : String?,
+  template_wire : String?,
+  program_cid : String,
+  parameters_cid : String,
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  stored_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.read_request_explanation_context(
+    parent, input, definition_wire, plan_wire, plan_view_wire, facts_wire, context_wire,
+    template_wire, program_cid, parameters_cid, namespace_id, authority_scope_cid,
+    definition_cid, stored_bytes, max_bytes, max_nodes, max_depth,
   )
 }
 

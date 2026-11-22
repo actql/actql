@@ -1,4 +1,5 @@
 interface LayoutReply {children?:{id:string;x:unknown;y:unknown}[]}
+import type {Node, Edge} from '@xyflow/react';
 import type {flowPresentation} from './flow-model.mjs';
 type Flow = ReturnType<typeof flowPresentation>;
 type OriginalNode = Flow['nodes'][number]['data']['original'];
@@ -7,17 +8,22 @@ import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';
 // Presentation dimensions and a Worker deadline, never execution/Host budgets.
 export const flowLayoutDeadlineMs = 5000;
 export const flowNodeWidth = 260;
-export const flowNodeHeight = (ports:number) => 108 + ports * 18;
-const refuse:()=>never = () => { throw new ExplorerReadError('ExplorerInvalidLayout'); };
+export const flowNodeHeight = (ports: number) => 90 + Math.min(ports, 4) * 6;
+export function flowPortOffsets(ports: readonly {role: 'input' | 'output'}[]) {
+  const totals = {input: 0, output: 0}, seen = {input: 0, output: 0};
+  for (const {role} of ports) totals[role]++;
+  return ports.map(({role}) => flowNodeWidth * ++seen[role] / (totals[role] + 1));
+}
+const refuse: () => never = () => { throw new ExplorerReadError('ExplorerInvalidLayout'); };
 
 /** Strip names, source text and all non-layout data before crossing the Worker.
  * Original coordinates already passed flowPresentation; no edge is inferred. */
-export function layoutInput(flow:Flow) {
+export function layoutInput(flow: {nodes: Node[]; edges: Edge[]}) {
   if (!Array.isArray(flow?.nodes) || flow.nodes.length > graphViewLimits.steps ||
       !Array.isArray(flow.edges) || flow.edges.length > graphViewLimits.ports) refuse();
   const ids = new Set<string>(), ports = new Map<string,{node:string;role:string}>();
   let count = 0;
-  const nodes = flow.nodes.map((node:Flow['nodes'][number]) => {
+  const nodes = (flow.nodes as Flow['nodes']).map(node => {
     if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.data?.original?.ports) ||
         (count += node.data.original.ports.length) > graphViewLimits.ports) refuse();
@@ -53,16 +59,21 @@ export function elkGraph(input:ReturnType<typeof layoutInput>) {
     if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.ports) || (count += node.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
-    const declared = node.ports.map((port:ReturnType<typeof layoutInput>['nodes'][number]['ports'][number], index:number) => {
+    const declared = node.ports.map((port:ReturnType<typeof layoutInput>['nodes'][number]['ports'][number]) => {
       if (typeof port.id !== 'string' || port.id.length < 1 || port.id.length > 256 || ports.has(port.id) ||
           !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.id, port.role);
-      return {id: `port:${port.id}`, width: 0, height: 0,
-        x: port.role === 'input' ? 0 : flowNodeWidth, y: 28 + index * 18,
-        layoutOptions: {'elk.port.side': port.role === 'input' ? 'WEST' : 'EAST'}};
+      return port;
+    });
+    const offsets = flowPortOffsets(declared);
+    const positioned = declared.map((port, index) => {
+      const input = port.role === 'input';
+      return {id: `port:${port.id}`, width: 0, height: 0, x: offsets[index],
+        y: input ? 0 : flowNodeHeight(declared.length),
+        layoutOptions: {'elk.port.side': input ? 'NORTH' : 'SOUTH'}};
     });
     return {id: `node:${node.id}`, width: flowNodeWidth, height: flowNodeHeight(node.ports.length),
-      layoutOptions: {'elk.portConstraints': 'FIXED_POS'}, ports: declared};
+      layoutOptions: {'elk.portConstraints': 'FIXED_POS'}, ports: positioned};
   });
   const edgeIds = new Set();
   const edges = input.edges.map((edge:ReturnType<typeof layoutInput>['edges'][number]) => {
@@ -71,8 +82,9 @@ export function elkGraph(input:ReturnType<typeof layoutInput>) {
     edgeIds.add(edge.id);
     return {id: `edge:${edge.id}`, sources: [`port:${edge.source}`], targets: [`port:${edge.target}`]};
   });
-  return {id: 'layout:root', layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'RIGHT',
-    'elk.spacing.nodeNode': '48', 'elk.layered.spacing.nodeNodeBetweenLayers': '80'}, children, edges};
+  return {id: 'layout:root', layoutOptions: {'elk.algorithm': 'layered', 'elk.direction': 'DOWN',
+    'elk.spacing.nodeNode': '26', 'elk.layered.spacing.nodeNodeBetweenLayers': '34',
+    'elk.layered.layering.strategy': 'LONGEST_PATH_SOURCE'}, children, edges};
 }
 
 /** Accept placement only. ELK cannot replace edges, nodes, handles or labels. */

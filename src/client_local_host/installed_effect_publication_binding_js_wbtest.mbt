@@ -820,3 +820,106 @@ test "Effect publication limits refuse copied plan request and retired original"
     is None,
   )
 }
+
+///|
+test "two Effect Unit measurements return writer workspace on the same adopted Plan" {
+  let original = effect_publication_source_original()
+  let run = original.run
+  let plan = original.plan
+  let holder = effect_unit_publication_body(run, plan, plan.request).unwrap()
+  // Occupy the preexisting execution headroom in this component so each
+  // measurement must actually extend and then return writer workspace.
+  let (base_r, base_e) = @resources.preparation_body_borrow_reserved_extents(
+    holder,
+  ).unwrap()
+  let baseline = Int64::max(base_r, base_e)
+  @resources.reserve_preparation_publication_phase(
+    holder, plan, baseline, baseline,
+  ).unwrap()
+  let census = installed_effect_dependency_fixed_capacity(12, 1, 20).unwrap()
+  let empty = @encode.measuring_writer_construction_extent(0, 20).unwrap()
+  let empty_bytes = @execution.preparation_representation_cost({
+    record_headers: empty.record_headers,
+    reference_slots: empty.reference_slots,
+    scalar_words: empty.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(census) -
+    empty_bytes
+  let reservations = @resources.ledger_usage(original.parent.ledger).live_reservations
+  for index, max_nodes in [1024, 4096] {
+    let (before_r, before_e) = @resources.preparation_body_borrow_reserved_extents(
+      holder,
+    ).unwrap()
+    let control = installed_effect_direct_publication_control(12, max_nodes, 20).unwrap()
+    assert_eq(@execution.execution_capacity_retained_bytes(control), retained)
+    let next_r = before_r + retained
+    let active_e = Int64::max(
+      before_e,
+      before_r + @execution.execution_capacity_execution_bytes(control),
+    )
+    let admitted = Ref(None)
+    let geometry = measure_installed_effect_direct_publication(
+      run,
+      plan,
+      plan.request,
+      control,
+      () => {
+        admitted.val = Some(
+          @resources.preparation_body_borrow_reserved_extents(holder),
+        )
+        let writer = @encode.construction_measuring_writer(256, max_nodes, 20) catch {
+          _ => return Err(Run(InsufficientCapacity))
+        }
+        try {
+          @encode.begin_object(writer)
+          @encode.key(writer, "original_unit")
+          @encode.number_value(writer, index.to_double())
+          @encode.end_object(writer)
+          Ok(@encode.finish_construction_measurement(writer))
+        } catch {
+          _ => {
+            @encode.cancel_writer(writer)
+            Err(Run(InsufficientCapacity))
+          }
+        }
+      },
+    ).unwrap()
+    assert_eq(admitted.val, Some(Ok((next_r, active_e))))
+    assert_true(active_e > Int64::max(before_e, next_r))
+    assert_eq(geometry.fields, 1)
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(holder),
+      Ok((next_r, Int64::max(before_e, next_r))),
+    )
+    assert_eq(
+      @resources.ledger_usage(original.parent.ledger).live_reservations,
+      reservations,
+    )
+  }
+  let (r, e) = @resources.preparation_body_borrow_reserved_extents(holder).unwrap()
+  let last = installed_effect_direct_publication_control(12, 4096, 20).unwrap()
+  let issue : Result[Unit, ClientEffectUnitPreparationIssue] = measure_installed_effect_direct_publication(
+    run,
+    plan,
+    plan.request,
+    last,
+    () => Err(Run(InsufficientCapacity)),
+  )
+  assert_true(issue is Err(Run(InsufficientCapacity)))
+  assert_eq(
+    @resources.preparation_body_borrow_reserved_extents(holder),
+    Ok(
+      (
+        r + retained,
+        Int64::max(e, r + @execution.execution_capacity_execution_bytes(last)),
+      ),
+    ),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(
+    @resources.ledger_usage(original.parent.ledger).live_reservations,
+    0,
+  )
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFile, readFile, readdir, writeFile} from 'node:fs/promises';
+import {copyFile, readFile, readdir, realpath, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -8,8 +8,10 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {stageShortQueryFixtures} from './packed-fixture-support.mjs';
+import {inspectInstalledConnectorBins} from './installed-connector-bin.mjs';
 
-type InstalledManifest = {dependencies: Record<string, unknown>; peerDependencies: Record<string, unknown>;
+type InstalledManifest = NonNullable<Parameters<typeof inspectInstalledConnectorBins>[1]> & {
+  dependencies: Record<string, unknown>; peerDependencies: Record<string, unknown>;
   peerDependenciesMeta: Record<string, {optional?: boolean}>};
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -37,10 +39,12 @@ await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n'
 // Ordinary npm installation: optional peers must not be downloaded implicitly.
 console.log(run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit',
   '--no-fund', ...names.map(name => join(root, `actql-${name}-0.0.0-development.tgz`))]));
-assert.deepEqual((await readdir(join(root, 'node_modules'))).filter(name =>
-  name !== '.package-lock.json').sort(), ['@actql']);
-const manifest = JSON.parse(await readFile(join(root,
-  'node_modules/@actql/local-node/package.json'), 'utf8')) as InstalledManifest;
+const modules = await realpath(join(root, 'node_modules'));
+assert.deepEqual((await readdir(modules)).filter(name =>
+  name !== '.package-lock.json').sort(), ['.bin', '@actql']);
+const local = join(modules, '@actql/local-node');
+const manifest = JSON.parse(await readFile(join(local, 'package.json'), 'utf8')) as InstalledManifest;
+assert.equal((await inspectInstalledConnectorBins(modules, manifest)).length, 1);
 assert.equal(manifest.dependencies['@duckdb/node-api'], undefined);
 assert.equal(manifest.peerDependencies['@duckdb/node-api'], '1.5.5-r.4');
 assert.equal(manifest.peerDependenciesMeta['@duckdb/node-api'].optional, true);

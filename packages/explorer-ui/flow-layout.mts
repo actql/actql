@@ -8,13 +8,13 @@ type Positions = ReturnType<typeof layoutPositions>;
 import ELK from 'elkjs/lib/elk-api.js';
 import {ExplorerReadError} from './presentation-limits.mjs';
 import {layoutInput, elkGraph, layoutPositions, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
-export {layoutInput, flowNodeWidth, flowNodeHeight, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
+export {layoutInput, flowNodeWidth, flowNodeHeight, flowPortOffsets, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
 
 const browserWorker = () => new Worker(new URL('./flow-layout-worker.mjs', import.meta.url), {type: 'module'});
 
 /** One disposable Worker per layout. Leaving a scope/Plan or the Flow view
  * aborts this request and terminates its Worker; old replies never publish. */
-export function requestFlowLayout(flow:LayoutInput, {signal, createWorker = browserWorker}:{signal?:AbortSignal;createWorker?:()=>Worker} = {}):Promise<Positions> {
+export function requestFlowLayout(flow:LayoutInput, {signal, createWorker = browserWorker}:{signal?:AbortSignal;createWorker?:()=>Worker} = {}):Promise<Readonly<Positions>> {
   const input = layoutInput(flow);
   if (signal?.aborted) return Promise.reject(new ExplorerReadError('ExplorerLayoutAborted'));
   if (input.nodes.length === 0) return Promise.resolve([]);

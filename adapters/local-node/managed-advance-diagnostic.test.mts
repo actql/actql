@@ -390,6 +390,7 @@ test('original revision-stable observation joins budget DATA only after actual f
       'principal', 'namespace', 'authority', journal, {}, {runDefinitionRunId: () => 'run'},
       async () => undefined, {}, undefined, {
         live: () => mode === 'running',
+        credentialRefusalPending(value: unknown) {assert.strictEqual(value, ref); return false;},
         failureMessage(value: unknown) {assert.strictEqual(value, ref); diagnosticReads++; return mode === 'retired-entry' ? undefined : message;},
       }, new Map(), () => ({...originalState}), () => 'now', () => {}, (code: string) => new Error(code));
     const observed = await observe({ref, principalId: 'principal'});

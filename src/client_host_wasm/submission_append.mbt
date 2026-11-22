@@ -35,6 +35,7 @@ fn submission_append_current(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+  decoding_original? : @resources.CapacityReservation? = None,
 ) -> Result[Unit, Int] {
   if value.closing || value.runtime_closing {
     return Err(-5)
@@ -51,7 +52,16 @@ fn submission_append_current(
   }
   if @authorization.evaluate_account(configuration.account, configuration.tuple)
     is @authorization.Allow(_) {
-    Ok(())
+    match (record.append_plan, decoding_original) {
+      (Decoding(_, _) | DecodedRows(_, _, _), Some(capacity)) =>
+        if submission_decode_prefix_current(value, record, capacity) {
+          Ok(())
+        } else {
+          Err(-9)
+        }
+      (Decoding(_, _) | DecodedRows(_, _, _), None) | (_, Some(_)) => Err(-9)
+      _ => Ok(())
+    }
   } else {
     Err(-32)
   }
@@ -217,6 +227,35 @@ fn observe_submission_append(
     Ok(_) => ()
     Err(code) => return Err(code)
   }
+  let decoding_original = match open_submission_decode_prefix(value, record) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  let result = observe_submission_append_body(
+    value,
+    record,
+    configuration,
+    decoding_original,
+    original_run~,
+  )
+  // The full inventory body has consumed every callback record. A target
+  // Retained result returns before its submitted scan can grow a row prefix.
+  finish_submission_decode_observation(value, record, result)
+}
+
+///|
+fn observe_submission_append_body(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+  decoding_original : @resources.CapacityReservation,
+  original_run? : Int? = None,
+) -> Result[@host.ClientSubmittedJournalAppendPlan, Int] {
+  // The wrapper performed the original Account/current check before opening
+  // this exact private purpose. Do not repeat an independently authorized IO.
+  if !submission_decode_prefix_current(value, record, decoding_original) {
+    return Err(-9)
+  }
   let borrow = match record.borrow {
     Ok(value) => value
     Err(issue) => return Err(issue_code(issue))
@@ -247,7 +286,14 @@ fn observe_submission_append(
     Ok(value) => value
     Err(_) => return Err(-31)
   }
-  let check = () => submission_append_current(value, record, configuration)
+  let check = () => {
+    submission_append_current(
+      value,
+      record,
+      configuration,
+      decoding_original=Some(decoding_original),
+    )
+  }
   let scan = (table, cursor) => {
     physical_journal_row(current.physical, check, 0, table, cursor)
   }
@@ -303,25 +349,12 @@ fn observe_submission_append(
       scan,
       read,
       row => {
-        let original = match
-          @host.decode_client_submitted_journal_row(row.body) {
-          Ok(value) => value
-          Err(_) => return Err(-31)
-        }
-        let observed = @host.read_client_saved_submission_with_task_original(
-          original.reference,
-          read,
-          inspect_run,
-          -31,
-          task_original,
+        let observed = read_scanned_submission_for_projection(
+          value, record, decoding_original, row, read, inspect_run, task_original,
         )
         match observed {
-          Ok(Some(snapshot)) if @host.client_saved_submission_row(snapshot).body ==
-            row.body &&
-            @host.client_saved_submission_row(snapshot).revision == row.revision =>
-            Ok(@host.client_saved_submission_record(snapshot))
+          Ok(snapshot) => Ok(@host.client_saved_submission_record(snapshot))
           Err(code) => Err(code)
-          _ => Err(-31)
         }
       },
       inspect_run,
@@ -411,7 +444,7 @@ fn produce_submission_append(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
   )
   if result == 0 {
-    record.append_plan = Some(plan)
+    record.append_plan = Ready(plan)
     record.produced = true
   }
   result
@@ -445,14 +478,19 @@ pub fn validate_submission_append(
     return validate_submission_preparation_failure(value, record, configuration)
   }
   if selected(nonce).bind(value => value.submissions.get(handle))
-    is Some({ kind: 4 | 5 | 6 | 7 | 8 | 11, .. }) {
+    is Some({ kind, .. }) &&
+    (
+      (kind >= 4 && kind <= 8) ||
+      kind == 11 ||
+      kind == INCREMENTAL_SAVED_RESULT_KIND
+    ) {
     return validate_submission_lookup(nonce, handle, current)
   }
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
     record.kind == 3 &&
     record.produced &&
-    record.append_plan is Some(_) &&
+    record.append_plan is Ready(_) &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) else {
     return -2
@@ -462,14 +500,14 @@ pub fn validate_submission_append(
     Err(code) => return code
   }
   match (record.append_plan, observed) {
-    (Some(@host.Append(original)), @host.Append(actual)) =>
+    (Ready(@host.Append(original)), @host.Append(actual)) =>
       if @host.client_submitted_journal_append_rows(original) ==
         @host.client_submitted_journal_append_rows(actual) {
         0
       } else {
         -32
       }
-    (Some(@host.Retained(original)), @host.Retained(actual)) => {
+    (Ready(@host.Retained(original)), @host.Retained(actual)) => {
       let before = @host.client_saved_submission_row(original)
       let after = @host.client_saved_submission_row(actual)
       if before.key == after.key &&

@@ -83,6 +83,7 @@ fn flatten(
       "field"
       | "$param"
       | "literal"
+      | "date_literal"
       | "typed_literal"
       | "template"
       | "#null"
@@ -131,10 +132,11 @@ fn flatten(
           _ => ["value"]
         }
         for name in names {
-          if tag == "substring" && name == "length" {
+          if (tag == "substring" && name == "length") ||
+            (tag == "regex_extract" && name == "capture") {
             let obj = decoded(@decode.open_object(body), body)
-            if @decode.lookup(obj, name) is Some(length) {
-              children.push((length, Form))
+            if @decode.lookup(obj, name) is Some(optional) {
+              children.push((optional, Form))
             }
           } else {
             children.push((part(body, name), Form))
@@ -142,13 +144,16 @@ fn flatten(
         }
       }
       "case" => {
+        let obj = decoded(@decode.open_object(body), body)
+        if @decode.lookup(obj, "operand") is Some(operand) {
+          children.push((operand, Form))
+        }
         let clauses = decoded(@decode.elements(part(body, "when")), body)
         spend(budget, body, amount=clauses.length())
         for clause in clauses {
           children.push((part(clause, "when"), Form))
           children.push((part(clause, "then"), Form))
         }
-        let obj = decoded(@decode.open_object(body), body)
         match @decode.lookup(obj, "else") {
           Some(otherwise) => children.push((otherwise, Form))
           None => children.push((body, MissingElse))
@@ -185,7 +190,10 @@ fn flatten(
       | "is_false"
       | "is_unknown"
       | "len"
+      | "array_length"
+      | "unix_seconds"
       | "byte_length"
+      | "farm_fingerprint"
       | "unicode"
       | "chr"
       | "reverse"

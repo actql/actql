@@ -6,7 +6,7 @@ import {parse} from 'yaml';
 import {focusedPattern, focusedFixtureObjects, stableFocusedFiles, focusedPlan,
   eligibleFocusedChanges, checkFocusedSource, readFocusedTests, validateFocusedTests,
   runFocusedPlan} from './ci-focused-tests.mjs';
-import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs, gateJobRequired} from './ci-targets.mjs';
+import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs, gateJobRequired, pythonWheelMatrix} from './ci-targets.mjs';
 import {testExecutionResult} from './test-execution.mjs';
 import {fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
@@ -76,8 +76,11 @@ function selection(changes = [change()], options = {}) {
   const paths = changes.map(entry => entry.path), {git} = gitFixture({changes});
   return selectTargets(paths, {focusedChanges: changes, focusedTests: readFocusedTests(paths, changes, git), ...options});
 }
-const results = value => Object.fromEntries(gateJobs.map(name =>
-  [name, {result: gateJobRequired(value, name) ? 'success' : 'skipped'}]));
+const results = value => Object.fromEntries(gateJobs.map(name => [name, {
+  result: gateJobRequired(value, name) ? 'success' : 'skipped',
+  ...(name === 'python-wheels' ? {outputs: Object.fromEntries(
+    pythonWheelMatrix(value).include.map(({platform}) => [platform, head]))} : {}),
+}]));
 
 test('known maintenance and focused changes select their required job union', () => {
   const entries = [change(), change('docs/development.md')];

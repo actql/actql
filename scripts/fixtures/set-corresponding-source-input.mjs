@@ -257,6 +257,13 @@ const parenthesized = (name, text, extra = {}) => positional('parenthesized-' + 
   text, {format: 'aql-text', columns: aggregateColumns, expected: windowRows, ...extra});
 const parenthesizedInput = 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) ';
 setCorrespondingSuccesses.push(
+  {name: 'set-corresponding-positional-parenthesized-authored-cte', format: 'aql-text',
+    text: 'WITH r AS (SELECT 1 AS x), hidden AS '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) '
+      + 'SELECT 0 AS a UNION ALL (SELECT * FROM hidden)',
+    sourceRows: [], sourceReadSessionCount: 0,
+    results: {main: {rows: [{a: 0}, {a: 1}], columns: [{name: 'a', contract: number}],
+      unordered: true}}},
   parenthesized('scoped-windows', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
     + '(FROM r |> AS original |> SET x = x + 10 |> SELECT '
     + 'ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x DESC)) '
@@ -288,11 +295,6 @@ setCorrespondingRefusals.push(
   {name: 'set-corresponding-refuse-parenthesized-by-name', format: 'aql-text',
     text: 'WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME '
       + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)',
-    expectedCode: 'ClientProgramImplementationLimit'},
-  {name: 'set-corresponding-refuse-parenthesized-authored-cte', format: 'aql-text',
-    text: 'WITH r AS (SELECT 1 AS x), hidden AS '
-      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) '
-      + 'SELECT 0 AS a UNION ALL (SELECT * FROM hidden)',
     expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'set-corresponding-refuse-parenthesized-private-qualify', format: 'aql-text',
     text: 'WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL '

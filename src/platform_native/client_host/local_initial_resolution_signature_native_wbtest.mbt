@@ -211,3 +211,195 @@ test "lost signature commit return retains original signature and outcome on sam
   assert_true(physical.sign_once() is Err(@crypto.Signing(_)))
   reopened.close().unwrap()
 }
+
+///|
+// Real SQLite/signature ports. The same operation bundle below is explicit
+// diagnostic input, not a captured Account or public approval qualification.
+test "Initial signature storage and original read retain the same routed Run decoder and writes" {
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
+    "initial-signature-routed",
+  )
+  let host = key.original.host
+  let calls : Array[String] = []
+  let decoded = Ref(0)
+  let access = journal_test_operation_access(host.database, calls)
+  let access = {
+    ..access,
+    reads: {
+      ..access.reads,
+      before_run_decode: Some(_ => {
+        decoded.val += 1
+        Ok(())
+      }),
+    },
+  }
+  host.journal
+  .transaction_with_reads(
+    () => {
+      store_local_initial_resolution_signature_locked(
+        host,
+        original,
+        signing_use,
+        signature,
+        operations=Some(access),
+      )
+    },
+    reads=Some(access.reads),
+  )
+  .unwrap()
+  assert_true(decoded.val > 0)
+  assert_true(
+    calls.contains(
+      "insert:client_local_signing_result_originals:" + original.operation_cid,
+    ),
+  )
+  assert_true(
+    calls.contains(
+      "read:client_local_signing_result_originals:" + original.operation_cid,
+    ),
+  )
+  assert_true(calls.contains("capacity:client_local_grant_originals"))
+  assert_eq(
+    host.journal
+    .transaction_with_reads(
+      () => {
+        local_initial_resolution_signature_locked(
+          host,
+          original,
+          signing_use,
+          reads=Some(access.reads),
+        )
+      },
+      reads=Some(access.reads),
+    )
+    .unwrap(),
+    signature,
+  )
+  assert_true(physical.sign_once() is Err(@crypto.Signing(_)))
+  let crypto = host.epoch.crypto
+  physical.close_checked().unwrap()
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "Initial routed signature lost commit retains Unknown and cannot enter another signer" {
+  let (key, original, signing_use, physical, signature) = initial_resolution_physical_fixture(
+    "initial-signature-routed-unknown",
+  )
+  let host = key.original.host
+  let calls : Array[String] = []
+  let access = journal_test_operation_access(host.database, calls)
+  client_test_fail_commit_reply(host.database, 1)
+  let result = host.journal.transaction_with_reads(
+    () => {
+      store_local_initial_resolution_signature_locked(
+        host,
+        original,
+        signing_use,
+        signature,
+        operations=Some(access),
+      )
+    },
+    reads=Some(access.reads),
+  )
+  assert_true(result is Err(TransactionUnknown))
+  assert_true(host.journal.fenced)
+  assert_true(
+    calls.contains(
+      "insert:client_local_signing_result_originals:" + original.operation_cid,
+    ),
+  )
+  assert_true(
+    host.journal.transaction_with_reads(
+      () => {
+        local_initial_resolution_signature_locked(
+          host,
+          original,
+          signing_use,
+          reads=Some(access.reads),
+        )
+      },
+      reads=Some(access.reads),
+    )
+    is Err(Fenced),
+  )
+  assert_true(physical.sign_once() is Err(@crypto.Signing(_)))
+  let crypto = host.epoch.crypto
+  physical.close_checked().unwrap()
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+// Closed DATA at the actual return helpers, not a fabricated Host/capture.
+test "Initial signing routed return preserves original primary and refuses a failed Read after inner success" {
+  assert_true(
+    finish_initial_resolution_signing_read(
+      Some(Err(OriginalSigningJournal(ChangedIntent))),
+      Err(CustodyLost),
+    )
+    is Err(OriginalSigningJournal(ChangedIntent)),
+  )
+  assert_true(
+    finish_initial_resolution_signing_read(
+      Some(Ok("original wire")),
+      Err(OriginalResourceScopePending),
+    )
+    is Err(OriginalSigningOriginal(OriginalResourceScopePending)),
+  )
+  assert_eq(
+    finish_initial_resolution_signing_read(Some(Ok("original wire")), Ok(())).unwrap(),
+    "original wire",
+  )
+  let host_primary : Result[String, NativeLocalInitialHostAttestationIssue]? = Some(
+    Err(HostAttestationJournal(ChangedIntent)),
+  )
+  assert_true(
+    finish_initial_host_signing_read(host_primary, Err(CustodyLost))
+    is Err(HostAttestationJournal(ChangedIntent)),
+  )
+  assert_true(
+    finish_initial_host_signing_read(
+      Some(Ok("original wire")),
+      Err(OriginalResourceScopePending),
+    )
+    is Err(HostAttestationOriginal(OriginalResourceScopePending)),
+  )
+}
+
+///|
+test "Initial signing routed return retains combined Read failure and original commit Unknown" {
+  let combined : NativeLocalAdoptionIssue = InstallationReadTransactionFailure(
+    OriginalResourceScopePending,
+    TransactionUnknown,
+  )
+  assert_true(
+    finish_initial_resolution_signing_read(
+      Some(Err(OriginalSigningJournal(TransactionUnknown))),
+      Err(combined),
+    )
+    is Err(
+      OriginalSigningOriginal(
+        InstallationReadTransactionFailure(
+          OriginalResourceScopePending,
+          TransactionUnknown
+        )
+      )
+    ),
+  )
+  let host_unknown : Result[String, NativeLocalInitialHostAttestationIssue]? = Some(
+    Err(HostAttestationJournal(TransactionUnknown)),
+  )
+  assert_true(
+    finish_initial_host_signing_read(host_unknown, Err(combined))
+    is Err(
+      HostAttestationOriginal(
+        InstallationReadTransactionFailure(
+          OriginalResourceScopePending,
+          TransactionUnknown
+        )
+      )
+    ),
+  )
+}

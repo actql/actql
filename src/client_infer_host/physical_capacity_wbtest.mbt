@@ -1,4 +1,25 @@
 ///|
+test "standard Model attempt transfer projection fits exactly and rejects one short" {
+  let limits = standard_limits().model
+  let required = limits.max_request_bytes + limits.max_response_bytes
+  let projected = standard_model_attempt_transfer_bytes()
+  assert_eq(projected, 131072L)
+  let exact = @resources.create_ledger({
+    ..limits.ledger,
+    transfer_bytes: projected,
+  }).unwrap()
+  assert_true(@resources.reserve_attempt(exact, required, 0L, 0L) is Ok(_))
+  let short = @resources.create_ledger({
+    ..limits.ledger,
+    transfer_bytes: projected - 1L,
+  }).unwrap()
+  assert_true(
+    @resources.reserve_attempt(short, required, 0L, 0L)
+    is Err(@resources.TransferLimit),
+  )
+}
+
+///|
 fn fixture_quantity_capacity(
   tokens : Int64,
   duration : Int64,

@@ -1699,6 +1699,13 @@ wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
 a transfer bound and is not a claim about whole Python/SQLite memory or normal
 latency.
 
+The SDK delivery encoder consumes filled physical byte fragments through the
+original input loan. Fragment boundaries may split a UTF-8 scalar or a row.
+Only the delivery entrance can use the filled-byte view. It leaves the original
+structured input seal, source and wire access checks in place. Common retains
+framing and EOF/digest validation, and the original sink acceptance and stop
+paths still govern advancing and retiring the physical reader.
+
 ### Original finite-policy metadata
 
 The existing admitted finite-policy Owner retains its checked request and
@@ -3790,6 +3797,36 @@ current observation. This adds no cache, permission or lifetime token. Later
 payload acquisition, physical reads, callbacks and delivery keep their existing
 current checks and original failure/cleanup ownership.
 
+The matched installed Local Host and Core use private submission kind 13 for
+Saved Result preparation. The existing ABI signatures and synchronous kind 6
+remain valid. Kind 13 returns `1` from `submission.produce` while the original
+preparation is pending and `0` only after the result wire has been supplied.
+An unavailable or refused turn never supplies a partial wire. The normal wheel
+cohort binds the Host and module that implement this selector together.
+
+The same saved projection keeps the original commit owner, view, and captured
+rows. Each continuation opens a fresh current reader, checks the exact selected
+snapshot and consumed publication rows against their original key, revision and
+bytes, and runs the full cancellation inventory before advancing the existing
+owner. The actual schema selected at admission is retained with that same
+preparation in the observed-phase scalar. A later unsupported schema gives the
+physical refusal. A different supported schema refuses continuation before
+querying the retained rows. The preparation and observed-commit phases retain
+the existing limit of 250000 advances of 256 work units each. The scalar
+remaining count occupies the existing readiness slot. Failure leaves the same
+preparation for close.
+
+The Host releases the Core lock, current reader and SQLite transaction before
+yielding. Each physical hash turn rechecks the original saved payload row,
+reservation and file and hashes at most one existing bounded chunk. Both Saved
+preparation paths charge their six-field selection tuple of original references
+to the same output reservation before the first read. The Host returns the
+chunk and current reader before yielding. Full digest and EOF verification
+precede Result evidence and delivery.
+One original Host operation owns the entire preparation allowance. Reader
+cancellation unwinds that operation and closes its existing read loans without
+cancelling a Run. Incomplete close retains the same carrier for later cleanup.
+
 A repeated submit first observes the authenticated original submission under
 the same current Store snapshot. A ready record with the same intent returns
 its existing admission without preparation, dispatch or a new executable Run.
@@ -4325,7 +4362,20 @@ Native raw allocation/layout bounds remain target-specific. Extra outer-decoder
 retention capacity is optional: unavailable capacity takes the original complete
 outer decoder path, without raising a cap, granting an allowance or trusting a
 record count. This does not fund the nested evidence constructors described below.
-No Array/Map backing is inferred from the journal's maximum record count.
+The active frame prepays its fixed key index under that same controller token.
+The index has 2048 slots and admits at most 1024 row aliases. The quote covers
+the array, tagged references, replacement overlap and the bounded probe
+result, including the new frame fields. No backing is inferred from the
+journal's maximum record count. The index borrows existing keys and cells;
+the separate linked list still owns every original token until settlement.
+A key selects a candidate, and exact revision and full body comparisons
+still precede reuse and the typed validator. A replaced same-key candidate,
+full index or exhausted 32-probe search checks the original list so an
+already funded exact row remains usable. Without an exact row the original
+complete decoder runs. Missing optional frame capacity takes the existing
+unoptimized path. No physical read or
+current decision is taken from the index. Close drops the index aliases
+under the original reservation before touching the linked cleanup list.
 
 All unrelated frame cells and temporary construction capacity retire on exit.
 The selected tuple may back the returned saved observation, so its original
@@ -4465,6 +4515,19 @@ same full validator; they do not replace or renew the captured value. Complete
 inventories, cancellation inspection, resource constructors and subsequent
 relation checks still execute. An exact match is never cached inventory,
 authorization, currentness or physical cleanup acknowledgement.
+
+Saved Result reobservation also uses the wire and CID already held by the
+original Saved snapshot. It starts with fresh exact Submission and Run rows
+and performs the four material probes in the current reader. Strict UTF-8
+decoding and exact wire equality establish byte correspondence. A nonfinal
+chunk is canonical only if the next complete scalar cannot fit in its remaining
+byte allowance. The reader checks this at each boundary without keeping an
+extra original chunk array or copying chunk bodies. An exact match reuses the
+checked wire and skips a second whole-material encode and hash. Changed bytes
+or a noncanonical split still go through the full validator on the fresh rows.
+Physical read errors keep their original order and outcome. The Saved snapshot
+layout, chunk descriptor bound, inventory, current checks and close stay the
+same.
 
 The checked chunk array stays private to the Common reader/inventory call.
 The submitted-intent append decision also forwards that same optional original
@@ -4638,3 +4701,45 @@ must still match. An action name, disappearance of pending state, error type or
 denied readback, independent exit errors and different cleanup causes retain
 their refusal. The Future, exceptions and actual child/parent cleanup loans are
 not cleared or acknowledged by delivering this observation.
+
+
+#### Same-call scanned submission decoding
+
+The fresh append inventory may carry its own canonical submitted-row decode
+through the required fresh point read. Reuse requires the exact physical key,
+revision and complete original body bytes. Canonical-equivalent replacement
+bytes, a matching reference, or a previous transaction cannot supply that
+original. A miss takes the existing full decoder before the final mismatch
+refusal; malformed scanned bytes still refuse before physical I/O. Ordinary
+Saved/cold readers and all Run, task, current, cancellation and complete
+inventory checks retain their existing validators and ordering.
+
+The original submission projection owns this synchronous construction prefix.
+Its existing optional plan slot becomes Idle/Ready or a temporary token plus
+its prior plan, without a new normal holder or historical cache. Before creating
+that control it reserves 416 retention/execution bytes on the same Root: the
+40-byte control, 56-byte geometry, six 32-byte checked scalar Some carriers,
+and 128 bytes for the token Result, two private Some(token) carriers and four
+additional callback references. Before canonical row construction it grows that
+same token to the complete bounded prefix. Every production caller already
+point-selects its original projection; no extra projection enumeration is added. The fixed legacy row limit remains 262144 bytes; no construction
+observer selects the wider observed profile. The submitted-row representation
+uses the existing Native geometry: 32 headers, 64 references, 32 scalar words,
+three UTF-16 units per maximum input byte plus 71 fixed units, and the input
+wire extent. Its existing representation cost is 1836430 bytes. Three carriers
+cover the prior loop result, current decode and a differing point-read fallback;
+88 bytes cover old/new temporary control overlap, including the admitted
+amount stored in the grown control. The quote and 128 call-carrier bytes remain
+conservatively covered there. The resulting 5509754-byte prefix is admitted for both retention and execution before construction.
+Later current/prepare checks use that same admitted scalar without reconstructing
+geometry or a quote. Raw
+transfer capacity, retired Run capacity and the VM maximum supply no credit.
+
+The prefix remains owned after the validation callback returns, through the
+whole inventory's final consumption of the returned record. Only then may the
+same projection settle it and restore its prior plan. A failed settlement
+retains the same token and plan, rejects normal produce/observe paths, and
+preserves the initiating error. Projection or pool cleanup must settle that
+same debt before clearing its named owner; a failure refuses cleanup without
+discarding it. This synchronous purpose settlement is not physical I/O cleanup
+acknowledgment. No decoded historical row is retained to create future hits.

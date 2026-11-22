@@ -14,6 +14,8 @@ type ResultWorkspace = NonNullable<Parameters<typeof installResultAccessService>
 type ResultRequest = Parameters<ResultWorkspace['begin']>[0];
 type ExplanationRequest = Parameters<Parameters<typeof installClientRunExplanation>[0]['authorize']>[0];
 type Request = ResultRequest | ExplanationRequest;
+type ExplanationKind = 'run-explanation' | 'run-explanation-context';
+type ExplanationExtent = Readonly<{storedBytes: number; contextBytes: number; invocationTemplateBytes: number}>;
 type Control = Parameters<ResultWorkspace['begin']>[1];
 type RowAdmission = Awaited<ReturnType<ResultWorkspace['row']>>;
 type RowResult<Value extends number | string> = Value extends number ? RowAdmission : Promise<RowAdmission>;
@@ -45,6 +47,16 @@ type Runtime = Readonly<{
     program: string, parameters: string, namespaceId: string, authorityScopeCid: string, runDefinitionCid: string,
     storedBytes: number, maxWireBytes: number, maxNodes: number, maxDepth: number
   ]>;
+  clientProgramBeginRequestExplanationContextRead: ReadBinding;
+  clientProgramReserveRequestExplanationContextRead:
+    ReadBinding<[storedBytes: number, contextBytes: number, invocationTemplateBytes: number,
+      maxWireBytes: number, maxNodes: number, maxDepth: number]>;
+  clientProgramReadRequestExplanationContext: ReadBinding<[
+    definition: string, compiledPlan: string | undefined, planView: string | undefined, facts: string | undefined,
+    context: string | undefined, template: string | undefined, program: string, parameters: string,
+    namespaceId: string, authorityScopeCid: string, runDefinitionCid: string,
+    storedBytes: number, maxWireBytes: number, maxNodes: number, maxDepth: number
+  ]>;
   clientProgramRequestExplanationReadIssueCode(issue: unknown): string;
 }>;
 type Configuration = Readonly<{
@@ -54,7 +66,7 @@ type Configuration = Readonly<{
 }>;
 type ExplanationOperation = Readonly<{
   principalId: string;
-  purpose: 'run-explanation';
+  purpose: ExplanationKind;
   indexKey: ExplanationRequest['ref'];
 }>;
 type Entry = {
@@ -81,6 +93,8 @@ type Entry = {
     rendered?: boolean;
   };
 };
+
+const nonnegativeInt32 = (value: number) => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
 
 function checkedExplanation(
   result: unknown, runtime: Runtime, explanationIssueCode: Runtime['clientProgramRequestExplanationReadIssueCode'],
@@ -113,6 +127,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   const beginExplanation = runtime.clientProgramBeginRequestExplanationRead;
   const reserveExplanation = runtime.clientProgramReserveRequestExplanationRead;
   const renderExplanation = runtime.clientProgramReadRequestExplanation;
+  const beginExplanationContext = runtime.clientProgramBeginRequestExplanationContextRead;
+  const reserveExplanationContext = runtime.clientProgramReserveRequestExplanationContextRead;
+  const renderExplanationContext = runtime.clientProgramReadRequestExplanationContext;
   const explanationIssueCode = runtime.clientProgramRequestExplanationReadIssueCode;
   if (typeof assertCurrent !== 'function') {
     throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
@@ -159,8 +176,8 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     return error;
   }
   function beginEntry(request: ResultRequest, control: Control, explanation: false): undefined;
-  function beginEntry(request: ExplanationRequest, control: undefined, explanation: true): ExplanationOperation;
-  function beginEntry(request: Request, control: Control | undefined, explanation: boolean) {
+  function beginEntry(request: ExplanationRequest, control: undefined, explanation: ExplanationKind): ExplanationOperation;
+  function beginEntry(request: Request, control: Control | undefined, explanation: false | ExplanationKind) {
     if (closing || reads.has(request)) unavailable();
     assertCurrent();
     const retained = control === undefined ? undefined : Object.getOwnPropertyDescriptor(control, 'retainResultReadMetadata')?.value;
@@ -170,11 +187,12 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     try {
       openRequestPreparation(entry.state, request, assertCurrent, () => pending(entry));
       if (explanation) {
-        checkedExplanation(Reflect.apply(beginExplanation, runtime, [entry.state.parent, request]), runtime, explanationIssueCode);
+        const begin = explanation === 'run-explanation-context' ? beginExplanationContext : beginExplanation;
+        checkedExplanation(Reflect.apply(begin, runtime, [entry.state.parent, request]), runtime, explanationIssueCode);
         // Only after the structural entry reservation: one public read owns
         // this memo across its before/after Account checks, never another read.
         const operation = Object.freeze({principalId: request.principalId,
-          purpose: 'run-explanation' as const, indexKey: Object.freeze({...(request as ExplanationRequest).ref})});
+          purpose: explanation, indexKey: Object.freeze({...(request as ExplanationRequest).ref})});
         // The ingress already owns the immutable connection. Capture only
         // this bounded read's scalars/ref here, after its fixed entry admits
         // the snapshot. No second serialization of connection/Source input.
@@ -206,7 +224,15 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
         throw Object.assign(new Error('RunExplanationReadCapacityUnavailable'),
           {code: 'RunExplanationReadCapacityUnavailable'});
       }
-      return beginEntry(request, undefined, true);
+      return beginEntry(request, undefined, 'run-explanation');
+    },
+    beginExplanationContext(request: ExplanationRequest) {
+      if (typeof beginExplanationContext !== 'function' || typeof reserveExplanationContext !== 'function' ||
+          typeof renderExplanationContext !== 'function' || typeof explanationIssueCode !== 'function') {
+        throw Object.assign(new Error('RunExplanationReadCapacityUnavailable'),
+          {code: 'RunExplanationReadCapacityUnavailable'});
+      }
+      return beginEntry(request, undefined, 'run-explanation-context');
     },
     explanationRequest(request: ExplanationRequest) {
       const entry = original(request);
@@ -214,14 +240,22 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       assertCurrent();
       return entry.explanation.selected;
     },
-    prepareExplanation(request: ExplanationRequest, storedBytes: number): undefined {
+    prepareExplanation(request: ExplanationRequest, extent: number | ExplanationExtent): undefined {
       const entry = original(request);
+      const companion = entry.explanation?.operation.purpose === 'run-explanation-context';
+      const storedBytes = companion ? (extent as ExplanationExtent)?.storedBytes : extent as number;
+      if (companion && (!nonnegativeInt32((extent as ExplanationExtent)?.contextBytes) ||
+          !nonnegativeInt32((extent as ExplanationExtent)?.invocationTemplateBytes))) unavailable();
       if (!entry.active || entry.explanation === undefined || entry.explanation.prepared ||
           !Number.isSafeInteger(storedBytes) || storedBytes < 1 || storedBytes > 2147483647) unavailable();
       assertCurrent();
       const selected = entry.explanation.selected;
-      checkedExplanation(Reflect.apply(reserveExplanation, runtime, [entry.state.parent, request, storedBytes,
-        selected.maxWireBytes, selected.maxNodes, selected.maxDepth]), runtime, explanationIssueCode);
+      const result = companion
+        ? Reflect.apply(reserveExplanationContext, runtime, [entry.state.parent, request, storedBytes,
+            (extent as ExplanationExtent).contextBytes, (extent as ExplanationExtent).invocationTemplateBytes, selected.maxWireBytes, selected.maxNodes, selected.maxDepth])
+        : Reflect.apply(reserveExplanation, runtime, [entry.state.parent, request, storedBytes,
+            selected.maxWireBytes, selected.maxNodes, selected.maxDepth]);
+      checkedExplanation(result, runtime, explanationIssueCode);
       entry.explanation.prepared = true;
       entry.explanation.storedBytes = storedBytes;
     },
@@ -245,9 +279,14 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       if (typeof definition !== 'string' || typeof program !== 'string' || typeof parameters !== 'string' ||
           evidence !== undefined && typeof evidence !== 'string' || facts !== undefined && typeof facts !== 'string') throw rejected();
       entry.explanation.rendered = true;
-      const selected = entry.explanation.selected;
+      const {selected, operation} = entry.explanation;
+      const companion = operation.purpose === 'run-explanation-context';
+      const contextWire = companion ? own('contextWire') : undefined;
+      const templateWire = companion ? own('invocationTemplateWire') : undefined;
+      if (contextWire !== undefined && typeof contextWire !== 'string' ||
+          templateWire !== undefined && typeof templateWire !== 'string') throw rejected();
       let plan;
-      if (facts !== undefined) {
+      if (facts !== undefined && (!companion || contextWire !== undefined)) {
         try {plan = JSON.parse(evidence!)?.logicalPlanOriginal;}
         catch (cause) {throw Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
           {code: 'RunExplanationEncodingRejected'});}
@@ -255,11 +294,15 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
             Object.keys(plan).length !== 2 || typeof plan.compiledPlanWire !== 'string' ||
             typeof plan.planViewWire !== 'string') throw rejected();
       }
-      const result = Reflect.apply(renderExplanation, runtime, [entry.state.parent, request,
-        definition, plan?.compiledPlanWire, plan?.planViewWire, facts,
-        program, parameters, selected.ref.namespaceId,
-        selected.ref.authorityScopeCid, selected.ref.runDefinitionCid,
-        entry.explanation.storedBytes!, selected.maxWireBytes, selected.maxNodes, selected.maxDepth]);
+      const result = companion
+        ? Reflect.apply(renderExplanationContext, runtime, [entry.state.parent, request,
+            definition, plan?.compiledPlanWire, plan?.planViewWire, facts, contextWire, templateWire,
+            program, parameters, selected.ref.namespaceId, selected.ref.authorityScopeCid, selected.ref.runDefinitionCid,
+            entry.explanation.storedBytes, selected.maxWireBytes, selected.maxNodes, selected.maxDepth])
+        : Reflect.apply(renderExplanation, runtime, [entry.state.parent, request,
+            definition, plan?.compiledPlanWire, plan?.planViewWire, facts,
+            program, parameters, selected.ref.namespaceId, selected.ref.authorityScopeCid, selected.ref.runDefinitionCid,
+            entry.explanation.storedBytes, selected.maxWireBytes, selected.maxNodes, selected.maxDepth]);
       return checkedExplanation(result, runtime, explanationIssueCode) as string;
     },
     metadata(request: ResultRequest, bytes: number): undefined {

@@ -14,7 +14,7 @@ pub fn append(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> Strin
 
 pub fn append_with_macros(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, (Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> MacroValue?, @program_source_builder.Builder, Int, resolve_properties? : Bool, resolve_parameter? : ((String) -> Result[String, Issue])?, resolve_row? : ((Array[@query_syntax.NamePart]) -> Array[(String, String)]?)?) -> Result[@program_source_builder.Node, Diagnostic]
 
-pub fn append_with_properties(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, @program_source_builder.Builder, Int, resolve_parameter? : ((String) -> Result[String, Issue])?, resolve_row? : ((Array[@query_syntax.NamePart]) -> Array[(String, String)]?)?) -> Result[@program_source_builder.Node, Diagnostic]
+pub fn append_with_properties(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, @program_source_builder.Builder, Int, resolve_parameter? : ((String) -> Result[String, Issue])?, resolve_row? : ((Array[@query_syntax.NamePart]) -> Array[(String, String)]?)?, resolve_row_with_work? : ((Array[@query_syntax.NamePart], Int) -> Result[(Array[(String, String)], Int)?, Issue])?) -> Result[@program_source_builder.Node, Diagnostic]
 
 pub fn expression(Lowered) -> @expression_syntax.Expression
 

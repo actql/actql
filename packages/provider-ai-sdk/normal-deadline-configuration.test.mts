@@ -13,6 +13,7 @@ interface CapturedConfiguration {
 interface ObservedContract {read_retained_bytes: string; read_execution_bytes: string;
   model_retained_bytes: string; model_execution_bytes: string; physical_profile: unknown}
 type ReadRecipe = OriginalReadRecipeData & {nodeInstallation: {layout: {response_profile: unknown}}};
+type ObservedModelBinding = Readonly<Record<string, unknown> & {model_id: string; adapter_kind: string; api_mode: string}>;
 interface ObservedEntry {taskInstallations: readonly {entry: {
   originalReadRecipe: ReadRecipe; bindingOriginals: unknown;
 }}[]}
@@ -23,6 +24,7 @@ const options = () => ({providerId: 'fixture', modelId: 'fixture', apiKeyFile: '
   budget: {maxCalls: 1n, maxRows: 1, maxTokens: 4n, maxCostUnits: 1n, maxDurationMs: 2000n}});
 const settings = {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100};
 const stop = Error('StopBeforeRuntimeIdentityAndIO');
+const transfer = {clientProgramStandardInferModelTransferBytes: (attempts: bigint) => attempts * 131072n};
 // Explicit context/quote doubles isolate configuration selection. The actual
 // initial Resource, Common tariff and normal distribution have separate checks.
 function context(captured: CapturedConfiguration[]) {
@@ -37,7 +39,7 @@ test('normal deadline adds only the actual Common R/E quote and preserves unsele
     let quotes = 0;
     const captured: CapturedConfiguration[] = [], config: ReturnType<typeof options> & {transportTimeouts?: PhysicalTransportTimeouts} = options();
     if (enabled) config.transportTimeouts = settings;
-    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+    const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
       clientProgramInstalledNodeModelDeadlineCapacity() {quotes++; return [456n, 456n];}};
     await assert.rejects(createOpenAIChatProvider(config)(moon as unknown as Runtime, context(captured) as unknown as Context), error => error === stop);
     assert.equal(quotes, enabled ? 1 : 0);
@@ -54,7 +56,7 @@ test('normal deadline adds only the actual Common R/E quote and preserves unsele
 
 test('normal deadline missing invalid overflow or over-budget quote refuses before IO', async () => {
   for (const quote of [undefined, [], [1n, 0n], [2147483647n, 2147483647n], [1, 1]]) {
-    const moon = {clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
+    const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(){return [100n,300n];},
       ...(quote === undefined ? {} : {clientProgramInstalledNodeModelDeadlineCapacity() {return quote;}})};
     const captured: CapturedConfiguration[] = [];
     await assert.rejects(createOpenAIChatProvider({...options(), transportTimeouts: settings})(moon as unknown as Runtime, context(captured) as unknown as Context),
@@ -67,7 +69,7 @@ test('normal deadline missing invalid overflow or over-budget quote refuses befo
 
 test('SDK profile demand keeps retained wires and serial workspace distinct before any IO',async()=>{
   const captured: CapturedConfiguration[]=[];let calls=0;
-  const moon={clientProgramInstalledNodeModelSdkV4RequestCapacity(...bounds: unknown[]){
+  const moon={...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity(...bounds: unknown[]){
     assert.deepEqual(bounds,[2,32768,4096,32]);calls++;return [123n,789n];}};
   const config=options();config.budget.maxRows=2;
   await assert.rejects(createOpenAIChatProvider(config)(moon as unknown as Runtime,context(captured) as unknown as Context),error=>error===stop);
@@ -80,12 +82,57 @@ test('SDK profile demand keeps retained wires and serial workspace distinct befo
 
 test('missing invalid or overflowing SDK profile quote refuses before secret semantic or Task work',async()=>{
   for(const quote of [undefined,[],[1n,0n],[2147483647n,2147483647n],[1,1]]){
-    const moon=quote===undefined?{}:{clientProgramInstalledNodeModelSdkV4RequestCapacity(){return quote;}};
+    const moon={...transfer, ...(quote===undefined?{}:{clientProgramInstalledNodeModelSdkV4RequestCapacity(){return quote;}})};
     const captured: CapturedConfiguration[]=[];
     await assert.rejects(createOpenAIChatProvider(options())(moon as unknown as Runtime,context(captured) as unknown as Context),
       {code:'OpenAIProviderRequestCapacityUnavailable'});
     assert.equal(captured.length,0);
   }
+});
+
+test('missing or invalid Common transfer projection refuses before I/O', async () => {
+  for (const value of [undefined, -1n, 0n, 9007199254740992n, 131072]) {
+    await assert.rejects(createOpenAIChatProvider(options())({
+      ...(value === undefined ? {} : {clientProgramStandardInferModelTransferBytes(attempts: bigint) {
+        assert.equal(attempts, 1n);
+        return value;
+      }}),
+    } as unknown as Runtime, context([]) as unknown as Context), {code:'OpenAIProviderTransferCapacityUnavailable'});
+  }
+});
+
+test('an explicit selector binds the resolved Chat model even when defaults and profile are unchanged', async () => {
+  const cid = 'sha256:' + 'a'.repeat(64);
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity() { return [100n, 300n]; }};
+  async function originals(modelId: string, modelSelector: string | undefined) {
+    let wires!: readonly [Readonly<Record<string, unknown>>, Readonly<Record<string, unknown>>, ObservedModelBinding];
+    const f = {...context([]), runtimeIdentity: () => cid, artifactIdentity: () => cid,
+      readText: () => 'synthetic-only',
+      prepareBindingOriginals(project: Parameters<Context['prepareBindingOriginals']>[0]) { wires = project().map(wire => JSON.parse(wire)) as unknown as typeof wires; throw stop; }};
+    await assert.rejects(createOpenAIChatProvider({...options(), modelId, modelSelector})(moon as unknown as Runtime, f as unknown as Context),
+      error => error === stop);
+    assert.equal(JSON.stringify(wires).includes('synthetic-only'), false);
+    return wires;
+  }
+  const first = await originals('first-model', 'shared-alias');
+  const next = await originals('next-model', 'shared-alias');
+  assert.deepEqual(next.slice(0, 2), first.slice(0, 2));
+  assert.deepEqual(first[1].required, ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode']);
+  assert.deepEqual(first[2], {...next[2], model_id: 'first-model'});
+  assert.equal(next[2].selector, 'shared-alias');
+  assert.equal(next[2].model_id, 'next-model');
+  assert.equal(next[2].adapter_kind, 'ai-sdk');
+  assert.equal(next[2].api_mode, 'chat_completions');
+  const direct = await originals('shared-alias', undefined);
+  assert.deepEqual(direct[1], first[1]);
+  assert.deepEqual(direct[2], {...first[2], model_id: 'shared-alias'});
+  const {model_id, adapter_kind, api_mode, ...historical} = first[2];
+  assert.deepEqual([model_id, adapter_kind, api_mode], ['first-model', 'ai-sdk', 'chat_completions']);
+  // Both choices had the same historical configuration even though their
+  // SDK requests used different models.
+  assert.deepEqual(historical, Object.fromEntries(Object.entries(direct[2])
+    .filter(([key]) => !['model_id', 'adapter_kind', 'api_mode'].includes(key))));
+  assert.notDeepEqual(historical, direct[2]);
 });
 
 // Actual ordinary factory and registration assembler; explicit Common/context
@@ -99,7 +146,11 @@ test('normal binding profile and original Read recipe consume the same separate 
     modelSelector:'fixture',promptPayloadWire:'{}'};
   const selected={tasks:[task],
     async responseProfileFor(name: string,project: () => string){assert.equal(name,'task');taskProfile=JSON.parse(project()) as typeof taskProfile;return {profile};},
-    async executionOriginalsFor(name: string){assert.equal(name,'task');},
+    async executionOriginalsFor(name: string, policy: Readonly<Record<string, bigint>>){
+      assert.equal(name,'task');
+      assert.equal(policy.maxAttempts, 1n);
+      assert.equal(policy.maxWireBytes, 131072n);
+    },
     bindingOriginalsFor(id: string){assert.equal(id,'fixture');return bindingOriginals;},
     providerEntries<T>(project: () => T){return project();}};
   const f={...context([]),runtimeIdentity:async()=>cid,artifactIdentity:async()=>cid,
@@ -112,6 +163,7 @@ test('normal binding profile and original Read recipe consume the same separate 
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat'];
   const moon: Record<string, unknown>=Object.fromEntries(hooks.map(name=>[name,()=>assert.fail('No Model or physical work')]));
+  moon.clientProgramStandardInferModelTransferBytes = transfer.clientProgramStandardInferModelTransferBytes;
   moon.clientProgramInstalledNodeModelSdkV4RequestCapacity=(...bounds: unknown[])=>{
     assert.deepEqual(bounds,[1,32768,4096,32]);quoteCalls++;return [123n,789n];};
   moon.clientProgramModelResponseProfileTransportMatches=(actual: unknown)=>{assert.equal(actual,profile);return true;};

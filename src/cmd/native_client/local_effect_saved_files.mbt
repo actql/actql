@@ -22,7 +22,7 @@ priv struct LocalNativeSavedEffectFileWork {
   mut child : @row_file.NativeRelationFileTargetIO?
   acknowledgments : Array[
     (
-      @row_file.NativeRelationFilePreparedProvider,
+      @row_file.NativeRelationFileSelection,
       @row_file.NativeRelationFileReplacementAck,
     ),
   ]
@@ -103,7 +103,7 @@ fn saved_effect_file_application_capacity(
   let count = row_count.to_int64()
   guard @execution.preparation_representation_cost({
       // Work, entry/reservation/optional controls and one original child;
-      // ACK/provider pairs and row-receipt tuples plus both growable backings.
+      // ACK/file selection pairs and row-receipt tuples plus both growable backings.
       record_headers: 29L + 12L * count,
       reference_slots: 84L + 32L * count,
       scalar_words: 29L + 12L * count,
@@ -460,11 +460,14 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         @effect.effect_dispatch_key_cid(key),
       )
     }
-    // A foreign provider, even for an equal path, cannot inherit a prior ACK.
+    // Only this application's last acknowledged replacement of the exact file
+    // sets its next physical generation. Logical target authority stays with
+    // the current row and provider, even when another collection wrote last.
     let provider = row._retained_row_binding.provider
+    let selection = row._retained_row_binding._retained_selection
     let mut predecessor = None
-    for (prior_provider, ack) in work.acknowledgments {
-      if physical_equal(prior_provider, provider) {
+    for (prior, ack) in work.acknowledgments {
+      if prior.directory == selection.directory && prior.name == selection.name {
         predecessor = Some(ack)
       }
     }
@@ -597,7 +600,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
         ack.replacement().length().to_int64(),
         1L,
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-      work.acknowledgments.push((provider, ack))
+      work.acknowledgments.push((selection, ack))
       work.retained_ack_bytes = ack_bytes
       work.response_pending = true
       match child.close() {

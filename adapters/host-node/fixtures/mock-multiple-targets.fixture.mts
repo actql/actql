@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 
-const field = name => ({field: name});
+const field = (name: string) => ({field: name});
 const schema = {group: {nullable: false, type: 'string'},
   id: {nullable: false, type: 'string'}, value: {nullable: false, type: 'string'}};
-const json = value => JSON.stringify(value, null, 2) + '\n';
+const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
 const originalDataWire = json({salesforce: {
   Account: {key: ['id'], rows: [{id: 'a1', group: 'selected', value: 'A-old'},
     {id: 'a-control', group: 'account-control', value: 'keep-account'}]},
@@ -14,7 +14,7 @@ const originalDataWire = json({salesforce: {
     {id: 'c-control', group: 'contact-control', value: 'keep-contact'}]},
 }, control: {unchanged: 'keep-physical-document'}});
 
-function mapping(resource) {
+function mapping(resource: string) {
   // Exact existing request preimage, with literal canonical key ordering.
   // This is only the authored MappingRef, never an admitted Mapping/permit.
   const request = {key: null, kind: 'update', resource,
@@ -28,7 +28,7 @@ function mapping(resource) {
 export function multipleTargetMockProjectFiles() {
   const fields = ['account_id', 'contact_id', 'account_before', 'contact_before', 'account_next', 'contact_next'];
   const resources = ['Account', 'Contact'];
-  const effect = (resource, prefix) => ({update: {target: 'connector://salesforce/' + resource,
+  const effect = (resource: string, prefix: string) => ({update: {target: 'connector://salesforce/' + resource,
     mapping: mapping(resource), from: {result: 'rows'}, id: prefix + '_id',
     set: {value: field(prefix + '_next')}}});
   return Object.freeze({
@@ -43,9 +43,11 @@ export function multipleTargetMockProjectFiles() {
       query_aliases: resources.map(resource => ({name: 'salesforce.' + resource.toLowerCase() + 's', resource})),
       data: resources.map(resource => ({resource, items_path: ['salesforce', resource, 'rows'],
         key_path: ['salesforce', resource, 'key'], primary_identity: 'id'})),
-      writes: resources.map(resource => ({resource, primary_identity: 'id', writable_fields: ['value'],
-        permission: 'salesforce:record:update', observe_permission: 'salesforce:record:observe',
-        approval: 'required', aliases: ['salesforce.' + resource]})),
+      writes: [['Account', 'salesforce:record:update', 'salesforce:record:observe'],
+        ['Contact', 'salesforce:contact:update', 'salesforce:contact:observe']]
+        .map(([resource, permission, observe_permission]) => ({resource, primary_identity: 'id',
+          writable_fields: ['value'], permission, observe_permission,
+          approval: 'required', aliases: ['salesforce.' + resource]})),
     }}}),
     'mock/data.json': originalDataWire,
     'multiple-targets.program.json': json({version: 'actql/0.1', id: 'fixture.mock-disjoint-targets', stages: [{
@@ -62,13 +64,61 @@ export function multipleTargetMockProjectFiles() {
   });
 }
 
+// An ordinary Native Saved application uses one approved Effect set. The
+// first and last members share the Account provider, the middle uses Contact.
+// Each selects a different row in the one declared physical data file.
+export function threeWriteMockProject() {
+  const files = {...multipleTargetMockProjectFiles()};
+  const programFile = 'multiple-targets.program.json';
+  const data = JSON.parse(files['mock/data.json']);
+  data.salesforce.Account.rows.push({id: 'a2', group: 'other', value: 'A2-old'});
+  const before = json(data);
+  files['mock/data.json'] = before;
+  const program = JSON.parse(files[programFile]);
+  program.id = 'fixture.mock-three-ordered-targets';
+  const stage = program.stages[0];
+  const projection = stage.steps.at(-1).select;
+  const row = {
+    account_id: 'a1', contact_id: 'c1', account_before: 'A-old', contact_before: 'C-old',
+    account_next: 'A-new', contact_next: 'C-new', second_account_id: 'a2', second_account_next: 'A2-new',
+  };
+  Object.assign(stage.steps[1].derive, {
+    second_account_id: {literal: row.second_account_id},
+    second_account_next: {literal: row.second_account_next},
+  });
+  projection.push('second_account_id', 'second_account_next');
+  stage.results.rows.fields = projection;
+  const account = stage.effects.account, contact = stage.effects.contact;
+  stage.effects = {a_first: account, b_middle: contact, c_last: {update: {
+    ...account.update, id: 'second_account_id', set: {value: field('second_account_next')},
+  }}};
+  files[programFile] = json(program);
+  const changes = Object.freeze([
+    Object.freeze({resource: 'Account', id: 'a1', before: 'A-old', after: 'A-new'}),
+    Object.freeze({resource: 'Contact', id: 'c1', before: 'C-old', after: 'C-new'}),
+    Object.freeze({resource: 'Account', id: 'a2', before: 'A2-old', after: 'A2-new'}),
+  ]);
+  let after = before;
+  for (const change of changes) {
+    const original = '"value": ' + JSON.stringify(change.before);
+    assert.equal(before.split(original).length, 2);
+    after = after.replace(original, '"value": ' + JSON.stringify(change.after));
+  }
+  return Object.freeze({files: Object.freeze(files), programFile,
+    before, after, changes, rows: Object.freeze([Object.freeze(row)])});
+}
+
 export const multipleTargetMockWriteCount = 2;
-export function checkMultipleTargetMockRows(rows) {
+export function checkMultipleTargetMockRows(rows: unknown) {
   assert.deepEqual(rows, [{account_id: 'a1', contact_id: 'c1', account_before: 'A-old',
     contact_before: 'C-old', account_next: 'A-new', contact_next: 'C-new'}]);
 }
 
-export function checkMultipleTargetMockReview(review) {
+export function checkMultipleTargetMockReview(review: Readonly<{
+  displayed_scope: {effects: readonly {kind: string; target: string; count: number}[]};
+  displayed_rows: readonly {target_row_identity: string; row_preview_cid: string; preview_strength: string;
+    target_guard: {state: string; version_cid: string}; before: unknown; intended_changes: unknown; after: unknown}[];
+}>) {
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) => ({kind, target, count}))
     .sort((a, b) => a.target.localeCompare(b.target)), [
     {kind: 'update', target: 'connector://salesforce/Account', count: 1},
@@ -88,7 +138,7 @@ export function checkMultipleTargetMockReview(review) {
   }
 }
 
-export function multipleTargetMockExpectedBytes(before) {
+export function multipleTargetMockExpectedBytes(before: string) {
   assert.equal(before, originalDataWire, 'The controlled fixture must start with all original target/control bytes');
   let after = before;
   for (const [prior, next] of [['A-old', 'A-new'], ['C-old', 'C-new']]) {

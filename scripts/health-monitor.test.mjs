@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, writeFile, mkdir, readdir, symlink, unlink, readlink} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, mkdir, readdir, rename, symlink, unlink, readlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {createRequire} from 'node:module';
@@ -13,7 +13,7 @@ import {compareReports, finishReport, markdown, summarize, exitStatus, digest, m
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter, fixtureIdentities} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics,observeInstalledHealthNodeModules} from './health-monitor-adapters.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -278,6 +278,24 @@ for (const deal of [false, true]) {
   });
 }
 
+async function healthAuthoringBinFixture(consumer) {
+  const modules = join(consumer, 'node_modules');
+  const local = join(modules, '@actql/local-node');
+  const relativeTarget = '_build/connector-authoring/scripts/connector.mjs';
+  const target = '../@actql/local-node/' + relativeTarget;
+  const bin = join(modules, '.bin');
+  const path = '.bin/actql-connector';
+  await mkdir(dirname(join(local, relativeTarget)), {recursive: true});
+  await writeFile(join(local, 'package.json'), JSON.stringify({
+    name: '@actql/local-node', bin: {'actql-connector': relativeTarget},
+  }));
+  await writeFile(join(local, relativeTarget), '#!/usr/bin/env node\n', {mode: 0o755});
+  await mkdir(bin);
+  const alias = join(modules, path);
+  await symlink(target, alias);
+  return {modules, local, bin, alias, path, target};
+}
+
 test('browser distribution invokes the installed esbuild executable and retains import refusals', async () => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-health-browser-',
     label: 'Actual browser executable and closed import boundary'});
@@ -302,9 +320,37 @@ test('browser distribution invokes the installed esbuild executable and retains 
     return execute(executable, args, settings);
   };
   const root = join(scratch.path, 'success'); await mkdir(root);
-  const installedInventory = await inventory(join(consumer, 'node_modules'));
-  const result = await distributionMetrics({repository, prepared, root, command, source: {sha: 'a'.repeat(40)}, installedInventory});
-  assert.equal(result.installedInventory, installedInventory);
+  const installed = await healthAuthoringBinFixture(consumer);
+  const payload = await Promise.all(['sdk', 'client-wire', 'local-node'].map(name =>
+    inventory(join(installed.modules, '@actql', name))));
+  const result = await distributionMetrics({repository, prepared, root, command, source: {sha: 'a'.repeat(40)}});
+  assert.equal(result.metrics.find(row => row.id === 'installed:node-local').value,
+    payload.flat().reduce((sum, row) => sum + row.bytes, 0));
+  assert.deepEqual((await observeInstalledHealthNodeModules(consumer)).binLinks,
+    [{path: installed.path, target: installed.target}]);
+  await assert.rejects(inventory(installed.modules), /Release payload symlink: \.bin\/actql-connector/u);
+
+  const collect = () => distributionMetrics({repository, prepared, root, command, source: {sha: 'a'.repeat(40)}});
+  const unexpected = join(installed.bin, 'undocumented');
+  await symlink(installed.target, unexpected);
+  await assert.rejects(collect(), /Unexpected or missing installed command link/u);
+  await unlink(unexpected);
+  await unlink(installed.alias);
+  await symlink('../@actql/local-node/package.json', installed.alias);
+  await assert.rejects(collect(), /Installed command points to the wrong target/u);
+  await unlink(installed.alias);
+  await symlink(installed.target, installed.alias);
+  const payloadAlias = join(installed.local, 'linked-payload.mjs');
+  await symlink('package.json', payloadAlias);
+  await assert.rejects(collect(), /Release payload symlink: @actql\/local-node\/linked-payload.mjs/u);
+  await assert.rejects(inventory(installed.local), /Release payload symlink: linked-payload.mjs/u);
+  await unlink(payloadAlias);
+  const outside = join(consumer, 'outside-bin');
+  await rename(installed.bin, outside);
+  await symlink(outside, installed.bin);
+  await assert.rejects(collect(), /Installed .bin must be a real directory/u);
+  await unlink(installed.bin);
+  await rename(outside, installed.bin);
   assert.equal((await import(pathToFileURL(join(root, 'browser.mjs')).href)).answer, 42);
   assert.equal(commands.length, 1);
   assert.equal(result.metrics.filter(row => row.id.startsWith('browser-')).length, 2);
@@ -328,8 +374,8 @@ test('early distribution failure retains independent installed before and after 
   const end = text.indexOf('\nexport async function main(', start);
   assert.ok(start >= 0 && end > start);
   const body = text.slice(start, end).replace('export ', '').replaceAll('import(', 'selectedImport(');
-  for (const change of [false, true]) {
-    const root = join(scratch.path, String(change)), consumer = join(root, 'consumer');
+  for (const change of ['unchanged', 'payload', 'bin']) {
+    const root = join(scratch.path, change), consumer = join(root, 'consumer');
     const product = join(consumer, 'node_modules/@actql/node'); await mkdir(product, {recursive: true});
     await writeFile(join(product, 'index.mjs'), 'export const value = 1;\n');
     const tar = Buffer.from('synthetic verifier input, never unpacked or installed');
@@ -337,7 +383,8 @@ test('early distribution failure retains independent installed before and after 
     const manifest = {packages: [{name: '@actql/node', file: 'node.tgz', bytes: tar.length, sha256: digest(tar),
       integrity: 'sha512-' + createHash('sha512').update(tar).digest('base64'), files: await inventory(product)}]};
     const prepared = {consumer, manifest, manifestPath: join(root, 'manifest.json')};
-    const before = await inventory(join(consumer, 'node_modules'));
+    const installed = await healthAuthoringBinFixture(consumer);
+    const before = await observeInstalledHealthNodeModules(consumer);
     const source = {sha: 'a'.repeat(40)}, environment = {scope: 'synthetic component ports'};
     const report = {source, environment, artifacts: [], metrics: [], errors: []};
     const primary = new Error('Original browser collector failure');
@@ -348,28 +395,32 @@ test('early distribution failure retains independent installed before and after 
       sourceIdentity: () => source, environmentIdentity: async () => environment,
       verifyNativeInstalledAfter: async () => {}, verifyPythonInstalledAfter: async () => {},
       selectedImport: async specifier => {
-        if (specifier === './package-release.mjs') return {inventory};
         if (specifier === './benchmark-node-operations.mjs') return {verifyNodeBenchmarkPackages};
         assert.equal(specifier, './health-monitor-adapters.mjs');
         return {execute: () => assert.fail('No subprocess in this observation component'),
-          prepareHealthPackages: async () => prepared,
+          prepareHealthPackages: async () => prepared, observeInstalledHealthNodeModules,
           distributionMetrics: async input => {
             assert.equal(input.installedInventory, report.installedInventoryBefore);
-            if (change) await writeFile(join(product, 'index.mjs'), 'export const value = 2;\n');
+            assert.deepEqual(report.installedBinLinksBefore, before.binLinks);
+            if (change === 'payload') await writeFile(join(product, 'index.mjs'), 'export const value = 2;\n');
+            if (change === 'bin') await unlink(installed.alias);
             throw primary;
           }};
       },
     });
     await selected({mode: 'quick', options: {}, report, directory: root});
-    assert.deepEqual(report.installedInventoryBefore, before);
+    assert.deepEqual(report.installedInventoryBefore, before.files);
     assert.equal(report.errors[0].target, 'collector'); assert.equal(report.errors[0].message, primary.message);
-    if (change) {
+    if (change !== 'unchanged') {
       assert.notEqual(report.installedPayloadsUnchanged, true);
       assert.equal(report.errors[1].target, 'package-after');
       assert.doesNotMatch(report.errors[1].message, /Received undefined/u);
+      if (change === 'bin') assert.match(report.errors[1].message, /Unexpected or missing installed command link/u);
     } else {
       assert.equal(report.installedPayloadsUnchanged, true);
-      assert.deepEqual(report.installedInventoryAfter, before); assert.equal(report.errors.length, 1);
+      assert.deepEqual(report.installedInventoryAfter, before.files);
+      assert.deepEqual(report.installedBinLinksAfter, before.binLinks);
+      assert.equal(report.errors.length, 1);
     }
   }
   await scratch.passed();
@@ -634,7 +685,8 @@ test('Release methodology identity binds actual cold and Native Python collector
     'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
     'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',
-    'scripts/package-release.mjs', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
+    'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
+    'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
   const releaseOnly = ['scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
     'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs'];
   const files = [...quickFiles, ...releaseOnly];

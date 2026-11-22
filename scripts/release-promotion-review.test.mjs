@@ -17,12 +17,12 @@ import {promoteNpmReleaseChannels} from './publish-package-release.mjs';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const wire = body => Buffer.from(`${JSON.stringify(body, null, 2)}\n`);
 
-async function fixture(t, {scope = true} = {}) {
+async function fixture(t, {scope = true, provider = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-promotion-review-')); t.after(() => rm(root, {recursive: true}));
   const preparation = join(root, 'preparation'), oldInput = join(root, 'original-review-input'), inputs = join(root, 'post-input');
   for (const path of [join(preparation, 'node'), oldInput, inputs]) await mkdir(path, {recursive: true});
   const version = '0.0.7', source = 'a'.repeat(40), artifacts = [];
-  for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
+  for (const name of ['client-wire', 'sdk', 'local-node', 'node', ...(provider ? ['provider-ai-sdk'] : [])]) {
     const bytes = Buffer.from(`Independent inert ${name}; not an archive or runtime\n`), file = `actql-${name}-${version}.tgz`;
     await writeFile(join(preparation, 'node', file), bytes);
     artifacts.push({targetId: 'node', ecosystem: 'npm', name: `@actql/${name}`, version, file, bytes: bytes.length,
@@ -92,6 +92,57 @@ test('promotion review: separate acyclic bundle binds original upper plan and re
   const summary=releasePromotionReviewSummary(checked);assert.equal(summary.manifestSha256,f.fixed.sha256);
   assert.equal(summary.promotionReviewSha256,checked.sha256);assert(summary.markdown.includes('Acceptance: unaccepted'));
   assert(summary.markdown.includes('not promoted'));assert(summary.markdown.includes('0.0.6'));assert(summary.markdown.includes('0.0.7'));
+});
+
+test('promotion review: the optional Provider target requires both ordinary installs and distinct cold Saved evidence', async t => {
+  const f = await fixture(t, {provider: true});
+  await assert.rejects(f.prepare(), /explicit five-package target/u);
+  const entry = '@actql/provider-ai-sdk', close = {firstCloseReturned: true, aliveScopedFD0: true};
+  const installed = (entry, artifacts) => ({entry, version: f.body.releaseSetBinding.version,
+    lockfileVersion: 3, lockBytes: 80, lockSha256: 'd'.repeat(64),
+    payloads: artifacts.map(({name, version, integrity, sha256}) => ({name, version, integrity, originalArchiveSha256: sha256}))});
+  const acceptance = {entry, installed: installed(entry, f.artifacts),
+    phases: [
+      {case: 'usage-reported', phase: 'usage-reported', status: 'passed', pid: 23,
+        actual: {phase: 'usage-reported', maxCalls: 1, usageMode: 'reported', usageCaptures: 1, tasks: 1, requests: 1, calls: 1, ...close}},
+      {case: 'usage-reported', phase: 'cold', status: 'passed', pid: 24,
+        actual: {phase: 'cold', maxCalls: 1, calls: 0, egressChecks: 0, originalSavedFirst: true, ...close}},
+    ]};
+  f.body.providerAcceptance = acceptance;
+  await f.save();
+  await assert.rejects(f.prepare(), /both original Node and SDK installations/u);
+  const ordinary = [installed('@actql/node', f.artifacts.slice(0, 4)), installed('@actql/sdk', f.artifacts.slice(0, 2))];
+  f.body.publicPayloads = [ordinary[0], installed('@actql/sdk', f.artifacts.slice(0, 4))];
+  await f.save();
+  await assert.rejects(f.prepare(), /exact installed archives/u);
+  f.body.publicPayloads = ordinary;
+  for (const change of [
+    value => {value.installed.payloads.pop();},
+    value => {value.installed.payloads.at(-1).originalArchiveSha256 = 'f'.repeat(64);},
+    value => {value.phases.pop();},
+    value => {value.phases[1].pid = value.phases[0].pid;},
+    value => {value.phases[1].actual.egressChecks = 1;},
+    value => {value.phases[1].actual.originalSavedFirst = false;},
+    value => {value.phases[1].actual.firstCloseReturned = false;},
+  ]) {
+    f.body.providerAcceptance = structuredClone(acceptance);
+    change(f.body.providerAcceptance);
+    await f.save();
+    await assert.rejects(f.prepare());
+  }
+  f.body.providerAcceptance = acceptance;
+  await f.save();
+  const checked = await f.prepare();
+  assert.equal(checked.acceptance, 'unaccepted');
+  assert.equal(checked.publicEvidence[0].declaredProviderAcceptance.entry, entry);
+  assert.equal(checked.publicEvidence[0].declaredProviderAcceptance.lockSha256, 'd'.repeat(64));
+  assert.deepEqual(checked.publicEvidence[0].declaredNodeSdkInstallations.map(row => row.entry), ['@actql/node', '@actql/sdk']);
+  assert.match(releasePromotionReviewSummary(checked).markdown, /Declared Provider scope/u);
+  assert.deepEqual(await f.verify(checked), checked);
+  const legacy = await fixture(t);
+  legacy.body.providerAcceptance = acceptance;
+  await legacy.save();
+  await assert.rejects(legacy.prepare(), /explicit five-package target/u);
 });
 
 test('promotion review: existing CLI prepares and cold verifies summaries but never promotes',async t=>{

@@ -150,3 +150,71 @@ test "preparing and historical originals do not create missing state or a new va
     Some(client_saved_manifest_envelope),
   )
 }
+
+///|
+test "same saved material reobserves the original canonical chunks and propagates the last query refusal" {
+  let run = saved_snapshot_run()
+  let key = client_request_scope_cid(run.request)
+  let prefix = "a".repeat(131071)
+  let material = prefix + "é-z"
+  let cid = "sha256:6051d05c9a70bfcb9c63e649775bc787d6dc01497266aa2ff9e35ac9a185f324"
+  let rows = saved_snapshot_rows(saved_submission_ready)
+  rows.push(
+    (
+      "client_task_run_materials",
+      inventory_row(key + ":0", @utf8.encode(prefix)),
+    ),
+  )
+  rows.push(
+    (
+      "client_task_run_materials",
+      inventory_row(key + ":1", @utf8.encode("é-z")),
+    ),
+  )
+  let original = read_client_saved_submission(
+      saved_snapshot_reference(),
+      (table, name) => inventory_read(rows, table, name),
+      _ => Ok({ ..run, task_materials_cid: Some(cid), }),
+      "custody",
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    client_saved_submission_task_materials_original(original),
+    Some(material),
+  )
+  let reads = []
+  let actual = reobserve_client_saved_submission_original(original, (
+      table,
+      name,
+    ) => {
+      if table == "client_task_run_materials" {
+        reads.push(name)
+      }
+      inventory_read(rows, table, name)
+    })
+    .unwrap()
+    .unwrap()
+  assert_true(physical_equal(actual, original))
+  assert_eq(reads, [key + ":0", key + ":1", key + ":2", key + ":3"])
+  assert_true(
+    reobserve_client_saved_submission_original(original, (table, name) => {
+      if table == "client_task_run_materials" && name == key + ":1" {
+        Ok(Some(inventory_row(name, @utf8.encode("è-z"))))
+      } else {
+        inventory_read(rows, table, name)
+      }
+    })
+    is Ok(None),
+  )
+  assert_true(
+    reobserve_client_saved_submission_original(original, (table, name) => {
+      if table == "client_task_run_materials" && name == key + ":3" {
+        Err("fourth physical query")
+      } else {
+        inventory_read(rows, table, name)
+      }
+    })
+    is Err("fourth physical query"),
+  )
+}

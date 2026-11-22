@@ -36,6 +36,10 @@ pub(all) enum PublicationOutputExportIssue {
 enum PublicationResultRetention {
   Cells(@strategy.CapturedResultBorrow)
   Any(@strategy.CapturedAnyResultBorrow)
+  EffectResult(
+    @strategy.CapturedAnyResultBorrow,
+    @execution.ManagedResultOccurrence
+  )
 }
 
 ///|
@@ -65,7 +69,112 @@ pub fn PublicationOutputExport::matches_captured_run(
       @strategy.captured_result_borrow_matches_run(borrow, run)
     Some(Any(borrow)) =>
       @strategy.captured_any_result_borrow_matches_run(borrow, run)
+    Some(EffectResult(borrow, _)) =>
+      self.receipt is Some(_) &&
+      @strategy.captured_any_result_borrow_matches_run(borrow, run)
     None => false
+  }
+}
+
+///|
+/// Use the sealed Result already retained by this Effect input set. The
+/// public occurrence must be the same checked port. The dependency owner
+/// remains responsible for its pin and receipt.
+pub fn borrow_captured_effect_result_publication_export(
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectInputs,
+  result : Int,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  stream : @execution.CompletedOutputExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+  limits : PublicationOutputExportLimits,
+) -> Result[PublicationOutputExport, PublicationOutputExportIssue] {
+  let run = @strategy.captured_effect_run_dag(captured)
+  let (task, occurrence, definition) = match
+    captured_result_publication_binding(run, result) {
+    Ok(value) => value
+    Err(_) => return Err(UnknownResult)
+  }
+  let selected = @strategy.captured_effect_local_result_export_result(exported)
+  let borrow = @strategy.captured_effect_local_result_borrow(selected)
+  let original = @strategy.captured_any_result_borrow_occurrence(borrow)
+  // Local dependency discovery binds its own occurrence handle to the same
+  // checked port. Compare the real task, owner and port across those views.
+  if !@strategy.captured_effect_inputs_match_run(inputs, captured) ||
+    task != @strategy.captured_effect_local_result_task(selected) ||
+    !physical_equal(
+      @execution.managed_result_occurrence_owner(occurrence),
+      @execution.managed_result_occurrence_owner(original),
+    ) ||
+    !physical_equal(
+      @execution.managed_result_occurrence_port(occurrence),
+      @execution.managed_result_occurrence_port(original),
+    ) ||
+    !@strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) {
+    return Err(Output(ForeignMaterial))
+  }
+  let (bytes, nodes, rows, depth) = match
+    @execution.completed_relation_export_snapshot_extent(stream, receipt) {
+    Ok(value) => value
+    Err(issue) => return Err(Output(issue))
+  }
+  let ceiling = captured_result_publication_row_ceiling(
+    @strategy.captured_dag_graph(run),
+    result,
+    occurrence,
+  )
+  let (_, payload_bytes, payload_nodes, payload_depth, fields) = @execution.completed_relation_export_scalar_geometry(
+    receipt,
+  )
+  let usage = @execution.output_stream_value_usage(
+    @execution.completed_relation_export_content(receipt),
+  )
+  if rows > limits.max_rows ||
+    rows.to_int64() > ceiling ||
+    bytes > limits.logical_wire.max_bytes ||
+    nodes > limits.logical_wire.max_nodes ||
+    depth > limits.logical_wire.max_depth ||
+    payload_bytes > limits.payload_wire.max_bytes ||
+    payload_nodes > limits.payload_wire.max_nodes ||
+    payload_depth > limits.payload_wire.max_depth ||
+    fields > limits.max_result_fields ||
+    fields > limits.payload_wire.max_columns ||
+    usage.nodes > limits.values.max_nodes ||
+    usage.text_bytes > limits.values.max_text_bytes ||
+    usage.work > limits.values.max_work {
+    return Err(Output(Admission(CaptureLimit)))
+  }
+  Ok({
+    stream,
+    retained: Some(EffectResult(borrow, occurrence)),
+    replay_values: limits.values,
+    replay_wire: limits.payload_wire,
+    max_batch_bytes: limits.max_batch_bytes,
+    max_snapshot_workspace: limits.max_result_workspace_entries,
+    definition: Some(definition),
+    declared_fields: Some(
+      @results.fields(
+        @results.port_result(
+          @execution.managed_result_occurrence_port(occurrence),
+        ),
+      ),
+    ),
+    receipt: Some(receipt),
+    evidence: None,
+    artifact: None,
+  })
+}
+
+///|
+fn PublicationOutputExport::retained_effect_result_available(
+  self : Self,
+) -> Bool {
+  match self.retained {
+    Some(EffectResult(borrow, _)) =>
+      @strategy.captured_any_result_borrow_available(borrow)
+    _ => true
   }
 }
 
@@ -516,7 +625,7 @@ pub fn PublicationOutputExport::next(
   self : PublicationOutputExport,
   batch? : Bool = false,
 ) -> Result[String?, PublicationOutputExportIssue] {
-  if self.receipt is Some(_) {
+  if self.receipt is Some(_) || self.retained is Some(EffectResult(_, _)) {
     return Err(InvalidState)
   }
   @execution.next_completed_output_export(self.stream, batch~).map_err(issue => {
@@ -537,7 +646,7 @@ pub fn PublicationOutputExport::advance(
   Int,
   PublicationOutputExportIssue?,
 ) {
-  if self.receipt is Some(_) {
+  if self.receipt is Some(_) || self.retained is Some(EffectResult(_, _)) {
     return (None, 0, Some(InvalidState))
   }
   guard @execution.completed_output_export_workspace_slots(
@@ -564,7 +673,7 @@ pub fn PublicationOutputExport::advance(
 pub fn PublicationOutputExport::rows_complete(
   self : PublicationOutputExport,
 ) -> Result[Bool, PublicationOutputExportIssue] {
-  if self.receipt is Some(_) {
+  if self.receipt is Some(_) || self.retained is Some(EffectResult(_, _)) {
     return Err(InvalidState)
   }
   @execution.completed_output_export_rows_complete(self.stream).map_err(issue => {
@@ -578,7 +687,7 @@ pub fn PublicationOutputExport::rows_complete(
 pub fn PublicationOutputExport::finish(
   self : PublicationOutputExport,
 ) -> Result[String, PublicationOutputExportIssue] {
-  if self.receipt is Some(_) {
+  if self.receipt is Some(_) || self.retained is Some(EffectResult(_, _)) {
     return Err(InvalidState)
   }
   match @execution.finish_completed_relation_export(self.stream) {
@@ -733,7 +842,9 @@ pub fn PublicationOutputExport::issue_result_evidence(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, PublicationOutputExportIssue] {
-  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
+  guard self.retained_effect_result_available() && self.receipt is Some(receipt) else {
+    return Err(InvalidState)
+  }
   guard self.definition is Some(definition) else { return Err(InvalidState) }
   if self.evidence is Some(_) {
     return Err(InvalidState)
@@ -802,7 +913,9 @@ pub fn PublicationOutputExport::issue_artifact(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.PublicationContract, PublicationOutputExportIssue] {
-  guard self.receipt is Some(receipt) else { return Err(InvalidState) }
+  guard self.retained_effect_result_available() && self.receipt is Some(receipt) else {
+    return Err(InvalidState)
+  }
   guard self.definition is Some(definition) else { return Err(InvalidState) }
   guard self.evidence is Some(evidence) else { return Err(InvalidState) }
   if self.artifact is Some(_) {
@@ -849,6 +962,13 @@ pub fn PublicationOutputExport::admit_captured_snapshot(
 
 ///|
 pub fn PublicationOutputExport::cancel(self : PublicationOutputExport) -> Unit {
+  if self.retained is Some(EffectResult(_, _)) {
+    self.receipt = None
+    self.evidence = None
+    self.artifact = None
+    // The original Effect export and pin remain live until their own close.
+    return
+  }
   match self.receipt {
     Some(receipt) => {
       @execution.cancel_completed_relation_export_receipt(receipt)
@@ -864,6 +984,7 @@ pub fn PublicationOutputExport::cancel(self : PublicationOutputExport) -> Unit {
         @strategy.release_captured_result_borrow(borrow) |> ignore
       Any(borrow) =>
         @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      EffectResult(_, _) => ()
     }
     self.retained = None
   }

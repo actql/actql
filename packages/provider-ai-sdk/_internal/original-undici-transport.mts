@@ -11,6 +11,7 @@ interface OriginalInstallation {
   maxBytes: number; maxHeaderBytes: number; maxHeaders: number;
   limits: FixedResponseLimits; acquisition: PhysicalAcquisitionLimits;
   timeouts?: PhysicalTransportTimeouts;
+  openAICredentialBytes?: number;
 }
 interface Acquisition {
   reads: number; backingBytes: number; backings: WeakSet<object> | undefined; refused: boolean;
@@ -31,6 +32,7 @@ interface PhysicalTransport {
   invoke(): Promise<OriginalResponse>;
   cleanup(): Promise<boolean>;
   finishResponse?(): void;
+  bindCredential?(): void;
 }
 // The pinned connector returns its original Socket although its public
 // declaration describes only callback delivery. This private unchecked view
@@ -188,7 +190,9 @@ function sameResponseLimits(limits: FixedResponseLimits, original: FixedResponse
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts}: {endpoint: string; requestLimits: RequestLimits; responseLimits: ResponseLimits; physicalAcquisitionLimits: unknown; transportTimeouts?: unknown}) {
+export const unboundOpenAICredential = 'actql-unbound-openai-credential';
+
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts, openAICredentialBytes}: {endpoint: string; requestLimits: RequestLimits; responseLimits: ResponseLimits; physicalAcquisitionLimits: unknown; transportTimeouts?: unknown; openAICredentialBytes?: number}) {
   const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   const timeouts = fixedOriginalTransportTimeouts(transportTimeouts);
   let url;
@@ -196,6 +200,10 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
       !['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
       url.hash || url.search) throw issue('UndiciOriginalEndpointUnavailable');
+  if (openAICredentialBytes !== undefined && (!positive(openAICredentialBytes) || openAICredentialBytes > 4096 ||
+      endpoint !== 'https://api.openai.com/v1/chat/completions')) {
+    throw issue('OpenAIProjectCredentialEndpointUnavailable');
+  }
   const {maxBytes, maxHeaderBytes, maxHeaders} = requestLimits ?? {};
   if (![maxBytes, maxHeaderBytes, maxHeaders].every(positive) || maxHeaders > 64) {
     throw issue('UndiciOriginalRequestLimitsUnavailable');
@@ -210,6 +218,7 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   const original: OriginalInstallation = {endpoint, origin: url.origin,
     path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition};
   if (timeouts !== undefined) original.timeouts = timeouts;
+  if (openAICredentialBytes !== undefined) original.openAICredentialBytes = openAICredentialBytes;
   installations.set(fetch, Object.freeze(original));
   return fetch;
 }
@@ -233,14 +242,24 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
     throw issue('UndiciOriginalRequestMismatch');
   }
   let headerBytes = 0;
-  const headers: string[] = [];
+  let headers: string[] | undefined = [];
+  let credentialIndex: number | undefined;
   for (const pair of init.headers as unknown[]) {
     if (!Array.isArray(pair) || pair.length !== 2 || pair.some(value => typeof value !== 'string')) {
       throw issue('UndiciOriginalRequestMismatch');
     }
     headerBytes += Buffer.byteLength(pair[0]) + Buffer.byteLength(pair[1]);
     if (headerBytes > original.maxHeaderBytes) throw issue('UndiciOriginalRequestMismatch');
+    if (original.openAICredentialBytes !== undefined && pair[0].toLowerCase() === 'authorization') {
+      if (credentialIndex !== undefined || pair[1] !== `Bearer ${unboundOpenAICredential}`) {
+        throw issue('UndiciOriginalRequestMismatch');
+      }
+      credentialIndex = headers.length + 1;
+    }
     headers.push(pair[0], pair[1]);
+  }
+  if (original.openAICredentialBytes !== undefined && credentialIndex === undefined) {
+    throw issue('UndiciOriginalRequestMismatch');
   }
   // These are acquisition/backpressure controls, NOT hard socket/TLS/chunk or
   // whole-heap bounds. Parser/native/header/backing overlap remains in C's sum.
@@ -342,17 +361,35 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
     : new Client(original.origin, {allowH2: false, pipelining: 0, connect,
       maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes,
       headersTimeout: original.timeouts.headersMs, bodyTimeout: original.timeouts.bodyMs} as Client.Options);
-  const request = Object.freeze({path: original.path, method: 'POST',
-    headers: Object.freeze(headers), body: init.body, signal: init.signal,
+  let request: object | undefined = Object.freeze({path: original.path, method: 'POST',
+    headers: credentialIndex === undefined ? Object.freeze(headers) : headers, body: init.body, signal: init.signal,
     highWaterMark: limits.maxChunkBytes, idempotent: false});
+  if (credentialIndex === undefined) headers = undefined;
   const method = client.request;
   let pending: Promise<void> | undefined;
   let body: Dispatcher.ResponseData['body'] | undefined;
   let bodyClosed: Promise<boolean> | undefined;
   let destroying: Promise<boolean> | undefined;
   let retired = false;
+  const bindCredential = credentialIndex === undefined ? undefined : () => {
+    if (retired || destroying !== undefined || pending !== undefined || headers === undefined || (init.signal as AbortSignal).aborted) {
+      throw issue('OpenAIProjectCredentialPreparationUnavailable');
+    }
+    // This fixed source is read by the authorized continuation on the same
+    // funded call. The SDK's suspended preparation never sees these bytes.
+    const key = process.env.OPENAI_API_KEY;
+    if (typeof key !== 'string' || key.length === 0 || key.length > original.openAICredentialBytes! ||
+        headerBytes - unboundOpenAICredential.length + key.length > original.maxHeaderBytes ||
+        !/^[\x21-\x7e]+$/u.test(key)) {
+      throw issue('OpenAIProjectCredentialUnavailable');
+    }
+    headers[credentialIndex] = `Bearer ${key}`;
+    Object.freeze(headers);
+    headers = undefined;
+  };
   const invoke = () => {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
+    if (headers !== undefined) throw issue('OpenAIProjectCredentialPreparationUnavailable');
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
     const response = (Reflect.apply(method, client, [request]) as Promise<Dispatcher.ResponseData>).then(response => {
@@ -424,11 +461,13 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
       body = undefined;
       bodyClosed = undefined;
       pending = undefined;
+      request = headers = undefined;
       return true;
     }, () => false).finally(() => { destroying = undefined; });
     return destroying;
   };
-  const physical = Object.freeze({invoke, cleanup});
+  const physical = bindCredential === undefined ? Object.freeze({invoke, cleanup})
+    : Object.freeze({invoke, cleanup, bindCredential});
   return original.timeouts?.callMs === undefined ? physical
     : withOriginalCallDeadline(physical, controller!, original.timeouts.callMs);
 }
@@ -455,7 +494,7 @@ function withOriginalCallDeadline(physical: Readonly<PhysicalTransport>, control
       controller.abort(reason);
     }
   };
-  return Object.freeze({
+  const port: PhysicalTransport = {
     invoke() {
       // Preserve the first physical primitive after the original Entry gate.
       // No timer, observer, await or different request precedes this invoke.
@@ -466,7 +505,9 @@ function withOriginalCallDeadline(physical: Readonly<PhysicalTransport>, control
     },
     cleanup() {finishResponse(); return physical.cleanup();},
     finishResponse,
-  });
+  };
+  if (physical.bindCredential !== undefined) port.bindCredential = physical.bindCredential;
+  return Object.freeze(port);
 }
 
 function originalHeadersView(originalHeaders: Dispatcher.ResponseData['headers']) {

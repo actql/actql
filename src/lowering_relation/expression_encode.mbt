@@ -9,10 +9,12 @@ priv enum ExpressionFrame {
   EndObject
   Op(String)
   CaseWhen(Array[(Expression, Expression)])
+  CaseOperand(Expression)
   Clauses(Array[(Expression, Expression)], Int)
   ClauseWhen(Expression)
   VectorScoreRest(VectorMetric, Expression)
   ObjectExpressions(Array[(String, Expression)], Int)
+  RegexExtractTail(String?, Expression, Expression)
   PropertyValue(Expression)
   DecimalDivisionRight(Expression, String, Int, Int)
   DecimalDivisionTail(String, Int)
@@ -44,10 +46,15 @@ fn binary_name(op : BinaryOperator) -> String {
     Contains => "contains"
     Like => "like"
     DateTruncate => "date_trunc"
+    TimestampTruncate => "timestamp_trunc"
+    DateBoundaryTruncate => "date_boundary_trunc"
+    ExtractTimestamp => "extract_timestamp"
     DecimalDivide(_) => "decimal_divide"
     Utf8Truncate => "utf8_truncate"
     ParseTimestamp => "parse_timestamp"
+    TryPatternedTimestamp => "try_timestamp"
     FormatTimestamp => "format_timestamp"
+    RegexMatch => "regex_match"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -122,8 +129,16 @@ fn emit_frames(
         @encode.key(output, "body")
         pending.push(EndObject)
         match expr.body {
-          CurrentTimestamp => {
-            pending.push(Op("current_timestamp"))
+          CurrentTimestamp | CurrentDate => {
+            pending.push(
+              Op(
+                if expr.body is CurrentDate {
+                  "current_date"
+                } else {
+                  "current_timestamp"
+                },
+              ),
+            )
             @encode.begin_array(output)
             @encode.end_array(output)
           }
@@ -141,6 +156,10 @@ fn emit_frames(
                 },
               ),
             )
+            pending.push(Value(value.value))
+          }
+          DateLiteral(value) => {
+            pending.push(Op("date_literal"))
             pending.push(Value(value.value))
           }
           TypedNull => {
@@ -300,7 +319,10 @@ fn emit_frames(
                   IsFalse => "is_false"
                   IsUnknown => "is_unknown"
                   Length => "len"
+                  ArrayLength => "array_length"
+                  UnixSeconds => "unix_seconds"
                   ByteLength => "byte_length"
+                  FarmFingerprint => "farm_fingerprint"
                   Unicode => "unicode"
                   Chr => "chr"
                   Reverse => "reverse"
@@ -331,9 +353,25 @@ fn emit_frames(
             )
           }
           Binary(op, value, pattern) if op == ParseTimestamp ||
+            op == TryPatternedTimestamp ||
             op == FormatTimestamp => {
             pending.push(Op(binary_name(op)))
             @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions([("pattern", pattern), ("value", value)], 0),
+            )
+          }
+          Binary(RegexMatch, value, pattern) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_pattern(bound) is Some((_, flags)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_match"))
+            @encode.begin_object(output)
+            if flags is Some(flags) {
+              @encode.key(output, "flags")
+              @encode.string_value(output, flags)
+            }
             pending.push(
               ObjectExpressions([("pattern", pattern), ("value", value)], 0),
             )
@@ -367,6 +405,55 @@ fn emit_frames(
             fields.push(("value", args[0]))
             pending.push(ObjectExpressions(fields, 0))
           }
+          Many(RegexExtract, args) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_extract(bound) is Some((_, flags, _)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_extract"))
+            @encode.begin_object(output)
+            pending.push(RegexExtractTail(flags, args[1], args[0]))
+            if args.get(2) is Some(capture) {
+              @encode.key(output, "capture")
+              pending.push(Expr(capture))
+            }
+          }
+          Many(RegexReplace, args) => {
+            guard expr.text_bound is Some(bound) &&
+              text_bound_regex_replace(bound) is Some((_, flags, replacement)) else {
+              raise @encode.InvalidStructure
+            }
+            pending.push(Op("regex_replace"))
+            @encode.begin_object(output)
+            if @replacement.syntax(replacement) is GoogleSql {
+              @encode.key(output, "dialect")
+              @encode.string_value(output, "googlesql")
+            }
+            if flags is Some(flags) {
+              @encode.key(output, "flags")
+              @encode.string_value(output, flags)
+            }
+            pending.push(
+              ObjectExpressions(
+                [
+                  ("pattern", args[1]),
+                  ("replacement", args[2]),
+                  ("value", args[0]),
+                ],
+                0,
+              ),
+            )
+          }
+          Many(SplitPart, args) => {
+            pending.push(Op("split_part"))
+            @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions(
+                [("delimiter", args[1]), ("index", args[2]), ("value", args[0])],
+                0,
+              ),
+            )
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -383,6 +470,14 @@ fn emit_frames(
                   Translate => "translate"
                   Instr => "instr"
                   Split => "split"
+                  GenerateArray => "generate_array"
+                  ArrayConcat => "array_concat"
+                  ArrayToString => "array_to_string"
+                  FormatStrings => "format_strings"
+                  ToJsonString => "to_json_string"
+                  JsonValue => "json_value"
+                  SplitPart | RegexExtract | RegexReplace =>
+                    raise @encode.InvalidStructure
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"
@@ -390,6 +485,10 @@ fn emit_frames(
                   RPad => "rpad"
                   Between => "between"
                   DateDifference => "date_diff"
+                  MakeDate => "make_date"
+                  TimestampDifference => "timestamp_diff"
+                  DateBoundaryDifference => "date_boundary_diff"
+                  DateIntervalAddition => "date_interval_add"
                   DateAddition => "date_add"
                   TimestampAddition => "timestamp_add"
                   TimestampSubtraction => "timestamp_sub"
@@ -404,12 +503,15 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Expressions([condition, yes, no], 0))
           }
-          Case(clauses, otherwise) => {
+          Case(clauses, otherwise) | SimpleCase(_, clauses, otherwise) => {
             pending.push(Op("case"))
             @encode.begin_object(output)
             @encode.key(output, "else")
             pending.push(EndObject)
             pending.push(CaseWhen(clauses))
+            if expr.body is SimpleCase(operand, _, _) {
+              pending.push(CaseOperand(operand))
+            }
             pending.push(Expr(otherwise))
           }
         }
@@ -421,6 +523,15 @@ fn emit_frames(
         } else {
           @encode.end_array(output)
         }
+      RegexExtractTail(flags, pattern, value) => {
+        if flags is Some(flags) {
+          @encode.key(output, "flags")
+          @encode.string_value(output, flags)
+        }
+        pending.push(
+          ObjectExpressions([("pattern", pattern), ("value", value)], 0),
+        )
+      }
       PropertyValue(value) => {
         @encode.key(output, "value")
         pending.push(Expr(value))
@@ -433,6 +544,10 @@ fn emit_frames(
         } else {
           @encode.end_object(output)
         }
+      CaseOperand(operand) => {
+        @encode.key(output, "operand")
+        pending.push(Expr(operand))
+      }
       CaseWhen(clauses) => {
         @encode.key(output, "when")
         @encode.begin_array(output)

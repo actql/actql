@@ -1223,6 +1223,8 @@ pub fn saved_compiled_plan_validation_construction(Int) -> @decode_shape.Collect
 
 pub fn saved_run_definition_validation_construction(Int) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn saved_run_template_environment(RunEvidenceValue, PublicationContract, String, String) -> String?
+
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Result[RunEvidenceValue, RunEvidenceValueIssue]

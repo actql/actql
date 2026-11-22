@@ -24,9 +24,9 @@ test('example ships exact adopted contract bodies, not test-generated execution 
     graph: aoa.execution_contracts['BRIDGE.rows.to_graph'],
   };
   const expected = {
-    registry: 'sha256:0dbcd76665f919493fbd4da00b7fa69efa6e6d0131c6008ad39722ac30f78735',
+    registry: 'sha256:f4f66d1ce9e86d1cf3326f86a4909a27eed1c83f6e0a7603d7bd3b5f819873cc',
     values: 'sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae',
-    fragment: 'sha256:437e97d949bacc101343bf0b03c511c5dd6accd4f203af3ebb0cdd056c5686f8',
+    fragment: 'sha256:0e118d8833c7c8f3d211d273d6f839591f459db0aaa8b0d770e562de2488111b',
     graph: 'sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84',
   };
   for (const [key, identity] of Object.entries(expected)) {

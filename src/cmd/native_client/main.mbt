@@ -993,6 +993,10 @@ fn command() -> @argparse.Command {
         about="Show a Program plan or a saved Run plan",
         flags=[
           @argparse.FlagArg(
+            "explanation-json",
+            about="Read the structural Explanation for a Local Effect Program as JSON",
+          ),
+          @argparse.FlagArg(
             "verbose",
             about="Include full plan identities and port details",
           ),
@@ -1009,6 +1013,10 @@ fn command() -> @argparse.Command {
           ),
         ],
         options=[
+          @argparse.OptionArg(
+            "explanation-language",
+            about="Read the structural Explanation for a Local Effect Program in en or ja",
+          ),
           @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
             "program", "run",
           ]),
@@ -2143,7 +2151,11 @@ fn main {
   } catch {
     ClientStop(message) => {
       let bytes = @utf8.encode(
-        local_command_failure_text(message, command_diagnostic_json.val),
+        local_command_failure_text(
+          message,
+          command_diagnostic_json.val,
+          primary=command_preparation_invocation.val.bind(value => value.primary),
+        ),
       )
       report_failure_ffi(bytes, bytes.length())
       true

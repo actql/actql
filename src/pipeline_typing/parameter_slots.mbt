@@ -106,7 +106,7 @@ fn relation_operands(
       for i in 0..<@relation.analytic_call_count(analytic) {
         operand_tick(c)
         let call = @relation.analytic_call_at(analytic, i).unwrap()
-        operand_fields(c, step, call.source, ["offset"])
+        operand_fields(c, step, call.source, ["offset", "buckets"])
         if call.function is Aggregate(aggregate) {
           aggregate_operands(c, step, aggregate)
         }

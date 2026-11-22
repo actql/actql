@@ -2765,6 +2765,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/drain/drain",
           "parameters": [],
           "async": true
@@ -2837,6 +2844,23 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -3290,7 +3314,11 @@
             "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "observeNodeRestoredModelStop",
             "observeNodeRunCancellation",
-            "recordNodeRunPhysicalStop"
+            "recordNodeRunPhysicalStop",
+            "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2"
           ],
           "exports": [
             "cancelNodeRunContinuation",
@@ -4674,6 +4702,7 @@
         "./client-dispatch-diagnostic.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
+        "./infer-operation.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
         "./logical-task-observation.mjs",
@@ -4683,7 +4712,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "ac4777e9c6abdffac5a3fb9baa1f7fd54cc269bb4d98fb63d953878025e5495a",
+      "sha256": "44b8a8deaf6c57657a1535d5a002f9ca263748458958b68284cecd90b24d1a8f",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -10229,7 +10258,9 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation"
           ],
           "exports": [],
           "attributes": {
@@ -12467,7 +12498,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "prepareDefinition, assertRequestedStopAvailable,"
+                "anchor": "prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -16721,9 +16752,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -19001,7 +19034,12 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5"
           ],
           "exports": [],
           "attributes": {
@@ -20275,6 +20313,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed Saved Context uses the retained original"
               }
             ]
           }
@@ -24972,6 +25014,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+            "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+            "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const staticEffectExplanation = preparation !== undefined &&"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mts",
+                "anchor": "const staticPlanScope = Object.freeze({namespaceId, authorityScopeCid});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertStaticEffectExplanationOriginal(request) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const account = observeInstalledAccount(moon, authorization);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "      const decision = authorizeEgress(request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function hasStaticExplanationPort(name) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -25498,6 +25620,15 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
           "parameters": [
             "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+          "parameters": [
+            "facts",
+            "readEvidence",
+            "hasIntent"
           ],
           "async": false
         },
@@ -26634,6 +26765,44 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#2",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#3",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#4",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanationContext/runExplanationContext#5",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun",
           "parameters": [
             "prepared",
@@ -26720,6 +26889,28 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/hasStaticExplanationPort",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:authorizeEgress/init:authorizeEgress",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/staticEffectExplanation/init:withOriginal/init:withOriginal",
+          "parameters": [
+            "request",
+            "visit"
+          ],
           "async": false
         },
         {
@@ -26942,7 +27133,9 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
+          "parameters": [
+            "cut"
+          ],
           "async": false
         },
         {
@@ -26977,6 +27170,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
@@ -27002,6 +27202,13 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
           "parameters": [],
           "async": false
         },
@@ -27333,6 +27540,13 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:assertStaticEffectExplanationOriginal/init:assertStaticEffectExplanationOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest",
           "parameters": [
             "runtime",
@@ -27402,6 +27616,17 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
+          "parameters": [
+            "runtime",
+            "facts",
+            "readEvidence",
+            "journal",
+            "hasIntent"
+          ],
           "async": false
         },
         {
@@ -28156,12 +28381,25 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:readStaticEffectExplanation/init:readStaticEffectExplanation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal",
+            "visit",
+            "modelInstallation"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:readStaticPlan/init:readStaticPlan",
           "parameters": [
             "request",
             "environment",
             "originalVerifier",
-            "signal"
+            "signal",
+            "modelInstallation"
           ],
           "async": false
         },
@@ -28987,6 +29225,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -29105,15 +29344,13 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "2e190975f263adfcd26a68af38ee07b3c20a53b6b908447fd99e0d963bf8eb3b"
+      "unresolvedSyntax": [],
+      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -31172,7 +31409,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -31557,7 +31794,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -32177,7 +32414,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32795,7 +33032,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -33191,7 +33428,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -34479,7 +34716,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "1b8aabebd73c4d530f5f76a4ddeebc65ecf90fe8cee7bd1f082af5551e48859b",
+      "sha256": "3911d211d8ff6980d2d1881a14c83a1e86fd3f8b9dc665978bdfc8d4b1be583b",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -34852,6 +35089,31 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/context/init:readText/init:readText",
           "parameters": [
             "path",
@@ -34961,7 +35223,10 @@
         "../host-common/runtime-result.mjs",
         "./installed-host-services.mjs",
         "./installed-model.mjs",
-        "./installed-project-model-tasks.mjs"
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "node:url",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -35048,7 +35313,12 @@
             "installConfiguredModelProviders/policyInventory/init:project/init:project",
             "installConfiguredModelProviders/policyInventory/policyInventory",
             "installConfiguredModelProviders/policyInventory/policyInventory#2",
-            "installConfiguredModelProviders/providers/providers#2"
+            "installConfiguredModelProviders/providers/providers#2",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2"
           ],
           "exports": [
             "installConfiguredModelProviders"

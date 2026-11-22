@@ -263,3 +263,21 @@ test "source profile checks admitted Relation producer types beyond constructors
     }
   }
 }
+
+///|
+test "SQL ARRAY_LENGTH accepts an array and retains its own typed operation" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT ARRAY_LENGTH([2, NULL, 2]) AS present, ARRAY_LENGTH([]) AS empty, ARRAY_LENGTH(NULL) AS missing",
+      syntax_limits(),
+    ).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  let rendered = semantic(program)
+  assert_eq(rendered.split("\"array_length\":").length(), 4)
+  assert_true(
+    @check.check_parsed(program, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}

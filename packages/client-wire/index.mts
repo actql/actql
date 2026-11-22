@@ -409,7 +409,9 @@ export function prepareClientHostRequest(operation: Public.ClientHostOperation, 
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan', 'run-explanation'].includes(operation)) {
+  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations',
+    'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
+    'run-explanation-context'].includes(operation)) {
     try { body = snapshotClientRequest(body) as RequestFields; }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -417,7 +419,7 @@ export function prepareClientHostRequest(operation: Public.ClientHostOperation, 
   }
   // The structural read's original ref cannot change during awaited Host
   // authentication/authorization. This is its already-captured private copy.
-  if (operation === 'run-explanation') Object.freeze(body.ref);
+  if (operation === 'run-explanation' || operation === 'run-explanation-context') Object.freeze(body.ref);
   if (retainSnapshot === true) {
     if (!snapshotted) {
       try { body = snapshotClientRequest(body) as RequestFields; }
@@ -477,13 +479,14 @@ export function validClientBody<O extends Public.ClientHostOperation>(operation:
         !Array.isArray((body as RequestFields).parameters));
   }
   if (operation === 'lookup-submission') return validSubmissionRef((body as RequestFields).submissionRef);
-  if (operation === 'inspect-run' || operation === 'run-plan' || operation === 'run-explanation') {
+  if (operation === 'inspect-run' || operation === 'run-plan' ||
+      operation === 'run-explanation' || operation === 'run-explanation-context') {
     return validRunRef((body as RequestFields).ref) &&
       Number.isSafeInteger((body as RequestFields).maxWireBytes) && (body as RequestFields).maxWireBytes >= 1024 && (body as RequestFields).maxWireBytes <= 65536 &&
       Number.isSafeInteger((body as RequestFields).maxNodes) && (body as RequestFields).maxNodes > 0 && (body as RequestFields).maxNodes <= 10000 &&
       Number.isSafeInteger((body as RequestFields).maxDepth) && (body as RequestFields).maxDepth > 0 && (body as RequestFields).maxDepth <= 64;
   }
-  if (operation === 'plan') {
+  if (operation === 'plan' || operation === 'static-explanation') {
     return validProgramInput(body as RequestFields) &&
       ((body as RequestFields).parameters === null || typeof (body as RequestFields).parameters === 'object' &&
         !Array.isArray((body as RequestFields).parameters)) &&

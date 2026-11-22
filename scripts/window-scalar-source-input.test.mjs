@@ -127,8 +127,10 @@ test('grouped window operands have independent Programs, NULLs and opposing scop
     'aggregate-operand-pipe-implicit-group']) {
     assert.equal(windowScalarRefusals.find(item => item.name.endsWith(name)).expectedCode, 'ClientProgramInvalidInput');
   }
-  assert.equal(windowScalarRefusals.find(item => item.name.endsWith('aggregate-operand-missing-frame')).expectedCode,
-    'ClientProgramImplementationLimit');
+  const defaultFrame = get('default-frame').results.main;
+  assert.deepEqual(defaultFrame.rows.map(row => row.n), [6, 9, 15, 15]);
+  assert.deepEqual(defaultFrame.columns, [{name: 'n', contract: {type: 'number', nullable: true}}]);
+  assert.equal(defaultFrame.unordered, true);
   const rowOffset = windowScalarRefusals.find(item => item.name === 'window-scalar-refuse-aggregate-operand-row-offset');
   assert.equal(rowOffset.text,
     'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount');
@@ -233,7 +235,11 @@ test('Pipe WHERE window controls preserve predicates current rows and private sl
   assert.deepEqual(get('sequential').expected, [{amount: 20, id: 2}]);
   assert.deepEqual(get('immutable-range').expected, [{amount: -10, id: 3}, {amount: null, id: 5}]);
   assert.deepEqual(get('authored-private-name').expected, [{id: 1, n: null}, {id: 2, n: 20}]);
-  assert.equal(windowScalarRefusals.filter(value => value.name.includes('refuse-where-window-')).length, 6);
+  const defaultFrame = get('default-frame').results.main;
+  assert.equal(defaultFrame.rows.length, 6);
+  assert.deepEqual(defaultFrame.columns, get('direct').columns);
+  assert.equal(defaultFrame.unordered, true);
+  assert.equal(windowScalarRefusals.filter(value => value.name.includes('refuse-where-window-')).length, 5);
 });
 
 test('SET window controls preserve sibling input, immutable ranges and current types', async () => {
@@ -252,7 +258,11 @@ test('SET window controls preserve sibling input, immutable ranges and current t
   assert.equal(get('sibling-input').columns[1].contract.nullable, true);
   assert.deepEqual(get('immutable-range').expected.map(row => row.original), [null, 20, 10, 20, null]);
   assert.deepEqual(get('authored-private-name').expected.map(row => row.amount), [null, 22, 13, 24, null]);
-  assert.equal(windowScalarRefusals.filter(item => item.name.includes('set-window')).length, 8);
+  const defaultFrame = get('default-frame').results.main;
+  assert.deepEqual(defaultFrame.rows.map(row => row.amount), [999, 999, 1019, 1029, 1049, 1049]);
+  assert.deepEqual(defaultFrame.columns, get('nullable').columns);
+  assert.equal(defaultFrame.unordered, true);
+  assert.equal(windowScalarRefusals.filter(item => item.name.includes('set-window')).length, 7);
 });
 
 test('private SET window projects ordinary columns and retains implicit-member refusal', () => {

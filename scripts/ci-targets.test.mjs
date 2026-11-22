@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, pythonWheelMatrix, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import {readCiInput} from './ci-input.mjs';
@@ -649,7 +649,7 @@ test('platform, per-file target, runtime ownership, identities and build retain 
     'src/random/new.S', 'src/encode_core/value.mbt', 'src/decode_scalar/value.mbt', 'src/a/pkg.generated.mbti', 'packages/new-runtime/index.mjs', 'portability/corpus/value.json', 'proofs/relation-pipeline/run.mjs',
     'vendor/runtime/code.mbt']) {
     const result = selectTargets([path]);
-    assert.deepEqual(result.targets, all, path); assert.equal(result.macos, true, path);
+    assert.deepEqual(result.targets, all, path);
   }
 });
 test('unknown, unavailable, malformed and empty diff cannot omit target coverage', () => {
@@ -658,7 +658,7 @@ test('unknown, unavailable, malformed and empty diff cannot omit target coverage
     assert.deepEqual(selectTargets(paths).targets, all, JSON.stringify(paths));
   }
   assert.equal(selectTargets(['README.md'], {failure: 'Git object unavailable'}).macos, true);
-  assert.equal(selectTargets(['src/a/ordinary.mbt'], {targetSensitiveDiff: true}).macos, true);
+  assert.deepEqual(selectTargets(['src/a/ordinary.mbt'], {targetSensitiveDiff: true}).targets, all);
   assert.throws(() => validateSelection({schema: 'actql-ci-targets/0.1', targets: ['wasm'], macos: false, reason: 'bad'}));
   assert.throws(() => validateSelection({schema: 'actql-ci-targets/0.1', targets: ['js'], macos: undefined, reason: 'bad'}));
 });
@@ -708,6 +708,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   results['health-quick'] = {result: 'skipped'};
   results['focused-tests'] = {result: 'skipped'};
   results['native-macos'] = {result: 'skipped'};
+  results['python-wheels'].outputs = {'linux-x64': 'a'.repeat(40), 'darwin-arm64': 'a'.repeat(40)};
   verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
   for (const status of ['failure', 'skipped', undefined]) {
     assert.throws(() => verifyGate({sourceRevision: 'a'.repeat(40), selection},
@@ -828,8 +829,11 @@ test('whole-family scheduling retains the core matrix and complete selected proo
 const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
-const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+const results = selection => Object.fromEntries(gateJobs.map(name => [name, {
+  result: gateJobRequired(selection, name) ? 'success' : 'skipped',
+  ...(name === 'python-wheels' ? {outputs: Object.fromEntries(
+    pythonWheelMatrix(selection).include.map(({platform}) => [platform, head]))} : {}),
+}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
@@ -1031,7 +1035,7 @@ test('P1: unregistered runtime files and configuration cannot qualify by directo
   ]) {
     const selected = selectTargets([path], {targetSensitiveDiff: false});
     assert.deepEqual(selected.targets, all, path);
-    assert.equal(selected.macos, true, path);
+    assert.equal(gateJobRequired(selected, 'core'), true, path);
   }
 });
 test('an existing unregistered MoonBit file stays full even with portable contents', () => {
@@ -1041,7 +1045,7 @@ test('an existing unregistered MoonBit file stays full even with portable conten
       args.includes('--name-only') ? 'src/unregistered/arithmetic.mbt\0' : '+ a + b');
   assert.equal(result.targetSensitiveDiff, false);
   assert.deepEqual(selectTargets(result.paths, result).targets, all);
-  assert.equal(selectTargets(result.paths, result).macos, true);
+  assert.equal(gateJobRequired(selectTargets(result.paths, result), 'core'), true);
 });
 test('only the exact registered portable file qualifies, not siblings or configuration', () => {
   assert.deepEqual(selectTargets(['src/source_span/span.mbt']).targets, ['js']);
@@ -1641,7 +1645,7 @@ test('large CI plans launch both original portable Core step command sequences',
       assert.deepEqual(observed[1].args, ['test', '--target', 'wasm', '--release', '--build-only',
         '--deny-warn', '-j', '2', 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
       const requiredCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
-        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt'];
+        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt', 'submission_decode_prefix_wbtest.mbt'];
       assert.deepEqual(observed.slice(2).map(entry => entry.args), requiredCases.map(name => [
         'scripts/test-python-local-metadata-wasm.mjs',
         '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',
@@ -2086,7 +2090,6 @@ test('neutral ABI and existing Host source changes retain required current famil
     const selection = selectTargets([path]);
     assert.equal(selection.profile, 'full', path);
     assert.deepEqual(selection.targets, ['js', 'wasm', 'native'], path);
-    assert.equal(selection.macos, true, path);
     assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
     for (const name of ['select-targets', 'preflight', 'lint', 'core', 'host', 'client', 'native', 'python-wheels']) {
       assert.equal(gateJobRequired(selection, name), true, `${path}/${name}`);
@@ -2095,6 +2098,102 @@ test('neutral ABI and existing Host source changes retain required current famil
       }
     }
     verifyGate(plan(selection), results(selection), context);
+  }
+});
+
+test('select Mac wheel and workload platforms from affected inputs and event scope', () => {
+  const ordinary = ['src/source_frontend/lower.mbt'];
+  const loader = ['packages/python-sdk/src/actql_sdk/_local_distribution.py'];
+  const physical = ['src/platform_native/sqlite/moon.pkg'];
+  const both = ['toolchain.json'];
+  const matrix = selection => pythonWheelMatrix(selection).include.map(({platform}) => platform);
+  for (const [paths, options, macos, wheels] of [
+    [ordinary, {}, false, ['linux-x64']],
+    [loader, {}, false, ['linux-x64', 'darwin-arm64']],
+    [physical, {}, true, ['linux-x64']],
+    [both, {}, true, ['linux-x64', 'darwin-arm64']],
+    [[], {}, true, ['linux-x64', 'darwin-arm64']],
+    [ordinary, {failure: 'diff unavailable'}, true, ['linux-x64', 'darwin-arm64']],
+    [[], {draft: true}, false, ['linux-x64']],
+    [both, {draft: true}, false, ['linux-x64']],
+    [ordinary, {event: 'push'}, true, ['linux-x64', 'darwin-arm64']],
+    [[], {event: 'workflow_dispatch'}, false, ['linux-x64', 'darwin-arm64']],
+    [[], {event: 'workflow_dispatch', nativeMacos: true}, true, ['linux-x64', 'darwin-arm64']],
+  ]) {
+    const selection = selectTargets(paths, options);
+    assert.equal(selection.macos, macos, selection.reason);
+    assert.deepEqual(matrix(selection), wheels, selection.reason);
+    const needs = {'select-targets': {result: 'success', outputs: {
+      profile: selection.profile, targets: JSON.stringify(selection.targets), macos: String(selection.macos),
+      python_wheels: String(wheels.length > 0),
+    }}};
+    for (const job of ['native-macos-workloads', 'native-http-macos', 'native-macos'])
+      assert.equal(scheduled(job, needs), macos, job);
+    for (const job of ['native-workloads', 'native-http', 'core-darwin'])
+      assert.equal(scheduled(job, needs), !options.draft, job);
+    assert.equal(scheduled('python-wheels', needs), true);
+  }
+});
+
+test('shared workflow changes select Mac runners only when the corresponding build recipe changes', () => {
+  const path = '.github/workflows/ci.yml';
+  const base = 'a'.repeat(40);
+  const fixture = (wheel, native, other, {wheelRunner = 'macos-15', workloadRunner = 'macos-15'} = {}) => `jobs:
+  python-wheels:
+    runs-on: ${wheelRunner}
+    steps: [{run: ${wheel}}]
+  native-macos-workloads:
+    runs-on: ${workloadRunner}
+    steps: [{run: ${native}}]
+  lint:
+    steps: [{run: ${other}}]
+`;
+  const before = fixture('wheels', 'native', 'lint');
+  for (const [after, darwinWheels, macos] of [
+    [fixture('wheels', 'native', 'changed'), false, false],
+    [fixture('changed', 'native', 'lint'), true, false],
+    [fixture('wheels', 'changed', 'lint'), false, true],
+    [fixture('wheels', 'native', 'lint', {wheelRunner: 'macos-14'}), true, false],
+    [fixture('wheels', 'native', 'lint', {workloadRunner: 'macos-14'}), false, true],
+    [null, true, true],
+  ]) {
+    const changed = readChanges({pull_request: {base: {sha: base}}}, args => {
+      if (args[0] === 'rev-parse') return head;
+      if (args.includes('--name-only')) return path + '\0';
+      if (args.includes('--unified=0')) return '+ fixture';
+      assert.equal(args[0], 'show');
+      if (args[1] === `${base}:${path}`) return before;
+      assert.equal(args[1], `${head}:${path}`);
+      if (after === null) throw new Error('unavailable');
+      return after;
+    });
+    const selection = validateSelection(selectTargets(changed.paths, changed));
+    assert.equal(selection.darwinWheels, darwinWheels);
+    assert.equal(selection.macos, macos);
+  }
+});
+
+test('a wheel aggregate requires each selected same-source platform result and selected Mac workload', () => {
+  const ordinary = selectTargets(['src/source_frontend/lower.mbt']);
+  const affected = selectTargets(['toolchain.json']);
+  for (const selection of [ordinary, affected]) {
+    const needs = results(selection);
+    verifyGate(plan(selection), needs, context);
+    for (const {platform} of pythonWheelMatrix(selection).include) {
+      for (const wrong of [undefined, 'failure', 'cancelled', 'skipped', 'a'.repeat(40)]) {
+        const rejected = structuredClone(needs);
+        rejected['python-wheels'].outputs[platform] = wrong;
+        assert.throws(() => verifyGate(plan(selection), rejected, context), new RegExp(platform));
+      }
+    }
+    if (!selection.darwinWheels) {
+      const unexpected = structuredClone(needs);
+      unexpected['python-wheels'].outputs['darwin-arm64'] = head;
+      assert.throws(() => verifyGate(plan(selection), unexpected, context), /darwin-arm64/u);
+    }
+    for (const result of ['failure', 'cancelled', undefined, selection.macos ? 'skipped' : 'success']) {
+      assert.throws(() => verifyGate(plan(selection), {...needs, 'native-macos': {result}}, context), /native-macos/u);
+    }
   }
 });
 
@@ -2140,7 +2239,8 @@ test('Python wheel overlap requires successful Source admission and cannot clear
 test('normal wheel platforms reject foreign machines and keep independent same-platform artifacts', t => {
   const job = jobs['python-wheels'];
   assert.equal(job.strategy['fail-fast'], false);
-  const platforms = job.strategy.matrix.include;
+  assert.equal(job.strategy.matrix, '${{ fromJSON(needs.select-targets.outputs.python_wheel_matrix) }}');
+  const platforms = pythonWheelMatrix(selectTargets([], {event: 'push'})).include;
   assert.deepEqual(platforms.map(row => row.platform).sort(), ['darwin-arm64', 'linux-x64']);
   const expected = {'darwin-arm64': ['macos-15', 'Darwin', 'arm64'],
     'linux-x64': ['ubuntu-24.04', 'Linux', 'x86_64']};
@@ -2167,6 +2267,20 @@ test('normal wheel platforms reject foreign machines and keep independent same-p
     const actual = invoke({}); assert.equal(actual.status, 0, actual.stderr);
     for (const overrides of [{OBSERVED_SYSTEM: 'foreign'}, {OBSERVED_ARCHITECTURE: 'foreign'},
       {GITHUB_SHA: '0'.repeat(40)}]) assert.notEqual(invoke(overrides).status, 0);
+  }
+  const receipt = job.steps.find(step => step.id === 'wheel-acceptance');
+  for (const id of ['python-normal-cohort', 'python-minimum-acceptance', 'python-latest-acceptance']) {
+    const step = job.steps.find(candidate => candidate.id === id);
+    assert(step && job.steps.indexOf(step) < job.steps.indexOf(receipt));
+    assert(receipt.if.includes(`steps.${id}.outcome == 'success'`), id);
+  }
+  for (const {platform} of platforms) {
+    const output = join(root, platform);
+    const result = spawnSync('/bin/bash', ['-eu', '-c', receipt.run], {cwd,
+      env: {WHEEL_PLATFORM: platform, GITHUB_SHA: revision.stdout.trim(), GITHUB_OUTPUT: output}});
+    assert.equal(result.status, 0, result.stderr?.toString());
+    assert.equal(readFileSync(output, 'utf8'), `${platform}=${revision.stdout.trim()}\n`);
+    assert.equal(job.outputs[platform], '${{ steps.wheel-acceptance.outputs.' + platform + ' }}');
   }
   const retention = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(retention.if, '${{ always() }}');
@@ -2278,7 +2392,6 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
     const selection = selectTargets([path], {event});
     assert.equal(selection.profile, 'full', path);
     assert.deepEqual(selection.targets, all, path);
-    assert.equal(selection.macos, true, path);
     assert.equal(deepProofRequired(selection), true, `${event}/${path}`);
   }
 });

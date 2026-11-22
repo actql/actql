@@ -51,7 +51,11 @@ function fixture(observe, {original, kind = 'dispatch'} = {}) {
     }
   };
   setWork(original);
-  const held = compile({operation: actual => {assert.strictEqual(actual, ref); return work;}},
+  const held = compile({
+    operation(actual) {assert.strictEqual(actual, ref); return work;},
+    credentialRefusalPending(actual) {assert.strictEqual(actual, ref); return false;},
+    settleCredentialRefusal(actual) {assert.strictEqual(actual, ref);},
+  },
     effect, model,
     async facts => {
       assert.strictEqual(facts.ref, ref);

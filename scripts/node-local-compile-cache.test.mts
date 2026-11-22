@@ -112,6 +112,45 @@ assert.equal(client.info.stateDir, originalOptions.installation.directory);
 `);
 });
 
+test('public open refuses inherited options before loading the default Local provider', async () => {
+  await check(`
+let inheritedReads = 0;
+const rejected = ['stateDir', 'profile', 'installation', 'durability', 'consentRefs'];
+for (const field of rejected) {
+  const prototype = Object.defineProperty({}, field, {
+    get() { inheritedReads++; throw new Error('UnownedGetter'); },
+  });
+  await assert.rejects(node.open(Object.create(prototype)), {code: 'InvalidOpenOptions'});
+}
+await assert.rejects(node.open(Object.create({stateDir: '.inherited'})), {code: 'InvalidOpenOptions'});
+assert.equal(inheritedReads, 0);
+assert.deepEqual(order, []);
+const prototype = {get profile() { inheritedReads++; throw new Error('UnownedProfile'); }};
+const raw = Object.create(prototype);
+let stateReads = 0, profileReads = 0;
+Object.defineProperties(raw, {
+  stateDir: {get() {
+    stateReads++;
+    assert.deepEqual(order, []);
+    delete raw.profile;
+    return '.own';
+  }},
+  profile: {configurable: true, get() {
+    profileReads++;
+    assert.deepEqual(order, []);
+    return 'mock';
+  }},
+});
+const client = await node.open(raw);
+assert.equal(client.originalClient, true);
+assert.deepEqual([stateReads, profileReads, inheritedReads], [1, 1, 0]);
+assert.deepEqual(order, ['enable', 'dependency', 'host', 'enable', 'connect']);
+assert.equal(originalOptions.profile, 'mock');
+assert.equal(client.info.stateDir, originalOptions.installation.directory);
+assert(client.info.stateDir.endsWith('/.own'));
+`);
+});
+
 test('Local acquisition preserves captured options and original callback and borrower identities', async () => {
   await check(`
 const callback = () => 'original', borrower = Object.freeze({original: true});

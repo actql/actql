@@ -75,6 +75,7 @@ const account = outcome => canonicalJson({
 
 // One check of a query over the `records` name with one declared parameter.
 const query = 'SELECT id FROM records WHERE amount >= @minimum';
+const unsupportedSourceQuery = 'SELECT CUME_DIST() OVER (ORDER BY id) AS n FROM records';
 const declarations = Object.freeze({minimum: {type: 'number'}});
 const expectedNumberAdmission = Object.freeze({kind: 'parameter_declaration',
   contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
@@ -1611,7 +1612,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const client = await submissionObservationClient(t, entrance, configuration);
       for (const [text, sourceDependent] of [
         ['SELECT UNKNOWN_FUNCTION(1) AS n', false],
-        ['SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records', true],
+        [unsupportedSourceQuery, true],
       ]) {
         const publicLimit = !sourceDependent || configuration === configurations.allowed;
         const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
@@ -1660,7 +1661,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: Source-dependent unsupported refusal hides absent and denied Sources`, async t => {
-    const text = 'SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records';
+    const text = unsupportedSourceQuery;
     const problems = [];
     for (const configuration of [configurations.absent, configurations.denied]) {
       const client = await open(t, configuration);
@@ -6348,10 +6349,20 @@ for (const [entrance, open] of Object.entries(entrances)) {
       'SELECT LEAD(amount, (1 + 1)) OVER (ORDER BY id) AS next FROM records',
       'SELECT LAG(amount, -1) OVER (ORDER BY id) AS previous FROM records',
     ];
-    const unsupported = [
-      'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
+    const supported = [
       'SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS n FROM records',
       'SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS value FROM records',
+    ];
+    for (const text of supported) {
+      const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+      assert.equal(checked.outcome, 'completed', text);
+      assert.equal(checked.report.verdict, 'verified', text);
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []}, text);
+    }
+    client.assertNoExecution();
+    const unsupported = [
+      'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
+      unsupportedSourceQuery,
     ];
     for (const [texts, verdict, expectedProblem, reasonCode] of [
       [syntaxInvalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_syntax_invalid'],

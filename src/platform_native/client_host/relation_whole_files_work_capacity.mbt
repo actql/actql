@@ -43,8 +43,9 @@ pub fn native_relation_whole_files_work_control_capacity(
       // extent pair/Ok, map_err closure and conservative mapped Ok.
       // H7/R3/W9 = 208 logical bytes, summed without cleanup/GC reuse.
       // The body Some is borrowed; owner-retired and scope checks are pure.
+      // The locator snapshot also borrows one optional listing provider.
       record_headers: 33L + 7L + 12L * count.to_int64(),
-      reference_slots: 65L + 3L + 20L * count.to_int64(),
+      reference_slots: 65L + 3L + 21L * count.to_int64(),
       scalar_words: 49L + 9L + 12L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,

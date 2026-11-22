@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "051f1aa96dd078d82043ab655e43750365f6e8964750e27bf39fa129f7e0baf9",
+      "sha256": "26ef5f64dd26c6fc243e83b861dbd2591cd37ce3571d099cc9d692ed24652ff1",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -861,7 +861,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "46ddba04f0af94841afc42a979263d72cd6d35f3737d9756f64667ec33420345",
+      "sha256": "e1ce1b106449a35040b2e1fffd8ec674343a74279ca33494b87454f0ba67e7b1",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -5989,7 +5989,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c932f02d13e5a7f9cff2e106111f2a43c07615caa1d42df658ef5756210cc683",
+      "sha256": "475190a9621949de84a509213a83bab17312a0a1c87c0870af61a350c1dc0759",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -12289,7 +12289,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b57100d0b4c5a7904697bd3955096fb228e1fb6221f512ea32f766916ea19238",
+      "sha256": "e50d28f5ef6a087d4c470ce1d64af5f2964350ac222a4e6ad146d7391e689416",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -12308,6 +12308,7 @@
         "WireControlResumeOrigin",
         "WireControlledRunState",
         "WireEffectfulStaticPlanView",
+        "WireExplanationContext",
         "WireExplanationExpressionNode",
         "WireExplanationFacts",
         "WireExplanationMeaning",
@@ -12324,6 +12325,7 @@
         "WirePlanView",
         "WireResolvedControlProfile",
         "WireRunControlCapabilities",
+        "WireRunExplanationContextView",
         "WireRunExplanationView",
         "WireRunPlanView",
         "WireRunSample",
@@ -12336,6 +12338,7 @@
         "WireSampleSelector",
         "WireSampleSource",
         "WireSampleVectors",
+        "WireStaticExplanationView",
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
         "validWireControlAdmissionShape",
@@ -12354,6 +12357,7 @@
         "validWireControlResumeOriginShape",
         "validWireControlledRunStateShape",
         "validWireEffectfulStaticPlanViewShape",
+        "validWireExplanationContextShape",
         "validWireExplanationExpressionNodeShape",
         "validWireExplanationFactsShape",
         "validWireExplanationMeaningShape",
@@ -12370,6 +12374,7 @@
         "validWirePlanViewShape",
         "validWireResolvedControlProfileShape",
         "validWireRunControlCapabilitiesShape",
+        "validWireRunExplanationContextViewShape",
         "validWireRunExplanationViewShape",
         "validWireRunPlanViewShape",
         "validWireRunSampleShape",
@@ -12381,7 +12386,8 @@
         "validWireSampleRelationShape",
         "validWireSampleSelectorShape",
         "validWireSampleSourceShape",
-        "validWireSampleVectorsShape"
+        "validWireSampleVectorsShape",
+        "validWireStaticExplanationViewShape"
       ],
       "operations": [
         {
@@ -12497,6 +12503,13 @@
           "result": "value is WireEffectfulStaticPlanView"
         },
         {
+          "name": "validWireExplanationContextShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationContext"
+        },
+        {
           "name": "validWireExplanationExpressionNodeShape",
           "parameters": [
             "value: unknown"
@@ -12609,6 +12622,13 @@
           "result": "value is WireRunControlCapabilities"
         },
         {
+          "name": "validWireRunExplanationContextViewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRunExplanationContextView"
+        },
+        {
           "name": "validWireRunExplanationViewShape",
           "parameters": [
             "value: unknown"
@@ -12691,6 +12711,13 @@
             "value: unknown"
           ],
           "result": "value is WireSampleVectors"
+        },
+        {
+          "name": "validWireStaticExplanationViewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireStaticExplanationView"
         }
       ],
       "imports": [],
@@ -16368,6 +16395,7 @@
             "WireControlResumeOrigin",
             "WireControlledRunState",
             "WireEffectfulStaticPlanView",
+            "WireExplanationContext",
             "WireExplanationExpressionNode",
             "WireExplanationFacts",
             "WireExplanationMeaning",
@@ -16397,7 +16425,8 @@
             "WireSampleSource",
             "WireSampleVectors",
             "interactiveControlErrors",
-            "interactiveControlRegistryCid"
+            "interactiveControlRegistryCid",
+            "WireStaticExplanationView"
           ],
           "attributes": {
             "responsibility": [
@@ -16606,10 +16635,14 @@
         },
         {
           "operations": [
-            "validWireExplanationFactsShape"
+            "validWireExplanationContextShape",
+            "validWireExplanationFactsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "exports": [
-            "validWireExplanationFactsShape"
+            "validWireExplanationContextShape",
+            "validWireExplanationFactsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -16704,6 +16737,14 @@
               {
                 "path": "scripts/interactive-run-control-contract.test.mjs",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('Explanation Context admits structural declarations and refuses leaked or invented data', () => {"
+              },
+              {
+                "path": "scripts/effectful-static-plan-contract.test.mjs",
+                "anchor": "test('versioned static Explanation composes the existing closed schema families', () => {"
               }
             ]
           }
@@ -17230,10 +17271,13 @@
         },
         {
           "operations": [
-            "validWireRunExplanationViewShape"
+            "validWireRunExplanationViewShape",
+            "validWireRunExplanationContextViewShape"
           ],
           "exports": [
-            "validWireRunExplanationViewShape"
+            "validWireRunExplanationViewShape",
+            "WireRunExplanationContextView",
+            "validWireRunExplanationContextViewShape"
           ],
           "attributes": {
             "responsibility": [
@@ -17328,6 +17372,10 @@
               {
                 "path": "scripts/interactive-run-control-contract.test.mjs",
                 "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              },
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explainContext reads one original projection"
               }
             ]
           }

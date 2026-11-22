@@ -92,11 +92,11 @@ export function createInstalledUndiciOpenAIChatRegistration(config: unknown): Re
 // included these same frozen settings in its original contract/configuration
 // bodies under the initial construction Resource. Legacy public low-level
 // registrations accept no unbound timeout field.
-export function createConfiguredUndiciOpenAIChatRegistration(config: unknown, transportTimeouts: unknown): Registration {
-  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts));
+export function createConfiguredUndiciOpenAIChatRegistration(config: unknown, transportTimeouts: unknown, openAICredentialBytes?: number): Registration {
+  return installedChatRegistration(config as Configuration, true, fixedOriginalTransportTimeouts(transportTimeouts), openAICredentialBytes);
 }
 
-function installedChatRegistration(config: Configuration, originalUndici: boolean, transportTimeouts?: ReturnType<typeof fixedOriginalTransportTimeouts>): Registration {
+function installedChatRegistration(config: Configuration, originalUndici: boolean, transportTimeouts?: ReturnType<typeof fixedOriginalTransportTimeouts>, openAICredentialBytes?: number): Registration {
   if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
     issue('OpenAIOriginalStringLimitsUnavailable');
   }
@@ -243,7 +243,7 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
     physicalFetch??=originalUndici ? createOriginalUndiciFetch({
       endpoint:endpoint.href,requestLimits,responseLimits,
       physicalAcquisitionLimits:config.physicalAcquisitionLimits,
-      transportTimeouts}) : fetch;
+      transportTimeouts, openAICredentialBytes}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       sdkStaticOriginals:openAIChatStaticOriginals,
       bindingOriginals:bindings,
@@ -260,6 +260,7 @@ function installedChatRegistration(config: Configuration, originalUndici: boolea
           taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
           modelId,baseURL,apiKey,fetch:physicalFetch,observeAt,notify:notification.notify,
           rawCaptureBinder:retainRawBinder,profile:raw.profile,installation,
+          needsCredential: openAICredentialBytes !== undefined,
           quantities:quantities.perAttempt,responseLimits,
           maxRequestBytes:requestLimits.maxBytes,
           maxHeaderBytes:requestLimits.maxHeaderBytes,maxHeaders:requestLimits.maxHeaders,

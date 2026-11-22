@@ -1940,3 +1940,15 @@ target/
 /adapters/host-node/effect-plan-verify.d.mts
 /adapters/host-node/effect-command-target-callers.test.mjs
 /adapters/host-node/effect-command-target-callers.test.d.mts
+/scripts/package-inventory.mjs
+/scripts/package-inventory.d.mts
+/scripts/connector-authoring-toolkit.mjs
+/scripts/connector-authoring-toolkit.d.mts
+/scripts/installed-connector-bin.mjs
+/scripts/installed-connector-bin.d.mts
+/scripts/connector-host-bundle-contract.mjs
+/scripts/connector-host-bundle-contract.d.mts
+/adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs
+/adapters/host-node/fixtures/mock-multiple-targets.fixture.d.mts
+/scripts/build-connector-authoring.mjs
+/scripts/build-connector-authoring.d.mts

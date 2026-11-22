@@ -121,7 +121,8 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
-import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes,
+  isModelCredentialRefusal} from './infer-operation.mjs';
 import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -196,7 +197,7 @@ import {installLocalRetainedStore, installLocalSnapshotStore} from
 import {installHostRunAcceptance} from './client-checkpoints.mjs';
 import {createLocalCheckpointAnswer, createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
-import {installClientStaticPlan} from './client-interactive-plan.mjs';
+import {installClientStaticEffectExplanation, installClientStaticPlan} from './client-interactive-plan.mjs';
 import {installClientRunInspect} from './client-run-inspect.mjs';
 import {createClientOwnerCursorCodec} from './client-owner-cursor.mjs';
 import {installClientEffectObservations} from './client-effect-observations.mjs';
@@ -2621,7 +2622,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
-  const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate} = createLocalReadAuthorizations({
+  const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
+    runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -2788,7 +2790,24 @@ async function openInstalledHost(originalInstallation, preparation) {
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
     authorize: hostConnection,
     readOriginal: request => preparation.readStaticPlan(request, environment,
-      verifyRequestValuePolicy, request.signal)});
+      verifyRequestValuePolicy, request.signal, modelInstallation)});
+  const staticEffectExplanation = preparation !== undefined &&
+    ['clientProgramReadRequestCheckedStaticEffectExplanation',
+      'clientProgramStaticEffectExplanationPlanWire', 'clientProgramStaticEffectExplanationFactsWire',
+      'clientProgramStaticEffectExplanationContextWire'].every(function hasStaticExplanationPort(name) {
+      return typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function';
+    }) ? installClientStaticEffectExplanation({
+      authorize: hostConnection,
+      authorizeEgress(request) {
+        if (!hostConnection(request)) return false;
+        preparation.assertStaticEffectExplanationOriginal(request);
+        return authorizeStaticPlan(request);
+      },
+      withOriginal(request, visit) {
+        return preparation.readStaticEffectExplanation(request, environment,
+          verifyRequestValuePolicy, request.signal, visit, modelInstallation);
+      },
+    }) : undefined;
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -2888,10 +2907,15 @@ async function openInstalledHost(originalInstallation, preparation) {
           state = continuation.runState;
         } else {
           const liveExecution = dispatchOwner.live(ref);
+          // A definite pre-Entry refusal can have a settled execution promise
+          // while its original stop/cleanup is still being confirmed. Only
+          // this exact retained failure uses the pending path. A durable
+          // unresolved Entry or claim above still wins.
           const executionUnknown = retained.dispatchReserved &&
             !retained.preDispatchFailureConfirmed &&
             retained.physicalStartReserved !== false &&
-            retained.observedTerminalOutcome === null && !liveExecution;
+            retained.observedTerminalOutcome === null && !liveExecution &&
+            !dispatchOwner.credentialRefusalPending(ref);
           state = issueInstalledUnpublishedRunState(moon, {
             runId, observedAt: now(), resultNames: retained.resultNames,
             dispatchReserved: retained.dispatchReserved,
@@ -2913,7 +2937,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (afterContinuation?.version !== continuation.version) continue;
       }
       if (state.status === 'running' && !dispatchOwner.live(ref) &&
-          retained.physicalStartReserved === true) {
+          retained.physicalStartReserved === true && !dispatchOwner.credentialRefusalPending(ref)) {
         continue;
       }
       // Only this revision-stable common Owner projection supplies status.
@@ -3114,7 +3138,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const changed = new Promise(resolve => { wake = resolve; });
       const subscriptions = new Map();
       const captureWork = () => {
-        for (const promise of [dispatchOwner.operation(ref),
+        for (const promise of [dispatchOwner.credentialRefusalPending(ref) ? undefined : dispatchOwner.operation(ref),
           effectResumeFlights.get(ref.runDefinitionCid),
           modelResumeFlights.get(ref.runDefinitionCid)]) {
           if (promise !== undefined && !subscriptions.has(promise)) {
@@ -3134,6 +3158,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         const decision = installedRunWaitDecision(moon, current, since);
         if (decision === 'ready') return current;
         if (decision !== 'pending') throw clientOperationError(decision);
+        // Only after the original authorized observation may this wait join
+        // the same failed dispatch's cleanup. Abort only ends observation.
+        const cleanup = dispatchOwner.settleCredentialRefusal(ref);
+        if (cleanup !== undefined) {
+          await observeStep(cleanup);
+          if (!dispatchOwner.credentialRefusalPending(ref)) continue;
+        }
         // Also retain work that started during observation. The unchanged
         // fallback observes other-process changes and later local work; neither
         // a notification nor a settled Promise is a completion/cleanup receipt.
@@ -4749,6 +4780,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       },
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      captureDefinitionExplanation: function captureDefinitionExplanation(facts, readEvidence, hasIntent) {
+        return preparation.captureEffectRunExplanation(moon, facts, readEvidence, journal, hasIntent);
+      },
       prepareDefinition: facts => {
         preparation.admitEffectResultPublicationRun(facts.prepared);
         const selected = selectedInstalledEffect(facts);
@@ -6087,9 +6121,12 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (unresolved) busy = true;
             continue;
           }
-          let leaseFailure;
+          let leaseFailure, originalCutHeld = false;
           const leaseMs = authorization?.leaseMs ?? 60000;
           const renewal = claim === undefined ? undefined : setInterval(() => {
+            // This claimant must not change its own exact Journal observation
+            // while it is committing the same pre-entry resource cut.
+            if (originalCutHeld) return;
             try { checkpoints.journal.renewResume(claim, leaseMs); }
             catch (error) {
               leaseFailure = error;
@@ -6098,14 +6135,22 @@ async function openInstalledHost(originalInstallation, preparation) {
           }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
           renewal?.unref?.();
           const observeRestoredRun = journal.observeRunCancellation(ref, moon, control);
-          const assertCurrent = () => {
+          const assertCurrent = (cut) => {
+            if (cut === 'end-model-journal-cut') {
+              originalCutHeld = false;
+              return;
+            }
             if (leaseFailure !== undefined) throw leaseFailure;
             if (observeRestoredRun()?.cancellationRequested !== false) {
               throw new Error('ClientRunCancellationRequested');
             }
-            // Ownership only here. Model send permission is checked by its
-            // own activation and per-call entry; Effect approval is separate.
-            if (claim !== undefined) checkpoints.journal.renewResume(claim, leaseMs);
+            // This is the live claim fence. Model and Effect permission stay
+            // with their existing authorization and durable Entry checks.
+            if (claim !== undefined) {
+              if (originalCutHeld) checkpoints.journal.assertResumeClaimCurrent(claim);
+              else checkpoints.journal.renewResume(claim, leaseMs);
+              if (cut === 'begin-model-journal-cut') originalCutHeld = true;
+            }
           };
           let restorationDispatchEntered = false;
           let restorationStopConfirmed = false;
@@ -6210,6 +6255,21 @@ async function openInstalledHost(originalInstallation, preparation) {
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
+            // A standalone approved Model can refuse a known replacement
+            // before opening a new physical owner. Entered calls still use
+            // their existing reconciliation and stop path.
+            if (claim !== undefined && calls.slots.every(slot => slot.attempts.length === 0)) {
+              const selection = inferSelections.get(submission.preparedProgram);
+              const isOriginalTask = component =>
+                runtimeField(moon.clientProgramInferPlanBoundary(component.graph), 0) === record.inventory.taskIndex;
+              const selected = selection?.components?.find(isOriginalTask) ??
+                (selection?.components === undefined && selection !== undefined && isOriginalTask(selection)
+                  ? selection : undefined);
+              const binding = selected?.providerBinding;
+              if (binding !== undefined && binding.identity !== record.inventory.providerBindingCid) {
+                throw new Error('ModelProviderBindingChanged');
+              }
+            }
             const plan = planFor(submission, current.runDefinition.wire, requested.requested);
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
@@ -6310,7 +6370,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
               return;
             }
-            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
+            if ((code === 'ModelSavedTerminalFailure' || isModelCredentialRefusal(error?.primaryFailure ?? error)) &&
+                stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
                 !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
@@ -6396,6 +6457,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
       lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
+  const runExplanationContext = preparation !== undefined &&
+    ['clientProgramBeginRequestExplanationContextRead', 'clientProgramReserveRequestExplanationContextRead',
+      'clientProgramReadRequestExplanationContext', 'clientProgramRequestExplanationReadIssueCode']
+      .every(name => typeof Object.getOwnPropertyDescriptor(moon, name)?.value === 'function')
+    ? installClientRunExplanation({authorize: hostConnection, context: true,
+      authorizeEgress: (_selected, operation) => authorizeLocalRun(operation, operation),
+      authorizeCurrent: (_selected, operation) => authorizeCurrentLocalRun(operation, operation),
+      probeOriginal: ref => journal.probeRunExplanationContextOriginal(ref),
+      lookupOriginal: (ref, extent) => journal.readRunExplanationContextOriginal(ref, extent),
+      readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
@@ -6420,7 +6491,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
     // Explanation's Account gate runs only after its own fixed read admission,
     // before even the scalar Journal probe. Other read entry rules stay intact.
-    negotiate, prepareSubmit, check, plan, inspectRun, runPlan, runExplanation, attach,
+    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
@@ -7423,13 +7494,35 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       return current;
     },
-    readStaticPlan(request, environment, originalVerifier, signal) {
+    readStaticPlan(request, environment, originalVerifier, signal, modelInstallation) {
       const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('ClientOperationUnavailable');
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request),
-        environment, originalVerifier, signal, undefined, request);
+        environment, originalVerifier, signal, undefined, request, modelInstallation,
+        record.managedSourceProfile?.fileReadDeclarations);
+    },
+    assertStaticEffectExplanationOriginal(request) {
+      // Only the same mapped, live ingress Request may touch metadata policy.
+      originalSourceManagedHostRequest(originals, request);
+    },
+    readStaticEffectExplanation(request, environment, originalVerifier, signal, visit, modelInstallation) {
+      const manager = sourceManaged ?? computeManaged;
+      if (manager === undefined || typeof manager.withOriginalStaticEffectExplanation !== 'function') {
+        throw clientOperationError('ClientOperationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      const original = originalSourceManagedHostRequest(originals, request);
+      // Use the installed policy's finite planning ceiling as the numeric
+      // traversal bound. The compiled Request still owns the actual backing.
+      const planning = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal())[0];
+      if (typeof planning !== 'bigint' || planning < 1n || planning > 2147483647n) {
+        throw clientOperationError('ClientOperationUnavailable');
+      }
+      return manager.withOriginalStaticEffectExplanation(original, environment, originalVerifier, signal,
+        request, Number(planning), visit, modelInstallation, record.managedSourceProfile?.fileReadDeclarations);
     },
     fundedPreparation(request, environment, originalVerifier, signal, journal) {
       const manager = sourceManaged ?? computeManaged;
@@ -7516,6 +7609,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledSourcePreparation');
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
+    },
+    captureEffectRunExplanation(runtime, facts, readEvidence, journal, hasIntent) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
+      if (typeof manager.captureEffectRunExplanation !== 'function') return undefined;
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent :
+        assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.captureEffectRunExplanation(facts.prepared,
+        originalSourceManagedHostRequest(originals, facts.prepared), facts, readEvidence, journal, hasIntent);
     },
     prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
       const manager = sourceManaged ?? computeManaged;

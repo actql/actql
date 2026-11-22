@@ -233,6 +233,7 @@ fn scalar_call(
   }
   match upper(path[0].value) {
     "CURRENT_TIMESTAMP" => ("CURRENT_TIMESTAMP", "current_timestamp", 0, 0)
+    "CURRENT_DATE" => ("CURRENT_DATE", "current_date", 0, 0)
     "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
     "VECTOR_COSINE_SIMILARITY" =>
       ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
@@ -240,6 +241,7 @@ fn scalar_call(
     "VECTOR_L2_DISTANCE" => ("VECTOR_L2_DISTANCE", "vector_score", 2, 2)
     "VECTOR_CONCAT" => ("VECTOR_CONCAT", "vector_concat", 2, 2147483647)
     "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
+    "FARM_FINGERPRINT" => ("FARM_FINGERPRINT", "farm_fingerprint", 1, 1)
     "UNICODE" => ("UNICODE", "unicode", 1, 1)
     "CHR" => ("CHR", "chr", 1, 1)
     "REVERSE" => ("REVERSE", "reverse", 1, 1)
@@ -247,9 +249,16 @@ fn scalar_call(
     "TRANSLATE" => ("TRANSLATE", "translate", 3, 3)
     "INSTR" => ("INSTR", "instr", 2, 4)
     "LENGTH" => ("LENGTH", "len", 1, 1)
+    "ARRAY_LENGTH" => ("ARRAY_LENGTH", "array_length", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "MOD" => ("MOD", "exact_modulo", 2, 2)
     "DIV" => ("DIV", "integer_divide", 2, 2)
+    "GENERATE_ARRAY" => ("GENERATE_ARRAY", "generate_array", 2, 3)
+    "ARRAY_CONCAT" => ("ARRAY_CONCAT", "array_concat", 1, 2147483647)
+    "ARRAY_TO_STRING" => ("ARRAY_TO_STRING", "array_to_string", 2, 3)
+    "JSON_VALUE" => ("JSON_VALUE", "json_value", 1, 2)
+    "TO_JSON_STRING" => ("TO_JSON_STRING", "to_json_string", 1, 2)
+    "FORMAT" => ("FORMAT", "format_strings", 1, 2147483647)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "CBRT" => ("CBRT", "cbrt", 1, 1)
     "SIN" => ("SIN", "sin", 1, 1)
@@ -281,7 +290,12 @@ fn scalar_call(
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "DATE_DIFF" => ("DATE_DIFF", "date_diff", 3, 3)
-    "DATE_ADD" => ("DATE_ADD", "date_add", 3, 3)
+    "TIMESTAMP_DIFF" => ("TIMESTAMP_DIFF", "timestamp_diff", 3, 3)
+    "TIMESTAMP_TRUNC" => ("TIMESTAMP_TRUNC", "timestamp_trunc", 2, 2)
+    "EXTRACT" => ("EXTRACT", "extract_timestamp", 2, 2)
+    "DATE_ADD" => ("DATE_ADD", "date_add", 2, 3)
+    "DATE" => ("DATE", "make_date", 3, 3)
+    "UNIX_SECONDS" => ("UNIX_SECONDS", "unix_seconds", 1, 1)
     "TIMESTAMP_ADD" => ("TIMESTAMP_ADD", "timestamp_add", 2, 2)
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
     "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
@@ -290,6 +304,9 @@ fn scalar_call(
     "TRY_TIMESTAMP" => ("TRY_TIMESTAMP", "try_timestamp", 1, 2)
     "PARSE_TIMESTAMP" => ("PARSE_TIMESTAMP", "parse_timestamp", 2, 2)
     "FORMAT_TIMESTAMP" => ("FORMAT_TIMESTAMP", "format_timestamp", 2, 2)
+    "REGEXP_CONTAINS" => ("REGEXP_CONTAINS", "regex_match", 2, 2)
+    "REGEXP_EXTRACT" => ("REGEXP_EXTRACT", "regex_extract", 2, 2)
+    "REGEXP_REPLACE" => ("REGEXP_REPLACE", "regex_replace", 3, 3)
     "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -414,6 +431,10 @@ pub fn append_with_properties(
   max_work : Int,
   resolve_parameter? : ((String) -> Result[String, Issue])? = None,
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
+  resolve_row_with_work? : ((Array[@query.NamePart], Int) -> Result[
+    (Array[(String, String)], Int)?,
+    Issue,
+  ])? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
     ast,
@@ -424,6 +445,7 @@ pub fn append_with_properties(
     true,
     resolve_parameter,
     resolve_row,
+    resolve_row_with_work,
   )
 }
 
@@ -442,8 +464,15 @@ pub fn append_with_macros(
   resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
-    ast, resolve, resolve_macro, builder, max_work, resolve_properties, resolve_parameter,
+    ast,
+    resolve,
+    resolve_macro,
+    builder,
+    max_work,
+    resolve_properties,
+    resolve_parameter,
     resolve_row,
+    None,
   )
 }
 
@@ -457,6 +486,10 @@ fn append_resolved(
   resolve_properties : Bool,
   resolve_parameter : ((String) -> Result[String, Issue])?,
   resolve_row : ((Array[@query.NamePart]) -> Array[(String, String)]?)?,
+  resolve_row_with_work : ((Array[@query.NamePart], Int) -> Result[
+    (Array[(String, String)], Int)?,
+    Issue,
+  ])?,
 ) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
@@ -483,7 +516,9 @@ fn append_resolved(
     let selected_interval = match node.kind {
       Binary("+" | "-", _, right) => interval_roots[right]
       Call(path, args) if path.length() == 1 &&
-        ["TIMESTAMP_ADD", "TIMESTAMP_SUB"].contains(upper(path[0].value)) &&
+        ["TIMESTAMP_ADD", "TIMESTAMP_SUB", "DATE_ADD"].contains(
+          upper(path[0].value),
+        ) &&
         args.length() == 2 => interval_roots[args[1]]
       _ => None
     }
@@ -587,6 +622,32 @@ fn append_resolved(
               ("value", lowering.add(String(text))),
             ]),
           )
+        DatePart(unit) => lowering.form("literal", lowering.add(String(unit)))
+        DateLiteral(text) =>
+          lowering.form("date_literal", lowering.add(String(text)))
+        TimestampLiteral(text) => {
+          let scan = text.length().min(34)
+          if scan > max_work - work {
+            raise Abort(WorkLimit)
+          }
+          work += scan
+          guard @value.normalize_sql_timestamp_literal(text) is Some(timestamp) else {
+            raise Abort(InvalidArguments)
+          }
+          lowering.form(
+            "cast",
+            lowering.object([
+              (
+                "value",
+                lowering.form("literal", lowering.add(String(timestamp))),
+              ),
+              (
+                "target",
+                lowering.object([("type", lowering.add(String("timestamp")))]),
+              ),
+            ]),
+          )
+        }
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>
@@ -610,10 +671,29 @@ fn append_resolved(
               let mut value = match name {
                 Some(name) => lowering.form("field", lowering.add(String(name)))
                 None => {
-                  guard parts.length() == 1 &&
-                    resolve_row.bind(resolver => resolver(parts))
-                    is Some(fields) else {
+                  guard parts.length() == 1 else {
                     raise Abort(UnknownReference)
+                  }
+                  let fields = match resolve_row_with_work {
+                    None =>
+                      match resolve_row.bind(resolver => resolver(parts)) {
+                        Some(fields) => fields
+                        None => raise Abort(UnknownReference)
+                      }
+                    Some(project) =>
+                      match project(parts, max_work - work) {
+                        Err(issue) => raise Abort(issue)
+                        Ok(None) => raise Abort(UnknownReference)
+                        Ok(Some((fields, spent))) => {
+                          // Charge the projection on the SAME remaining Work
+                          // before any row Object/field node is constructed.
+                          if spent < 0 || spent > max_work - work {
+                            raise Abort(InvalidLimits)
+                          }
+                          work += spent
+                          fields
+                        }
+                      }
                   }
                   // The scope supplies only field names and evaluated slots.
                   // Charge construction before appending; the common object
@@ -790,8 +870,18 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if ["timestamp_add", "timestamp_sub"].contains(name) &&
-                intervals[args[1]] is None {
+              let name = match name {
+                "date_add" if args.length() == 2 => "date_interval_add"
+                "date_diff" if @query.expression_node(ast, args[2])
+                  is Some({ kind: DatePart(_), .. }) => "date_boundary_diff"
+                "date_trunc" if @query.expression_node(ast, args[1])
+                  is Some({ kind: DatePart(_), .. }) => "date_boundary_trunc"
+                _ => name
+              }
+              let interval_call = [
+                "timestamp_add", "timestamp_sub", "date_interval_add",
+              ].contains(name)
+              if interval_call && intervals[args[1]] is None {
                 raise Abort(InvalidArguments)
               }
               if ["to_decimal", "try_decimal"].contains(name) &&
@@ -826,8 +916,12 @@ fn append_resolved(
                 current = @query.expression_origin(ast, args[2])
                 raise Abort(InvalidArguments)
               }
-              if ["timestamp_add", "timestamp_sub"].contains(name) {
+              if interval_call {
                 let unit = intervals[args[1]].unwrap()
+                if name == "date_interval_add" && unit != "d" {
+                  current = @query.expression_origin(ast, args[1])
+                  raise Abort(InvalidArguments)
+                }
                 lowering.arguments(name, [
                   nodes[args[0]],
                   nodes[args[1]],
@@ -839,6 +933,24 @@ fn append_resolved(
                   lowering.object([
                     ("value", nodes[args[0]]),
                     ("max_bytes", nodes[args[1]]),
+                  ]),
+                )
+              } else if name == "regex_match" || name == "regex_extract" {
+                lowering.form(
+                  name,
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("pattern", nodes[args[1]]),
+                  ]),
+                )
+              } else if name == "regex_replace" {
+                lowering.form(
+                  name,
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("pattern", nodes[args[1]]),
+                    ("replacement", nodes[args[2]]),
+                    ("dialect", lowering.add(String("googlesql"))),
                   ]),
                 )
               } else if name == "parse_timestamp" || name == "format_timestamp" {
@@ -1172,7 +1284,8 @@ fn append_resolved(
               value
             }
           }
-        SearchedCase(branches, otherwise) => {
+        SearchedCase(branches, otherwise)
+        | SimpleCase(_, branches, otherwise) => {
           let values : Array[@builder.Node] = []
           for branch in branches {
             values.push(
@@ -1183,6 +1296,9 @@ fn append_resolved(
             )
           }
           let fields = [("when", lowering.add(Array(values)))]
+          if node.kind is SimpleCase(operand, _, _) {
+            fields.push(("operand", nodes[operand]))
+          }
           let original_else = @query.expression_node(ast, otherwise).unwrap()
           // The parser anchors an omitted ELSE's synthetic NULL to END.
           // Preserve that omission for the existing Common completion owner;

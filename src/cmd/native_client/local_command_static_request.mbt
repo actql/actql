@@ -54,6 +54,8 @@ fn LocalCheckContext::project_request(
   capture : @local_host.NativeLocalJournalCapture,
   input : LocalCheckInput,
   explain : Bool,
+  installed_contracts? : @local_values.ClientInstalledSequenceContracts? = None,
+  explanation_current? : (() -> Bool)? = None,
 ) -> String raise ClientStop {
   guard original.business is Some(business) &&
     business.request_input is Some(producer) &&
@@ -63,6 +65,9 @@ fn LocalCheckContext::project_request(
   // Trusted Host metadata stays bound to the original Read/current boundary.
   if !self.current() {
     stop("LocalCheckContextUnavailable")
+  }
+  if explanation_current is Some(current) && (!explain || !current()) {
+    stop("LocalRunStateReadAuthorizationDenied")
   }
   let (publication, publication_wire) = local_command_project_publication(
     self.environment,
@@ -124,13 +129,144 @@ fn LocalCheckContext::project_request(
           local_stop_submitted_preparation(@local_host.Request(issue))
         Ok(_) => ()
       }
-      let view = @local_values.request_native_static_plan_view(
-        parent,
-        producer,
-        self.environment,
-        publication,
-        native_request_manifests,
-      ).unwrap_or_else(() => stop("LocalStaticCompilationUnavailable"))
+      let kind = match
+        @local_values.finish_request_checked_computation(
+          parent,
+          producer,
+          self.environment,
+          publication,
+        ) {
+        Err(issue) =>
+          local_stop_submitted_preparation(@local_host.Request(issue))
+        Ok(value) => value
+      }
+      if explanation_current is Some(_) && kind != @local_values.Effect {
+        stop("LocalStaticExplanationNotProjected")
+      }
+      let view = if kind == @local_values.Effect {
+        guard business.request_body is None else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let body = match
+          @local_host.borrow_native_client_request_plan_input(parent, producer) {
+          Err(issue) => local_stop_submitted_preparation(issue)
+          Ok(value) => value
+        }
+        // Retain before any Graph constructor. Existing command cleanup owns
+        // this same token on failure/current loss or an unacknowledged return.
+        business.request_body = Some(body)
+        guard body is @local_host.Effect(borrow) &&
+          @initial_resources.preparation_body_borrow_value(borrow)
+          is Some(prepared) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let occurrences = @run_host.prepared_client_effect_infer_occurrences(
+          prepared,
+        ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
+        let models = if occurrences.is_empty() {
+          []
+        } else {
+          guard original.project is Some(project) &&
+            project.mock_declarations is Some(mock) &&
+            installed_contracts is Some(contracts) else {
+            stop("LocalOriginalModelUnavailable")
+          }
+          match
+            mock.prepare_effect_models(
+              parent,
+              producer,
+              occurrences,
+              self.environment,
+              contracts,
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              original.retain_primary(CommandBusinessModelGraph(issue))
+              stop("LocalOriginalModelGraphUnavailable")
+            }
+          }
+        }
+        let infers = models.map(value => value.graph)
+        let view = if explanation_current is Some(_) {
+          // The original Journal Read is suspended during compiler work.
+          // Account calls stay on the entered Read outside this callback.
+          let policy = @local_values.client_local_preparation_initial_limits(
+            @local_values.client_local_resource_policy(),
+          ).unwrap_or_else(() => stop("LocalStaticExplanationUnavailable"))
+          let report = match
+            native_static_explanation_language(producer.arguments) {
+            None =>
+              @local_values.request_prepared_static_effect_explanation_wire(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                infers~,
+              )
+            Some(language) =>
+              @local_values.request_prepared_static_effect_explanation_narrative(
+                parent,
+                producer,
+                native_request_manifests,
+                65536,
+                8192,
+                64,
+                policy.planning_work,
+                language,
+                infers~,
+              )
+          }
+          match report {
+            Err(@local_values.Preparation(issue)) =>
+              local_stop_submitted_preparation(
+                @local_host.RequestPreparation(issue),
+              )
+            Err(
+              @local_values.Encoding(_)
+              | @local_values.Presentation(ExplanationPresentationLimit)
+            ) => stop("LocalStaticExplanationLimit")
+            Err(_) => stop("LocalStaticExplanationUnavailable")
+            Ok(value) => value
+          }
+        } else {
+          match
+            @local_values.request_prepared_static_plan_view(
+              parent,
+              producer,
+              native_request_manifests,
+              65536,
+              8192,
+              64,
+              infers~,
+            ) {
+            Err(issue) =>
+              local_stop_submitted_preparation(@local_host.Request(issue))
+            Ok(value) => value
+          }
+        }
+        @local_host.return_native_client_submitted_request_body(body).unwrap_or_else(() => {
+            stop("LocalRequestBodyReturnPending")
+          },
+        )
+        |> ignore
+        business.request_body = None
+        view
+      } else {
+        match
+          @local_values.request_prepared_static_plan_view(
+            parent, producer, native_request_manifests, 65536, 8192, 64,
+          ) {
+          Err(issue) =>
+            local_stop_submitted_preparation(@local_host.Request(issue))
+          Ok(value) => value
+        }
+      }
+      if explanation_current is Some(_) {
+        return view
+      }
       return local_explain_reply(
         view,
         producer.arguments.flags.get("json").unwrap_or(false),
@@ -253,6 +389,9 @@ fn LocalCheckContext::project_request(
   })
   if !self.current() {
     stop("LocalCheckContextUnavailable")
+  }
+  if explanation_current is Some(current) && !current() {
+    stop("LocalRunStateReadAuthorizationDenied")
   }
   report
 }

@@ -8,10 +8,72 @@ import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, runNativeCliMockScenario}
+import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, requireNativeMockWork, runNativeCliMockScenario,
+  runNativeSharedFileMockScenario}
   from './native-cli-mock-scenario.mjs';
+import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
+import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+
+test('Native shared-file fixture requests three ordered rows with independent complete oracles', () => {
+  const {files, programFile, before, after, changes, rows} = threeWriteMockProject();
+  assert.equal(JSON.parse(files['actql.config.json']).mock.data, './mock/data.json');
+  assert.equal(files['mock/data.json'], before);
+  const stage = JSON.parse(files[programFile]).stages[0];
+  assert.deepEqual(Object.keys(stage.effects), ['a_first', 'b_middle', 'c_last']);
+  assert.deepEqual(Object.values(stage.effects).map(({update}) => [update.target, update.id, update.set]), [
+    ['connector://salesforce/Account', 'account_id', {value: {field: 'account_next'}}],
+    ['connector://salesforce/Contact', 'contact_id', {value: {field: 'contact_next'}}],
+    ['connector://salesforce/Account', 'second_account_id', {value: {field: 'second_account_next'}}],
+  ]);
+  assert.deepEqual(changes, [
+    {resource: 'Account', id: 'a1', before: 'A-old', after: 'A-new'},
+    {resource: 'Contact', id: 'c1', before: 'C-old', after: 'C-new'},
+    {resource: 'Account', id: 'a2', before: 'A2-old', after: 'A2-new'},
+  ]);
+  assert.deepEqual(rows, [{account_id: 'a1', contact_id: 'c1', account_before: 'A-old',
+    contact_before: 'C-old', account_next: 'A-new', contact_next: 'C-new',
+    second_account_id: 'a2', second_account_next: 'A2-new'}]);
+  const document = JSON.parse(after);
+  assert.deepEqual(document, {
+    salesforce: {
+      Account: {key: ['id'], rows: [
+        {id: 'a1', group: 'selected', value: 'A-new'},
+        {id: 'a-control', group: 'account-control', value: 'keep-account'},
+        {id: 'a2', group: 'other', value: 'A2-new'},
+      ]},
+      Contact: {key: ['id'], rows: [
+        {id: 'c1', group: 'selected', value: 'C-new'},
+        {id: 'c-control', group: 'contact-control', value: 'keep-contact'},
+      ]},
+    },
+    control: {unchanged: 'keep-physical-document'},
+  });
+  assert.equal(after.replace('"A-new"', '"A-old"').replace('"C-new"', '"C-old"')
+    .replace('"A2-new"', '"A2-old"'), before);
+});
+
+test('Native multi-member observations retain one distinct dispatch and receipt for each member-local row', () => {
+  const chain = (name, ordinal = 0) => [5, 6, 7, 8, 9, 10, 11].map(tag => ({
+    tag, ordinal, identity: name + ':' + (tag === 8 ? 5 : tag),
+  }));
+  const events = [...chain('first'), ...chain('middle'), ...chain('last')];
+  const options = {modelRows: 0, writeOrdinals: [0, 0, 0]};
+  assert.deepEqual(requireNativeMockWork(['run'], [{events: []}], 3, options), {modelAttempts: [], writes: []});
+  assert.equal(requireNativeMockWork(['approve'], [{events: chain('single')}], 1).writes.length, 1);
+  assert.deepEqual(requireNativeMockWork(['approve'], [{events}], 3, options).writes.map(value => value.rowReceipt),
+    ['first:11', 'middle:11', 'last:11']);
+  assert.throws(() => requireNativeMockWork(['approve'], [{events}], 3), /Repeated original Effect ordinal/u);
+  assert.throws(() => requireNativeMockWork(['approve'], [{events: events.slice(0, -7)}], 3, options),
+    /Actual target replacement count differs/u);
+  assert.throws(() => requireNativeMockWork(['approve'], [{events: [...events.slice(0, -7), ...chain('last', 1)]}],
+    3, options), /Changed original Effect member row ordinals/u);
+  const repeated = events.map(event => event.identity === 'last:9' ? {...event, identity: 'middle:9'} : event);
+  assert.throws(() => requireNativeMockWork(['approve'], [{events: repeated}], 3, options),
+    /Repeated original Effect dispatch/u);
+  assert.throws(() => requireNativeMockWork(['result'], [{events}], 3, options), /replayed Model or Effect work/u);
+});
 
 test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
   assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
@@ -37,6 +99,83 @@ function observation(pid, events = []) {
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
 }
 const observedCid = digit => 'sha256:' + digit.repeat(64);
+
+test('installed Native shared-file selection preserves its own original Run and checks the returned writer lock first', async t => {
+  assert.deepEqual(nativeMockInstallOptions(['--shared-file-mock'], 'darwin'), {sharedFileMock: true});
+  assert.equal(nativeMockInstallOptions([], 'darwin').sharedFileMock, undefined);
+  assert.throws(() => nativeMockInstallOptions(['--shared-file-mock', '--release-project-sequences', '/unused'], 'darwin'),
+    /separate acceptance invocation/u);
+  const fixture = threeWriteMockProject(), checkpoint = 'unit-checkpoint', runId = 'unit-run';
+  const cid = observedCid('a'), resultWire = JSON.stringify(fixture.rows[0]) + '\n';
+  const data = JSON.parse(fixture.before);
+  for (const orphan of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), 'actql-shared-file-mock-unit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const calls = [];
+    let approved = false;
+    const exercise = runNativeSharedFileMockScenario({root, async run(args, cwd) {
+      calls.push([...args]);
+      const file = join(cwd, 'mock/data.json');
+      const events = [];
+      let stdout = '';
+      if (args[0] === '--mode') {
+        assert.deepEqual(args, ['--mode', 'local', '--config', join(cwd, 'actql.config.json'),
+          '--state-dir', join(cwd, '.actql'), 'adopt', '--initialize-signing']);
+        assert.equal(await readFile(file, 'utf8'), fixture.before);
+      } else if (args[0] === 'run') {
+        assert.deepEqual(args, ['run', fixture.programFile, '--format', 'aql-json', '--stop-before', 'commit', '--json']);
+        assert.equal(await readFile(join(cwd, fixture.programFile), 'utf8'), fixture.files[fixture.programFile]);
+      } else {
+        await assert.rejects(stat(join(cwd, fixture.programFile)), {code: 'ENOENT'});
+        assert.equal(args[1], args[0] === 'approve' ? checkpoint : runId);
+      }
+      if (args[0] === 'run' || args[0] === 'status') stdout = JSON.stringify({
+        version: 'actql-run-state/0.1', run_id: runId, status: approved ? 'succeeded' : 'waiting_checkpoint',
+        checkpoint: {checkpoint_id: checkpoint, checkpoint_cid: cid},
+      });
+      if (args[0] === 'status' && !args.includes('--json')) {
+        stdout = [`Run: "${runId}"`, `Checkpoint: "${checkpoint}"`, `  Original CID: "${cid}"`,
+          'Stored Effect Preview (read-only; not approval):', ...fixture.changes.flatMap(change => [
+            `  Effect: "update"  Target: "connector://salesforce/${change.resource}"`,
+            '  Items: 1', '  Preview strength: "full_diff"', '  Changes:', `    Row: "${change.id}"`,
+            '      Before: ' + JSON.stringify({state: 'present',
+              value: data.salesforce[change.resource].rows.find(row => row.id === change.id)}),
+            '      After: ' + JSON.stringify({state: 'present', value: {value: change.after}}),
+          ])].join('\n') + '\n';
+      }
+      if (args[0] === 'approve') {
+        assert(!approved);
+        assert.deepEqual(args, ['approve', checkpoint, '--wait', '--json']);
+        approved = true;
+        await writeFile(file, fixture.after);
+        if (orphan) await writeFile(file + '.actql-write.lock', '');
+        for (const ordinal of [0, 1, 2]) for (const tag of [5, 6, 7, 8, 9, 10, 11]) {
+          events.push({tag, ordinal: tag === 6 || tag === 7 ? -1 : 0,
+            identity: tag === 6 || tag === 7 ? '' : 'sha256:' + (ordinal * 16 + (tag === 8 ? 5 : tag))
+              .toString(16).padStart(64, '0')});
+        }
+      }
+      if (args[0] === 'result') {
+        assert(approved);
+        assert.deepEqual(args, ['result', runId, '--result', 'updates', '--format', 'jsonl']);
+        stdout = resultWire;
+      }
+      return {code: 0, signal: null, stdout, stderr: observation(100 + calls.length, events)};
+    }});
+    if (orphan) {
+      await assert.rejects(exercise, /target lock path must be absent/u);
+      assert.deepEqual(calls.map(args => args[0]), ['--mode', 'run', 'status', 'status', 'approve']);
+    } else {
+      const receipt = await exercise;
+      assert.equal(receipt.runId, runId);
+      assert.equal(receipt.checkpointId, checkpoint);
+      assert.equal(receipt.resultRows, 1);
+      assert.equal(receipt.lockPathAbsent, true);
+      assert.deepEqual(calls.map(args => args[0]),
+        ['--mode', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
+    }
+  }
+});
 
 function journalCapacityRefusal({unknown = false, cause = 5001, closed = true} = {}) {
   const diagnostic = observation(1701).trimEnd().split('\n').map(line => {
@@ -492,7 +631,9 @@ test('the required Node caller cannot silently become a direct Native caller', a
   const options = await fixture(t,'deal-review-mock'); options.launcherTimings='required';
   await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
   const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
-  assert(installed.includes("runNativeCliMockScenario({root, template, launcherTimings: 'required'"));
+  assert.match(installed, /const runScenarioCommand = \(args, cwd\) => run\(process\.execPath, \[launcher, \.\.\.args\], cwd\);/u);
+  assert.match(installed, /runNativeCliMockScenario\(\{\s*root, template, launcherTimings: 'required', run: runScenarioCommand\}/u);
+  assert.match(installed, /runNativeSharedFileMockScenario\(\{\s*root,\s*launcherTimings: 'required', run: runScenarioCommand\}/u);
 });
 
 for (const [name, envelope] of [

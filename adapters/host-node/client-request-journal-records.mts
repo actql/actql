@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-values-capacity.mjs';
+import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {fail, type JournalSqlConnection} from './client-request-journal-sql.mjs';
 import type {SQLOutputValue} from 'node:sqlite';
@@ -700,7 +701,9 @@ type RunRecordStatements = Readonly<{
   intentSelect: Pick<JournalStatement, 'get'>;
   insert: Pick<JournalStatement, 'run'>; advanceSubmissionCustody: Pick<JournalStatement, 'run'>;
 }>;
-type ExplanationOriginal = Readonly<{factsWire: string}>;
+export type ExplanationOriginal = Readonly<{
+  factsWire: string; contextWire?: string; contextWireSha256?: string; invocationTemplateWire?: string;
+}>;
 type RunRecordOwners = Readonly<{
   ensureOpen: () => void; transact: ReturnType<typeof createJournalAttempts>['transact'];
   checkSubmissionBinding: SubmissionRows['checkSubmissionBinding']; refuseEpoch: SubmissionRows['refuseEpoch'];
@@ -709,6 +712,7 @@ type RunRecordOwners = Readonly<{
   assertJournalCancellationCustody: typeof assertJournalCancellationCustody;
   readExplanationOriginal: (ref: WireRunRef) => ReturnType<typeof readJournalExplanationOriginal>;
   insertExplanationOriginal: (ref: WireRunRef, original: ExplanationOriginal) => void;
+  verifyExplanationContext: (runDefinitionCid: string, original: ExplanationOriginal) => void;
 }>;
 type RequestRelation = Readonly<{clientRequestRelation(original: unknown, retained: unknown): number}>;
 type LookupControl = RequestIdentityAdmission<unknown> & Pick<RequestIdentityRead, 'clientRequestScopeCid'>;
@@ -735,9 +739,9 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
   cancellationIssued, intentSelect, insert, advanceSubmissionCustody}: RunRecordStatements,
   {ensureOpen, transact, checkSubmissionBinding, refuseEpoch, retainedIntent,
     assertJournalSubmissionCustody, assertJournalCancellationCustody,
-    readExplanationOriginal, insertExplanationOriginal}: RunRecordOwners,
-  {maxRecords, maxRunDefinitionWireBytes, updateOriginalControl}: Pick<ReturnType<typeof snapshotJournalConfiguration>,
-    'maxRecords' | 'maxRunDefinitionWireBytes'> & Readonly<{updateOriginalControl?: UpdateOriginalControl}>) {
+    readExplanationOriginal, insertExplanationOriginal, verifyExplanationContext}: RunRecordOwners,
+  {maxRecords, maxRunDefinitionWireBytes, maxOriginalExplanationWireBytes, updateOriginalControl}: Pick<ReturnType<typeof snapshotJournalConfiguration>,
+    'maxRecords' | 'maxRunDefinitionWireBytes'> & Readonly<{maxOriginalExplanationWireBytes: number; updateOriginalControl?: UpdateOriginalControl}>) {
   const acceptRecord = (identity: unknown, {namespaceId, runDefinitionCid,
     runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt,
     submission}: RunAdmissionInput, control: AcceptanceControl, originalExplanation?: ExplanationOriginal) => {
@@ -761,8 +765,13 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
     }
+    const hasContext = originalExplanation?.contextWire !== undefined;
+    const evidenceLimit = hasContext ? maxOriginalExplanationWireBytes : maxRunDefinitionWireBytes;
+    if (hasContext && sourceAliasDataGeometry(Object.freeze(runAdmissionEvidence)).jsonBytes > BigInt(evidenceLimit)) {
+      fail('InvalidClientRunAdmissionEvidence');
+    }
     const capturedAdmissionEvidence = evidenceJson(runAdmissionEvidence,
-      maxRunDefinitionWireBytes, updateOriginalControl);
+      evidenceLimit, updateOriginalControl);
     const admissionEvidence = capturedAdmissionEvidence?.wire ?? null;
     const admittedEvidence = capturedAdmissionEvidence?.value;
     assertKeyedInventoryRequest(admittedEvidence?.sourceInventory, fields);
@@ -813,8 +822,13 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
         const existingEvidence = retainedEvidence(existing, updateOriginalControl, capturedAdmissionEvidence);
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
           runAdmissionEvidence: existingEvidence}, admittedEvidence?.sourceInventory);
+        // A competing Effect issuer can finish its optional capture before
+        // another transaction wins this exact Request. Keep the winner and
+        // return the loser's loan without comparing or backfilling its facets.
+        const compareOriginal = originalExplanation?.contextWire === undefined ||
+          existing.run_definition_cid === runDefinitionCid;
         const proposedPlan = admittedEvidence?.logicalPlanOriginal;
-        if (proposedPlan !== undefined) {
+        if (compareOriginal && proposedPlan !== undefined) {
           const originalPlan = existingEvidence?.logicalPlanOriginal;
           if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
           if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
@@ -822,11 +836,14 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
             fail('ClientRequestPlanEvidenceMismatch');
           }
         }
-        if (originalExplanation !== undefined) {
+        if (compareOriginal && originalExplanation !== undefined) {
           const original = readExplanationOriginal({namespaceId,
             authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
           if (original === undefined) fail('ClientRequestExplanationEvidenceMissing');
           if (original.factsWire !== originalExplanation.factsWire) fail('ClientRequestExplanationEvidenceMismatch');
+          if (originalExplanation.contextWire !== undefined) {
+            verifyExplanationContext(existing.run_definition_cid, originalExplanation);
+          }
         }
         const proposedInfer = admittedEvidence?.inferRunOriginal;
         if (proposedInfer !== undefined) {
@@ -867,9 +884,13 @@ export function createJournalRunRecords({select, selectRun, requestUsage, submis
           fail('ClientRequestSubmittedIntentMismatch');
         }
         if (!cid(original.intentCid)) fail('InvalidClientRunAdmissionEvidence');
+        if (hasContext && admittedEvidence.submittedIntentCid === undefined &&
+            Buffer.byteLength(admissionEvidence!) + ',"submittedIntentCid":""'.length + original.intentCid.length > evidenceLimit) {
+          fail('InvalidClientRunAdmissionEvidence');
+        }
         originalAdmissionEvidence = JSON.stringify({...admittedEvidence,
           submittedIntentCid: original.intentCid});
-        if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {
+        if (Buffer.byteLength(originalAdmissionEvidence) > evidenceLimit) {
           fail('InvalidClientRunAdmissionEvidence');
         }
       } else if (admittedEvidence?.submittedIntentCid !== undefined) {

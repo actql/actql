@@ -10,12 +10,22 @@ priv struct KeyedProtocolConstruction {
 }
 
 ///|
+priv enum KeyedProtocolDependencies {
+  NoDependencies
+  Unmeasured(Array[@publication.CapturedEffectDependencyBody])
+  Measured(
+    Array[@publication.CapturedEffectDependencyBody],
+    KeyedDependencyMeasuredBodies
+  )
+}
+
+///|
 priv struct KeyedProtocolBuilt[T] {
   value : T
   contracts : Array[@publication.PublicationContract]
   evidence : Array[@publication.RunEvidenceValue]
   texts : Array[String]
-  dependency_bodies : Array[@publication.CapturedEffectDependencyBody]?
+  dependencies : KeyedProtocolDependencies
 }
 
 ///|
@@ -32,8 +42,14 @@ fn[T] keyed_protocol_built(
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
   dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
+  measured_bodies? : KeyedDependencyMeasuredBodies? = None,
 ) -> KeyedProtocolBuilt[T] {
-  { value, contracts, evidence, texts, dependency_bodies, }
+  let dependencies = match (dependency_bodies, measured_bodies) {
+    (Some(bodies), Some(measured)) => Measured(bodies, measured)
+    (Some(bodies), None) => Unmeasured(bodies)
+    (None, _) => NoDependencies
+  }
+  { value, contracts, evidence, texts, dependencies, }
 }
 
 ///|
@@ -97,7 +113,7 @@ fn[T] with_keyed_protocol_construction(
     built.contracts,
     evidence=built.evidence,
     texts=built.texts,
-    dependency_bodies=built.dependency_bodies,
+    dependencies=built.dependencies,
   ).map(_ => { value: built.value, })
 }
 

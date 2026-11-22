@@ -72,22 +72,23 @@ test "anonymous windows preserve scoped input and typed empty outputs" {
 }
 
 ///|
-test "anonymous windows never add public or authored private aliases" {
+test "anonymous windows publish a display label without adding authored aliases" {
   for
     source in [
-      "WITH r AS (SELECT 1 AS x) SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r", "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r",
-      "WITH r AS (SELECT 1 AS x) FROM r |> SELECT ROW_NUMBER() OVER (ORDER BY x) |> WHERE TRUE",
+      "WITH r AS (SELECT 1 AS x) SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r", "WITH r AS (SELECT 1 AS x) FROM r |> SELECT ROW_NUMBER() OVER (ORDER BY x) |> WHERE TRUE",
     ] {
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(source, syntax_limits()).unwrap(),
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
-    )
+    let program = anonymous_result_program(source)
+    assert_eq(anonymous_result_fields(program), ["f0_"], msg=source)
   }
+  let by_name = "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r"
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(by_name, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(UnsupportedProjection),
+  )
   let head = "WITH r AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r QUALIFY "
   for field in ["aql_analytic_output_1", "aql_set_anonymous_3"] {
     match

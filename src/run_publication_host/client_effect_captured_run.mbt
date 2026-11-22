@@ -37,6 +37,67 @@ pub fn prepare_client_effect_captured_run(
   @publication.CapturedRunIssuancePreparation,
   ClientEffectCapturedRunIssue,
 ] {
+  let plans : Array[(String, String)] = []
+  match
+    visit_client_effect_captured_plan_wires(
+      materials,
+      inputs,
+      preview,
+      proofs,
+      invocation,
+      max_fields,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      (name, wire) => plans.push((name, wire)),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    @publication.start_effectful_captured_run(
+      materials.run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources,
+      local_sources,
+      [],
+      authoring,
+      models,
+      @strategy.captured_effect_preview_ledger_identity(preview),
+      plans,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_workspace,
+      dependency_inventory=Some(inventory),
+    ),
+  )
+}
+
+///|
+/// Emit only the verified original Preview plans. The installed owner can
+/// reserve each returned wire before construction and pass the result to its
+/// existing planned Captured Run issuer.
+pub fn visit_client_effect_captured_plan_wires(
+  materials : ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  preview : @strategy.CapturedEffectPreviewInputs,
+  proofs : Array[@strategy.CapturedEffectPlanProof],
+  invocation : @publication.PublicationContract,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  emit : (String, String) -> Unit,
+  before_wire? : ((Int, Int, Int) -> Bool)? = None,
+) -> Result[Unit, ClientEffectCapturedRunIssue] {
   if max_bytes < 1 || max_bytes > 16777216 {
     return Err(Encoding)
   }
@@ -74,7 +135,6 @@ pub fn prepare_client_effect_captured_run(
     Ok(_) => ()
     Err(issue) => return Err(Proof(issue))
   }
-  let plans : Array[(String, String)] = []
   let mut remaining = max_bytes
   for index in 0..<count {
     guard @strategy.captured_effect_preview_input_at(preview, index)
@@ -98,41 +158,35 @@ pub fn prepare_client_effect_captured_run(
       Ok(None) => continue
       Err(issue) => return Err(Plan(issue))
     }
+    if before_wire is Some(fund) {
+      let measured = @encode.measuring_writer(remaining, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
+      }
+      @stage_results.emit_effect_plan_pipeline(terminal, measured) catch {
+        _ => return Err(Encoding)
+      }
+      let (bytes, nodes, depth) = @encode.finish_measurement_usage(measured) catch {
+        _ => return Err(Encoding)
+      }
+      if !fund(bytes, nodes, depth) {
+        return Err(Encoding)
+      }
+    }
     let writer = @encode.writer(remaining, max_nodes, max_depth) catch {
       _ => return Err(Encoding)
     }
     @stage_results.emit_effect_plan_pipeline(terminal, writer) catch {
       _ => return Err(Encoding)
     }
-    let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
-    remaining -= @utf8.encode(wire).length()
+    let (wire, bytes, _, _) = @encode.finish_text_usage(writer) catch {
+      _ => return Err(Encoding)
+    }
+    remaining -= bytes
     guard @publication.effect_preview_member_effect_id(identity, index)
       is Some(name) else {
       return Err(ForeignInput)
     }
-    plans.push((name, wire))
+    emit(name, wire)
   }
-  Ok(
-    @publication.start_effectful_captured_run(
-      materials.run_definition,
-      invocation,
-      definitions,
-      artifacts,
-      manifest,
-      receipt,
-      snapshots,
-      sources,
-      local_sources,
-      [],
-      authoring,
-      models,
-      identity,
-      plans,
-      max_bytes,
-      max_nodes,
-      max_depth,
-      max_workspace,
-      dependency_inventory=Some(inventory),
-    ),
-  )
+  Ok(())
 }

@@ -76,7 +76,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         read,
         compiled,
         first.definition,
-        state.graph,
+        state.model_graph(),
         base_retained,
         base_execution,
       )
@@ -116,7 +116,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       })
     })
     let sources = @run_host.admit_client_infer_composed_whole_sources(
-      state.graph.occurrence,
+      state.model_graph().occurrence,
       captured_sources,
       held.identities,
       state.input_originals.map(pair => pair.0),
@@ -134,7 +134,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
     let sequence = @local_values.prepared_installed_effect_model_sequence(
       plan,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalModelSequenceUnavailable"))
     // Enter this SAME late Read once. Both source metadata and the actual
     // producer-read vector stay on its grown original extent through input.
@@ -286,7 +286,7 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
       held,
       state.first.model_compiled.unwrap(),
       state.first.definition,
-      state.graph,
+      state.model_graph(),
     ).unwrap_or_else(() => stop("LocalOriginalEffectContinuationUnavailable"))
     state.model_output = Some(output)
     let sources = state.captured_inputs.map(input => {
@@ -300,7 +300,7 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
         sources,
         state.first.model_compiled.unwrap(),
         state.first.definition,
-        state.graph,
+        state.model_graph(),
         output,
         completed,
         source_results=state.model_read
@@ -388,14 +388,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_observation(
           stop("LocalOriginalModelObservationUnavailable")
         }
         Ok(value) => {
-          if value {
-            state._retained_model_observation = Some(
-              work
-              .observation_original()
-              .unwrap_or_else(() => {
-                stop("LocalOriginalModelObservationUnavailable")
-              }),
-            )
+          if value && work.observation_original() is None {
+            stop("LocalOriginalModelObservationUnavailable")
           }
           value
         }
@@ -413,10 +407,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_observation(
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     business.effect_model is Some(state) &&
-    state._retained_model_observation is Some(_) &&
     state.effect_capture is Some(_) &&
     state._retained_local_model_observation is None &&
-    business.model_work.length() == 1 else {
+    business.model_work.length() == 1 &&
+    business.model_work[0].observation_original() is Some(_) else {
     stop("LocalOriginalModelLocalObservationUnavailable")
   }
   let work = business.model_work[0]

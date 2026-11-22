@@ -1,5 +1,7 @@
 import type * as Public from './browser-source.js';
 type BrowserSource = ReturnType<typeof Public.createExplorerBrowserSource>;
+type StaticExplanation = Awaited<ReturnType<BrowserSource['staticExplanation']>>;
+type SavedExplanation = Awaited<ReturnType<BrowserSource['runContext']>>;
 interface Session {csrf:string;scopeEpoch:number;expiresAt:number;cancellation:boolean;checkpointList:boolean;checkpointReview:boolean}
 interface SessionReply {capabilities:Record<string,unknown>;csrf:unknown;scopeEpoch:unknown;expiresAt:unknown}
 
@@ -28,6 +30,14 @@ async function jsonReply(response:Response):Promise<unknown> {
   for (const chunk of chunks) {bytes.set(chunk, offset); offset += chunk.length;}
   try {return JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes));}
   catch {refused('ExplorerInvalidReply');}
+}
+
+function validNarrative(plan: StaticExplanation['plan'] | null | undefined,
+  story: StaticExplanation['story'] | undefined, context: StaticExplanation['context'] | undefined, locale: string) {
+  return typeof plan?.logicalMapCid === 'string' && plan.logicalMapCid === story?.logicalMapCid &&
+    plan.compiledPlanCid === story.compiledPlanCid && plan.programDefinitionCid === story.programDefinitionCid &&
+    story.locale === locale && Array.isArray(story.occurrences) && Array.isArray(context) &&
+    context.every(item => typeof item?.text === 'string' && item.origin != null);
 }
 
 // A browser session holds only Gateway presentation credentials in memory.
@@ -95,6 +105,13 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return answer.capabilities as Public.ExplorerCapabilities;
     },
     plan(input, options) {return read<Awaited<ReturnType<BrowserSource['plan']>>>('plan', {input, ...(options === undefined ? {} : {options})});},
+    async staticExplanation(input, options, locale = 'en') {
+      if (locale !== 'en' && locale !== 'ja') refused('ExplorerInvalidReply');
+      const value = await read<StaticExplanation>('static-explanation', {input, locale, ...(options === undefined ? {} : {options})});
+      const {plan, story, context} = value ?? {} as Partial<StaticExplanation>;
+      if (!validNarrative(plan, story, context, locale)) refused('ExplorerInvalidReply');
+      return value;
+    },
     async launchView() {
       const view = await read<Awaited<ReturnType<BrowserSource['launchView']>>>('launch', {});
       if (view === null) return null;
@@ -115,6 +132,24 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           value.run_ref.namespaceId !== original.namespaceId ||
           value.run_ref.authorityScopeCid !== original.authorityScopeCid ||
           value.run_ref.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      return value;
+    },
+    async runContext(ref, locale = 'en') {
+      const original = Object.freeze({...ref});
+      if (!validRunRef(original) || (locale !== 'en' && locale !== 'ja')) refused('ExplorerInvalidReply');
+      const value = await read<SavedExplanation>('run-explanation-context', {ref: original, locale});
+      if (!validRunRef(value?.runRef) || Object.keys(value).length !== 3 ||
+          value.runRef.namespaceId !== original.namespaceId ||
+          value.runRef.authorityScopeCid !== original.authorityScopeCid ||
+          value.runRef.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      const {plan, explanation} = value;
+      if (explanation?.state === 'projected') {
+        if (Object.keys(explanation).length !== 3 ||
+            !validNarrative(plan, explanation.story, explanation.context, locale)) refused('ExplorerInvalidReply');
+      } else if (plan !== null || explanation?.state !== 'not_projected' ||
+          explanation.reason !== 'not_retained' || Object.keys(explanation).length !== 2) {
+        refused('ExplorerInvalidReply');
+      }
       return value;
     },
     async runPresentation(ref, options) {

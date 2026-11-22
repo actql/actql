@@ -57,7 +57,7 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) raise {
     slot,
     saved_result: None,
     saved_snapshot: None,
-    append_plan: None,
+    append_plan: Idle,
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,
@@ -94,4 +94,13 @@ test "saved original descriptor exported validation reaches its existing origina
   let (direct, exported) = saved_lookup_validation_dispatch_case(8)
   assert_eq(direct, -42)
   assert_eq(exported, -42)
+}
+
+///|
+test "incremental Saved Result exported validation reaches its typed retained original guard" {
+  let (direct, exported) = saved_lookup_validation_dispatch_case(
+    INCREMENTAL_SAVED_RESULT_KIND,
+  )
+  assert_eq(direct, -32)
+  assert_eq(exported, direct)
 }
