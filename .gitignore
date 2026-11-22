@@ -1902,3 +1902,5 @@ target/
 /adapters/connectors/duckdb/node/test/resident-session.test.d.mts
 /adapters/connectors/duckdb/node/test/managed-input-cancellation.test.mjs
 /adapters/connectors/duckdb/node/test/managed-input-cancellation.test.d.mts
+/adapters/host-node/client-program-preparation.mjs
+/adapters/host-node/client-program-preparation.d.mts

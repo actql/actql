@@ -7,6 +7,53 @@ import {runtimeIsError, runtimeField} from '../host-common/compiler-binding.gene
 import {types as nodeTypes} from 'node:util';
 import {dispatchFailureSnapshot, dispatchFailureCodeSite} from './client-dispatch-diagnostic.mjs';
 
+type CapacityPhase = 'request_snapshot' | 'source_free_plan';
+type CapacityDimension = 'retention' | 'execution';
+type CapacityRefusal = Readonly<{
+  phase: CapacityPhase;
+  dimension: CapacityDimension;
+  requiredRetentionBytes: string;
+  requiredExecutionBytes: string;
+  availableRetentionBytes: string;
+  availableExecutionBytes: string;
+}>;
+type OriginalRefusal = (CapacityRefusal & {problemCode?: never; refusalCode?: never}) |
+  Readonly<{problemCode: string; refusalCode: string}>;
+type IssueProjection = (result: unknown) => string | undefined;
+type CapacityProjection = (result: unknown) => unknown;
+type PreparationRuntime = Readonly<{
+  clientProgramRequestPreparationIssueCode?: IssueProjection;
+  clientProgramRequestProgramModuleCapacityRefusal?: CapacityProjection;
+}>;
+type SnapshotRuntime = Readonly<{clientProgramRequestSnapshotCapacityRefusal?: CapacityProjection}>;
+type InstallationRuntime = Readonly<{
+  clientProgramValuesMaxRows?(prepared: object): number;
+  clientSubmittedIntentEffectCompatible?(intent: unknown, prepared: object): boolean;
+}>;
+type RestoredInfer = Readonly<{prepared?: object; compiled?: unknown; graph?: unknown; runDefinition?: unknown; then?: unknown}>;
+type OriginalInputs = Readonly<{environment?: unknown; parameters?: unknown; inferRun?: RestoredInfer}> &
+  Readonly<Record<string, unknown>>;
+type FundedOriginal = Readonly<{kind: string; prepared: unknown; originalInputs?: OriginalInputs}>;
+type Installation<Request extends object, Policy> = {
+  moon: InstallationRuntime;
+  environment: unknown;
+  allowEffects?: boolean;
+  valuesMaxRows?: number;
+  verifyRequestValuePolicy?: Policy;
+  restoreEffectOriginal?: (original: unknown) => Readonly<{prepared?: object; compilation?: unknown}> | null | undefined;
+  restoreInferOriginal?: (original: unknown, definition: unknown, request: unknown, evidence: unknown,
+    restorationRequest: unknown) => RestoredInfer | null | undefined;
+  getFundedPreparation?: (request: Request, environment: unknown, verifier: Policy | undefined,
+    signal: AbortSignal | undefined) => FundedOriginal | null | undefined | Promise<FundedOriginal | null | undefined>;
+};
+type FailedPreparation<Requested, Refusal> = Readonly<{
+  error: unknown; requested: Requested; prepared: unknown; sourceRefusal: Refusal;
+}>;
+type ObserveFailure = (phase: 'preparation_failed', record: Readonly<{
+  boundary: 'request_admission'; available: boolean;
+  primaryDiagnostic?: Readonly<Record<string, unknown>>; capacity?: CapacityRefusal;
+}>) => unknown;
+
 const preparationErrorType = Error;
 const preparationStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
 
@@ -77,8 +124,8 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 
 // Only this projection owns these immutable facts. A copied/mutable error
 // property or a lookalike Host exception cannot issue a capacity diagnostic.
-const capacityRefusals = new WeakMap();
-const originalLimitCodes = new Set([
+const capacityRefusals = new WeakMap<object, OriginalRefusal>();
+const originalLimitCodes = new Set<string | undefined>([
   'ClientProgramRuntimeFragmentWorkLimit',
   'ClientProgramNormalizationWorkLimit',
   'ClientProgramNormalizationRetentionLimit',
@@ -87,26 +134,29 @@ const originalLimitCodes = new Set([
   'ClientProgramAuthoringRetentionLimit',
   'ClientProgramAuthoringExecutionLimit',
 ]);
-function originalPreparationRefusal(error) {
+function originalPreparationRefusal(error: unknown) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? capacityRefusals.get(error) : undefined;
 }
-export function requestProgramCapacityRefusal(error) {
+export function requestProgramCapacityRefusal(error: unknown) {
   const original = originalPreparationRefusal(error);
   return original?.problemCode === undefined ? original : undefined;
 }
-export function requestProgramPreparationProblemCode(error) {
+export function requestProgramPreparationProblemCode(error: unknown) {
   const original = originalPreparationRefusal(error);
   return original?.problemCode;
 }
-export function requestProgramPreparationRefusalCode(error) {
+export function requestProgramPreparationRefusalCode(error: unknown) {
   return originalPreparationRefusal(error)?.refusalCode;
 }
 // Preserve the existing failed-admission association BEFORE optional delivery.
 // Diagnostics carry only existing original projections, never the thrown
 // object/cause or a new acceptance/refusal classification. This always throws
 // the SAME primary, including undefined; cleanup remains with its caller.
-export function retainPreparedSubmissionFailure(failures, submission, error, requested, sourceRefusal, observe) {
+export function retainPreparedSubmissionFailure<Submission extends object & {preparedProgram?: unknown}, Requested, Refusal>(
+  failures: Pick<WeakMap<Submission, FailedPreparation<Requested, Refusal>>, 'set'>,
+  submission: Submission, error: unknown, requested: Requested, sourceRefusal: Refusal, observe?: ObserveFailure,
+) {
   failures.set(submission, Object.freeze({error, requested,
     prepared: submission.preparedProgram, sourceRefusal}));
   if (observe !== undefined) try {
@@ -126,16 +176,16 @@ export function retainPreparedSubmissionFailure(failures, submission, error, req
   throw error;
 }
 
-function projectCapacityRefusal(moon, result) {
+function projectCapacityRefusal(moon: PreparationRuntime, result: unknown) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
   if (typeof project !== 'function') fail('InvalidHostRuntimeResult');
   const value = Reflect.apply(project, moon, [result]);
   if (value === undefined) fail('InvalidHostRuntimeResult');
   return capacityRefusalValue(value, 'source_free_plan');
 }
-function capacityRefusalValue(value, expectedPhase) {
-  const phase = runtimeField(value, 0), dimension = runtimeField(value, 1);
-  const amounts = [2, 3, 4, 5].map(index => runtimeField(value, index));
+function capacityRefusalValue(value: unknown, expectedPhase: CapacityPhase): CapacityRefusal {
+  const phase = runtimeField(value, 0) as CapacityPhase, dimension = runtimeField(value, 1) as CapacityDimension;
+  const amounts = [2, 3, 4, 5].map(index => runtimeField(value, index)) as bigint[];
   if (phase !== expectedPhase || !['retention', 'execution'].includes(dimension) ||
       amounts.some(amount => typeof amount !== 'bigint' || amount < 0n || amount > 9223372036854775807n) ||
       (dimension === 'retention' ? amounts[0] <= amounts[2]
@@ -147,14 +197,14 @@ function capacityRefusalValue(value, expectedPhase) {
 
 // Preserve the original checked error and its Core cause. Only the fixed
 // snapshot projection can add diagnostic DATA to the existing association.
-export function checkedRequestSnapshotPreparation(moon, result) {
+export function checkedRequestSnapshotPreparation(moon: SnapshotRuntime, result: unknown) {
   const project = moon.clientProgramRequestSnapshotCapacityRefusal;
   if (runtimeIsError(result) && typeof project === 'function') {
     const value = Reflect.apply(project, moon, [result]);
     if (value !== undefined) {
       const capacity = capacityRefusalValue(value, 'request_snapshot');
       try {return checked(result);}
-      catch (error) {capacityRefusals.set(error, capacity); throw error;}
+      catch (error) {capacityRefusals.set(error as object, capacity); throw error;}
     }
   }
   return checked(result);
@@ -164,16 +214,16 @@ export function checkedRequestSnapshotPreparation(moon, result) {
 // owns categories; JS never decodes an error constructor or checks input again.
 // Foreign/current/general capacity/Host failures stay uncertain. Only the exact
 // configured source-free Plan refusal below proves pre-admission nonexecution.
-export function checkedRequestProgramPreparation(moon, result,
-  projectIssue = moon.clientProgramRequestPreparationIssueCode) {
+export function checkedRequestProgramPreparation(moon: PreparationRuntime, result: unknown,
+  projectIssue: IssueProjection | undefined = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
-    const category = projectIssue.call(moon, result);
+    const category = projectIssue!.call(moon, result);
     if (originalLimitCodes.has(category)) {
       // Keep the existing trusted submit-refusal code. Only the same typed
       // result may supply its reached Core cause on the open Problem surface.
       const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),
         {code: 'ClientProgramRejected'});
-      capacityRefusals.set(error, Object.freeze({problemCode: category,
+      capacityRefusals.set(error, Object.freeze({problemCode: category!,
         refusalCode: 'ClientProgramRejected'}));
       throw error;
     }
@@ -186,7 +236,7 @@ export function checkedRequestProgramPreparation(moon, result,
       capacityRefusals.set(error, capacity);
       throw error;
     }
-    const code = issueCodes[category] ?? effectIssueCodes[category];
+    const code = issueCodes[category as keyof typeof issueCodes] ?? effectIssueCodes[category as keyof typeof effectIssueCodes];
     if (code !== undefined) {
       const error = Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
       if (category === 'ClientSuppliedParameterUndeclared' ||
@@ -205,13 +255,13 @@ export function checkedRequestProgramPreparation(moon, result,
   return checked(result);
 }
 
-function fail(code, cause) {
+function fail(code: string, cause?: unknown): never {
   throw Object.assign(new Error(code, {cause}), {code});
 }
 
-export function installNodeClientProgramPreparation({moon, environment,
+export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,
   allowEffects = false, valuesMaxRows, verifyRequestValuePolicy,
-  restoreEffectOriginal, restoreInferOriginal, getFundedPreparation}) {
+  restoreEffectOriginal, restoreInferOriginal, getFundedPreparation}: Installation<Request, Policy>) {
   if (!moon || environment === undefined || typeof allowEffects !== 'boolean' ||
       typeof getFundedPreparation !== 'function' ||
       (restoreEffectOriginal !== undefined && typeof restoreEffectOriginal !== 'function') ||
@@ -224,15 +274,15 @@ export function installNodeClientProgramPreparation({moon, environment,
       typeof moon.clientProgramValuesMaxRows !== 'function' || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
-  const owned = new WeakMap();
-  const retiredOriginals = new WeakSet();
-  const effectOwned = new WeakSet();
+  const owned = new WeakMap<object, OriginalInputs>();
+  const retiredOriginals = new WeakSet<object>();
+  const effectOwned = new WeakSet<object>();
   let retired = false;
-  const prepare = async (request, selectedEnvironment = environment) => {
+  const prepare = async (request: Request, selectedEnvironment = environment) => {
     if (retired) fail('ClientProgramPreparationFailure');
     try {
-      const signal = request.signal;
-      const original = await getFundedPreparation(request, selectedEnvironment,
+      const signal = (request as Request & {signal?: AbortSignal}).signal;
+      const original = await getFundedPreparation!(request, selectedEnvironment,
         verifyRequestValuePolicy, signal);
       if (retired) fail('ClientProgramPreparationFailure');
       signal?.throwIfAborted();
@@ -240,8 +290,8 @@ export function installNodeClientProgramPreparation({moon, environment,
           !['effect_free', 'effectful'].includes(original.kind) ||
           original.prepared === null || typeof original.prepared !== 'object' ||
           original.originalInputs?.environment !== selectedEnvironment ||
-          original.originalInputs.parameters !== undefined &&
-            typeof original.originalInputs.parameters !== 'string') {
+          original.originalInputs!.parameters !== undefined &&
+            typeof original.originalInputs!.parameters !== 'string') {
         fail('ClientProgramPreparationFailure');
       }
       const prepared = original.prepared;
@@ -250,7 +300,7 @@ export function installNodeClientProgramPreparation({moon, environment,
         effectOwned.add(prepared);
       } else {
         if (valuesMaxRows !== undefined &&
-            moon.clientProgramValuesMaxRows(prepared) !== valuesMaxRows) {
+            moon.clientProgramValuesMaxRows!(prepared) !== valuesMaxRows) {
           fail('ClientProgramPreparationFailure');
         }
         // This is original DATA from the same fixed Request owner. It neither
@@ -281,7 +331,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     // Private installing Local cleanup owner only. This releases the exact
     // Pure preparation metadata, not the shared Environment or another Run.
     // Call only after all original borrowers have confirmed cleanup.
-    retireOriginal(prepared) {
+    retireOriginal(prepared: object) {
       if (retiredOriginals.has(prepared)) return;
       const original = owned.get(prepared);
       if (original === undefined || original.inferRun !== undefined) {
@@ -290,15 +340,15 @@ export function installNodeClientProgramPreparation({moon, environment,
       owned.delete(prepared);
       retiredOriginals.add(prepared);
     },
-    originalInputs(prepared) {
+    originalInputs(prepared: object) {
       const original = owned.get(prepared);
       if (original === undefined || original.inferRun !== undefined) {
         fail('ClientProgramPreparationFailure');
       }
       return original;
     },
-    originalInferRun(prepared) {return owned.get(prepared)?.inferRun;},
-    restoreInferOriginal(original, definition, request, evidence, restorationRequest) {
+    originalInferRun(prepared: object) {return owned.get(prepared)?.inferRun;},
+    restoreInferOriginal(original: unknown, definition: unknown, request: unknown, evidence: unknown, restorationRequest: unknown) {
       if (restoreInferOriginal === undefined) fail('ClientProgramUnsupported');
       const restored = restoreInferOriginal(original, definition, request, evidence, restorationRequest);
       if (typeof restored?.then === 'function') {
@@ -317,7 +367,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     },
     // Only the installed Host passes an original from its existing verified
     // Checkpoint custody. Public submit objects never enter this method.
-    restoreOriginal(original) {
+    restoreOriginal(original: unknown) {
       if (!allowEffects || restoreEffectOriginal === undefined) fail('ClientProgramUnsupported');
       const restored = restoreEffectOriginal(original);
       if (restored?.prepared === undefined || restored?.compilation === undefined) {
@@ -330,21 +380,21 @@ export function installNodeClientProgramPreparation({moon, environment,
     // submitted intent is the opaque original retained by the request journal;
     // no emitted row, final-stage inspection or Account decision stands in for
     // its complete Common Effect inventory.
-    assertSubmittedIntent(prepared, intent) {
+    assertSubmittedIntent(prepared: object, intent: unknown) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');
       }
       if (effectOwned.has(prepared) &&
-          !moon.clientSubmittedIntentEffectCompatible(intent, prepared)) {
+          !moon.clientSubmittedIntentEffectCompatible!(intent, prepared)) {
         fail('ClientProgramRejected');
       }
     },
-    assertOwned(prepared) {
+    assertOwned(prepared: object) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');
       }
     },
-    kindOf(prepared) {
+    kindOf(prepared: object) {
       if (owned.has(prepared)) return 'effect_free';
       if (effectOwned.has(prepared)) return 'effectful';
       throw new TypeError('Foreign Client preparation');

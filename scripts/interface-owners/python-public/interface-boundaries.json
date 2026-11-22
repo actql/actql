@@ -9330,8 +9330,8 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/check-sdk.md",

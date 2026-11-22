@@ -22202,8 +22202,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
@@ -22765,8 +22765,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
@@ -26638,8 +26638,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26650,8 +26650,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -26666,8 +26666,8 @@
                 "anchor": "### Original INFER materials in the installed Host"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26684,8 +26684,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -26696,8 +26696,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -26708,16 +26708,16 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const original = await getFundedPreparation(request, selectedEnvironment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const original = await getFundedPreparation!(request, selectedEnvironment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26734,7 +26734,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "missing_stage_identity: 'ClientProgramRejected',"
               },
               {
@@ -26746,8 +26746,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -26766,8 +26766,8 @@
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26784,7 +26784,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "invalid_input_owner: 'ClientParametersInvalid',"
               },
               {
@@ -26796,27 +26796,27 @@
                 "anchor": "# Checked Program construction"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "owned.set(prepared, Object.freeze({...original.originalInputs}));"
               },
               {
@@ -26824,7 +26824,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -26838,8 +26838,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26850,8 +26850,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -26870,8 +26870,8 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const prepare = async (request, selectedEnvironment = environment) => {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const prepare = async (request: Request, selectedEnvironment = environment) => {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -26888,7 +26888,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "import {validSubmitPreparationError} from"
               },
               {
@@ -26900,8 +26900,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -26920,7 +26920,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "typeof getFundedPreparation !== 'function' ||"
               },
               {
@@ -26938,7 +26938,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -26966,7 +26966,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -26980,7 +26980,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "check_unsupported: 'ClientProgramImplementationLimit',"
               },
               {
@@ -27008,7 +27008,7 @@
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "check_compile_limit: 'ClientProgramAnalysisLimit',"
               },
               {
@@ -27016,7 +27016,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -27030,7 +27030,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "// Accept preparation only from the same installed Request owner."
               },
               {
@@ -27042,8 +27042,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27062,7 +27062,7 @@
                 "anchor": "compilation and existing custody path."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "// Trusted policy verification belongs to the funded Request before compile."
               },
               {
@@ -27155,8 +27155,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -27183,8 +27183,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -27289,8 +27289,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27303,8 +27303,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27317,8 +27317,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27331,8 +27331,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27345,8 +27345,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27359,8 +27359,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27373,8 +27373,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27387,8 +27387,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27401,8 +27401,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "retireOriginal(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "retireOriginal(prepared: object) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -27433,8 +27433,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27445,8 +27445,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27461,8 +27461,8 @@
                 "anchor": "### Original INFER materials in the installed Host"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27479,8 +27479,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -27491,8 +27491,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27503,16 +27503,16 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const original = await getFundedPreparation(request, selectedEnvironment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const original = await getFundedPreparation!(request, selectedEnvironment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27529,7 +27529,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "missing_stage_identity: 'ClientProgramRejected',"
               },
               {
@@ -27541,8 +27541,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27561,8 +27561,8 @@
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27579,7 +27579,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "invalid_input_owner: 'ClientParametersInvalid',"
               },
               {
@@ -27591,27 +27591,27 @@
                 "anchor": "# Checked Program construction"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "owned.set(prepared, Object.freeze({...original.originalInputs}));"
               },
               {
@@ -27619,7 +27619,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -27633,8 +27633,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "export function installNodeClientProgramPreparation({moon, environment,"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "export function installNodeClientProgramPreparation<Request extends object, Policy = never>({moon, environment,"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27645,8 +27645,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27665,8 +27665,8 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const prepare = async (request, selectedEnvironment = environment) => {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const prepare = async (request: Request, selectedEnvironment = environment) => {"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -27683,7 +27683,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "import {validSubmitPreparationError} from"
               },
               {
@@ -27695,8 +27695,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27715,7 +27715,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "typeof getFundedPreparation !== 'function' ||"
               },
               {
@@ -27733,7 +27733,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -27761,7 +27761,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -27775,7 +27775,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "check_unsupported: 'ClientProgramImplementationLimit',"
               },
               {
@@ -27803,7 +27803,7 @@
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "check_compile_limit: 'ClientProgramAnalysisLimit',"
               },
               {
@@ -27811,7 +27811,7 @@
                 "anchor": "## Installed public Environment lifetime"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "retireReferences() {"
               },
               {
@@ -27825,7 +27825,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "// Accept preparation only from the same installed Request owner."
               },
               {
@@ -27837,8 +27837,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "restoreOriginal(original) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "restoreOriginal(original: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -27857,7 +27857,7 @@
                 "anchor": "compilation and existing custody path."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "// Trusted policy verification belongs to the funded Request before compile."
               },
               {
@@ -27959,8 +27959,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "function projectCapacityRefusal(moon, result) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "function projectCapacityRefusal(moon: PreparationRuntime, result: unknown) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27973,8 +27973,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const capacityRefusals = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const capacityRefusals = new WeakMap<object, OriginalRefusal>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27987,7 +27987,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "capacityRefusals.set(error, capacity);"
               },
               {
@@ -28001,8 +28001,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const category = projectIssue.call(moon, result);"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const category = projectIssue!.call(moon, result);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28015,7 +28015,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "if (category === 'source_free_capacity_exceeded') {"
               },
               {
@@ -28047,7 +28047,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "return Object.freeze({phase, dimension,"
               },
               {
@@ -28915,8 +28915,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -30241,8 +30241,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -33527,8 +33527,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -34930,8 +34930,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -35734,8 +35734,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -38436,8 +38436,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -42459,8 +42459,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -43127,8 +43127,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -119153,14 +119153,14 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "function projectCapacityRefusal(moon, result) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "function projectCapacityRefusal(moon: PreparationRuntime, result: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const capacityRefusals = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const capacityRefusals = new WeakMap<object, OriginalRefusal>();"
               }
             ],
             "ownership": [
@@ -119177,7 +119177,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
+                "path": "adapters/host-node/client-program-preparation.mts",
                 "anchor": "if (category === 'source_free_capacity_exceeded') {"
               }
             ],

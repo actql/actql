@@ -1136,8 +1136,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [

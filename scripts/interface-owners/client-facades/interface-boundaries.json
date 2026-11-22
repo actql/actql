@@ -7002,8 +7002,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mts",
@@ -12808,8 +12808,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "packages/sdk/internal/result-read.mts",
@@ -15022,8 +15022,8 @@
                 "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [

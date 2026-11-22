@@ -18250,8 +18250,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -18302,8 +18302,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -22915,8 +22915,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -22967,8 +22967,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -25577,8 +25577,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -25597,8 +25597,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -27767,8 +27767,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -27819,8 +27819,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -51019,8 +51019,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -51063,12 +51063,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -51289,8 +51289,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -51443,8 +51443,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -51599,8 +51599,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -51842,8 +51842,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -55200,8 +55200,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -55426,8 +55426,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -55594,8 +55594,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -56054,8 +56054,8 @@
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -57140,8 +57140,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -57160,8 +57160,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -57367,8 +57367,8 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -58682,8 +58682,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -58836,8 +58836,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59065,8 +59065,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59223,8 +59223,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59381,8 +59381,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59538,8 +59538,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59692,8 +59692,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -59846,8 +59846,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -61542,8 +61542,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -61594,12 +61594,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -61950,8 +61950,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -63290,8 +63290,8 @@
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
-                "anchor": "assertSubmittedIntent(prepared, intent)",
-                "path": "adapters/host-node/client-program-preparation.mjs"
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)",
+                "path": "adapters/host-node/client-program-preparation.mts"
               },
               {
                 "anchor": "const retained = Object.freeze(tasks);",
@@ -65032,8 +65032,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -65076,12 +65076,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -65272,8 +65272,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -65316,12 +65316,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -65512,8 +65512,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -65556,12 +65556,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -65752,8 +65752,8 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -65796,12 +65796,12 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -104226,8 +104226,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -104266,8 +104266,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -107155,8 +107155,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -107175,8 +107175,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -109193,8 +109193,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -109233,8 +109233,8 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",

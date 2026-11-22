@@ -7338,8 +7338,8 @@
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -7490,8 +7490,8 @@
                 "anchor": "The installed\nCredential supplier must admit the real material"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -9001,8 +9001,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -9021,8 +9021,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -11080,8 +11080,8 @@
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -11204,8 +11204,8 @@
                 "anchor": "The installed\nCredential supplier must admit the real material"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -13035,8 +13035,8 @@
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -13187,8 +13187,8 @@
                 "anchor": "The installed\nCredential supplier must admit the real material"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -13875,8 +13875,8 @@
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "originalInputs(prepared) {"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
               },
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
@@ -14027,8 +14027,8 @@
                 "anchor": "The installed\nCredential supplier must admit the real material"
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const owned = new WeakMap();"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
