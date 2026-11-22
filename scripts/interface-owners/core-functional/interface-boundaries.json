@@ -94070,7 +94070,7 @@
     },
     {
       "module": "src/client_local_host/installed_described_effect_recipe.mbt",
-      "sha256": "9f19220c914939b21b435ceb9304829a4c4bb196cdc7a7228c66804945f14e9d",
+      "sha256": "3a503a361770da3bf9c3cc905799cf541bc9441a61aef01174f9a5e6e093b918",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -98304,7 +98304,8 @@
             "client_program_kintone_update_mapping_cid",
             "client_program_kintone_update_mapping_matches_declaration",
             "client_program_kintone_update_mapping_matches_request",
-            "client_program_kintone_update_mapping_ref"
+            "client_program_kintone_update_mapping_ref",
+            "kintone_guarded_recipe_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -98600,7 +98601,7 @@
           }
         }
       ],
-      "sha256": "312216e5d7fd9a73d0de9e8275fee0b8d40e887cf5cb1a4914ef06f28636e0df",
+      "sha256": "3b59631bcfe178f3bbd01a8092187f108ed0864d20fd85562acc89b4e9253bbb",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -98737,6 +98738,10 @@
         {
           "name": "client_program_kintone_update_target_read_body",
           "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "kintone_guarded_recipe_capacities",
+          "declaration": "kintone_guarded_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , metadata_occurrences : Int , cold_includes_request : Bool , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -98757,7 +98762,8 @@
             "client_program_kintone_update_mapping_cid",
             "client_program_kintone_update_mapping_matches_declaration",
             "client_program_kintone_update_mapping_matches_request",
-            "client_program_kintone_update_mapping_ref"
+            "client_program_kintone_update_mapping_ref",
+            "kintone_guarded_recipe_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -99053,7 +99059,7 @@
           }
         }
       ],
-      "sha256": "53eb1b356816ab129e776b82da8cfce6a416b7596a1d2c9a2e365ddce74d6d83",
+      "sha256": "c82dac78c67a17b69b064cf7992ccd9daf3667ee20fc0739d874a84a91064eb9",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -99190,6 +99196,10 @@
         {
           "name": "client_program_kintone_update_target_read_body",
           "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "kintone_guarded_recipe_capacities",
+          "declaration": "kintone_guarded_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , metadata_occurrences : Int , cold_includes_request : Bool , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },

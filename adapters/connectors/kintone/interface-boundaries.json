@@ -6733,7 +6733,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "67c8c489b40fe0937de8e8773ff4f49331cabec278227a01733567a5776311cf",
+      "sha256": "318860d33dabdb83f07723752878b3a6c0f88d0443528dae9f63a7e695308d3a",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -6746,6 +6746,10 @@
         {
           "name": "client_program_kintone_key_upsert_before",
           "declaration": "client_program_kintone_key_upsert_before ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_before_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_before_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_before_identity",
@@ -6778,6 +6782,14 @@
         {
           "name": "client_program_kintone_key_upsert_execution_matches",
           "declaration": "client_program_kintone_key_upsert_execution_matches ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_finalization_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_finalization_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , write : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_form_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_form_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_mapping_body",
@@ -6816,6 +6828,10 @@
           "declaration": "client_program_kintone_key_upsert_proposal_before ( proposal : @ kintone_host . RecordKeyUpsertProposal , observed : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
         },
         {
+          "name": "client_program_kintone_key_upsert_proposal_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_proposal_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , input : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , lookup : @ kintone_catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_key_upsert_proposal_lookup",
           "declaration": "client_program_kintone_key_upsert_proposal_lookup ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > @ kintone_catalog . RecordLookupRequest"
         },
@@ -6824,12 +6840,24 @@
           "declaration": "client_program_kintone_key_upsert_proposal_value_wire ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > String"
         },
         {
+          "name": "client_program_kintone_key_upsert_recipe_capacities",
+          "declaration": "client_program_kintone_key_upsert_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_recovery_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_recovery_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , target_bytes : Int , input : Int , lookup : @ kintone_catalog . RecordLookupLimits , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , before : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_key_upsert_request",
           "declaration": "client_program_kintone_key_upsert_request ( lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
         {
           "name": "client_program_kintone_key_upsert_response",
           "declaration": "client_program_kintone_key_upsert_response ( request : @ kintone_catalog . RecordKeyUpsertRequest , status : Int , bytes : Bytes , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertAcknowledgement , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_response_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_response_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_response_uses_request",
@@ -6893,7 +6921,14 @@
             "client_program_kintone_prepare_key_upsert_mapping",
             "client_program_kintone_prepare_key_upsert_proposal",
             "client_program_kintone_restore_key_upsert_execution",
-            "client_program_kintone_key_upsert_mapping_construction_capacity"
+            "client_program_kintone_key_upsert_mapping_construction_capacity",
+            "client_program_kintone_key_upsert_before_construction_capacity",
+            "client_program_kintone_key_upsert_finalization_construction_capacity",
+            "client_program_kintone_key_upsert_form_construction_capacity",
+            "client_program_kintone_key_upsert_proposal_construction_capacity",
+            "client_program_kintone_key_upsert_recipe_capacities",
+            "client_program_kintone_key_upsert_recovery_construction_capacity",
+            "client_program_kintone_key_upsert_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -7043,7 +7078,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "ac80a04db3b01131b8717317fecdf7d4f34836a5847df3e7c9015657adb3d2bf",
+      "sha256": "a63e78d15505ec2ad8e88b7504367d3f9f6fc4b673bc3f97f8a9f591ebd6aa21",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -7056,6 +7091,10 @@
         {
           "name": "client_program_kintone_key_upsert_before",
           "declaration": "client_program_kintone_key_upsert_before ( original : @ kintone_host . RecordDeclaration , lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_before_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_before_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_before_identity",
@@ -7088,6 +7127,14 @@
         {
           "name": "client_program_kintone_key_upsert_execution_matches",
           "declaration": "client_program_kintone_key_upsert_execution_matches ( proposal : @ kintone_host . RecordKeyUpsertProposal , before : @ kintone_host . RecordKeyUpsertBefore , request : @ kintone_catalog . RecordKeyUpsertRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_finalization_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_finalization_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , write : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_form_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_form_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_mapping_body",
@@ -7126,6 +7173,10 @@
           "declaration": "client_program_kintone_key_upsert_proposal_before ( proposal : @ kintone_host . RecordKeyUpsertProposal , observed : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordKeyUpsertBefore , @ kintone_host . RecordKeyUpsertExecutionIssue , ]"
         },
         {
+          "name": "client_program_kintone_key_upsert_proposal_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_proposal_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , input : Int , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , lookup : @ kintone_catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_key_upsert_proposal_lookup",
           "declaration": "client_program_kintone_key_upsert_proposal_lookup ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > @ kintone_catalog . RecordLookupRequest"
         },
@@ -7134,12 +7185,24 @@
           "declaration": "client_program_kintone_key_upsert_proposal_value_wire ( proposal : @ kintone_host . RecordKeyUpsertProposal , ) - > String"
         },
         {
+          "name": "client_program_kintone_key_upsert_recipe_capacities",
+          "declaration": "client_program_kintone_key_upsert_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_recovery_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_recovery_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , target_bytes : Int , input : Int , lookup : @ kintone_catalog . RecordLookupLimits , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write : @ kintone_catalog . RecordWriteLimits , request : @ kintone_catalog . RecordMutationLimits , before : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_key_upsert_request",
           "declaration": "client_program_kintone_key_upsert_request ( lookup : @ kintone_catalog . RecordLookupObservation , values : @ kintone_catalog . RecordWriteValues , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertRequest , @ kintone_catalog . RecordKeyUpsertIssue , ]"
         },
         {
           "name": "client_program_kintone_key_upsert_response",
           "declaration": "client_program_kintone_key_upsert_response ( request : @ kintone_catalog . RecordKeyUpsertRequest , status : Int , bytes : Bytes , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordKeyUpsertAcknowledgement , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_response_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_response_construction_capacity ( mapping : @ kintone_host . RecordKeyUpsertMapping , bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_response_uses_request",
@@ -7203,7 +7266,14 @@
             "client_program_kintone_prepare_key_upsert_mapping",
             "client_program_kintone_prepare_key_upsert_proposal",
             "client_program_kintone_restore_key_upsert_execution",
-            "client_program_kintone_key_upsert_mapping_construction_capacity"
+            "client_program_kintone_key_upsert_mapping_construction_capacity",
+            "client_program_kintone_key_upsert_before_construction_capacity",
+            "client_program_kintone_key_upsert_finalization_construction_capacity",
+            "client_program_kintone_key_upsert_form_construction_capacity",
+            "client_program_kintone_key_upsert_proposal_construction_capacity",
+            "client_program_kintone_key_upsert_recipe_capacities",
+            "client_program_kintone_key_upsert_recovery_construction_capacity",
+            "client_program_kintone_key_upsert_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -9632,12 +9702,16 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "c6292429d8986501d8f6cfc6dbfab3d143bc1f4893a1686527cd718d7f2e4f96",
+      "sha256": "ee1250b035dbffcf4544db20131a6fc06dd95b51137d67b2403867fe99e5fb80",
       "exports": [],
       "operations": [
         {
           "name": "record_mutation_proposal_values_inventory",
           "declaration": "record_mutation_proposal_values_inventory ( original : RecordDeclaration , field_count : Int , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_mutation_response_construction_inventory",
+          "declaration": "record_mutation_response_construction_inventory ( field_count : Int , body_bytes : Int , limits : @ catalog . RecordMutationLimits , keyed : Bool , ) - > RecordUpdateConstructionInventory ?"
         },
         {
           "name": "record_target_before_construction_inventory",
@@ -9714,7 +9788,8 @@
             "update_construction_empty",
             "record_mutation_proposal_values_inventory",
             "record_target_before_construction_inventory",
-            "record_update_request_construction_inventory"
+            "record_update_request_construction_inventory",
+            "record_mutation_response_construction_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -9784,7 +9859,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
-      "sha256": "4bc0d5cd78a9e3444a3c0b7d95a1ddac716af3dbfc13df8e93f2bc412a3ec887",
+      "sha256": "d3d9f55efcfcd890cd4ab21b16a8a82fad2081eab1bc7ad3793d22fbc285ecf6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing kintone proposal and Common execution preparation inventories",
@@ -9807,6 +9882,10 @@
           "declaration": "record_key_upsert_finalization_construction_capacity ( mapping : RecordKeyUpsertMapping , write : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "record_key_upsert_form_construction_capacity",
+          "declaration": "record_key_upsert_form_construction_capacity ( mapping : RecordKeyUpsertMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "record_key_upsert_proposal_construction_capacity",
           "declaration": "record_key_upsert_proposal_construction_capacity ( mapping : RecordKeyUpsertMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , lookup : @ catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -9817,6 +9896,10 @@
         {
           "name": "record_key_upsert_request_checks",
           "declaration": "record_key_upsert_request_checks ( count : Int , ) - > @ shape . CollectionConstructionExtent ?"
+        },
+        {
+          "name": "record_key_upsert_response_construction_capacity",
+          "declaration": "record_key_upsert_response_construction_capacity ( mapping : RecordKeyUpsertMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "record_key_upsert_update_construction_capacity",
@@ -9839,7 +9922,9 @@
             "record_key_upsert_create_request_capacity",
             "record_key_upsert_finalization_construction_capacity",
             "record_key_upsert_recovery_construction_capacity",
-            "record_key_upsert_update_request_capacity"
+            "record_key_upsert_update_request_capacity",
+            "record_key_upsert_form_construction_capacity",
+            "record_key_upsert_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -10285,7 +10370,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "5473e58234a1e95f1e879ba312a57e4264f1b77fa2bd09a1ebbadef0cb6b8f9c",
+      "sha256": "73b09a24350e8018521538478fad0c376689f3a851052b793b2a8ab66532b846",
       "exports": [
         "captureKintoneEffectPlanRecipeBuilder"
       ],
@@ -10293,7 +10378,8 @@
         {
           "name": "captureKintoneEffectPlanRecipeBuilder",
           "parameters": [
-            "moon"
+            "moon",
+            "kind"
           ],
           "async": false
         },

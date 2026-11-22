@@ -6,6 +6,9 @@ import test from 'node:test';
 import * as common from '../../../../_build/js/debug/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {selectInstalledEffectCredentialOperation, selectInstalledEffectWriteBranch}
+  from '../../../host-node/installed-effect-plan.mjs';
+import {captureKintoneEffectPlanRecipeBuilder} from '../host/kintone-effect-plan.mjs';
 import {createKintoneKeyUpsertRequestAdapter} from '../host/kintone-key-upsert-request.mjs';
 import {kintoneUpdateDriver} from '../host/kintone-update-driver.mjs';
 import {form, cid, encode, bytes, identity as nativeId, revision, policy} from './kintone-update.fixture.mjs';
@@ -61,6 +64,42 @@ function fixture() {
     guestSpaceId: '23', limits: policy};
   return {adapter: createKintoneKeyUpsertRequestAdapter(options), calls, options};
 }
+
+test('keyed UPSERT quotes the original lookup and distinct approved write branches', () => {
+  const {options, adapter} = fixture();
+  const prepare = captureKintoneEffectPlanRecipeBuilder({moon: options.moon, kind: 'upsert'});
+  const plan = prepare({mapping: options.mapping, fields: Object.freeze(['Computed', 'CustomerKey', 'Subject', 'Tags']),
+    formResource: 'inquiries-form', bindingUnits: 1000, maxTargetBytes: adapter.binding.path.length,
+    credentialSite: {construction: {scope: {connectorRegistration: 'kintone', resourceOrigin: options.origin},
+      issuer: {keyId: 'component'}, limits: {maxSecretBytes: 256}}}, limits: options.limits,
+    inputLimits: {body: {maxBytes: 2048, maxNodes: 8000, maxDepth: 32},
+      preview: {maxWireBytes: 65536, maxNodes: 8000, maxDepth: 32}}, maxRecoveryBytes: 65536});
+  assert.equal(plan.memberOperations.length, 2);
+  assert.equal(plan.credentialOperations.length, 11);
+  assert.equal(new Set(plan.credentialOperations.map(slot => slot.operationIndex)).size, 11);
+  for (const phase of ['capture', 'apply', 'resume']) {
+    assert.equal(selectInstalledEffectCredentialOperation(plan, phase + '-describe', 'schema'), undefined);
+    for (const role of ['schema-before', 'target', 'schema-after']) {
+      const slot = selectInstalledEffectCredentialOperation(plan, phase + '-target', role);
+      const formRead = role !== 'target';
+      assert.equal(slot.resource, formRead ? 'inquiries-form' : undefined);
+      assert.equal(plan.rowOperations[slot.operationIndex].operation,
+        formRead ? 'kintone:form:read' : 'kintone:records:target-read');
+      const body = bytes(formRead ? keyedForm : present);
+      assert(slot.responseExtent(body.byteLength, body));
+      assert.throws(() => slot.responseExtent(body.byteLength - 1, body), {code: 'KintoneEffectRecipeUnavailable'});
+    }
+  }
+  for (const [presence, guard, operation] of [['absent', 'not_applicable', 'create'], ['present', 'version', 'update']]) {
+    const selected = selectInstalledEffectWriteBranch(plan, 'upsert', {before: {state: presence}, target_guard: {state: guard}});
+    assert.equal(plan.rowOperations[selected.operationIndex].operation, 'kintone:records:' + operation);
+    assert.throws(() => selectInstalledEffectWriteBranch(plan, 'upsert', {before: {state: presence}, target_guard: {state: 'none'}}),
+      {code: 'InvalidInstalledEffectWriteBranch'});
+  }
+  assert(plan.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: '{"requests":[]}'}], 0));
+  assert.throws(() => plan.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: 'x'.repeat(65537)}], 0),
+    {code: 'KintoneEffectRecipeUnavailable'});
+});
 
 for (const [name, row] of [['create', absent], ['update', present]]) {
   test('keyed UPSERT retains the exact ' + name + ' branch across finalized request and cold restore', () => {

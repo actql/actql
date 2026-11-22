@@ -117,6 +117,44 @@ pub fn record_key_upsert_proposal_construction_capacity(
 }
 
 ///|
+/// Both Form path copies and the observed Form retire with the recheck.
+pub fn record_key_upsert_form_construction_capacity(
+  mapping : RecordKeyUpsertMapping,
+  body_bytes : Int,
+  limits : @catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_key_upsert_mapping_matches_declaration(mapping, mapping.original) &&
+    managed_record_form_inventory(mapping.original, body_bytes, limits)
+    is Some(workspace) else {
+    return None
+  }
+  update_construction_capacity({
+    retained: update_construction_empty(),
+    workspace,
+  })
+}
+
+///|
+/// Outcome capacity covers the one original CREATE or revision-checked UPDATE.
+pub fn record_key_upsert_response_construction_capacity(
+  mapping : RecordKeyUpsertMapping,
+  body_bytes : Int,
+  limits : @catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  guard record_key_upsert_mapping_matches_declaration(mapping, mapping.original) &&
+    record_mutation_response_construction_inventory(
+      mapping.original.names.length(),
+      body_bytes,
+      limits,
+      true,
+    )
+    is Some(inventory) else {
+    return None
+  }
+  update_construction_capacity(inventory)
+}
+
+///|
 /// Parse the bounded lookup response and retain only the established before
 /// state. The lookup request and mapped values remain with the proposal owner.
 pub fn record_key_upsert_before_construction_capacity(

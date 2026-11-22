@@ -597,7 +597,7 @@ pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Arra
 
 pub fn installed_captured_local_tasks_control_capacity(@physical_strategy.CheckedDAG) -> @execution_relation.ExecutionCapacity?
 
-pub fn installed_described_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, response_read_quantum? : Int, metadata_on_child? : Bool, control_wire_bytes? : Int?, host_input_bytes? : Int?, defer_ledger_codec? : Bool, metadata_occurrences? : Int, target_occurrences? : Int, target_on_child? : Bool) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+pub fn installed_described_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, response_read_quantum? : Int, metadata_on_child? : Bool, control_wire_bytes? : Int?, host_input_bytes? : Int?, defer_ledger_codec? : Bool, metadata_occurrences? : Int, target_occurrences? : Int, target_on_child? : Bool, cold_includes_request? : Bool) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
 

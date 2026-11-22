@@ -2,6 +2,109 @@
 // native branch; these adapters issue no Mapping, Preview, grant or claim.
 
 ///|
+#export_name("clientProgramKintoneKeyUpsertProposalConstructionCapacity")
+pub fn client_program_kintone_key_upsert_proposal_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  input : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+  lookup : @kintone_catalog.RecordLookupLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_proposal_construction_capacity(
+    mapping, input, write, request, lookup,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertBeforeConstructionCapacity")
+pub fn client_program_kintone_key_upsert_before_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  bytes : Int,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_before_construction_capacity(
+    mapping, bytes, pages, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertFormConstructionCapacity")
+pub fn client_program_kintone_key_upsert_form_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  bytes : Int,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_form_construction_capacity(
+    mapping, bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertResponseConstructionCapacity")
+pub fn client_program_kintone_key_upsert_response_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  bytes : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_response_construction_capacity(
+    mapping, bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertFinalizationConstructionCapacity")
+pub fn client_program_kintone_key_upsert_finalization_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  write : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_finalization_construction_capacity(
+    mapping, write, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertRecoveryConstructionCapacity")
+pub fn client_program_kintone_key_upsert_recovery_construction_capacity(
+  mapping : @kintone_host.RecordKeyUpsertMapping,
+  target_bytes : Int,
+  input : Int,
+  lookup : @kintone_catalog.RecordLookupLimits,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+  before : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_recovery_construction_capacity(
+    mapping, target_bytes, input, lookup, pages, values, write, request, before,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneKeyUpsertRecipeCapacities")
+pub fn client_program_kintone_key_upsert_recipe_capacities(
+  original : Array[@execution.ExecutionCapacity],
+  output_limits : Array[Int],
+  cold_original : @execution.ExecutionCapacity?,
+  limits : Array[Int],
+  metadata_units : Int64,
+  response_read_quantum : Int,
+  control_wire_bytes : Int,
+  host_input_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  kintone_guarded_recipe_capacities(
+    original, output_limits, cold_original, limits, metadata_units, response_read_quantum,
+    control_wire_bytes, host_input_bytes, 0, true,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneWriteValuesJson")
 pub fn client_program_kintone_write_values_json(
   catalog : @kintone_catalog.FormFieldCatalog,
