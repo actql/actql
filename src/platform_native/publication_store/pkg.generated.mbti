@@ -288,6 +288,7 @@ pub fn Store::issue_public_index_entry_in_original_read(Self, @run_publication.P
 pub fn Store::lookup_raw_custody_construction_inventory(Self, Int, @run_publication.PublicationContract) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
 pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
+pub fn Store::model_raw_evidence_custody_construction(Self, @run_publication.BoundModelRawResponse) -> PrivateEvidenceCustodyConstruction?
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_publication_payload_facts(Self, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]
@@ -303,6 +304,7 @@ pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationCo
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_model_raw_evidence_custody(Self, @run_publication.BoundModelRawResponse, Bytes, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_construction(Self, @sqlite.NativeStoreOperationOriginal, Int64, Int64, Int64) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_constructor_scaffold(Self, @sqlite.NativeStoreOperationOriginal) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::private_evidence_custody_construction(Self, String) -> PrivateEvidenceCustodyConstruction?

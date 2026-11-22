@@ -18,6 +18,81 @@ fn native_model_evidence_test_outcome(
 }
 
 ///|
+test "Native Model Raw custody encrypts exact binary response and confirms the original cell" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) &&
+    native_payload_fixture("model-raw-evidence", 65536L)
+    is Some((store, authority, library, root)) else {
+    abort(
+      "Native Model Raw custody requires an isolated Store and crypto fixture",
+    )
+  }
+  let crypto = @signature.load_library(path).unwrap()
+  let key = Bytes::makei(32, i => i.to_byte())
+  // Physical projection fixture only. In production the Store obtains all
+  // five fields from a Common-bound descriptor, under that original authority.
+  let cid = "sha256:" + "a".repeat(64)
+  let holding = "sha256:" + "b".repeat(64)
+  let descriptor = "{\"http_status\":429}"
+  let content = "sha256:53d9a2dfbbf01d69b132e7d141e5c7b8cafaa464fc86eff90b1091b7a0439f7f"
+  let bytes = b"\x00\xff\x80\xa0x\n"
+  let selection = (cid, holding, descriptor, content, 6)
+  let baseline = store.capacity_usage().unwrap().reserved_bytes
+  assert_true(
+    store.prepare_model_raw_payload_in_scope(
+      selection, b"\x00\xff\x80\xa0x!", crypto, key,
+    )
+    is Err(DigestMismatch),
+  )
+  assert_true(
+    store.prepare_model_raw_payload_in_scope(selection, b"", crypto, key)
+    is Err(DigestMismatch),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, baseline)
+  let custody = store
+    .prepare_model_raw_payload_in_scope(selection, bytes, crypto, key)
+    .unwrap()
+  assert_true(custody.read() is Err(Database(@sqlite.NotFound)))
+  custody.persist().unwrap()
+  let (encrypted, retired) = custody.read().unwrap()
+  assert_false(retired)
+  let expected = b"{\"http_status\":429}\nAP+AoHgK"
+  assert_true(encrypted.body != expected)
+  assert_eq(
+    crypto
+    .open_private_evidence(key, "model_raw_response", cid, encrypted.body)
+    .unwrap(),
+    expected,
+  )
+  assert_true(
+    crypto.open_private_evidence(
+      key,
+      "model_attempt_outcome",
+      cid,
+      encrypted.body,
+    )
+    is Err(CipherRejected),
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    baseline + custody.reservation_bytes,
+  )
+  assert_true(store.close().unwrap())
+  let reopened = open_store(library, root, authority, 65536L, 8L, 65536L).unwrap()
+  let original = reopened
+    .prepare_model_raw_payload_in_scope(selection, bytes, crypto, key)
+    .unwrap()
+  original.persist().unwrap()
+  let (confirmed, retired) = original.read().unwrap()
+  assert_false(retired)
+  assert_eq(confirmed.body, encrypted.body)
+  assert_eq(
+    reopened.capacity_usage().unwrap().reserved_bytes,
+    baseline + custody.reservation_bytes,
+  )
+  assert_true(reopened.close().unwrap())
+}
+
+///|
 // Actual SQLite/filesystem/AEAD Store, with authored evidence and Scope DATA.
 // This does not claim original Model invocation, Journal settlement or ACK.
 test "Native Model evidence preserves ciphertext and quota across reopen and failed retirement" {

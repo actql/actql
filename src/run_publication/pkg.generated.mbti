@@ -807,6 +807,8 @@ pub fn model_raw_capture_policy_value(BoundModelRawCapturePolicy) -> RunEvidence
 
 pub fn model_raw_response_matches_selection(BoundModelRawResponse, BoundModelRawCapturePolicy, BoundModelInvocationScope) -> Bool
 
+pub fn model_raw_response_matches_store(BoundModelRawResponse, String) -> Bool
+
 pub fn model_raw_response_profile_cid(BoundModelRawResponse) -> String
 
 pub fn model_raw_response_store_binding(BoundModelRawResponse) -> (String, String, String, String, Int)

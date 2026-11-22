@@ -10,6 +10,25 @@ pub fn Store::private_evidence_custody_construction(
 }
 
 ///|
+pub fn Store::model_raw_evidence_custody_construction(
+  _self : Store,
+  _original : @publication.BoundModelRawResponse,
+) -> PrivateEvidenceCustodyConstruction? {
+  None
+}
+
+///|
+pub fn Store::prepare_model_raw_evidence_custody(
+  _self : Store,
+  _original : @publication.BoundModelRawResponse,
+  _bytes : Bytes,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::prepare_model_evidence_custody(
   _self : Store,
   _definition : @publication.PublicationContract,
