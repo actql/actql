@@ -535,7 +535,7 @@ fn installed_effect_dependency_shared_body_capacity() -> @execution.ExecutionCap
 // Actual body/root/reference geometry before complete closure indexes and
 // encoder ordering vectors. Fixed vocabulary remains borrowed; semantic keys
 // and every reference edge are retained DATA, not physical-owner sharing.
-fn installed_effect_dependency_graph_capacity(
+pub fn installed_effect_dependency_graph_capacity(
   entries : Int,
   roots : Int,
   references : Int,
@@ -591,7 +591,7 @@ fn installed_effect_dependency_graph_capacity(
 // issue_prepared_captured_effect_dependency_inventory emits the SAME admitted
 // CanonicalValue bodies. No Source parser, normalization, new value tree or
 // wire buffer is constructed here. Existing body/index holdings stay charged.
-fn installed_effect_dependency_envelope_capacity(
+pub fn installed_effect_dependency_envelope_capacity(
   geometry : @encode.EncodingConstructionGeometry,
   entries : Int,
   key_units : Int64,

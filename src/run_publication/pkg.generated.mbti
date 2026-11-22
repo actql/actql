@@ -857,7 +857,7 @@ pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Res
 
 pub fn prepare_captured_content_reference(GeneratedContentBinding, String, String, Int, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
 
-pub fn prepare_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, Int, (Int) -> Bool) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
+pub fn prepare_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, Int, (Int) -> Bool, bounded_limits? : CapturedEffectDependencyLimits?) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 

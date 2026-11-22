@@ -617,6 +617,10 @@ pub fn installed_effect_contract_response_construction_capacity(Int, Int, Int) -
 
 pub fn installed_effect_control_wire_bound(Int, Int) -> Result[Int, ClientInstalledManagedRunIssue]
 
+pub fn installed_effect_dependency_envelope_capacity(@encode_core.EncodingConstructionGeometry, Int, Int64) -> @execution_relation.ExecutionCapacity?
+
+pub fn installed_effect_dependency_graph_capacity(Int, Int, Int, Int64) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_effect_funded_model_selection_count(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
