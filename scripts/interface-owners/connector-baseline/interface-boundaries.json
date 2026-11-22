@@ -7136,7 +7136,7 @@
     {
       "module": "adapters/connectors/local/host/installed-local-table.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "178db7581e7073f652a30fa75f1076bf0e58f9c5806bb2c51887e20bb22d330d",
+      "sha256": "1ac3d390f659b33f5444107ede0a4276edcd489eb240280b996980279444722f",
       "role": "connector-semantics",
       "owner": "Local Table Source/Effect installation through generic Host; no separate Table scheduler or approval owner",
       "exports": [
@@ -7327,19 +7327,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/connectors/local/host/installed-local-table.mts",
                 "anchor": "loadInstalledTableEffect"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/connectors/local/host/installed-local-table.mts",
                 "anchor": "exact_table_profile_cid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/connectors/local/host/installed-local-table.mts",
                 "anchor": "installedTableReadSite"
               }
             ],
@@ -7363,7 +7363,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/installed-local-table.mjs",
+                "path": "adapters/connectors/local/host/installed-local-table.mts",
                 "anchor": "snapshotProcessValue"
               }
             ],
