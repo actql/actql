@@ -157,10 +157,19 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       });
       assertUpdateTargetSelectionMembersCurrent(selections, members, prepared);
     },
-    captureEffectMaterials({prepared, allowed, definition, identity}) {
-      return issueMaterials === undefined
+    captureEffectMaterials({prepared, allowed, definition, identity, compilation, runDefinition, requestedStop}) {
+      const wire = issueMaterials === undefined
         ? checked(moon.clientProgramIssuePreparedEffectRunMaterials(allowed, definition, identity ?? null))
         : issueMaterials({prepared, allowed, definition, identity});
+      if (requestedStop && admitMaterials !== undefined) {
+        // A warm stop resumes on the adopted Run, where the preparation
+        // codec is closed. Retain its exact typed materials on this same
+        // preparation before adoption, just as for selected write targets.
+        if (compilation === undefined || runDefinition === undefined) fail();
+        const restored = restoreEffectMaterials(wire, runDefinition, identity, compilation, prepared);
+        if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      }
+      return wire;
     },
     compilationFor: prepared => compilations.get(prepared),
     // A captured target-read continuation already has this admitted pair on

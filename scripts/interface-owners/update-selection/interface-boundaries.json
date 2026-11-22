@@ -506,7 +506,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "6d0490c61f85fdb1d79b3f2062b63321b56a0223991350a8a905957586766f0b",
+      "sha256": "c1ac47dcabc8db999677977ed3d5d5aa23915d5b6262ffad5c70f7ecb7819f05",
       "exports": [
         "installUpdateTargetOriginals"
       ],

@@ -1404,6 +1404,8 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
       assert.strictEqual(facts.compilation, compilation); assert.strictEqual(facts.runDefinition, runDefinition);
       calls.push('capture-target'); return target ? targetOriginal : undefined;
     }, captureEffectMaterials(facts) {
+      assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
+      assert.strictEqual(facts.runDefinition, runDefinition); assert.equal(facts.requestedStop, stop);
       assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
       assert.strictEqual(facts.identity, identity); calls.push('capture-full-original'); return wire;
     }, compilationFor(value) {assert.strictEqual(value, prepared);return compilation;}}, prepareDefinition(facts) {

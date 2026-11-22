@@ -313,7 +313,8 @@ export function installNodeClientEffectRun({moon,
           // Ordinary approval also resumes in another process without an
           // explicit commit stop. Its original must survive that same boundary.
           const effectOriginalRunWire = updateTargetRunOriginal !== undefined
-            ? undefined : updateTargetOriginals?.captureEffectMaterials({prepared, allowed, definition, identity});
+            ? undefined : updateTargetOriginals?.captureEffectMaterials({prepared, allowed, definition, identity,
+              compilation: definitionCompilation, runDefinition, requestedStop});
           if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
             throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),
               {code: 'RequestedEffectStopOriginalUnavailable'});
