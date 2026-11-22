@@ -1391,7 +1391,7 @@ fn complete_installed_effect_operation_construction_owned(
     None =>
       @resources.complete_prepared_run_operation_construction(
         admission, plan, ledger, original, backing,
-      )
+      ).map(execution => if !finished { value.execution_limit = execution })
     Some(retained) =>
       @resources.complete_prepared_run_operation_construction_output(
         admission, plan, ledger, original, backing, retained,
