@@ -812,3 +812,24 @@ the actual Mapping and subsequent lookup and request work before allocating it.
 Both physical branches still require the original selected authorization,
 current Preview and claim. The focused Host and Common controls verify
 Form selection, exact permissions and distinct physical identity.
+
+### Original mapped UPSERT proposal
+
+The provider preserves the original Mapping, its selected field rules and
+intended checked cells while preparing the keyed lookup. The proposal
+returns the original typed lookup request to the existing physical caller.
+Its complete response must belong to the same lookup occurrence; a separately
+issued lookup with equal fields and bytes does not satisfy this check.
+
+The observed record supplies the original native `$id`, revision and before
+image for UPDATE. Complete absence selects CREATE with the original key.
+The original write rules refuse extra fields, missing mandatory cells and
+null outside `write_null`. Finite field comparison exhaustion remains a
+budget refusal.
+
+The proposal and native request remain under the existing capture owner.
+The physical caller owns authorization, current checks, cancellation and
+cleanup, and must fund the retained values, lookup and before projection
+before construction. Neither branch can retry or change the selected request.
+The focused proposal control checks exact request bodies in both branches
+and refuses a foreign lookup, key replacement and missing required fields.

@@ -38,6 +38,18 @@ fn key_before_declaration(
 }
 
 ///|
+fn key_before_lookup_limits() -> @catalog.RecordLookupLimits {
+  {
+    max_key_bytes: 1000,
+    max_columns: 10,
+    max_comparison_work: 10000,
+    max_request_bytes: 20000,
+    max_request_nodes: 1000,
+    max_request_depth: 16,
+  }
+}
+
+///|
 fn key_before_lookup(
   catalog : @catalog.FormFieldCatalog,
   present : Bool,
@@ -48,15 +60,16 @@ fn key_before_lookup(
     "customer_code",
     "original-key",
     names,
-    {
-      max_key_bytes: 1000,
-      max_columns: 10,
-      max_comparison_work: 10000,
-      max_request_bytes: 20000,
-      max_request_nodes: 1000,
-      max_request_depth: 16,
-    },
+    key_before_lookup_limits(),
   ).unwrap()
+  key_before_reply(request, present)
+}
+
+///|
+fn key_before_reply(
+  request : @catalog.RecordLookupRequest,
+  present : Bool,
+) -> @catalog.RecordLookupObservation {
   @catalog.project_record_key_lookup(
     request,
     200,
@@ -294,9 +307,10 @@ test "keyed UPSERT Mapping binds the original Form key and both permissions, pre
     { target: "memo", field: "next_memo", null_behavior: "reject", },
   ]
   let limits = delete_declaration_limits()
-  let mapped = prepare_record_key_upsert_mapping(
+  let selected = prepare_record_key_upsert_mapping(
     original, "customers", "customer_code", sources, limits,
   ).unwrap()
+  let mapped = record_key_upsert_mapping(selected)
   let update = prepare_record_update_mapping(
     original, "customers", sources, "required", limits,
   ).unwrap()
@@ -353,4 +367,85 @@ test "keyed UPSERT Mapping binds the original Form key and both permissions, pre
     )
     is Err(FieldNotWritable("Computed")),
   )
+}
+
+///|
+test "mapped UPSERT proposal binds both outcomes to its exact original lookup and cells" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let sources : Array[@rows.RowMappingSource] = [
+    { target: "memo", field: "next_memo", null_behavior: "reject", },
+    { target: "Tags", field: "next_tags", null_behavior: "omit", },
+  ]
+  let selected = prepare_record_key_upsert_mapping(
+    original,
+    "customers",
+    "customer_code",
+    sources,
+    delete_declaration_limits(),
+  ).unwrap()
+  // An escaped array from the Mapping's construction is independent of its
+  // held rules. The proposal still needs the selected required input cell.
+  sources.clear()
+  let bytes = b"{\"memo\":\"next\"}"
+  let limits = key_before_lookup_limits()
+  let write_limits = key_before_write_limits()
+  for present in [true, false] {
+    let proposal = prepare_record_key_upsert_proposal(
+      selected, "original-key", bytes, 10000, write_limits, limits,
+    ).unwrap()
+    let lookup = record_key_upsert_proposal_lookup(proposal)
+    assert_true(
+      @catalog.record_lookup_request_body(lookup).contains("customer_code = "),
+    )
+    let observed = key_before_reply(lookup, present)
+    let (before, request) = prepare_record_key_upsert_observed_request(
+      proposal,
+      observed,
+      delete_preview_values(),
+      write_limits,
+      delete_preview_limits(),
+    ).unwrap()
+    assert_true(record_key_upsert_before_matches(before, original, observed))
+    if present {
+      assert_true(record_key_upsert_before_version_cid(before) is Some(_))
+      assert_eq(
+        @catalog.record_update_request_body(
+          @catalog.record_key_upsert_update_request(request).unwrap(),
+        ),
+        "{\"app\":\"12\",\"records\":[{\"id\":\"9007199254740993\",\"record\":{\"memo\":{\"value\":\"next\"}},\"revision\":\"9007199254740994\"}],\"upsert\":false}",
+      )
+    } else {
+      assert_true(record_key_upsert_before_version_cid(before) is None)
+      assert_eq(
+        @catalog.record_create_request_body(
+          @catalog.record_key_upsert_create_request(request).unwrap(),
+        ),
+        "{\"app\":\"12\",\"records\":[{\"memo\":{\"value\":\"next\"},\"customer_code\":{\"value\":\"original-key\"}}]}",
+      )
+    }
+    let different = prepare_record_key_upsert_proposal(
+      selected, "original-key", bytes, 10000, write_limits, limits,
+    ).unwrap()
+    assert_true(
+      prepare_record_key_upsert_observed_request(
+        different,
+        observed,
+        delete_preview_values(),
+        write_limits,
+        delete_preview_limits(),
+      )
+      is Err(Lookup(ForeignRequest)),
+    )
+  }
+  for
+    rejected in [
+      b"{\"Tags\":[\"red\"]}", b"{\"memo\":\"next\",\"customer_code\":\"original-key\"}",
+    ] {
+    assert_true(
+      prepare_record_key_upsert_proposal(
+        selected, "original-key", rejected, 10000, write_limits, limits,
+      )
+      is Err(MappingMismatch),
+    )
+  }
 }

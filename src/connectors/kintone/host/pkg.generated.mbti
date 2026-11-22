@@ -70,7 +70,11 @@ pub fn prepare_record_delete_preview(RecordDeleteMapping, @catalog.OriginalRecor
 
 pub fn prepare_record_key_upsert_before(RecordDeclaration, @catalog.RecordLookupObservation, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordKeyUpsertBefore, RecordReadIssue]
 
-pub fn prepare_record_key_upsert_mapping(RecordDeclaration, String, String, Array[@client_row_source_host.RowMappingSource], @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowMapping, @client_row_source_host.RowMappingIssue]
+pub fn prepare_record_key_upsert_mapping(RecordDeclaration, String, String, Array[@client_row_source_host.RowMappingSource], @client_row_source_host.RowDeclarationLimits) -> Result[RecordKeyUpsertMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn prepare_record_key_upsert_observed_request(RecordKeyUpsertProposal, @catalog.RecordLookupObservation, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[(RecordKeyUpsertBefore, @catalog.RecordKeyUpsertRequest), RecordKeyUpsertExecutionIssue]
+
+pub fn prepare_record_key_upsert_proposal(RecordKeyUpsertMapping, String, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordLookupLimits) -> Result[RecordKeyUpsertProposal, RecordKeyUpsertExecutionIssue]
 
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
@@ -159,6 +163,10 @@ pub fn record_key_upsert_before_target(RecordKeyUpsertBefore) -> @catalog.Origin
 pub fn record_key_upsert_before_version_cid(RecordKeyUpsertBefore) -> String?
 
 pub fn record_key_upsert_before_wire(RecordKeyUpsertBefore) -> String?
+
+pub fn record_key_upsert_mapping(RecordKeyUpsertMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_key_upsert_proposal_lookup(RecordKeyUpsertProposal) -> @catalog.RecordLookupRequest
 
 pub fn record_page_next_cursor(RecordRead, String?, Int) -> Result[String?, RecordReadIssue]
 
@@ -315,6 +323,22 @@ pub struct RecordDeletePreviewOutcome {
 }
 
 pub struct RecordKeyUpsertBefore {
+  // private fields
+}
+
+pub(all) enum RecordKeyUpsertExecutionIssue {
+  MappingMismatch
+  Values(@catalog.RecordWriteJsonIssue)
+  Lookup(@catalog.RecordLookupIssue)
+  Before(RecordReadIssue)
+  Request(@catalog.RecordKeyUpsertIssue)
+}
+
+pub struct RecordKeyUpsertMapping {
+  // private fields
+}
+
+pub struct RecordKeyUpsertProposal {
   // private fields
 }
 

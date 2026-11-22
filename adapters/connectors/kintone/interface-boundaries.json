@@ -6504,7 +6504,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_key_upsert_mapping.mbt",
-      "sha256": "8ccf2ef56df008a14bfd354a0a06f6a1c7e49403b5ea1a81b1adc262bbfd7728",
+      "sha256": "48b0190cf37c725bdab16fecc0f70ba181b15ec71a1d6d21e82217645243bc92",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing original kintone Catalog and Common Relation Mapping Owners",
@@ -6512,14 +6512,19 @@
       "operations": [
         {
           "name": "prepare_record_key_upsert_mapping",
-          "declaration": "prepare_record_key_upsert_mapping ( original : RecordDeclaration , resource : String , key : String , sources : Array [ @ rows . RowMappingSource ] , limits : @ rows . RowDeclarationLimits , ) - > Result [ @ rows . RowMapping , @ rows . RowMappingIssue ]"
+          "declaration": "prepare_record_key_upsert_mapping ( original : RecordDeclaration , resource : String , key : String , sources : Array [ @ rows . RowMappingSource ] , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordKeyUpsertMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_key_upsert_mapping",
+          "declaration": "record_key_upsert_mapping ( value : RecordKeyUpsertMapping , ) - > @ rows . RowMapping"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "prepare_record_key_upsert_mapping"
+            "prepare_record_key_upsert_mapping",
+            "record_key_upsert_mapping"
           ],
           "exports": [],
           "attributes": {
@@ -6581,6 +6586,106 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "Form selection, exact permissions and distinct physical identity."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_key_upsert_execution.mbt",
+      "sha256": "7364591e4f6c489c9147e0e586ab56c386c4e3b57cd984cbe355232ad72fc7c3",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing original kintone Catalog and Host request construction",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_record_key_upsert_written_fields",
+          "declaration": "check_record_key_upsert_written_fields ( fields : Array [ @ rows . RowMappingSource ] , values : @ catalog . RecordWriteValues , max_work : Int , ) - > Result [ Unit , RecordKeyUpsertExecutionIssue ]"
+        },
+        {
+          "name": "prepare_record_key_upsert_observed_request",
+          "declaration": "prepare_record_key_upsert_observed_request ( proposal : RecordKeyUpsertProposal , observed : @ catalog . RecordLookupObservation , values : @ catalog . RecordValueLimits , write_limits : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ ( RecordKeyUpsertBefore , @ catalog . RecordKeyUpsertRequest ) , RecordKeyUpsertExecutionIssue , ]"
+        },
+        {
+          "name": "prepare_record_key_upsert_proposal",
+          "declaration": "prepare_record_key_upsert_proposal ( mapping : RecordKeyUpsertMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , lookup_limits : @ catalog . RecordLookupLimits , ) - > Result [ RecordKeyUpsertProposal , RecordKeyUpsertExecutionIssue ]"
+        },
+        {
+          "name": "record_key_upsert_proposal_lookup",
+          "declaration": "record_key_upsert_proposal_lookup ( value : RecordKeyUpsertProposal , ) - > @ catalog . RecordLookupRequest"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_record_key_upsert_written_fields",
+            "prepare_record_key_upsert_observed_request",
+            "prepare_record_key_upsert_proposal",
+            "record_key_upsert_proposal_lookup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The provider preserves the original Mapping, its selected field rules"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "returns the original typed lookup request to the existing physical caller."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Its complete response must belong to the same lookup occurrence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The proposal and native request remain under the existing capture owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The observed record supplies the original native `$id`, revision and before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The original write rules refuse extra fields, missing mandatory cells"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The physical caller owns authorization, current checks, cancellation and"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "cleanup, and must fund the retained values, lookup and before projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Neither branch can retry or change the selected request."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The focused proposal control checks exact request bodies in both branches"
               }
             ]
           }

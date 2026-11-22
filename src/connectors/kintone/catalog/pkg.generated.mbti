@@ -227,6 +227,8 @@ pub fn record_write_field_contract_at(FormFieldCatalog, Int) -> @value_contract.
 
 pub fn record_write_values_body(RecordWriteValues) -> String
 
+pub fn record_write_values_field_at(RecordWriteValues, Int) -> (String, Bool)?
+
 pub fn record_write_values_fields(RecordWriteValues) -> Array[String]
 
 pub fn record_write_values_json(RecordWriteValues, Int, Int, Int) -> Result[String, RecordWriteJsonIssue]

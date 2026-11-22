@@ -1,4 +1,14 @@
 ///|
+/// The original Form, key, and field rules stay together through lookup.
+pub struct RecordKeyUpsertMapping {
+  priv mut self : RecordKeyUpsertMapping?
+  priv original : RecordDeclaration
+  priv key : String
+  priv mapping : @rows.RowMapping
+  priv fields : Array[@rows.RowMappingSource]
+}
+
+///|
 /// Bind the actual Form key and required create fields to the retained
 /// Relation. Both physical branches require their original permissions.
 pub fn prepare_record_key_upsert_mapping(
@@ -7,7 +17,7 @@ pub fn prepare_record_key_upsert_mapping(
   key : String,
   sources : Array[@rows.RowMappingSource],
   limits : @rows.RowDeclarationLimits,
-) -> Result[@rows.RowMapping, @rows.RowMappingIssue] {
+) -> Result[RecordKeyUpsertMapping, @rows.RowMappingIssue] {
   if original.declaration.connector_registration != "kintone" ||
     limits.max_fields <= 0 ||
     sources.length() > limits.max_fields {
@@ -46,21 +56,42 @@ pub fn prepare_record_key_upsert_mapping(
       return Err(MissingRequiredField(name))
     }
   }
-  @rows.prepare_relation_row_write_mapping(
-    original.declaration,
-    resource,
+  let mapping = match
+    @rows.prepare_relation_row_write_mapping(
+      original.declaration,
+      resource,
+      key,
+      {
+        kind: @rows.RelationKeyUpsert(
+          native_identity="$id",
+          update_permission="kintone:records:update",
+        ),
+        writable_fields: writable,
+        required_fields: required,
+        permission: "kintone:records:create",
+        approval: "required",
+      },
+      sources,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let selected : RecordKeyUpsertMapping = {
+    self: None,
+    original,
     key,
-    {
-      kind: @rows.RelationKeyUpsert(
-        native_identity="$id",
-        update_permission="kintone:records:update",
-      ),
-      writable_fields: writable,
-      required_fields: required,
-      permission: "kintone:records:create",
-      approval: "required",
-    },
-    sources,
-    limits,
-  )
+    mapping,
+    fields: sources.copy(),
+  }
+  selected.self = Some(selected)
+  Ok(selected)
+}
+
+///|
+/// Immutable Mapping body and its schema facts; authority remains with the Host.
+pub fn record_key_upsert_mapping(
+  value : RecordKeyUpsertMapping,
+) -> @rows.RowMapping {
+  value.mapping
 }
