@@ -3,6 +3,7 @@ import {registerInstalledEffectDependencyOriginal,retireInstalledEffectDependenc
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {rejectInstalledEffectPlan as fail} from './installed-effect-recipe.mjs';
 export {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation,
@@ -18,9 +19,70 @@ export {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestCh
 
 export {prepareInstalledEffectCredentialChild} from './installed-effect-credential-child.mjs';
 
+
+type CoreResult = Extract<SynchronousRuntimeData, object>;
+type OriginalInput = [owner: unknown, prepared: unknown, request: unknown, plan: unknown];
+type OriginalPort<Args extends unknown[] = []> = (...args: [...OriginalInput, ...Args]) => CoreResult;
+type RequestProjection = [member: number, operation: number, row: number];
+type FootprintProjection = [member: number, operation: number];
+type LedgerFamily = [counts: readonly number[], entries: number, bytes: number, nodes: number, depth: number];
+type LedgerRow = [kind: string, bytes: number, nodes: number, depth: number, responseBytes: number];
+type Runtime = Readonly<{
+  clientProgramInstalledEffectOperationControlConstructionBegin: OriginalPort;
+  clientProgramInstalledEffectOperationNativeConstructionBegin?: OriginalPort<[native: unknown]>;
+  clientProgramInstalledEffectOperationMemberReceiptConstructionBegin?: OriginalPort<[scratch: unknown]>;
+  clientProgramInstalledEffectOperationControlConstructionComplete: OriginalPort;
+  clientProgramInstalledEffectOperationGrantConstructionBegin?: OriginalPort;
+  clientProgramInstalledEffectOperationRequestProjectionBegin?: OriginalPort<RequestProjection>;
+  clientProgramInstalledEffectOperationFootprintConstructionBegin?: OriginalPort<FootprintProjection>;
+  clientProgramInstalledEffectOperationLedgerOpenBegin?: OriginalPort<[root: string]>;
+  clientProgramInstalledEffectOperationLedgerFamilyBegin?: OriginalPort<LedgerFamily>;
+  clientProgramInstalledEffectOperationLedgerRowBegin?: OriginalPort<LedgerRow>;
+  clientProgramInstalledEffectOperationLedgerHistoryGrow?: OriginalPort<[count: number, wireUnits: bigint]>;
+  clientProgramInstalledEffectOperationControlInputBegin?: OriginalPort<[wire: string]>;
+  clientProgramInstalledEffectOperationLedgerCodecBegin?: OriginalPort<[wire: string | undefined, nodes: number, depth: number]>;
+  clientProgramInstalledEffectOperationReceiptCodecBegin?: OriginalPort<[wire: string, nodes: number, depth: number, receiptWire: boolean]>;
+  clientProgramInstalledEffectOperationLedgerCodecComplete?: OriginalPort;
+  clientProgramInstalledEffectManagedPlanHasHostInput?(plan: unknown): boolean;
+  clientProgramInstalledEffectCapturedInputInventoryRetain?: OriginalPort<[inputs: unknown]>;
+  clientProgramInstalledEffectManagedPlanShape?(plan: unknown): readonly [
+    rows: number, operations: number, heldChildren: number];
+  clientProgramAuthorInstalledEffectPreview?: OriginalPort<[allowed: unknown, definition: unknown,
+    invocation: unknown, templateWire: string, expectedRunIdentityCid: string, expectedAuthoringContextCid: string,
+    requestScope: unknown, maxWireBytes: number, maxNodes: number, maxDepth: number, maxMembers: number,
+    maxRows: number, maxKeyBytes: number, maxKeyNodes: number, maxKeyDepth: number]>;
+  clientProgramInstalledEffectRecoveredPreviewKeys?: OriginalPort<[allowed: unknown, definition: unknown,
+    invocation: unknown, preview: unknown, scope: unknown, maxMembers: number, maxRows: number,
+    maxWork: number, maxKeyBytes: number, maxKeyNodes: number, maxKeyDepth: number]>;
+}>;
+type RecoveredInputControl = Readonly<{
+  retainInstalledEffectRecoveredInputInventory?(...args: [...OriginalInput, allowed: unknown,
+    definition: unknown, invocation: unknown, preview: unknown]): undefined;
+}>;
+type SyncMethod<Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData> =
+  (this: Receiver, ...args: Args) => Value;
+type ControlWork = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+  receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+  nativeConstruction?: unknown, memberReceipt?: boolean) => Value;
+type Run = Readonly<{
+  runtime: Runtime;
+  value: unknown;
+  prepared: unknown;
+  request: unknown;
+  operationPlan: unknown;
+  readPlan(parent: unknown, prepared: unknown, request: unknown): CoreResult;
+  closed?: boolean;
+  failure?: unknown;
+}> & {
+  controlConstruction?: ControlWork;
+  retireControlConstruction?: () => boolean;
+  recoveredRequestInput?: Readonly<{retire(): boolean}>;
+  selecting?: boolean;
+};
+
 // The existing Run owns this synchronous control frame, its original methods
 // and any invalid borrowed task. This is not a grant, new owner or caller fee.
-export function prepareInstalledEffectControlConstruction(run) {
+export function prepareInstalledEffectControlConstruction(run: Run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const nativeBegin = runtime?.clientProgramInstalledEffectOperationNativeConstructionBegin;
@@ -42,13 +104,13 @@ export function prepareInstalledEffectControlConstruction(run) {
   const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
   const keyAuthor = runtime?.clientProgramAuthorInstalledEffectPreview;
   const keyRecovery = runtime?.clientProgramInstalledEffectRecoveredPreviewKeys;
-  const parseJson = JSON.parse;
+  const parseJson: (wire: string) => SynchronousRuntimeData = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
-  let working = false, codecWorking = false, historyWorking = false, failed = false, retired = false, primary, pending, work;
-  let previewInputWire, previewInput;
+  let working = false, codecWorking = false, historyWorking = false, failed = false, retired = false, primary: unknown, pending: unknown, work: ControlWork;
+  let previewInputWire: string | undefined, previewInput: SynchronousRuntimeData;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
     run.readPlan === readPlan && run.controlConstruction === work;
@@ -56,7 +118,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (!sameRecord()) fail('ForeignInstalledEffectManagedRun');
   };
-  const retainInvalid = value => {
+  const retainInvalid = (value: unknown) => {
     if (value === null || !['object', 'function'].includes(typeof value)) return;
     pending = value;
     const settled = () => {pending = undefined; run.selecting = false;};
@@ -66,13 +128,17 @@ export function prepareInstalledEffectControlConstruction(run) {
       Reflect.apply(nativePromiseThen, value, [settled, settled]);
       fail('InvalidInstalledEffectControlConstruction');
     }
-    const then = value.then;
+    const then = (value as {then?: unknown}).then;
     if (typeof then !== 'function') {pending = undefined; return;}
     const joined = new NativePromise((yes, no) => Reflect.apply(then, value, [yes, no]));
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction, memberReceipt = false, ledgerRow) => {
+  const invoke = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+    inputWire?: string, grant = false, requestProjection?: RequestProjection, footprintProjection?: FootprintProjection,
+    ledgerRoot?: string, ledgerFamily?: LedgerFamily, nativeConstruction?: unknown, memberReceipt = false, ledgerRow?: LedgerRow,
+  ): Value => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -87,10 +153,10 @@ export function prepareInstalledEffectControlConstruction(run) {
     // before allocation. No arbitrary callback or Host count selects it.
     const metadata = nativeConstruction === undefined && ledgerRow === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
-      (method === shape && Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
+      ((method as Function) === shape && Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
         Object.getOwnPropertyDescriptor(args, '0')?.value === plan ||
-       (method === keyAuthor && Object.getOwnPropertyDescriptor(args, 'length')?.value === 19 ||
-        method === keyRecovery && Object.getOwnPropertyDescriptor(args, 'length')?.value === 15) &&
+       ((method as Function) === keyAuthor && Object.getOwnPropertyDescriptor(args, 'length')?.value === 19 ||
+        (method as Function) === keyRecovery && Object.getOwnPropertyDescriptor(args, 'length')?.value === 15) &&
         Object.getOwnPropertyDescriptor(args, '0')?.value === parent &&
         Object.getOwnPropertyDescriptor(args, '1')?.value === prepared &&
         Object.getOwnPropertyDescriptor(args, '2')?.value === request &&
@@ -109,14 +175,14 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(nativeConstruction !== undefined ? memberReceipt ? receiptBegin : nativeBegin :
+      else checked(Reflect.apply((nativeConstruction !== undefined ? memberReceipt ? receiptBegin : nativeBegin :
         ledgerRow !== undefined && ledgerRowBegin !== undefined ? ledgerRowBegin :
         ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
         ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
         footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
         requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
         grant && grantBegin !== undefined ? grantBegin :
-        inputWire === undefined ? begin : beginInput, runtime,
+        inputWire === undefined ? begin : beginInput) as Function, runtime,
         [parent, prepared, request, plan, ...(ledgerRow !== undefined && ledgerRowBegin !== undefined
           ? ledgerRow : ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
           ? ledgerFamily : ledgerRoot !== undefined && ledgerOpenBegin !== undefined
@@ -126,14 +192,14 @@ export function prepareInstalledEffectControlConstruction(run) {
           ...(nativeConstruction === undefined ? [] : [nativeConstruction])]));
       originalRecord();
       invoking = true;
-      const value = Reflect.apply(method, receiver, metadata && method === shape ? [plan] : args);
+      const value = Reflect.apply(method as Function, receiver, metadata && (method as Function) === shape ? [plan] : args) as Value;
       invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
       // These closed key entrances return Core Results. Preserve an actual
       // resource/semantic refusal before another current callback can replace
       // its cause; a later call cannot reconstruct the failed key cohort.
-      if (metadata && method !== shape) checked(value);
+      if (metadata && (method as Function) !== shape) checked(value);
       originalRecord();
       if (metadata) observePlan();
       else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
@@ -179,23 +245,27 @@ export function prepareInstalledEffectControlConstruction(run) {
     invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction, memberReceipt);
   // Installing Site issuers alone use this fixed Core constructor family.
   // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
-  const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);
+  const grant = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args) => invoke(receiver, method, args, undefined, true);
   // Core resolves these SAME Plan coordinates to its completed original
   // request child. JavaScript selects no quantity or replacement capability.
   // A legacy runtime still reserves the complete generic control frame.
-  const requestProjection = (member, operation, row, receiver, method, args) => {
+  const requestProjection = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    member: number, operation: number, row: number, receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+  ) => {
     if (![member, operation, row].every(value => Number.isSafeInteger(value) && value >= 0)) {
       fail('InvalidInstalledEffectControlConstruction');
     }
     return invoke(receiver, method, args, undefined, false, [member, operation, row]);
   };
   // Fixed declared member footprint only; Core reads its original scratch.
-  const footprint = (member, operation, receiver, method, args) => {
+  const footprint = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    member: number, operation: number, receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+  ) => {
     if (![member, operation].every(value => Number.isSafeInteger(value) && value >= 0)) fail('InvalidInstalledEffectControlConstruction');
     return invoke(receiver, method, args, undefined, false, undefined, [member, operation]);
   };
   // Exact original openEffectLedger caller; Common owns all quantity math.
-  const ledgerOpen = (root, receiver, method, args) => {
+  const ledgerOpen = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(root: string, receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args) => {
     if (typeof root !== 'string' || !Array.isArray(args) || nodeTypes.isProxy(args) ||
         Object.getOwnPropertyDescriptor(args, 'length')?.value !== 1) {
       fail('InvalidInstalledEffectControlConstruction');
@@ -210,10 +280,16 @@ export function prepareInstalledEffectControlConstruction(run) {
   // Called only by the closed standard Ledger wrapper below. The frozen
   // lengths/policy scalars are geometry, not permission or completed checks.
   // All byte pricing, policy-family selection and coheld lifetimes are Core.
-  const ledgerFamily = (receiver, method, args, counts, entries, bytes, nodes, depth) =>
+  const ledgerFamily = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+    counts: readonly number[], entries: number, bytes: number, nodes: number, depth: number,
+  ) =>
     invoke(receiver, method, args, undefined, false, undefined, undefined,
       undefined, [counts, entries, bytes, nodes, depth]);
-  const ledgerRow = (receiver, method, args, kind, bytes, nodes, depth, responseBytes) => {
+  const ledgerRow = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+    kind: string, bytes: number, nodes: number, depth: number, responseBytes: number,
+  ) => {
     if (!['entry', 'response', 'receipt', 'quantity'].includes(kind) ||
         ![bytes, nodes, depth, responseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
       fail('InvalidInstalledEffectControlConstruction');
@@ -223,7 +299,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   };
   // The original SQLite history reader invokes this before materializing its
   // same-transaction rows. It extends the active frame, never another owner.
-  const ledgerHistory = (count, wireUnits) => {
+  const ledgerHistory = (count: number, wireUnits: number) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking || historyWorking) fail('InstalledEffectControlConstructionPending');
@@ -243,7 +319,9 @@ export function prepareInstalledEffectControlConstruction(run) {
   // control frame retains every output. The selected Ledger family adds its
   // coheld snapshot/array demand; generic frames retain the full family floor.
   // No Preview one-use identity or physical occurrence is reused.
-  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16, receiptWire) => {
+  const ledgerCodec = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args, wire?: string, nodes = 512, depth = 16, receiptWire?: boolean,
+  ): Value => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking) fail('InstalledEffectControlConstructionPending');
@@ -258,7 +336,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     codecWorking = true;
     try {
       originalRecord();
-      checked(Reflect.apply(receiptWire === undefined ? codecBegin : receiptCodecBegin, runtime,
+      checked(Reflect.apply((receiptWire === undefined ? codecBegin : receiptCodecBegin) as Function, runtime,
         [parent, prepared, request, plan, wire, nodes, depth, ...(receiptWire === undefined ? [] : [receiptWire])]));
       originalRecord();
       const value = Reflect.apply(method, receiver, args);
@@ -273,11 +351,14 @@ export function prepareInstalledEffectControlConstruction(run) {
       throw cause;
     } finally { codecWorking = false; }
   };
-  const receiptCodec = (receiver, method, args, wire, nodes, depth, receiptWire) => {
+  const receiptCodec = <Receiver, Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+    receiver: Receiver, method: SyncMethod<Receiver, Args, Value>, args: Args,
+    wire: string, nodes: number, depth: number, receiptWire: boolean,
+  ) => {
     if (typeof receiptWire !== 'boolean') fail('InstalledEffectControlRuntimeUnavailable');
     return ledgerCodec(receiver, method, args, wire, nodes, depth, receiptWire);
   };
-  const parsePreview = (wire, borrowOriginal = false) => {
+  const parsePreview = (wire: string, borrowOriginal = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -319,7 +400,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     previewInput = parsed;
     return parsed;
   };
-  const retainInputs = inputs => {
+  const retainInputs = (inputs: unknown) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -340,7 +421,8 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
-  const retainRecoveredInputs = (control, allowed, definition, invocation, preview) => {
+  const retainRecoveredInputs = (control: RecoveredInputControl, allowed: unknown, definition: unknown,
+    invocation: unknown, preview: unknown) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');

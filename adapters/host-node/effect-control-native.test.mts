@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
-function fixture({beginFailure} = {}) {
-  const parent = {}, prepared = {}, request = {}, plan = {}, events = [];
-  const begin = (kind, ...args) => {
+type Run = Parameters<typeof prepareInstalledEffectControlConstruction>[0];
+type Event = {kind: 'begin' | 'receipt' | 'complete'; args?: readonly unknown[]};
+type MemberReceiptArguments = [quote: unknown, memberReceipt: boolean];
+
+function fixture({beginFailure}: {beginFailure?: Error} = {}) {
+  const parent = {}, prepared = {}, request = {}, plan = {}, events: Event[] = [];
+  const begin = (kind: 'begin' | 'receipt', ...args: unknown[]) => {
     assert.deepEqual(args.slice(0, 4), [parent, prepared, request, plan]);
     events.push({kind, args});
     if (beginFailure) throw beginFailure;
     return Object.create({$tag: 1});
   };
-  const runtime = {
+  const runtime: Run['runtime'] = {
     clientProgramInstalledEffectOperationControlConstructionBegin: (...args) => begin('begin', ...args),
     clientProgramInstalledEffectOperationNativeConstructionBegin: (...args) => begin('begin', ...args),
     clientProgramInstalledEffectOperationMemberReceiptConstructionBegin: (...args) => begin('receipt', ...args),
@@ -18,8 +22,8 @@ function fixture({beginFailure} = {}) {
       events.push({kind: 'complete'}); return Object.create({$tag: 1});
     },
   };
-  const run = {runtime, value: parent, prepared, request, operationPlan: plan, readPlan() {}, closed: false};
-  const work = prepareInstalledEffectControlConstruction(run);
+  const run: Omit<Run, 'readPlan'> & {readPlan(): void} = {runtime, value: parent, prepared, request, operationPlan: plan, readPlan() {}, closed: false};
+  const work = prepareInstalledEffectControlConstruction(run as unknown as Run);
   run.controlConstruction = work; run.retireControlConstruction = work.retire;
   return {work, events};
 }
@@ -27,10 +31,10 @@ test('same control forwards opaque native quote before Reflect and preserves the
   const f = fixture(), original = Object.freeze({});
   let calls = 0;
   f.work(undefined, () => {calls++; assert.equal(f.events.length, 1);}, [], original);
-  assert.equal(f.events[0].args[4], original); assert.equal(f.events[0].args.length, 5);
+  assert.equal(f.events[0].args![4], original); assert.equal(f.events[0].args!.length, 5);
   assert.deepEqual(f.events.map(x => x.kind), ['begin', 'complete']);
   f.work(undefined, () => {calls++;}, []);
-  assert.equal(f.events[2].args.length, 4); assert.equal(calls, 2);
+  assert.equal(f.events[2].args!.length, 4); assert.equal(calls, 2);
 });
 test('native funding refusal prevents caller work and a Proxy quote executes no traps', () => {
   const original = new Error('resource refusal'), f = fixture({beginFailure: original}); let calls = 0;
@@ -57,7 +61,7 @@ test('member Receipt selects its same-parent Ledger-capable entrance with the or
   let calls = 0;
   f.work(undefined, () => {calls++;}, [], original, true);
   assert.equal(calls, 1);
-  assert.equal(f.events[0].args[4], original);
+  assert.equal(f.events[0].args![4], original);
   assert.deepEqual(f.events.map(x => x.kind), ['receipt', 'complete']);
   f.work(undefined, () => {calls++;}, [], original);
   assert.deepEqual(f.events.map(x => x.kind), ['receipt', 'complete', 'begin', 'complete']);
@@ -68,7 +72,7 @@ test('member Receipt funding refusal preserves the primary error and invalid rol
   assert.deepEqual(f.events.map(x => x.kind), ['receipt']);
   for (const args of [[undefined, true], [{}, 1]]) {
     const fresh = fixture();
-    assert.throws(() => fresh.work(undefined, () => assert.fail('No invalid receipt callback'), [], ...args),
+    assert.throws(() => fresh.work(undefined, () => assert.fail('No invalid receipt callback'), [], ...args as unknown as MemberReceiptArguments),
       {code: 'InvalidInstalledEffectControlConstruction'});
     assert.deepEqual(fresh.events, []);
   }

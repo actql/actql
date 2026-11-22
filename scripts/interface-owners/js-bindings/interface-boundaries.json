@@ -96639,7 +96639,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96649,7 +96649,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96659,7 +96659,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96669,7 +96669,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96679,7 +96679,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96689,7 +96689,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96699,7 +96699,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96709,7 +96709,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -96719,7 +96719,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],

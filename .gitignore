@@ -2336,3 +2336,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect-credential-child.d.mts
 /adapters/host-node/mock-file-effect-plan.test.mjs
 /adapters/host-node/mock-file-effect-plan.test.d.mts
+/adapters/host-node/installed-effect-plan.mjs
+/adapters/host-node/installed-effect-plan.d.mts
+/adapters/host-node/effect-control-native.test.mjs
+/adapters/host-node/effect-control-native.test.d.mts

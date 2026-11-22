@@ -145416,7 +145416,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               },
               {

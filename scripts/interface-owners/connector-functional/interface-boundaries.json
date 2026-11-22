@@ -12072,7 +12072,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12082,7 +12082,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12092,7 +12092,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12102,7 +12102,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12112,7 +12112,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12122,7 +12122,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12132,7 +12132,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12142,7 +12142,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -12152,7 +12152,7 @@
                 "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "registerInstalledEffectDependencyOriginal(work,"
               }
             ],
@@ -23356,7 +23356,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -23366,7 +23366,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -23420,7 +23420,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -24148,7 +24148,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c909af758c4fc84f145b5dbfd453da128834fec2b0207208336220573b34f414",
+      "sha256": "77da865cfe8639ce7c7cdb901599d61d9658adcb2849905502b512246bb8f01b",
       "contracts": [
         {
           "operations": [
@@ -24459,7 +24459,7 @@
                 "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
@@ -24477,7 +24477,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -24511,7 +24511,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -24525,7 +24525,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -24562,7 +24562,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -24610,7 +24610,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -24620,7 +24620,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -24674,7 +24674,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "prepareInstalledEffectOwnedRequestChild"
               },
               {
@@ -24866,7 +24866,7 @@
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               },
               {
@@ -25508,7 +25508,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -25542,7 +25542,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -25556,7 +25556,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -25593,7 +25593,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -26009,7 +26009,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -26043,7 +26043,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -26057,7 +26057,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
@@ -26094,7 +26094,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-plan.mts",
                 "anchor": "installedEffectSavedControlEntryLimit"
               },
               {
