@@ -25,6 +25,9 @@ fn local_execute_original_publish_values(
     selection.current(selection.host, settings, selection.environment) else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  if business.model_run is Some(_) {
+    selection.prepare_configured_model_works(business, request, run, store)
+  }
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })

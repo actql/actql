@@ -620,8 +620,9 @@ fn local_submission_start(
     if business is Some(original) {
       if model is Some(model) {
         original.prepare_model_run(model, request, compiled, definition)
-        // Keep durable admission behind the complete Model/Store/Result path.
-        stop("LocalModelHttpRunDispatchUnavailable")
+        // The standard Values Invocation rejects Model captures. Keep durable
+        // admission behind the original Model observation publication path.
+        stop("LocalModelHttpRunPublicationUnavailable")
       }
       original.adopt_request_run(request)
     }

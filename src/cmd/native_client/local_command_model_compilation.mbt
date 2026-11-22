@@ -7,7 +7,7 @@ priv struct LocalCommandModelCompilation {
   occurrences : Array[@run_host.ClientInferOccurrence]
   graphs : Array[@run_host.ClientInferPlanGraph]
   bounds : Array[@infer.Limits]
-  _installations : Array[@local_host.NativeModelHttpInstallation]
+  installations : Array[@local_host.NativeModelHttpInstallation]
 }
 
 ///|
@@ -172,7 +172,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
           occurrences,
           graphs,
           bounds,
-          _installations: providers,
+          installations: providers,
         })
       Err(issue) => {
         self.retain_primary(CommandBusinessModelGraph(issue))
@@ -206,11 +206,11 @@ fn native_model_compilation_storage(
   }
   let arrays = @execution.preparation_array_representation(
     if count == 1 {
-      6L
+      7L
     } else {
-      5L
+      6L
     },
-    5L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
+    6L * count.to_int64() + (if count == 1 { 1L } else { 0L }),
     true,
   ).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))
   @execution.compose_preparation_representation([
@@ -222,9 +222,13 @@ fn native_model_compilation_storage(
       // also passes the original Scope array in an optional argument. Each
       // provider owns open/retain/cleanup and two step callbacks, their tuple
       // and optional carriers, a retained Read slot and one OutputUse.
-      record_headers: 11L + 11L * count.to_int64(),
-      reference_slots: 24L + 24L * count.to_int64(),
-      scalar_words: 3L + 6L * count.to_int64(),
+      // The configured Result limits retain the exact Plan, capacity, limits
+      // and simultaneous extent pair. The Work vector is preallocated above.
+      // The task driver and physical cleanup callbacks coexist with one
+      // synchronous Read-side action and its returned result.
+      record_headers: 23L + 11L * count.to_int64(),
+      reference_slots: 52L + 24L * count.to_int64(),
+      scalar_words: 15L + 6L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },

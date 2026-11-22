@@ -304,6 +304,7 @@ fn LocalCommandBusinessPreparation::drive_original_model_io(
   self : Self,
   work : @local_host.NativeClientMockModelWork,
   store : @local_store.Store,
+  require_call? : Bool = false,
 ) -> Unit raise ClientStop {
   let entered = match work.entered_model_http_call(self.original.runtime) {
     Ok(value) => value
@@ -312,7 +313,12 @@ fn LocalCommandBusinessPreparation::drive_original_model_io(
       stop("LocalOriginalModelTransportUnavailable")
     }
   }
-  guard entered is Some(call) else { return }
+  guard entered is Some(call) else {
+    if require_call {
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+    return
+  }
   match work.drive_http_in_original_read(call) {
     Ok(false) => return
     Ok(true) => ()

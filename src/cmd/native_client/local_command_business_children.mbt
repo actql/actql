@@ -63,10 +63,18 @@ fn LocalCommandBusinessPreparation::open_values_work(
     stop("LocalBusinessOriginalUnavailable")
   }
   guard @local_host.native_client_submitted_preparation(self.preparation)
-    is Computation(prepared) &&
-    self.requirements is Some(requirements) else {
+    is Computation(prepared) else {
     stop("LocalValuesExecutionProfileNotSupported")
   }
+  let requirements = (match business.model_run {
+    Some(model) => Some(model.requirements)
+    None => self.requirements
+  }).unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
+  let drive_task = business.model_run.map(model => {
+    (task, operations) => {
+      self.drive_configured_model_task(business, model, run, task, operations)
+    }
+  })
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
@@ -90,6 +98,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       finalization_rounds,
       requirements=Some(requirements),
       managed=business.request_run,
+      drive_task~,
     ) {
     Ok(work) => {
       business.values_work = Some(work)

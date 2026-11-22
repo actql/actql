@@ -111623,7 +111623,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "689339d487dfcd81529ea9dbdadb7dfe76d6ccaa268c43b3599a7479caf401d5",
+      "sha256": "5eb2b943cac34c66237e19939d3c9f7c66e751a6c06b2d695264dddbed51ee69",
       "exports": [],
       "operations": [
         {
@@ -112606,7 +112606,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "a8a3f0eff3d01e426de2aaf3a0d6949fbbc174812b2d6b03ddf801f9f1c7b5a2",
+      "sha256": "fe7b39332e2bcdcf9cbf7a4d1b755edc861bc073c071d26fc8c7827f715c48df",
       "exports": [],
       "operations": [
         {
@@ -113822,7 +113822,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "698f01a8ccb014bcb0bcbecd2c84e1b42e5c38de6058cbf12cc91dd82c9391a9",
+      "sha256": "2679f364a3d70e4a48fd10afdf7ddbdc20a63668c85db68da3e981709a4da07e",
       "exports": [],
       "operations": [
         {
@@ -113847,7 +113847,7 @@
         },
         {
           "name": "execute_local_tasks_guarded",
-          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , LocalValuesExecutionIssue , ] ) ?"
         },
         {
           "name": "execute_retained_effect_local_tasks_guarded",

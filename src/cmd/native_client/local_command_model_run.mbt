@@ -5,6 +5,7 @@ priv struct LocalCommandModelRun {
   compiled : @run_host.ClientCompiledRun
   definition : @publication.PublicationContract
   graphs : Array[@run_host.ClientInferPlanGraph]
+  requirements : @local_values.ClientLocalRequirements
   scopes : Array[@run_host.ClientModelReadScope]
   reads : Array[@run_host.ClientModelReadPreparation?]
   completions : Array[@infer.OutputUse?]
@@ -129,6 +130,11 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
         stop("LocalOriginalModelModuleUnavailable")
       }
     }
+    let requirements = selected
+      .model_local_requirements(model.program)
+      .unwrap_or_else(() => {
+        stop("LocalOriginalModelPublicationLimitsUnavailable")
+      })
     let plan = if count == 1 {
       let limits = model.bounds[0]
       self.original.require_model_plan(
@@ -182,10 +188,12 @@ fn LocalCommandBusinessPreparation::prepare_model_run(
       compiled,
       definition,
       graphs: model.graphs,
+      requirements,
       scopes,
       reads: Array::make(count, None),
       completions: Array::make(count, None),
     })
+    business.model_work = Array(capacity=count)
     match
       @local_values.complete_request_model_preparation(parent, input, plan) {
       Err(issue) => {

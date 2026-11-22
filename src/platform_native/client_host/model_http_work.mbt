@@ -41,7 +41,6 @@ pub fn prepare_native_client_model_http_work(
   principal : String,
   namespace_id : String,
   current_time : () -> String,
-  prepare : (@execution.PreparationRepresentationUnits) -> Bool,
 ) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
   let execution = @host.client_infer_plan_graph_execution_contract(graph)
   let policy = installation.run_policy
@@ -69,8 +68,29 @@ pub fn prepare_native_client_model_http_work(
       },
     ])
     is Some(controls) &&
-    prepare(controls) else {
+    @execution.preparation_representation_cost(controls) is Some(bytes) else {
     return Err(Original(ConfigurationLimit))
+  }
+  // The Work and its slot array survive the Read/Compute scope switches.
+  // Fund both on this exact installed original before either is allocated.
+  let (_, _, _, array_header, pointer) = @bootstrap.native_managed_value_layout()
+  guard array_header > 0L &&
+    pointer > 0L &&
+    @execution.checked_preparation_add_product(
+      array_header,
+      pointer,
+      limits.model.max_items.to_int64(),
+    )
+    is Some(slot_bytes) else {
+    return Err(Original(ConfigurationLimit))
+  }
+  match
+    capture.fund_model_http_material_in_original_read(
+      bytes,
+      Int64::max(slot_bytes, bytes - slot_bytes),
+    ) {
+    Err(issue) => return Err(Transport(issue))
+    Ok(_) => ()
   }
   let role = PortableHttp({
     installation,

@@ -82409,7 +82409,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "b002b0727a08ebafef0eead3e7f6030e382d5e7d6c60579c60f7b70ad507e008",
+      "sha256": "c73d9b7838de28ef3e04a6e1fa098bcc6e223ecf9d99052126e1c39b3ee2267e",
       "exports": [],
       "operations": [
         {
