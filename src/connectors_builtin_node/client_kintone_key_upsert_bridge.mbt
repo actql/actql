@@ -216,6 +216,20 @@ pub fn client_program_kintone_key_upsert_observed_request(
 }
 
 ///|
+#export_name("clientProgramKintoneKeyUpsertMappingConstructionCapacity")
+pub fn client_program_kintone_key_upsert_mapping_construction_capacity(
+  original : @kintone_host.RecordDeclaration,
+  key : String,
+  source_count : Int,
+  input_units : Int64,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_key_upsert_mapping_construction_capacity(
+    original, key, source_count, input_units, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintonePrepareKeyUpsertMapping")
 pub fn client_program_kintone_prepare_key_upsert_mapping(
   original : @kintone_host.RecordDeclaration,

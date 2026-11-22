@@ -6733,7 +6733,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "f9dcdff0b1d5a762403ad6ecb0e21feb1620f90688aaff36d698b0d1d9a07208",
+      "sha256": "67c8c489b40fe0937de8e8773ff4f49331cabec278227a01733567a5776311cf",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -6782,6 +6782,10 @@
         {
           "name": "client_program_kintone_key_upsert_mapping_body",
           "declaration": "client_program_kintone_key_upsert_mapping_body ( mapping : @ kintone_host . RecordKeyUpsertMapping , original : @ kintone_host . RecordDeclaration , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_mapping_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , key : String , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_observed_request",
@@ -6888,7 +6892,8 @@
             "client_program_kintone_key_upsert_proposal_value_wire",
             "client_program_kintone_prepare_key_upsert_mapping",
             "client_program_kintone_prepare_key_upsert_proposal",
-            "client_program_kintone_restore_key_upsert_execution"
+            "client_program_kintone_restore_key_upsert_execution",
+            "client_program_kintone_key_upsert_mapping_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -7038,7 +7043,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_key_upsert_bridge.mbt",
-      "sha256": "4f52094df9583ebbe32f618c40f6623336788ec23463fed7f9f7d142879b2b27",
+      "sha256": "ac80a04db3b01131b8717317fecdf7d4f34836a5847df3e7c9015657adb3d2bf",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
@@ -7087,6 +7092,10 @@
         {
           "name": "client_program_kintone_key_upsert_mapping_body",
           "declaration": "client_program_kintone_key_upsert_mapping_body ( mapping : @ kintone_host . RecordKeyUpsertMapping , original : @ kintone_host . RecordDeclaration , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_key_upsert_mapping_construction_capacity",
+          "declaration": "client_program_kintone_key_upsert_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , key : String , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_key_upsert_observed_request",
@@ -7193,7 +7202,8 @@
             "client_program_kintone_key_upsert_proposal_value_wire",
             "client_program_kintone_prepare_key_upsert_mapping",
             "client_program_kintone_prepare_key_upsert_proposal",
-            "client_program_kintone_restore_key_upsert_execution"
+            "client_program_kintone_restore_key_upsert_execution",
+            "client_program_kintone_key_upsert_mapping_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -10456,9 +10466,17 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "ae5c1cdbdef529a871a9d66192eec4026fd94b09bac0f4023501d5768a260a52",
+      "sha256": "6f00785a44123ff4396fbb54f1da2a466312f68abcd092fd0889ae5367268afe",
       "exports": [],
       "operations": [
+        {
+          "name": "record_key_upsert_mapping_construction_capacity",
+          "declaration": "record_key_upsert_mapping_construction_capacity ( original : RecordDeclaration , key : String , source_count : Int , input_units : Int64 , limits : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_mutation_mapping_construction_capacity",
+          "declaration": "record_mutation_mapping_construction_capacity ( original : RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ rows . RowDeclarationLimits , key_units : Int ? , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "record_update_installation_construction_capacity",
           "declaration": "record_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -10473,7 +10491,9 @@
           "operations": [
             "<module>",
             "record_update_installation_construction_capacity",
-            "record_update_mapping_construction_capacity"
+            "record_update_mapping_construction_capacity",
+            "record_key_upsert_mapping_construction_capacity",
+            "record_mutation_mapping_construction_capacity"
           ],
           "exports": [],
           "attributes": {

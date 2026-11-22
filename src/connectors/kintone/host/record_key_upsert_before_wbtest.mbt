@@ -317,6 +317,38 @@ test "keyed UPSERT Mapping binds the original Form key and both permissions, pre
     { target: "memo", field: "next_memo", null_behavior: "reject", },
   ]
   let limits = delete_declaration_limits()
+  let capacity = record_key_upsert_mapping_construction_capacity(
+    original,
+    "customer_code",
+    sources.length(),
+    30L,
+    limits,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  assert_true(retained > 0L)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) > retained,
+  )
+  assert_true(
+    record_key_upsert_mapping_construction_capacity(
+      original,
+      "customer_code",
+      sources.length(),
+      30L,
+      { ..limits, max_bytes: "customer_code".length() - 1, },
+    )
+    is None,
+  )
+  assert_true(
+    record_key_upsert_mapping_construction_capacity(
+      original,
+      "customer_code",
+      sources.length(),
+      9223372036854775807L,
+      limits,
+    )
+    is None,
+  )
   let selected = prepare_record_key_upsert_mapping(
     original, "customers", "customer_code", sources, limits,
   ).unwrap()

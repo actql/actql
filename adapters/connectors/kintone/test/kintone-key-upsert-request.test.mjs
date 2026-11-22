@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import * as common from '../../../../_build/js/debug/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {createKintoneKeyUpsertRequestAdapter} from '../host/kintone-key-upsert-request.mjs';
 import {kintoneUpdateDriver} from '../host/kintone-update-driver.mjs';
@@ -35,9 +36,18 @@ function fixture() {
   const declaration = checked(common.clientProgramKintoneDeclareRecords(catalog, undefined,
     ['Subject', 'Tags', 'Computed', 'CustomerKey'], 'kintone', 'kintone/0.1', 'inquiries',
     common.clientProgramKintoneValueLimits(8, 512, 8000, 32, 16384), limits));
-  const mapping = checked(common.clientProgramKintonePrepareKeyUpsertMapping(declaration, 'inquiries',
-    'CustomerKey', [{target: 'Subject', field: 'subject', null_behavior: 'reject'},
-      {target: 'Tags', field: 'tags', null_behavior: 'reject'}], limits));
+  const resource = 'inquiries', keyField = 'CustomerKey';
+  const sources = [{target: 'Subject', field: 'subject', null_behavior: 'reject'},
+    {target: 'Tags', field: 'tags', null_behavior: 'reject'}];
+  const units = resource.length + sources.reduce((sum, fields) =>
+    sum + fields.target.length + fields.field.length + fields.null_behavior.length, 0);
+  const capacity = runtimeUnboxedReferenceOption(common.clientProgramKintoneKeyUpsertMappingConstructionCapacity(
+    declaration, keyField, sources.length, BigInt(units), limits));
+  assert(capacity);
+  const quote = common.clientProgramSerializationCapacityBytes(capacity);
+  assert(runtimeField(quote, 0) > 0n && runtimeField(quote, 1) > runtimeField(quote, 0));
+  const mapping = checked(common.clientProgramKintonePrepareKeyUpsertMapping(declaration, resource,
+    keyField, sources, limits));
   const calls = Object.create(null);
   const moon = {...common};
   for (const name of ['clientProgramKintoneLookupResponse', 'clientProgramKintoneRestoreKeyUpsertExecution']) {
@@ -47,7 +57,7 @@ function fixture() {
     };
   }
   const options = {moon, declaration, mapping, origin: 'https://tenant.example.test', appId: app,
-    connectorId: 'kintone', resource: 'inquiries', siteBindingCid: cid('a'), generationCid: cid('b'),
+    connectorId: 'kintone', resource, siteBindingCid: cid('a'), generationCid: cid('b'),
     guestSpaceId: '23', limits: policy};
   return {adapter: createKintoneKeyUpsertRequestAdapter(options), calls, options};
 }
