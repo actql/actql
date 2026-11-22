@@ -131,18 +131,20 @@ function trustedReviewers(reviewers) {
   }
   const byKey = new Map();
   for (const reviewer of reviewers) {
-    if (!IDENTIFIER.test(reviewer?.keyId ?? '') ||
-        !IDENTIFIER.test(reviewer?.reviewerId ?? '') ||
-        typeof reviewer.principalId !== 'string' || !reviewer.principalId ||
-        byKey.has(reviewer.keyId)) {
+    const keyId = reviewer?.keyId;
+    if (typeof keyId !== 'string' || !IDENTIFIER.test(keyId)) {
       fail('InvalidCheckpointReviewers');
     }
-    byKey.set(reviewer.keyId, Object.freeze({
-      keyId: reviewer.keyId,
-      reviewerId: reviewer.reviewerId,
-      principalId: reviewer.principalId,
-      publicKey: createPublicKey(reviewer.publicKey),
-    }));
+    const reviewerId = reviewer.reviewerId;
+    if (typeof reviewerId !== 'string' || !IDENTIFIER.test(reviewerId)) {
+      fail('InvalidCheckpointReviewers');
+    }
+    const principalId = reviewer.principalId;
+    if (typeof principalId !== 'string' || !principalId || byKey.has(keyId)) {
+      fail('InvalidCheckpointReviewers');
+    }
+    byKey.set(keyId, Object.freeze({keyId, reviewerId, principalId,
+      publicKey: createPublicKey(reviewer.publicKey)}));
   }
   return byKey;
 }
