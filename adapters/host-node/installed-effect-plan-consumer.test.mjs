@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {createInstalledRowSourceAcquisition} from './installed-row-source-acquisition.mjs';
 import {snapshotClientRequest} from '@actql/client-wire';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
@@ -473,40 +474,11 @@ test('an unadmitted acquired Effect refuses before Source selection, preparation
   await custody.close(); assert.equal(await custody.cleanup(), true);
 });
 
-const rowSource = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-const rowAst = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
-function namedFunction(ast, name) {
-  let selected;
-  const visit = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (node.type === 'FunctionDeclaration' && node.id.name === name) {
-      assert.equal(selected, undefined); selected = node;
-    }
-    for (const child of Object.values(node)) {
-      if (Array.isArray(child)) child.forEach(visit);
-      else if (child && typeof child === 'object') visit(child);
-    }
-  };
-  visit(ast); assert(selected); return selected;
-}
-const acquireNode = namedFunction(rowAst, 'acquire');
-const makeAcquire = new Function('ports', `
-  const {preparations,originalReader,captureCapacity,currentRead,site,moon,
-    randomUUID,cid,maxTransferBytes,limits,startInstalledRowRun,operationBindings,
-    readPages,grantBeforeBegin,fail,checked}=ports;
-  const directReadIdentity=undefined,prepareRead=undefined,listingReportCapacity=undefined;
-  const pageLimits=undefined,referenceIssuer=undefined,managedPageLimits=undefined;
-  const preparingSourceReads=new Set(),closeSourceRead=undefined,readerDemand=undefined,originalOperationScope=undefined;
-  const text=value=>typeof value==='string'&&value.length>0;
-  ${rowSource.slice(acquireNode.start, acquireNode.end)}
-  return acquire;
-`);
-
 test('an original planned Resource read never substitutes for the provider Credential grant', async () => {
   for (const mode of ['planned-provider', 'ordinary-provider', 'local-original']) {
     const prepared = {}, preparedSource = {checkedSource: {requirementCid: 'original-requirement'}},
       acquisition = {}, access = {}, originalRead = {};
-    const occurrence = {stage: 0, input: 0, task: 0}, state = {};
+    const occurrence = {stage: 0, input: 0, task: 0};
     const originalGrant = {}, scope = {}, decision = {action: 'dispatch'};
     const beforeRead = new Error('stop-before-any-page');
     let grants = 0, closed = 0, reads = 0;
@@ -521,7 +493,7 @@ test('an original planned Resource read never substitutes for the provider Crede
         assert.equal(typeof options.authorizationFor, 'function');
         const authorized = await options.authorizationFor(0);
         assert.strictEqual(authorized.grant, originalGrant); assert.strictEqual(authorized.scope, scope);
-        assert.equal(authorized.useId, 'nonce-read-0');
+        assert.equal(authorized.useId, options.rowRun.requestId + '-read-0');
       } else assert.equal(options.authorizationFor, undefined);
       throw beforeRead;
     };
@@ -533,16 +505,16 @@ test('an original planned Resource read never substitutes for the provider Crede
       assert.equal(options.resource, 'records'); grants++;
       return {grant: originalGrant, scope};
     }};
-    const acquire = makeAcquire({preparations, originalReader: provider ? {capacity: {}, prepare() {}, receiver: {}} : undefined,
+    const {open} = createInstalledRowSourceAcquisition({preparations, originalReader: provider ? {capacity: {}, prepare() {}, receiver: {}} : undefined,
       captureCapacity: () => ({}), currentRead: async () => decision, site, moon,
-      randomUUID: () => 'nonce', cid: () => 'original-binding', maxTransferBytes: 1n,
+      cid: () => 'original-binding', preparingSourceReads: new Set(), maxTransferBytes: 1n,
       limits: {maxPages: 1, maxPageBytes: 1, maxPageRows: 1, maxCaptureRows: 1},
       startInstalledRowRun: () => ({run: {}, readProvider: ({options}) => read(options),
-        closeAfterFailure(actual) {assert.strictEqual(actual, state); closed++;}}),
+        closeAfterFailure(actual) {assert.equal(actual.started, true); closed++;}}),
       operationBindings: new Map([['records', 'original-read']]), readPages: read, grantBeforeBegin: false,
-      fail: code => {throw Object.assign(new Error(code), {code});}, checked});
-    await assert.rejects(acquire(state, {preparedEffect: prepared, preparedSource, sourceAccess: access,
-      occurrence, ledger: {}}), error => error === beforeRead);
+      text: value => typeof value === 'string' && value.length > 0});
+    await assert.rejects(open({preparedEffect: prepared, preparedSource, sourceAccess: access,
+      occurrence, ledger: {}}), error => error.cause === beforeRead && error.outcome === 'stopped');
     assert.equal(grants, provider ? 1 : 0); assert.equal(reads, 1); assert.equal(closed, 1);
   }
 });

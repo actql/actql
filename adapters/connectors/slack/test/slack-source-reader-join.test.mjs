@@ -89,7 +89,7 @@ test('actual Slack service reader RowRun and Catalog join carries bounded POST a
     nonce:'request',text:value=>typeof value==='string'&&value.length>0};
   const authorizeReadChild=Function(...Object.keys(rowPorts),'let readChildIndex=0,rootReadUses=0,propertyOccurrences=0;'+
     'const readChildOriginals=new WeakMap(),readChildGrants=new Map(),readChildUses=new Map();return '+
-    property(read('adapters/host-node/installed-row-source.mjs'),'authorizeReadChild')+';')(...Object.values(rowPorts));
+    property(read('adapters/host-node/installed-row-source-acquisition.mjs'),'authorizeReadChild')+';')(...Object.values(rowPorts));
   const reader=factory.prepare({resource:'users',columns:['id'],originalAuthorization:grant,
     verifyRead:currentRead,authorizationFor:async()=>({...grant,useId:'original-root'}),authorizeReadChild,
     chargePage(body){assert(Buffer.isBuffer(body));const charge=Object.freeze({serial:++serial});charged.add(charge);return charge;},

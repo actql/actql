@@ -92,7 +92,8 @@ test('same managed service reader demand supplies original whole page bounds wit
       pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,maxTransferBytes:768n};
     const select=Function(...Object.keys(ports),source.slice(start,end)+'\nreturn managedWholeSourceCapacity;')(...Object.values(ports));
     assert.equal(select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts}).capacity,capacity);
-    const begin=source.indexOf('      const beginPageLimits ='),stop=source.indexOf('      const isListing =',begin);
+    const acquisition=text('./installed-row-source-acquisition.mjs');
+    const begin=acquisition.indexOf('      const beginPageLimits ='),stop=acquisition.indexOf('      const isListing =',begin);
     assert(begin>0&&stop>begin);
     for(const wholeInput of [true,false]){
       let calls=0;
@@ -100,7 +101,7 @@ test('same managed service reader demand supplies original whole page bounds wit
         clientProgramRowSourceBeginWithPageLimits(...args){assert.equal(wholeInput,true);assert.deepEqual(args,[run,256,64,6,2,4,undefined]);calls++;return ok();}};
       const run={};const p={moon,run,checked,owner:{wholeInput},pageLimits:undefined,managedPageLimits:selected.managedPageLimits,
         limits:{maxPageBytes:256,maxPageRows:2,maxCaptureRows:4},referenceIssuer:undefined};
-      Function(...Object.keys(p),source.slice(begin,stop))(...Object.values(p));assert.equal(calls,1);
+      Function(...Object.keys(p),acquisition.slice(begin,stop))(...Object.values(p));assert.equal(calls,1);
     }
   }finally{assert.equal(f.reader.retire(),true);}
 });
@@ -148,7 +149,7 @@ test('scalar request byte limits cannot revive the retired unbacked query-proper
 // authority, provider I/O, managed Plan funding or ordinary Table acceptance.
 function tablePageEncodingFixture({rows = [{text:'e\u0301\r\n',zero:0,flag:false,nullable:null}, {}],
   receivedCount = rows.length} = {}) {
-  const table = text('./installed-table-source.mjs'), row = text('./installed-row-source.mjs');
+  const table = text('./installed-table-source.mjs'), row = text('./installed-row-source-acquisition.mjs');
   const find = (source, predicate) => {
     const found = [];
     function visit(node) {
@@ -268,7 +269,7 @@ function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:nu
   if(actualFacade) {
     // Enter the actual installed Source facade, without a replacement parser,
     // wrapper encoding or Common image. Its original Core port is explicit.
-    const facadeSource=text('./installed-row-source.mjs'),facades=[];
+    const facadeSource=text('./installed-row-source-acquisition.mjs'),facades=[];
     const find=node=>{if(!node||typeof node!=='object')return;
       if(node.type==='Property'&&node.key?.name==='consumePageWire')facades.push(node.value);
       for(const value of Object.values(node))if(Array.isArray(value))value.forEach(find);else find(value);};

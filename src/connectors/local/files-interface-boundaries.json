@@ -1074,7 +1074,7 @@
                 "anchor": "LocalFileCleanupPending"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "Do not close"
               },
               {
@@ -1391,7 +1391,7 @@
                 "anchor": "LocalFileCleanupPending"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "Do not close"
               },
               {
@@ -1935,7 +1935,7 @@
                 "anchor": "LocalFileCleanupPending"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "Do not close"
               },
               {

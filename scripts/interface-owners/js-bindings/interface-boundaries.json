@@ -99056,7 +99056,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99074,7 +99074,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99092,7 +99092,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99110,7 +99110,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99128,7 +99128,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99146,7 +99146,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99164,7 +99164,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99182,7 +99182,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -99200,7 +99200,7 @@
                 "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (supplied !== undefined) return supplied;"
               },
               {
@@ -101497,7 +101497,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "const closeOriginal = async () => {"
               }
             ],
@@ -101552,9 +101552,540 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-acquisition.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowSourceAcquisition"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceAcquisition",
+          "parameters": [
+            "prepare",
+            "preparations",
+            "originalReader",
+            "captureCapacity",
+            "currentRead",
+            "site",
+            "moon",
+            "directReadIdentity",
+            "cidPattern",
+            "cid",
+            "prepareRead",
+            "maxTransferBytes",
+            "limits",
+            "readerDemand",
+            "listingReportCapacity",
+            "startInstalledRowRun",
+            "preparingSourceReads",
+            "closeSourceRead",
+            "operationBindings",
+            "grantBeforeBegin",
+            "pageLimits",
+            "managedPageLimits",
+            "referenceIssuer",
+            "text",
+            "readPages",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/complete/complete",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/complete/complete/verifyRead/verifyRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/original/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/original/original",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/consumeObservation",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/readerOptions",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/readerOptions#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#3",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#4",
+          "parameters": [
+            "childOperation",
+            "index",
+            "occurrence",
+            "supplied",
+            "childSignal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#5",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#6",
+          "parameters": [
+            "page",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#7",
+          "parameters": [
+            "columns",
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#8",
+          "parameters": [
+            "wire",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#9",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/recovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/recovery/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/acquire/recovery/recovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/open",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceAcquisition/openCapture",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-source-operation.mjs",
+        "./installed-row-listing.mjs",
+        "./installed-row-source-mapping.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "dc2ee3c11288ab50e0d5396cc8c0e0eaa8b62ba61099a3a0d2a695e2e8ebd327",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceAcquisition",
+            "createInstalledRowSourceAcquisition/acquire/complete/complete",
+            "createInstalledRowSourceAcquisition/acquire/complete/complete/verifyRead/verifyRead",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/readerOptions#2",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#6",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#7",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#8",
+            "createInstalledRowSourceAcquisition/acquire/readerOptions/readerOptions#9",
+            "createInstalledRowSourceAcquisition/open",
+            "createInstalledRowSourceAcquisition/openCapture"
+          ],
+          "exports": [
+            "createInstalledRowSourceAcquisition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "export function createInstalledRowSourceAcquisition("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "async function acquire("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "type OpenOptions = Pick<PrepareOptions"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "return await session.complete({owner, prepared, registry,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "owner.checkedOwner !== (preparedEffect ?? preparedProgram)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "owner.access !== access"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "preparingSourceReads.delete(owner.originalRead);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "await closeSourceRead!(owner.originalRead);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "await currentRead(prepared, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "await session.readProvider({prepare: originalReader.prepare,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "throw new AcquisitionOpenError(error, 'unknown', state.recovery);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "session.closeAfterFailure(state, recovery);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "cleanupPending: () => !externalClosed"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "capacity: MutableCapacity = {transferBytes: maxTransferBytes,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "consumeProjectedPage: (page, {charge} = {}) =>"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
+                "anchor": "bindClientSourceOperationRowRun(originalOperationScope, moon,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "an original planned Resource read never substitutes for the provider Credential grant"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "actual native read facts"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSourceAcquisition/acquire/recovery/init:cleanup/init:cleanup",
+            "createInstalledRowSourceAcquisition/acquire/recovery/init:close/init:close",
+            "createInstalledRowSourceAcquisition/acquire/recovery/recovery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Project Local Files original Run and physical retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSourceAcquisition/acquire/original/init:cleanup/init:cleanup",
+            "createInstalledRowSourceAcquisition/acquire/original/original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d4c7a77ac974a26bc8b794ef7c7345f23b33b09d3eea325a42d131bc7481ace4",
+      "sha256": "eb6beeb980747763962daf0b98ca8214912c902ddef99c1a226edd57efe2a44a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101623,132 +102154,10 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/complete/complete",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/original/original",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
           "parameters": [
-            "charge"
+            "owner"
           ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
-          "parameters": [
-            "childOperation",
-            "index",
-            "occurrence",
-            "supplied",
-            "childSignal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
-          "parameters": [
-            "page",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
-          "parameters": [
-            "columns",
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#8",
-          "parameters": [
-            "wire",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/recovery/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/recovery/recovery",
-          "parameters": [],
           "async": false
         },
         {
@@ -101870,20 +102279,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/open",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openCapture",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
           "name": "createInstalledRowSource/operationBindings/operationBindings",
           "parameters": [
             "resource"
@@ -101969,14 +102364,12 @@
         }
       ],
       "imports": [
-        "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
-        "./client-source-operation.mjs",
         "./installed-host-services.mjs",
-        "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-row-source-acquisition.mjs",
         "./installed-row-source-authorization.mjs",
         "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
@@ -102222,16 +102615,6 @@
         {
           "operations": [
             "createInstalledRowSource",
-            "createInstalledRowSource/acquire/complete/complete",
-            "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
@@ -102242,15 +102625,12 @@
             "createInstalledRowSource/createInstalledRowSource#7",
             "createInstalledRowSource/createInstalledRowSource#8",
             "createInstalledRowSource/createInstalledRowSource#9",
-            "createInstalledRowSource/open",
-            "createInstalledRowSource/openCapture",
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/resources/resources",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
             "cid/cid",
             "createInstalledRowSource/currentPhysicalTargetGeneration",
-            "createInstalledRowSource/prepareOriginalAcquisition"
+            "createInstalledRowSource/prepareOriginalAcquisition",
+            "createInstalledRowSource/captureCapacity/captureCapacity"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -102275,7 +102655,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
@@ -102297,7 +102677,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               },
               {
@@ -102335,7 +102715,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               },
               {
@@ -102381,7 +102761,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "// Spend this original ordinal before an external current callback."
               },
               {
@@ -102411,7 +102791,7 @@
                 "anchor": "moon.clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
               },
               {
@@ -102423,7 +102803,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "// Spend this original ordinal before an external current callback."
               },
               {
@@ -102453,7 +102833,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
@@ -102479,7 +102859,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "await currentRead(prepared, access, signal);"
               }
             ],
@@ -102513,7 +102893,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               },
               {
@@ -102543,7 +102923,7 @@
                 "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "const credentialRead = owner.originalRead === undefined ||"
               },
               {
@@ -102551,7 +102931,7 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
@@ -102673,212 +103053,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
-            "createInstalledRowSource/acquire/recovery/init:close/init:close",
-            "createInstalledRowSource/acquire/recovery/recovery"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Project Local Files original Run and physical retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source failed read retirement remains with the same Source close retry"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledRowSource/acquire/original/init:cleanup/init:cleanup",
-            "createInstalledRowSource/acquire/original/original"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Native Source original unknown recovery"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source failed read retirement remains with the same Source close retry"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
-              },
-              {
-                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
-                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#6",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#7",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#8",
             "createInstalledRowSource/invalidReaderField",
             "createInstalledRowSource/sourceBody/init:close/init:close",
             "createInstalledRowSource/sourceBody/init:close/init:close/init:close",

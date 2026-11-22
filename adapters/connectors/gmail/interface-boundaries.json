@@ -1580,7 +1580,7 @@
                 "anchor": "The shared managed reader retains the original binding"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-acquisition.mts",
                 "anchor": "dispatchRequestCid, maxUses: (readerDemand?.sequences?.[owner.resource] ?? readerDemand?.sequence)?.maxUses ?? limits.maxPages});"
               }
             ],

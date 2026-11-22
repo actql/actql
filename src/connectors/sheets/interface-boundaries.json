@@ -501,7 +501,7 @@
               "anchor": "cancellation acceptance"
             },
             {
-              "path": "adapters/host-node/installed-row-source.mjs",
+              "path": "adapters/host-node/installed-row-source-acquisition.mts",
               "anchor": "closeAfterFailure"
             }
           ],
@@ -661,7 +661,7 @@
               "anchor": "cancellation acceptance"
             },
             {
-              "path": "adapters/host-node/installed-row-source.mjs",
+              "path": "adapters/host-node/installed-row-source-acquisition.mts",
               "anchor": "closeAfterFailure"
             }
           ],
@@ -1140,7 +1140,7 @@
               "anchor": "cancellation acceptance"
             },
             {
-              "path": "adapters/host-node/installed-row-source.mjs",
+              "path": "adapters/host-node/installed-row-source-acquisition.mts",
               "anchor": "closeAfterFailure"
             }
           ],
@@ -1483,7 +1483,7 @@
               "anchor": "cancellation acceptance"
             },
             {
-              "path": "adapters/host-node/installed-row-source.mjs",
+              "path": "adapters/host-node/installed-row-source-acquisition.mts",
               "anchor": "closeAfterFailure"
             }
           ],
@@ -2025,7 +2025,7 @@
               "anchor": "cancellation acceptance"
             },
             {
-              "path": "adapters/host-node/installed-row-source.mjs",
+              "path": "adapters/host-node/installed-row-source-acquisition.mts",
               "anchor": "closeAfterFailure"
             }
           ],
