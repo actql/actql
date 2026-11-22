@@ -1721,6 +1721,8 @@ target/
 /adapters/host-common/remote-transfer-control.d.mts
 /adapters/host-common/remote-transfer-control.test.mjs
 /adapters/host-common/remote-transfer-control.test.d.mts
+/adapters/site-node/https-credential-request.mjs
+/adapters/site-node/https-credential-request.d.mts
 /adapters/site-node/https-credential-response.mjs
 /adapters/site-node/https-credential-response.d.mts
 /adapters/site-node/remote-credential-signature.mjs

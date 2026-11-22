@@ -6112,6 +6112,122 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/site-node/https-credential-request.mjs",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "httpsCredentialDefaultRequestBytes",
+        "operationFor"
+      ],
+      "operations": [
+        {
+          "name": "operationFor",
+          "parameters": [
+            "operations",
+            "scope",
+            "maxRequestBytes",
+            "text",
+            "fail"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/http-exchange.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "abb59626320f321446ee6587cf33805146641aaa6dd96fc0922b6b730c473e56",
+      "role": "physical-io",
+      "owner": "F / existing Credential Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "operationFor"
+          ],
+          "exports": [
+            "httpsCredentialDefaultRequestBytes",
+            "operationFor"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "export function operationFor("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const operation = operations.get(scope.operation)"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "return Object.freeze({"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "origin.origin !== scope.resourceOrigin"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "path: exactRequestTarget(operation.path, text, fail)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const request = ownHttpByteRequest("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "before allocating the physical copy"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "fail('UnsupportedRemoteCredentialOperation');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous request admission neither starts a physical send nor holds a credential use."
+            },
+            "resources": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "requestBytes > maxRequestBytes"
+              },
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "httpsCredentialDefaultRequestBytes = 1_048_576"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/site-node/https-credential-request.mts",
+                "anchor": "const responseHeaders = ownResponseHeaderNames(operation.responseHeaders);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "HTTPS request-target is sent exactly as admitted before the use claim"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "invalid binary limits and framing refuse before the real journal claim or secret resolution"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/site-node/https-credential-resource.mjs",
       "responsibilityFacet": "primary",
       "exports": [
@@ -6381,6 +6497,13 @@
           "async": false
         },
         {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "withHttpsCredentialRunResponseOriginal",
           "parameters": [
             "response",
@@ -6425,7 +6548,8 @@
             "ownAuthenticationRegistration/ownAuthenticationRegistration",
             "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
             "prepareHttpsCredentialAuthenticationMaterial",
-            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline"
+            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
+            "text/text"
           ],
           "exports": [
             "callHttpsCredentialResource",
@@ -7806,7 +7930,7 @@
           }
         }
       ],
-      "sha256": "3168084202a9cf2710f495f55810512c520406c4710b93e4435503b74582e9d9",
+      "sha256": "9824cae80ff4474db7c1a605e9b5980e3df42917384d677bbbddd6afe9c04c8b",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
@@ -7815,6 +7939,7 @@
         "../host-common/runtime-result.mjs",
         "../host-common/source-response-custody.mjs",
         "./google-service-account-assertion.mjs",
+        "./https-credential-request.mjs",
         "./https-credential-response.mjs",
         "node:crypto",
         "node:util"

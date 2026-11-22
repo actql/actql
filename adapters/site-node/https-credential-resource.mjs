@@ -9,10 +9,12 @@ import {credentialInvocationBindingKeys} from
   '../host-common/credential-scope-fields.generated.mjs';
 import {installationPreparationSubjectKeys} from
   '../host-common/installation-preparation-fields.generated.mjs';
-import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
-  ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {observeResponseHeaders} from '../host-common/http-exchange.mjs';
 import {captureSourceResponseCustody} from '../host-common/source-response-custody.mjs';
 import {receive} from './https-credential-response.mjs';
+import {httpsCredentialDefaultRequestBytes, operationFor} from './https-credential-request.mjs';
+
+export {httpsCredentialDefaultRequestBytes} from './https-credential-request.mjs';
 
 export {
   httpsCredentialAuthorizationPrefix,
@@ -25,10 +27,6 @@ const fail = (code, cause) => {
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
-
-// The unchanged default of the original request constructor below. Installed
-// recipe assembly consumes this same bound instead of copying its number.
-export const httpsCredentialDefaultRequestBytes = 1_048_576;
 
 // Acquisition custody stays in the Credential Owner, not in Connector-visible
 // fields. Scope equality is only identity; each operation still claims and
@@ -617,93 +615,6 @@ function credentialBindingCurrent(binding, scope, signal) {
   signal?.throwIfAborted();
 }
 
-function exactRequestTarget(path) {
-  if (!text(path) || !path.startsWith('/') || path.startsWith('//') ||
-      path.includes('\\') || path.includes('#')) {
-    fail('InvalidRemoteCredentialOperation');
-  }
-  for (let index = 0; index < path.length; index++) {
-    const code = path.charCodeAt(index);
-    if (code < 0x21 || code > 0x7e) {
-      fail('InvalidRemoteCredentialOperation');
-    }
-    if (code === 0x25) {
-      if (index + 2 >= path.length ||
-          !/^[0-9A-Fa-f]{2}$/.test(path.slice(index + 1, index + 3))) {
-        fail('InvalidRemoteCredentialOperation');
-      }
-      index += 2;
-    }
-  }
-  return path;
-}
-
-function operationFor(operations, scope, maxRequestBytes) {
-  if (!(operations instanceof Map) || !text(scope?.operation) ||
-      !text(scope?.resourceOrigin)) {
-    fail('InvalidRemoteCredentialOperation');
-  }
-  const operation = operations.get(scope.operation);
-  if (operation === undefined || operation === null ||
-      typeof operation !== 'object' ||
-      !text(operation.path)) {
-    fail('UnsupportedRemoteCredentialOperation');
-  }
-  const {method} = operation;
-  const binary = operation.bodyBytes !== undefined || operation.bodyMediaType !== undefined ||
-    operation.maxBodyBytes !== undefined;
-  let body = operation.body, bodyMediaType = 'application/json';
-  try {
-    if (binary) {
-      // Reject the outer call mismatch before allocating the physical copy.
-      // This is an independent transport ceiling, not proof of funding.
-      if (!Number.isSafeInteger(operation.maxBodyBytes) ||
-          operation.maxBodyBytes > maxRequestBytes) fail('InvalidRemoteCredentialOperation');
-      const request = ownHttpByteRequest({method, path: operation.path,
-        body, bodyBytes: operation.bodyBytes, bodyMediaType: operation.bodyMediaType,
-        maxBodyBytes: operation.maxBodyBytes});
-      body = request.bodyBytes;
-      bodyMediaType = request.bodyMediaType;
-    } else {
-      checkHttpRequestMethodBody(method, body, {requireBody: true});
-    }
-  } catch (error) {
-    fail(error?.code === 'InvalidHttpRequestMethod'
-      ? 'UnsupportedRemoteCredentialOperation'
-      : 'InvalidRemoteCredentialOperation', error);
-  }
-  const requestBytes = body === undefined ? 0 : Buffer.byteLength(body);
-  if (requestBytes > maxRequestBytes) {
-    fail('InvalidRemoteCredentialOperation');
-  }
-  // Allowed non-secret request headers and the declared response header
-  // names travel with the registered operation; the typed exchange refuses
-  // reserved names and over-long values before anything is sent.
-  const headers = ownRequestHeaders(operation.headers);
-  const responseHeaders = ownResponseHeaderNames(operation.responseHeaders);
-  let origin;
-  try {
-    origin = new URL(scope.resourceOrigin);
-  } catch (error) {
-    fail('InvalidRemoteCredentialOperation', error);
-  }
-  if (origin.protocol !== 'https:' || origin.origin !== scope.resourceOrigin ||
-      origin.username !== '' || origin.password !== '') {
-    fail('InvalidRemoteCredentialOperation');
-  }
-  return Object.freeze({
-    method,
-    hostname: origin.hostname,
-    port: origin.port || undefined,
-    path: exactRequestTarget(operation.path),
-    body,
-    bodyMediaType,
-    requestBytes,
-    headers,
-    responseHeaders,
-  });
-}
-
 // One selected original binary reader may consume ONE extra byte to observe
 // refusal. This is an implementation extent, never an observed byte count,
 // transfer permission, protocol body-cap increase or all-wire/RSS claim.
@@ -775,7 +686,7 @@ async function callCredentialResource({
     fail('InvalidRemoteCredentialRunResponseCapture');
   }
   const selectedScope = metadata ? control.scopeFields(scope) : scope;
-  const operation = operationFor(operations, selectedScope, maxRequestBytes);
+  const operation = operationFor(operations, selectedScope, maxRequestBytes, text, fail);
   if (metadata && (typeof currentBeforeSend !== 'function' ||
       selectedScope.requestMethod !== 'GET' || operation.method !== 'GET' ||
       selectedScope.requestPath !== operation.path || operation.requestBytes !== 0 ||
