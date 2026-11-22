@@ -60046,7 +60046,7 @@
     {
       "module": "adapters/host-node/infer-trusted-runtime-view.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d19af97f78d5a6e9c504701a788cb5b9fbe35fd4c14fee7e4911726706cef212",
+      "sha256": "752140868b65e98665f31eed70a1059e124f13193af18cdd4c4dce8df04848da",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -60294,8 +60294,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals) {"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -60308,8 +60308,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals) {"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -60322,7 +60322,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',"
               },
               {
@@ -60334,14 +60334,14 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "const startup: Startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "'runtime', 'moduleLifetime', 'transport', 'target']);"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "'runtime', 'moduleLifetime', 'transport', 'target'] as const);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -60354,7 +60354,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Recheck does not retain another eight-field snapshot or callback/context."
               },
               {
@@ -60366,13 +60366,13 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Retain the same published CJS receiver while its original preload captures"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "throw Object.assign(new TypeError(code), {code});"
               },
               {
@@ -60386,7 +60386,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Present only on the original Host view, not another Store/cleanup Owner."
               },
               {
@@ -60400,7 +60400,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = ['directoryCodeUnits', 'directoryUtf8Bytes',"
               },
               {
@@ -60414,7 +60414,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',"
               },
               {
@@ -60450,8 +60450,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals) {"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -60464,8 +60464,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals) {"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "export function issueInferTrustedRuntimeView(actualOriginals: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -60478,7 +60478,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',"
               },
               {
@@ -60490,14 +60490,14 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "const startup: Startup = require('./infer-trusted-node-preload.cjs');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
-                "anchor": "'runtime', 'moduleLifetime', 'transport', 'target']);"
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
+                "anchor": "'runtime', 'moduleLifetime', 'transport', 'target'] as const);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -60510,7 +60510,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Recheck does not retain another eight-field snapshot or callback/context."
               },
               {
@@ -60522,13 +60522,13 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Retain the same published CJS receiver while its original preload captures"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "throw Object.assign(new TypeError(code), {code});"
               },
               {
@@ -60542,7 +60542,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "// Present only on the original Host view, not another Store/cleanup Owner."
               },
               {
@@ -60556,7 +60556,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = ['directoryCodeUnits', 'directoryUtf8Bytes',"
               },
               {
@@ -60570,7 +60570,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.mts",
                 "anchor": "const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',"
               },
               {

@@ -8,20 +8,37 @@ import {createRequire} from 'node:module';
 // this Host namespace. A static CJS import would reenter the active preload
 // through the ESM loader; this private reference is not an operational issuer.
 const require = createRequire(import.meta.url);
-const startup = require('./infer-trusted-node-preload.cjs');
+const startup: Startup = require('./infer-trusted-node-preload.cjs');
 const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',
-  'runtime', 'moduleLifetime', 'transport', 'target']);
+  'runtime', 'moduleLifetime', 'transport', 'target'] as const);
+type Field = typeof fields[number];
+type Originals = Readonly<Record<Exclude<Field, 'target'>, object> & {target: string}>;
+type StoreDimensions = Readonly<{
+  directoryCodeUnits: number; directoryUtf8Bytes: number;
+  privateNamespaceCodeUnits: number; privateNamespaceUtf8Bytes: number; privateKeyBytes: number;
+}>;
+type StoreBinding = Readonly<{store: object; moduleLifetime: object; dimensions?: StoreDimensions}>;
+type Startup = Readonly<{
+  associateHost(view: TrustedRuntimeView, originals: unknown): TrustedRuntimeView | undefined;
+  borrowScope(hostView: TrustedRuntimeView, scopeView: TrustedRuntimeView, host: object, generation: object): void;
+  check(view: TrustedRuntimeView, originals: unknown): void;
+  bindSdkStaticModules(view: TrustedRuntimeView, originals: unknown, modules: unknown): void;
+  checkSdkStaticModules(view: TrustedRuntimeView, originals: unknown, modules: unknown): void;
+  checkSdkEagerModules(view: TrustedRuntimeView, originals: unknown, modules: unknown): void;
+  retire(view: unknown, host: unknown, generation: unknown): void;
+}>;
+
 const constructorKey = Symbol('InferTrustedRuntimeViewConstructor');
-const fail = code => {
+const fail: (code: string) => never = code => {
   throw Object.assign(new TypeError(code), {code});
 };
-const nominal = value => value !== null &&
+const nominal = (value: unknown): value is object => value !== null &&
   (typeof value === 'object' || typeof value === 'function');
 
 // Private DATA from the actual opened Store, not a caller's size declaration.
 // Preserve the issuer's one immutable record rather than copying its Strings
 // or repeatedly allocating a new projection at every current/Scope check.
-function originalStoreDimensions(store) {
+function originalStoreDimensions(store: object): StoreDimensions | undefined {
   const method = Object.getOwnPropertyDescriptor(store, 'originalModelStorageDimensions');
   // Legacy/private Store associations remain usable without these observations.
   // Their absent dimensions are Unavailable, never zero or inferred from caps.
@@ -29,14 +46,14 @@ function originalStoreDimensions(store) {
   if (!Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
     fail('InferTrustedStoreDimensionsUnavailable');
   }
-  const value = Reflect.apply(method.value, store, []);
+  const value: unknown = Reflect.apply(method.value, store, []);
   const fields = ['directoryCodeUnits', 'directoryUtf8Bytes',
     'privateNamespaceCodeUnits', 'privateNamespaceUtf8Bytes', 'privateKeyBytes'];
   if (!nominal(value) || Array.isArray(value) || !Object.isFrozen(value)) {
     fail('InferTrustedStoreDimensionsUnavailable');
   }
   const names = Reflect.ownKeys(value);
-  if (names.length !== fields.length || names.some(name => !fields.includes(name))) {
+  if (names.length !== fields.length || names.some(name => !fields.includes(name as string))) {
     fail('InferTrustedStoreDimensionsUnavailable');
   }
   for (const name of fields) {
@@ -47,12 +64,12 @@ function originalStoreDimensions(store) {
       fail('InferTrustedStoreDimensionsUnavailable');
     }
   }
-  return value;
+  return value as StoreDimensions;
 }
 
 // Inspect and retain the same descriptor values, without invoking getters or
 // deep-copying original handles. Reflection does not isolate hostile code.
-function checkOriginalShape(value) {
+function checkOriginalShape(value: unknown): asserts value is object {
   if (!nominal(value) || Array.isArray(value)) {
     fail('InferTrustedRuntimeOriginalUnavailable');
   }
@@ -62,7 +79,7 @@ function checkOriginalShape(value) {
   }
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
-    if (typeof name !== 'string' || !fields.includes(name)) {
+    if (typeof name !== 'string' || !fields.includes(name as Field)) {
       fail('InferTrustedRuntimeOriginalUnavailable');
     }
   }
@@ -70,31 +87,31 @@ function checkOriginalShape(value) {
 
 // Issue and recheck use this SAME one-read validation. No getter or second
 // property read can replace the independently supplied original descriptor.
-function originalValue(value, name) {
+function originalValue(value: object, name: Field): object | string {
   const descriptor = Object.getOwnPropertyDescriptor(value, name);
   if (descriptor === undefined || descriptor.enumerable !== true ||
       !Object.hasOwn(descriptor, 'value')) {
     fail('InferTrustedRuntimeOriginalUnavailable');
   }
-  const original = descriptor.value;
+  const original: unknown = descriptor.value;
   if (name === 'target' ? typeof original !== 'string' || original.length === 0
     : !nominal(original)) {
     fail('InferTrustedRuntimeOriginalUnavailable');
   }
-  return original;
+  return original as object | string;
 }
 
-function originals(value) {
+function originals(value: unknown): Originals {
   checkOriginalShape(value);
-  const retained = {};
+  const retained = {} as Record<Field, object | string>;
   for (const name of fields) retained[name] = originalValue(value, name);
-  return Object.freeze(retained);
+  return Object.freeze(retained) as Originals;
 }
 
 // Recheck does not retain another eight-field snapshot or callback/context.
 // Still validate ALL descriptors before reporting Changed, preserving the
 // original malformed-input priority and each value's one-read observation.
-function checkOriginals(value, retained) {
+function checkOriginals(value: unknown, retained: Originals) {
   checkOriginalShape(value);
   let changed = false;
   for (let index = 0; index < fields.length; index++) {
@@ -106,18 +123,18 @@ function checkOriginals(value, retained) {
 }
 
 class TrustedRuntimeView {
-  #originals;
+  #originals: Originals | undefined;
   // Present only on the original Host view, not another Store/cleanup Owner.
   // The field itself also exists on Scope views and needs managed coverage.
-  #store;
+  #store: StoreBinding | undefined;
 
-  constructor(key, bindings) {
+  constructor(key: symbol, bindings: Originals) {
     if (key !== constructorKey) fail('InferTrustedRuntimeViewUnavailable');
     this.#originals = bindings;
     Object.freeze(this);
   }
 
-  static #binding(view) {
+  static #binding(view: unknown) {
     if (!nominal(view) || !(#originals in view)) {
       fail('InferTrustedRuntimeViewUnavailable');
     }
@@ -125,12 +142,12 @@ class TrustedRuntimeView {
     return view.#originals;
   }
 
-  static check(view, actual) {
+  static check(view: unknown, actual: unknown): asserts view is TrustedRuntimeView {
     const retained = TrustedRuntimeView.#binding(view);
     checkOriginals(actual, retained);
   }
 
-  static bindStore(view, actual, store, moduleLifetime) {
+  static bindStore(view: unknown, actual: unknown, store: unknown, moduleLifetime: unknown) {
     TrustedRuntimeView.check(view, actual);
     if (!nominal(store) || !nominal(moduleLifetime)) {
       fail('InferTrustedStoreUnavailable');
@@ -139,7 +156,7 @@ class TrustedRuntimeView {
     view.#store = Object.freeze({store, moduleLifetime});
   }
 
-  static checkStore(view, actual, store, moduleLifetime) {
+  static checkStore(view: unknown, actual: unknown, store: unknown, moduleLifetime: unknown): asserts view is TrustedRuntimeView {
     TrustedRuntimeView.check(view, actual);
     if (view.#store === undefined) fail('InferTrustedStoreUnavailable');
     if (view.#store.store !== store || view.#store.moduleLifetime !== moduleLifetime) {
@@ -147,9 +164,9 @@ class TrustedRuntimeView {
     }
   }
 
-  static storeDimensions(view, actual, store, moduleLifetime) {
+  static storeDimensions(view: unknown, actual: unknown, store: object, moduleLifetime: object) {
     TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
-    if (Object.hasOwn(view.#store, 'dimensions')) return view.#store.dimensions;
+    if (Object.hasOwn(view.#store!, 'dimensions')) return view.#store!.dimensions!;
     // Acquire only for this new observation role. Ordinary Store association
     // does not require a Model private key or create a projected size record.
     const value = originalStoreDimensions(store);
@@ -160,7 +177,7 @@ class TrustedRuntimeView {
     return value;
   }
 
-  static forget(view, host, generation) {
+  static forget(view: TrustedRuntimeView, host: unknown, generation: unknown) {
     const retained = TrustedRuntimeView.#binding(view);
     if (retained.host !== host || retained.generation !== generation) {
       fail('InferTrustedRuntimeOriginalChanged');
@@ -182,14 +199,14 @@ class TrustedRuntimeView {
 // Operation currentness, concurrency, physical close and the last actual
 // borrower remain the existing caller/cleanup Owner's obligations; this view
 // does not observe or acknowledge them, including when its links are retired.
-export function issueInferTrustedRuntimeView(actualOriginals) {
+export function issueInferTrustedRuntimeView(actualOriginals: unknown) {
   return new TrustedRuntimeView(constructorKey, originals(actualOriginals));
 }
 
 // Call only after the existing Host/Model owner checks current lifecycle, and
 // again at its actual operation boundary after awaits. This predicate cannot
 // substitute for those checks, original Ledger funding or the final send gate.
-export function checkInferTrustedRuntimeView(view, actualOriginals) {
+export function checkInferTrustedRuntimeView(view: unknown, actualOriginals: unknown): asserts view is TrustedRuntimeView {
   TrustedRuntimeView.check(view, actualOriginals);
 }
 
@@ -197,13 +214,13 @@ export function checkInferTrustedRuntimeView(view, actualOriginals) {
 // module namespace. Neither a packet nor this reference check authenticates a
 // Store, funds managed allocations, issues a numeric profile or confirms close.
 // AES-GCM and FD/Dir native lifetime remains the selected Host responsibility.
-export function bindInferTrustedStore(view, actualOriginals, store, moduleLifetime) {
+export function bindInferTrustedStore(view: unknown, actualOriginals: unknown, store: unknown, moduleLifetime: unknown) {
   TrustedRuntimeView.bindStore(view, actualOriginals, store, moduleLifetime);
 }
 
 // Existing Model currentness checks use this exact Store association. A failed
 // Store close retains the same association; only final Host cleanup forgets it.
-export function checkInferTrustedStore(view, actualOriginals, store, moduleLifetime) {
+export function checkInferTrustedStore(view: unknown, actualOriginals: unknown, store: unknown, moduleLifetime: unknown) {
   TrustedRuntimeView.checkStore(view, actualOriginals, store, moduleLifetime);
 }
 
@@ -211,14 +228,14 @@ export function checkInferTrustedStore(view, actualOriginals, store, moduleLifet
 // the record nor a matching copy authenticates a Store, observes availability,
 // funds paths/encodings/managed controls or grants read/restore/send. The owning
 // caller still performs its actual Store/Scope current checks at every use.
-export function selectedInferTrustedStoreDimensions(view, actualOriginals, store, moduleLifetime) {
+export function selectedInferTrustedStoreDimensions(view: unknown, actualOriginals: unknown, store: object, moduleLifetime: object) {
   return TrustedRuntimeView.storeDimensions(view, actualOriginals, store, moduleLifetime);
 }
 
 // Existing Host cleanup calls this only after its actual duties settle. There
 // is deliberately no success Bool/callback, lease release, reopen or reset API.
 // A failed/pending cleanup retains the same view and its original references.
-export function forgetInferTrustedRuntimeView(view, actualHost, actualGeneration) {
+export function forgetInferTrustedRuntimeView(view: TrustedRuntimeView, actualHost: unknown, actualGeneration: unknown) {
   TrustedRuntimeView.forget(view, actualHost, actualGeneration);
 }
 
@@ -228,12 +245,12 @@ export function forgetInferTrustedRuntimeView(view, actualHost, actualGeneration
 // associations/generations indices, through module/escaped-handle lifetime.
 // ActQL records/references/controls and workspace still need managed funding;
 // this is neither fixed SDK classification nor numerical/physical-close ACK.
-export function associateInferTrustedStartupView(view, actualOriginals) {
+export function associateInferTrustedStartupView(view: unknown, actualOriginals: unknown) {
   TrustedRuntimeView.check(view, actualOriginals);
   return startup.associateHost(view, actualOriginals);
 }
 
-export function requireInferTrustedStartupView(view, actualOriginals) {
+export function requireInferTrustedStartupView(view: unknown, actualOriginals: unknown): asserts view is TrustedRuntimeView {
   TrustedRuntimeView.check(view, actualOriginals);
   startup.check(view, actualOriginals);
 }
@@ -244,12 +261,12 @@ export function requireInferTrustedStartupView(view, actualOriginals) {
 // views borrow the existing original record without another private field.
 // Per-M factories, lazy/cache state, inputs, Promises and copies are excluded.
 // All added binding/borrow controls still need their original managed budget.
-export function bindInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+export function bindInferTrustedSdkStaticModules(view: unknown, actualOriginals: unknown, modules: unknown) {
   requireInferTrustedStartupView(view, actualOriginals);
   startup.bindSdkStaticModules(view, actualOriginals, modules);
 }
 
-export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+export function checkInferTrustedSdkStaticModules(view: unknown, actualOriginals: unknown, modules: unknown) {
   requireInferTrustedStartupView(view, actualOriginals);
   startup.checkSdkStaticModules(view, actualOriginals, modules);
 }
@@ -259,14 +276,14 @@ export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules
 // Covers only fixed input-independent compilation storage actually produced at
 // that startup; lazy/per-call/feedback/cache/optimizer/hook state stays managed
 // or unavailable. The selector field and checks also need bootstrap coverage.
-export function checkInferTrustedSdkEagerModules(view, actualOriginals, modules) {
+export function checkInferTrustedSdkEagerModules(view: unknown, actualOriginals: unknown, modules: unknown) {
   requireInferTrustedStartupView(view, actualOriginals);
   startup.checkSdkEagerModules(view, actualOriginals, modules);
 }
 
 // Caller has checked the SAME actual Common scope before this association.
 // No callback, caller Bool, CID or another startup can supply that original.
-export function borrowInferTrustedStartupView(hostView, scopeView, hostOriginals, scopeOriginals) {
+export function borrowInferTrustedStartupView(hostView: unknown, scopeView: unknown, hostOriginals: Originals, scopeOriginals: Originals) {
   requireInferTrustedStartupView(hostView, hostOriginals);
   TrustedRuntimeView.check(scopeView, scopeOriginals);
   if (hostOriginals.host !== scopeOriginals.host ||
@@ -280,6 +297,6 @@ export function borrowInferTrustedStartupView(hostView, scopeView, hostOriginals
 
 // Existing Host/Scope cleanup is the prerequisite. This cuts only this
 // association, not the startup's actual process/native/module responsibility.
-export function forgetInferTrustedStartupView(view, host, generation) {
+export function forgetInferTrustedStartupView(view: unknown, host: unknown, generation: unknown) {
   startup.retire(view, host, generation);
 }
