@@ -2171,7 +2171,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "d7d3d14486d478986dd2fc31822e7e17a34665677b37fb234ceb678afff9730c",
+      "sha256": "bf6013b57afc2a1453679e38c4916477f14814b96d413134e351be13a16816f2",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -2481,17 +2481,17 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "existing Run-unit Checkpoint"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -2499,8 +2499,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "identity": [
@@ -2509,28 +2509,28 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "encrypted continuation custody"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "current"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "failure": [
@@ -2539,8 +2539,8 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "cancellation": [
@@ -2561,8 +2561,8 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "verification": [
@@ -2581,17 +2581,17 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "existing Run-unit Checkpoint"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -2599,8 +2599,8 @@
                 "anchor": "pub fn"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "identity": [
@@ -2609,28 +2609,28 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "encrypted continuation custody"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "current"
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "failure": [
@@ -2639,8 +2639,8 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "cancellation": [
@@ -2661,8 +2661,8 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
-                "anchor": "const sourceOriginalCurrent = state => {"
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
+                "anchor": "const sourceOriginalCurrent = (state: State) => {"
               }
             ],
             "verification": [

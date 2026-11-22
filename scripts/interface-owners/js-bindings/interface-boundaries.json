@@ -40038,9 +40038,9 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d7d3d14486d478986dd2fc31822e7e17a34665677b37fb234ceb678afff9730c",
+      "sha256": "bf6013b57afc2a1453679e38c4916477f14814b96d413134e351be13a16816f2",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -40347,7 +40347,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40357,7 +40357,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40367,7 +40367,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40377,7 +40377,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40387,7 +40387,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40397,7 +40397,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40407,7 +40407,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40417,7 +40417,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40427,7 +40427,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40437,7 +40437,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "acquiredEffectContinuation"
               },
               {
@@ -40457,7 +40457,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40467,7 +40467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40477,7 +40477,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40487,7 +40487,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40497,7 +40497,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40507,7 +40507,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40517,7 +40517,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40527,7 +40527,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40537,7 +40537,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40547,7 +40547,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "bindingFor"
               },
               {
@@ -40567,7 +40567,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40577,7 +40577,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40587,7 +40587,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40597,7 +40597,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40607,7 +40607,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40617,7 +40617,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40627,7 +40627,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40637,7 +40637,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40647,7 +40647,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40657,7 +40657,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "fail"
               },
               {
@@ -40677,7 +40677,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40687,7 +40687,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40697,7 +40697,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40707,7 +40707,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40717,7 +40717,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40727,7 +40727,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40737,7 +40737,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40747,7 +40747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40757,7 +40757,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40767,7 +40767,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "same"
               },
               {
@@ -40787,7 +40787,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40797,7 +40797,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40807,7 +40807,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40817,7 +40817,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40827,7 +40827,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40837,7 +40837,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40847,7 +40847,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40857,7 +40857,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40867,7 +40867,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40877,7 +40877,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "sourceScope"
               },
               {
@@ -40899,7 +40899,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40909,7 +40909,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40919,7 +40919,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40929,7 +40929,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40939,7 +40939,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40949,7 +40949,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40959,7 +40959,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40969,7 +40969,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40979,7 +40979,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
@@ -40989,7 +40989,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/acquired-effect-continuation.mjs",
+                "path": "adapters/host-node/acquired-effect-continuation.mts",
                 "anchor": "// Host connection of Source acquisition to the existing Run-unit Checkpoint"
               },
               {
