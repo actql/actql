@@ -6,7 +6,7 @@ import {admitInstalledProjectConfiguration} from './installed-project-configurat
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME,'Matching original profile Common runtime required');
-const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME));
+const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME).href);
 const wire='{"version":"actql-config/0.1","profile":"mock","mock":{"catalog":"./catalog-é.json","data":"./data-é.json","answers":{"task:é":"./answer.yaml"}}}';
 const project=()=>admitInstalledProjectConfiguration(moon,wire);
 
@@ -55,7 +55,7 @@ test('actual absent project profile issues no mock record or answer original',()
 
 test('actual profile rejects invalid choices and retains nominal retirement without physical ACK',()=>{
   for(const choice of [null,false,'','\ud800']){
-    assert.throws(()=>selectInstalledProjectProfile(moon,project(),choice,100),{code:'InvalidInstalledProjectProfile'});
+    assert.throws(()=>selectInstalledProjectProfile(moon,project(),choice as string,100),{code:'InvalidInstalledProjectProfile'});
   }
   assert.throws(()=>selectInstalledProjectProfile(moon,project(),'m\0k',100),{code:'MoonBitHostFailure'});
   assert.throws(()=>selectInstalledProjectProfile(moon,project(),'mock',3),{code:'MoonBitHostFailure'});

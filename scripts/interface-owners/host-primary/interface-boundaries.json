@@ -8552,8 +8552,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -8666,7 +8666,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -8674,7 +8674,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -8796,7 +8796,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -8922,8 +8922,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -9036,7 +9036,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -9504,7 +9504,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {
@@ -15616,8 +15616,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -15702,7 +15702,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -15710,7 +15710,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -15804,7 +15804,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -15894,8 +15894,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -15984,7 +15984,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -16336,7 +16336,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {
@@ -17871,8 +17871,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -17997,7 +17997,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -18005,7 +18005,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -18144,7 +18144,7 @@
               },
               {
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;",
-                "path": "adapters/host-node/installed-project-profile.mjs"
+                "path": "adapters/host-node/installed-project-profile.mts"
               },
               {
                 "anchor": "selection.configuration = None",
@@ -18277,8 +18277,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -18403,7 +18403,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -18912,7 +18912,7 @@
               },
               {
                 "anchor": "test('actual absent project profile issues no mock record or answer original'",
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs"
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts"
               },
               {
                 "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])",
@@ -20102,8 +20102,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -20216,7 +20216,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -20224,7 +20224,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -20346,7 +20346,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -20468,8 +20468,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -20582,7 +20582,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -21042,7 +21042,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {
@@ -21386,8 +21386,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -21500,7 +21500,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -21508,7 +21508,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -21630,7 +21630,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -21752,8 +21752,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -21866,7 +21866,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -22326,7 +22326,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {
@@ -22666,8 +22666,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -22780,7 +22780,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -22788,7 +22788,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -22910,7 +22910,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -23032,8 +23032,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23146,7 +23146,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -23606,7 +23606,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {
@@ -23946,8 +23946,8 @@
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {"
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -24060,7 +24060,7 @@
                 "anchor": "pub fn client_project_model_task_selection_for("
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
               },
               {
@@ -24068,7 +24068,7 @@
                 "anchor": "physical_equal(original, candidate)"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
@@ -24190,7 +24190,7 @@
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
+                "path": "adapters/host-node/installed-project-profile.mts",
                 "anchor": "original=configuration=selection=project=requested=ports=undefined;"
               },
               {
@@ -24312,8 +24312,8 @@
                 "anchor": "originalsForRuntime(runtime);"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/host-node/installed-project-profile.mts",
+                "anchor": "const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24426,7 +24426,7 @@
                 "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               },
               {
@@ -24886,7 +24886,7 @@
                 "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
               },
               {
-                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mts",
                 "anchor": "test('actual absent project profile issues no mock record or answer original'"
               },
               {

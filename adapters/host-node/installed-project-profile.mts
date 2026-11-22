@@ -1,18 +1,58 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 
-const fail=code=>{throw Object.assign(new Error(code),{code});};
+type SelectionReader = (selection: unknown) => unknown;
+type IndexedSelectionReader = (selection: unknown, index: number) => unknown;
+type ProfileRuntime = Readonly<Partial<{
+  clientProjectProfileSelect(configuration: unknown, requested: string | undefined, maxWork: number): unknown;
+  clientProjectProfileMatches(selection: unknown, configuration: unknown, requested: string | undefined): boolean;
+  clientProjectProfileSelectedName: SelectionReader;
+  clientProjectProfileMockCatalogFile: SelectionReader;
+  clientProjectProfileMockDataFile: SelectionReader;
+  clientProjectProfileMockAnswerCount: SelectionReader;
+  clientProjectProfileMockAnswerTask: IndexedSelectionReader;
+  clientProjectProfileMockAnswerFile: IndexedSelectionReader;
+  clientProjectProfileRetire: SelectionReader;
+}>>;
+type ProfilePorts = {
+  select: NonNullable<ProfileRuntime['clientProjectProfileSelect']>;
+  matches: NonNullable<ProfileRuntime['clientProjectProfileMatches']>;
+  name: SelectionReader;
+  catalog: SelectionReader;
+  data: SelectionReader;
+  count: SelectionReader;
+  task: IndexedSelectionReader;
+  file: IndexedSelectionReader;
+  retire: SelectionReader;
+};
+type ProjectProfile = Readonly<{
+  originalsForRuntime(runtime: unknown): Readonly<{
+    selection: unknown;
+    configuration: unknown;
+    requested: string | undefined;
+    selected: string | undefined;
+  }>;
+  mockLocatorsForRuntime(runtime: unknown): Readonly<{
+    catalogFile: string | undefined;
+    dataFile: string | undefined;
+    answerCount: number;
+  }>;
+  mockAnswerForRuntime(runtime: unknown, index: number): Readonly<{task: string; file: string}> | undefined;
+  retire(runtime: unknown): void;
+}>;
+
+const fail: (code: string) => never=code=>{throw Object.assign(new Error(code),{code});};
 
 // Private installation DATA, never a permission or mock/Provider factory.
 // Capture the actual runtime's original ports once. The existing Host still
 // has to supply the selected physical records/answers/currentness and funding.
-export function selectInstalledProjectProfile(moon,project,requested,maxWork){
+export function selectInstalledProjectProfile(moon: ProfileRuntime | null | undefined,project: unknown,requested: string | undefined,maxWork: number): ProjectProfile {
   if(requested!==undefined&&(typeof requested!=='string'||!requested||
       !requested.isWellFormed())||!Number.isSafeInteger(maxWork)||maxWork<0||
       maxWork>2147483647)fail('InvalidInstalledProjectProfile');
   let original=project===undefined?undefined:installedProjectOriginalsForRuntime(project,moon);
   let configuration=original?.configuration;
-  let ports=Object.freeze({select:moon?.clientProjectProfileSelect,
+  let ports: Readonly<Partial<ProfilePorts>> | undefined=Object.freeze({select:moon?.clientProjectProfileSelect,
     matches:moon?.clientProjectProfileMatches,name:moon?.clientProjectProfileSelectedName,
     catalog:moon?.clientProjectProfileMockCatalogFile,
     data:moon?.clientProjectProfileMockDataFile,count:moon?.clientProjectProfileMockAnswerCount,
@@ -21,14 +61,15 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
   if(!Object.values(ports).every(port=>typeof port==='function')){
     fail('InstalledProjectProfileRuntimeUnavailable');
   }
-  const call=(name,...args)=>Reflect.apply(ports[name],moon,args);
+  const call=<Name extends keyof ProfilePorts>(name: Name,...args: Parameters<ProfilePorts[Name]>)=>
+    Reflect.apply(ports![name] as (...args: Parameters<ProfilePorts[Name]>) => unknown,moon,args);
   let selection=checked(call('select',configuration,requested,maxWork));
   let retired=false;
-  let view;
-  function same(runtime,receiver){
+  let view: ProjectProfile;
+  function same(runtime: unknown,receiver: unknown){
     if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');
   }
-  function current(runtime,receiver){
+  function current(runtime: unknown,receiver: unknown){
     same(runtime,receiver);
     if(retired)fail('InstalledProjectProfileRetired');
     if(project!==undefined&&installedProjectOriginalsForRuntime(project,moon)!==original){
@@ -38,7 +79,7 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
       fail('ForeignInstalledProjectProfile');
     }
   }
-  const text=value=>{
+  const text=(value: unknown)=>{
     if(value!==undefined&&(typeof value!=='string'||!value||!value.isWellFormed())){
       fail('InvalidHostRuntimeResult');
     }
@@ -54,7 +95,7 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
       current(runtime,this);
       const catalogFile=text(checked(call('catalog',selection)));
       const dataFile=text(checked(call('data',selection)));
-      const answerCount=checked(call('count',selection));
+      const answerCount=checked(call('count',selection)) as number;
       if(!Number.isSafeInteger(answerCount)||answerCount<0)fail('InvalidHostRuntimeResult');
       return Object.freeze({catalogFile,dataFile,answerCount});
     },
@@ -64,7 +105,7 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
       const task=text(checked(call('task',selection,index)));
       const file=text(checked(call('file',selection,index)));
       if((task===undefined)!==(file===undefined))fail('InvalidHostRuntimeResult');
-      return task===undefined?undefined:Object.freeze({task,file});
+      return task===undefined?undefined:Object.freeze({task,file: file!});
     },
     retire(runtime){
       // Cleanup checks original identity, not new-operation/current permission.
