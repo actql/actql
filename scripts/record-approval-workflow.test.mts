@@ -8,7 +8,7 @@ import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile,
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
-import {openRecordApprovalExchange, installedRecordReplyLossExpectation,
+import {openRecordApprovalExchange, installedRecordHttpCase, installedRecordReplyLossExpectation,
   assertRecordApprovalSourceSchema, assertRecordApprovalTarget,
   runInstalledRecordApprovalFixture} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
@@ -363,6 +363,33 @@ test('authored Program references are bounded sibling files with one document so
   await writeFile(programPath, document.padEnd(512 * 1024, ' '));
   await writeFile(join(f.root, 'read.aql'), readDocument.padEnd(512 * 1024, ' '));
   await assert.rejects(readAuthoredCase(path), {message: 'InvalidRecordApprovalAuthoredCase'});
+});
+
+test('packed authored HTTP cases have a separate, explicit Result scope', () => {
+  const env = {ACTQL_RECORD_APPROVAL_HTTP_CASE: '/tmp/case.json'};
+  assert.deepEqual(installedRecordHttpCase('/tmp/standard.json', {}), {casePath: '/tmp/standard.json'});
+  assert.deepEqual(installedRecordHttpCase('/tmp/standard.json', env), {casePath: '/tmp/case.json'});
+  assert.deepEqual(installedRecordHttpCase('/tmp/standard.json', {...env,
+    ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","authored_updates"]'}),
+  {casePath: '/tmp/case.json', authorizedResultNames: ['authored_updates', 'main']});
+  for (const wire of ['["*"]', '["main","main"]', '[]', '{malformed']) {
+    assert.throws(() => installedRecordHttpCase('/tmp/standard.json', {...env,
+      ACTQL_RECORD_APPROVAL_RESULT_NAMES: wire}), {message: 'InvalidRecordApprovalFixtureResultNames'});
+  }
+  assert.throws(() => installedRecordHttpCase('/tmp/standard.json', {ACTQL_RECORD_APPROVAL_HTTP_CASE: 'relative.json'}),
+    /absolute authored HTTP case path/u);
+  assert.throws(() => installedRecordHttpCase('/tmp/standard.json', {ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main"]'}),
+    /require an authored HTTP case/u);
+});
+
+test('the packed runner refuses an authored HTTP case on the Mock lane before opening an installation', () => {
+  const script = fileURLToPath(new URL('./test-packed-hubspot-source.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [script, '--ci', '--mock-kintone-approval'],
+    {encoding: 'utf8', timeout: 10_000, env: {...process.env, ACTQL_TEST_PRESERVE_SCRATCH: '1',
+      ACTQL_RECORD_APPROVAL_HTTP_CASE: '/absent/authored-case.json'}});
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Select one supported authored HTTP case/u);
+  assert.doesNotMatch(result.stderr, /ENOENT/u);
 });
 
 test('authored provider seed differs from the independent expected control before any request', async t => {

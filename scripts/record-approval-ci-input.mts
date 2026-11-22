@@ -12,7 +12,7 @@ type Invocation = {
   approvalConnector?: string;
   mockConnector?: string;
   mockVariant?: string;
-  mockCasePath?: string;
+  authoredCasePath?: string;
   reject?: boolean;
   env?: NodeJS.ProcessEnv;
 };
@@ -21,15 +21,17 @@ type UncheckedManifest = {revision?: unknown; tarballs: Record<string, unknown>}
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
 export function packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
-  mockVariant = '', mockCasePath, reject, env = process.env}: Invocation) {
+  mockVariant = '', authoredCasePath, reject, env = process.env}: Invocation) {
   const approval = approvalConnector !== undefined;
   const file = mockConnector ? 'scripts/fixtures/packed-record-approval-mock.mjs'
     : approval ? `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs';
   const childEnv = mockConnector ? {...env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
     ACTQL_RECORD_APPROVAL_MOCK_VARIANT: mockVariant,
     ...(mockVariant ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-    ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath})}
-    : reject ? {...env, ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : env;
+    ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: authoredCasePath})}
+    : {...env,
+      ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_HTTP_CASE: authoredCasePath}),
+      ...(reject ? {ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : {})};
   return {files: [file], options: {cwd: application, expectedTests: approval ? 1 : 2,
     timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM' as const, env: childEnv}};
 }
