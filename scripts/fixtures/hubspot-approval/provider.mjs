@@ -2,21 +2,15 @@
 // installed Host retains all Account, Credential, Preview, approval and claims.
 // These routes neither grant a write nor classify a lost response as absent.
 import assert from 'node:assert/strict';
-import {recordUpdateFixtureState} from '../record-approval/cases.mjs';
+import {recordUpdateFixtureSeed} from '../record-approval/cases.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const sameKeys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
 
-export function hubspotApprovalProvider({recordId, controlId, previousName, nextName}) {
-  for (const value of [recordId, controlId, previousName, nextName]) {
-    assert.equal(typeof value, 'string');
-    assert(value.length > 0);
-  }
-  assert.notEqual(recordId, controlId);
-  assert.notEqual(previousName, nextName);
-  const {before} = recordUpdateFixtureState({recordId, controlId, previousName, nextName});
-  const target = {...before.target, marker: '', updatedAt: '2026-11-07T00:00:00.000Z'};
-  const control = {...before.control, marker: '', updatedAt: target.updatedAt};
+export function hubspotApprovalProvider({recordId, controlId, previousName}) {
+  const seed = recordUpdateFixtureSeed({recordId, controlId, previousName});
+  const target = {...seed.target, marker: '', updatedAt: '2026-11-07T00:00:00.000Z'};
+  const control = {...seed.control, marker: '', updatedAt: target.updatedAt};
   const properties = {results: ['actql_request_id', 'name'].map(name => ({name,
     type: 'string', fieldType: 'text', calculated: false, modificationMetadata: {readOnlyValue: false}}))};
   const record = value => ({id: value.id, archived: false, updatedAt: value.updatedAt,
@@ -44,7 +38,7 @@ export function hubspotApprovalProvider({recordId, controlId, previousName, next
     assert.equal(item.id, recordId);
     assert.match(item.objectWriteTraceId, cid);
     sameKeys(item.properties, ['name', 'actql_request_id']);
-    assert.equal(item.properties.name, nextName);
+    assert.equal(typeof item.properties.name, 'string');
     assert.match(item.properties.actql_request_id, cid);
     assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
     writes++;

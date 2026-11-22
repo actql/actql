@@ -17,15 +17,23 @@ export const sharedRecordUpdateSelections = Object.freeze({
     previousName: 'Before kintone approval', nextName: 'After kintone approval'}),
 });
 
-export function recordUpdateFixtureState(selected) {
-  const {recordId, previousName, nextName} = select(selected), {controlId} = selected;
+export function recordUpdateFixtureSeed({recordId, previousName, controlId}) {
+  if (typeof recordId !== 'string' || !recordId || typeof previousName !== 'string' || !previousName) {
+    throw new TypeError('InvalidRecordApprovalSelection');
+  }
   if (typeof controlId !== 'string' || !controlId || controlId === recordId) {
     throw new TypeError('InvalidRecordApprovalControl');
   }
-  const control = Object.freeze({id: controlId, name: 'Untouched control'});
+  return Object.freeze({target: Object.freeze({id: recordId, name: previousName}),
+    control: Object.freeze({id: controlId, name: 'Untouched control'})});
+}
+
+export function recordUpdateFixtureState(selected) {
+  const {recordId, nextName} = select(selected);
+  const before = recordUpdateFixtureSeed(selected);
   return Object.freeze({
-    before: Object.freeze({target: Object.freeze({id: recordId, name: previousName}), control}),
-    after: Object.freeze({target: Object.freeze({id: recordId, name: nextName}), control}),
+    before,
+    after: Object.freeze({target: Object.freeze({id: recordId, name: nextName}), control: before.control}),
   });
 }
 
