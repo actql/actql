@@ -23,11 +23,13 @@ export function admitAuthoredRecordApprovalCase(value) {
   const additional = Object.hasOwn(effect, 'additionalResults');
   assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
   assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
-  assert(closed(review, ['target', 'identity', 'before', 'changes']));
+  const deleting = review?.kind === 'delete';
+  assert(closed(review, deleting ? ['kind', 'target', 'identity', 'before'] : ['target', 'identity', 'before', 'changes']));
   assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
   assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
   assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
-  assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  assert(object(review.before) && (deleting || object(review.changes) && Object.keys(review.changes).length > 0));
+  assert(!deleting || fixture, 'A DELETE case requires independent provider state');
   if (fixture) {
     assert(object(value.fixture));
     const {seed, expected, schema} = value.fixture;
@@ -42,11 +44,10 @@ export function admitAuthoredRecordApprovalCase(value) {
     assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
     recordUpdateFixtureSeed(seed);
     assert(closed(expected, ['before', 'after']));
-    for (const state of [expected.before, expected.after]) {
-      assert(closed(state, ['target', 'control']));
-      assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
-        text(row.id) && typeof row.name === 'string'));
-    }
+    const stateRow = row => closed(row, ['id', 'name']) && text(row.id) && typeof row.name === 'string';
+    assert(closed(expected.before, ['target', 'control']) && closed(expected.after, ['target', 'control']));
+    assert([expected.before.target, expected.before.control, expected.after.control].every(stateRow));
+    assert(deleting ? expected.after.target === null : stateRow(expected.after.target));
     if (scheduled) {
       const {faults} = value.fixture;
       assert(Array.isArray(faults) && faults.length <= 1);
@@ -100,7 +101,8 @@ function retainCase(original) {
   assert(Array.isArray(value.read.beforeRows) && Array.isArray(value.read.afterRows));
   assert(text(value.review?.target));
   assert(Object.hasOwn(value.review, 'identity'));
-  assert(value.review.before && Object.keys(value.review.before).length > 0 && value.review.changes);
+  assert(value.review.before && Object.keys(value.review.before).length > 0 &&
+    (value.review.kind === 'delete' || value.review.changes));
   return value;
 }
 
@@ -118,8 +120,9 @@ function checkReview(review, summary, ref, expected) {
   assert.equal(review.effect_preview_cid, summary.requiredArtifact.cid);
   assert.equal(review.authority_scope_cid, ref.authorityScopeCid);
   assert.deepEqual(review.approval_claims, summary.requirements);
+  const kind = expected.kind ?? 'update';
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
-    ({kind, target, count})), [{kind: 'update', target: expected.target, count: 1}]);
+    ({kind, target, count})), [{kind, target: expected.target, count: 1}]);
   assert.equal(review.displayed_rows.length, 1);
   const row = review.displayed_rows[0];
   assert.deepEqual(row.target_row_identity, expected.identity);
@@ -131,8 +134,14 @@ function checkReview(review, summary, ref, expected) {
   for (const [field, value] of Object.entries(expected.before)) {
     assert.deepEqual(row.before.value[field], value, 'Independent original field: ' + field);
   }
-  assert.deepEqual(row.intended_changes, {state: 'present', value: expected.changes});
-  assert.deepEqual(row.after, row.intended_changes);
+  if (kind === 'delete') {
+    assert.deepEqual(row.before.value, expected.before);
+    assert.deepEqual(row.intended_changes, {state: 'not_applicable'});
+    assert.deepEqual(row.after, {state: 'absent'});
+  } else {
+    assert.deepEqual(row.intended_changes, {state: 'present', value: expected.changes});
+    assert.deepEqual(row.after, row.intended_changes);
+  }
 }
 
 async function readAdditionalResults(run, effect) {
