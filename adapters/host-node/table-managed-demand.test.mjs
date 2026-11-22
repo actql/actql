@@ -87,8 +87,11 @@ for (const empty of [false, true]) {
         if (empty) assert.equal(runtimeField(shape, 0), 0);
         else assert.ok(runtimeField(shape, 0) > 0);
         for (const index of [0, 1]) {
+          const request = checked(moon.clientProgramInstalledEffectManagedPlanOperation(
+            plan, index, false, 2, 'table.commit.request'));
+          assert.equal(moon.clientProgramInstalledEffectOperationExtentPhysical(request), false);
           const write = checked(moon.clientProgramInstalledEffectManagedPlanOperation(
-            plan, index, false, 2, 'table.commit'));
+            plan, index, false, 3, 'table.commit'));
           assert.equal(moon.clientProgramInstalledEffectOperationExtentPhysical(write), true);
           assert.equal(moon.clientProgramInstalledEffectOperationExtentTransfer(write),
             2n * (BigInt(bridge.frameLimits.maxBytes) + 4n));
@@ -97,7 +100,7 @@ for (const empty of [false, true]) {
           assert.equal(runtimeIsError(moon.clientProgramInstalledEffectManagedPlanOperation(
             plan, index, true, 0, 'table.commit')), true);
           assert.equal(runtimeIsError(moon.clientProgramInstalledEffectManagedPlanOperation(
-            plan, index, false, 2, 'foreign-operation')), true);
+            plan, index, false, 3, 'foreign-operation')), true);
         }
         const missing = await createInstalledTableEffect({...options,
           ledgerRoot: join(f.directory, 'unfunded-table-ledger'),
