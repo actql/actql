@@ -418,3 +418,45 @@ test "Native companion audits authenticated entries with headers only" {
   database.commit().unwrap()
   database.close_checked().unwrap()
 }
+
+///|
+test "Native companion dispatch admits the same pre-CAS Run before changing its witness" {
+  let database = epoch_test_database("client-row-companion-before-cas")
+  let (journal, request, _) = resume_test_approved(database)
+  let claim = effect_row_test_claim(journal, request)
+  let (locator, key, basis) = effect_row_test_binding(request)
+  assert_true(
+    journal.record_effect_row_dispatch(claim, locator, key, basis, () => true, () => {
+      1001L
+    })
+    is Ok(DispatchRecorded(_)),
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  let (locator, key, basis) = effect_row_test_binding(request, row="row-2")
+  assert_true(
+    journal.record_effect_row_dispatch_with_operations(
+      claim,
+      locator,
+      key,
+      basis,
+      () => true,
+      () => 1002L,
+      Some(operations),
+    )
+    is Ok(DispatchRecorded(_)),
+  )
+  // Exactly two preexisting immutable entries in the first parsed Run. A
+  // second admission after rewriting the witness would reread both payloads.
+  assert_eq(
+    calls
+    .filter(call => call.has_prefix("read:" + effect_ledger_entry_table + ":"))
+    .length(),
+    2,
+  )
+  guard journal.lookup(request, true) is Ok(Retained(record)) else {
+    fail("Run missing")
+  }
+  assert_eq(record.checkpoint.unwrap().effect_ledger.length(), 4)
+  database.close_checked().unwrap()
+}

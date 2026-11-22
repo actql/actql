@@ -1290,12 +1290,23 @@ fn NativeClientRunJournal::save_with_operations(
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  native_timing_count(20)
+  let reads = operations.map(value => value.reads)
+  match self.read_run_before_save(record, reads) {
+    Ok(before) => self.save_observed_run(record, before, operations)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn NativeClientRunJournal::read_run_before_save(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if !self.transaction_active {
     return Err(CustodyLost)
   }
-  let reads = operations.map(value => value.reads)
-  let before = match
+  match
     read_client_journal_value(
       self.database,
       "client_runs",
@@ -1303,18 +1314,35 @@ fn NativeClientRunJournal::save_with_operations(
       reads,
     ) {
     Ok(current) if current.revision == record.revision =>
-      match
-        self.admit_retained_record(
-          @host.client_request_scope_cid(record.request),
-          current,
-          reads~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-    Ok(_) => return Err(Physical(@sqlite.Collision))
-    Err(issue) => return Err(Physical(issue))
+      self.admit_retained_record(
+        @host.client_request_scope_cid(record.request),
+        current,
+        reads~,
+      )
+    Ok(_) => Err(Physical(@sqlite.Collision))
+    Err(issue) => Err(Physical(issue))
   }
+}
+
+///|
+// Effect mutations observe the physical Run before changing its witness in
+// this same transaction. The witness write invalidates the shared operation
+// facts, but it does not change the Run just read. The original Run CAS still
+// checks the revision, and the next witness is independently validated below.
+fn NativeClientRunJournal::save_observed_run(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+  before : NativeClientRunRecord,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(20)
+  if !self.transaction_active ||
+    record.revision != before.revision ||
+    !(@host.client_request_identity_relation(record.request, before.request)
+    is SameRequest) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
   if record.task_materials_cid != before.task_materials_cid {
     return Err(CustodyLost)
   }
