@@ -42,9 +42,11 @@ const freeze = value => {
 };
 const invalid = () => fail('InvalidInstalledMockCatalog');
 
-const updateWriteFacts = spec => ({resource: spec.resource,
-  primary_identity: spec.primary_identity, update: {fields: spec.writable_fields,
-    permission: spec.permission, approval: spec.approval}});
+const writeFacts = spec => ({resource: spec.resource,
+  primary_identity: spec.primary_identity, ...(spec.operation === 'delete'
+    ? {delete: {permission: spec.permission, approval: spec.approval}}
+    : {update: {fields: spec.writable_fields, permission: spec.permission, approval: spec.approval}})});
+const noSources = Object.freeze([]);
 const updateSources = spec => Object.freeze((spec.update_fields ?? spec.writable_fields).map(name => Object.freeze({
   target: name, field: name, null_behavior: spec.write_null_fields?.includes(name) ? 'write_null' : 'reject',
 })));
@@ -249,11 +251,17 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
     }
     const writeSpecs = [];
     for (const spec of entry.writes ?? []) {
-      if (!closed(spec, ['resource', 'primary_identity', 'writable_fields', 'permission', 'observe_permission', 'approval', 'aliases'],
-        ['write_null_fields', 'update_fields']) ||
-          !data.has(spec.resource) || bound.has(spec.resource) || !names(spec.writable_fields) || !spec.writable_fields.length ||
+      if (!closed(spec, ['resource', 'primary_identity', 'permission', 'observe_permission', 'approval', 'aliases'],
+        ['operation', 'writable_fields', 'write_null_fields', 'update_fields']) ||
+          !data.has(spec.resource) || bound.has(spec.resource) ||
           !names(spec.aliases) || !spec.aliases.length || !text(spec.permission) || !text(spec.observe_permission) ||
           spec.approval !== 'required' || spec.primary_identity !== data.get(spec.resource).primary_identity) invalid();
+      const operation = spec.operation ?? 'update';
+      if (operation === 'delete') {
+        if (Object.hasOwn(spec, 'writable_fields') || Object.hasOwn(spec, 'write_null_fields') ||
+            Object.hasOwn(spec, 'update_fields')) invalid();
+      } else if ((Object.hasOwn(spec, 'operation') && spec.operation !== 'update') ||
+          !names(spec.writable_fields) || !spec.writable_fields.length) invalid();
       if (Object.hasOwn(spec, 'update_fields')) {
         const fields = spec.update_fields;
         if (!names(fields) || fields.length === 0) invalid();
@@ -399,21 +407,25 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
     let effectMember, effectPrepared, mappingOriginals;
     if (installationInventory === undefined) {
       // Explicit non-installed declaration diagnostic only. Installed startup
-      // always uses the admitted Effect context and generic UPDATE continuation.
+      // always uses the admitted Effect context and original guarded continuation.
       let writesJson;
       mappingOriginals = writeSpecs.map(spec => {
+        if (spec.operation === 'delete') {
+          writesJson ??= wire({writes: writeSpecs.map(writeFacts)});
+          return rowSourceMapping(moon, declaration, writesJson, spec.resource, noSources, 'delete').body;
+        }
         if (spec.update_fields === undefined && !spec.write_null_fields?.length) return checked(call('clientProgramRelationUpdateMapping', declaration,
           spec.resource, spec.primary_identity, spec.writable_fields, spec.permission, spec.approval));
-        writesJson ??= wire({writes: writeSpecs.map(updateWriteFacts)});
+        writesJson ??= wire({writes: writeSpecs.map(writeFacts)});
         return rowSourceMapping(moon, declaration, writesJson, spec.resource, updateSources(spec), 'update').body;
       });
     } else if (writeSpecs.length) {
       effectMember = await installationInventory.begin(connectionOriginal, connectionIndex, 'effect');
       const mappingInput = inputStage(effectMember,
         () => declaredProjectCatalogMappingInputsConstructionGeometry(entryWire, writeSpecs.length), () => {
-        const writesJson = wire({writes: writeSpecs.map(updateWriteFacts)});
+        const writesJson = wire({writes: writeSpecs.map(writeFacts)});
         const mappings = Object.freeze(writeSpecs.map(spec => Object.freeze({resource: spec.resource,
-          operation: 'update', sources: updateSources(spec)})));
+          operation: spec.operation ?? 'update', sources: spec.operation === 'delete' ? noSources : updateSources(spec)})));
         return Object.freeze({writesJson, mappings});
       });
       effectMember.prepareBorrowedDeclaration(sourceMember);

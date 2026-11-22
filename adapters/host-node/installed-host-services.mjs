@@ -1455,7 +1455,7 @@ function createInstalledSourceContext(original, material, installation, connecto
           !Object.isFrozen(writes) || writes.length === 0) fail('InvalidInstalledEffectMappings');
       // Inspect only checked immutable own String DATA before the current/
       // resize boundary. Do not stringify proportional input before backing.
-      let units = 0n;
+      let units = 0n, guarded = true, hasDelete = false;
       const field = (value, name) => {
         if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
           fail('InvalidInstalledEffectMappings');
@@ -1470,10 +1470,13 @@ function createInstalledSourceContext(original, material, installation, connecto
             !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
         const operationField = Object.getOwnPropertyDescriptor(write, 'operation');
         const operation = operationField === undefined ? 'create' : field(write, 'operation');
-        if (operation !== 'create' && operation !== 'update' ||
-            operation === 'update' && typeof original.prepareUpdateMapping !== 'function') {
+        if (operation !== 'create' && operation !== 'update' && operation !== 'delete' ||
+            operation === 'update' && typeof original.prepareUpdateMapping !== 'function' ||
+            operation === 'delete' && (sources.length !== 0 || typeof original.prepareDeleteMapping !== 'function')) {
           fail('InvalidInstalledEffectMappings');
         }
+        guarded &&= operation !== 'create';
+        hasDelete ||= operation === 'delete';
         units += BigInt(resource.length + operation.length);
         for (let j = 0; j < sources.length; j++) {
           const source = field(sources, String(j));
@@ -1484,7 +1487,8 @@ function createInstalledSourceContext(original, material, installation, connecto
           }
         }
       }
-      if (writes.every(write => write.operation === 'update')) {
+      if (!guarded && hasDelete) fail('InvalidInstalledEffectMappings');
+      if (guarded) {
         const capacity = original.prepareUpdateMappingCapacity;
         if (typeof capacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
         scope.mappingsAttempted = true;
@@ -1501,6 +1505,23 @@ function createInstalledSourceContext(original, material, installation, connecto
         const mappings = [];
         material.inputs.push(mappings);material.nodes += containerNodes;
         for (const write of writes) {
+          if (write.operation === 'delete') {
+            // The guarded construction quantity prices the same original
+            // declaration and closed writes. DELETE has no source fields.
+            const mapping = prepareSourceNativeInput(original, material, Object.freeze({
+              capacity: () => checked(Reflect.apply(capacity, original.moon,
+                [originalPrepared.declaration, writesJson, write.resource, '[]'])),
+              project() {
+                const runtime = Object.freeze({clientProgramRowSourcePrepareDeleteMapping: (...args) =>
+                  Reflect.apply(original.prepareDeleteMapping, original.moon, args)});
+                return Object.freeze({resource: write.resource,
+                  ...rowSourceMapping(runtime, originalPrepared.declaration, writesJson, write.resource,
+                    write.sources, 'delete')});
+              },
+            }), inputProjections, validate, retainNativeInput);
+            mappings.push(mapping);
+            continue;
+          }
           const geometry = installedEnvironmentDataWriterConstructionGeometry(write.sources);
           const sourceWire = prepareSourceNativeInput(original, material, Object.freeze({
             capacity() {
@@ -2745,10 +2766,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
+  const prepareDeleteMapping = moon.clientProgramRowSourcePrepareDeleteMapping;
   const prepareUpdateMappingCapacity = moon.clientProgramRowSourceUpdateMappingConstructionCapacity;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping,
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping, prepareDeleteMapping,
     prepareUpdateMappingCapacity});
   return services;
 }

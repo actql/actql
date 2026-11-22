@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "ed87f9197ab233b2ef7871c31148344fd1f992bbc3d1aaea9ff3e875880767a1",
+      "sha256": "b50f9a2a827da6bc374bbdab6f0796f5962461e071e480cc4e81b4da0e608850",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -503,16 +503,16 @@
           "async": false
         },
         {
-          "name": "updateWriteFacts/updateWriteFacts",
+          "name": "wire/wire",
           "parameters": [
-            "spec"
+            "value"
           ],
           "async": false
         },
         {
-          "name": "wire/wire",
+          "name": "writeFacts/writeFacts",
           "parameters": [
-            "value"
+            "spec"
           ],
           "async": false
         }
@@ -604,8 +604,8 @@
             "projectDeclaredCatalog/source/source/writes/writes",
             "text/text",
             "updateSources/updateSources/updateSources",
-            "updateWriteFacts/updateWriteFacts",
-            "wire/wire"
+            "wire/wire",
+            "writeFacts/writeFacts"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -766,6 +766,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "test('installed Mock mapping retains only the declared nullable write policy'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }

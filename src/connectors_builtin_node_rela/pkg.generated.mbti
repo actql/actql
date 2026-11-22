@@ -2537,6 +2537,8 @@ pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_
 
 pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceCursorProgress, @client_row_source_host.RowSourceCursorIssue]
 
+pub fn client_program_row_source_prepare_delete_mapping(@client_row_source_host.RowDeclaration, String, String) -> String
+
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String

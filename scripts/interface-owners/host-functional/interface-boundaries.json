@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "79d6d6c237e21d249de9a45fcb86a53c110c7d0be9da38cde6a25aa85184a3f3",
+      "sha256": "0a3b4370c4ce49f476517f5992c68941f02bf5152d24cdf2ce5bb8ffe033dde8",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118374,6 +118374,7 @@
         {
           "name": "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry",
           "parameters": [
+            "member",
             "entries"
           ],
           "async": false
@@ -118528,6 +118529,13 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/supportedKinds/supportedKinds",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/targetForRecord/target/target",
           "parameters": [
             "value"
@@ -118646,7 +118654,8 @@
             "mockFileRowFootprint/mockFileRowFootprint",
             "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/driver/init:footprint/init:footprint",
-            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors"
+            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors",
+            "mockRowEffectDriver/supportedKinds/supportedKinds"
           ],
           "exports": [
             "installPreparedProjectMockEffects",
@@ -118659,7 +118668,7 @@
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -118826,6 +118835,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -118839,7 +118852,7 @@
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -127054,7 +127067,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "1e5b1d245bd64ae21e1a3b21629178372caa963d4515862a14222237f5d9fc87",
+      "sha256": "90768f355b49d6fc4a4ab9e10f4424dd9db3ce647b698aea16cb4222777550d4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -127639,13 +127652,6 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
           "parameters": [],
           "async": false
@@ -127658,7 +127664,24 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2",
           "parameters": [],
           "async": false
         },
@@ -129487,13 +129510,15 @@
             "installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
             "installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime"
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2"
           ],
           "exports": [],
           "attributes": {
@@ -129559,6 +129584,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
                 "anchor": "test('HubSpot real initial parent funds Native Mapping"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }

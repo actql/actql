@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "6519cced86203bc5c3eccbfbe3315c8b2d0933348e4bbc3f065466817cb4ef39",
+      "sha256": "3d086e0d5df88ddd5f4d0ff448620affe7cfb8d73f34d09ba59e40591fbe44fc",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -483,6 +483,7 @@
         "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
@@ -1124,6 +1125,10 @@
         {
           "name": "prepare_row_delete_mapping",
           "declaration": "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "prepare_row_delete_mapping_from_writes",
+          "declaration": "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
         },
         {
           "name": "prepare_row_input_acquisition",
@@ -3923,10 +3928,12 @@
         },
         {
           "operations": [
-            "prepare_row_update_mapping"
+            "prepare_row_update_mapping",
+            "prepare_row_delete_mapping_from_writes"
           ],
           "exports": [
-            "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+            "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -3987,6 +3994,10 @@
               {
                 "path": "src/client_row_source_host/relation-update-mapping-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }

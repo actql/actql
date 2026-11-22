@@ -75,6 +75,32 @@ test('installed Mock mapping retains only the declared nullable write policy', a
   }, files);
 });
 
+test('installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE', async () => {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const {writes} = catalog.connections.salesforce;
+  const {writable_fields: fields, ...account} = writes[0];
+  assert.deepEqual(fields, ['value']);
+  writes[0] = {...account, operation: 'delete', permission: 'salesforce:record:delete'};
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await withMockCatalog(({bundle}) => {
+    const [account, contact] = bundle.writables;
+    const remove = JSON.parse(account.mapping.body), update = JSON.parse(contact.mapping.body);
+    assert.equal(remove.target_ref, 'connector://salesforce/Account');
+    assert.equal(remove.primary_identity, 'id');
+    assert.deepEqual(remove.row_mapping, {});
+    assert.deepEqual(remove.permission_rules, [{effect_kind: 'delete', selector_class: 'id',
+      write_fields: [], permissions: ['salesforce:record:delete']}]);
+    assert.equal(remove.minimum_approval, 'required');
+    assert.equal(update.target_ref, 'connector://salesforce/Contact');
+    assert.equal(update.permission_rules[0].effect_kind, 'update');
+  }, files);
+  writes[0].writable_fields = ['value'];
+  files['mock/catalog.json'] = JSON.stringify(catalog);
+  await assert.rejects(withMockCatalog(() => assert.fail('DELETE admitted a field list'), files),
+    {code: 'InvalidInstalledMockCatalog'});
+});
+
 test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates', async () => {
   await withMockCatalog(async ({bundle}) => {
     const bindingCid = 'sha256:' + 'a'.repeat(64);
