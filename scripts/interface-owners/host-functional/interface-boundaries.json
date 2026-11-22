@@ -133502,7 +133502,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
+      "sha256": "4b54f587610c2405d83bf15f32a97542d92d317b956f3621256add1f65e710c6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -133804,7 +133804,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -133830,7 +133830,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -133852,7 +133852,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -133878,7 +133878,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -133908,7 +133908,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -133934,7 +133934,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
               },
               {
@@ -133968,7 +133968,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
               },
               {
@@ -133998,7 +133998,7 @@
                 "anchor": "## Model demand on the original installed Effect Plan"
               },
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134028,7 +134028,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134132,7 +134132,7 @@
                 "anchor": "### Bound Effect Plan currentness"
               },
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "run.manager !== manager || run.selection !== selection || run.sourceProfile !== sourceProfile ||"
               }
             ],
@@ -134142,7 +134142,7 @@
                 "anchor": "### Bound Effect Plan currentness"
               },
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "run.admission !== admission || run.original !== original || run.beginOperations !== beginOperations ||"
               }
             ],
@@ -134158,7 +134158,7 @@
                 "anchor": "### Bound Effect Plan currentness"
               },
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "if (Object.hasOwn(run, 'failure')) throw run.failure;"
               }
             ],
@@ -134289,7 +134289,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134303,7 +134303,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134317,7 +134317,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134331,7 +134331,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134345,7 +134345,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134359,7 +134359,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
               },
               {
@@ -134373,7 +134373,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
               },
               {
@@ -134391,7 +134391,7 @@
                 "anchor": "## Model demand on the original installed Effect Plan"
               },
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134401,7 +134401,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134437,7 +134437,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134447,7 +134447,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134457,7 +134457,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134471,7 +134471,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134485,7 +134485,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134495,7 +134495,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134509,7 +134509,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134523,7 +134523,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134537,7 +134537,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "prepareInstalledEffectManagedPlanRun"
               },
               {
@@ -134563,7 +134563,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134577,7 +134577,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134591,7 +134591,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134605,7 +134605,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134619,7 +134619,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134633,7 +134633,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134647,7 +134647,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134661,7 +134661,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {
@@ -134683,7 +134683,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "path": "adapters/host-node/installed-effect-managed-run.mts",
                 "anchor": "export function fundedEffectModelGroupCount("
               },
               {

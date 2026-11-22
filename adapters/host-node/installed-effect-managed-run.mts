@@ -2,49 +2,175 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+// @ts-expect-error TS7016: local-values-plan still owns the shared limits in authored JavaScript.
 import {localContractLimits} from './local-values-plan.mjs';
 import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
+import type {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
 
-const modelGroupPreparations = new WeakMap();
-const preparedEffectRuns = new WeakSet();
+
+type Checked = (result: unknown) => unknown;
+type Current = () => SynchronousRuntimeData;
+type CoreResult = Extract<SynchronousRuntimeData, object>;
+type ControlRun = Parameters<typeof prepareInstalledEffectControlConstruction>[0];
+type ControlWork = ReturnType<typeof prepareInstalledEffectControlConstruction>;
+type SourceOptions = Parameters<typeof selectAcquiredEffectPlanInputs>[0];
+type InferenceOptions = Parameters<typeof openNodeComposedInferProvider>[0];
+type ScopeMethods = [scope: unknown, borrow: unknown, compiled: unknown, definition: unknown, graph: unknown];
+type ModelRuntime = Readonly<{
+  clientProgramEffectSingleKeyedAcquisition?(prepared: unknown): CoreResult;
+  clientProgramInstalledEffectModelDemandPrepare?(prepared: unknown, compiled: unknown, compilation: unknown,
+    definition: unknown, occurrence: unknown, graph: unknown): CoreResult;
+  clientProgramInstalledEffectModelsDemandPrepare?(members: readonly unknown[]): CoreResult;
+  clientProgramInstalledManagedRunRetire?(owner: unknown): CoreResult;
+  clientProgramInstalledManagedRunQuiesce?(owner: unknown): CoreResult;
+  clientProgramInstalledEffectManagedOperationPlan?: ControlRun['readPlan'];
+  clientProgramInstalledEffectOperationControlsRetain?(owner: unknown, prepared: unknown,
+    request: unknown, plan: unknown): CoreResult;
+  clientProgramFinishInferOriginalReadScope?(scope: unknown, compiled: unknown, definition: unknown,
+    graph: unknown, cleanupComplete: boolean): CoreResult;
+  clientProgramInstalledEffectPlanMatchesModelDemand?(plan: unknown, demand: unknown): boolean;
+  clientProgramInstalledEffectFundedModelSelectionCount?(owner: unknown, prepared: unknown, request: unknown): CoreResult;
+  clientProgramInstalledEffectModelReadWindow?(demand: unknown): readonly bigint[];
+}>;
+type Runtime = ModelRuntime & SourceOptions['moon'] & InferenceOptions['moon'] & ControlRun['runtime'];
+type ReadInstallation = NonNullable<ReturnType<typeof retainInferOriginalReadInstallation>>;
+type ModelSelection = InferenceOptions['selected'] & Readonly<{
+  localMock?: boolean;
+  originalReadInstallation?: ReadInstallation;
+  selectedBounds?: unknown;
+  components?: readonly ModelSelection[];
+  bindTrustedRuntimeScope?(scope: unknown, compiled: unknown, definition: unknown, graph: unknown): unknown;
+  assertTrustedRuntimeScope?(...args: ScopeMethods): unknown;
+  finishTrustedRuntimeScope?(...args: ScopeMethods): boolean;
+}>;
+type ModelOriginal = Readonly<{
+  kind?: string; compiled: unknown; definition: unknown; occurrence?: unknown; graph: unknown;
+  components?: readonly ModelOriginal[];
+}>;
+type Definition = Readonly<{identity: unknown; wire: string}>;
+type Facts = Readonly<{
+  prepared: object; identity: unknown; compilation: unknown; allowed: unknown; definition: unknown;
+  queryTimePreparation?: unknown; modelCompiled?: unknown; runDefinition?: Definition;
+}>;
+type OriginalFacts = Omit<Facts, 'runDefinition'>;
+type SourceProfile = (NonNullable<SourceOptions['sourceProfile']> & Readonly<{fileReadDeclarations?: unknown}>) | undefined;
+type PlanInputs = Readonly<{queryContract?: string; evidenceContract?: string; [name: string]: unknown}>;
+type PrepareContent = (retainCleanup: (cleanup: unknown) => void) => Readonly<{preparation?: unknown}>;
+type PublicationCapacity = () => unknown;
+type ModelReadArguments = [compiled: unknown, definition: unknown, graph: unknown, scope: unknown];
+type ModelDemandArguments = [prepared: unknown, compiled: unknown, compilation: unknown,
+  definition: unknown, occurrence: unknown, graph: unknown];
+type PublicationControl = Parameters<typeof retireNodeInferOriginalRead>[0]['control'] & Readonly<{
+  prepareCheckedClientEffectModelDemand?(...args: ModelDemandArguments): unknown;
+  prepareCheckedClientNodeEffectModelDemand?(...args: [...ModelDemandArguments, bounds: unknown, installation: ReadInstallation]): unknown;
+  originalCheckedClientEffectPublication?(allowed: unknown, definition: unknown,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): Readonly<{runDefinition: Definition}>;
+  adoptCheckedClientEffectKeyedRun?(allowed: unknown, definition: Definition, graph: unknown): unknown;
+  prepareCheckedClientInferOriginalRead(...args: [...ModelReadArguments, fields: ModelPreparationFields]): unknown;
+  prepareCheckedClientInferNodeReadLayout(...args: [...ModelReadArguments, installation: unknown]): unknown;
+  startCheckedClientOriginalRestoredComposedInferExecution?: unknown;
+}>;
+type ModelPreparationFields = Readonly<{
+  control: PublicationControl; compiled: unknown; runDefinition: unknown; scope: unknown;
+  publicationCapacity: PublicationCapacity; readRetainedBytes: bigint; readExecutionBytes: bigint;
+  modelRetainedBytes: bigint; modelExecutionBytes: bigint; nodeInstallation?: unknown;
+  metadataInstallation?: ReadInstallation; assertRuntimeCurrent?(): void;
+}>;
+type Material = ModelPreparationFields & Readonly<{read: unknown; inputBodyRead: unknown}>;
+type MemberPreparation = ModelPreparationFields & Readonly<{
+  retain(): void; prepareRead(): Material; restoreRead(input?: Readonly<{savedScope?: unknown}>): Material; retire(): boolean;
+}>;
+type GroupPreparation = Readonly<{
+  components: readonly (MemberPreparation & Readonly<{selection?: ModelSelection; component?: Component}>)[];
+  retain(): void; retire(): boolean;
+}>;
+type Component = ReturnType<typeof openNodeComposedInferProvider>;
+type ModelMember = {
+  model?: ModelOriginal; modelSelection?: ModelSelection; modelScope?: unknown; modelDemand?: unknown;
+  prepareModelDemand?: ModelRuntime['clientProgramInstalledEffectModelDemandPrepare'] |
+    PublicationControl['prepareCheckedClientEffectModelDemand'] | PublicationControl['prepareCheckedClientNodeEffectModelDemand'];
+  modelComponent?: Component; modelRuntimeView?: unknown; modelScopeFinished?: boolean;
+  modelPreparation?: MemberPreparation | GroupPreparation; modelPreparationTaken?: boolean;
+  modelPreparationRetired?: boolean; modelReadAttempted?: boolean; modelReadFailure?: unknown; modelRead?: unknown;
+};
+type AdoptedPlan = Readonly<{original: unknown; value: unknown; operationPlan: unknown}>;
+type Manager = Readonly<{
+  prepareEffectKeyedPlan?(prepared: object, requestInput: unknown, acquisition: unknown, declarations: unknown): unknown;
+}>;
+type KeyedPreparation = Readonly<{
+  graph: unknown; acquisition: unknown; compiled: unknown; requestIdentity: unknown;
+  compilation: unknown; runDefinition: Definition;
+}>;
+type Run = ModelMember & {
+  preparationKind: string; runtime: Runtime; manager: Manager; prepared: object; request: unknown; requestInput: unknown;
+  selection: unknown; sourceProfile: SourceProfile; definitionOriginal?: OriginalFacts; operationPlan?: unknown;
+  original?: unknown; admission?: unknown; value?: unknown; closed: boolean; selecting: boolean; operationsBegun: boolean;
+  preparationFunded?: boolean; failure?: unknown; checkModelGroupCount: Checked;
+  publicationControl?: PublicationControl; modelRunDefinition?: Definition; modelMembers?: readonly ModelMember[];
+  modelScopes?: readonly unknown[]; modelComponents?: readonly unknown[]; modelScopeFinishing?: boolean;
+  contentOriginal?: ReturnType<PrepareContent>; contentCleanup?: unknown; keyedPreparation?: KeyedPreparation;
+  sourceInputs?: ReturnType<typeof selectAcquiredEffectPlanInputs>; selectionResult?: unknown; selectionFailure?: unknown;
+  retire?: ModelRuntime['clientProgramInstalledManagedRunRetire']; quiesce?: ModelRuntime['clientProgramInstalledManagedRunQuiesce'];
+  readPlan?: ModelRuntime['clientProgramInstalledEffectManagedOperationPlan'];
+  beginOperations?: ModelRuntime['clientProgramInstalledEffectOperationControlsRetain'];
+  finishModelScope?: ModelRuntime['clientProgramFinishInferOriginalReadScope'] | PublicationControl['finishCheckedClientInferOriginalReadScope'];
+  controlConstruction?: ControlWork; retireControlConstruction?: ControlWork['retire'];
+};
+type ReadOptions = Readonly<{
+  runs: WeakMap<object, Run>; liveRuns: Set<Run>; runtime: Runtime;
+  prepared: object; request: unknown; assertCurrent: Current; checked: Checked;
+}>;
+type PrepareOptions = ReadOptions & Readonly<{
+  manager: Manager; requestInput: unknown; selection: unknown; facts: Facts; inputs: PlanInputs;
+  sourceProfile: SourceProfile; model?: ModelOriginal; modelSelection?: ModelSelection;
+  publicationControl?: PublicationControl; prepareContent?: PrepareContent;
+}>;
+type GroupOriginal = Readonly<{
+  run: WeakRef<Run>; current(): void; checked: Checked;
+  read: NonNullable<ModelRuntime['clientProgramInstalledEffectFundedModelSelectionCount']>;
+}>;
+
+const modelGroupPreparations = new WeakMap<object, GroupOriginal>();
+const preparedEffectRuns = new WeakSet<Run>();
 
 // Only an installed original Run can expose this already funded inventory.
 // A component count or caller-created getter never substitutes for its Resource
 // admission. Escaped preparation views weakly borrow that same live Run.
-export function fundedEffectModelGroupCount(preparation) {
-  const original = modelGroupPreparations.get(preparation), run = original?.run.deref();
+export function fundedEffectModelGroupCount(preparation: unknown) {
+  const original = modelGroupPreparations.get(preparation as object), run = original?.run.deref();
   if (run === undefined || !preparedEffectRuns.has(run) || !run.preparationFunded ||
       run.closed || run.modelScopeFinished || run.modelPreparation !== preparation) return undefined;
-  original.current();
-  const count = original.checked(Reflect.apply(original.read, run.runtime,
+  original!.current();
+  const count = original!.checked(Reflect.apply(original!.read, run.runtime,
     [run.value, run.prepared, run.request]));
-  original.current();
+  original!.current();
   return Number.isSafeInteger(count) && count === run.modelMembers?.length ? count : undefined;
 }
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
   prepared, request, requestInput, selection, facts, inputs, sourceProfile, model, modelSelection,
-  publicationControl, prepareContent, assertCurrent, checked}) {
+  publicationControl, prepareContent, assertCurrent, checked}: PrepareOptions) {
   assertCurrent();
-  const same = run => {
+  const same = (run: Run) => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (run.closed || run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
         run.manager !== manager || run.prepared !== prepared || run.request !== request || run.requestInput !== requestInput || run.model !== model || run.modelSelection !== modelSelection ||
         run.definitionOriginal === undefined || run.value === undefined || run.selection !== selection || run.sourceProfile !== sourceProfile ||
-        ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
-          .some(name => run.definitionOriginal[name] !== facts[name]) ||
+        (['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled'] as const)
+          .some(name => run.definitionOriginal![name] !== facts[name]) ||
         run.value === undefined) fail('ForeignInstalledEffectManagedRun');
     return readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, assertCurrent, checked);
   };
   const old = runs.get(prepared);
   if (old !== undefined) return same(old);
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
-  const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model, modelSelection,
+  const run: Run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model, modelSelection,
     definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined, modelScope: undefined,
     closed: false, selecting: false, operationsBegun: false, checkModelGroupCount: checked};
   runs.set(prepared, run);
@@ -62,9 +188,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
         .some(name => !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('ForeignInstalledEffectManagedRun');
     if (facts.prepared !== prepared || facts.identity !== request) fail('ForeignInstalledEffectManagedRun');
     run.definitionOriginal = Object.freeze(Object.fromEntries(
-      ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
-        .map(name => [name, facts[name]])));
-    if (model === undefined && runtime.clientProgramEffectAcquisitionCount?.(prepared) > 0) {
+      (['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled'] as const)
+        .map(name => [name, facts[name]]))) as OriginalFacts;
+    if (model === undefined && runtime.clientProgramEffectAcquisitionCount?.(prepared)! > 0) {
       const selectKeyed = runtime.clientProgramEffectSingleKeyedAcquisition;
       if (typeof selectKeyed !== 'function') fail('InstalledEffectKeyedRuntimeUnavailable');
       const acquisition = checked(Reflect.apply(selectKeyed, runtime, [prepared]));
@@ -92,17 +218,17 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     if (model !== undefined) {
       const plural = Array.isArray(model.components);
       if (plural && (!Object.isFrozen(model) || types.isProxy(model) ||
-          !Object.isFrozen(model.components) || model.components.length < 2 ||
+          !Object.isFrozen(model.components) || model.components!.length < 2 ||
           !Array.isArray(modelSelection?.components) || !Object.isFrozen(modelSelection.components) ||
-          modelSelection.components.length !== model.components.length ||
-          !Array.isArray(model.graph) || model.graph !== modelSelection.graph ||
-          model.components.some((member, index) => member.graph !== model.graph[index]))) {
+          modelSelection!.components!.length !== model.components!.length ||
+          !Array.isArray(model.graph) || model.graph !== modelSelection!.graph ||
+          model.components!.some((member, index) => member.graph !== (model.graph as readonly unknown[])[index]))) {
         fail('ForeignInstalledEffectModelSelection');
       }
       run.publicationControl = publicationControl;
       run.modelRunDefinition = fields.runDefinition?.value;
-      const members = plural ? model.components.map((member, index) => ({model: member,
-        modelSelection: modelSelection.components[index], modelScope: undefined})) : [run];
+      const members: ModelMember[] = plural ? model.components!.map((member, index) => ({model: member,
+        modelSelection: modelSelection!.components![index], modelScope: undefined})) : [run];
       if (plural) run.modelMembers = Object.freeze(members);
       for (const member of members) {
         prepareEffectModelMember(member, run, facts, publicationControl, prepareContent, checked);
@@ -111,7 +237,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
         const compose = runtime.clientProgramInstalledEffectModelsDemandPrepare;
         if (typeof compose !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
         run.modelDemand = checked(Reflect.apply(compose, runtime, [members.map(member => member.modelDemand)]));
-        run.modelComponents = Object.freeze(members.map(member => member.modelComponent.provider));
+        run.modelComponents = Object.freeze(members.map(member => member.modelComponent!.provider));
       }
     }
     if (prepareContent !== undefined) {
@@ -128,8 +254,8 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     if (typeof runtime.clientProgramEffectAcquisitionCount === 'function' &&
         runtime.clientProgramEffectAcquisitionCount(prepared) !== 0) {
       run.sourceInputs = selectAcquiredEffectPlanInputs({moon: runtime, preparedEffect: prepared,
-        requestIdentity: request, sourceProfile, queryContract: inputs.queryContract,
-        evidenceContract: inputs.evidenceContract});
+        requestIdentity: request, sourceProfile, queryContract: inputs.queryContract!,
+        evidenceContract: inputs.evidenceContract!});
     }
     const planInputs = model === undefined && run.sourceInputs === undefined && run.contentOriginal === undefined ? inputs
       : Object.freeze({...inputs,
@@ -164,7 +290,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectPreparation')?.value;
       if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
       const adopted = Reflect.apply(adopt, manager,
-        [prepared, requestInput, request, operationPlan, run.keyedPreparation]);
+        [prepared, requestInput, request, operationPlan, run.keyedPreparation]) as AdoptedPlan;
       run.original = adopted.original;
       run.value = adopted.value;
       run.preparationFunded = true;
@@ -184,12 +310,12 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       if (Reflect.apply(matches, runtime, [operationPlan, run.modelDemand]) !== true) {
         fail('ForeignInstalledEffectModelSelection');
       }
-      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan, run]);
+      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan, run]) as AdoptedPlan;
       if (adopted.original !== run.original || adopted.operationPlan !== operationPlan ||
           run.original === undefined ||
           (run.modelMembers === undefined ? run.modelScope === undefined :
             !Array.isArray(run.modelScopes) || run.modelScopes.length !== run.modelMembers.length ||
-              run.modelMembers.some((member, index) => member.modelScope !== run.modelScopes[index])) || adopted.value === undefined) {
+              run.modelMembers.some((member, index) => member.modelScope !== run.modelScopes![index])) || adopted.value === undefined) {
         fail('ForeignInstalledEffectManagedRun');
       }
       run.value = adopted.value;
@@ -202,7 +328,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
             typeof selected.finishTrustedRuntimeScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
         // The WHOLE Scope inventory is retained before a fallible association.
         member.modelRuntimeView = selected.bindTrustedRuntimeScope(
-          member.modelScope, member.model.compiled, run.modelRunDefinition, member.model.graph);
+          member.modelScope, member.model!.compiled, run.modelRunDefinition, member.model!.graph);
       }
       assertCurrent();
     }
@@ -213,11 +339,11 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     const members = run.modelMembers, scopes = run.modelScopes;
     const component = run.modelMembers === undefined ? run.modelComponent : run.modelComponents, sourceInputs = run.sourceInputs, modelControl = run.publicationControl,
       modelDefinition = run.modelRunDefinition;
-    const actualPlan = checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
+    const actualPlan = checked(Reflect.apply(beginOperations!, runtime, [parent, prepared, request, operationPlan]));
     if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (actualPlan !== operationPlan || run.value !== parent || run.operationPlan !== operationPlan ||
         run.beginOperations !== beginOperations || run.requestInput !== requestInput ||
-        ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
+        (['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled'] as const)
           .some(name => definition[name] !== facts[name])) fail('ForeignInstalledEffectManagedRun');
     run.operationsBegun = true;
     // Consume the SAME native Plan result immediately. No optional proof or
@@ -229,7 +355,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // a replaced Runtime must retain its original Foreign refusal precedence.
     run.selecting = true;
     try {
-      run.controlConstruction = prepareInstalledEffectControlConstruction(run);
+      run.controlConstruction = prepareInstalledEffectControlConstruction(run as ControlRun);
       run.retireControlConstruction = run.controlConstruction.retire;
     } finally {run.selecting = false;}
     assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
@@ -246,7 +372,8 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   }
 }
 
-function prepareEffectModelMember(member, run, facts, publicationControl, prepareContent, checked) {
+function prepareEffectModelMember(member: ModelMember, run: Run, facts: Facts,
+  publicationControl: PublicationControl | undefined, prepareContent: PrepareContent | undefined, checked: Checked) {
   const {model, modelSelection} = member, runtime = run.runtime, prepared = run.prepared;
   if (model === null || typeof model !== 'object' || types.isProxy(model) || !Object.isFrozen(model)) {
     fail('ForeignInstalledEffectModelSelection');
@@ -264,9 +391,9 @@ function prepareEffectModelMember(member, run, facts, publicationControl, prepar
   member.prepareModelDemand = modelSelection === undefined ? runtime.clientProgramInstalledEffectModelDemandPrepare
     : physical ? publicationControl?.prepareCheckedClientNodeEffectModelDemand : publicationControl?.prepareCheckedClientEffectModelDemand;
   if (typeof member.prepareModelDemand !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
-  member.modelDemand = modelSelection === undefined ? checked(Reflect.apply(member.prepareModelDemand, runtime,
+  member.modelDemand = modelSelection === undefined ? checked(Reflect.apply(member.prepareModelDemand as NonNullable<ModelRuntime['clientProgramInstalledEffectModelDemandPrepare']>, runtime,
     [prepared, model.compiled, facts.compilation, model.definition, model.occurrence, model.graph]))
-    : Reflect.apply(member.prepareModelDemand, publicationControl,
+    : Reflect.apply(member.prepareModelDemand as Function, publicationControl,
       [prepared, model.compiled, facts.compilation, facts.runDefinition, model.occurrence, model.graph,
         ...(physical ? [modelSelection.selectedBounds, modelSelection.originalReadInstallation] : [])]);
   if (member.modelDemand === null || typeof member.modelDemand !== 'object') fail('InstalledEffectModelDemandUnavailable');
@@ -280,7 +407,7 @@ function prepareEffectModelMember(member, run, facts, publicationControl, prepar
 
 // Only the existing complete dispatch/initialization retirement caller supplies
 // this physical-cleanup observation. A terminal Run or settled Promise cannot.
-export function finishInstalledEffectModelScope(run, originalRunCleanupComplete, checked) {
+export function finishInstalledEffectModelScope(run: Run, originalRunCleanupComplete: boolean, checked: Checked) {
   if ((run.modelMembers === undefined ? run.modelScope === undefined : run.modelScopes === undefined) ||
       run.modelScopeFinished === true) return;
   if (run.modelScopeFinishing) fail('InstalledEffectModelScopeCleanupPending');
@@ -312,19 +439,19 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
       checked(Reflect.apply(sameQuiesce, sameRuntime, [sameParent]));
       original();
     }
-    const finishMember = member => {
+    const finishMember = (member: ModelMember) => {
       if (sameMembers !== undefined && member.modelScopeFinished === true) return true;
       const scope = member.modelScope, model = member.model, selected = member.modelSelection;
       const finished = member.modelRuntimeView !== undefined
-        ? originalRunCleanupComplete === true && selected.finishTrustedRuntimeScope(
-          scope, member.modelRuntimeView, model.compiled, sameDefinition, model.graph)
-        : sameControl === undefined ? checked(Reflect.apply(sameFinish, sameRuntime,
-          [scope, model.compiled, model.definition, model.graph, originalRunCleanupComplete]))
-          : Reflect.apply(sameFinish, sameControl,
-            [model.compiled, sameDefinition, model.graph, scope, originalRunCleanupComplete]);
+        ? originalRunCleanupComplete === true && selected!.finishTrustedRuntimeScope!(
+          scope, member.modelRuntimeView, model!.compiled, sameDefinition, model!.graph)
+        : sameControl === undefined ? checked(Reflect.apply(sameFinish as Function, sameRuntime,
+          [scope, model!.compiled, model!.definition, model!.graph, originalRunCleanupComplete]))
+          : Reflect.apply(sameFinish as Function, sameControl,
+            [model!.compiled, sameDefinition, model!.graph, scope, originalRunCleanupComplete]);
       original();
       if (sameMembers !== undefined && (member.modelScope !== sameScopes?.[sameMembers.indexOf(member)] ||
-          member.model !== sameModel.components[sameMembers.indexOf(member)])) fail('ForeignInstalledEffectModelScope');
+          member.model !== sameModel!.components![sameMembers.indexOf(member)])) fail('ForeignInstalledEffectModelScope');
       if (sameMembers !== undefined && finished === true) member.modelScopeFinished = true;
       return finished;
     };
@@ -344,15 +471,15 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
 // Borrow the SAME early Request Scope when Local supplies the actual captured
 // inputs. Its original read remains on this Run through failed construction;
 // no late Scope, admission, bounds selection or independent Model Root exists.
-export function installedEffectModelPreparation(run, publicationCapacity, assertCurrent) {
+export function installedEffectModelPreparation(run: Run, publicationCapacity: PublicationCapacity, assertCurrent: Current) {
   if (run.modelMembers === undefined) return installedEffectModelMemberPreparation(run, run, publicationCapacity, assertCurrent);
   const members = run.modelMembers, scopes = run.modelScopes;
   const current = () => {
     assertCurrent();
     if (run.modelMembers !== members || run.modelScopes !== scopes || run.closed || run.modelScopeFinished ||
         !Array.isArray(scopes) || scopes.length !== members.length ||
-        members.some((member, index) => member.modelScope !== scopes[index] || member.model !== run.model.components[index] ||
-          member.modelSelection !== run.modelSelection.components[index])) fail('ForeignInstalledEffectModelScope');
+        members.some((member, index) => member.modelScope !== scopes[index] || member.model !== run.model!.components![index] ||
+          member.modelSelection !== run.modelSelection!.components![index])) fail('ForeignInstalledEffectModelScope');
   };
   current();
   if (run.modelPreparation !== undefined) return run.modelPreparation;
@@ -370,7 +497,8 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
   return run.modelPreparation;
 }
 
-function installedEffectModelMemberPreparation(run, member, publicationCapacity, assertCurrent) {
+function installedEffectModelMemberPreparation(run: Run, member: ModelMember, publicationCapacity: PublicationCapacity,
+  assertCurrent: Current): MemberPreparation {
   const model = member.model, control = run.publicationControl, definition = run.modelRunDefinition,
     scope = member.modelScope, parent = run.value, demand = member.modelDemand;
   const current = () => {
@@ -382,7 +510,7 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
     }
   };
   current();
-  if (member.modelPreparation !== undefined) return member.modelPreparation;
+  if (member.modelPreparation !== undefined) return member.modelPreparation as MemberPreparation;
   const readWindow = run.runtime.clientProgramInstalledEffectModelReadWindow;
   if (typeof readWindow !== 'function' || typeof publicationCapacity !== 'function') {
     fail('InstalledEffectModelRuntimeUnavailable');
@@ -393,7 +521,7 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
   const retained = window[0], execution = window[1];
   const physical = member.modelSelection?.originalReadInstallation;
   const startup = physical === undefined ? undefined : inferOriginalReadStartupCapacity(physical);
-  const fields = {control, compiled: model.compiled, runDefinition: definition, scope, publicationCapacity,
+  const fields: ModelPreparationFields = {control: control!, compiled: model!.compiled, runDefinition: definition, scope, publicationCapacity,
     readRetainedBytes: retained, readExecutionBytes: execution,
     modelRetainedBytes: startup?.modelRetainedBytes ?? retained,
     modelExecutionBytes: startup?.modelExecutionBytes ?? execution,
@@ -401,8 +529,8 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
       metadataInstallation: physical,
       assertRuntimeCurrent() {
         current();
-        member.modelSelection.assertTrustedRuntimeScope(scope, member.modelRuntimeView,
-          model.compiled, definition, model.graph);
+        member.modelSelection!.assertTrustedRuntimeScope!(scope, member.modelRuntimeView,
+          model!.compiled, definition, model!.graph);
       }}),
   };
   const prepareRead = () => {
@@ -412,9 +540,9 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
     member.modelReadAttempted = true;
     try {
       member.modelRead = physical === undefined
-        ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
-        : control.prepareCheckedClientInferNodeReadLayout(
-          model.compiled, definition, model.graph, scope, physical.nodeInstallation);
+        ? control!.prepareCheckedClientInferOriginalRead(model!.compiled, definition, model!.graph, scope, fields)
+        : control!.prepareCheckedClientInferNodeReadLayout(
+          model!.compiled, definition, model!.graph, scope, physical.nodeInstallation);
       // Effect publication consumes the original input body. Borrow the SAME
       // read for its existing incremental construction owner, not another read
       // or a blanket body-retention policy for ordinary Pure Model consumers.
@@ -428,13 +556,13 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
       member.modelPreparationTaken = true;
     },
     prepareRead,
-    restoreRead(input) {
+    restoreRead(input?: Readonly<{savedScope?: unknown}>) {
       current();
       // This selects the saved-input constructor, not fresh input permission.
       // Core admits the nominal saved scope against this same Run/occurrence
       // before entering the one original consumer or allocating saved input.
       if (input?.savedScope === undefined ||
-          typeof control.startCheckedClientOriginalRestoredComposedInferExecution !== 'function') {
+          typeof control!.startCheckedClientOriginalRestoredComposedInferExecution !== 'function') {
         fail('InstalledEffectModelRuntimeUnavailable');
       }
       return prepareRead();
@@ -442,8 +570,8 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
     retire() {
       current();
       if (member.modelPreparationRetired) return true;
-      retireNodeInferOriginalRead({control, compiled: model.compiled, runDefinition: definition,
-        graph: model.graph, scope, read: member.modelRead});
+      retireNodeInferOriginalRead({control: control!, compiled: model!.compiled, runDefinition: definition,
+        graph: model!.graph, scope, read: member.modelRead});
       member.modelRead = undefined;
       member.modelPreparationRetired = true;
       return true;
@@ -454,7 +582,7 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
 }
 
 export function readInstalledEffectManagedPlanRun({runs, liveRuns, runtime,
-  prepared, request, assertCurrent, checked}) {
+  prepared, request, assertCurrent, checked}: ReadOptions) {
   assertCurrent();
   const run = runs?.get(prepared);
   if (run === undefined || !liveRuns?.has(run) || run.preparationKind !== 'effect-plan' ||
@@ -470,7 +598,8 @@ export function readInstalledEffectManagedPlanRun({runs, liveRuns, runtime,
 
 // A single bound Core getter owns currentness at this boundary. Fixed locals
 // retain the original tuple without a second snapshot object or proof cache.
-function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, assertCurrent, checked) {
+function readCurrentPlanParent(run: Run, runs: ReadOptions['runs'], liveRuns: ReadOptions['liveRuns'],
+  runtime: Runtime, prepared: object, request: unknown, assertCurrent: Current, checked: Checked) {
   const parent = run.value, plan = run.operationPlan, readPlan = run.readPlan;
   const definition = run.definitionOriginal, manager = run.manager, selection = run.selection;
   const sourceProfile = run.sourceProfile, model = run.model, demand = run.modelDemand, scope = run.modelScope;
@@ -481,7 +610,7 @@ function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, 
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
     definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
     modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
-  const actualPlan = checked(Reflect.apply(readPlan, runtime, [parent, prepared, request]));
+  const actualPlan = checked(Reflect.apply(readPlan!, runtime, [parent, prepared, request]));
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
     definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
     modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
@@ -495,9 +624,14 @@ function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, 
 
 // Callback-free fences preserve the original Model Scope and cleanup lineage.
 // Failure presence keeps even an original thrown undefined failed on retry.
-function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
-  definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-  modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes) {
+function assertCurrentPlanRecord(run: Run, runs: ReadOptions['runs'], liveRuns: ReadOptions['liveRuns'],
+  runtime: Runtime, prepared: object, request: unknown, parent: unknown, plan: unknown, readPlan: Run['readPlan'],
+  definition: Run['definitionOriginal'], manager: Manager, selection: unknown, sourceProfile: SourceProfile,
+  model: Run['model'], demand: unknown, scope: unknown, admission: unknown, original: unknown,
+  beginOperations: Run['beginOperations'], modelSelection: Run['modelSelection'],
+  component: Run['modelComponent'] | Run['modelComponents'], sourceInputs: Run['sourceInputs'],
+  modelControl: Run['publicationControl'], modelDefinition: Run['modelRunDefinition'],
+  members: Run['modelMembers'], scopes: Run['modelScopes']) {
   if (Object.hasOwn(run, 'failure')) throw run.failure;
   if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
       run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
@@ -509,7 +643,7 @@ function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request
       run.operationsBegun !== true || run.modelSelection !== modelSelection || (members === undefined ? run.modelComponent : run.modelComponents) !== component ||
       run.sourceInputs !== sourceInputs || run.publicationControl !== modelControl ||
       run.modelRunDefinition !== modelDefinition || run.modelMembers !== members || run.modelScopes !== scopes ||
-      members !== undefined && (!Object.isFrozen(members) || !Object.isFrozen(scopes) || members.length !== scopes.length ||
-        members.some((member, index) => member.modelScope !== scopes[index] || member.model !== model.components[index] ||
-          member.modelSelection !== modelSelection.components[index] || member.modelComponent?.provider !== component[index]))) fail('ForeignInstalledEffectManagedRun');
+      members !== undefined && (!Object.isFrozen(members) || !Object.isFrozen(scopes) || members.length !== scopes!.length ||
+        members.some((member, index) => member.modelScope !== scopes![index] || member.model !== model!.components![index] ||
+          member.modelSelection !== modelSelection!.components![index] || member.modelComponent?.provider !== (component as readonly unknown[])[index]))) fail('ForeignInstalledEffectManagedRun');
 }
