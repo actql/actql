@@ -76,12 +76,18 @@ fn native_mock_effect_changes_input_capacity(
   changes : String,
   before : String,
   version : String,
+  deleting? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
-  if writable_fields < 1 || writable_fields > page.max_nodes {
+  if writable_fields < 0 ||
+    (writable_fields == 0) != deleting ||
+    writable_fields > page.max_nodes {
     return None
   }
-  guard native_mock_effect_request_json_capacity("", changes, "", "", "", "")
-    is Some(json) &&
+  // DELETE needs the same bounded request input and target observation,
+  // with no field conversion or replacement output on the preview child.
+  let replacements = if deleting {
+    @execution.execution_capacity(0L, 0L)
+  } else {
     @execution.execution_capacity_inventory(
       [
         {
@@ -93,7 +99,10 @@ fn native_mock_effect_changes_input_capacity(
       [],
       RetainedAlongsideExecution,
     )
-    is Some(replacements) &&
+  }
+  guard native_mock_effect_request_json_capacity("", changes, "", "", "", "")
+    is Some(json) &&
+    replacements is Some(replacements) &&
     @execution.preparation_representation_cost({
       // Original input record H1/R4 + Some H1/R1/W1. The fixed
       // caller slot belongs to the same Plan controls_per_row for its lifetime.

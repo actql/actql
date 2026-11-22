@@ -38,6 +38,7 @@ for(const field of ['authorization_context_cid','resolution_cid','replacement_ge
   mutations.push({name:'missing '+field,wire:canonicalText(seal(changed))});
 }
 for(const [name,change] of [
+  ['foreign operation kind',{operation_kind:'delete'}],
   ['uncertain replacement',{replacement_status:'unknown'}],
   ['SQLite atomic substitution',{backend_kind:'sqlite',commit_status:'committed'}],
   ['HTTP substitution',{http_status_code:200,credential_use_cid:C('1')}],
@@ -50,6 +51,48 @@ for(const [name,change] of [
   ['unobserved outcome',{typed_outcome:{state:'unknown'}}],
   ['false typed identity',{typed_outcome_cid:C('0')}],
 ])mutations.push({name,wire:canonicalText(seal({...body,...change}))});
+
+// A DELETE has the same guarded target but no approved field changes.
+const deletePreview = structuredClone(preview.preview);
+const deleteMember = deletePreview.effects[0], deleteRow = deleteMember.changes[0];
+deleteMember.effect_kind = 'delete';
+deleteRow.after = {state:'absent'};
+deleteRow.intended_changes = {state:'not_applicable'};
+deleteRow.row_preview_cid = hash({version:'actql-effect-preview-row/0.1',
+  program_definition_cid:deletePreview.program_definition_cid,invocation_cid:deletePreview.invocation_cid,
+  effect_identity_cid:deleteMember.effect_identity_cid,resolved_contract_cid:deleteMember.resolved_mapping_contract_cid,
+  operation:'delete',target_row_identity:deleteRow.target_row_identity,preview_strength:deleteMember.preview_strength,
+  target_guard:deleteRow.target_guard,intended_changes:deleteRow.intended_changes,before:deleteRow.before,after:deleteRow.after});
+deleteMember.row_order = [deleteRow.row_preview_cid];
+const {effect_member_preview_cid:_member,...deleteMemberSemantic} = deleteMember;
+const {row_idempotency_key:_key,...deleteRowSemantic} = deleteRow;
+deleteMemberSemantic.changes = [deleteRowSemantic];
+deleteMember.effect_member_preview_cid = hash({version:'actql-effect-member-preview/0.1',member:deleteMemberSemantic});
+const {effect_preview_cid:_preview,run_identity_cid:_run,authoring_context:_auth,...deletePreviewSemantic} = deletePreview;
+deletePreviewSemantic.effects = [{...deleteMemberSemantic,effect_member_preview_cid:deleteMember.effect_member_preview_cid}];
+deletePreview.effect_preview_cid = hash(deletePreviewSemantic);
+const deleteReplacement = ' {"items":[],"keep":true}\n';
+const deleteOutcome = {state:'applied',result:{Id:3}};
+const deleteOperation = {...operation,effect_preview_cid:deletePreview.effect_preview_cid,
+  effect_member_preview_cid:deleteMember.effect_member_preview_cid,row_preview_cid:deleteRow.row_preview_cid};
+const deleteBody = {...body,...deleteOperation,operation_kind:'delete',
+  replacement_physical_sha256:physicalHash(deleteReplacement),replacement_byte_count:Buffer.byteLength(deleteReplacement),
+  replacement_generation:{...generation,size:String(Buffer.byteLength(deleteReplacement))},
+  typed_outcome:deleteOutcome,typed_outcome_cid:hash(deleteOutcome)};
+const deleteReceipt = seal(deleteBody), deleteWire = canonicalText(deleteReceipt);
+const deleteRowReceipt = seal({...rowBody,...Object.fromEntries(
+  ['effect_preview_cid','effect_member_preview_cid','row_preview_cid'].map(key=>[key,deleteOperation[key]])),
+  local_operation_receipt_cid:deleteReceipt.receipt_cid,response_physical_sha256:physicalHash(deleteWire),
+  response_byte_count:Buffer.byteLength(deleteWire),typed_outcome:deleteOutcome,typed_outcome_cid:hash(deleteOutcome)});
+export const deletion = {preview:deletePreview,previewWire:canonicalText(deletePreview),operation:deleteOperation,
+  replacement:deleteReplacement,outcome:deleteOutcome,body:deleteBody,receipt:deleteReceipt,wire:deleteWire,
+  rowReceipt:deleteRowReceipt,rowWire:canonicalText(deleteRowReceipt),
+  switchedWire:canonicalText(seal({...deleteBody,operation_kind:'update'}))};
+export const deletionExpectedPins = {
+  preview:'sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820',
+  receipt:'sha256:b79506504bd83ae4c7ed6e0eac346365c046394d2d8b6159092f1ba571571d6b',
+  row:'sha256:5af4a5d47521e47926d3cf6620abe11c12ace94dbfcb26772068195d903666c4',
+};
 
 // Independent two-row semantic preimage. Raw changes are CID ordered while
 // execution row_order is reversed; never use one index space for the other.

@@ -83865,7 +83865,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a8f790d5432be245fec546581ac572dbc09ff7c48b89c31c957b276dc51350f4",
+      "sha256": "ad3fc66cf4071a9b6deacbf3e3299c2a5573f7f6eea482cd8544c8b24b085ffd",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84199,12 +84199,19 @@
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
           "parameters": [
-            "rule"
+            "kind"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -85573,6 +85580,13 @@
           "name": "createRowEffectStage/selectOwner/selectOwner/route/route",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf",
+          "parameters": [
+            "rule"
           ],
           "async": false
         },
@@ -87378,7 +87392,9 @@
             "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings"
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffect/createInstalledRowEffect#3",
+            "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -94847,7 +94863,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
+      "sha256": "34e240fe08e548172236d0631c27e24a5e9d86a1b57573118a2a625dc4e1e601",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

@@ -1313,7 +1313,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
       suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
       managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-      owned.kinds.length !== 1 || owned.kinds[0] !== 'update' ||
+      owned.kinds.length === 0 || !owned.kinds.every(kind => kind === 'update' || kind === 'delete') ||
       owned.check !== undefined || owned.confirmResponse !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
     fail('InvalidInstalledEffectDriverConstruction');
@@ -1359,7 +1359,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
     const operation = managedTargetPlanRecipes.byMapping[mapping.mappingCid]?.writeOperation;
     if (operation === undefined ||
-        !mapping.rules.some(rule => rule.effect_kind === 'update' && rule.permissions?.includes(operation))) {
+        !mapping.rules.some(rule => owned.kinds.includes(rule.effect_kind) && rule.permissions?.includes(operation))) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
   }
@@ -1581,7 +1581,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const targetPlanOf = (member, owner) => {
     if (owner.managedTargetPlanRecipes === undefined) return undefined;
     const plan = owner.managedTargetPlanRecipes.byMapping[member.mapping?.mappingCid];
-    if (member.kind !== 'update' || plan === undefined) fail('ForeignInstalledEffectOccurrence');
+    if (plan === undefined || !member.mapping.rules.some(rule =>
+      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation))) {
+      fail('ForeignInstalledEffectOccurrence');
+    }
     return plan;
   };
   const recipeOf = member => {

@@ -74,6 +74,21 @@ fn target_update_quote_work() -> Unit raise {
     536870912L,
   )
   assert_true(raw > 0L)
+  let (delete_initial, _) = native_relation_file_target_delete_construction(
+    provider, 0,
+  ).unwrap()
+  let (delete_actual, delete_raw) = native_relation_file_target_delete_construction(
+    provider, 1024,
+  ).unwrap()
+  assert_true(delete_raw >= 1024L)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(delete_initial) <=
+    @execution.execution_capacity_retained_bytes(delete_actual),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(delete_actual) <=
+    @execution.execution_capacity_execution_bytes(actual),
+  )
   assert_eq(provider.limits.page.max_bytes, 1048576)
   assert_eq(provider.limits.page.max_nodes, 4096)
   for size in [-1, 1048577] {
@@ -82,6 +97,9 @@ fn target_update_quote_work() -> Unit raise {
         provider, 1, size, changes,
       )
       is None,
+    )
+    assert_true(
+      native_relation_file_target_delete_construction(provider, size) is None,
     )
   }
 }

@@ -14,14 +14,14 @@ const originalDataWire = json({salesforce: {
     {id: 'c-control', group: 'contact-control', value: 'keep-contact'}]},
 }, control: {unchanged: 'keep-physical-document'}});
 
-function mapping(resource) {
+function mapping(resource, kind = 'update') {
   // Exact existing request preimage, with literal canonical key ordering.
   // This is only the authored MappingRef, never an admitted Mapping/permit.
-  const request = {key: null, kind: 'update', resource,
-    row_mapping: {value: {field: 'value', null_behavior: 'reject'}},
+  const request = {key: null, kind, resource,
+    row_mapping: kind === 'delete' ? {} : {value: {field: 'value', null_behavior: 'reject'}},
     target_schema: {additional_properties: false, fields: schema, nullable: false, type: 'object'},
-    write_fields: ['value']};
-  return 'mapping:salesforce/' + resource + '/update-' +
+    write_fields: kind === 'delete' ? [] : ['value']};
+  return 'mapping:salesforce/' + resource + '/' + kind + '-' +
     createHash('sha256').update(JSON.stringify(request)).digest('hex').slice(0, 16) + '.v1';
 }
 
@@ -106,6 +106,37 @@ export function threeWriteMockProject() {
   }
   return Object.freeze({files: Object.freeze(files), programFile,
     before, after, changes, rows: Object.freeze([Object.freeze(row)])});
+}
+
+export function mixedDeleteUpdateMockProject() {
+  const files = {...multipleTargetMockProjectFiles()};
+  const catalog = JSON.parse(files['mock/catalog.json']);
+  const {writes} = catalog.connections.salesforce;
+  const {writable_fields, ...account} = writes[0];
+  assert.deepEqual(writable_fields, ['value']);
+  writes[0] = {...account, operation: 'delete', permission: 'salesforce:record:delete'};
+  files['mock/catalog.json'] = json(catalog);
+
+  const programFile = 'multiple-targets.program.json';
+  const program = JSON.parse(files[programFile]);
+  const {effects} = program.stages[0];
+  const {set, ...selection} = effects.account.update;
+  assert.deepEqual(set, {value: field('account_next')});
+  effects.account = {delete: {...selection, mapping: mapping('Account', 'delete')}};
+  files[programFile] = json(program);
+
+  const before = files['mock/data.json'];
+  const removed = `{
+          "id": "a1",
+          "group": "selected",
+          "value": "A-old"
+        },`;
+  assert.equal(before.split(removed).length, 2);
+  assert.equal(before.split('"C-old"').length, 2);
+  const after = before.replace(removed, '').replace('"C-old"', '"C-new"');
+  const rows = Object.freeze([Object.freeze({account_id: 'a1', contact_id: 'c1',
+    account_before: 'A-old', contact_before: 'C-old', account_next: 'A-new', contact_next: 'C-new'})]);
+  return Object.freeze({files: Object.freeze(files), programFile, before, after, rows});
 }
 
 export const multipleTargetMockWriteCount = 2;

@@ -330,12 +330,13 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         @syntax.effect_header_id(header),
         max_work,
       ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
+      let deleting = descriptor.2 == "delete"
       guard descriptor.0 == index &&
-        descriptor.2 == "update" &&
         descriptor.6 is Some(result_name) &&
         installations
         .iter()
         .find_first(selected => {
+          selected.matches_file_operation(descriptor.2) &&
           selected.target == descriptor.3 &&
           selected.write.mapping.mapping_ref == descriptor.4 &&
           selected.write.mapping.mapping_cid == descriptor.5
@@ -418,11 +419,17 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         guard native_mock_preview_json(request_wire) is Object(request) &&
           request.get("target") is Some(target_value) &&
           request.get("before") is Some(before) &&
-          request.get("value") is Some(value) &&
           json_text(request, "binding") == Some(selected.binding) &&
           json_text(request, "mapping") == Some(descriptor.5) &&
           json_text(request, "version") is Some(version) else {
           stop("LocalOriginalEffectPreviewTargetUnavailable")
+        }
+        let value = match request.get("value") {
+          None if deleting && request.length() == 5 => Json::null()
+          Some(value) if !deleting &&
+            request.length() == 6 &&
+            value is Object(_) => value
+          _ => stop("LocalOriginalEffectPreviewTargetUnavailable")
         }
         target_index += 1
         requests.push(Json::string(request_cid))
@@ -433,8 +440,16 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
             "version_cid": Json::string(version),
           },
           "before": { "state": "present", "value": before },
-          "after": { "state": "present", "value": value },
-          "intended_changes": { "state": "present", "value": value },
+          "after": if deleting {
+            { "state": "absent" }
+          } else {
+            { "state": "present", "value": value }
+          },
+          "intended_changes": if deleting {
+            { "state": "not_applicable" }
+          } else {
+            { "state": "present", "value": value }
+          },
           "row_preview_cid": Json::string(pending),
           "row_idempotency_key": Json::string(pending),
         })
@@ -455,7 +470,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         "connection": owner["connection"],
         "resource": Json::string(selected.write.mapping.resource),
         "mapping_cid": Json::string(descriptor.5),
-        "operation": "update",
+        "operation": Json::string(descriptor.2),
         "route": "single_serial",
         "idempotency": "unavailable",
         "request_cids": Json::array(requests),

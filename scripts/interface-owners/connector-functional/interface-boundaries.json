@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "a8f790d5432be245fec546581ac572dbc09ff7c48b89c31c957b276dc51350f4",
+      "sha256": "ad3fc66cf4071a9b6deacbf3e3299c2a5573f7f6eea482cd8544c8b24b085ffd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4623,12 +4623,19 @@
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
           "parameters": [
-            "rule"
+            "kind"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -6001,6 +6008,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
           "parameters": [
             "member",
@@ -6579,7 +6593,9 @@
             "prepareInstalledCreateRows/prepareInstalledCreateRows",
             "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
             "prepareInstalledCreateRows/wires/wires",
-            "retainInstalledRowEffectAdapter"
+            "retainInstalledRowEffectAdapter",
+            "createInstalledRowEffect/createInstalledRowEffect#3",
+            "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -13112,7 +13128,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
+      "sha256": "34e240fe08e548172236d0631c27e24a5e9d86a1b57573118a2a625dc4e1e601",
       "operations": [
         {
           "name": "byCid/byCid/byCid",

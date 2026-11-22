@@ -4072,6 +4072,8 @@ pub fn client_program_relation_document_usage(@client_row_source_host.RelationDo
 
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
@@ -4451,6 +4453,8 @@ pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.Row
 pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @query_planning.QueryEvidenceContracts, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceCursorProgress, @client_row_source_host.RowSourceCursorIssue]
+
+pub fn client_program_row_source_prepare_delete_mapping(@client_row_source_host.RowDeclaration, String, String) -> String
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
