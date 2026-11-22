@@ -763,15 +763,7 @@ pub fn NativeClientMockModelWork::persist_entry_in_original_read(
       return Err(issue)
     }
   }
-  match
-    self.capture.persist_model_call_entry_in_original_read(
-      self.request,
-      self.compiled,
-      self.definition,
-      prepared,
-      admission,
-      entry,
-    ) {
+  match self.persist_model_entry_original(prepared, admission, entry) {
     Ok(_) => {
       self.entry_recorded = true
       Ok(())
