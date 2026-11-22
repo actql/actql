@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1d1583ab84636323f313f3530ca178ecec9fba8508a0321f2be200432c8edeb",
+      "sha256": "5a0863040e253d89060b5bc32f54ed7a1656db2ff7bc37483f296b43a3612d95",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118073,6 +118073,13 @@
           "parameters": [
             "name",
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/create/create",
+          "parameters": [
+            "target"
           ],
           "async": false
         },
@@ -118190,7 +118197,8 @@
             "moon",
             "bundle",
             "operation",
-            "targetReadOperation"
+            "targetReadOperation",
+            "insertion"
           ],
           "async": false
         },
@@ -118426,43 +118434,6 @@
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/readChild",
-          "parameters": [
-            "member",
-            "selector",
-            "value",
-            "selected",
-            "authorizationForRow",
-            "signal",
-            "runOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/child",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/child/init:consume/init:consume",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "mockRowEffectDriver/recover/recover",
           "parameters": [
             "durable",
@@ -118483,7 +118454,8 @@
         {
           "name": "mockRowEffectDriver/recover/recover/requests/requests",
           "parameters": [
-            "record"
+            "record",
+            "row"
           ],
           "async": false
         },
@@ -118493,6 +118465,60 @@
             "_",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild",
+          "parameters": [
+            "member",
+            "selector",
+            "value",
+            "selected",
+            "authorizationForRow",
+            "signal",
+            "runOriginal",
+            "createRowIdentity",
+            "fileCreateIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/init:authorize/init:authorize",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/child/init:consume/init:consume",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestChild/requestChild",
+          "parameters": [],
           "async": false
         },
         {
@@ -118532,6 +118558,13 @@
         },
         {
           "name": "mockRowEffectDriver/supportedKinds/supportedKinds",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds",
           "parameters": [
             "target"
           ],
@@ -118630,11 +118663,11 @@
             "mockRowEffectDriver/driver/init:send/init:send/child/child",
             "mockRowEffectDriver/driver/init:send/init:send/child/init:authorize/init:authorize",
             "mockRowEffectDriver/driver/init:send/init:send/child/init:replace/init:replace",
-            "mockRowEffectDriver/readChild",
-            "mockRowEffectDriver/readChild/child/child",
-            "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
-            "mockRowEffectDriver/readChild/child/init:consume/init:consume",
-            "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
+            "mockRowEffectDriver/requestChild",
+            "mockRowEffectDriver/requestChild/child/child",
+            "mockRowEffectDriver/requestChild/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/requestChild/child/init:consume/init:consume",
+            "mockRowEffectDriver/requestChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/recover/recover",
             "mockRowEffectDriver/recover/recover/entries/entries",
             "mockRowEffectDriver/recover/recover/requests/requests",
@@ -118657,7 +118690,12 @@
             "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/driver/init:footprint/init:footprint",
             "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors",
-            "mockRowEffectDriver/supportedKinds/supportedKinds"
+            "mockRowEffectDriver/supportedKinds/supportedKinds",
+            "installPreparedProjectMockEffects/create/create",
+            "mockRowEffectDriver/requestChild/init:prepare/init:prepare",
+            "mockRowEffectDriver/requestChild/release/release",
+            "mockRowEffectDriver/requestChild/requestChild",
+            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds"
           ],
           "exports": [
             "installPreparedProjectMockEffects",

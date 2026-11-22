@@ -391,15 +391,19 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
   }
   if (phase === 'source') {
     const pluralFootprint = writables.length > 1;
+    let createTargets = 0n;
+    for (const write of selected.writes) if (ownData(write, 'operation') === 'create') createTargets++;
+    const create = createTargets !== 0n;
     const operation = ownData(selected.writes[0], 'permission');
     const read = ownData(selected.writes[0], 'observe_permission');
-    const routed = selected.writes.some(write => ownData(write, 'permission') !== operation ||
+    const routed = create || selected.writes.some(write => ownData(write, 'permission') !== operation ||
       ownData(write, 'observe_permission') !== read);
     // The physical recipe owns capture/request names and its three target
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
+    const footprintRecipe = pluralFootprint || create;
     const unitsFor = (operation, read) => 2n * operation + 3n * read + 80n +
-      (pluralFootprint ? operation + 10n : 0n);
+      (footprintRecipe ? operation + 10n : 0n);
     let operationUnits = unitsFor(stringUnits(operation), stringUnits(read));
     if (routed) {
       operationUnits = 0n;
@@ -413,40 +417,49 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
     // Each descriptor is a record plus value/writable/enumerable/configurable.
     // Keep BOTH raw and normalized recipe records until this call returns.
     // These are quantities in the existing Source allowance, not VM/RSS sizes.
-    const descriptorCalls = 18n + (pluralFootprint ? 3n : 0n);
-    const descriptorProperties = 46n + (pluralFootprint ? 9n : 0n);
+    const descriptorCalls = 18n + (footprintRecipe ? 3n : 0n);
+    const descriptorProperties = 46n + (footprintRecipe ? 9n : 0n);
     const descriptorRecords = descriptorCalls + 5n * descriptorProperties;
     const descriptorNamesAndKeys = 2n * (descriptorCalls + descriptorProperties) + 14n + 9n;
     const descriptorCallbacks = 4n * descriptorCalls + 15n;
     // Two Set controls, the three-slot index seed, and the 3 phase + 6 index
     // entries. Keep their entry and old/new construction slots together.
-    const validationSets = 2n + 4n + 3n * (3n + 6n + (pluralFootprint ? 1n : 0n));
-    const rawRecipeOverlap = 66n + (pluralFootprint ? 16n : 0n);
+    const validationSets = 2n + 4n + 3n * (3n + 6n + (footprintRecipe ? 1n : 0n));
+    const rawRecipeOverlap = 66n + (footprintRecipe ? 16n : 0n);
     // Provider input: dimension/phase vectors, selected/inner arrays, 8
     // property descriptors, both phase-key vectors, root keys and limit
     // vocabulary. Include its callbacks and raw zero/workspace constructors.
     const providerValidation = 4n + 3n + 15n + 10n + 8n + 30n + 3n + 6n + 19n + 15n;
     // Three six-argument capacity vectors, two one-item composition arrays,
     // three 15-argument quotes and their optional request-capacity arrays.
-    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n + (pluralFootprint ? 13n : 0n);
+    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n + (footprintRecipe ? 13n : 0n);
     // Numeric array-key Strings created by the 2+5 operation-index maps.
-    const indexStrings = 7n + (pluralFootprint ? 1n : 0n);
+    const indexStrings = 7n + (footprintRecipe ? 1n : 0n);
     const recipeWorkspace = descriptorRecords + descriptorNamesAndKeys + descriptorCallbacks +
       validationSets + rawRecipeOverlap + providerValidation + nativeArgumentVectors + indexStrings;
     // The real codec adds one record, one method and its borrowed Catalog/
     // Common links. Plural selection additionally owns one typed footprint
     // capacity/extent/role and its argument/cohort controls, never a new owner.
-    const codec = 16n, footprint = pluralFootprint ? 32n : 0n;
+    const codec = 16n, footprint = footprintRecipe ? 32n : 0n;
     // The Source constructor captures each route before returning. The sealed
     // table retains its original Mapping link, group maxima, and both
     // control-recipe variants; the fallback borrows the same operation extents.
     // A composed stage borrows this table and only combines scalar limits.
     const retainedRecipes = routed ? (targets - 1n) * (768n + footprint) + 12n + 24n * targets : 0n;
     const tableWorkspace = routed ? 16n + 12n * targets : 0n;
-    return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes,
-      text: 2n * operationUnits, wire: 0n},
-      {nodes: recipeWorkspace + 2n * targets + tableWorkspace,
-        text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
+    // Each installed CREATE retains the selected typed Schema/Contract and
+    // its original target association. The declaration wire embeds every
+    // view/body the constructor can parse, including escaped contract JSON.
+    // Count each unit as a possible node and bound old/new trees, Source
+    // cursor indexes and canonical rechecks separately. Only one such
+    // declaration parse is active per original Source window.
+    const declarationUnits = create ? stringUnits(ownData(selected, 'wire')) : 0n;
+    const createRetainedNodes = createTargets * (32n + 10n * declarationUnits);
+    const createWorkspaceNodes = create ? 64n + 32n * declarationUnits + 4n * createTargets : 0n;
+    return stage({nodes: 768n + 2n * targets + codec + footprint + retainedRecipes + createRetainedNodes,
+      text: 2n * operationUnits + 4n * declarationUnits * createTargets, wire: 0n},
+      {nodes: recipeWorkspace + 2n * targets + tableWorkspace + createWorkspaceNodes,
+        text: 4n * operationUnits + 2n * indexStrings + 32n * declarationUnits, wire: 6n * declarationUnits},
       {targets, descriptorCalls, descriptorProperties});
   }
   if (phase !== 'aliases') invalidGeometry();

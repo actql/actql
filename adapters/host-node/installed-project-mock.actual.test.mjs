@@ -45,11 +45,13 @@ async function withMockCatalog(action, files = multipleTargetMockProjectFiles())
   const services = createInstalledHostServices({root: directory, principalId: 'operator', moon,
     initialPreparation: parent, assertCurrent, accountCurrent: assertCurrent});
   try {
+    const baseEnvironmentWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
     inventory = createDeclaredFileInstallationInventory({moon, project, services, runtimeUrl, assertCurrent,
-      baseEnvironmentWire: (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd()});
+      baseEnvironmentWire});
     preparation = await prepareInstalledProjectMock(moon, project, profile,
       {installationInventory: inventory, assertCurrent});
-    return await action({directory, files, bundle: preparation.originalsForRuntime(moon), assertCurrent});
+    return await action({directory, files, bundle: preparation.originalsForRuntime(moon), assertCurrent,
+      preparation, services, baseEnvironmentWire});
   } finally {
     assert.equal(await closeInstalledAccountConstruction(services), true);
     await inventory?.fail(new Error('MockFootprintComponentFinished'));
@@ -112,7 +114,7 @@ test('installed Mock admits the closed file CREATE mapping beside an original UP
     {code: 'RowSourceMappingInvalidSpecification'});
   create.writable_fields = ['value', 'group'];
   files['mock/catalog.json'] = JSON.stringify(catalog);
-  await withMockCatalog(async ({directory, bundle}) => {
+  await withMockCatalog(async ({directory, bundle, preparation, services, baseEnvironmentWire, assertCurrent}) => {
     const [account, contact] = bundle.writables;
     const inserted = JSON.parse(account.mapping.body), updated = JSON.parse(contact.mapping.body);
     assert.equal(account.write.operation, 'create');
@@ -126,6 +128,19 @@ test('installed Mock admits the closed file CREATE mapping beside an original UP
       write_fields: ['group', 'value'], permissions: ['salesforce:record:create']}]);
     assert.deepEqual(updated.permission_rules.map(rule => rule.effect_kind), ['update']);
     const dataFile = JSON.parse(files['actql.config.json']).mock.data;
+    const unused = () => assert.fail('Installing a recipe must not enter a Run or issue a grant');
+    const effect = await installPreparedProjectMockEffects({moon, mockPreparation:preparation, baseEnvironmentWire,
+      installationServices:services, authorizationFor:() => ({authorize:unused}), principalId:'operator',
+      runtimeBundleCid:bundle.sources[0].effectMember.runtimeBundleCid, bindingCid:'sha256:'+'a'.repeat(64),
+      assertCurrent, ledgerRoot:join(directory,'effect-ledger'),
+      effectResources:{bindRunOriginal:unused, assertCurrent:unused, limits:unused}});
+    try {
+      assert.deepEqual(effect.effects.flatMap(owner => owner.effectSelectors.map(({kind,mappingCid})=>[kind,mappingCid])),
+        [['create',account.mapping.mappingCid],['update',contact.mapping.mappingCid]]);
+    } finally {
+      await effect.close();
+    }
+    await assert.rejects(lstat(join(directory,dataFile) + '.actql-write.lock'),{code:'ENOENT'});
     assert.equal(await readFile(join(directory, dataFile), 'utf8'), files['mock/data.json']);
   }, files);
   create.update_fields = ['value'];

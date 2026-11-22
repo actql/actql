@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "65560d70aa53adfc5968bb951266bd34375aab983aac0099912fc5d0f1c7246d",
+      "sha256": "f94f5363b64b531d6efc6d1fc64e79db2e31b57a390b4ec1715f9346796b5859",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
