@@ -1974,3 +1974,7 @@ target/
 /scripts/fixtures/record-approval/installed.fixture.d.mts
 /scripts/fixtures/record-approval/host-account.fixture.mjs
 /scripts/fixtures/record-approval/host-account.fixture.d.mts
+/scripts/test-packed-hubspot-source.mjs
+/scripts/test-packed-hubspot-source.d.mts
+/scripts/fixtures/packed-record-approval-mock.mjs
+/scripts/fixtures/packed-record-approval-mock.d.mts

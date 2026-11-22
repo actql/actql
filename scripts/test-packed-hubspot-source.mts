@@ -15,15 +15,24 @@ import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
 import {readAuthoredCase} from './fixtures/record-approval/command.mjs';
 
+type Qualification = {fixtureVariant: string; qualified: boolean; status: string; expectedTests: number};
+type ApprovalEvidence = ReturnType<typeof createCommandEvidence> & {summary: {qualification: Qualification}};
+type ApprovalInput = (
+  Awaited<ReturnType<typeof admitRecordApprovalCIInput>> |
+  Awaited<ReturnType<typeof import('./composition-release-input.mjs')['admitCompositionRelease']>>
+) & {kind?: string};
+
 // Reuse the original consumer and its normal admission unchanged. The outer
 // command receipt exists before installation, including failed preparation.
-export function collectPackedApprovalEvidence({repository, selection, env = process.env}) {
+export function collectPackedApprovalEvidence({repository, selection, env = process.env}: {
+  repository: string; selection: string; env?: NodeJS.ProcessEnv;
+}) {
   assert(['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval'].includes(selection));
   const fixtureVariant = selection === '--mock-hubspot-whole-approval' ? 'whole-input'
     : selection === '--mock-hubspot-binary-source-approval' ? 'binary-source' : 'three-source';
   const evidence = createCommandEvidence({cwd: repository, env,
     scratch: join(repository, '_build', 'packed-approval-evidence'),
-    githubOutput: env.GITHUB_OUTPUT, prefix: fixtureVariant + '-'});
+    githubOutput: env.GITHUB_OUTPUT, prefix: fixtureVariant + '-'}) as ApprovalEvidence;
   evidence.summary.qualification = {fixtureVariant, qualified: false, status: 'unexecuted', expectedTests: 1};
   evidence.persist();
   let primary;
@@ -78,8 +87,8 @@ let [source, release, consumer, selection] = ci ? [repository, undefined, undefi
 const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
   '--mock-hubspot-approval', '--mock-hubspot-whole-approval',
   '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval', '--mock-kintone-approval'];
-assert(ci ? argv.length === 2 && selections.includes(selection)
-  : argv.length === 3 || argv.length === 4 && selections.includes(selection),
+assert(ci ? argv.length === 2 && selections.includes(selection!)
+  : argv.length === 3 || argv.length === 4 && selections.includes(selection!),
   'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] [--reject] or --ci SELECTION [--reject]');
 const threeSourceMock = selection === '--mock-hubspot-three-source-approval';
 const binarySourceMock = selection === '--mock-hubspot-binary-source-approval';
@@ -90,9 +99,9 @@ const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspo
   : selection === '--kintone-approval' ? 'kintone' : undefined);
 const approval = approvalConnector !== undefined;
 const mockCaseInput = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
-let authoredMockCase;
+let authoredMockCase: Awaited<ReturnType<typeof readAuthoredCase>> | undefined;
 if (mockCaseInput !== undefined) {
-  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone'].includes(mockConnector) &&
+  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone'].includes(mockConnector!) &&
     !wholeMock && !threeSourceMock && !binarySourceMock && process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS !== '1',
   'Select one supported authored mock case');
   authoredMockCase = await readAuthoredCase(mockCaseInput);
@@ -103,17 +112,19 @@ assert(replyLossExpectation === undefined || approval && mockConnector === undef
   'Applied reply loss is an explicit installed provider fixture selection');
 assert(!reject || (approval && mockConnector === undefined && replyLossExpectation === undefined),
   'Rejection requires the ordinary installed HubSpot or kintone case');
-if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path), 'Require absolute original input paths');
+if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path!), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
 assert(!process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFECT_PROFILE,
   'Ordinary installed acceptance uses only its fresh explicit profiles');
-const {admitCompositionRelease} = await import(pathToFileURL(join(source, 'scripts/composition-release-input.mjs')));
-const {inventory} = await import(pathToFileURL(join(source, 'scripts/package-release.mjs')));
+const {admitCompositionRelease}: typeof import('./composition-release-input.mjs') =
+  await import(pathToFileURL(join(source!, 'scripts/composition-release-input.mjs')) as unknown as string);
+const {inventory}: typeof import('./package-release.mjs') =
+  await import(pathToFileURL(join(source!, 'scripts/package-release.mjs')) as unknown as string);
 const label = approval
   ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''}${binarySourceMock ? ' binary same-Unit JOIN' : threeSourceMock ? ' three-Source' : wholeMock ? ' Whole-input' : ''} approval and original Saved restoration`
   : 'ordinary installed HubSpot Source and original Run restoration';
-let scratch, original;
+let scratch: Awaited<ReturnType<typeof createOwnedScratch>> | undefined, original: ApprovalInput;
 if (ci) {
   scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
     prefix: 'packed-record-approval-', label, preserve: true});
@@ -130,10 +141,10 @@ if (ci) {
   await original.verifyUnchanged();
   assert(!installed.error && installed.status === 0,
     `Original normal installation failed; retained evidence: ${scratch.path}`);
-} else original = await admitCompositionRelease({repository: source, directory: release});
+} else original = await admitCompositionRelease({repository: source!, directory: release!});
 async function verifyInstalled() {
   for (const item of original.manifest.packages) assert.deepEqual(
-    await inventory(join(consumer, 'node_modules', item.name)), item.files,
+    await inventory(join(consumer!, 'node_modules', item.name)), item.files,
     `Changed original installed members: ${item.name}`);
 }
 await verifyInstalled();
@@ -144,7 +155,7 @@ await mkdir(application);
 await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
 // Read-only borrow of the independently installed exact artifact closure;
 // fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
-const software = join(consumer, 'node_modules'), softwareAlias = join(application, 'node_modules');
+const software = join(consumer!, 'node_modules'), softwareAlias = join(application, 'node_modules');
 const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
   ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
     .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
@@ -166,8 +177,8 @@ const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-m
   'scripts/fixtures/packed-hubspot-public.fixture.mjs',
   'scripts/fixtures/packed-hubspot-restart.mjs',
   'adapters/site-node/https-exchange-fixture.mjs'];
-const inputs = [];
-let mockCasePath;
+const inputs: {path: string; bytes: number; sha256: string}[] = [];
+let mockCasePath: string | undefined;
 if (authoredMockCase !== undefined) {
   const path = 'authored-mock-case.json';
   mockCasePath = join(application, path);
@@ -195,7 +206,7 @@ const mockVariant = binarySourceMock ? 'binary-source' : wholeMock ? 'whole-inpu
 const invocation = packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
   mockVariant, mockCasePath, reject});
 const {expectedTests} = invocation.options;
-let code;
+let code: number;
 await symlink(software, softwareAlias, 'dir');
 try {
   code = runFocusedTests('node', invocation.files, invocation.options);

@@ -10,13 +10,19 @@ import {fileURLToPath} from 'node:url';
 import {sharedRecordUpdateSelections, recordUpdateFixtureState} from './record-approval/cases.mjs';
 import {readAuthoredCase} from './record-approval/command.mjs';
 
-const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR;
+type Connector = 'salesforce' | keyof typeof sharedRecordUpdateSelections;
+type FailureView = {name?: unknown; code?: unknown; message?: unknown} | undefined;
+type Rows = ReturnType<typeof recordUpdateFixtureState>['before'];
+type MockInventory = Record<string, Record<string, {rows: Record<string, unknown>[]}>>;
+
+const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR as Connector;
 const variant = process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined;
 assert(variant === undefined || ['whole-input', 'binary-source', 'three-source'].includes(variant) &&
   connector === 'hubspot', 'Select one declared mock variant');
 assert(['salesforce', 'hubspot', 'kintone'].includes(connector), 'Select one original mock consumer');
 const execute = promisify(execFile), privateFile = {mode: 0o600, flag: 'wx'};
-const safe = error => ({name: error?.name, code: error?.code, message: error?.message});
+const safe = (error: unknown) => ({name: (error as FailureView)?.name,
+  code: (error as FailureView)?.code, message: (error as FailureView)?.message});
 
 test(`ordinary installed ${connector} mock reviews, explicitly approves and reads original Saved first`,
   {timeout: 100000}, async t => {
@@ -24,7 +30,7 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   const removePrograms = process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1';
   const input = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
   const supportsAuthored = connector !== 'salesforce' && variant === undefined && !removePrograms;
-  let authored;
+  let authored: Awaited<ReturnType<typeof readAuthoredCase>> | undefined;
   if (input !== undefined) {
     assert(isAbsolute(input) && supportsAuthored, 'Select one supported authored mock case');
   }
@@ -45,18 +51,18 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
     : sharedRecordUpdateSelections[connector]),
     ...(variant === undefined ? {} : {variant})};
   const fixture = variant === 'binary-source' ? 'binary-source-mock-project.mjs' : 'mock-project.mjs';
-  const {mockProjectFiles, mockProjectFilesFromSeed} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url));
-  const files = authored === undefined ? mockProjectFiles(selection) : mockProjectFilesFromSeed(authored.fixture.seed);
+  const {mockProjectFiles, mockProjectFilesFromSeed} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url) as unknown as string);
+  const files: Record<string, string> = authored === undefined ? mockProjectFiles(selection) : mockProjectFilesFromSeed(authored.fixture!.seed);
   for (const [name, body] of Object.entries(files)) {
     const path = join(project, name); await mkdir(dirname(path), {recursive: true});
     await writeFile(path, body, privateFile);
   }
-  const initial = JSON.parse(files['mock/data.json']), changed = structuredClone(initial);
+  const initial = JSON.parse(files['mock/data.json']) as MockInventory, changed = structuredClone(initial);
   const [resource, idField, field] = {salesforce: ['Account', 'Id', 'Name'], hubspot: ['companies', 'id', 'name'],
     kintone: ['inquiries', '$id', 'Subject']}[connector];
   if (authored !== undefined || connector !== 'salesforce' && variant === undefined) {
-    const expected = authored?.fixture.expected ?? recordUpdateFixtureState(selection);
-    const rows = state => [state.target, state.control].map(value => ({[idField]: value.id, [field]: value.name}));
+    const expected = authored?.fixture!.expected ?? recordUpdateFixtureState(selection);
+    const rows = (state: Rows) => [state.target, state.control].map(value => ({[idField]: value.id, [field]: value.name}));
     assert.deepEqual(expected.after.control, expected.before.control, 'The mock control row remains unchanged');
     assert.equal(expected.after.target.id, expected.before.target.id);
     assert.deepEqual(initial[connector][resource].rows, rows(expected.before));
@@ -66,17 +72,17 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   const casePath = 'case.json';
   if (authored !== undefined) {
     // Copy the business case and leave HTTP protocol inputs with the provider.
-    const {seed, expected} = authored.fixture;
+    const {seed, expected} = authored.fixture!;
     await writeFile(join(root, casePath), JSON.stringify({...authored, fixture: {seed, expected}}), privateFile);
   }
   await writeFile(configuration, JSON.stringify({...(authored === undefined ? {selection} : {casePath}),
     connect: {mode: 'local', profile: 'mock', installation: {directory: state}}}), privateFile);
-  const env = {...process.env, HOME: home, NODE_OPTIONS: '', NODE_PATH: ''};
+  const env: NodeJS.ProcessEnv = {...process.env, HOME: home, NODE_OPTIONS: '', NODE_PATH: ''};
   for (const name of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[name];
   delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
   delete env.ACTQL_RECORD_APPROVAL_SOURCE_SCHEMA;
   let failed = false, primary;
-  const phases = [];
+  const phases: Record<string, unknown>[] = [];
   const programs = removePrograms ? await Promise.all(['update', 'read'].map(async name => {
     const path = fileURLToPath(new URL(`./${connector}-approval/${name}.aql`, import.meta.url));
     const info = await lstat(path); assert(info.isFile() && info.nlink === 1);
@@ -103,8 +109,8 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
         childPid = flight.child.pid;
         result = await flight;
       } catch (error) {
-        await writeFile(join(root, phase + '.stdout'), error.stdout ?? '', privateFile);
-        await writeFile(join(root, phase + '.stderr'), error.stderr ?? '', privateFile);
+        await writeFile(join(root, phase + '.stdout'), (error as {stdout?: string}).stdout ?? '', privateFile);
+        await writeFile(join(root, phase + '.stderr'), (error as {stderr?: string}).stderr ?? '', privateFile);
         try {
           const close = JSON.parse(await readFile(`${prefix}.${phase}.close-started.json`, 'utf8'));
           assert.equal(close.phase, phase); assert.equal(close.pid, childPid);
