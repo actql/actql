@@ -2627,10 +2627,8 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     });
     const account = protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
-    const serverClosed = Promise.withResolvers();
     const first = await remoteHost(t, account, {directory,
-      effectInstallation: installed, beforeDispatch: () => barrier,
-      httpObserver: {server: server => server.once('close', serverClosed.resolve)}});
+      effectInstallation: installed, beforeDispatch: () => barrier});
     const submissionClient = await first.as('owner-token');
     const run = await submissionClient.startSource(fixture.document, {format: 'json',
       submissionRef: submissionClient.newSubmission({nonce: 'effect-barrier-wait'})});
@@ -2668,15 +2666,38 @@ test('public Effect dispatch waits for and obeys the Host barrier',
       await waitFor(() => readerWaiting);
       assert.equal(captures, 1);
       assert.deepEqual(sends, [[0, 0], [0, 1]]);
-      const closing = closeRetainedStoreFixtureHost(first, t,
-        {observeFirstClose: true, requireFirstClose: true}).then(() => {
+      // Let the real FD close only after the Host has joined its first
+      // Effect-drain batch. An empty batch leaves the reader held so the
+      // first Store close reports its real pending readers.
+      const allSettled = Promise.allSettled;
+      let joinedOriginal = false, observedEffectDrain = false;
+      Promise.allSettled = function (work) {
+        const joined = Reflect.apply(allSettled, this, [work]);
+        if (!observedEffectDrain) {
+          const stack = new Error().stack ?? '';
+          if (stack.includes('Object.drain') && stack.includes('/embedded-local.mjs:')) {
+            observedEffectDrain = true;
+            if (work.length === 1 && readerWaiting && !readerClosed) {
+              joinedOriginal = true;
+              permitReaderClose.resolve();
+            }
+          }
+        }
+        return joined;
+      };
+      try {
+        await closeRetainedStoreFixtureHost({async close() {
+          try { return await first.close(); }
+          catch (error) {
+            // Preserve the first refusal and unblock only its original reader
+            // for the fixture's retained cleanup.
+            permitReaderClose.resolve();
+            throw error;
+          }
+        }}, t, {observeFirstClose: true, requireFirstClose: true});
+        assert.equal(joinedOriginal, true, 'Effect drain must join the pending observation');
         assert.equal(readerClosed, true, 'First Host close must join the original reader');
-      });
-      void closing.catch(() => {});
-      await serverClosed.promise;
-      assert.equal(readerClosed, false, 'Original reader must still own its FD at shutdown');
-      permitReaderClose.resolve();
-      await closing;
+      } finally { Promise.allSettled = allSettled; }
     } finally {
       permitReaderClose.resolve();
       fsPromises.open = originalOpen;
