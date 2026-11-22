@@ -5019,7 +5019,6 @@
         "create_checkpoint_answer_codec",
         "dataclass",
         "inspect",
-        "re",
         "review_bytes_match_cid",
         "signed_answer"
       ],
@@ -5029,8 +5028,7 @@
         "._values",
         "collections.abc",
         "dataclasses",
-        "inspect",
-        "re"
+        "inspect"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
       "responsibilityFacet": "primary",
@@ -5081,7 +5079,7 @@
           ]
         }
       ],
-      "sha256": "7a0fa090bde07d3cc065b2e0021ad5b3f3c9154b5a223d3c50625be698441fff",
+      "sha256": "cefcefd68ee86a9e1fdb6da72d38fe91749fbe906e2fb908d39b2def4d4a35d8",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
@@ -5107,7 +5105,6 @@
             "create_checkpoint_answer_codec",
             "dataclass",
             "inspect",
-            "re",
             "review_bytes_match_cid",
             "signed_answer"
           ],
@@ -10226,6 +10223,14 @@
         },
         {
           "async": false,
+          "name": "_valid_signer_ids",
+          "parameters": [
+            "key_id",
+            "reviewer_id"
+          ]
+        },
+        {
+          "async": false,
           "name": "create_checkpoint_answer_codec",
           "parameters": [
             "canonical_bytes",
@@ -10318,7 +10323,7 @@
           ]
         }
       ],
-      "sha256": "64d8c9807fb5c772801a262ca612d649b0913a7c3638dfd9569cb3c511192ca2",
+      "sha256": "b0f50927a24d685b59c80c322744c3bc9517163688c0b6ccd988f33735869ab0",
       "responsibilityFacet": "primary",
       "role": "public-wire-codec",
       "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
@@ -10346,6 +10351,7 @@
             "_signature",
             "_source",
             "_timestamp",
+            "_valid_signer_ids",
             "create_checkpoint_answer_codec",
             "create_checkpoint_answer_codec/answer_candidate_approval_preimage",
             "create_checkpoint_answer_codec/answer_resolution_preimage",

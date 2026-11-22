@@ -4756,7 +4756,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f5a35020b9fa6a256c57413e3b2928c273ce3b648a32e8673e0b4f181fabcaa8",
+      "sha256": "e87cec6fde06e35569660495aff0b13928f3348df68501a2a9a72f68e031676a",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -15616,7 +15616,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "2ae87f2ac380352b36265a8d7476ebf622dc07ebcd37d986000a10fe8707e51c",
+      "sha256": "c4f03a2ec5796405a4762a38bdfdb82c1a5ec5e57d27248ed04b268ba13c97ed",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
@@ -15851,6 +15851,14 @@
             "field"
           ],
           "async": false
+        },
+        {
+          "name": "validSignerIds",
+          "parameters": [
+            "keyId",
+            "reviewerId"
+          ],
+          "async": false
         }
       ],
       "imports": [],
@@ -15894,7 +15902,8 @@
             "valid/valid#5",
             "valid/valid#6",
             "valid/valid#7",
-            "valid/valid#8"
+            "valid/valid#8",
+            "validSignerIds"
           ],
           "exports": [
             "createCheckpointAnswerCodec"
