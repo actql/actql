@@ -48,6 +48,7 @@ const ports = Object.freeze({
   before: 'clientProgramRelationTargetBefore',
   version: 'clientProgramRelationTargetVersion',
   update: 'clientProgramRelationPrepareTargetUpdate',
+  delete: 'clientProgramRelationPrepareTargetDelete',
   construction: 'clientProgramInstalledSourceConstructionCapacity',
 });
 
@@ -76,16 +77,18 @@ export function createMockFileRowCodec({bundle, original, call}) {
     return {row, before, versionCid, beforeWire};
   };
   return Object.freeze({admit, observe,
-    update(bytes, target, record, physicalOperation) {
+    replace(operation, bytes, target, record, physicalOperation) {
+      if (operation !== 'update' && operation !== 'delete') fail('InvalidMockEffectRequest');
       // Re-admit the latest WHOLE document supplied by the SAME locked file
-      // owner, then replace only the original row's admitted Mapping spans.
+      // owner, then replace only the original row's admitted spans.
       physicalOperation?.chargeBytes(BigInt(bytes.length));
       const document = admit(bytes, target), observed = observe(document, record.target);
       if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
         fail('MockTargetVersionConflict');
       }
-      const replacement = checked(call('update', document.selected, observed.row,
-        record.version, wire(record.value), targetLimits.maxWork));
+      const replacement = checked(operation === 'delete'
+        ? call('delete', document.selected, observed.row, record.version, targetLimits.maxWork)
+        : call('update', document.selected, observed.row, record.version, wire(record.value), targetLimits.maxWork));
       physicalOperation?.chargeBytes(BigInt(replacement.length));
       return replacement;
     },
@@ -591,7 +594,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
         authorize() {use = consume('write', supplied, selected, target);},
         replace(bytes) {
-          return codec.update(bytes, target, record, physicalOperation);
+          return codec.replace(member.kind, bytes, target, record, physicalOperation);
         }});
       try {
         physicalOperation?.retainPhysicalChild(child);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdir, mkdtemp, open, readFile, writeFile} from 'node:fs/promises';
+import {lstat, mkdir, mkdtemp, open, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {realpathSync} from 'node:fs';
@@ -127,7 +127,7 @@ test('plural Mock actual codec merges latest locked document and refuses changed
         const charges = [];
         const child = file.updateChild({runOriginal, authorize() {},
           replace(latest) {
-            const replacement = codec.update(latest, target, request, {chargeBytes(value) {charges.push(value);}});
+            const replacement = codec.replace('update', latest, target, request, {chargeBytes(value) {charges.push(value);}});
             assert.deepEqual(charges, [BigInt(latest.length), BigInt(replacement.length)]);
             return replacement;
           }});
@@ -138,7 +138,7 @@ test('plural Mock actual codec merges latest locked document and refuses changed
       const expected = files['mock/data.json'].replace('A-old', 'A-new').replace('C-old', 'C-new');
       assert.equal(await readFile(path, 'utf8'), expected, 'both control records and all unrelated bytes remain exact');
       const stale = file.updateChild({runOriginal, authorize() {},
-        replace(latest) {return codec.update(latest, account, first);}});
+        replace(latest) {return codec.replace('update', latest, account, first);}});
       children.push(stale);
       await assert.rejects(stale.prepare(), {code: 'MockTargetVersionConflict'});
       assert.equal(await readFile(path, 'utf8'), expected);
@@ -148,7 +148,7 @@ test('plural Mock actual codec merges latest locked document and refuses changed
       const external = expected.replace('C-new', 'C-foreign');
       await writeFile(path, external);
       const changed = file.updateChild({runOriginal, authorize() {},
-        replace(latest) {return codec.update(latest, contact, fresh);}});
+        replace(latest) {return codec.replace('update', latest, contact, fresh);}});
       children.push(changed);
       await assert.rejects(changed.prepare(), {code: 'MockTargetVersionConflict'});
       assert.equal(await readFile(path, 'utf8'), external, 'external target change is not overwritten');
@@ -156,6 +156,57 @@ test('plural Mock actual codec merges latest locked document and refuses changed
     } finally {
       for (const child of children) await child.release();
       assert.equal((await file.closeFor(runOriginal)).pending, false);
+      assert.equal((await file.close()).pending, false);
+    }
+  });
+});
+
+test('Mock actual codec deletes an original row through the locked file owner', async () => {
+  await withMockCatalog(async ({directory, files, bundle, assertCurrent}) => {
+    const original = bundle.sources[0], [account] = bundle.writables;
+    const methods = {admit: 'clientProgramRelationAdmitDocument', project: 'clientProgramRelationProjectTargetDocument',
+      observe: 'clientProgramRelationObserveTarget', before: 'clientProgramRelationTargetBefore',
+      version: 'clientProgramRelationTargetVersion', delete: 'clientProgramRelationPrepareTargetDelete'};
+    const codec = createMockFileRowCodec({bundle, original,
+      call: (name, ...args) => Reflect.apply(moon[methods[name]], moon, args)});
+    const path = join(directory, 'mock/data.json'), bytes = await readFile(path);
+    const observed = codec.observe(codec.admit(bytes, account), 'a1');
+    const request = {target: 'a1', version: observed.versionCid, before: observed.before};
+    const expected = files['mock/data.json'].replace(`{
+          "id": "a1",
+          "group": "selected",
+          "value": "A-old"
+        },`, '');
+    assert.notEqual(expected, files['mock/data.json']);
+    const originalRun = Object.freeze({purpose: 'delete codec component'});
+    let writes = 0;
+    const file = createMockFileTarget({dataPath: path, maxBytes: 1048576, assertCurrent, observeWrite: () => writes++});
+    const makeChild = (record, authorize, charges) => file.updateChild({runOriginal: originalRun, authorize,
+      replace(latest) {
+        return codec.replace('delete', latest, account, record, {chargeBytes(value) {charges.push(value);}});
+      }});
+    const deniedCharges = [], staleCharges = [], appliedCharges = [];
+    const denied = makeChild(request, () => {throw new Error('write denied');}, deniedCharges);
+    const stale = makeChild({...request, version: 'sha256:' + '0'.repeat(64)}, () => {}, staleCharges);
+    const approved = makeChild(request, () => {}, appliedCharges);
+    try {
+      await assert.rejects(denied.prepare(), /write denied/u);
+      assert.equal((await denied.release()).pending, false);
+      assert.deepEqual(deniedCharges, []);
+      await assert.rejects(stale.prepare(), {code: 'MockTargetVersionConflict'});
+      assert.equal((await stale.release()).pending, false);
+      assert.deepEqual(staleCharges, [BigInt(bytes.length)]);
+      assert.equal(writes, 0);
+      assert.deepEqual(await readFile(path), bytes);
+      await approved.prepare();
+      assert.equal((await approved.release()).pending, false);
+      assert.equal(writes, 1);
+      assert.equal(await readFile(path, 'utf8'), expected);
+      assert.deepEqual(appliedCharges, [BigInt(bytes.length), BigInt(Buffer.byteLength(expected))]);
+      await assert.rejects(lstat(path + '.actql-write.lock'), {code: 'ENOENT'});
+    } finally {
+      for (const child of [denied, stale, approved]) await child.release();
+      assert.equal((await file.closeFor(originalRun)).pending, false);
       assert.equal((await file.close()).pending, false);
     }
   });

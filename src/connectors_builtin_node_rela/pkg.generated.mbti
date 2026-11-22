@@ -2257,6 +2257,8 @@ pub fn client_program_relation_document_usage(@client_row_source_host.RelationDo
 
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]

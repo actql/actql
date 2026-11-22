@@ -117994,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
+      "sha256": "79d6d6c237e21d249de9a45fcb86a53c110c7d0be9da38cde6a25aa85184a3f3",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118028,8 +118028,9 @@
           "async": false
         },
         {
-          "name": "createMockFileRowCodec/init:update/init:update",
+          "name": "createMockFileRowCodec/init:replace/init:replace",
           "parameters": [
+            "operation",
             "bytes",
             "target",
             "record",
@@ -118638,7 +118639,7 @@
             "wire/wire",
             "createMockFileRowCodec",
             "createMockFileRowCodec/admit/admit",
-            "createMockFileRowCodec/init:update/init:update",
+            "createMockFileRowCodec/init:replace/init:replace",
             "createMockFileRowCodec/observe/observe",
             "mockFileEffectPlanRecipe",
             "mockFileRowFootprint",
@@ -118821,6 +118822,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('actual target output wire stays bound to its same closed immutable observation'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual codec deletes an original row through the locked file owner"
               }
             ]
           }
