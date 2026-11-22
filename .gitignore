@@ -1952,3 +1952,7 @@ target/
 /adapters/host-node/fixtures/mock-multiple-targets.fixture.d.mts
 /scripts/build-connector-authoring.mjs
 /scripts/build-connector-authoring.d.mts
+/scripts/record-approval-ci-input.mjs
+/scripts/record-approval-ci-input.d.mts
+/scripts/record-approval-ci-input.test.mjs
+/scripts/record-approval-ci-input.test.d.mts

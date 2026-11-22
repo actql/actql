@@ -2,6 +2,7 @@
 // Host, native image, npm install or provider operation executes in this file.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
@@ -10,11 +11,11 @@ import {join} from 'node:path';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
 
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const run = (command, args, cwd) => execFileSync(command, args,
+const digest = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+const run = (command: string, args: readonly string[], cwd: string) => execFileSync(command, args,
   {cwd, encoding: 'utf8', timeout: 10000});
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-approval-ci-input-'));
   const previous = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
   t.after(async () => {
@@ -30,8 +31,9 @@ async function fixture(t) {
   run('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'user.name=Input fixture',
     '-c', 'user.email=input@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '--quiet', '-m', 'test: retain independent input'], repository);
-  const manifest = {revision: run('git', ['rev-parse', 'HEAD'], repository).trim(), tarballs: {}};
-  const archive = async (name, packageName = '@actql/' + name) => {
+  const manifest: {revision: string; tarballs: Record<string, string>} =
+    {revision: run('git', ['rev-parse', 'HEAD'], repository).trim(), tarballs: {}};
+  const archive = async (name: string, packageName = '@actql/' + name) => {
     const stage = join(root, 'stage-' + name); await mkdir(join(stage, 'package'), {recursive: true});
     await writeFile(join(stage, 'package/package.json'), JSON.stringify({name: packageName, version: '0.0.0-development'}));
     await writeFile(join(stage, 'package/input.txt'), 'independent archive DATA\n');

@@ -7,10 +7,21 @@ import {isAbsolute, join, resolve} from 'node:path';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
 
-const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+type Invocation = {
+  application: string;
+  approvalConnector?: string;
+  mockConnector?: string;
+  mockVariant?: string;
+  mockCasePath?: string;
+  reject?: boolean;
+  env?: NodeJS.ProcessEnv;
+};
+type UncheckedManifest = {revision?: unknown; tarballs: Record<string, unknown>};
+
+const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
 export function packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
-  mockVariant = '', mockCasePath, reject, env = process.env}) {
+  mockVariant = '', mockCasePath, reject, env = process.env}: Invocation) {
   const approval = approvalConnector !== undefined;
   const file = mockConnector ? 'scripts/fixtures/packed-record-approval-mock.mjs'
     : approval ? `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs';
@@ -20,10 +31,13 @@ export function packedRecordApprovalInvocation({application, approvalConnector, 
     ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath})}
     : reject ? {...env, ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : env;
   return {files: [file], options: {cwd: application, expectedTests: approval ? 1 : 2,
-    timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM', env: childEnv}};
+    timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM' as const, env: childEnv}};
 }
 
-export async function admitRecordApprovalCIInput({repository, destination}) {
+export async function admitRecordApprovalCIInput({repository, destination}: {
+  repository: string;
+  destination: string;
+}) {
   const directory = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
   assert(typeof directory === 'string' && isAbsolute(directory),
     'CI record approval requires explicit ACTQL_PACKED_CLIENT_PACKAGES; no packing fallback');
@@ -31,18 +45,18 @@ export async function admitRecordApprovalCIInput({repository, destination}) {
   const before = checkoutState(repository);
   assert(before.clean, 'CI record approval requires clean source');
   const manifestPath = join(directory, 'packed-client-packages.json');
-  const wire = await readFile(manifestPath), manifest = JSON.parse(wire);
+  const wire = await readFile(manifestPath), manifest = JSON.parse(wire as unknown as string) as UncheckedManifest;
   assert.equal(manifest.revision, before.revision, 'CI record approval requires the exact packed source');
   assert.deepEqual(Object.keys(manifest.tarballs ?? {}).sort(), [...CLIENT_PACKAGES].sort(),
     'CI record approval requires the complete five-package input');
   await mkdir(destination, {recursive: true});
-  const packages = [];
+  const packages: {name: string; file: string; files: Awaited<ReturnType<typeof inventory>>}[] = [];
   for (const name of CLIENT_PACKAGES) {
     await packedClientPackage({repository, name, destination,
       pack() {throw new Error('RecordApprovalCannotProducePackages');}});
     const file = `actql-${name}-0.0.0-development.tgz`;
     const payload = await unpack(join(destination, file), join(destination, 'payload', name));
-    const metadata = JSON.parse(await readFile(join(payload, 'package.json')));
+    const metadata = JSON.parse(await readFile(join(payload, 'package.json')) as unknown as string) as {name: string};
     assert.equal(metadata.name, '@actql/' + name, 'The archive must contain its original named package');
     packages.push({name: metadata.name, file, files: await inventory(payload)});
   }
