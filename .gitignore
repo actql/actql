@@ -2022,3 +2022,5 @@ target/
 /scripts/fixtures/project-file-store-inventory-cases.d.mts
 /scripts/packed-project-dependency-boundary.mjs
 /scripts/packed-project-dependency-boundary.d.mts
+/scripts/packed-mock-effect-controls.mjs
+/scripts/packed-mock-effect-controls.d.mts

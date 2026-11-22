@@ -4,11 +4,49 @@ import assert from 'node:assert/strict';
 import {mkdir, writeFile, readFile, copyFile, symlink, readlink, unlink} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
-import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
+import type {BenchmarkPackageManifest} from './node-benchmark-evidence.mjs';
+import type {assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
-export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel', 'changed-current', 'publication-io-failure']);
+export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel', 'changed-current', 'publication-io-failure'] as const);
 
-export function assertMockEffectControlOutcome(actual, mode, pid) {
+type Mode = typeof packedEffectControlCases[number];
+type Work = Parameters<typeof assertRecordWorkflowWork>[0];
+type ObservationStatus = Partial<Record<'dropped' | 'budgetUnavailable' | 'queueOverflow' | 'deliveryFailed' |
+  'limited' | 'queued' | 'active' | 'activeSegments', unknown>> & {
+  closed: unknown; cleanupPending: unknown; repeated: number; loss?: Record<string, unknown> | null;
+};
+type ChildObservation = {
+  mode?: unknown; pid: number; status?: unknown; primaryCode?: unknown;
+  firstClose?: unknown; aliveScopedFD?: unknown; cleanupCode?: unknown; reportCode?: unknown;
+  originalRun?: unknown; targetUnchanged?: unknown; counts?: unknown;
+  modelUnits?: unknown; modelOccurrences?: unknown;
+  state?: {status: unknown; resultAvailable: unknown; physicalStop: unknown};
+  fault?: unknown; observationComplete?: unknown; observationStatus?: ObservationStatus;
+  workObservation?: Work; refusal?: unknown; runStatus?: unknown; cancellationKind?: unknown;
+  physicalStop?: unknown; resultAvailable?: unknown; currentChanged?: unknown; staleApprovalRefused?: unknown;
+  step?: unknown; phase?: unknown; firstFailedStep?: unknown; event?: unknown; originalImportFailed?: unknown;
+};
+type Failure = ReturnType<typeof nodeBenchmarkFailure>;
+type CommandResult = {pid: number; code: number | null; signal?: NodeJS.Signals | null; stdout: string};
+type CommandFailure = {commandResult?: CommandResult};
+type PhaseRecord = {
+  phase: string; completed: boolean; startedAt: string; endedAt?: string;
+  pid?: number; exitCode?: number | null; signal?: NodeJS.Signals | null;
+  actual?: ChildObservation; error?: Failure; partialObservation?: unknown;
+};
+type ControlRecord = {
+  mode: Mode; completed: boolean; status: string;
+  phases?: PhaseRecord[]; error?: Failure; unexecutedReason?: string;
+};
+type ExecutionOptions = {
+  prepared: {manifest: BenchmarkPackageManifest; manifestPath: string; consumer: string};
+  root: string; repository: string;
+  command: (executable: string, args: string[], options: {cwd: string; name: string; timeout: number}) =>
+    CommandResult | PromiseLike<CommandResult>;
+};
+
+export function assertMockEffectControlOutcome(actual: ChildObservation, mode: Mode, pid: number) {
   assert(packedEffectControlCases.includes(mode));
   assert.equal(actual.mode, mode); assert.equal(actual.pid, pid);
   assert.equal(actual.status, 'passed'); assert.equal(actual.primaryCode, undefined);
@@ -19,24 +57,24 @@ export function assertMockEffectControlOutcome(actual, mode, pid) {
     assert.equal(actual.originalRun, true); assert.equal(actual.targetUnchanged, true);
     assert.deepEqual(actual.counts, {sourceStarts: 2, modelStarts: 4, modelResponses: 4, modelSuccesses: 4, effectWrites: 0});
     assert.equal(actual.modelUnits, 2); assert.equal(actual.modelOccurrences, 4);
-    assert.equal(actual.state?.status, 'failed'); assert.equal(actual.state.resultAvailable, false);
-    assert.equal(actual.state.physicalStop, 'confirmed');
+    assert.equal(actual.state?.status, 'failed'); assert.equal(actual.state!.resultAvailable, false);
+    assert.equal(actual.state!.physicalStop, 'confirmed');
     assert.deepEqual(actual.fault, {armed: true, restored: true, failed: false, probeCode: 'EACCES'});
     assert.equal(actual.observationComplete, true);
     const status = actual.observationStatus;
-    assert.equal(status?.closed, true); assert.equal(status.cleanupPending, false);
-    assert(Number.isSafeInteger(status.repeated) && status.repeated >= 0);
+    assert.equal(status?.closed, true); assert.equal(status!.cleanupPending, false);
+    assert(Number.isSafeInteger(status!.repeated) && status!.repeated >= 0);
     for (const name of ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed',
-      'limited', 'queued', 'active', 'activeSegments']) assert.equal(status[name], 0, name);
-    assert(status.loss !== undefined && status.loss !== null);
-    assert(Object.values(status.loss).every(value => value === 0));
+      'limited', 'queued', 'active', 'activeSegments'] as const) assert.equal(status![name], 0, name);
+    assert(status!.loss !== undefined && status!.loss !== null);
+    assert(Object.values(status!.loss!).every(value => value === 0));
     return;
   }
   const work = actual.workObservation;
   assert.equal(work?.complete, true, 'Missing or lossy observation cannot prove zero writes');
-  assert.equal(work.sourceAcquisitionStarts, 0);
-  assert.equal(work.modelCallStarts, 0);
-  assert.equal(work.effectReplacementReturns, 0);
+  assert.equal(work!.sourceAcquisitionStarts, 0);
+  assert.equal(work!.modelCallStarts, 0);
+  assert.equal(work!.effectReplacementReturns, 0);
   assert.equal(actual.targetUnchanged, true);
   assert.equal(actual.originalRun, true);
   if (mode === 'approve-deny') {
@@ -55,7 +93,7 @@ export function assertMockEffectControlOutcome(actual, mode, pid) {
   }
 }
 
-async function runControl({prepared, root, repository, command, record}) {
+async function runControl({prepared, root, repository, command, record}: ExecutionOptions & {record: ControlRecord}) {
   const {mode} = record;
   assert(packedEffectControlCases.includes(mode));
   await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
@@ -79,12 +117,12 @@ async function runControl({prepared, root, repository, command, record}) {
   }
   const software = join(prepared.consumer, 'node_modules'), alias = join(project, 'node_modules');
   await symlink(software, alias, 'dir');
-  let failed = false, primary;
+  let failed = false, primary: unknown;
   try {
     const handoff = join(project, 'handoff.json');
     for (const phase of mode === 'publication-io-failure' ? ['publication-failure'] : ['capture', 'control']) {
-      const observation = {phase, completed: false, startedAt: new Date().toISOString()};
-      record.phases.push(observation);
+      const observation: PhaseRecord = {phase, completed: false, startedAt: new Date().toISOString()};
+      record.phases!.push(observation);
       const path = join(project, `${phase}.observation.json`);
       await writeFile(path, JSON.stringify(observation, null, 2) + '\n', {flag: 'wx'});
       try {
@@ -95,30 +133,30 @@ async function runControl({prepared, root, repository, command, record}) {
         {cwd: project, name: `effect-control-${mode}-${phase}`, timeout: 30_000});
         Object.assign(observation, {pid: result.pid, exitCode: result.code, signal: result.signal ?? null});
         assert.equal(result.code, 0); assert.equal(result.signal ?? null, null);
-        const rows = result.stdout.trim().split('\n').map(line => JSON.parse(line));
+        const rows = result.stdout.trim().split('\n').map(line => JSON.parse(line) as ChildObservation);
         observation.actual = rows.at(-1);
         if (phase === 'capture') {
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, 10);
           const captured = rows.find(row => row.phase === 'capture' && row.firstClose);
-          assert.equal(captured.status, 'passed'); assert.equal(captured.firstFailedStep, null);
-          assert.deepEqual(captured.firstClose, {attempted: true, returned: true});
-          assert.equal(captured.workObservation.complete, true);
-          assert.equal(captured.workObservation.sourceAcquisitionStarts, 2);
-          assert.equal(captured.workObservation.modelCallStarts, 4);
-          assert.equal(captured.workObservation.effectReplacementReturns, 0);
-          assert.equal(observation.actual.event, 'after-original-module');
-          assert.equal(observation.actual.originalImportFailed, false);
-          assert.equal(observation.actual.pid, result.pid);
-          assert.deepEqual(observation.actual.aliveScopedFD, {after: 0});
-        } else assertMockEffectControlOutcome(observation.actual, mode, result.pid);
+          assert.equal(captured!.status, 'passed'); assert.equal(captured!.firstFailedStep, null);
+          assert.deepEqual(captured!.firstClose, {attempted: true, returned: true});
+          assert.equal(captured!.workObservation!.complete, true);
+          assert.equal(captured!.workObservation!.sourceAcquisitionStarts, 2);
+          assert.equal(captured!.workObservation!.modelCallStarts, 4);
+          assert.equal(captured!.workObservation!.effectReplacementReturns, 0);
+          assert.equal(observation.actual!.event, 'after-original-module');
+          assert.equal(observation.actual!.originalImportFailed, false);
+          assert.equal(observation.actual!.pid, result.pid);
+          assert.deepEqual(observation.actual!.aliveScopedFD, {after: 0});
+        } else assertMockEffectControlOutcome(observation.actual!, mode, result.pid);
         observation.completed = true;
       } catch (error) {
         observation.error = nodeBenchmarkFailure(error);
-        const result = error.commandResult;
+        const result = (error as CommandFailure).commandResult;
         if (result) {
           Object.assign(observation, {pid: result.pid, exitCode: result.code ?? null, signal: result.signal ?? null});
           try {
-            const actual = JSON.parse(result.stdout.trim().split('\n').at(-1));
+            const actual = JSON.parse(result.stdout.trim().split('\n').at(-1)!) as ChildObservation;
             if (phase !== 'capture' && actual.pid === result.pid && actual.mode === mode) observation.actual = actual;
           } catch { /* An absent final observation is not a successful close. */ }
         }
@@ -127,7 +165,7 @@ async function runControl({prepared, root, repository, command, record}) {
         if (phase !== 'capture') try {
           const partial = JSON.parse(await readFile(handoff + (phase === 'publication-failure'
             ? '.before-close.json' : '.cancel.before-close.json'), 'utf8'));
-          assert.equal(partial.pid, error.commandResult?.pid);
+          assert.equal(partial.pid, (error as CommandFailure).commandResult?.pid);
           observation.partialObservation = partial;
         } catch { /* The original failure remains primary. */ }
         throw error;
@@ -147,7 +185,8 @@ async function runControl({prepared, root, repository, command, record}) {
   if (failed) throw primary;
 }
 
-export async function runMockEffectControls({prepared, root, repository, command, records, failures}) {
+export async function runMockEffectControls({prepared, root, repository, command, records, failures}:
+  ExecutionOptions & {records: ControlRecord[]; failures: unknown[]}) {
   assert.deepEqual(records.map(record => record.mode), packedEffectControlCases);
   for (const record of records) {
     record.status = 'running'; record.phases = []; delete record.unexecutedReason;
