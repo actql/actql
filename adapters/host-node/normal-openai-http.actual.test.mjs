@@ -306,7 +306,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         generation:{temperature:0,topP:1,maxOutputTokens:100},transportTimeouts:${projectTimeouts},
         budget:{maxCalls:2n,maxRows:2,maxTokens:1000n,maxCostUnits:100000n,maxDurationMs:1000n},
         observeEgress:()=>({classification:'public',region:'global',providerRetention:true,trainingUse:false})});
-      let client,failed=false,closePending=false;
+      let client,failed=false;
       try {
         client=await connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
           registerModelProviders,authorization}});
@@ -350,9 +350,8 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       finally {
         try {await client?.close();}
         catch(cause) {
-          if(rawDenied && cause?.code==='ClientCleanupPending') closePending=true;
-          else if(!failed) throw cause;
-          else console.error(cause);
+          if(!failed) throw cause;
+          console.error(cause);
         }
         finally {
           if(server) {
@@ -372,17 +371,13 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       } finally {database.close();}
       const close=observeOwnScopedStateFds([resolve('.state')]);
       assert.equal(close.aliveAfterClose,true);
-      if(!closePending) {
-        assert.equal(close.scopedStateFd0,true);
-        await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
-      }
-      if(rawDenied) console.log(JSON.stringify({closePending,scopedStateFd0:close.scopedStateFd0}));
+      assert.equal(close.scopedStateFd0,true);
+      await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
     `;
     const resumed=spawnSync(process.execPath,['--input-type=module','-e',reopen],
       {cwd:scratch.path,encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
     assert.ifError(resumed.error);
     assert.equal(resumed.status,0,resumed.stderr+'\n'+resumed.stdout);
-    if(rawDenied) console.log('Raw authorization control',resumed.stdout.trim());
   }
   if (coldSaved || unknown) {
     // Distinct process on THIS new case's original state/ref, never a prior

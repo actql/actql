@@ -757,9 +757,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       recovery.model = model;
       const moon = state.context.runtime, graphs = plural ? graph : [graph];
       const publication = model.publicationCapacity;
-      const assertOriginalIdentity = () => {
+      const assertOriginalIdentity = (retiring = false) => {
         if (closed || receipts.get(producer.receipt) !== producer || !producers.has(producer) ||
-            producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+            producer.finished && !retiring || producer.preparation !== state || state.recovery !== recovery ||
             recovery.restored !== restored || recovery.model !== model || state.prepared !== prepared ||
             model.selection !== selected || model.graph !== graph || model.compiled !== compiled ||
             model.runDefinition !== definition || model.control !== control || model.budget !== budget ||
@@ -775,11 +775,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       };
       const assertRetainedOriginal = () => {
         // Cancellation revokes new work, not the same retained Read/Scope's
-        // retirement duty. Keep installation and exact ownership fences while
-        // ingress closes; actual child cleanup still decides completion.
-        assertOriginalIdentity();
+        // retirement duty. A failed finish ends new work before all children
+        // retire. Its still-registered producer retains this exact same child.
+        assertOriginalIdentity(true);
         callbacks.retainedValidator(originals);
-        assertOriginalIdentity();
+        assertOriginalIdentity(true);
       };
       try {
         // The legacy nine-field suffix describes read-side allowances, not
