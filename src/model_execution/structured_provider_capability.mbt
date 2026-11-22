@@ -4,7 +4,9 @@
 pub(all) struct ResolvedStructuredModel {
   selector : String
   model_id : String
+  adapter_kind : String
   api_mode : String
+  endpoint : String
 } derive(Eq, Debug)
 
 ///|
@@ -12,6 +14,7 @@ pub(all) struct ResolvedStructuredModel {
 /// resolved model. This declaration grants no transport, budget or authority.
 pub struct StructuredModelCapability {
   priv provider : ModelProvider
+  priv binding : @publication.RunEvidenceValue
   priv resolved : ResolvedStructuredModel
   priv adapter_supports : Bool
   priv model_supports : Bool
@@ -20,6 +23,7 @@ pub struct StructuredModelCapability {
 ///|
 pub(all) enum StructuredModelCapabilityIssue {
   InvalidRegistration
+  ForeignConfiguration
   ChangedSelection
   UnsupportedAdapter
   UnsupportedModel
@@ -37,6 +41,8 @@ pub struct AdmittedStructuredModelProvider {
 ///|
 pub fn register_structured_model_capability(
   provider : ModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration_wire : String,
   resolved : ResolvedStructuredModel,
   adapter_supports : Bool,
   model_supports : Bool,
@@ -44,10 +50,24 @@ pub fn register_structured_model_capability(
   if !(provider.invocation is AsynchronousPhysical) ||
     resolved.selector.is_empty() ||
     resolved.model_id.is_empty() ||
-    resolved.api_mode.is_empty() {
+    resolved.adapter_kind.is_empty() ||
+    resolved.api_mode.is_empty() ||
+    resolved.endpoint.is_empty() {
     return Err(InvalidRegistration)
   }
-  Ok({ provider, resolved, adapter_supports, model_supports, })
+  if !@publication_host.client_model_resolved_configuration_matches(
+      binding,
+      configuration_wire,
+      provider.provider_id,
+      resolved.selector,
+      resolved.model_id,
+      resolved.adapter_kind,
+      resolved.api_mode,
+      resolved.endpoint,
+    ) {
+    return Err(ForeignConfiguration)
+  }
+  Ok({ provider, binding, resolved, adapter_supports, model_supports, })
 }
 
 ///|
@@ -83,10 +103,13 @@ pub fn admit_structured_model_provider(
 pub fn admitted_structured_model_provider_for(
   value : AdmittedStructuredModelProvider,
   current : StructuredModelCapability,
+  binding : @publication.RunEvidenceValue,
   selected : ResolvedStructuredModel,
   execution : @environment.ModelExecutionContract,
 ) -> ModelProvider? {
-  if !physical_equal(value.capability, current) || current.resolved != selected {
+  if !physical_equal(value.capability, current) ||
+    !physical_equal(current.binding, binding) ||
+    current.resolved != selected {
     return None
   }
   admitted_model_provider_for(value.original, execution)

@@ -37,7 +37,7 @@ pub fn admit_structured_model_provider(StructuredModelCapability, ResolvedStruct
 
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
-pub fn admitted_structured_model_provider_for(AdmittedStructuredModelProvider, StructuredModelCapability, ResolvedStructuredModel, @check_environment.ModelExecutionContract) -> ModelProvider?
+pub fn admitted_structured_model_provider_for(AdmittedStructuredModelProvider, StructuredModelCapability, @run_publication.RunEvidenceValue, ResolvedStructuredModel, @check_environment.ModelExecutionContract) -> ModelProvider?
 
 pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]
 
@@ -349,7 +349,7 @@ pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_envir
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
-pub fn register_structured_model_capability(ModelProvider, ResolvedStructuredModel, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
+pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
 
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
 
@@ -959,7 +959,9 @@ type OriginalModelStartup
 pub(all) struct ResolvedStructuredModel {
   selector : String
   model_id : String
+  adapter_kind : String
   api_mode : String
+  endpoint : String
 } derive(Eq, @debug.Debug)
 
 pub struct StructuredModelCapability {
@@ -968,6 +970,7 @@ pub struct StructuredModelCapability {
 
 pub(all) enum StructuredModelCapabilityIssue {
   InvalidRegistration
+  ForeignConfiguration
   ChangedSelection
   UnsupportedAdapter
   UnsupportedModel
