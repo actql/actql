@@ -3,8 +3,22 @@
 // or row-count equality for those checks and does not issue capture evidence.
 import { DuckDBTransportError } from './session.mjs';
 import { withSourceAcquisition } from './source-acquisition.mjs';
+import type {
+  SourceAccounting, SourceChunk, SourceFields, SourceLimits, SourceParameters, SourceReceiptPort,
+} from './source-acquisition.mjs';
 
-export async function runNativeAcquisition(grant, port, limits, signal, accounting) {
+type ReceiptRole = 'validation_scan' | 'native_result';
+export type NativeAcquisitionPort = SourceReceiptPort & Readonly<{
+  validationSql(): string;
+  nativeSql(): string;
+  nativeParameters(): SourceParameters;
+  beginReceipt(role: ReceiptRole, fields: SourceFields, readView: object): unknown;
+  acceptChunk(role: ReceiptRole, chunk: SourceChunk, readView: object): unknown;
+  finishReceipt(role: ReceiptRole, readView: object): unknown;
+}>;
+
+export async function runNativeAcquisition(grant: object, port: NativeAcquisitionPort, limits: SourceLimits,
+  signal?: AbortSignal, accounting?: SourceAccounting) {
   limits = Object.freeze({...limits});
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
     const started = performance.now();
@@ -14,11 +28,11 @@ export async function runNativeAcquisition(grant, port, limits, signal, accounti
       port.metadataParameters(), chunk => port.acceptMetadata(chunk, readView));
     await port.finishMetadata(metadataFields, readView);
     const metadataMilliseconds = performance.now() - started;
-    const receive = async (role, sql, parameters) => {
+    const receive = async (role: ReceiptRole, sql: string, parameters: SourceParameters) => {
       const receiptStarted = performance.now();
       let begun = false;
       let sourceRows = 0;
-      const begin = async fields => {
+      const begin = async (fields: SourceFields) => {
         await port.beginReceipt(role, fields, readView);
         begun = true;
       };
@@ -38,7 +52,7 @@ export async function runNativeAcquisition(grant, port, limits, signal, accounti
       const accepted = await port.finishReceipt(role, readView);
       const after = session.usage();
       const transport = Object.freeze(Object.fromEntries(
-        Object.keys(before).map(key => [key, after[key] - before[key]]),
+        Object.keys(before).map(key => [key, after[key as keyof typeof after] - before[key as keyof typeof before]]),
       ));
       return Object.freeze({ accepted, transport,
         milliseconds: performance.now() - receiptStarted });

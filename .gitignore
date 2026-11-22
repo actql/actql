@@ -1796,3 +1796,15 @@ target/
 /adapters/connectors/duckdb/node/test/fixed-compute.test.d.mts
 /adapters/connectors/duckdb/node/test/import-batch.test.mjs
 /adapters/connectors/duckdb/node/test/import-batch.test.d.mts
+/adapters/connectors/duckdb/node/source-acquisition.mjs
+/adapters/connectors/duckdb/node/source-acquisition.d.mts
+/adapters/connectors/duckdb/node/settled-query.mjs
+/adapters/connectors/duckdb/node/settled-query.d.mts
+/adapters/connectors/duckdb/node/native-acquisition.mjs
+/adapters/connectors/duckdb/node/native-acquisition.d.mts
+/adapters/connectors/duckdb/node/broad-acquisition.mjs
+/adapters/connectors/duckdb/node/broad-acquisition.d.mts
+/adapters/connectors/duckdb/node/native-query.mjs
+/adapters/connectors/duckdb/node/native-query.d.mts
+/adapters/connectors/duckdb/node/broad-query.mjs
+/adapters/connectors/duckdb/node/broad-query.d.mts

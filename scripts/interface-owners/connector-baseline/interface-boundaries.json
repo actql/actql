@@ -386,37 +386,37 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/broad-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/broad-acquisition.mts",
                 "anchor": "runBroadAcquisition"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "matchesSourceAcquisition"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "withSourceAcquisition"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/broad-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/broad-acquisition.mts",
                 "anchor": "await port.finishMetadata"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "sourceAcquisitionFailure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "port.abort"
               }
             ],
@@ -485,49 +485,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/broad-query.mjs",
+                "path": "adapters/connectors/duckdb/node/broad-query.mts",
                 "anchor": "Trusted Host assembly"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/broad-query.mjs",
+                "path": "adapters/connectors/duckdb/node/broad-query.mts",
                 "anchor": "runBroadQuery"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "attempt === bridge.attempt"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "close ="
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "await acquire"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "InvalidCaptureCompletion"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "bridge?.abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "accounting"
               }
             ],
@@ -1971,37 +1971,37 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/native-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/native-acquisition.mts",
                 "anchor": "runNativeAcquisition"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "matchesSourceAcquisition"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "withSourceAcquisition"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/native-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/native-acquisition.mts",
                 "anchor": "await port.finishMetadata"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "sourceAcquisitionFailure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "port.abort"
               }
             ],
@@ -2070,49 +2070,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/native-query.mjs",
+                "path": "adapters/connectors/duckdb/node/native-query.mts",
                 "anchor": "Trusted Host assembly"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/native-query.mjs",
+                "path": "adapters/connectors/duckdb/node/native-query.mts",
                 "anchor": "runNativeQuery"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "attempt === bridge.attempt"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "close ="
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "await acquire"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "InvalidCaptureCompletion"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "bridge?.abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "accounting"
               }
             ],
@@ -3371,49 +3371,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "runSettledQuery"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "attempt === bridge.attempt"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "QueryStopUnconfirmed"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "await bridge.completeBounded"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "unownedUnknown"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "bridge?.abort"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "cleanupPending"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/settled-query.mjs",
+                "path": "adapters/connectors/duckdb/node/settled-query.mts",
                 "anchor": "arbitrary thenables are rejected"
               }
             ],
@@ -3561,55 +3561,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "not an ActQL"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "withSourceAcquisition"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "matchesSourceAcquisition"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "releaseSourceAcquisition"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "started && !stopped"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "sourceAcquisitionFailure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "abortPending"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "chargeTransfer"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/source-acquisition.mjs",
+                "path": "adapters/connectors/duckdb/node/source-acquisition.mts",
                 "anchor": "not two jobs"
               }
             ],

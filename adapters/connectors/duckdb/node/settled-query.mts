@@ -5,14 +5,37 @@ import { DuckDBTransportError } from './session.mjs';
 import {acquisitionOutcome} from
   '../../../host-common/acquisition-outcome.mjs';
 import {ExecutionAuthorizationError} from '../../../host-common/authorization-gate.mjs';
+import type {SourceAccounting, SourceLimits, SourceRecovery, SourceSettlement} from './source-acquisition.mjs';
 
-export async function runSettledQuery(grant, prepare, limits, signal, acquire, accepts, accounting) {
-  let bridge;
-  let settled;
+type AcquisitionValue = Readonly<{readView: object; diagnostics?: unknown}>;
+type Acquire<Port, Value extends AcquisitionValue> = (
+  grant: object, port: Port, limits: SourceLimits, signal?: AbortSignal, accounting?: SourceAccounting,
+) => Promise<SourceSettlement<Value>>;
+type QueryBridge<Port, Attempt, Observation, InputArgs extends unknown[], BoundInput> = Readonly<{
+  port: Port;
+  attempt: Attempt;
+  stopped?(): boolean;
+  close(): unknown;
+  abort(): unknown;
+  complete(): Observation;
+  completeBounded?(signal?: AbortSignal): Observation | Promise<Observation>;
+  bindInput(observation: Observation, ...args: InputArgs): BoundInput;
+}>;
+export type PrepareQuery<Port, Attempt, Observation, InputArgs extends unknown[], BoundInput> =
+  (verify: (attempt: Attempt) => boolean) => QueryBridge<Port, Attempt, Observation, InputArgs, BoundInput>;
+type EndObservation = Readonly<{outcome: unknown; recovery?: SourceRecovery}>;
+
+export async function runSettledQuery<
+  Port, Value extends AcquisitionValue, Attempt, Observation, InputArgs extends unknown[], BoundInput,
+>(grant: object, prepare: PrepareQuery<Port, Attempt, Observation, InputArgs, BoundInput>,
+  limits: SourceLimits, signal: AbortSignal | undefined, acquire: Acquire<Port, Value>,
+  accepts: (value: Value, attempt: Attempt) => boolean, accounting?: SourceAccounting) {
+  let bridge: QueryBridge<Port, Attempt, Observation, InputArgs, BoundInput> | undefined;
+  let settled: SourceSettlement<Value> | undefined;
   let closed = false;
   let released = false;
   let acquiring = false;
-  const verify = attempt => !closed && bridge !== undefined && settled !== undefined
+  const verify = (attempt: Attempt) => !closed && bridge !== undefined && settled !== undefined
     && attempt === bridge.attempt && accepts(settled.value, attempt)
     && matchesSourceAcquisition(settled, grant, bridge.port, settled.value.readView);
   const close = () => {
@@ -40,25 +63,25 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     // Legacy completion remains synchronous; arbitrary thenables are rejected.
     const observation = typeof bridge.completeBounded === 'function'
       ? await bridge.completeBounded(signal) : bridge.complete();
-    if (observation === undefined || observation === null || typeof observation.then === 'function') {
+    if (observation === undefined || observation === null || typeof (observation as {then?: unknown}).then === 'function') {
       throw new DuckDBTransportError('InvalidCaptureCompletion');
     }
     return Object.freeze({
       observation,
       usage: settled.usage,
       diagnostics: settled.value.diagnostics,
-      bindInput(...args) {
+      bindInput(...args: InputArgs) {
         if (closed) throw new DuckDBTransportError('IssuerClosed');
         // Consumer failures do not release a successful acquisition or reread.
-        return bridge.bindInput(observation, ...args);
+        return bridge!.bindInput(observation, ...args);
       },
       close,
     });
   } catch (error) {
-    const ended = settled !== undefined ?
+    const ended: EndObservation = settled !== undefined ?
       {outcome: bridge?.stopped?.() === false ? 'unknown' : 'stopped'} :
       !acquiring || error instanceof ExecutionAuthorizationError
-        ? {outcome: 'not_started'} : acquisitionOutcome(error);
+        ? {outcome: 'not_started'} : acquisitionOutcome(error) as EndObservation;
     const unownedUnknown = settled === undefined &&
       ended.outcome === 'unknown' && ended.recovery === undefined;
     const failures = [error];
