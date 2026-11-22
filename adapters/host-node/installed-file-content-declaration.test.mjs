@@ -15,6 +15,7 @@ import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   acquiredKeyedTaskPublicationPlan, serializationTaskRunAdmission, inferTaskRunAdmission} from './local-values-plan.mjs';
@@ -1113,6 +1114,8 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
   const execution = checked(dag === undefined
     ? moon.clientProgramKeyedLookupJoinStart(prepared)
     : moon.clientProgramKeyedLookupDagJoinStart(prepared, dag));
+  // ManagedProviderPoll from connectors/local/managed_provider.mbt.
+  const continueTag = 0, completeTag = 4, failedTag = 6, stoppedTag = 7;
   let stream;
   let stopped = false;
   try {
@@ -1122,9 +1125,10 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
       if (cancelAfterWork && checked(moon.clientProgramKeyedLookupJoinWork(execution)) > 0n) {
         moon.clientProgramKeyedLookupJoinCancel(execution);
       }
-      if (value.$tag === 3) { output = value._0; stopped = true; break; }
-      if (value.$tag === 6) { stopped = true; break; }
-      assert.equal(value.$tag, 0, inspect(value, {depth: 4}));
+      const tag = runtimeTag(value);
+      if (tag === completeTag) { output = runtimeField(value, 0); stopped = true; break; }
+      if (tag === stoppedTag) { stopped = true; break; }
+      assert.equal(tag, continueTag, inspect(value, {depth: 4}));
     }
     assert.equal(stopped, true, 'original managed JOIN reaches a terminal poll');
     const work = checked(moon.clientProgramKeyedLookupJoinWork(execution));
@@ -1152,7 +1156,7 @@ async function consumeOriginalJoin(prepared, quantum, {cancelAfterWork = false, 
       moon.clientProgramKeyedLookupJoinCancel(execution);
       for (let poll = 0; poll < 100000 && !stopped; poll++) {
         const value = checked(moon.clientProgramKeyedLookupJoinAdvance(execution, quantum));
-        stopped = [3, 5, 6].includes(value.$tag);
+        stopped = [completeTag, failedTag, stoppedTag].includes(runtimeTag(value));
       }
     }
     let reclaimed = false;
