@@ -85,6 +85,16 @@ test "admitted Approved resolution exposes the same original approval proof for 
   let (evidence, identity) = seal_prepared_effect_approval_proof(
     prepared, "reviewer-key", proof_preparation_encoding_signature,
   ).unwrap()
+  let input = approval_verification_input(evidence, limits()).unwrap()
+  assert_eq(input.key_id, "reviewer-key")
+  assert_eq(input.approver, prepared.actor())
+  assert_eq(input.authority_scope_cid, Some(cid("5")))
+  assert_eq(input.preimage, prepared.preimage())
+  assert_eq(input.signature, proof_preparation_encoding_signature)
+  assert_true(
+    approval_verification_input(evidence, { ..limits(), max_wire_bytes: 1, })
+    is Err(ResolutionInvalidWire),
+  )
   let fields = resolution_fields_for(artifact, "approved", Some(identity))
   fields.remove("proof") |> ignore
   let unsigned = wire_of(

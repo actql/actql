@@ -62,6 +62,19 @@ pub fn record_delete_mapping_matches_declaration(
 }
 
 ///|
+/// Compare the original Form before reading a selected DELETE target.
+pub fn record_delete_mapping_recheck_form(
+  mapping : RecordDeleteMapping,
+  bytes : Bytes,
+  limits : @catalog.FormFieldLimits,
+) -> Result[Unit, @catalog.RecordMutationIssue] {
+  if !record_delete_mapping_is_original(mapping) {
+    return Err(ForeignCatalog)
+  }
+  @catalog.recheck_original_record_form(mapping.original.catalog, bytes, limits)
+}
+
+///|
 /// Same original App/Form correspondence only. Equal decoded Form bytes or a
 /// Record Number cannot reconstruct the Catalog retained by a mutation page.
 /// Authority, Preview/version/current and the durable claim remain separate.

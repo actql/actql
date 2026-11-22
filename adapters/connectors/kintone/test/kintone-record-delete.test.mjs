@@ -8,10 +8,16 @@ import {KINTONE_RECORD_DELETE_OPERATION, KintoneDeleteFailure,
 import {deleteFixture} from './kintone-record-delete.fixture.mjs';
 import {originalForm, record} from './installed-kintone.fixture.mjs';
 
+const firstTarget = record('9007199254740992');
+const secondTarget = record('9007199254740993');
+const control = record('9007199254740994', 'APP-KEEP');
+
 test('original App API IDs and paired revisions traverse real Account Site SQLite TLS once', async t => {
   const f = await deleteFixture(t);
+  assert.deepEqual(f.snapshot(), [firstTarget, secondTarget, control]);
   const raw = await f.send();
   assert.equal(f.state.writes, 1); assert.equal(f.tls.seen().length, 3);
+  assert.equal(f.state.appliedWrites, 1); assert.deepEqual(f.snapshot(), [control]);
   assert.equal(f.state.charges, 3); assert.equal(f.state.consumed, 3);
   assert.deepEqual(f.state.fixtureFailures, []);
   assert.equal(f.journal.recover().filter(row => row.outcome === 'succeeded').length, 3);
@@ -32,6 +38,8 @@ test('read Allow cannot dispatch a DELETE under effect Deny', async t => {
     assert.equal(error.phase, 'delete'); assert.equal(error.observations.length, 2); return true;
   });
   assert.equal(f.state.writes, 0); assert.equal(f.tls.seen().length, 2);
+  assert.equal(f.state.appliedWrites, 0);
+  assert.deepEqual(f.snapshot(), [firstTarget, secondTarget, control]);
 });
 
 test('same original token is retained across Form target read and DELETE; rotation never substitutes', async t => {
@@ -87,6 +95,23 @@ test('actual current Account is rechecked after the awaited write response befor
   f.row.assertNoCapture();
 });
 
+test('a revision change after the target read refuses the entire DELETE batch', async t => {
+  const f = await deleteFixture(t);
+  f.state.afterCharge = () => {
+    if (f.state.charges === 2) f.advanceRevision('9007199254740993', '10');
+  };
+  const {observation} = await f.send();
+  assert.equal(observation.statusCode, 409);
+  assert.deepEqual(JSON.parse(observation.body), {code: 'GAIA_CO02'});
+  assert.equal(f.state.targets, 1); assert.equal(f.state.writes, 1);
+  assert.equal(f.tls.seen().length, 3); assert.equal(f.state.appliedWrites, 0);
+  assert.deepEqual(f.snapshot(), [firstTarget,
+    {...secondTarget, $revision: {type: '__REVISION__', value: '10'}}, control]);
+  assert.equal(projectKintoneDeleteObservation({moon: f.common, request: f.request,
+    observation, limits: f.options.limits}).kind, 'unclassified-response');
+  f.row.assertNoCapture();
+});
+
 test('current loss during the resolver await refuses before physical DELETE', async t => {
   const f = await deleteFixture(t);
   f.state.resolve = async () => {if (f.state.resolutions === 3) await f.writeAccount('deny');};
@@ -101,10 +126,12 @@ test('lost DELETE reply remains original nominal Unknown and is never automatica
     assert.equal(error.code, 'ECONNRESET'); assert.equal(error.observations.length, 2); return true;
   });
   assert.equal(f.state.writes, 1); assert.equal(f.tls.seen().length, 3);
+  assert.equal(f.state.appliedWrites, 1); assert.deepEqual(f.snapshot(), [control]);
   assert.equal(f.journal.recover().filter(row => row.outcome === 'unknown').length, 1);
   // Even an explicit second call with those same nominal uses is refused.
   await assert.rejects(f.send(), {code: 'RemoteCredentialUseAlreadyClaimed'});
   assert.equal(f.state.writes, 1); assert.equal(f.tls.seen().length, 3);
+  assert.equal(f.state.appliedWrites, 1); assert.deepEqual(f.snapshot(), [control]);
   f.row.assertNoCapture();
 });
 

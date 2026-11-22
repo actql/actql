@@ -1,0 +1,33 @@
+{
+  "name": "kintone-record-delete",
+  "effect": {
+    "documentPath": "delete.aql",
+    "format": "aql",
+    "resultName": "deleted",
+    "parameterDeclarations": {"record_id": {"type": "string"}},
+    "parameters": {"record_id": "9007199254743021"},
+    "expectedRows": [{"id": "9007199254743021", "previous_name": "Archive me"}]
+  },
+  "read": {
+    "documentPath": "read.aql",
+    "format": "aql",
+    "resultName": "main",
+    "parameterDeclarations": {"record_id": {"type": "string"}},
+    "parameters": {"record_id": "9007199254743021"},
+    "beforeRows": [{"id": "9007199254743021", "Subject": "Archive me"}],
+    "afterRows": []
+  },
+  "review": {
+    "kind": "delete",
+    "target": "connector://kintone/inquiries",
+    "identity": "9007199254743021",
+    "before": {"$id": "9007199254743021", "Computed": "server", "Subject": "Archive me", "Tags": ["red"]}
+  },
+  "fixture": {
+    "seed": {"recordId": "9007199254743021", "previousName": "Archive me", "controlId": "9007199254743029", "controlName": "Keep this inquiry"},
+    "expected": {
+      "before": {"target": {"id": "9007199254743021", "name": "Archive me"}, "control": {"id": "9007199254743029", "name": "Keep this inquiry"}},
+      "after": {"target": null, "control": {"id": "9007199254743029", "name": "Keep this inquiry"}}
+    }
+  }
+}

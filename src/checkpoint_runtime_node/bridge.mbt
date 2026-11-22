@@ -789,6 +789,26 @@ pub fn resolution_proof_preimage(resolution_wire : String) -> String {
 }
 
 ///|
+/// The original approval proof and the unsigned CID text for Host verification.
+#export_name("approvalVerificationInput")
+pub fn approval_verification_input(evidence_wire : String) -> String {
+  match @checkpoint.approval_verification_input(evidence_wire, limits()) {
+    Ok(input) =>
+      ok({
+        "key_id": Json::string(input.key_id),
+        "approver": Json::string(input.approver),
+        "authority_scope_cid": match input.authority_scope_cid {
+          Some(cid) => Json::string(cid)
+          None => Json::null()
+        },
+        "preimage": Json::string(input.preimage),
+        "signature": Json::string(input.signature),
+      })
+    Err(issue) => fail_resolution(issue)
+  }
+}
+
+///|
 /// Unsigned verified-wrapper CID text: the exact UTF-8 text whose Ed25519
 /// `host_attestation.signature` the Host produces and verifiers check.
 #export_name("verifiedAttestationPreimage")

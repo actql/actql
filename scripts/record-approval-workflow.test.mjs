@@ -1035,6 +1035,33 @@ test('kintone approval provider keeps string identity and original revision for 
   assert.equal(f.value.snapshot().writes, 1);
 });
 
+test('authored kintone DELETE distinguishes absent target from unchanged control and rejects stale revision', async () => {
+  const path = fileURLToPath(new URL('./fixtures/kintone-approval/delete.case.json', import.meta.url));
+  const declared = await readAuthoredCase(path);
+  const {provider, write} = kintoneApprovalInstallation(declared.fixture.seed, declared.review.kind);
+  assert.deepEqual(write, {resource: 'inquiries', kind: 'delete'});
+  const start = provider.snapshot();
+  const {recordId} = declared.fixture.seed;
+  const {pathname, method, bodyIncludes} = provider.writeRequest;
+  const route = provider.routes.find(route => route.method === method && route.pathname === pathname &&
+    route.bodyIncludes === bodyIncludes);
+  const exchange = revision => ({method, pathname, authorized: true, headers: {'x-http-method-override': 'DELETE'},
+    body: JSON.stringify({app: '12', ids: [recordId], revisions: [revision]})});
+  assert.throws(() => route.handle(exchange('9007199254740993')), {code: 'ERR_ASSERTION'});
+  assert.equal(provider.snapshot().writes, 0);
+  assert.deepEqual(provider.snapshot().target, start.target);
+  assert.deepEqual(route.handle(exchange('9007199254740994')).body, {});
+  assert.throws(() => route.handle(exchange('9007199254740994')), {code: 'ERR_ASSERTION'});
+  const final = provider.snapshot();
+  assert.equal(final.writes, 1);
+  assertRecordApprovalTarget(final, declared.fixture.expected.after);
+  assert.deepEqual(final.control, start.control);
+  assert.throws(() => assertRecordApprovalTarget(start, declared.fixture.expected.after), /Independent provider target state/u);
+  assert.equal(recordUpdateReplyLossFaults(provider)[0].bodyIncludes, '"ids":');
+  provider.reset();
+  assert.deepEqual(provider.snapshot(), start);
+});
+
 test('record approval target oracle refuses protocol-valid writes with unexpected values', () => {
   const hubspot = hubspotProviderFixture(), kintone = kintoneProviderFixture();
   const wrongValue = 'Wrong but valid provider text';
