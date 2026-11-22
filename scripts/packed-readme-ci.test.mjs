@@ -10,6 +10,7 @@ import {join, dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
+import {packedRecordApprovalInvocation} from './record-approval-ci-input.mjs';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
@@ -253,32 +254,19 @@ test('workflow DATA oracles execute before an installed runtime is available', a
   assert.equal(output.trim(), 'data-only');
 });
 
-test('record ordinary runner binds the exact selected fixture variant before the existing installed child', async () => {
-  const source = await readFile(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const pending = [tree], calls = [];
-  while (pending.length) {
-    const node = pending.pop();
-    if (node.type === 'CallExpression' && node.callee?.name === 'runFocusedTests') calls.push(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) pending.push(...value.filter(item => item?.type));
-      else if (value?.type) pending.push(value);
-    }
-  }
-  assert.equal(calls.length, 1); const [call] = calls;
-  const invoke = Function('runFocusedTests', 'approval', 'mockConnector', 'application', 'expectedTests',
-    'wholeMock', 'threeSourceMock', 'binarySourceMock', 'process', `return (${source.slice(call.start, call.end)});`);
-  for (const [whole, three, binary, expected] of [
-    [true, false, false, 'whole-input'], [false, true, false, 'three-source'],
-    [false, false, true, 'binary-source'], [false, false, false, ''],
-  ]) {
-    let selected;
-    invoke((_kind, files, options) => {selected = {files, options}; return 0;}, true, 'hubspot',
-      '/own-fresh-consumer', 1, whole, three, binary, {env: {HARNESS_ONLY: 'true'}});
-    assert.deepEqual(selected.files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
-    assert.equal(selected.options.expectedTests, 1);
-    assert.equal(selected.options.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT, expected);
-    assert.equal(selected.options.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS, expected ? '1' : undefined);
+test('record ordinary runner binds the exact selected fixture variant before the existing installed child', () => {
+  const application = '/own-fresh-consumer', env = {HARNESS_ONLY: 'true'};
+  for (const [mockVariant, mockCasePath] of [['whole-input'], ['three-source'], ['binary-source'], [''],
+    ['', '/own-fresh-consumer/authored-mock-case.json']]) {
+    const {files, options} = packedRecordApprovalInvocation({application, approvalConnector: 'hubspot',
+      mockConnector: 'hubspot', mockVariant, mockCasePath, env});
+    assert.deepEqual(files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
+    assert.equal(options.cwd, application);
+    assert.equal(options.expectedTests, 1);
+    assert.deepEqual(options.env, {...env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: 'hubspot',
+      ACTQL_RECORD_APPROVAL_MOCK_VARIANT: mockVariant,
+      ...(mockVariant ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
+      ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath})});
   }
 });
 

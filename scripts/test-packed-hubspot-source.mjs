@@ -9,7 +9,7 @@ import {isAbsolute, join, dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {runFocusedTests} from './test-execution.mjs';
-import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
+import {admitRecordApprovalCIInput, packedRecordApprovalInvocation} from './record-approval-ci-input.mjs';
 import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
@@ -191,20 +191,14 @@ for (const path of fixtureFiles) {
   inputs.push({path, ...(sourcePath === path ? {} : {sourcePath}), bytes: bytes.byteLength,
     sha256: createHash('sha256').update(bytes).digest('hex')});
 }
-const expectedTests = approval ? 1 : 2;
+const mockVariant = binarySourceMock ? 'binary-source' : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : '';
+const invocation = packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
+  mockVariant, mockCasePath, reject});
+const {expectedTests} = invocation.options;
 let code;
 await symlink(software, softwareAlias, 'dir');
 try {
-  code = runFocusedTests('node', [approval
-    ? mockConnector ? 'scripts/fixtures/packed-record-approval-mock.mjs'
-      : `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
-    {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM',
-      env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
-        ...(mockCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: mockCasePath}),
-        ...((wholeMock || threeSourceMock || binarySourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-        ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source'
-          : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : ''}
-        : reject ? {...process.env, ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : process.env});
+  code = runFocusedTests('node', invocation.files, invocation.options);
 } finally {
   // Return only this fresh link, never its original installed software target.
   assert.equal(await readlink(softwareAlias), software);
