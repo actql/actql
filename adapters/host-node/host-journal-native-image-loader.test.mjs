@@ -14,6 +14,11 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+function assertDirectoryInspector(operations) {
+  for (const name of ['close', 'current', 'next', 'open']) {
+    assert.equal(typeof Object.getOwnPropertyDescriptor(operations, name)?.value, 'function', name);
+  }
+}
 
 test('private native image entry exposes frozen selectors without loading a native image', () => {
   const child = spawnSync(process.execPath, ['--input-type=commonjs', '-e', `
@@ -65,7 +70,7 @@ test('selected Darwin Node initializes a private named image before unlinking it
     // No OS policy, signature or protection setting is changed.
     process.dlopen(module, path);
     unlinkSync(path);
-    assert.deepEqual(Object.keys(module.exports).sort(), ['close', 'current', 'next', 'open']);
+    assertDirectoryInspector(module.exports);
     const directory = join(scratch.path, 'empty'); mkdirSync(directory);
     const handle = module.exports.open(directory, 1, 1024, 1024);
     assert.equal(module.exports.current(handle), undefined); assert.equal(module.exports.next(handle), null);
@@ -90,7 +95,7 @@ test('private image custody retains one actual native instance and fences detect
   const image = load(selected, expected, limits, current);
   assert.equal(image.assertCurrent(), undefined);
   assert.equal(load(selected, expected, limits, current), image);
-  assert.deepEqual(Object.keys(image.operations).sort(), ['close', 'current', 'next', 'open']);
+  assertDirectoryInspector(image.operations);
   assert.throws(() => load(selected + '-foreign', expected, limits, current), {code: 'HostJournalNativeImageForeign'});
   assert.throws(() => load(selected, expected, {...limits, maxImageBytes: expected.bytes - 1}, current),
     {code: 'HostJournalNativeImageUnavailable'});
