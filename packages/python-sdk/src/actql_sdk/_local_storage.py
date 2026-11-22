@@ -31,6 +31,8 @@ class StoredBytes:
 _NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
 _SQLiteSnapshot = tuple[sqlite3.Connection, int, int, tuple[int, int]]
 _ClosedReadBaseline = tuple[_SQLiteSnapshot, int]
+_SAVED_READER_FACTS_EXPORT = 'actql_publication_commit_export_validate_payload_binding'
+_TERMINAL_STORAGE_EXPORT = 'actql_publication_commit_export_produce_sdk_terminal_storage'
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,7 +80,7 @@ class _NamespaceReader:
 
     # A Store-owned Saved projection can supply this prewrite lifetime.
     _projected_prewrite: Callable[[], bool] | None = None
-    _terminal_precommit: Callable[[], _ClosedReadBaseline | None] | None = None
+    _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -959,7 +961,7 @@ class LocalByteStore:
             successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
             _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None,
             _projected_prewrite: Callable[[], bool] | None = None,
-            _terminal_precommit: Callable[[], _ClosedReadBaseline | None] | None = None) -> None:
+            _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -991,7 +993,7 @@ class LocalByteStore:
                 return None
             if _projected_prewrite is None or _projected_prewrite():
                 return original_snapshot, original_statement_epoch
-            return span.terminal_precommit_baseline()
+            return span.terminal_read_baseline()
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
@@ -1055,7 +1057,7 @@ class LocalByteStore:
                     or view._invocation_candidate is not invocation_candidate
                     or view._invocation_check is not invocation_check
                     or view._projected_prewrite is not _projected_prewrite
-                    or view._terminal_precommit is not _terminal_precommit
+                    or view._terminal_read_baseline is not _terminal_read_baseline
                     or span.reader is not view or span.binding._current_observer is not observer
                     or span.core._invocation_observation is not span or not span.core._invoking
                     or reading and observing_current is not observer and not metadata):
@@ -1246,9 +1248,9 @@ class LocalByteStore:
                 baseline, statement_epoch = original_snapshot, original_statement_epoch
                 span = self._connection._closed_invocation
                 if span is not None and span.reader is view and span._reuse_sql_snapshot():
-                    precommit = span.terminal_precommit_baseline()
-                    if precommit is not None:
-                        baseline, statement_epoch = precommit
+                    terminal = span.terminal_read_baseline()
+                    if terminal is not None:
+                        baseline, statement_epoch = terminal
                 if self._connection._closed_statement_epoch != statement_epoch:
                     raise LocalStorageError('Original Local read-only statements changed')
                 snapshot = database._snapshot_identity()
@@ -1503,7 +1505,7 @@ class LocalByteStore:
                 _invocation_check=invocation_check if closed_reader else None,
                 _invocation_candidate=invocation_candidate if closed_reader else None,
                 _projected_prewrite=_projected_prewrite if closed_reader else None,
-                _terminal_precommit=_terminal_precommit if closed_reader else None)
+                _terminal_read_baseline=_terminal_read_baseline if closed_reader else None)
             result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
                       else inspect(reader) if inspect is not None else None)
             if failure is not None:
@@ -1834,6 +1836,27 @@ class LocalByteStore:
                 keys: set[str] = set()
                 thread = get_ident()
                 write_attempted = False
+                terminal_baseline: _ClosedReadBaseline | None = None
+                terminal_precommit = False
+
+                def terminal_read_baseline(export_name: str) -> _ClosedReadBaseline | None:
+                    if (export_name == _SAVED_READER_FACTS_EXPORT
+                            or terminal_precommit and export_name == _TERMINAL_STORAGE_EXPORT):
+                        return terminal_baseline
+                    return None
+
+                def capture_terminal_baseline() -> _ClosedReadBaseline | None:
+                    connection = self._connection
+                    if (type(database) is not _SQLiteByteDatabase
+                            or type(connection) is not _TrackedSQLiteConnection
+                            or database._connection is not connection or not connection._closed_eligible()):
+                        return None
+                    epoch = connection._closed_statement_epoch
+                    snapshot = database._snapshot_identity()
+                    if (0 <= epoch < 2**63 and connection._closed_statement_epoch == epoch
+                            and connection._closed_eligible()):
+                        return snapshot, epoch
+                    return None
 
                 def consume_ordinal(ordinal: int) -> None:
                     nonlocal record_count, payload_bytes
@@ -1843,13 +1866,18 @@ class LocalByteStore:
 
                     def consume(write: ByteWrite) -> None:
                         nonlocal delivered, failure, record_count, payload_bytes, write_attempted
+                        nonlocal terminal_baseline
                         try:
                             if not active or get_ident() != thread or delivered:
                                 raise ValueError('Local physical projection consumer is not active')
-                            if (_sdk_delivery_prewrite and reuse_identical
+                            if (_sdk_delivery_prewrite and (reuse_identical or _sdk_terminal_precommit)
                                     and type(self._connection) is _TrackedSQLiteConnection
                                     and self._connection._closed_invocation is not None):
-                                raise LocalStorageError('Evidence writes require the original prewrite invocation to return')
+                                purpose = 'Terminal' if _sdk_terminal_precommit else 'Evidence'
+                                raise LocalStorageError(
+                                    f'{purpose} writes require the original prewrite invocation to return')
+                            # End the old observation before entering physical CAS.
+                            terminal_baseline = None
                             write_attempted = True
                             self._exchange_write_keys((write,))
                             if (write.key in original_keys
@@ -1889,6 +1917,8 @@ class LocalByteStore:
                             generations.append(generation)
                             record_count, payload_bytes = next_count, next_bytes
                             delivered = True
+                            if _sdk_terminal_precommit:
+                                terminal_baseline = capture_terminal_baseline()
                         except BaseException as error:
                             failure = error
                             raise
@@ -1907,13 +1937,9 @@ class LocalByteStore:
                 consumed = complete = False
                 consumption_failure: BaseException | None = None
 
-                precommit: _ClosedReadBaseline | None = None
-
-                def terminal_precommit() -> _ClosedReadBaseline | None:
-                    return precommit
-
                 def consume_all() -> None:
-                    nonlocal consumed, complete, consumption_failure, precommit
+                    nonlocal consumed, complete, consumption_failure
+                    nonlocal terminal_baseline, terminal_precommit
                     try:
                         if consumed:
                             raise ValueError('Original Local projection was already consumed')
@@ -1921,20 +1947,12 @@ class LocalByteStore:
                         if (_sdk_delivery_prewrite and type(self._connection) is _TrackedSQLiteConnection
                                 and self._connection._closed_invocation is not None):
                             raise LocalStorageError('Delivery writes require the original prewrite invocation to return')
+                        if _sdk_terminal_precommit:
+                            terminal_baseline = capture_terminal_baseline()
                         for ordinal in range(count):
                             consume_ordinal(ordinal)
-                        connection = self._connection
-                        if (_sdk_terminal_precommit and type(database) is _SQLiteByteDatabase
-                                and type(connection) is _TrackedSQLiteConnection
-                                and database._connection is connection and connection._closed_eligible()):
-                            # Capture a fresh baseline only after all original
-                            # writes succeeded. The same reader keeps its
-                            # existing counters and the first census still runs.
-                            epoch = connection._closed_statement_epoch
-                            snapshot = database._snapshot_identity()
-                            if (0 <= epoch < 2**63 and connection._closed_statement_epoch == epoch
-                                    and connection._closed_eligible()):
-                                precommit = snapshot, epoch
+                        # Only the final validation can admit the terminal export.
+                        terminal_precommit = _sdk_terminal_precommit
                         if before_commit() is not None:
                             raise ValueError('Invalid Local physical precommit callback result')
                         complete = True
@@ -1942,7 +1960,8 @@ class LocalByteStore:
                         consumption_failure = error
                         raise
                     finally:
-                        precommit = None
+                        terminal_baseline = None
+                        terminal_precommit = False
 
                 if inspect is None:
                     consume_all()
@@ -1955,7 +1974,7 @@ class LocalByteStore:
                         _projected_prewrite=(
                             (lambda: not (write_attempted if reuse_identical else consumed))
                             if _sdk_delivery_prewrite else None),
-                        _terminal_precommit=terminal_precommit if _sdk_terminal_precommit else None)
+                        _terminal_read_baseline=terminal_read_baseline if _sdk_terminal_precommit else None)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:

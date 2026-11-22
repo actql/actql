@@ -3991,9 +3991,13 @@ snapshot input handle. Core performs both validations in their original order,
 and their refusals retain their original roles. After a complete first census,
 the second validation can reuse it only under the existing uninterrupted
 closed-reader proof. All point reads and fences, and the snapshot's original
-physical generation comparison, still run. Older suppliers, an interrupted
-proof and the staged-write phase use full validation. Nothing from the pair
-survives the invocation.
+physical generation comparison, still run. Older suppliers and an interrupted
+proof use full validation. Nothing from the pair survives the invocation.
+The original terminal Store can supply a fresh observation for the pair
+before and after each of its three staged CAS writes. It ends the
+observation before entering CAS and captures the next one after actual
+write success. In each invocation, binding still performs a complete first
+census and snapshot validation can reuse only that invocation's census.
 
 Only success of both judgments and the final original physical observation retains
 same-owner immutable material. A failed enclosing current/physical observation

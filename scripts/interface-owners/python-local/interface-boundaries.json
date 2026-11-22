@@ -8336,7 +8336,7 @@
           ]
         }
       ],
-      "sha256": "657a44808ee0c1c610fb16347232c59f083757c0b2654451709f385af360e70e",
+      "sha256": "bb822647ffb10952bfe7a9f8114126b619cfe36b7a515b7900dbb206435f8a7b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28655,7 +28655,7 @@
         },
         {
           "async": false,
-          "name": "_InvocationObservation/terminal_precommit_baseline",
+          "name": "_InvocationObservation/terminal_read_baseline",
           "parameters": [
             "self"
           ]
@@ -28745,7 +28745,7 @@
           ]
         }
       ],
-      "sha256": "5408e7d31364cba82f38c47ff30e1216f8043a7c5eaba0e71dd789e9c12c9396",
+      "sha256": "5726cf8d5ec5a74f114a9a4fe3c23dc0e9e61d4344af3f299cbe4e74e9165562",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28918,7 +28918,7 @@
             "_OriginalPublisherPort/authorize",
             "_OriginalPublisherPort/current",
             "_InvocationObservation/supports_saved_census_read",
-            "_InvocationObservation/terminal_precommit_baseline"
+            "_InvocationObservation/terminal_read_baseline"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -29326,6 +29326,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
               }
             ]
           }
@@ -64997,7 +65005,7 @@
             "_prewrite",
             "_reconciliation",
             "_projected_prewrite",
-            "_terminal_precommit"
+            "_terminal_read_baseline"
           ]
         },
         {
@@ -65267,6 +65275,11 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_projected_attached/capture_terminal_baseline",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_projected_attached/consume_all",
           "parameters": []
         },
@@ -65286,8 +65299,10 @@
         },
         {
           "async": false,
-          "name": "LocalByteStore/_projected_attached/terminal_precommit",
-          "parameters": []
+          "name": "LocalByteStore/_projected_attached/terminal_read_baseline",
+          "parameters": [
+            "export_name"
+          ]
         },
         {
           "async": false,
@@ -65784,7 +65799,7 @@
           "parameters": []
         }
       ],
-      "sha256": "0a4306728379cc0ecd9a77b410faff42f0712821d4ce9f2ae05fdb11c3b207c6",
+      "sha256": "2ef099fab0cb0002868c2e62c049acf77d522b6c157a8c57e46447daa2844417",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66371,7 +66386,8 @@
             "LocalByteStore/_originals_match_locked",
             "LocalByteStore/_prepare_physical_path",
             "LocalByteStore/_projected_attached",
-            "LocalByteStore/_projected_attached/terminal_precommit",
+            "LocalByteStore/_projected_attached/terminal_read_baseline",
+            "LocalByteStore/_projected_attached/capture_terminal_baseline",
             "LocalByteStore/_projected_attached/consume_all",
             "LocalByteStore/_projected_attached/consume_ordinal",
             "LocalByteStore/_projected_attached/consume_ordinal/consume",
@@ -66946,6 +66962,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
               }
             ]
           }

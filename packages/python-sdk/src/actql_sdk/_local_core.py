@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks, _JournalRowTransfer
-from ._local_storage import _NamespaceReader, LocalByteStore
+from ._local_storage import _NamespaceReader, LocalByteStore, _SAVED_READER_FACTS_EXPORT
 from ._local_native_holding import _NativeHoldingLease
 from ._local_work import OriginalLocalWork
 
@@ -3759,7 +3759,9 @@ class LocalCore:
             return False
         reader = host._observed_reader
         if (reader is None or reader._invocation_candidate is None or reader.check_unchanged is None
-                or (reader._projected_prewrite is not None and not reader._projected_prewrite())):
+                or (reader._projected_prewrite is not None and not reader._projected_prewrite()
+                    and (reader._terminal_read_baseline is None
+                         or reader._terminal_read_baseline(_SAVED_READER_FACTS_EXPORT) is None))):
             return False
         try:
             self._owned_output(original, 'submission_lookup')

@@ -282,6 +282,76 @@ class ClosedWasmSqlTests(unittest.TestCase):
     def test_saved_terminal_precommit_proves_only_its_fresh_same_reader(self):
         self._check_proposal_read('produce_sdk_terminal_storage', terminal_precommit=True)
 
+    def test_saved_terminal_reader_pair_restarts_after_each_physical_cas(self):
+        export = 'validate_payload_binding'
+        core, binding, store, _ = self.fixture(census_export=export)
+        originals = self.terminal_original(store)
+        writes = [
+            ByteWrite(store.namespaced_key('terminal', str(ordinal)), None, b'staged')
+            for ordinal in range(3)
+        ]
+        changes, readers = [], []
+
+        def validate(effect=0):
+            readers.append(binding._observed_reader)
+            changes.append(store._connection.total_changes)
+            self.assertEqual(LocalCore._call(
+                core, 'publication_commit_export', export, effect, 1), 10 if effect else 11)
+
+        def project(ordinal, consume):
+            reader = binding._observed_reader
+            self.assertIsNone(reader._terminal_read_baseline(
+                'actql_publication_commit_export_produce_sdk_terminal_storage'))
+            validate()
+            consume(writes[ordinal])
+            validate(effect=1)
+
+        def inspect(reader, take):
+            binding.inspect_reader(reader, lambda _: take())
+
+        with binding.fenced() as fences:
+            start = store._connection.total_changes
+            self.assertEqual(store.compare_exchange_projected_inspected(
+                3, project, originals, fences, inspect=inspect, current=binding._current_observer,
+                before_commit=validate, _sdk_delivery_prewrite=True, _sdk_terminal_precommit=True),
+                (0, 0, 0))
+        self.assertEqual(changes, [start + n for n in (0, 1, 1, 2, 2, 3, 3)])
+        self.assertTrue(all(reader is readers[0] for reader in readers))
+        self.assertIsNone(readers[0]._terminal_read_baseline(
+            'actql_publication_commit_export_validate_payload_binding'))
+        self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_terminal_reader_pair_refuses_cas_from_its_effect(self):
+        callbacks = []
+        key = 'terminal-row'
+        write = ByteWrite(key, None, b'staged')
+
+        def effect():
+            callbacks[0](write)
+            return 0
+
+        export = 'validate_payload_binding'
+        core, binding, store, _ = self.fixture(census_export=export, effect=effect)
+        originals = self.terminal_original(store)
+
+        def project(_, consume):
+            callbacks.append(consume)
+            LocalCore._call(core, 'publication_commit_export', export, 1, 1)
+
+        def inspect(reader, take):
+            binding.inspect_reader(reader, lambda _: take())
+
+        with binding.fenced() as fences:
+            changes = store._connection.total_changes
+            with self.assertRaisesRegex(LocalStorageError, 'Terminal writes require'):
+                store.compare_exchange_projected_inspected(
+                    3, project, originals, fences, inspect=inspect, current=binding._current_observer,
+                    before_commit=lambda: None, _sdk_delivery_prewrite=True, _sdk_terminal_precommit=True)
+        self.assertEqual(len(callbacks), 1)
+        self.assertEqual(store._connection.total_changes, changes)
+        self.assertIsNone(store.read(key))
+        self.assertIsNone(store._connection._closed_invocation)
+
     def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back(self):
         def effect():
             sqlite3.Connection.execute(store._connection,
@@ -386,7 +456,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 self.assertEqual(observed, expected)
                 if terminal_precommit:
                     self.assertEqual(changes_at_export, [changes, changes + 3])
-                    self.assertIsNone(readers[0]._terminal_precommit() if enabled else None)
+                    if enabled:
+                        self.assertIsNone(readers[0]._terminal_read_baseline(
+                            'actql_publication_commit_export_produce_sdk_terminal_storage'))
                 self.assertEqual(store._connection.total_changes, changes + (0 if retained else len(writes)))
                 self.assertEqual(store.read(key), StoredBytes(0, write.payload))
                 self.assertIsNone(store._connection._closed_invocation)
