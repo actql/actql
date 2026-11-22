@@ -102851,6 +102851,249 @@
       ]
     },
     {
+      "module": "adapters/host-node/sqlite-effect-ledger-reads.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "22286802a759f5c9057ba39653052ecd0f669adcc7885441ca5191229ef76a39",
+      "role": "physical-io",
+      "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
+      "exports": [
+        "prepareSqliteEffectLedgerReads"
+      ],
+      "operations": [
+        {
+          "name": "prepareSqliteEffectLedgerReads",
+          "parameters": [
+            "database",
+            "maxEntryBytes",
+            "maxReadResponseBytes",
+            "active"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/current/current",
+          "parameters": [
+            "locatorCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/currentDataVersion/currentDataVersion",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/fixedInteger/fixedInteger",
+          "parameters": [
+            "column",
+            "minimum",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/fixedText/fixedText",
+          "parameters": [
+            "column",
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materialize/materialize",
+          "parameters": [
+            "row",
+            "scopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse",
+          "parameters": [
+            "dispatchEntryCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse/materializeBatchResponse",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse/verified/verified",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeOutcome/materializeOutcome",
+          "parameters": [
+            "row",
+            "observed"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeOutcome/materializeOutcome/materializeOutcome",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/materializeResponse/materializeResponse",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/outcome/outcome",
+          "parameters": [
+            "dispatchEntryCid",
+            "singleOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/response/response",
+          "parameters": [
+            "dispatchEntryCid",
+            "singleOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/responseForLocator/responseForLocator",
+          "parameters": [
+            "locatorCid",
+            "singleOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSqliteEffectLedgerReads/uniqueLocatorDispatch/uniqueLocatorDispatch",
+          "parameters": [
+            "locatorCid",
+            "singles",
+            "batches"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareSqliteEffectLedgerReads",
+            "prepareSqliteEffectLedgerReads/current/current",
+            "prepareSqliteEffectLedgerReads/currentDataVersion/currentDataVersion",
+            "prepareSqliteEffectLedgerReads/fixedInteger/fixedInteger",
+            "prepareSqliteEffectLedgerReads/fixedText/fixedText",
+            "prepareSqliteEffectLedgerReads/materialize/materialize",
+            "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse",
+            "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse/materializeBatchResponse",
+            "prepareSqliteEffectLedgerReads/materializeBatchResponse/materializeBatchResponse/verified/verified",
+            "prepareSqliteEffectLedgerReads/materializeOutcome/materializeOutcome",
+            "prepareSqliteEffectLedgerReads/materializeOutcome/materializeOutcome/materializeOutcome",
+            "prepareSqliteEffectLedgerReads/materializeResponse/materializeResponse",
+            "prepareSqliteEffectLedgerReads/outcome/outcome",
+            "prepareSqliteEffectLedgerReads/response/response",
+            "prepareSqliteEffectLedgerReads/responseForLocator/responseForLocator",
+            "prepareSqliteEffectLedgerReads/uniqueLocatorDispatch/uniqueLocatorDispatch"
+          ],
+          "exports": [
+            "prepareSqliteEffectLedgerReads"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "export function prepareSqliteEffectLedgerReads("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "const readHead = database.prepare("
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "const readBatchResponse = database.prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "const verifiedBatchResponses = new WeakMap<object, number>();"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "responsePhysicalSha256: row.physical_sha256,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "verifiedBatchResponses.set(verified, currentDataVersion());"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "const dataVersion = database.prepare('PRAGMA data_version');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('response metadata tampering fails physical integrity checks'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The existing SQLite reads and synchronous projection use the original Ledger lifetime without creating a task."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger-reads.mts",
+                "anchor": "// Apply its bound in SQL before allocating the BLOB or the Buffer copy. Old"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect response fixed metadata preserves exact UTF8 and UTF16 original values'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('external batch mutation invalidates a verified response fact'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect selected single response and outcome refuse batch presence before any member array materializes'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('typed outcome custody binds one stored response across restart'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./sqlite-effect-ledger-storage.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/sqlite-effect-ledger-storage.mjs",
       "responsibilityFacet": "primary",
       "sha256": "1b48fab68ef50049a433431c2bcfea573e4a6acf1b493d0549c7d502b61a1006",
@@ -103074,7 +103317,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d8216c878fc3a741bd24f748e476c1f5a71dcc854082c2f186532dabd697b593",
+      "sha256": "e575bc16a5ea9611f32a636ce80ddbf208ae3a22714b184201e869c53c34ea1b",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -103096,10 +103339,8 @@
           "async": false
         },
         {
-          "name": "openSqliteEffectLedger/current/current",
-          "parameters": [
-            "locatorCid"
-          ],
+          "name": "openSqliteEffectLedger/active/active",
+          "parameters": [],
           "async": false
         },
         {
@@ -103351,62 +103592,16 @@
           "async": false
         },
         {
-          "name": "openSqliteEffectLedger/materializeBatchResponse/materializeBatchResponse/materializeBatchResponse",
-          "parameters": [
-            "item",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteEffectLedger/materializeBatchResponse/materializeBatchResponse/verified/verified",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteEffectLedger/materializeOutcome/materializeOutcome/materializeOutcome",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteEffectLedger/openSqliteEffectLedger",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteEffectLedger/outcome/outcome",
-          "parameters": [
-            "dispatchEntryCid",
-            "singleOnly"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteEffectLedger/response/response",
-          "parameters": [
-            "dispatchEntryCid",
-            "singleOnly"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteEffectLedger/responseForLocator/responseForLocator",
-          "parameters": [
-            "locatorCid",
-            "singleOnly"
-          ],
           "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
+            "openSqliteEffectLedger/active/active",
             "openSqliteEffectLedger",
-            "openSqliteEffectLedger/current/current",
             "openSqliteEffectLedger/init:append/init:append",
             "openSqliteEffectLedger/init:append/init:append/init:append",
             "openSqliteEffectLedger/init:appendBatch/init:appendBatch",
@@ -103440,13 +103635,7 @@
             "openSqliteEffectLedger/init:recordOutcome/init:recordOutcome/init:recordOutcome/init:recordOutcome#2",
             "openSqliteEffectLedger/init:recordResponse/init:recordResponse",
             "openSqliteEffectLedger/init:recordResponse/init:recordResponse/init:recordResponse",
-            "openSqliteEffectLedger/materializeBatchResponse/materializeBatchResponse/materializeBatchResponse",
-            "openSqliteEffectLedger/materializeBatchResponse/materializeBatchResponse/verified/verified",
-            "openSqliteEffectLedger/materializeOutcome/materializeOutcome/materializeOutcome",
-            "openSqliteEffectLedger/openSqliteEffectLedger",
-            "openSqliteEffectLedger/outcome/outcome",
-            "openSqliteEffectLedger/response/response",
-            "openSqliteEffectLedger/responseForLocator/responseForLocator"
+            "openSqliteEffectLedger/openSqliteEffectLedger"
           ],
           "exports": [
             "openSqliteEffectLedger"
@@ -103786,6 +103975,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-transaction.mjs",
+        "./sqlite-effect-ledger-reads.mjs",
         "./sqlite-effect-ledger-storage.mjs",
         "node:fs",
         "node:path",
