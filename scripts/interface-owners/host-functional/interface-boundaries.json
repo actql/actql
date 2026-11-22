@@ -59430,7 +59430,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -59442,11 +59442,11 @@
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               },
               {
@@ -59938,7 +59938,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -59950,11 +59950,11 @@
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               },
               {
@@ -60436,7 +60436,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               }
             ]
@@ -60592,7 +60592,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               }
             ]
@@ -61928,7 +61928,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -62168,7 +62168,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -91390,7 +91390,7 @@
                 "anchor": "NodeInitialControlAdmissionUnavailable"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "before observing caller fields"
               },
               {
@@ -91502,12 +91502,12 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "bounds runtime references and matching DATA cannot replace the startup issuer"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
-                "anchor": "late ordinary import has no synthetic or reusable pending admission"
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
+                "anchor": "late selected consumer import has no synthetic or reusable pending admission"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -91518,7 +91518,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -91530,11 +91530,11 @@
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               },
               {
@@ -91710,7 +91710,7 @@
                 "anchor": "NodeInitialControlAdmissionUnavailable"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "before observing caller fields"
               },
               {
@@ -91822,12 +91822,12 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "bounds runtime references and matching DATA cannot replace the startup issuer"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
-                "anchor": "late ordinary import has no synthetic or reusable pending admission"
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
+                "anchor": "late selected consumer import has no synthetic or reusable pending admission"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -91838,7 +91838,7 @@
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "a caller current method cannot authenticate"
               },
               {
@@ -91850,11 +91850,11 @@
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager original namespace captures the actual startup forwarders"
               },
               {
-                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "path": "adapters/host-node/node-initial-control-installation.test.mts",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
               },
               {

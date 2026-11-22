@@ -2162,3 +2162,5 @@ target/
 /adapters/connectors/local/host/local-project-file-preparation.d.mts
 /adapters/host-node/node-initial-control-installation.mjs
 /adapters/host-node/node-initial-control-installation.d.mts
+/adapters/host-node/node-initial-control-installation.test.mjs
+/adapters/host-node/node-initial-control-installation.test.d.mts

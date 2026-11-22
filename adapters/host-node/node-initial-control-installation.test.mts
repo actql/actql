@@ -1,17 +1,29 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
-  readInitialControlInstallationAsset, readInitialControlInstallationInput}
-  from './node-initial-control-installation.mjs';
+import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {localModuleGraphInputs} from '../../scripts/adapter-module-graph.mjs';
+
+const selectedLabel = '@actql/node/selected-infer-startup';
+async function loadLateSelectedConsumer() {
+  const execArgv = process.execArgv;
+  // Select the consumer route while loading the real preload after entry.
+  // The label cannot supply the original early loader or an operational issuer.
+  process.execArgv = [...execArgv, selectedLabel];
+  try { return await import('./node-initial-control-installation.mjs'); }
+  finally { process.execArgv = execArgv; }
+}
+const {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+  readInitialControlInstallationAsset, readInitialControlInstallationInput} = await loadLateSelectedConsumer();
 
 // Current selected preload has no complete initial-control operational issuer.
 // These are actual absence/refusal cases, not a fixture issuing an admission or
 // a positive Host, preparation, physical-capacity or business-Run qualification.
-const unavailable = error => error.code === 'NodeInitialControlAdmissionUnavailable';
+const unavailable = (error: unknown) => (error as {code?: unknown}).code === 'NodeInitialControlAdmissionUnavailable';
 
 test('initial control refuses absent operational startup before observing caller fields', () => {
   let observed = 0;
@@ -32,7 +44,7 @@ test('bounds runtime references and matching DATA cannot replace the startup iss
   assert.throws(() => beginInitialControlInstallation({...originals}), unavailable);
 });
 
-test('late ordinary import has no synthetic or reusable pending admission', () => {
+test('late selected consumer import has no synthetic or reusable pending admission', () => {
   for (const originals of [undefined, null, false, {}, {}]) {
     assert.throws(() => beginInitialControlInstallation(originals), unavailable);
   }
@@ -58,24 +70,36 @@ test('the actual absent startup cannot acquire raw preparation input or project 
 // Exercise the actual CJS startup and ESM consumer Sources through Node's real
 // synchronous namespace loader. Only the fixture's appended eager import is
 // new: no operational original, scope, Common runtime or Host is supplied.
-function eagerOriginalNamespace(t, body) {
+function eagerOriginalNamespace(t: TestContext, body: string) {
   const root = mkdtempSync(join(tmpdir(), 'actql-initial-control-namespace-'));
   t.after(() => rmSync(root, {recursive: true}));
-  for (const name of ['node-initial-control-installation.mjs',
-    'initial-control-installation-owner.cjs', 'infer-trusted-runtime-view.mjs']) {
-    writeFileSync(join(root, name), readFileSync(new URL(name, import.meta.url)));
+  const checkout = fileURLToPath(new URL('../../', import.meta.url));
+  const hostDirectory = 'adapters/host-node';
+  const preload = join(hostDirectory, 'infer-trusted-node-preload.cjs');
+  const sources = localModuleGraphInputs(checkout, [preload,
+    join(hostDirectory, 'node-initial-control-installation.mjs'),
+    join(hostDirectory, 'infer-trusted-runtime-view.mjs')], {
+    // This source-only refusal fixture has no operational package inventory.
+    external: ['./initial-control-package-original.cjs'],
+  });
+  for (const source of sources) {
+    const destination = join(root, source);
+    mkdirSync(dirname(destination), {recursive: true});
+    copyFileSync(join(checkout, source), destination);
   }
-  writeFileSync(join(root, 'infer-trusted-node-preload.cjs'),
-    readFileSync(new URL('infer-trusted-node-preload.cjs', import.meta.url), 'utf8') +
-    '\nglobalThis.originalHostNamespace = require("./host.mjs");\n');
-  writeFileSync(join(root, 'host.mjs'),
+  // The real preload evaluates its provenance before the appended fixture
+  // selects the consumer's forwarding branch for the synchronous ESM handoff.
+  writeFileSync(join(root, preload), readFileSync(join(root, preload), 'utf8') +
+    '\nconst fixtureArgv = originalProcess.execArgv;\n' +
+    'originalProcess.execArgv = [...fixtureArgv, ' + JSON.stringify(selectedLabel) + '];\n' +
+    'try { globalThis.originalHostNamespace = require("./host.mjs"); }\n' +
+    'finally { originalProcess.execArgv = fixtureArgv; }\n');
+  writeFileSync(join(root, hostDirectory, 'host.mjs'),
     'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent,readInitialControlInstallationAsset,readInitialControlInstallationInput}' +
     ' from "./node-initial-control-installation.mjs";\n' +
     'export * from "./infer-trusted-runtime-view.mjs";\n');
-  // The intermediary deliberately does not match the selected public recipe.
-  // Therefore the copied original startup must remain operationally absent.
-  writeFileSync(join(root, 'preload.cjs'),
-    'require("./infer-trusted-node-preload.cjs");\n');
+  // This intermediary does not match the selected public preload recipe.
+  writeFileSync(join(root, 'preload.cjs'), 'require("./' + preload + '");\n');
   const entry = join(root, 'entry.mjs');
   writeFileSync(entry, body);
   const result = spawnSync(process.execPath,
@@ -109,7 +133,7 @@ test('eager consumer retains captured forwarders rather than a later cache expor
     'import assert from "node:assert/strict";',
     'import {createRequire} from "node:module";',
     'const require = createRequire(import.meta.url);',
-    'const filename = require.resolve("./infer-trusted-node-preload.cjs");',
+    'const filename = require.resolve("./adapters/host-node/infer-trusted-node-preload.cjs");',
     'let replacementCalls = 0;',
     'require.cache[filename].exports = {beginInitialControlInstallation(){replacementCalls++;},',
     '  assertInitialControlInstallationCurrent(){replacementCalls++;}};',
