@@ -1856,3 +1856,5 @@ target/
 /adapters/connectors/duckdb/node/test/physical-scalar-bytes.test.d.mts
 /adapters/connectors/duckdb/node/test/physical-appender.test.mjs
 /adapters/connectors/duckdb/node/test/physical-appender.test.d.mts
+/adapters/host-node/authorization-fixture.mjs
+/adapters/host-node/authorization-fixture.d.mts

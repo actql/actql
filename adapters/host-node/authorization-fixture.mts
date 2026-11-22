@@ -14,10 +14,41 @@ import {createNodeAuthorizationGate} from './authorization.mjs';
 // while this module is evaluated. An isolated tree without MoonBit sources
 // (scripts/check-node-without-duckdb.mjs) carries the compiled bundles it
 // copied and is not rebuilt.
+type GateOptions = NonNullable<Parameters<typeof createNodeAuthorizationGate>[0]>;
+type Deferral = NonNullable<GateOptions['deferral']>;
+type FixtureSelectors = Readonly<Partial<Record<
+  'principal' | 'connection' | 'resource' | 'operation', string | readonly string[]
+>>>;
+type FixtureEntryOptions = FixtureSelectors & Readonly<{exclusions?: readonly FixtureSelectors[]}>;
+type FixtureCheckpoint = Readonly<{
+  checkpointCid: string; checkpointId: string; kind: string; prepareAttemptId: string | null;
+  runId: string | null; requiredArtifact: Readonly<{cid: string}>;
+  reviewProjectionCid: string; requirements: readonly string[]; expiresAt: string;
+}>;
+type FixtureJournal = Deferral['journal'] & Readonly<{
+  inspect(reference: string): FixtureCheckpoint | undefined;
+  submitResolution(input: Readonly<{checkpointCid: string; resolutionWire: string; approvalEvidenceWire: string}>): Promise<unknown>;
+  close(): void;
+}>;
+type LegacyCheckpointModule = Readonly<{
+  loadCheckpointRuntime(): Promise<unknown>;
+  openSqliteCheckpointJournal(root: string, options: Readonly<{
+    runtime: unknown; expectedAuthorityScopeCid: string; now: () => number;
+    authorizeResolution(input: Readonly<{resolutionWire: string; proofPreimage: string}>):
+      Promise<Readonly<{keyId: string; reviewerId: string; authorityContextCid: string; policyCid: string; verifiedPreimage: string}>>;
+    attestResolution(preimage: string): Promise<Readonly<{hostKeyId: string; signature: string}>>;
+  }>): FixtureJournal;
+}>;
+type DeferralOptions = Readonly<{
+  now?: () => number;
+  hooks?: Readonly<{authorize?: () => unknown; attest?: () => unknown}>;
+}>;
+type AnswerOptions = Readonly<{claims?: readonly string[]; approvalExpiresAt?: string}>;
+
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const hasMoonBitSources = existsSync(join(repositoryRoot, 'moon.mod'));
-const builtRuntimes = new Set();
-function ensureReleaseBundle(pkg) {
+const builtRuntimes = new Set<string>();
+function ensureReleaseBundle(pkg: string) {
   if (!hasMoonBitSources || builtRuntimes.has(pkg)) return;
   execFileSync('moon', ['build', '--target', 'js', '--release', `src/${pkg}`],
     {cwd: repositoryRoot, stdio: ['ignore', 'ignore', 'pipe']});
@@ -40,14 +71,14 @@ export const FIXTURE_CONTEXT = Object.freeze({
 });
 
 const every = Object.freeze({all: true});
-const selector = value => value === undefined ? every
-  : Array.isArray(value) ? {any_of: [...value]} : {any_of: [value]};
+const selector = (value: FixtureSelectors['principal']) => value === undefined ? every
+  : Array.isArray(value) ? {any_of: [...value]} : {any_of: [value as string]};
 
 // One entry over principal × connection × resource × operation. Omitted
 // dimensions are all-target selectors.
-export function accountEntry(entryId, outcome, {
+export function accountEntry(entryId: string, outcome: 'allow' | 'deny' | 'delegate', {
   principal, connection, resource, operation, exclusions = [],
-} = {}) {
+}: FixtureEntryOptions = {}) {
   return {
     entry_id: entryId,
     outcome,
@@ -64,7 +95,7 @@ export function accountEntry(entryId, outcome, {
   };
 }
 
-export function accountConfiguration(entries, accountId = 'local-account') {
+export function accountConfiguration(entries: readonly ReturnType<typeof accountEntry>[], accountId = 'local-account') {
   return JSON.stringify({
     version: 'actql-execution-account-config/0.1',
     account_id: accountId,
@@ -72,7 +103,7 @@ export function accountConfiguration(entries, accountId = 'local-account') {
   });
 }
 
-export function fixtureAuthorization(entries, options = {}) {
+export function fixtureAuthorization(entries: readonly ReturnType<typeof accountEntry>[], options: GateOptions = {}) {
   ensureAuthorizationRuntime();
   return createNodeAuthorizationGate({
     // The gate takes the admitted configuration's own CID, so fixtures with
@@ -85,7 +116,7 @@ export function fixtureAuthorization(entries, options = {}) {
 
 // Explicit Local profile used by tests and examples that exercise execution,
 // not authorization: allow every tuple for this account.
-export function allowAllAuthorization(options = {}) {
+export function allowAllAuthorization(options: GateOptions = {}) {
   return fixtureAuthorization([accountEntry('allow-all', 'allow')], options);
 }
 
@@ -93,19 +124,19 @@ export const fixtureSourceAccess = Object.freeze({
   authorization: await allowAllAuthorization(),
 });
 
-const fixtureCid = digit => `sha256:${digit.repeat(64)}`;
+const fixtureCid = (digit: string) => `sha256:${digit.repeat(64)}`;
 
 // Test-side canonical JSON for the ASCII fixture artifacts below: sorted
 // keys, no whitespace (the Resolution/approval CIDs of Run#resolution-admission).
-const canonical = value => {
+const canonical = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value !== null && typeof value === 'object') {
     return `{${Object.keys(value).sort().map(key =>
-      `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+      `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 };
-const cidOf = value =>
+const cidOf = (value: unknown) =>
   `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
 // Durable deferral over the real SQLite Checkpoint journal. The reviewer and
@@ -114,10 +145,11 @@ const cidOf = value =>
 // real admission (`submitResolution`). `hooks.authorize` and `hooks.attest`
 // run inside the Host authentication and attestation ports (for example to
 // model slow asynchronous Host work).
-export async function sqliteDeferral(root, {now = () => Date.now(),
-  hooks = {}} = {}) {
+export async function sqliteDeferral(root: string, {now = () => Date.now(),
+  hooks = {}}: DeferralOptions = {}) {
   ensureCheckpointRuntime();
-  const {openSqliteCheckpointJournal, loadCheckpointRuntime} = await import(
+  const {openSqliteCheckpointJournal, loadCheckpointRuntime}: LegacyCheckpointModule = await import(
+    // @ts-expect-error The existing SQLite Checkpoint Journal is still authored in JS.
     './sqlite-checkpoint-journal.mjs');
   const reviewer = generateKeyPairSync('ed25519');
   const host = generateKeyPairSync('ed25519');
@@ -126,7 +158,7 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
     expectedAuthorityScopeCid: fixtureCid('7'),
     async authorizeResolution({resolutionWire, proofPreimage}) {
       await hooks.authorize?.();
-      const resolution = JSON.parse(resolutionWire);
+      const resolution = JSON.parse(resolutionWire) as {proof?: Readonly<{key_id: string; signature: string}>};
       if (resolution.proof?.key_id !== 'reviewer-key' ||
           !verify(null, Buffer.from(proofPreimage, 'utf8'), reviewer.publicKey,
             Buffer.from(resolution.proof.signature, 'base64'))) {
@@ -160,13 +192,13 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
     // requirements); any other approval is a run-scope approval whose
     // permission lasts until `approvalExpiresAt` (default: the Checkpoint's
     // answer deadline).
-    answer(checkpointCid, decision, {claims, approvalExpiresAt} = {}) {
+    answer(checkpointCid: string, decision: 'approved' | 'rejected', {claims, approvalExpiresAt}: AnswerOptions = {}) {
       const checkpoint = journal.inspect(checkpointCid);
       if (checkpoint === undefined) throw new Error('CheckpointNotFound');
       const at = new Date(now()).toISOString();
       let evidence;
       if (decision === 'approved' && checkpoint.kind === 'effect_set') {
-        const attestation = {
+        const attestation: Record<string, unknown> = {
           version: 'actql-approval-attestation/0.1',
           effect_preview_cid: checkpoint.requiredArtifact.cid,
           review_projection_cid: checkpoint.reviewProjectionCid,
@@ -186,7 +218,7 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
           compatibility_approval: attestation,
         };
       } else if (decision === 'approved') {
-        const approval = {
+        const approval: Record<string, unknown> = {
           version: 'actql-run-scope-approval/0.1',
           prepared_invocation_cid: checkpoint.requiredArtifact.cid,
           review_projection_cid: checkpoint.reviewProjectionCid,
@@ -206,7 +238,7 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
           compatibility_approval: approval,
         };
       }
-      const body = {
+      const body: Record<string, unknown> = {
         version: 'actql-checkpoint-resolution/0.1',
         resolution_id: `resolution-${checkpoint.checkpointId}-${decision}`,
         checkpoint_id: checkpoint.checkpointId,
@@ -235,7 +267,7 @@ export async function sqliteDeferral(root, {now = () => Date.now(),
         approvalEvidenceWire: evidence ? JSON.stringify(evidence) : '',
       });
     },
-    describe(view) {
+    describe(view: Parameters<Deferral['describe']>[0]) {
       sequence += 1;
       const runId = `run-${sequence}`;
       const created = new Date(now()).toISOString();
