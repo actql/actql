@@ -93460,6 +93460,14 @@
           "async": false
         },
         {
+          "name": "openSqliteCheckpointJournal/fenced",
+          "parameters": [
+            "claim",
+            "at"
+          ],
+          "async": false
+        },
+        {
           "name": "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
           "parameters": [
             "table"
@@ -94104,6 +94112,7 @@
             "openSqliteCheckpointJournal/confirmEntryGrant",
             "openSqliteCheckpointJournal/confirmModelGrant/confirmModelGrant",
             "openSqliteCheckpointJournal/fault/fault",
+            "openSqliteCheckpointJournal/fenced",
             "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint/init:activeRunCheckpoint",
