@@ -532,7 +532,23 @@ fn rebind_saved_result_originals(
     Ok(None) => return Err(-32)
     Ok(Some(_)) => ()
   }
-  match submission_cancellation_inventory(scan, read) {
+  match
+    @host.inspect_client_cancellation_journal_inventory_with_run_identity(
+      1024,
+      scan,
+      read,
+      (row, request, definition) => {
+        submission_run_row_original_with_identity(
+          row,
+          Some((request, definition)),
+        ).map(record => {
+          request: record.request,
+          definition: record.definition,
+          cancellation_requested: record.cancellation_requested,
+        })
+      },
+      -31,
+    ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
