@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {fundedInferCaptureInventoryCount} from './infer-operation.mjs';
+import {loadAcquiredEffectModelGroup} from './fixtures/acquired-effect-model-group.fixture.mjs';
 
 // Execute the original private group and enclosing custody with explicit
 // Model/Core/Store ports. No Runtime, physical stop or public-close ACK is
@@ -10,13 +10,12 @@ import {fundedInferCaptureInventoryCount} from './infer-operation.mjs';
 const source=readFileSync(new URL('./acquired-effect-computation.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const functions=ast.body.map(node=>node.declaration??node);
-const groupFunction=functions.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='acquiredEffectModelGroup');
 const outer=functions.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='openAcquiredEffectComputation');
 const declaration=name=>{
   const node=outer.body.body.find(node=>node.type==='VariableDeclaration'&&node.declarations.some(d=>d.id.name===name));
   assert(node,`original ${name}`);return source.slice(node.start,node.end);
 };
-function fixture({publicationSuccess=false,deferPublication=false}={}){
+async function fixture({publicationSuccess=false,deferPublication=false}={}){
   const events=[],contexts=[],binding={},issuance={},primary=new Error('OriginalModelEffectEvidenceRejected');
   let entered,release;const preparationEntered=new Promise(resolve=>{entered=resolve;}),preparationPending=new Promise(resolve=>{release=resolve;});
   const flags={binding:true,issuer:true,stop:true,capture:true,capacity:true};
@@ -35,8 +34,7 @@ function fixture({publicationSuccess=false,deferPublication=false}={}){
     clientProgramCleanupInferObservationIssuance(original){assert.strictEqual(original,issuance);events.push('issuer');return ok(flags.issuer);},
     clientProgramRefreshAcquiredEffectCleanup(){events.push('refresh');return true;},
   };
-  const ports={checked,runtimeField:(value,index)=>value[`_${index}`],canonicalJson:JSON.stringify,
-    fundedInferCaptureInventoryCount,
+  const ports={
     openNodeInferCaptureCustody({operation}){const index=operation.index;return {
       retainCompleted(){return true;},completedCallCount:()=>1,
       async persist(){persistCalls++;},modelEvidence:()=>[],
@@ -48,7 +46,8 @@ function fixture({publicationSuccess=false,deferPublication=false}={}){
     async acquiredInferEffectPublicationPlan(options){options.retainBinding(binding);entered();if(deferPublication)await preparationPending;if(!publicationSuccess)throw primary;return {plan:{original:true},observation:{name:'run_observation',wire:'{}',identity:'observation'},invocation:{name:'run_invocation',wire:'{}',identity:'invocation'}};},
     preparePrivatePublicationHolding(){assert(publicationSuccess);return {async commit(){events.push('commit');}};},
   };
-  const group=Function(...Object.keys(ports),'return ('+source.slice(groupFunction.start,groupFunction.end)+');')(...Object.values(ports))({
+  const create = await loadAcquiredEffectModelGroup(ports);
+  const group=create({
     moon,acquired:{control:{runDefinitionRunId:()=> 'fixture',modelPrivateHoldingCid:(_definition,_authority,name)=>name}},infer:{components:selections},
     originalModelComponents:components,originalModelSelection:{components:selections},
     originalPreparation:{components:preparations},plan,modelController:{},current(){},
@@ -75,7 +74,7 @@ function fixture({publicationSuccess=false,deferPublication=false}={}){
 }
 
 test('failed plural publication returns original bindings and capacity before enclosing first close',async()=>{
-  const f=fixture();await f.fail();
+  const f=await fixture();await f.fail();
   await f.custody.close();assert.equal(await f.custody.cleanup(),true);
   assert.equal(f.custody.cleanupPending(),false);
   assert(f.events.indexOf('binding')<f.events.indexOf('issuer'));
@@ -85,7 +84,7 @@ test('failed plural publication returns original bindings and capacity before en
 });
 
 for(const phase of ['binding','issuer','capture','capacity']) test(`failed publication ${phase} refusal retains the same cleanup and Source until original recovery`,async()=>{
-  const f=fixture();await f.fail();f.flags[phase]=false;
+  const f=await fixture();await f.fail();f.flags[phase]=false;
   await assert.rejects(f.custody.close(),{code:'ERR_ASSERTION'});assert.equal(f.custody.cleanupPending(),true);
   assert.equal(await f.custody.cleanup(),false);
   assert.equal(f.events.filter(event=>event==='parent-close').length,1);assert(!f.events.includes('source'));
@@ -98,7 +97,7 @@ for(const phase of ['binding','issuer','capture','capacity']) test(`failed publi
 });
 
 test('failed publication stop throw preserves its exact failure and all downstream cleanup duties',async()=>{
-  const f=fixture();await f.fail();f.flags.stop=false;
+  const f=await fixture();await f.fail();f.flags.stop=false;
   await assert.rejects(f.custody.close(),e=>e===f.primary);
   assert.equal(f.custody.cleanupPending(),true);
   assert(!f.events.includes('capacity'));assert(!f.events.includes('source'));
@@ -107,7 +106,7 @@ test('failed publication stop throw preserves its exact failure and all downstre
 });
 
 test('successful plural preparation keeps original evidence until enclosing close after downstream consumer failure',async()=>{
-  const f=fixture({publicationSuccess:true});
+  const f=await fixture({publicationSuccess:true});
   const plan=await f.succeed();assert.equal(plan.original,true);
   assert.equal(f.group.hasOutputPins(),true);
   assert(!f.events.includes('binding'),'final dependency consumption still owns the original before close');
@@ -121,7 +120,7 @@ test('successful plural preparation keeps original evidence until enclosing clos
 
 
 test('enclosing close awaits the same unfinished publication before retiring its original borrow',async()=>{
-  const f=fixture({publicationSuccess:true,deferPublication:true});
+  const f=await fixture({publicationSuccess:true,deferPublication:true});
   const preparing=f.succeed().then(value=>({value}),error=>({error}));
   await f.preparationEntered;
   const closing=f.custody.close();

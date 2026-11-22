@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {loadAcquiredEffectModelGroup} from './fixtures/acquired-effect-model-group.fixture.mjs';
 import './acquired-effect-unknown-primary.test.mjs';
 import './effect-preflight-custody.test.mjs';
 import './acquired-effect-before-compute-custody.test.mjs';
@@ -1073,11 +1074,9 @@ test('saved non-keyed Model preserves the ordinary Host route without projecting
   assert.deepEqual({selections, projections}, {selections: 1, projections: 0});
 });
 
-// Execute the actual private group continuation with explicit nominal ports.
-// These are ownership/routing controls, not Model dispatch or Store admission.
-function effectModelGroupFixture({foreignRecord = false, pendingSecond = false, keyed = false} = {}) {
-  const fn = inferSourceNodes.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'acquiredEffectModelGroup');
-  assert(fn);
+// Execute the imported private continuation with the same nominal capture
+// port. Only the selected test module substitutes that port.
+async function effectModelGroupFixture({foreignRecord = false, pendingSecond = false, keyed = false} = {}) {
   const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {},
     providerBinding: {}, observeAccount: () => accounts[index]})));
   const accounts = [{}, {}], contexts = [], events = [], plan = {compiled: {}, runDefinition: {}};
@@ -1122,18 +1121,15 @@ function effectModelGroupFixture({foreignRecord = false, pendingSecond = false, 
       assert.strictEqual(lookup, keyed && occurrence === selections[0].occurrence ? keyedObservation : undefined);
       events.push(['sources']); return sourceClosureOriginal;
     }};
-  const ports = {canonicalJson: value => JSON.stringify(value), runtimeField: (value, index) => value[`_${index}`],
-    checked: value => {assert.equal(value.$tag, 1); return value._0;},
-    openNodeInferCaptureCustody({operation, sourceEvidence: originals, captureOnly}) {
-      const index = operation.index; assert.equal(captureOnly, true); assert.strictEqual(originals[0], sourceEvidence);
-      return {custody: {async close() {events.push(['close-capture', index]); return index !== 1 || secondClosed;},
-        async cleanup() {events.push(['retry-capture', index]); return index !== 1 || secondClosed;},
-        cleanupPending: () => index === 1 && !secondClosed},
-      configureModelJournal() {events.push(['configure', index]);},
-      async persistSettlement(settlement, entry) {assert.equal(settlement.index, index); assert.equal(entry.index, index); events.push(['settled', index]);}};
-    }, startCompleteInferObservation() {assert.fail('routing/cleanup does not invent a completed observation');},
-    preparePrivatePublicationHolding() {assert.fail('routing/cleanup does not invent a Store write');}};
-  const create = Function(...Object.keys(ports), 'return (' + inferSourceText.slice(fn.start, fn.end) + ');')(...Object.values(ports));
+  function openCapture({operation, sourceEvidence: originals, captureOnly}) {
+    const index = operation.index; assert.equal(captureOnly, true); assert.strictEqual(originals[0], sourceEvidence);
+    return {custody: {async close() {events.push(['close-capture', index]); return index !== 1 || secondClosed;},
+      async cleanup() {events.push(['retry-capture', index]); return index !== 1 || secondClosed;},
+      cleanupPending: () => index === 1 && !secondClosed},
+    configureModelJournal() {events.push(['configure', index]);},
+    async persistSettlement(settlement, entry) {assert.equal(settlement.index, index); assert.equal(entry.index, index); events.push(['settled', index]);}};
+  }
+  const create = await loadAcquiredEffectModelGroup({openNodeInferCaptureCustody: openCapture});
   const group = create({moon, acquired: {prepared: {}, compilation: {}, control, authorityScopeCid: 'scope'},
     infer: {components: selections}, originalModelComponents: components,
     originalModelSelection: {components: selections}, originalPreparation, plan, modelController,
@@ -1148,7 +1144,7 @@ function effectModelGroupFixture({foreignRecord = false, pendingSecond = false, 
 }
 
 test('plural Effect routes equal local slots by original task and retains each pending capture on same cleanup retry', async () => {
-  const f = effectModelGroupFixture({pendingSecond: true}); await f.prime(); f.bind();
+  const f = await effectModelGroupFixture({pendingSecond: true}); await f.prime(); f.bind();
   for (const task of [1, 0]) assert.deepEqual(await f.group.handlePause({task, slot: task, status: 'waiting'}),
     {action: 'waiting_checkpoint', checkpoint: task});
   assert.deepEqual(await f.group.handlePause({task: 1, slot: 1, status: 'settling'}), {action: 'resume'});
@@ -1160,17 +1156,17 @@ test('plural Effect routes equal local slots by original task and retains each p
 });
 
 test('plural Effect rejects foreign saved inventory and lost current before journal admission', async () => {
-  const foreign = effectModelGroupFixture({foreignRecord: true});
+  const foreign = await effectModelGroupFixture({foreignRecord: true});
   await assert.rejects(foreign.prime(), /ModelResumeForeignInventory/u);
   assert.deepEqual(foreign.events, []);
-  const changed = effectModelGroupFixture(); await changed.prime(); changed.bind(); changed.revoke();
+  const changed = await effectModelGroupFixture(); await changed.prime(); changed.bind(); changed.revoke();
   await assert.rejects(changed.group.handlePause({task: 0, slot: 0, status: 'waiting'}), /OriginalCurrentLost/u);
   assert.equal(changed.events.some(event => event[0] === 'journal'), false);
 });
 
 
 test('plural Effect downstream Model retains original Source provenance and consumes its own Result rather than an earlier keyed input', async () => {
-  const f = effectModelGroupFixture({keyed:true}); await f.prime(); f.bind();
+  const f = await effectModelGroupFixture({keyed:true}); await f.prime(); f.bind();
   assert.equal(f.events.filter(event => event[0] === 'sources').length, 0,
     'binding retains the original continuation before preparing Source inputs');
   const first = f.contexts[0].prepareSourceContext();
@@ -1307,7 +1303,7 @@ test('persisted Model publication preserves an actual later child-close throw on
 
 
 test('plural persisted publication retirement preserves both original pending Model children', async () => {
-  const f = effectModelGroupFixture({pendingSecond: true});
+  const f = await effectModelGroupFixture({pendingSecond: true});
   await f.prime(); f.bind();
   assert.equal(await f.group.retirePublication(), true);
   assert.equal(f.group.cleanupPending(), true);

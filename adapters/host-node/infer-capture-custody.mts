@@ -5,6 +5,7 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {fundInferCaptureInventory, fundedInferCaptureInventoryCount, fundedInferStoppedAttemptCount} from './infer-operation.mjs';
+import type {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 
@@ -26,34 +27,13 @@ type FaultDetails = Readonly<{role: HoldingName; slot: number} | {complete: bool
   {slot: number; scopeCid: string; attemptCid: string; state?: string}>;
 type FaultInjection = (site: 'infer_private_holding_commit' | 'infer_model_response_stored' |
   'infer_model_settlement_committed' | 'infer_observation_advanced', details: FaultDetails) => Awaitable<unknown>;
-type Control = Readonly<{
+type Control = Parameters<Operation['invocationEvidenceView']>[0] & Readonly<{
   modelPrivateHoldingCid(definition: unknown, authority: string, role: HoldingName, slot: number): string;
   modelScopedPrivateHoldingCid(definition: unknown, authority: string, entry: ModelEntry, role: HoldingName, phase: HoldingPhase): string;
   admitRunEvidence(role: HoldingName, wire: string,
     limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): Evidence;
 }>;
-type Operation = Readonly<{
-  physicalStopped(): boolean;
-  cleanupProgress?(): unknown;
-  cleanup(): boolean;
-  stop(): Awaitable<unknown>;
-  reserveOriginalPublicationCapacity?(): void;
-  acquireOutput(): unknown;
-  acquireCapture(): unknown;
-  issuedAttachmentAdmission(slot: number): unknown;
-  stoppedAttemptCount(): number;
-  stoppedAttemptSlot?(index: number): number | undefined;
-  advanceStoppedAttemptUsage?(slot: number, work: number): Readonly<{complete: boolean}> | undefined;
-  attemptEvidence(slot: number): unknown;
-  settlementSlot(settlement: unknown): number;
-  issuedSlotCapture(slot: number): unknown;
-  invocationEvidenceView(control: Control, slot: number): Evidence | undefined;
-  acknowledgeSettlement(settlement: unknown): void;
-  startObservation(bounds: Readonly<{maxSlots: number; maxWireBytes: number; maxWork: number}>): unknown;
-  prepareOriginalUsage?(source: Operation, capture: unknown, count: number): void;
-  beginOriginalUsage?(source: Operation, capture: unknown, count: number, maxBytes: number): unknown;
-  installSettlementCleanup(cleanup: (settlement: unknown) => Promise<EntryObservation>): void;
-}>;
+type Operation = NonNullable<ReturnType<ReturnType<typeof openNodeComposedInferProvider>['operation']>>;
 // Keep Common values opaque. Only the existing Int, Bool, String and unboxed
 // Option slots cross into typed Host data at the compiler binding.
 type Runtime = Readonly<{
@@ -355,11 +335,11 @@ export function openNodeInferCaptureCustody<Value extends Publication>({moon, co
     await persistSourceObservation();
     const attempts = operation!.stoppedAttemptCount();
     const funded = fundedInferStoppedAttemptCount(operation);
-    if (!Number.isInteger(attempts) || attempts < 0 || attempts > 2147483647 ||
-        (attempts > 128 && funded !== attempts)) {
+    if (!Number.isInteger(attempts) || attempts! < 0 || attempts! > 2147483647 ||
+        (attempts! > 128 && funded !== attempts)) {
       throw new Error('InstalledInferAttemptInventoryUnavailable');
     }
-    for (let index = 0; index < attempts; index++) {
+    for (let index = 0; index < attempts!; index++) {
       const slot = operation!.stoppedAttemptSlot?.(index) ?? index;
       const entry = durableCalls ? modelEntryFor?.(slot) : undefined;
       // This same custody already persisted AND acknowledged that exact
@@ -629,7 +609,7 @@ export function openNodeInferCaptureCustody<Value extends Publication>({moon, co
       modelEntryFor = entry;
       operation!.installSettlementCleanup(async settlement => {
         if (publicationCleaned || reclaimed) throw new Error('ForeignInferSettlement');
-        const receipt = entry(operation!.settlementSlot(settlement));
+        const receipt = entry(operation!.settlementSlot(settlement)!);
         if (receipt === undefined) throw new Error('InferSettlementEntryMissing');
         settling ??= {settlement, entry: receipt, wire: '', complete: false};
         return persistSettlement();

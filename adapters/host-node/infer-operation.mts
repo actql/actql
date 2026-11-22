@@ -1590,7 +1590,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // work. Closing/AbortSignal alone cannot erase partial observations or
       // become a new dispatch authorization check for this cleanup duty.
       const progress = checked(moon.clientProgramAdvanceInferStoppedRawUsage(active, slot, quantum));
-      return Object.freeze({complete:runtimeField(progress, 0),work:runtimeField(progress, 1),issue:runtimeField(progress, 2)});
+      return Object.freeze({complete:runtimeField(progress, 0) as boolean,work:runtimeField(progress, 1) as bigint,issue:runtimeField(progress, 2)});
     },
     issuedAttachmentAdmission: (slot: number) => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
     issuedSlotCapture: (slot: number) => checked(moon.clientProgramIssueInferSlotCapture(

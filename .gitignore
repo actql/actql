@@ -2348,3 +2348,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/local-publication-limits.d.mts
 /adapters/host-node/installed-effect-plan-current.test.mjs
 /adapters/host-node/installed-effect-plan-current.test.d.mts
+/adapters/host-node/acquired-effect-model-publication.mjs
+/adapters/host-node/acquired-effect-model-publication.d.mts
+/adapters/host-node/fixtures/acquired-effect-model-group.fixture.mjs
+/adapters/host-node/fixtures/acquired-effect-model-group.fixture.d.mts

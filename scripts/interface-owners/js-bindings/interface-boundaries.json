@@ -37931,13 +37931,45 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4f5e79c6fd61a8b3e1b264c7127c267b2a9329d359126a248599064a53fbdbc1",
+      "sha256": "9e3e8011f75eb18adae3db9d9bc209db249c237e0baac270cc7b4c5922b682d6",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
+        "acquiredEffectModelGroup",
         "openAcquiredEffectComputation"
       ],
       "operations": [
+        {
+          "name": "acquiredEffectModelGroup",
+          "parameters": [
+            "moon",
+            "acquired",
+            "infer",
+            "originalModelComponents",
+            "preparedProgram",
+            "inferEvidence",
+            "originalModelSelection",
+            "originalPreparation",
+            "plan",
+            "store",
+            "principalId",
+            "signal",
+            "now",
+            "modelController",
+            "submission",
+            "existingModel",
+            "modelClaim",
+            "parentResume",
+            "modelJournalPort",
+            "sourceContinuation",
+            "faultInjection",
+            "current",
+            "sourcePlan",
+            "managedRun",
+            "originalHost"
+          ],
+          "async": false
+        },
         {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup",
           "parameters": [
@@ -37968,6 +38000,21 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#12",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#2",
           "parameters": [],
           "async": false
@@ -37984,6 +38031,26 @@
         },
         {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#9",
           "parameters": [],
           "async": false
         },
@@ -38264,58 +38331,8 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/persistPublication",
+          "name": "acquiredEffectModelGroup/preconsumerPending/preconsumerPending",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
-          "parameters": [
-            "copy"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#3",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#4",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/persistPublication/persistPublication#2",
-          "parameters": [
-            "error"
-          ],
           "async": false
         },
         {
@@ -38323,16 +38340,6 @@
           "parameters": [
             "child"
           ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/publicationRetained/publicationRetained",
-          "parameters": [],
           "async": false
         },
         {
@@ -38348,35 +38355,9 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/retainCompleted/retainCompleted",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/retirePublication",
+          "name": "acquiredEffectModelGroup/same/same",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "acquiredEffectModelGroup/retirePublication/retirePublication",
-          "parameters": [],
-          "async": true
+          "async": false
         },
         {
           "name": "acquiredEffectModelGroup/same/same/same",
@@ -38875,25 +38856,9 @@
             "acquiredEffectModelGroup/init:restore/init:restore",
             "acquiredEffectModelGroup/pending/pending",
             "acquiredEffectModelGroup/pending/pending/pending",
-            "acquiredEffectModelGroup/persistPublication",
-            "acquiredEffectModelGroup/persistPublication/persistPublication",
-            "acquiredEffectModelGroup/persistPublication/persistPublication#2",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#3",
-            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#4",
             "acquiredEffectModelGroup/preconsumerPending/preconsumerPending/preconsumerPending",
-            "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
-            "acquiredEffectModelGroup/publicationRetained/publicationRetained",
             "acquiredEffectModelGroup/releaseUnitOutputs",
             "acquiredEffectModelGroup/releaseUnitOutputs/releaseUnitOutputs",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
-            "acquiredEffectModelGroup/retirePublication",
-            "acquiredEffectModelGroup/retirePublication/retirePublication",
             "acquiredEffectModelGroup/same/same/same",
             "acquiredEffectModelGroup/unitPinsPending/unitPinsPending",
             "acquiredEffectModelGroup/unitPinsPending/unitPinsPending/unitPinsPending",
@@ -38938,9 +38903,20 @@
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
             "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup",
-            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+            "acquiredEffectModelGroup",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#10",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#11",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#12",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#6",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#7",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#8",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#9",
+            "acquiredEffectModelGroup/preconsumerPending/preconsumerPending",
+            "acquiredEffectModelGroup/same/same"
           ],
           "exports": [
+            "acquiredEffectModelGroup",
             "openAcquiredEffectComputation"
           ],
           "attributes": {
@@ -39582,17 +39558,269 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/effect-preparation-result.mjs",
-        "../host-common/private-publication-holding.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./acquired-effect-keyed-prefix.mjs",
+        "./acquired-effect-model-publication.mjs",
         "./acquired-effect-sources.mjs",
         "./entry.mjs",
         "./infer-capture-custody.mjs",
-        "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
         "./installed-effect-managed-run.mjs",
         "./local-values-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/acquired-effect-model-publication.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "1f9b06743f259a751ed6ba85fa51b512dc125da1402f35ac13e0bd32b1f1f200",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createAcquiredEffectModelPublication"
+      ],
+      "operations": [
+        {
+          "name": "createAcquiredEffectModelPublication",
+          "parameters": [
+            "moon",
+            "acquired",
+            "children",
+            "preparedProgram",
+            "plan",
+            "store",
+            "signal",
+            "inferEvidence",
+            "sourcePlan",
+            "managedRun",
+            "same",
+            "buildPublication",
+            "releaseUnitOutputs",
+            "preconsumerPending",
+            "originalHost",
+            "faultInjection",
+            "readIdentityRetained",
+            "readIdentityExecution",
+            "readCaptureStartedAt",
+            "readCaptureCompletedAt",
+            "readEvidence",
+            "readKeyedSource",
+            "readSourceUnitsOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
+          "parameters": [
+            "copy"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#3",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#4",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/persistPublication/persistPublication#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/publicationCurrent/publicationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/publicationRetained/publicationRetained",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/retainCompleted/retainCompleted",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/retainCompleted/retainCompleted/retainCompleted",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/retainCompleted/retainCompleted/retainCompleted#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/retirePublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createAcquiredEffectModelPublication/retirePublication/retirePublication",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createAcquiredEffectModelPublication",
+            "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication",
+            "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication#2",
+            "createAcquiredEffectModelPublication/createAcquiredEffectModelPublication#3",
+            "createAcquiredEffectModelPublication/persistPublication",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#2",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#3",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication/persistPublication#4",
+            "createAcquiredEffectModelPublication/persistPublication/persistPublication#2",
+            "createAcquiredEffectModelPublication/publicationCurrent/publicationCurrent",
+            "createAcquiredEffectModelPublication/publicationRetained/publicationRetained",
+            "createAcquiredEffectModelPublication/retainCompleted/retainCompleted",
+            "createAcquiredEffectModelPublication/retainCompleted/retainCompleted/retainCompleted",
+            "createAcquiredEffectModelPublication/retainCompleted/retainCompleted/retainCompleted#2",
+            "createAcquiredEffectModelPublication/retirePublication",
+            "createAcquiredEffectModelPublication/retirePublication/retirePublication"
+          ],
+          "exports": [
+            "createAcquiredEffectModelPublication"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "export function createAcquiredEffectModelPublication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "return publication.plan;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "publicationOwner ??= child.operation;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "child.capture!.retainCompleted(publicationOwner)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "publicationPreparation ??= Promise.resolve()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "publicationFailed = true; publicationFailure = error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "!publicationOwner.releaseOriginalPublicationCapacity()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/acquired-effect-model-publication.mts",
+                "anchor": "await projectInferEvidence("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "plural persisted publication retirement preserves both original pending Model children"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-operation.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
