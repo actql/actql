@@ -567,16 +567,24 @@ pub fn next_completed_output_export(
 /// parsed at a time; no environment adapter reconstructs the full Relation.
 /// The leading array delimiter is part of the stored byte batch, but not of
 /// the row value. A conversion failure poisons this export occurrence.
+/// The optional constructor callback receives the original writer's batch
+/// bytes, row nodes, and enclosing-array-adjusted depth bound before decoding.
 pub fn next_completed_output_export_canonical_row(
   value : CompletedOutputExport,
   max_nodes : Int,
   max_depth : Int,
   max_utf16_units : Int,
+  before_decode? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[(Int, String, @identity.CanonicalValue)?, CompletedExportIssue] {
   if max_nodes < 1 || max_depth < 1 || max_utf16_units < 0 {
     return Err(CanonicalRow)
   }
   let index = value.row
+  let (before_bytes, before_nodes, _) = if before_decode is Some(_) {
+    @encode.observed_writer_usage(value.writer)
+  } else {
+    (0, 0, 0)
+  }
   let batch = match next_completed_output_export(value) {
     Ok(Some(batch)) => batch
     Ok(None) => return Ok(None)
@@ -586,6 +594,34 @@ pub fn next_completed_output_export_canonical_row(
     batch[0].to_int() != (if index == 0 { 91 } else { 44 }) {
     value.source = None
     return Err(CanonicalRow)
+  }
+  if before_decode is Some(reserve) {
+    let (bytes, nodes, depth) = @encode.observed_writer_usage(value.writer)
+    let prefix = if index == 0 { 1 } else { 0 }
+    guard value.source is Some(source) &&
+      !value.reading &&
+      value.row == index + 1 &&
+      bytes > before_bytes &&
+      nodes > before_nodes &&
+      depth > 1 else {
+      cancel_completed_output_export(value)
+      return Err(CanonicalRow)
+    }
+    value.reading = true
+    let admitted = reserve(
+      bytes - before_bytes + prefix,
+      nodes - before_nodes,
+      depth - 1,
+    )
+    let current = value.source is Some(_) &&
+      completed_output_available(source) &&
+      value.source.map(original => physical_equal(original, source)) ==
+      Some(true)
+    value.reading = false
+    if !current || !admitted {
+      cancel_completed_output_export(value)
+      return Err(if current { Admission(CaptureLimit) } else { Unavailable })
+    }
   }
   let row = @identity.from_json(
     @json.parse(batch[1:].to_owned()),

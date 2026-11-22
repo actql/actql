@@ -406,25 +406,57 @@ test "checked Result rows reach a bounded canonical consumer in export order" {
     64,
   ).unwrap()
   let chunks = StringBuilder()
+  let quoted : Array[(Int, Int, Int)] = []
+  let fenced = Ref(true)
+  let reserve = fn(bytes, nodes, depth) {
+    // Neither the next row nor its finished receipt can escape while
+    // the original caller is admitting this row.
+    fenced.val = fenced.val &&
+      next_completed_output_export(stream) is Err(Closed) &&
+      finish_completed_relation_export(stream) is Err(Closed)
+    quoted.push((bytes, nodes, depth))
+    true
+  }
   assert_true(
     next_completed_output_export_canonical_row(stream, 0, 2, 8)
     is Err(CanonicalRow),
   )
-  let first = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+  let first = next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+    )
     .unwrap()
     .unwrap()
   assert_eq(first.0, 0)
   assert_eq(@identity.stringify_value(first.2, 64, 4, 2), "{\"s\":\"😀\"}")
   chunks.write_string(first.1)
-  let second = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+  let second = next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+    )
     .unwrap()
     .unwrap()
   assert_eq(second.0, 1)
   assert_eq(@identity.stringify_value(second.2, 64, 4, 2), "{\"s\":\"é\"}")
   chunks.write_string(second.1)
   assert_true(
-    next_completed_output_export_canonical_row(stream, 4, 2, 8) is Ok(None),
+    next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+    )
+    is Ok(None),
   )
+  assert_eq(quoted, [(13, 2, 1), (11, 2, 1)])
+  assert_true(fenced.val)
   let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
   chunks.write_string(tail)
   assert_eq(chunks.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
@@ -450,6 +482,38 @@ test "checked Result rows reach a bounded canonical consumer in export order" {
     is Err(CanonicalRow),
   )
   assert_true(next_completed_output_export(limited) is Err(Closed))
+  for revoke in [false, true] {
+    let refused = prepare_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+    let result = next_completed_output_export_canonical_row(
+      refused,
+      4,
+      2,
+      8,
+      before_decode=Some(fn(bytes, _, _) {
+        if revoke {
+          cancel_completed_output_export(refused)
+        }
+        bytes <= (if revoke { 13 } else { 12 })
+      }),
+    )
+    if revoke {
+      assert_true(result is Err(Unavailable))
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+    }
+    assert_true(next_completed_output_export(refused) is Err(Closed))
+  }
+  assert_true(completed_output_available(source))
 }
 
 ///|

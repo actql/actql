@@ -474,11 +474,25 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.stream = Some(stream)
+      let before_decode = if entry == 0 && held.imports is Some(_) {
+        let construction = held.construction.unwrap()
+        Some(fn(bytes, nodes, depth) {
+          construction.prepare_body(
+            self.original,
+            @local_values.installed_effect_capture_row_decode_workspace(
+              bytes, nodes, depth,
+            ),
+          )
+        })
+      } else {
+        None
+      }
       while @execution.next_completed_output_export_canonical_row(
               stream,
               wire.max_nodes,
               wire.max_depth,
               limits.output_work,
+              before_decode~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Completed(issue)

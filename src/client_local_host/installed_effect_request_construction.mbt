@@ -260,6 +260,22 @@ fn installed_standard_host_capture_row_capacity(
 }
 
 ///|
+/// Complete transient decoder inventory for the original writer's next
+/// emitted row. Projection outputs need independent retention after decode.
+pub fn installed_effect_capture_row_decode_workspace(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  installed_standard_host_capture_row_capacity(bytes, nodes, depth).bind(row => {
+    @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(row),
+    )
+  })
+}
+
+///|
 // The Host parses the SAME native-produced valid JSON String, not an input
 // document or a second Source parser. Keep the existing complete literal
 // constructor peak as a conservative envelope. Only its returned tree can
