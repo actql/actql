@@ -1245,6 +1245,8 @@ pub fn client_model_provider_defaults_generation(ClientModelProviderDefaults, @c
 
 pub fn client_model_provider_defaults_resolution_extents(ClientModelProviderDefaults, Int64?) -> (@check_environment.RegistryConstructionExtent, @check_environment.RegistryConstructionExtent)
 
+pub fn client_model_provider_defaults_retained_bound(Int, Int, Int) -> @check_environment.RegistryConstructionExtent?
+
 pub fn client_model_provider_defaults_retained_extent(ClientModelProviderDefaults) -> @check_environment.RegistryConstructionExtent?
 
 pub fn client_model_provider_defaults_usage(ClientModelProviderDefaults) -> (Int, Int, Int)

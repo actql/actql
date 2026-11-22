@@ -7,7 +7,7 @@ test "Native Model HTTP keeps the provider's selected installation originals" {
   let body = @utf8.encode(
     "{\"configuration_contract_cid\":\"" +
     contract +
-    "\",\"installation_revision_cid\":\"" +
+    "\",\"credential_ref\":\"file:provider.key\",\"installation_revision_cid\":\"" +
     revision +
     "\",\"response_profile_cid\":\"" +
     profile +
@@ -21,7 +21,12 @@ test "Native Model HTTP keeps the provider's selected installation originals" {
   }
   assert_true(
     native_model_http_configuration_matches(
-      body, revision, contract, profile, limits,
+      body, revision, contract, profile, "provider.key", limits,
+    ),
+  )
+  assert_false(
+    native_model_http_configuration_matches(
+      body, revision, contract, profile, "foreign.key", limits,
     ),
   )
   for
@@ -32,14 +37,18 @@ test "Native Model HTTP keeps the provider's selected installation originals" {
     ] {
     assert_false(
       native_model_http_configuration_matches(
-        body, revision, contract, profile, limits,
+        body, revision, contract, profile, "provider.key", limits,
       ),
     )
   }
   assert_false(
-    native_model_http_configuration_matches(body, revision, contract, profile, {
-      ..limits,
-      max_bytes: body.length() - 1,
-    }),
+    native_model_http_configuration_matches(
+      body,
+      revision,
+      contract,
+      profile,
+      "provider.key",
+      { ..limits, max_bytes: body.length() - 1, },
+    ),
   )
 }

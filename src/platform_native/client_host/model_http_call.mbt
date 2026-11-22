@@ -92,6 +92,7 @@ fn native_model_http_configuration_matches(
   revision_cid : String,
   contract_cid : String,
   profile_cid : String,
+  credential_file : String,
   limits : @environment.Limits,
 ) -> Bool {
   guard @source.parse_json_bytes_preserving(body, {
@@ -115,6 +116,7 @@ fn native_model_http_configuration_matches(
       ("installation_revision_cid", revision_cid),
       ("configuration_contract_cid", contract_cid),
       ("response_profile_cid", profile_cid),
+      ("credential_ref", "file:" + credential_file),
     ] {
     guard @decode.lookup(object, field) is Some(original) &&
       @decode.text(original) == Ok(expected) else {
@@ -156,12 +158,34 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
   limits : @environment.ModelTaskLimits,
 ) -> Result[NativeModelHttpConfiguration, NativeClientModelHttpIssue] {
   self
-  .with_current_adoption_material_in_original_read((host, _, _) => {
+  .with_current_adoption_material_in_original_read((host, _, operations) => {
     let adopted = host.session.settings
     let settings = adopted.files
     guard settings.iter().find_first(file => file.name == files.setting)
-      is Some(file) &&
-      local_preparation_installation_selection(file.body) is Ok(selected) &&
+      is Some(file) else {
+      return Err(CustodyLost)
+    }
+    guard native_model_http_configuration_parse(file.body, 8192, 16, 4)
+      is Some(setting_working) else {
+      return Err(ConfigurationLimit)
+    }
+    // The decoder returns the two names and the selected record. Its indexed
+    // tree, source, key maps and closed-object checks stay in this peak.
+    if fund_native_model_http_configuration(
+        operations,
+        {
+          record_headers: 3L,
+          reference_slots: 2L,
+          scalar_words: 0L,
+          owned_utf16_units: Int::min(256, file.body.length()).to_int64(),
+          owned_wire_bytes: 0L,
+        },
+        setting_working,
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
+    guard local_preparation_installation_selection(file.body) is Ok(selected) &&
       settings.iter().find_first(file => file.name == selected.provider_file)
       is Some(provider_file) &&
       settings
@@ -174,16 +198,62 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       is Some(contract_file) &&
       settings.iter().find_first(file => file.name == files.response_profile)
       is Some(response_file) &&
-      native_model_http_configuration_matches(
+      !settings.any(candidate => candidate.name == selected.credential_file) &&
+      selected.credential_file != host.session.source_name else {
+      return Err(CustodyLost)
+    }
+    let bodies = limits.bodies
+    let no_retained : @execution.PreparationRepresentationUnits = {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }
+    guard native_model_http_configuration_parse(
+        provider_file.body,
+        bodies.max_bytes,
+        bodies.max_nodes,
+        bodies.max_depth,
+      )
+      is Some(provider_working) else {
+      return Err(ConfigurationLimit)
+    }
+    if fund_native_model_http_configuration(
+        operations, no_retained, provider_working,
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
+    if !native_model_http_configuration_matches(
         provider_file.body,
         revision_file.content_cid,
         contract_file.content_cid,
         response_profile_cid,
-        limits.bodies,
-      ) &&
-      !settings.any(candidate => candidate.name == selected.credential_file) &&
-      selected.credential_file != host.session.source_name else {
+        selected.credential_file,
+        bodies,
+      ) {
       return Err(CustodyLost)
+    }
+    let p = provider_file.body.length()
+    let r = revision_file.body.length()
+    let c = contract_file.body.length()
+    if p > 65536 || r == 0 || r > 65536 || c == 0 || c > 65536 {
+      return Err(ConfigurationLimit)
+    }
+    // Only the Provider wire remains borrowed by subsequent capability
+    // admission. Its peer UTF8 Strings stay alongside the defaults reader.
+    if fund_native_model_http_configuration(
+        operations,
+        { ..no_retained, record_headers: 1L, owned_utf16_units: p.to_int64(), },
+        native_model_http_utf8_configuration_working(
+          provider_file.body,
+          revision_file.body,
+          contract_file.body,
+        ),
+      )
+      is Err(issue) {
+      return Err(issue)
     }
     let (wire, revision, contract) = (
       @utf8.decode(provider_file.body),
@@ -192,16 +262,55 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
     ) catch {
       _ => return Err(Encoding)
     }
+    guard @host.client_model_provider_defaults_construction_extent(
+        provider_id, revision, contract, wire, bodies,
+      )
+      is Some(defaults_working) &&
+      @host.client_model_provider_defaults_retained_bound(
+        p,
+        Int::min(p, bodies.max_nodes),
+        16384,
+      )
+      is Some(defaults_retained) else {
+      return Err(ConfigurationLimit)
+    }
+    let defaults_phase = native_model_http_metadata_units(defaults_working)
+    if fund_native_model_http_configuration(
+        operations,
+        native_model_http_metadata_units(defaults_retained),
+        {
+          ..defaults_phase,
+          record_headers: defaults_phase.record_headers + 2L,
+          owned_utf16_units: defaults_phase.owned_utf16_units +
+          revision.length().to_int64() +
+          contract.length().to_int64(),
+        },
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
     guard @host.read_client_model_provider_defaults(
         provider_id,
         revision,
         contract,
         wire,
-        limits.bodies,
+        bodies,
         limits.max_work,
       )
-      is Ok(defaults) &&
-      @environment.read_model_response_profile(
+      is Ok(defaults) else {
+      return Err(CustodyLost)
+    }
+    guard native_model_http_profile_construction(response_file.body, bodies)
+      is Some((profile_retained, profile_working)) else {
+      return Err(ConfigurationLimit)
+    }
+    if fund_native_model_http_configuration(
+        operations, profile_retained, profile_working,
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
+    guard @environment.read_model_response_profile(
         response_file.body,
         response_profile_cid,
         limits.bodies,
@@ -255,6 +364,26 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     let wire = configuration.provider_wire
     let response = configuration.response
     let selected = configuration.selected
+    guard native_model_http_capability_construction(binding, wire)
+      is Some(capability_working) else {
+      return Err(ConfigurationLimit)
+    }
+    // Installed physical Provider, capability, admitted provider and private
+    // projection holders coexist. Configuration and Profile are borrowed.
+    if fund_native_model_http_configuration(
+        operations,
+        {
+          record_headers: 12L,
+          reference_slots: 44L,
+          scalar_words: 10L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        capability_working,
+      )
+      is Err(issue) {
+      return Err(issue)
+    }
     guard @model.install_async_model_provider(connection) is Ok(implementation) &&
       @model.register_structured_model_capability(
         implementation, binding, wire, resolved, response, true, true,

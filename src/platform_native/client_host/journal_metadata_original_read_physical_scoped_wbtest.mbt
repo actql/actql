@@ -390,6 +390,169 @@ test "Initial signing Journal routing one short refuses before retained controls
 }
 
 ///|
+fn native_model_http_configuration_original_read_refusal(
+  one_short : Bool,
+) -> Unit raise {
+  let name = if one_short {
+    "model-http-config-one-short"
+  } else {
+    "model-http-config-foreign"
+  }
+  let setting = name + ".json"
+  let provider = name + ".provider.json"
+  let selected_credential = name + ".bearer"
+  let revision = name + ".revision.json"
+  let contract = name + ".contract.json"
+  let response = name + ".response.json"
+  let profile_cid = "sha256:" + "0".repeat(64)
+  let revision_body = b"{\"revision\":1}"
+  let contract_body = b"{\"contract\":1}"
+  let revision_cid = "sha256:" + @sha.hex(revision_body)
+  let contract_cid = "sha256:" + @sha.hex(contract_body)
+  let body = if one_short {
+    b"["
+  } else {
+    @utf8.encode(
+      "{\"version\":\"actql-config/0.1\",\"native\":{\"preparation_credential\":{\"credential_file\":\"" +
+      selected_credential +
+      "\",\"provider_file\":\"" +
+      provider +
+      "\"}}}",
+    )
+  }
+  let provider_body = @utf8.encode(
+    "{\"configuration_contract_cid\":\"" +
+    contract_cid +
+    "\",\"credential_ref\":\"file:some-other.bearer\",\"installation_revision_cid\":\"" +
+    revision_cid +
+    "\",\"response_profile_cid\":\"" +
+    profile_cid +
+    "\"}",
+  )
+  let root = @filesystem.open_private_root(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+  ).unwrap()
+  let files = [setting, provider, revision, contract, response]
+  for i, contents in [body, provider_body, revision_body, contract_body, b"{}"] {
+    let writer = root
+      .create_writer(name + ".stage-" + i.to_string(), 1024L)
+      .unwrap()
+    writer.append(contents).unwrap()
+    writer.seal(files[i]).unwrap() |> ignore
+  }
+  root.close().unwrap()
+  let host = policy_host_fixture(name, files~)
+  let crypto = host.epoch.crypto
+  let fixture = journal_metadata_original_read_fixture()
+  // Initial bootstrap and Read consumer each retain 65536 on this ledger.
+  // The setting retains three headers, two references and at most the input
+  // length in UTF16 units for its two selected names.
+  let cost = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 2L,
+    scalar_words: 0L,
+    owned_utf16_units: Int::min(256, body.length()).to_int64(),
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let prefix = if one_short { 4194304L - 2L * 65536L - cost + 1L } else { 0L }
+  let capture = prepare_native_local_journal_capture_with_original_resources(
+    host.session,
+    fixture.host,
+    fixture.pair,
+    fixture.read,
+    crypto,
+    100.0,
+    8,
+    8388608L,
+    metadata_retained=prefix,
+  )
+  capture.opening = JournalAcquired(host)
+  capture.read_callback_active = true
+  capture.read_facts_valid = true
+  capture.read_material = Some(host.adopted_current_material().unwrap())
+  let original = capture.original_resources.unwrap()
+  let limits : @environment.Limits = {
+    max_bytes: 8192,
+    max_nodes: 128,
+    max_depth: 8,
+    max_members: 16,
+  }
+  if !one_short {
+    assert_true(
+      native_model_http_configuration_matches(
+        provider_body, revision_cid, contract_cid, profile_cid, "some-other.bearer",
+        limits,
+      ),
+    )
+  }
+  let refused = original
+    .stage(@arena.HostRead, fn() {
+      if one_short {
+        fixture.host
+        .prepare_domain_original_read_construction(
+          fixture.read,
+          prefix,
+          prefix,
+          16L,
+        )
+        .map_err(issue => OriginalResources(@arena.Read(issue)))
+        .unwrap()
+      }
+      let result = capture.read_model_http_configuration_in_original_read(
+        {
+          setting,
+          installation_revision: revision,
+          configuration_contract: contract,
+          response_profile: response,
+        },
+        "model-test",
+        profile_cid,
+        {
+          bodies: limits,
+          contracts: { max_nodes: 8, max_depth: 4, max_text_bytes: 128, },
+          max_work: 65536,
+        },
+      )
+      // Parsing this admitted malformed file would refuse its shape. The
+      // earlier actual Ledger refusal leaves the previous retained prefix.
+      Ok(
+        if one_short {
+          result is Err(Original(OriginalResources(_)))
+        } else {
+          // A later parser refusal with the same public issue would already
+          // have retained the Provider wire and defaults construction.
+          result is Err(Original(CustodyLost)) &&
+          original.metadata_retained == cost
+        },
+      )
+    })
+    .unwrap()
+  assert_true(refused)
+  if one_short {
+    assert_eq(original.metadata_retained, prefix)
+  }
+  assert_true(
+    host.database.scan_after("client_local_installation_originals", "")
+    is Err(@sqlite.NotFound),
+  )
+  capture.opening = JournalNotAttempted
+  capture.read_material = None
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+test "Native Model configuration refuses the original Read one short before parsing its setting" {
+  native_model_http_configuration_original_read_refusal(true)
+}
+
+///|
+test "Native Model configuration refuses a foreign credential in the adopted original Read" {
+  native_model_http_configuration_original_read_refusal(false)
+}
+
+///|
 // The Read and its retained-byte ledger are real. Private fixture records
 // present mismatched preparation inputs, without issuing a signing use or
 // claiming that the test has an installed approval path.
