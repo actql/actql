@@ -20,6 +20,7 @@ pub enum Value {
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
   Signed64(Int64)
+  Binary(BinaryValue)
 }
 
 ///|
@@ -389,6 +390,7 @@ pub(all) enum IssueKind {
   UnauthorizedReference
   BudgetExceeded
   InvalidSigned64
+  InvalidBytes
 } derive(Eq, Debug)
 
 ///|

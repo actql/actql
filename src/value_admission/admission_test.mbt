@@ -73,6 +73,7 @@ fn outcome(
         @value_admission.NonCanonicalText => "NonCanonicalText"
         @value_admission.InvalidDecimal => "InvalidDecimal"
         @value_admission.InvalidSigned64 => "InvalidSigned64"
+        @value_admission.InvalidBytes => "InvalidBytes"
         @value_admission.InvalidDate => "InvalidDate"
         @value_admission.InvalidTimestamp => "InvalidTimestamp"
         @value_admission.StringConstraint => "StringConstraint"

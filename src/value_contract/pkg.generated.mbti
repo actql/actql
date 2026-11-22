@@ -263,6 +263,7 @@ pub(all) enum Primitive {
   TimestampType
   JsonType
   Signed64Type
+  BytesType
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ReadConstructionInventory {
@@ -290,6 +291,7 @@ pub enum Shape {
   ResourceRef(resource_kind~ : String)
   ContentRef(media_type~ : String?)
   Signed64
+  Bytes
 }
 
 type TextEnumeration derive(Eq, @debug.Debug)

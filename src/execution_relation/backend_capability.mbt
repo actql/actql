@@ -30,7 +30,7 @@ fn supported_comparison(
       right.shape is @contract.ResourceRef(resource_kind=right_kind) &&
       left_kind == right_kind
     ContentRef(..) => right.shape is @contract.ContentRef(..)
-    Json | Array(_, ..) | Object(_) | Vector(..) => false
+    Bytes | Json | Array(_, ..) | Object(_) | Vector(..) => false
   }
 }
 

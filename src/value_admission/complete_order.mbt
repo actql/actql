@@ -179,6 +179,12 @@ pub fn advance_complete_order(
               @encode.string_value(out, value.to_string())
               @encode.end_array(out)
             }
+            Binary(value) => {
+              begin_order_value(out, "bytes")
+              pending.push(
+                OrderText(@encode.start_string_value(out, value.wire), true),
+              )
+            }
             Text(value) => {
               begin_order_value(out, "text")
               pending.push(

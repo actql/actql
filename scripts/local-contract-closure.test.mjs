@@ -58,8 +58,14 @@ test('the inherited text/time dependency preserves original ContentRef bytes bes
   const expected = 'sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9';
   const vectors = read('portability/corpus/signed64-identities.json').inheritedBarrier;
   assert.equal(vectors.priorCid, expected);
-  assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid, vectors.currentCid);
-  verifyIdentity(textTimeBase, vectors.currentCid, vectors.canonicalPreimage);
+  const retained = structuredClone(textTimeBase);
+  assert.deepEqual(retained.barrier_schema.$defs.value_contract.oneOf.pop(),
+    {type:'object', required:['type','nullable'], additionalProperties:false,
+      properties:{type:{const:'bytes'},nullable:{type:'boolean'}}});
+  retained.barrier_schema_cid = machineCid(retained.barrier_schema);
+  verifyIdentity(retained, vectors.currentCid, vectors.canonicalPreimage);
+  assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid,
+    machineCid(textTimeBase));
   assert.equal(Object.hasOwn(textTimeBase, 'contract_cid'), false);
   for (const key of ['source_schema', 'evaluation_envelope_schema', 'barrier_schema']) {
     assert.equal(machineCid(textTimeBase[key]), textTimeBase[key + '_cid']);
