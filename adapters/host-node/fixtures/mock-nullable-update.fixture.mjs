@@ -13,6 +13,7 @@ export const catalog = {connections: {salesforce: {
     key_path: ['salesforce', 'Account', 'key'], primary_identity: 'id'}],
   writes: [{resource: 'Account', primary_identity: 'id',
     writable_fields: ['clear_value', 'blank_value', 'omitted_value'],
+    update_fields: ['clear_value', 'blank_value'],
     write_null_fields: ['clear_value'],
     permission: 'salesforce:record:update', observe_permission: 'salesforce:record:observe',
     approval: 'required', aliases: ['salesforce.Account']}],

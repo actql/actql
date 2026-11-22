@@ -117795,7 +117795,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "51864ca4585832dd6a30955451ce74454685e8b12e4e42618665c1434ee02559",
+      "sha256": "a5d5b077c831f7c5af1d3e8f7e1f67ec2362d04aff33ee794977d11aed40e224",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",

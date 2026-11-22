@@ -3,6 +3,7 @@
 // Observe and update permissions retain their separate authored meanings.
 priv struct LocalProjectMockWriteDeclaration {
   mapping : @row_host.RowMapping
+  writable_fields : Array[String]
   aliases : Array[String]
   _retained_observe_permission : String
 }
@@ -81,13 +82,18 @@ fn local_project_mock_write_declarations(
     return Err(InvalidSpecification)
   }
   let adapted : Array[Json] = []
-  let originals : Array[(String, Array[String], Array[String], String)] = []
+  let originals : Array[
+    (String, Array[String], Array[String], Array[String], String),
+  ] = []
   for write in writes {
-    guard write is Object(body) &&
-      (
-        body.length() == 7 ||
-        (body.length() == 8 && body.get("write_null_fields") is Some(_))
-      ) &&
+    guard write is Object(body) else { return Err(InvalidSpecification) }
+    let optional_count = (if body.get("write_null_fields") is Some(_) {
+        1
+      } else {
+        0
+      }) +
+      (if body.get("update_fields") is Some(_) { 1 } else { 0 })
+    guard body.length() == 7 + optional_count &&
       local_project_mock_file_text(write, "resource") is Some(resource) &&
       local_project_mock_file_text(write, "primary_identity") is Some(identity) &&
       local_project_mock_file_text(write, "permission") is Some(permission) &&
@@ -103,6 +109,17 @@ fn local_project_mock_write_declarations(
       !aliases.is_empty() &&
       !originals.any(original => original.0 == resource) else {
       return Err(InvalidSpecification)
+    }
+    let selected = match body.get("update_fields") {
+      None => names
+      Some(value) => {
+        guard local_project_mock_write_names(Some(value)) is Some(fields) &&
+          !fields.is_empty() &&
+          fields.all(name => names.contains(name)) else {
+          return Err(InvalidSpecification)
+        }
+        fields
+      }
     }
     guard data
       .iter()
@@ -123,7 +140,7 @@ fn local_project_mock_write_declarations(
         "approval": "required",
       },
     })
-    originals.push((resource, names, aliases, observe))
+    originals.push((resource, names, selected, aliases, observe))
   }
   let wire = match
     local_project_mock_relation_wire({ "writes": Json::array(adapted) }) {
@@ -131,7 +148,7 @@ fn local_project_mock_write_declarations(
     Err(_) => return Err(InvalidSpecification)
   }
   let result : Array[LocalProjectMockWriteDeclaration] = []
-  for index, (resource, names, aliases, observe) in originals {
+  for index, (resource, names, selected, aliases, observe) in originals {
     let null_fields = match writes[index] {
       Object(body) => body.get("write_null_fields")
       _ => None
@@ -141,7 +158,7 @@ fn local_project_mock_write_declarations(
         declaration,
         wire,
         resource,
-        names.map(name => {
+        selected.map(name => {
           target: name,
           field: name,
           null_behavior: if local_project_mock_write_null_selected(
@@ -156,7 +173,17 @@ fn local_project_mock_write_declarations(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    result.push({ mapping, aliases, _retained_observe_permission: observe, })
+    let writable_fields = if selected.length() == names.length() {
+      mapping.write_fields
+    } else {
+      names
+    }
+    result.push({
+      mapping,
+      writable_fields,
+      aliases,
+      _retained_observe_permission: observe,
+    })
   }
   Ok(result)
 }

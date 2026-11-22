@@ -126,6 +126,7 @@ test('Native nullable Mock harness checks original preview, exact Read bindings 
         const [write] = catalog.connections.salesforce.writes;
         assert(write.writable_fields.includes('omitted_value'));
         assert(!write.writable_fields.includes('protected_value'));
+        assert.deepEqual(write.update_fields, ['clear_value', 'blank_value']);
         assert(!write.write_null_fields.includes('omitted_value'));
         assert(!Object.hasOwn(nullable.definition.review.changes, 'omitted_value'));
       } else if (command === 'run') {

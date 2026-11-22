@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "216e922380099a31d526b4d9547ac1e8d60d578f90d7da4ca583612c06ee7f66",
+      "sha256": "ed87f9197ab233b2ef7871c31148344fd1f992bbc3d1aaea9ff3e875880767a1",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",

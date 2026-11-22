@@ -883,6 +883,40 @@ test "Native Mock Mapping carries only an explicit nullable write field" {
       is Err(_),
     )
   }
+  write["write_null_fields"] = Json::array([Json::string("NextStep")])
+  write["update_fields"] = Json::array([Json::string("StageName")])
+  let subset = local_project_mock_write_declarations(
+      Json::object(entry),
+      declaration,
+    ).unwrap()[0]
+  assert_eq(subset.writable_fields.length(), legacy.write_fields.length())
+  assert_true(
+    legacy.write_fields.all(name => subset.writable_fields.contains(name)),
+  )
+  assert_eq(subset.mapping.write_fields, ["StageName"])
+  assert_true(
+    subset.mapping.body.contains(
+      "\"row_mapping\":{\"StageName\":{\"field\":\"StageName\",\"null_behavior\":\"reject\"}}",
+    ),
+  )
+  write["update_fields"] = Json::array([Json::string("NextStep")])
+  let clear = local_project_mock_write_declarations(
+      Json::object(entry),
+      declaration,
+    ).unwrap()[0].mapping
+  assert_eq(clear.write_fields, ["NextStep"])
+  assert_true(
+    clear.body.contains(
+      "\"row_mapping\":{\"NextStep\":{\"field\":\"NextStep\",\"null_behavior\":\"write_null\"}}",
+    ),
+  )
+  for fields in [[], ["id"], ["undeclared"], ["NextStep", "NextStep"]] {
+    write["update_fields"] = Json::array(fields.map(Json::string))
+    assert_true(
+      local_project_mock_write_declarations(Json::object(entry), declaration)
+      is Err(InvalidSpecification),
+    )
+  }
 }
 
 ///|
