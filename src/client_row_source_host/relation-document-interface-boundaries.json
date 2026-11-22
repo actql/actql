@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8b08cd5c30df2b1fdd72ab0f72656d06c5b1f26c79b2f587d883ba6f65c09432",
+      "sha256": "30d7eaf9918002ee8b10ec0e1656655fab9fbe4a7f519d2af132750f3fa86d3d",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -59,7 +59,7 @@
         },
         {
           "name": "prepare_relation_target_insert",
-          "declaration": "prepare_relation_target_insert ( backing : RelationDocument , prepared : RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] ? , row_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
+          "declaration": "prepare_relation_target_insert ( backing : RelationDocument , prepared : RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] ? , expected_identity : String , row_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
         },
         {
           "name": "prepare_relation_target_update",

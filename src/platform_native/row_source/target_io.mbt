@@ -16,11 +16,14 @@ priv enum NativeRelationFileTargetMutation {
   ObserveDeleteTarget
   UpdateTarget(String, String, String)
   DeleteTarget(String, String)
+  InsertTarget(String, String)
 }
 
 ///|
 fn NativeRelationFileTargetMutation::writes(self : Self) -> Bool {
-  self is UpdateTarget(_, _, _) || self is DeleteTarget(_, _)
+  self is UpdateTarget(_, _, _) ||
+  self is DeleteTarget(_, _) ||
+  self is InsertTarget(_, _)
 }
 
 ///|
@@ -70,10 +73,17 @@ struct NativeRelationFileReplacementAck {
   provider : NativeRelationFilePreparedProvider
   identity : String
   expected_version : String
-  deleting : Bool
+  operation : NativeRelationFileReplacementKind
   changes_wire : String
   replacement : Bytes
   generation : @files.NativeFileGeneration
+}
+
+///|
+priv enum NativeRelationFileReplacementKind {
+  TargetUpdated
+  TargetDeleted
+  TargetInserted
 }
 
 ///|
@@ -97,7 +107,12 @@ pub fn NativeRelationFileReplacementAck::expected_version(
 
 ///|
 pub fn NativeRelationFileReplacementAck::is_delete(self : Self) -> Bool {
-  self.deleting
+  self.operation is TargetDeleted
+}
+
+///|
+pub fn NativeRelationFileReplacementAck::is_insert(self : Self) -> Bool {
+  self.operation is TargetInserted
 }
 
 ///|
@@ -316,17 +331,48 @@ pub fn prepare_native_relation_file_target_delete_io(
 }
 
 ///|
+/// Enter the existing locked file child with an already selected physical
+/// Text key and complete typed storage row. The Host still owns the original
+/// claim and must admit the full insertion peak in before_response.
+pub fn prepare_native_relation_file_target_insert_io(
+  provider : NativeRelationFilePreparedProvider,
+  identity : String,
+  row_wire : String,
+  staging : String,
+  before_response : (Int) -> Bool,
+  predecessor? : NativeRelationFileReplacementAck? = None,
+) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
+  prepare_native_relation_file_target_io_original(
+    provider,
+    [],
+    identity,
+    InsertTarget(row_wire, staging),
+    predecessor~,
+    before_response=Some(before_response),
+    staged_update=true,
+  )
+}
+
+///|
+fn native_relation_file_target_staging_name(
+  provider : NativeRelationFilePreparedProvider,
+  staging : String,
+) -> Bool {
+  file_capture_text(staging, 64) &&
+  !staging.contains("/") &&
+  staging != "." &&
+  staging != ".." &&
+  staging != provider.selection.name
+}
+
+///|
 fn native_relation_file_target_write_names(
   provider : NativeRelationFilePreparedProvider,
   version : String,
   staging : String,
 ) -> Bool {
   file_capture_text(version, provider.limits.page.max_bytes) &&
-  file_capture_text(staging, 64) &&
-  !staging.contains("/") &&
-  staging != "." &&
-  staging != ".." &&
-  staging != provider.selection.name
+  native_relation_file_target_staging_name(provider, staging)
 }
 
 ///|
@@ -340,7 +386,8 @@ fn prepare_native_relation_file_target_io_original(
   staged_update? : Bool = false,
 ) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue] {
   let fieldless = mutation is ObserveDeleteTarget ||
-    mutation is DeleteTarget(_, _)
+    mutation is DeleteTarget(_, _) ||
+    mutation is InsertTarget(_, _)
   if !file_capture_text(identity, provider.limits.page.max_bytes) ||
     writable.is_empty() != fieldless ||
     writable.length() > provider.limits.page.max_nodes {
@@ -355,6 +402,11 @@ fn prepare_native_relation_file_target_io_original(
       }
     DeleteTarget(version, staging) =>
       if !native_relation_file_target_write_names(provider, version, staging) {
+        return Err(InvalidInput)
+      }
+    InsertTarget(row_wire, staging) =>
+      if !file_capture_text(row_wire, provider.limits.page.max_bytes) ||
+        !native_relation_file_target_staging_name(provider, staging) {
         return Err(InvalidInput)
       }
   }
@@ -573,6 +625,22 @@ fn NativeRelationFileTargetIO::project(
   // Retain the raw original BEFORE the fallible typed projection. Both marks
   // stay with this same child until its actual consumer and cleanup return.
   self.backing = Some(backing)
+  if self.mutation is InsertTarget(row_wire, _) {
+    self.replacement = Some(
+      file_require(
+        @rows.prepare_relation_target_insert(
+          backing,
+          provider.prepared_contract,
+          selected.items_path,
+          selected.key_path,
+          self.identity,
+          row_wire,
+        ).map_err(issue => Document(issue)),
+      ),
+    )
+    self.phase = TargetWriting
+    return
+  }
   let projected = @rows.project_relation_target_document(
     backing,
     provider.declaration,
@@ -627,6 +695,7 @@ fn NativeRelationFileTargetIO::project(
       self.replacement = Some(output)
       self.phase = TargetWriting
     }
+    InsertTarget(_, _) => raise FileCaptureStop(Unavailable)
   }
 }
 
@@ -635,11 +704,12 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
   if self.replacement_attempted {
     raise FileCaptureStop(Unavailable)
   }
-  let (expected_version, changes_wire, staging, deleting) = match
+  let (expected_version, changes_wire, staging, operation) = match
     self.mutation {
     UpdateTarget(version, changes, staging) =>
-      (version, changes, staging, false)
-    DeleteTarget(version, staging) => (version, "", staging, true)
+      (version, changes, staging, TargetUpdated)
+    DeleteTarget(version, staging) => (version, "", staging, TargetDeleted)
+    InsertTarget(row_wire, staging) => ("", row_wire, staging, TargetInserted)
     ObserveTarget | ObserveDeleteTarget => raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()
@@ -669,7 +739,7 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
     provider: self.provider,
     identity: self.identity,
     expected_version,
-    deleting,
+    operation,
     changes_wire,
     replacement: output,
     generation,

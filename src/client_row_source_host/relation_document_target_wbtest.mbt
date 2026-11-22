@@ -56,6 +56,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
       prepared,
       ["collection", "records"],
       Some(["keys"]),
+      "new",
       row,
     ).unwrap()
     assert_eq(replacement, expected)
@@ -80,6 +81,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
         prepared,
         ["collection", "records"],
         Some(["keys"]),
+        "new",
         row,
       )
       is Err(InvalidPage),
@@ -95,6 +97,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
         short_prepared,
         ["collection", "records"],
         Some(["keys"]),
+        "new",
         row,
       )
       is Err(InvalidPage),
@@ -122,6 +125,7 @@ test "relation insertion refuses malformed identity row limits and retired backi
       prepared,
       items_path,
       None,
+      "first",
       duplicate,
     )
     is Err(InvalidPage),
@@ -132,6 +136,7 @@ test "relation insertion refuses malformed identity row limits and retired backi
       prepared,
       items_path,
       None,
+      "new",
       missing,
     )
     is Err(MissingField("amount")),
@@ -142,19 +147,38 @@ test "relation insertion refuses malformed identity row limits and retired backi
       prepared,
       items_path,
       None,
+      "new",
       invalid,
     )
     is Err(Value("amount")),
   )
+  assert_true(
+    prepare_relation_target_insert(
+      original,
+      prepared,
+      items_path,
+      None,
+      "foreign",
+      row,
+    )
+    is Err(ForeignSource),
+  )
   let full_limits = { ..limits, max_rows: 2, }
   let full = admit_relation_document(input, full_limits, 10000000).unwrap()
   assert_true(
-    prepare_relation_target_insert(full, prepared, items_path, None, row)
+    prepare_relation_target_insert(full, prepared, items_path, None, "new", row)
     is Err(InvalidPage),
   )
   assert_true(discard_relation_document_original(original))
   assert_true(
-    prepare_relation_target_insert(original, prepared, items_path, None, row)
+    prepare_relation_target_insert(
+      original,
+      prepared,
+      items_path,
+      None,
+      "new",
+      row,
+    )
     is Err(ForeignSource),
   )
 }
@@ -191,6 +215,7 @@ test "relation insertion workspace includes decoded input row output and full re
     prepared,
     ["collection", "records"],
     None,
+    "new🌱",
     wire,
   ).unwrap()
   assert_eq(
@@ -564,6 +589,7 @@ test "relation insertion fits physical depth after removing the typed JSON wrapp
       prepared,
       path,
       None,
+      "new",
       row,
     )
     if depth == 31 {

@@ -68,6 +68,8 @@ pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclarat
 
 pub fn prepare_native_relation_file_target_delete_io(NativeRelationFilePreparedProvider, String, String, String, (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
+pub fn prepare_native_relation_file_target_insert_io(NativeRelationFilePreparedProvider, String, String, String, (Int) -> Bool, predecessor? : NativeRelationFileReplacementAck?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
+
 pub fn prepare_native_relation_file_target_io(NativeRelationFilePreparedProvider, Array[String], String, update? : (String, String, String)?, predecessor? : NativeRelationFileReplacementAck?, before_response? : ((Int) -> Bool)?) -> Result[NativeRelationFileTargetIO, NativeRelationFileIssue]
 
 pub fn project_native_relation_file_content_bytes(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, String, String, String, Int) -> Result[(String, Bytes), NativeRelationFileIssue]
@@ -146,6 +148,7 @@ pub fn NativeRelationFileReplacementAck::expected_version(Self) -> String
 pub fn NativeRelationFileReplacementAck::generation(Self) -> @filesystem.NativeFileGeneration
 pub fn NativeRelationFileReplacementAck::identity(Self) -> String
 pub fn NativeRelationFileReplacementAck::is_delete(Self) -> Bool
+pub fn NativeRelationFileReplacementAck::is_insert(Self) -> Bool
 pub fn NativeRelationFileReplacementAck::replacement(Self) -> Bytes
 pub fn NativeRelationFileReplacementAck::selection(Self) -> NativeRelationFileSelection
 

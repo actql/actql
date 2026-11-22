@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "d0472fc2b63598c0a6ab64d262d87f2799d9c501fd388ae1f8dcbb55d6a1f61f",
+      "sha256": "e1f057e24f6c1c943417d2dd2de761c5503b7c82d64f98b655b050dbd9dbcf0b",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -480,7 +480,7 @@
         "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]",
-        "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String) -> Result[Bytes, RowSourceIssue]",
+        "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
@@ -1118,7 +1118,7 @@
         },
         {
           "name": "prepare_relation_target_insert",
-          "declaration": "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String) -> Result[Bytes, RowSourceIssue]"
+          "declaration": "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]"
         },
         {
           "name": "prepare_relation_target_update",
@@ -3857,7 +3857,7 @@
             "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
             "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
             "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]",
-            "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String) -> Result[Bytes, RowSourceIssue]",
+            "pub fn prepare_relation_target_insert(RelationDocument, RelationDocumentPreparedContract, Array[String], Array[String]?, String, String) -> Result[Bytes, RowSourceIssue]",
             "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
             "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
             "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",

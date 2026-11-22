@@ -675,6 +675,7 @@ pub fn prepare_relation_target_insert(
   prepared : RelationDocumentPreparedContract,
   items_path : Array[String],
   key_path : Array[String]?,
+  expected_identity : String,
   row_wire : String,
 ) -> Result[Bytes, RowSourceIssue] {
   let document = match
@@ -752,6 +753,11 @@ pub fn prepare_relation_target_insert(
       if index == document.identity_index {
         guard checked.value is @admitted.Text(identity) && !identity.is_empty() else {
           raise RelationDocumentStop(InvalidInputSchema)
+        }
+        relation_document_work(work, identity.length())
+        relation_document_work(work, expected_identity.length())
+        if identity != expected_identity {
+          raise RelationDocumentStop(ForeignSource)
         }
         for row in document.rows {
           guard row[index].value is @admitted.Text(previous) else {

@@ -170,6 +170,9 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     max_response_bytes > native_client_effect_storage_profile.response_bytes {
     return Err(CapacityExceeded)
   }
+  if ack.is_insert() {
+    return Err(Checkpoint(InvalidMaterial))
+  }
   let limits = native_client_effect_storage_profile.receipt
   // The actual file caller already checked the same original Account tuple
   // before dispatch/IO. Context is its binding, not a newly issued grant.
