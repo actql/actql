@@ -1803,7 +1803,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "058b5807aeac91305cdfe7eef2d8f7ee05451bb1296859b8b7b4deeb660fdd76",
+      "sha256": "77c9c68d4efc4d5a8c0c9f57b5bbe4f2c7fd1fd15d67717432acd1d38fe84d91",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -1929,6 +1929,11 @@
           "async": false
         },
         {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
           "parameters": [
             "slot",
@@ -1973,10 +1978,14 @@
         {
           "operations": [
             "<module>",
+            "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "capture/capture/capture",
             "createHubSpotUpdateObservationAdapter",
             "createHubSpotUpdateObservationAdapter/account/account/account",
             "createHubSpotUpdateObservationAdapter/catalog/catalog",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#2",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#3",
@@ -1984,14 +1993,11 @@
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets",
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets/observed/observed",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope",
-            "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
-            "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
-            "segment/segment/segment",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
-            "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:retire/init:retire",
-            "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume"
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/consume/consume",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+            "segment/segment/segment"
           ],
           "exports": [
             "HubSpotUpdateObservationFailure",
@@ -2108,14 +2114,15 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "bf097f3847ad2b760a9c041bbd8b9298013bd394801246ba6cc5e8e87e3dc31d",
+      "sha256": "a170430d497dd64f968e5a8ea50c49002c7a901d6b69c718e289148d53f58675",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
       "exports": [
         "HUBSPOT_INSTALLED_UPDATE_OPERATION",
         "HUBSPOT_UPDATE_TARGET_VERSION",
-        "hubspotUpdateDriver"
+        "hubspotUpdateDriver",
+        "hubspotUpdatePathFixedBytes"
       ],
       "operations": [
         {
@@ -2157,30 +2164,10 @@
           "async": false
         },
         {
-          "name": "hubspotUpdateDriver/hubspotUpdateDriver",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
           "parameters": [
             "member",
             "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
-          "parameters": [
-            "key",
-            "item"
           ],
           "async": false
         },
@@ -2209,6 +2196,18 @@
           "name": "hubspotUpdateDriver/init:prepareRequest/init:prepareRequest",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "resourceOrigin",
+            "_registration",
+            "signal"
           ],
           "async": false
         },
@@ -2244,26 +2243,6 @@
           "async": false
         },
         {
-          "name": "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/init:send/init:send",
-          "parameters": [
-            "member",
-            "request",
-            "current",
-            "authorization",
-            "credential",
-            "signal",
-            "callResource"
-          ],
-          "async": true
-        },
-        {
           "name": "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
           "parameters": [
             "slot"
@@ -2295,28 +2274,19 @@
         {
           "name": "hubspotUpdateDriver/restore/restore",
           "parameters": [
-            "durable",
-            "recorded",
-            "members",
-            "memberIndexes",
-            "body",
-            "requestTags"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/restore/restore/indexes/indexes",
-          "parameters": [
-            "_",
-            "index"
+            "context"
           ],
           "async": false
         },
         {
           "name": "hubspotUpdateDriver/restore/restore/restore",
           "parameters": [
+            "recorded",
+            "members",
+            "body",
+            "requestTags",
             "index",
-            "offset"
+            "saved"
           ],
           "async": false
         },
@@ -2325,13 +2295,6 @@
           "parameters": [
             "wire",
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/restore/restore/restore#2",
-          "parameters": [
-            "index"
           ],
           "async": false
         },
@@ -2360,7 +2323,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/checkpoint-approval.mjs",
-        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/installed-row-update-recovery.mjs",
         "../../../host-common/runtime-result.mjs",
         "../site/hubspot-account-read.mjs",
         "../site/hubspot-object-read.mjs",
@@ -2380,29 +2343,23 @@
             "capture/capture/capture",
             "capture/capture/capture/capture",
             "hubspotUpdateDriver",
-            "hubspotUpdateDriver/hubspotUpdateDriver",
             "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
-            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
-            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
             "hubspotUpdateDriver/init:describe/init:describe",
             "hubspotUpdateDriver/init:footprint/init:footprint",
             "hubspotUpdateDriver/init:observeTargets/init:observeTargets",
             "hubspotUpdateDriver/init:prepareRequest/init:prepareRequest",
+            "hubspotUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
             "hubspotUpdateDriver/init:project/init:project",
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests",
             "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests/check/check",
             "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
-            "hubspotUpdateDriver/init:send/init:send",
             "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
             "hubspotUpdateDriver/responsePolicy/responsePolicy",
             "hubspotUpdateDriver/restore/restore",
-            "hubspotUpdateDriver/restore/restore/indexes/indexes",
             "hubspotUpdateDriver/restore/restore/restore",
             "hubspotUpdateDriver/restore/restore/restore/restore",
-            "hubspotUpdateDriver/restore/restore/restore#2",
             "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
             "positive/positive",
             "segment/segment/segment"
@@ -2410,7 +2367,8 @@
           "exports": [
             "HUBSPOT_INSTALLED_UPDATE_OPERATION",
             "HUBSPOT_UPDATE_TARGET_VERSION",
-            "hubspotUpdateDriver"
+            "hubspotUpdateDriver",
+            "hubspotUpdatePathFixedBytes"
           ],
           "attributes": {
             "responsibility": [
@@ -2491,7 +2449,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "b51e371d9c7f23283820fdb9c62d2c02c4615b5e179845cdb3b58765930e66a5",
+      "sha256": "ec60f1d7e4b426eb856658c6b511f17166eeb798e15e83c3abb1c161e16f1380",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -2777,7 +2735,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "f750465a3f5595d2dce986a8f94af4ceb34ea07c3b746f352b9223fba15b4594",
+      "sha256": "8a97f6ab5f892060322f898330efb26c2a3718ff47cb8dfa8abd2f51f06dd1ee",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",

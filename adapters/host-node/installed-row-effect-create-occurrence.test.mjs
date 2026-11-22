@@ -461,7 +461,12 @@ test('a failed original pre-write Form check retains the claim without entering 
     beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){assert.fail('No mutation response exists');}};
   const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
     admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
-    admitRow:()=>claim,captureClaimedEffectResponse,readDecision:async()=>({action:'dispatch'}),settle:()=>assert.fail('No typed mutation outcome')})({
+    admitRow:()=>claim,captureClaimedEffectResponse,
+    installedEffectWriteOperation(driver,member,updateWriteSlot){
+      assert.strictEqual(driver,owned);assert.strictEqual(member,selected);assert.equal(updateWriteSlot,undefined);
+      return driver.writeOperation(member);
+    },
+    readDecision:async()=>({action:'dispatch'}),settle:()=>assert.fail('No typed mutation outcome')})({
       members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],subjectCid:'subject',runInvocationCid:'run',
       applyPreview:{},ledger,assertCurrent(){},physicalOperations(facts){assert.equal(facts.phase,'write-check');events.push('check');return facts.invoke({});}});
   const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
