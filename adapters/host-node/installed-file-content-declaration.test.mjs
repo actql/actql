@@ -3304,7 +3304,15 @@ test('captured Content inventory restores every original holding before enabling
   assert.throws(() => restored.capture({}), /InstalledKeyedContentCaptureMismatch/u,
     'failed recovery cannot switch to acquisition of new bytes');
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 0);
-  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger), ["reservedRetentionBytes","reservedExecutionBytes"]), [199936n, 203776n]);
+  // The receiving frame and snapshot overlap. Each retains the original
+  // reference wire extent, the full bounded tree, and its inventory controls.
+  const wireUnits = restoredInventory.entries.reduce(
+    (units, {referenceWire}) => units + BigInt(referenceWire.length), 0n);
+  const referenceSlots = 2n * BigInt(restoredInventory.entries.length);
+  const inventoryBytes = 2n * 8n * wireUnits + referenceSlots * (256n * 64n + 1024n);
+  const pendingUsage = ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger),
+    ['reservedRetentionBytes', 'reservedExecutionBytes']);
+  assert.deepEqual(pendingUsage, [49424n + inventoryBytes, 53264n + inventoryBytes]);
   await children[1].retryRecovery();
   assert.deepEqual(restored.recoveryInventory(), original);
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 1);
