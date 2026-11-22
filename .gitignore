@@ -2020,3 +2020,5 @@ target/
 /scripts/packed-project-file-store-inventory.d.mts
 /scripts/fixtures/project-file-store-inventory-cases.mjs
 /scripts/fixtures/project-file-store-inventory-cases.d.mts
+/scripts/packed-project-dependency-boundary.mjs
+/scripts/packed-project-dependency-boundary.d.mts
