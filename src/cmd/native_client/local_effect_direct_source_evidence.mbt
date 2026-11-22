@@ -69,9 +69,8 @@ fn LocalNativeMockEffectDirectSources::grow(
 fn LocalNativeMockEffectDirectSources::identify(
   self : Self,
   source : @query.CapturedInputSource,
-  acquisition : @row_host.RowInputAcquisition,
+  bounds : @row_host.RowInputLimits,
 ) -> @query.CapturedSourceRelationIdentity raise LocalDirectSourceEvidenceStop {
-  let bounds = @row_host.row_input_acquisition_limits(acquisition)
   let wire = bounds.wire
   guard @query.captured_source_cell_identity_start_capacity(source)
     is Some(initial) &&
@@ -233,32 +232,80 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_direct_sources(
         return Err(Coverage)
       }
       held.captures.push(source)
-      let (original, acquisition) = self.input_originals[index]
-      let identity = held.identify(source, acquisition)
+      let original = self.input_originals[index]
+      let bounds = match original {
+        WholeEffectInput(_, acquisition) =>
+          @row_host.row_input_acquisition_limits(acquisition)
+        QueryEffectInput(_) => {
+          guard first._retained_sources[index]._retained_reader is Rows(binding) else {
+            return Err(Coverage)
+          }
+          let page = binding.limits.page
+          @local_values.installed_row_input_policy(
+            page.max_rows,
+            page.max_bytes,
+            page.max_nodes,
+            page.max_depth,
+            page.max_rows,
+          )
+        }
+      }
+      let identity = held.identify(source, bounds)
       let logical = direct_source_original(
-        @run_host.issue_captured_whole_source_input_logical(
-          graph,
-          source,
-          identity,
-          original,
-          task~,
-        ).map_err(issue => Logical(issue)),
+        (match original {
+          WholeEffectInput(acquisition, _) =>
+            @run_host.issue_captured_whole_source_input_logical(
+              graph,
+              source,
+              identity,
+              acquisition,
+              task~,
+            )
+          QueryEffectInput(acquisition) =>
+            @run_host.issue_captured_source_input_logical(
+              graph,
+              source,
+              identity,
+              @row_host.row_acquisition_requirement(acquisition),
+              task~,
+            )
+        }).map_err(issue => Logical(issue)),
       )
       held.logicals.push(logical)
       guard self.sources[index].capture() is Ok(physical) else {
         return Err(Coverage)
       }
-      let facts = @row_host.row_input_acquisition_facts(acquisition)
       let evidence = direct_source_original(
-        @row_host.issue_row_input_source_evidence(
-          acquisition,
-          physical,
-          identity,
-          logical,
-          scope,
-          facts.source_data_policy_cid,
-          completed,
-        ).map_err(issue => Observation(issue)),
+        (match original {
+          WholeEffectInput(_, acquisition) => {
+            let facts = @row_host.row_input_acquisition_facts(acquisition)
+            @row_host.issue_row_input_source_evidence(
+              acquisition,
+              physical,
+              identity,
+              logical,
+              scope,
+              facts.source_data_policy_cid,
+              completed,
+            )
+          }
+          QueryEffectInput(acquisition) => {
+            let requirement = @row_host.row_acquisition_requirement(acquisition)
+            guard @planning.query_requirement_source_evidence_facts(requirement)
+              is Some(facts) else {
+              return Err(Coverage)
+            }
+            @row_host.issue_row_source_evidence(
+              acquisition,
+              physical,
+              identity,
+              logical,
+              scope,
+              facts.source_data_policy_cid,
+              completed,
+            )
+          }
+        }).map_err(issue => Observation(issue)),
       )
       held.observations.push(evidence)
     }

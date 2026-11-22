@@ -1317,7 +1317,7 @@ fn native_model_graph_test_cause(
         if response != facts.carrier_schema_contract_cid {
           return "NativeModelGraphProfileResponseSchema"
         }
-        guard @test_planning.keyed_source_evidence_members(
+        guard @planning.keyed_source_evidence_members(
             @run_host.client_keyed_acquisition_facts(keyed),
           )
           is Ok(members) &&
@@ -2791,4 +2791,501 @@ test "Native original README static explain refuses an Environment without origi
     static_explain=true,
     static_lookup_metadata=false,
   )
+}
+
+///|
+test "Native Source-only mapped UPDATE retains its parameterized Query capture and evidence" {
+  let project = native_project_mock_model_fixture(
+    "nullable-mock",
+    operation="run",
+  )
+  defer project.retire()
+  let directory = project._retained_project.directory
+  let original_bytes = local_input_text_file(
+    directory + "/mock",
+    "data.json",
+    65536L,
+  )
+  project.prepare_source_declarations().unwrap()
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let environment = native_shared_file_effect_environment(project)
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let input : Json = {
+    "kind": "aql",
+    "input": {
+      "format": "aql",
+      "text": local_input_text_file(directory, "nullable-update.aql", 65536L),
+      "parameterDeclarations": { "target": { "type": "string" } },
+    },
+    "parameters": { "target": "a1" },
+    "stopBefore": "commit",
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_project_mock_relation_wire(input).unwrap(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value("prepare mapped AQL with its original parameters")
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected mapped UPDATE")
+  }
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  assert_eq(@run_host.client_direct_acquisition_occurrence_count(direct), 1)
+  let original = local_effect_first_compilation(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "local-test",
+    "parameterized-query-request",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+    source_inputs=project.prepare_effect_sources(prepared, direct),
+  )
+  assert_true(
+    @local_values.select_installed_effect_source_input(
+      prepared,
+      original.request,
+      0,
+      0,
+    )
+    is Ok(QueryRoute(_)),
+  )
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let limits = local_project_mock_file_limits()
+  let capture_recipes = []
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    original,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: limits.max_work,
+      max_bytes: limits.page.max_bytes,
+      max_nodes: limits.page.max_nodes,
+      max_depth: limits.page.max_depth,
+    },
+    limits.page.max_bytes,
+    capture_recipes,
+    query_contracts=Some(
+      (
+        @env.get_env_var("ACTQL_TEST_NATIVE_QUERY_CONTRACT").unwrap(),
+        @env.get_env_var("ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT").unwrap(),
+      ),
+    ),
+    provider_factory=native_request_provider_factory,
+  )
+  assert_true(
+    @local_values.prepared_installed_effect_managed_whole_source(plan, 0)
+    is Err(_),
+  )
+  let requirement = @local_values.prepared_installed_effect_managed_query_requirement(
+    plan, 0,
+  ).unwrap()
+  let state = retain_native_mock_effect_plan(
+    original, prepared, plan, capture_recipes,
+  )
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).unwrap()
+  let run = @local_values.begin_request_effect_managed_run(
+    facility.parent,
+    original.request,
+  ).unwrap()
+  let capture = state
+    .prepare_mock_effect_source_capture(
+      run,
+      facility.arena,
+      facility.physical,
+      0,
+    )
+    .native_file_route_value("open the same physical Query Read")
+  guard state.input_originals[0] is QueryEffectInput(acquisition) else {
+    fail("expected the admitted Query acquisition")
+  }
+  assert_true(
+    physical_equal(
+      @row_host.row_acquisition_requirement(acquisition),
+      requirement,
+    ),
+  )
+  while !state.advance_mock_effect_source_capture(capture).unwrap() {
+    ()
+  }
+  assert_true(state.retain_mock_effect_source_input(capture) is Some(_))
+  let source = @row_host.row_captured_input_source(state.captured_inputs[0]).unwrap()
+  assert_eq(@query.captured_source_row_count(source), Some(1))
+  state.source_started_at = Some("2026-10-10T00:00:01.000Z")
+  state.source_completed_at = Some("2026-10-10T00:00:02.000Z")
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared,
+    original.allowed,
+    original.definition,
+  ).unwrap()
+  state
+  .open_mock_effect_source_host(run, bound)
+  .native_file_route_value("attach original Query to Effect Host")
+  state
+  .issue_mock_effect_direct_sources(run, bound)
+  .native_file_route_value("issue original Query Source evidence")
+  {
+    let held = state.direct_sources.unwrap()
+    let observed = @run_host.client_effect_direct_sources_publication_observation(
+      held._retained_publication.unwrap(),
+    )
+    assert_eq(held.observations.length(), 1)
+    assert_true(
+      @publication.run_evidence_value_json(observed).contains(
+        @publication.run_evidence_value_identity(held.observations[0]),
+      ),
+    )
+  }
+  let direct = state.direct_sources.unwrap()
+  let source_live = () => direct.captures.all(@query.captured_source_available)
+  let outcome = match
+    @local_values.execute_retained_effect_local_tasks_guarded(
+      state.effect_host.unwrap(),
+      state.effect_capture.unwrap(),
+      256,
+      100000,
+      () => {
+        source_live() &&
+        @local_values.check_installed_effect_managed_run(
+          run,
+          prepared,
+          original.request,
+        )
+        is Ok(_) &&
+        @run_host.client_effect_run_start_current(
+          original.allowed,
+          original.definition,
+          local_utc_now(),
+        )
+      },
+      require_live=Some(source_live),
+    ) {
+    Err(failure) => {
+      let issue = @local_values.local_values_execution_failure_issue(failure)
+      let label = command_preparation_cleanup_cause(
+        CommandBusinessEffectProposals(HostExecution(issue)),
+      )
+      assert_true(
+        @local_values.retry_local_values_execution_failure_cleanup(failure),
+      )
+      Err(label)
+    }
+    Ok(executed) => {
+      let policy = @run_host.client_local_product_bootstrap_originals(
+        "/fixture/mock-original", "2026-10-10T00:00:00.000Z",
+      ).unwrap()
+      let profile = @run_host.client_local_run_policy_profile(policy.common).unwrap()
+      let retention = @run_host.issue_client_local_run_retention_policy(
+        profile, "2026-10-10T00:00:00.000Z",
+      ).unwrap()
+      let primary : Ref[LocalNativeMockEffectProposalIssue?] = Ref(None)
+      state.suffix = Some(executed)
+      let proposed = try {
+        state.prepare_direct_mock_effect_proposals(
+          run,
+          retention,
+          limits.page.max_bytes,
+          issue => if primary.val is None { primary.val = Some(issue) },
+        )
+        Ok(())
+      } catch {
+        ClientStop(message) =>
+          Err(
+            primary.val
+            .map(issue => {
+              match issue {
+                Proposal(cause) => @debug.to_string(cause)
+                UnitPublication(Evidence(cause)) => {
+                  let frontier = if state.proposals is Some(held) &&
+                    held._retained_combined_source_unit is Some(_) {
+                    "combined Result Artifact"
+                  } else {
+                    "combined Source Unit"
+                  }
+                  let detail = if cause is Invocation(MissingUnit) &&
+                    state.proposals is Some(held) &&
+                    @strategy.captured_effect_input_at(held.inputs, 0)
+                    is Some(input) {
+                    let stage = @strategy.captured_effect_input_stage(input)
+                    let occurrences = @local_values.prepared_installed_effect_source_occurrences(
+                        plan,
+                        prepared,
+                        original.request,
+                      )
+                      .unwrap()
+                      .unwrap()
+                    let program = @checked.effect_program_static_checked_computation(
+                      @run_host.prepared_client_effect_computation_candidate(
+                        prepared,
+                      ),
+                    )
+                    let model = @checked.unit_pipeline(program, stage).map(pipeline => {
+                      for index in 0..<@pipeline.step_count(pipeline) {
+                        if @pipeline.step_at(pipeline, index) is Some(step) &&
+                          step.operation is @pipeline.Infer(_) {
+                          return true
+                        }
+                      }
+                      false
+                    })
+                    " source=" +
+                    @debug.to_string(
+                      @run_host.client_direct_acquisition_occurrence_at(
+                        occurrences, 0,
+                      ),
+                    ) +
+                    " effect_stage=" +
+                    stage.to_string() +
+                    " effect_task=" +
+                    @strategy.captured_effect_input_task(input).to_string() +
+                    " occurrence_owner=" +
+                    @debug.to_string(
+                      @run_host.client_direct_acquisition_occurrences_match_effect_program(
+                        occurrences, prepared,
+                      ),
+                    ) +
+                    " definition=" +
+                    @debug.to_string(
+                      @checked.unit_definition_cid(program, stage) is Some(_),
+                    ) +
+                    " used_values=" +
+                    @debug.to_string(
+                      @checked.unit_used_values_cid(program, stage) is Some(_),
+                    ) +
+                    " contracts=" +
+                    @debug.to_string(
+                      @checked.unit_contracts_cid(program, stage) is Some(_),
+                    ) +
+                    " model=" +
+                    @debug.to_string(model) +
+                    " result_imports=" +
+                    @debug.to_string(
+                      @checked.unit_result_import_count(program, stage),
+                    ) +
+                    " import_cids=" +
+                    @debug.to_string(
+                      @checked.unit_import_cid_count(program, stage),
+                    )
+                  } else {
+                    ""
+                  }
+                  frontier + " " + @debug.to_string(cause) + detail
+                }
+                _ =>
+                  command_preparation_cleanup_cause(
+                    CommandBusinessEffectProposals(issue),
+                  )
+              }
+            })
+            .unwrap_or(message),
+          )
+      }
+      let outcome = if proposed is Ok(_) {
+        try {
+          let proposals = state.proposals.unwrap()
+          assert_eq(proposals.members.length(), 1)
+          assert_eq(proposals.members[0].rows.length(), 1)
+          let source_unit = proposals._retained_combined_source_unit.unwrap()
+          let (_, source_stage, source_count) = @run_host.client_effect_combined_source_unit_catalog_subject(
+            source_unit,
+          )
+          assert_eq(source_stage, 0)
+          assert_eq(source_count, 1)
+          let effect_input = @strategy.captured_effect_input_at(
+            proposals.inputs,
+            0,
+          ).unwrap()
+          let unit = @strategy.captured_effect_input_stage(effect_input)
+          assert_eq(unit, 1)
+          let edge = @strategy.capture_effect_result_import(
+            proposals.inputs,
+            unit,
+            0,
+            100000,
+          ).unwrap()
+          let producer = @strategy.captured_effect_result_import_producer(edge)
+          assert_eq(
+            @strategy.captured_effect_local_result_stage(producer),
+            source_stage,
+          )
+          assert_eq(proposals.import_observations.length(), 1)
+          assert_true(proposals.imports is Some(_))
+          assert_true(
+            @run_host.issue_client_effect_imported_evidence(
+              prepared,
+              proposals.inputs,
+              unit,
+              [],
+              16384,
+              1024,
+              20,
+            )
+            is Err(Invocation(IncompleteResultImports)),
+          )
+          let public_results = proposals.unit_results.filter(entry => {
+            entry.artifact
+            .map(artifact => {
+              @run_host.client_effect_local_result_artifact_matches_public_result(
+                prepared,
+                proposals.inputs,
+                artifact,
+                0,
+              )
+            })
+            .unwrap_or(false)
+          })
+          assert_eq(public_results.length(), 1)
+          let final_result = public_results[0]
+          let actual_artifact = final_result.artifact.unwrap()
+          // Compare both complete Manifests against the checked captured
+          // Results grouped by their original owner, including private ports.
+          let source_artifacts = []
+          let effect_artifacts = []
+          for entry in proposals.unit_results {
+            let result = @strategy.captured_effect_local_result_at(
+              proposals.inputs,
+              entry.index,
+            ).unwrap()
+            let artifact = entry.artifact.unwrap()
+            match @strategy.captured_effect_local_result_stage(result) {
+              stage if stage == source_stage => source_artifacts.push(artifact)
+              stage if stage == unit => effect_artifacts.push(artifact)
+              _ => fail("Unexpected Result unit in the parameterized Query")
+            }
+          }
+          let source_manifest = proposals._retained_direct_source_manifest.unwrap()
+          assert_true(
+            @run_host.client_effect_local_manifest_matches(
+              source_manifest,
+              prepared,
+              @run_host.client_effect_combined_source_unit_invocation(
+                source_unit,
+              ),
+              source_artifacts,
+            ),
+          )
+          assert_true(
+            @run_host.client_effect_local_manifest_matches(
+              proposals._retained_local_manifest.unwrap(),
+              prepared,
+              proposals.invocation.unwrap(),
+              effect_artifacts,
+            ),
+          )
+          assert_true(
+            @run_host.issue_client_effect_result_import_observation(
+              prepared,
+              proposals.inputs,
+              edge,
+              source_manifest,
+              actual_artifact,
+              16384,
+              1024,
+              20,
+            )
+            is Err(ForeignArtifact),
+          )
+          let expected_row : Json = {
+            "id": "a1",
+            "omitted_value": "retain eligible value",
+            "null_input": Json::null(),
+            "empty_input": "",
+          }
+          assert_eq(
+            @json.parse(final_result._retained_wire.unwrap()),
+            Json::array([expected_row]),
+          )
+          Ok(())
+        } catch {
+          error => Err(error.to_string())
+        }
+      } else {
+        proposed
+      }
+      if state.proposals is Some(proposals) {
+        assert_true(proposals.close())
+        state.proposals = None
+      }
+      assert_true(executed.close())
+      state.suffix = None
+      outcome
+    }
+  }
+  assert_true(
+    @local_values.retire_installed_effect_captured_consumers(run).unwrap(),
+  )
+  state.effect_host = None
+  state.effect_capture = None
+  assert_true(capture.close().unwrap())
+  @local_values.retire_installed_source_read(state.source_reads[0]).unwrap()
+  state.sources.clear()
+  state.sources.shrink_to_fit()
+  state.source_reads.clear()
+  state.source_reads.shrink_to_fit()
+  state.captured_inputs.clear()
+  state.captured_inputs.shrink_to_fit()
+  state.input_originals.clear()
+  state.input_originals.shrink_to_fit()
+  @local_values.quiesce_installed_managed_run(run).unwrap()
+  state
+  .retire_mock_effect_direct_sources()
+  .native_file_route_value("settle original Query evidence")
+  assert_true(
+    @local_values.retire_installed_managed_run(run)
+    is Err(Resource(Unavailable)),
+  )
+  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  @local_values.retire_installed_managed_run(run).unwrap()
+  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+  facility.arena.try_close().unwrap()
+  assert_eq(
+    local_input_text_file(directory + "/mock", "data.json", 65536L),
+    original_bytes,
+  )
+  if outcome is Err(issue) {
+    fail("Native nullable UPDATE proposal: " + issue)
+  }
 }

@@ -280,7 +280,8 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   const maximum = targetLimits.maxFileBytes, work = targetLimits.maxWork;
   const catalogue = original.catalogue, profile = targets[0].write;
   const changes = (value, target) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
-    Object.keys(value).length > 0 && Object.keys(value).every(name => target.write.writable_fields.includes(name));
+    Object.keys(value).length > 0 &&
+    Object.keys(value).every(name => (target.write.update_fields ?? target.write.writable_fields).includes(name));
   const requests = new WeakMap(), descriptions = new WeakMap(), grants = new WeakMap();
   const codec = createMockFileRowCodec({bundle, original, call});
   const {admit, observe} = codec;

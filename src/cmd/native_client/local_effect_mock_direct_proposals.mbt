@@ -126,202 +126,395 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
     .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
     .native_effect_proposal_with_cause(report)
   held.materials = Some(materials)
+  let program = @checked.effect_program_static_checked_computation(
+    @run_host.prepared_client_effect_computation_candidate(prepared),
+  )
+  let captured_import = match @checked.unit_result_import_count(program, unit) {
+    Some(0) => None
+    Some(1) if @checked.unit_import_cid_count(program, unit) == Some(1) =>
+      Some(
+        @strategy.capture_effect_result_import(
+          inputs,
+          unit,
+          0,
+          effect_limits.max_work,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
+        .native_effect_proposal_with_cause(report),
+      )
+    _ => stop("LocalOriginalEffectImportsUnavailable")
+  }
+  let source_unit = match captured_import {
+    None => unit
+    Some(imported) => {
+      let producer = @strategy.captured_effect_result_import_producer(imported)
+      let stage = @strategy.captured_effect_local_result_stage(producer)
+      guard @local_values.prepared_installed_effect_source_occurrences(
+          plan, prepared, request,
+        )
+        is Ok(Some(occurrences)) &&
+        @run_host.client_direct_acquisition_occurrence_count(occurrences) == 1 &&
+        @run_host.client_direct_acquisition_occurrence_at(occurrences, 0)
+        is Some((source_stage, _, _)) &&
+        source_stage == stage &&
+        stage < unit &&
+        self.input_originals is [QueryEffectInput(_)] else {
+        stop("LocalOriginalEffectImportsUnavailable")
+      }
+      stage
+    }
+  }
   let combined = @local_values.prepare_installed_effect_combined_source_unit(
-      run, plan, request, publication, unit, retention, 16384, 1024, 20,
+      run, plan, request, publication, source_unit, retention, 16384, 1024, 20,
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::UnitPublication(issue))
     .native_effect_proposal_with_cause(report)
   held._retained_combined_source_unit = Some(combined)
-  let local_invocation = @run_host.client_effect_combined_source_unit_invocation(
+  let source_invocation = @run_host.client_effect_combined_source_unit_invocation(
     combined,
   )
-  held.invocation = Some(local_invocation)
-  for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
-    let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
-    if @strategy.captured_effect_local_result_stage(result) != unit {
-      continue
-    }
-    let entry = native_mock_effect_unit_result(index)
-    held.unit_results.push(entry)
-    let managed = execution
-      .prepare_effect_result_export(
-        captured,
-        inputs,
-        index,
-        bridge.row,
-        bridge.entries,
-        bridge.name_bytes,
-        limits,
-        before_row=Some(text => {
-          construction
-          .prepare_row_result(text, bridge.row)
-          .retain_mock_effect_proposal_issue(report)
-        }),
+  let mut local_invocation = source_invocation
+  let stages = if source_unit == unit { [unit] } else { [source_unit, unit] }
+  for stage in stages {
+    if stage != source_unit {
+      guard captured_import is Some(imported) else {
+        stop("LocalOriginalEffectImportsUnavailable")
+      }
+      let evidence = prepare_direct_mock_effect_result_import(
+        held,
+        prepared,
+        imported,
+        unit,
+        effect_limits.max_work,
+        report,
       )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::ManagedExport(issue))
-      .native_effect_proposal_with_cause(report)
-    entry.managed_export = Some(managed)
-    let exported = managed
-      .captured_export()
-      .unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
-    entry.exported = Some(exported)
-    let preparation = @strategy.captured_effect_local_result_export_preparation(
-      exported,
-    )
-    while !@execution.advance_completed_result_relation_export(preparation, 31)
-          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-          .native_effect_proposal_with_cause(report).0 {
-      ()
+      held.imports = Some(evidence)
+      local_invocation = @run_host.client_effect_imported_invocation(evidence)
     }
-    let stream = @execution.finish_completed_result_relation_export_preparation(
-        preparation,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-      .native_effect_proposal_with_cause(report)
-    entry.stream = Some(stream)
-    // The funded JSON row bounds all decoded UTF-16 keys and values.
-    // A per-value text limit cannot bound this aggregate decode.
-    while @execution.next_completed_output_export_canonical_row(
-            stream,
-            wire.max_nodes,
-            wire.max_depth,
-            wire.max_bytes,
+    let artifacts : Array[@run_host.ClientEffectLocalResultArtifact] = []
+    for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+      let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+      if @strategy.captured_effect_local_result_stage(result) != stage {
+        continue
+      }
+      let entry = native_mock_effect_unit_result(index)
+      held.unit_results.push(entry)
+      let exported = if @strategy.captured_any_result_borrow_requires_managed_export(
+          @strategy.captured_effect_local_result_borrow(result),
+        ) {
+        let managed = execution
+          .prepare_effect_result_export(
+            captured,
+            inputs,
+            index,
+            bridge.row,
+            bridge.entries,
+            bridge.name_bytes,
+            limits,
+            before_row=Some(text => {
+              construction
+              .prepare_row_result(text, bridge.row)
+              .retain_mock_effect_proposal_issue(report)
+            }),
           )
-          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .map_err(issue => {
+            LocalNativeMockEffectProposalIssue::ManagedExport(issue)
+          })
           .native_effect_proposal_with_cause(report)
-          is Some((row_index, _, row)) {
+        entry.managed_export = Some(managed)
+        managed
+        .captured_export()
+        .unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
+      } else {
+        @strategy.start_captured_effect_local_result_export(
+          inputs,
+          index,
+          {
+            max_fields: limits.max_result_fields,
+            max_mapping_work: limits.max_result_mapping_work,
+            max_order_work: limits.max_result_order_work,
+            max_workspace_entries: limits.max_result_workspace_entries,
+          },
+          limits.max_rows,
+          limits.values,
+          wire,
+          limits.logical_wire,
+          limits.schema,
+          limits.max_batch_bytes,
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::ManagedExport(Binding(issue))
+        })
+        .native_effect_proposal_with_cause(report)
+      }
+      entry.exported = Some(exported)
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      while !@execution.advance_completed_result_relation_export(
+              preparation, 31,
+            )
+            .map_err(issue => {
+              LocalNativeMockEffectProposalIssue::Completed(issue)
+            })
+            .native_effect_proposal_with_cause(report).0 {
+        ()
+      }
+      let stream = @execution.finish_completed_result_relation_export_preparation(
+          preparation,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal_with_cause(report)
+      entry.stream = Some(stream)
+      // The funded JSON row bounds all decoded UTF-16 keys and values.
+      // A per-value text limit cannot bound this aggregate decode.
+      while @execution.next_completed_output_export_canonical_row(
+              stream,
+              wire.max_nodes,
+              wire.max_depth,
+              wire.max_bytes,
+            )
+            .map_err(issue => {
+              LocalNativeMockEffectProposalIssue::Completed(issue)
+            })
+            .native_effect_proposal_with_cause(report)
+            is Some((row_index, _, row)) {
+        for effect_index, proposal in held.members {
+          if @strategy.captured_effect_local_result_matches_member(
+              inputs, index, effect_index,
+            ) {
+            let values = @strategy.project_captured_effect_proposal_row(
+                proposal.plan,
+                row,
+                row_index,
+                wire.max_columns,
+                effect_limits.max_work,
+                wire.max_bytes,
+                wire.max_nodes,
+                wire.max_depth,
+              )
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Proposal(issue)
+              })
+              .native_effect_proposal_with_cause(report)
+            proposal.rows.push(values)
+          }
+        }
+      }
+      let (receipt, _) = @execution.finish_completed_relation_export(stream)
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal_with_cause(report)
+      entry.receipt = Some(receipt)
+      let artifact = @local_values.prepare_installed_effect_combined_source_result_artifact(
+          run,
+          plan,
+          request,
+          publication,
+          inputs,
+          exported,
+          combined,
+          receipt,
+          admission,
+          16384,
+          1024,
+          20,
+          imported=held.imports.map(evidence => (evidence, retention)),
+        )
+        .map_err(issue => {
+          LocalNativeMockEffectProposalIssue::UnitPublication(issue)
+        })
+        .native_effect_proposal_with_cause(report)
+      entry.artifact = Some(artifact)
+      let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
+          stream, receipt,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal_with_cause(report)
+      construction
+      .prepare_body_result(
+        native_mock_effect_dependency_body_capacity(
+          Int::max(1, bytes),
+          Int::max(1, nodes),
+          Int::max(1, depth),
+        ),
+      )
+      .native_effect_proposal_with_cause(report)
+      let snapshot = @execution.start_completed_relation_export_snapshot(
+          stream,
+          receipt,
+          wire.max_bytes,
+          wire.max_nodes,
+          wire.max_depth,
+          limits.max_result_workspace_entries,
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal_with_cause(report)
+      entry.snapshot = Some(snapshot)
+      while !snapshot
+            .advance(256)
+            .map_err(issue => {
+              LocalNativeMockEffectProposalIssue::Completed(issue)
+            })
+            .native_effect_proposal_with_cause(report).0 {
+        ()
+      }
+      let (rows, _) = snapshot
+        .finish()
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+        .native_effect_proposal_with_cause(report)
+      snapshot.cancel()
+      entry.snapshot = None
+      entry._retained_wire = Some(rows)
+      let dependency = @run_host.admit_client_effect_dependency_capture(
+          materials,
+          inputs,
+          artifact,
+          index,
+          exported,
+          receipt,
+          rows,
+          max_bytes,
+          wire.max_nodes,
+          wire.max_depth,
+          before_body=Some((bytes, nodes, depth) => {
+            construction
+            .prepare_body_result(
+              native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
+            )
+            .retain_mock_effect_proposal_issue(report)
+          }),
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
+        .native_effect_proposal_with_cause(report)
+      entry._retained_dependency = Some(dependency)
+      artifacts.push(artifact)
       for effect_index, proposal in held.members {
         if @strategy.captured_effect_local_result_matches_member(
             inputs, index, effect_index,
           ) {
-          let values = @strategy.project_captured_effect_proposal_row(
-              proposal.plan,
-              row,
-              row_index,
-              wire.max_columns,
-              effect_limits.max_work,
-              wire.max_bytes,
-              wire.max_nodes,
-              wire.max_depth,
-            )
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Proposal(issue)
-            })
-            .native_effect_proposal_with_cause(report)
-          proposal.rows.push(values)
+          if proposal._retained_artifact is Some(_) {
+            stop("LocalOriginalEffectResultUnavailable")
+          }
+          proposal._retained_invocation = Some(local_invocation)
+          proposal._retained_artifact = Some(artifact)
+          proposal._retained_snapshot_wire = Some(rows)
+          proposal._retained_dependency = Some(dependency)
         }
       }
     }
-    let (receipt, _) = @execution.finish_completed_relation_export(stream)
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-      .native_effect_proposal_with_cause(report)
-    entry.receipt = Some(receipt)
-    let artifact = @local_values.prepare_installed_effect_combined_source_result_artifact(
-        run, plan, request, publication, inputs, exported, combined, receipt, admission,
-        16384, 1024, 20,
+    if stage == unit {
+      for proposal in held.members {
+        guard proposal._retained_artifact is Some(_) else {
+          stop("LocalOriginalEffectResultUnavailable")
+        }
+        @strategy.finish_captured_effect_proposal_plan(
+          proposal.plan,
+          proposal.rows.length(),
+        )
+        .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
+        .native_effect_proposal_with_cause(report)
+      }
+    }
+    let manifest = @local_values.prepare_installed_effect_model_unit_manifest(
+        run,
+        plan,
+        request,
+        local_invocation,
+        artifacts,
+        max_bytes,
+        wire.max_nodes,
+        wire.max_depth,
       )
       .map_err(issue => {
         LocalNativeMockEffectProposalIssue::UnitPublication(issue)
       })
       .native_effect_proposal_with_cause(report)
-    entry.artifact = Some(artifact)
-    let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
-        stream, receipt,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-      .native_effect_proposal_with_cause(report)
+    if stage == unit {
+      held._retained_local_manifest = Some(manifest)
+      held.invocation = Some(local_invocation)
+    } else {
+      held._retained_direct_source_manifest = Some(manifest)
+    }
+  }
+}
+
+///|
+// Use the actual producer already exported from this capture. It is not an
+// Effect member. Its complete Manifest supplies the retained import edge.
+fn prepare_direct_mock_effect_result_import(
+  held : LocalNativeMockEffectProposals,
+  prepared : @run_host.PreparedClientEffectComputation,
+  imported : @strategy.CapturedEffectResultImport,
+  unit : Int,
+  max_work : Int,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> @run_host.ClientEffectImportedEvidence raise ClientStop {
+  guard held.construction is Some(construction) &&
+    held._retained_direct_source_manifest is Some(manifest) &&
+    held.unit_results.length() <= max_work &&
+    held.unit_results
+    .iter()
+    .find_first(entry => {
+      @strategy.captured_effect_local_result_at(held.inputs, entry.index)
+      .map(producer => {
+        @strategy.captured_effect_result_import_matches(
+          imported,
+          held.inputs,
+          unit,
+          producer,
+        )
+      })
+      .unwrap_or(false)
+    })
+    is Some(entry) &&
+    entry.artifact is Some(artifact) else {
+    stop("LocalOriginalEffectImportsUnavailable")
+  }
+  let measuring = mock_effect_dependency_measurement_bytes(1024, 20).unwrap_or_else(() => {
+      stop("LocalOriginalEffectImportsUnavailable")
+    },
+  )
+  construction
+  .resize_result(
+    construction.recipe,
+    construction.retained,
+    Int64::max(construction.workspace, measuring),
+  )
+  .native_effect_proposal_with_cause(report)
+  let before_body = (_, shape) => {
+    let (bytes, nodes, depth) = @encode.construction_geometry_usage(shape)
     construction
     .prepare_body_result(
-      native_mock_effect_dependency_body_capacity(
-        Int::max(1, bytes),
-        Int::max(1, nodes),
-        Int::max(1, depth),
-      ),
+      native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
     )
-    .native_effect_proposal_with_cause(report)
-    let snapshot = @execution.start_completed_relation_export_snapshot(
-        stream,
-        receipt,
-        wire.max_bytes,
-        wire.max_nodes,
-        wire.max_depth,
-        limits.max_result_workspace_entries,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-      .native_effect_proposal_with_cause(report)
-    entry.snapshot = Some(snapshot)
-    while !snapshot
-          .advance(256)
-          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-          .native_effect_proposal_with_cause(report).0 {
-      ()
-    }
-    let (rows, _) = snapshot
-      .finish()
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-      .native_effect_proposal_with_cause(report)
-    snapshot.cancel()
-    entry.snapshot = None
-    entry._retained_wire = Some(rows)
-    let dependency = @run_host.admit_client_effect_dependency_capture(
-        materials,
-        inputs,
-        artifact,
-        index,
-        exported,
-        receipt,
-        rows,
-        max_bytes,
-        wire.max_nodes,
-        wire.max_depth,
-        before_body=Some((bytes, nodes, depth) => {
-          construction
-          .prepare_body_result(
-            native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
-          )
-          .retain_mock_effect_proposal_issue(report)
-        }),
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
-      .native_effect_proposal_with_cause(report)
-    entry._retained_dependency = Some(dependency)
-    for effect_index, proposal in held.members {
-      if @strategy.captured_effect_local_result_matches_member(
-          inputs, index, effect_index,
-        ) {
-        if proposal._retained_artifact is Some(_) {
-          stop("LocalOriginalEffectResultUnavailable")
-        }
-        proposal._retained_invocation = Some(local_invocation)
-        proposal._retained_artifact = Some(artifact)
-        proposal._retained_snapshot_wire = Some(rows)
-        proposal._retained_dependency = Some(dependency)
-      }
-    }
+    .retain_mock_effect_proposal_issue(report)
   }
-  for proposal in held.members {
-    guard proposal._retained_artifact is Some(_) else {
-      stop("LocalOriginalEffectResultUnavailable")
-    }
-    @strategy.finish_captured_effect_proposal_plan(
-      proposal.plan,
-      proposal.rows.length(),
+  let observed = @run_host.issue_client_effect_result_import_observation(
+      prepared,
+      held.inputs,
+      imported,
+      manifest,
+      artifact,
+      16384,
+      1024,
+      20,
+      before_body=Some(before_body),
     )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
+    .map_err(issue => {
+      LocalNativeMockEffectProposalIssue::ImportObservation(issue)
+    })
     .native_effect_proposal_with_cause(report)
-  }
-  held._retained_local_manifest = Some(
-    @local_values.prepare_installed_effect_model_unit_manifest(
-      run,
-      plan,
-      request,
-      local_invocation,
-      held.unit_results.map(entry => entry.artifact.unwrap()),
-      max_bytes,
-      wire.max_nodes,
-      wire.max_depth,
-    )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::UnitPublication(issue))
-    .native_effect_proposal_with_cause(report),
+  held.import_observations.push(observed)
+  @run_host.issue_client_effect_imported_evidence(
+    prepared,
+    held.inputs,
+    unit,
+    held.import_observations,
+    16384,
+    1024,
+    20,
+    before_body=Some(before_body),
   )
+  .map_err(issue => LocalNativeMockEffectProposalIssue::Imports(issue))
+  .native_effect_proposal_with_cause(report)
 }
