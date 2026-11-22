@@ -53778,7 +53778,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "7abdb1fa057631d68329901a5914dee4350cda05cf8595ef3ac4a41f809412ff",
+      "sha256": "f682b21b0350d506d8fb24794dfb5e7558700bfe4cbaa1a25b9a41551a97dc51",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -53821,7 +53821,8 @@
           "name": "installImageLoader/loadSelectedModule",
           "parameters": [
             "filename",
-            "sha256"
+            "sha256",
+            "kind"
           ],
           "async": false
         },
@@ -53858,12 +53859,15 @@
         {
           "name": "installOrdinaryInitialControlImageLoader",
           "parameters": [
-            "groups"
+            "groups",
+            "requiredModules"
           ],
           "async": false
         }
       ],
       "imports": [
+        "node:buffer",
+        "node:crypto",
         "node:fs",
         "node:module",
         "node:path",
@@ -55372,7 +55376,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "1110458b42ca1c80924ff1f17a82f525dea8f66e191ec38f700c91f94c24653d",
+      "sha256": "2b6ff6f647fb8557e625a1f1a069007dfc265b0ede0eeb64df8b0d2cd28f3427",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -55398,7 +55402,8 @@
             "inventory",
             "localRoot",
             "consumerEntry",
-            "publicDeliveryEntry"
+            "publicDeliveryEntry",
+            "initialSdkRegistrations"
           ],
           "async": false
         },
@@ -55427,6 +55432,20 @@
           "async": false
         },
         {
+          "name": "capturePackageCustody/initializeHostNamespace/parser/parser",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/transport/transport",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "capturePackageCustody/readAsset",
           "parameters": [
             "path"
@@ -55444,14 +55463,14 @@
           "async": false
         },
         {
-          "name": "capturePackageCustody/readSdkImage/group/group",
+          "name": "capturePackageCustody/selectSdkImage/group/group",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "capturePackageCustody/readSdkImage/image/image",
+          "name": "capturePackageCustody/selectSdkImage/image/image",
           "parameters": [
             "value"
           ],
@@ -55530,10 +55549,12 @@
             "capturePackageCustody/initializeHostNamespace",
             "capturePackageCustody/initializeHostNamespace/entry/entry",
             "capturePackageCustody/initializeHostNamespace/group/group",
+            "capturePackageCustody/initializeHostNamespace/parser/parser",
+            "capturePackageCustody/initializeHostNamespace/transport/transport",
             "capturePackageCustody/readAsset",
             "capturePackageCustody/readSdkImage",
-            "capturePackageCustody/readSdkImage/group/group",
-            "capturePackageCustody/readSdkImage/image/image",
+            "capturePackageCustody/selectSdkImage/group/group",
+            "capturePackageCustody/selectSdkImage/image/image",
             "concrete/concrete/concrete",
             "ordinaryLocalFilesNative",
             "ordinaryModelSdkInstallation",
@@ -137827,7 +137848,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5528,
+    "operations": 5530,
     "exports": 1201,
     "explicitContractGroups": 550
   },

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
-import {createRequire} from 'node:module';
+import {createRequire, registerHooks} from 'node:module';
 import {realpathSync} from 'node:fs';
 import {access, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
@@ -16,7 +16,7 @@ import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.m
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
-  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late'].includes(phase));
+  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
@@ -76,6 +76,27 @@ if (registered) {
       apiMode: 'chat_completions', endpoint: 'https://api.openai.com/v1/chat/completions'}),
     providerOptions: Object.freeze({store: false, strictJsonSchema: true}),
   })]);
+}
+if (phase === 'registered-invalid') {
+  const original = modelSdkRegistrations[0];
+  const sdk = Object.freeze({...original.sdk, cid: 'sha256:' + '0'.repeat(64)});
+  assert.notEqual(sdk.cid, original.sdk.cid);
+  const invalid = Object.freeze([Object.freeze({...original, sdk})]);
+  const initialRegisterHooks = registerHooks;
+  let registrations = 0;
+  await writeFile('actql.config.json', '{"version":"actql-config/0.1"}', {flag: 'wx', mode: 0o600});
+  await assert.rejects(open({stateDir: '.rejected-state', installation: {modelSdkRegistrations: invalid,
+    registerModelProviders() {registrations++; return [];}}}), {code: 'InvalidInstalledModelSdkInstallation'});
+  assert.equal(registrations, 0);
+  assert.equal(registerHooks, initialRegisterHooks);
+  await assert.rejects(access('.rejected-state'), {code: 'ENOENT'});
+  const client = await open({stateDir: '.state'});
+  await client.close();
+  assert.equal(observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0, true);
+  await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
+  console.log(JSON.stringify({phase, startupRefused: true, registrations, calls: 0,
+    defaultOpened: true, firstCloseReturned: true, aliveScopedFD0: true}));
+  process.exit(0);
 }
 if (phase === 'registered-too-late') {
   // The first ordinary Host makes the actual selection and closes the loader.

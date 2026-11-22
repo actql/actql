@@ -23,6 +23,7 @@ const mapGet = Map.prototype.get, mapSet = Map.prototype.set, mapHas = Map.proto
 const setHas = Set.prototype.has, setAdd = Set.prototype.add;
 const sdkImages = new WeakMap();
 const sdkImageGet = WeakMap.prototype.get, sdkImageSet = WeakMap.prototype.set;
+const invalidSdkRegistration = 'InvalidInstalledModelSdkInstallation';
 const fail = code => { const cause = new NativeError(code); cause.code = code; throw cause; };
 const own = (value, name) => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlPackageImage');
@@ -52,14 +53,16 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
 // Separate ordinary byte/namespace custody, never a late operational issuer.
 // It can only be adopted by the real installed public-prefix instance, whose
 // runtime and finite phase must precede this first path/image acquisition.
-function captureOrdinaryInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry) {
+function captureOrdinaryInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry,
+  initialSdkRegistrations) {
   if (typeof preloading !== 'function' || apply(preloading, module, []) !== false) {
     fail('InitialControlPackageCustodyUnavailable');
   }
-  return capturePackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry, true);
+  return capturePackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry, true, initialSdkRegistrations);
 }
 
-function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry, ordinary) {
+function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry, ordinary,
+  initialSdkRegistrations) {
   const root = realpathSync(localRoot), images = own(inventory, 'images');
   const packages = own(inventory, 'packages'), dependencies = own(inventory, 'dependencies');
   const hostModule = own(inventory, 'hostModule'), hostValidator = own(inventory, 'hostValidator');
@@ -231,7 +234,35 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
   if (!apply(mapHas, mainSources, [hostModule]) || !apply(mapHas, mainSources, [localPublicModule])) {
     fail('InvalidInitialControlPackageImage');
   }
-  const loader = ordinary ? installOrdinaryInitialControlImageLoader(groups) : installInitialControlImageLoader(groups);
+  function selectSdkImage(packageName, path, cid, kind, refusal) {
+    if (typeof packageName !== 'string' || !concrete(path) ||
+        typeof cid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(cid) ||
+        kind !== 'module' && kind !== 'lock' || kind === 'lock' && packageName !== '@actql/provider-ai-sdk') {
+      fail(refusal ?? 'InitialControlSdkImageUnavailable');
+    }
+    const directory = apply(mapGet, sdkPackages, [packageName]);
+    if (directory === undefined) fail(refusal ?? 'InitialControlSdkImageUnavailable');
+    const group = groups.find(value => value.root === directory);
+    const image = group.images.find(value => value.path === path);
+    if (image === undefined || 'sha256:' + image.captured.sha256 !== cid ||
+        kind === 'lock' && path !== 'npm-shrinkwrap.json') fail(refusal ?? 'InitialControlPackageImageChanged');
+    return {directory, group, image};
+  }
+  let requiredModules;
+  if (initialSdkRegistrations !== undefined) {
+    requiredModules = [];
+    for (const {adapter, lock, sdk} of initialSdkRegistrations) {
+      const select = (name, original, kind) =>
+        selectSdkImage(name, original.path, original.cid, kind, invalidSdkRegistration);
+      select(sdkPackage, lock, 'lock');
+      const sdkImage = select(sdk.packageName, sdk, 'module');
+      if (sdkImage.group.version !== sdk.version) fail(invalidSdkRegistration);
+      const adapterImage = select(sdkPackage, adapter, 'module');
+      requiredModules.push(join(sdkImage.directory, sdk.path), join(adapterImage.directory, adapter.path));
+    }
+  }
+  const loader = ordinary ? installOrdinaryInitialControlImageLoader(groups, requiredModules) :
+    installInitialControlImageLoader(groups);
   const originalRequire = createRequire(join(root, 'package.json'));
   let namespace, publicNamespaces, initialized = false, selectedSdk = false;
   function initializeHostNamespace() {
@@ -246,6 +277,18 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
       const entry = group.images.find(value => value.path === 'index.mjs');
       if (entry === undefined) fail('InitialControlSdkImageUnavailable');
       loader.loadSelectedModule(join(directory, entry.path), entry.captured.sha256);
+    }
+    if (requiredModules !== undefined) {
+      // The pinned Undici HTTP/1 transport loads these two parser variants
+      // lazily. Give both their original verified Source before closing the
+      // CommonJS cache, without establishing a socket or invoking an SDK.
+      const directory = apply(mapGet, sdkPackages, ['undici']);
+      const transport = groups.find(value => value.root === directory);
+      for (const path of ['lib/llhttp/llhttp-wasm.js', 'lib/llhttp/llhttp_simd-wasm.js']) {
+        const parser = transport?.images.find(value => value.path === path);
+        if (parser === undefined) fail('InitialControlSdkImageUnavailable');
+        loader.loadSelectedModule(join(directory, path), parser.captured.sha256, 'wasm-parser');
+      }
     }
     // Actual Source delivery precedes this compilation. Do not capture a
     // mutable pathname later or initialize a replacement caller namespace.
@@ -279,17 +322,7 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
   }
   function readSdkImage(packageName, path, cid, kind) {
     loader.assertCurrent();
-    if (typeof packageName !== 'string' || !concrete(path) ||
-        typeof cid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(cid) ||
-        kind !== 'module' && kind !== 'lock' || kind === 'lock' && packageName !== '@actql/provider-ai-sdk') {
-      fail('InitialControlSdkImageUnavailable');
-    }
-    const directory = apply(mapGet, sdkPackages, [packageName]);
-    if (directory === undefined) fail('InitialControlSdkImageUnavailable');
-    const group = groups.find(value => value.root === directory);
-    const image = group.images.find(value => value.path === path);
-    if (image === undefined || 'sha256:' + image.captured.sha256 !== cid ||
-        kind === 'lock' && path !== 'npm-shrinkwrap.json') fail('InitialControlPackageImageChanged');
+    const {directory, group, image} = selectSdkImage(packageName, path, cid, kind);
     const namespace = kind === 'module' ? loader.loadSelectedModule(join(directory, path), image.captured.sha256) : undefined;
     if (!initialized && namespace !== undefined) selectedSdk = true;
     loader.assertCurrent();
@@ -316,7 +349,7 @@ let ordinarySdkImages, ordinaryNativeOriginal, sdkImageFailure, sdkImageStarting
 function prepareOrdinaryModelSdkInstallation(source) {
   if (source === undefined) return undefined;
   if (!Array.isArray(source) || nodeTypes.isProxy(source) || !Object.isFrozen(source) || source.length === 0 || source.length > 64) {
-    fail('InvalidInstalledModelSdkInstallation');
+    fail(invalidSdkRegistration);
   }
   const data = (value, keys) => {
     if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
@@ -325,7 +358,7 @@ function prepareOrdinaryModelSdkInstallation(source) {
         keys.some(key => {
           const field = Object.getOwnPropertyDescriptor(value, key);
           return !field?.enumerable || !Object.hasOwn(field, 'value');
-        })) fail('InvalidInstalledModelSdkInstallation');
+        })) fail(invalidSdkRegistration);
   };
   const previous = ordinarySdkPreparations.get(source);
   if (previous !== undefined) {
@@ -335,7 +368,7 @@ function prepareOrdinaryModelSdkInstallation(source) {
   const registrations = new Map();
   for (let index = 0; index < source.length; index++) {
     const field = Object.getOwnPropertyDescriptor(source, index);
-    if (field === undefined || !Object.hasOwn(field, 'value')) fail('InvalidInstalledModelSdkInstallation');
+    if (field === undefined || !Object.hasOwn(field, 'value')) fail(invalidSdkRegistration);
     const original = field.value;
     data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions']);
     data(original.adapter, ['path', 'cid']);
@@ -344,13 +377,14 @@ function prepareOrdinaryModelSdkInstallation(source) {
     data(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
     const id = original.route.providerId;
     if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
-      fail('InvalidInstalledModelSdkInstallation');
+      fail(invalidSdkRegistration);
     }
     registrations.set(id, original);
   }
   if (sdkImageFailure !== undefined) throw sdkImageFailure.cause;
   if (sdkImageStarting) fail('InitialControlSdkImageStarting');
   const initialize = ordinarySdkImages === undefined;
+  let nativeOriginal, capturing = false;
   try {
     if (initialize) {
       sdkImageStarting = true;
@@ -368,27 +402,34 @@ function prepareOrdinaryModelSdkInstallation(source) {
       const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
       const {loadOrdinaryLocalFilesNative} = require('./host-journal-native-image.cjs');
       const {directoryLimits} = declareHostJournalServiceRecipe(envelope);
-      const nativeOriginal = freeze({root, images: own(imageInventory, 'nativeImages'),
+      nativeOriginal = freeze({root, images: own(imageInventory, 'nativeImages'),
         load: loadOrdinaryLocalFilesNative,
         limits: freeze({maxImageBytes: directoryLimits.maxImageBytes, temporaryDirectory: tmpdir()})});
-      ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(imageInventory, root, process.argv[1]);
-      ordinaryNativeOriginal = nativeOriginal;
+      capturing = true;
+      ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(imageInventory, root, process.argv[1],
+        undefined, registrations.values());
     }
     const read = (packageName, selected, kind) =>
       readVerifiedSdkImage(ordinarySdkImages, packageName, selected.path, selected.cid, kind);
     for (const original of registrations.values()) {
       read(sdkPackage, original.lock, 'lock');
       const sdk = read(original.sdk.packageName, original.sdk, 'module');
-      if (sdk.version !== original.sdk.version) fail('InvalidInstalledModelSdkInstallation');
+      if (sdk.version !== original.sdk.version) fail(invalidSdkRegistration);
       read(sdkPackage, original.adapter, 'module');
     }
     // This closes first selections. Subsequent Hosts may borrow these same
     // namespaces, and a newly requested module fails before registration.
     if (initialize) ordinarySdkImages.initializeHostNamespace();
     ordinarySdkImages.assertCurrent();
+    if (initialize) ordinaryNativeOriginal = nativeOriginal;
     ordinarySdkPreparations.set(source, freeze({verifiedSdkInstallations: registrations, sdkImageCustody: ordinarySdkImages}));
   } catch (cause) {
-    if (initialize) sdkImageFailure = Object.freeze({cause});
+    // Descriptor preflight runs before any hooks or namespace acquisition.
+    // An installed-image failure after entering capture remains fail-closed
+    // on the default filesystem route, including partial loader activation.
+    if (initialize && (ordinarySdkImages !== undefined || cause?.code !== invalidSdkRegistration)) {
+      sdkImageFailure = freeze({cause, blocksOrdinary: capturing});
+    }
     throw cause;
   } finally {
     if (initialize) sdkImageStarting = false;
@@ -396,6 +437,7 @@ function prepareOrdinaryModelSdkInstallation(source) {
 }
 
 function ordinaryModelSdkInstallation(source) {
+  if (sdkImageFailure?.blocksOrdinary) throw sdkImageFailure.cause;
   if (source === undefined) return undefined;
   const selected = ordinarySdkPreparations.get(source);
   if (selected === undefined) fail('InitialControlSdkImageUnavailable');
@@ -404,6 +446,7 @@ function ordinaryModelSdkInstallation(source) {
 }
 
 function ordinaryLocalFilesNative() {
+  if (sdkImageFailure?.blocksOrdinary) throw sdkImageFailure.cause;
   if (ordinaryNativeOriginal === undefined) return undefined;
   const {root, images, limits, load} = ordinaryNativeOriginal;
   // The Store's ordinary acquisition borrows the native owner's exact module.

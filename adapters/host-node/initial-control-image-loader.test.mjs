@@ -327,6 +327,32 @@ test('a genuine namespace at another ESM image cannot substitute the selected mo
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('a selected Wasm parser retains the original byte backing and refuses byte substitution', t => {
+  const path = 'lib/llhttp/llhttp-wasm.js';
+  const f = fixture(t, {[path]: [
+    "const {Buffer} = require('node:buffer');",
+    'let wasm;',
+    "Object.defineProperty(module, 'exports', {get() {return wasm ??= Buffer.from([0,97,115,109,1,0,0,0]);}});",
+  ].join('\n')}, 'commonjs');
+  const result = f.run([
+    "import assert from 'node:assert/strict';",
+    "import {createRequire} from 'node:module';",
+    'const require=createRequire(import.meta.url);',
+    'assert.equal(require(parserFile),parser);',
+    'assert.equal(Object.isExtensible(parser),false);',
+    'assert.deepEqual(Array.from(parser),[0,97,115,109,1,0,0,0]);',
+    'assert.ok(new WebAssembly.Module(parser));',
+    'originalImageLoader.assertCurrent();',
+    'parser[7]=1;',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'), [
+    'globalThis.parserFile=fs.realpathSync(require("node:path").join(root,' + JSON.stringify(path) + '));',
+    'globalThis.parser=originalImageLoader.loadSelectedModule(parserFile,facts[1].expected.sha256,"wasm-parser");',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('a caller cache preseed cannot replace a captured CommonJS module original', t => {
   const f = fixture(t, {'original.cjs': 'module.exports={value:"original-cache"};'});
   const result = f.run([

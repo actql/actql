@@ -7,6 +7,9 @@
 const NodeModule = require('node:module');
 const {join} = require('node:path');
 const {isModuleNamespaceObject} = require('node:util').types;
+const {Buffer: NativeBuffer} = require('node:buffer');
+const {createHash, Hash} = require('node:crypto');
+const {isBuffer} = NativeBuffer;
 const {realpathSync} = require('node:fs');
 const {pathToFileURL, fileURLToPath, URL: OriginalURL} = require('node:url');
 const nativeApply = Reflect.apply;
@@ -14,8 +17,19 @@ const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const originalUrlHref = descriptor(OriginalURL.prototype, 'href').get;
 const ownKeys = Reflect.ownKeys;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
+const preventExtensions = Object.preventExtensions;
 const prototype = Object.getPrototypeOf, sameValue = Object.is;
 const objectPrototype = Object.prototype, arrayPrototype = Array.prototype;
+const bufferPrototype = NativeBuffer.prototype, arrayBufferPrototype = ArrayBuffer.prototype;
+const typedArrayPrototype = prototype(Uint8Array.prototype);
+const parserLength = descriptor(typedArrayPrototype, 'byteLength').get;
+const parserBacking = descriptor(typedArrayPrototype, 'buffer').get;
+const hashUpdate = Hash.prototype.update, hashDigest = Hash.prototype.digest;
+function parserDigest(bytes) {
+  const hash = createHash('sha256');
+  nativeApply(hashUpdate, hash, [bytes]);
+  return nativeApply(hashDigest, hash, ['hex']);
+}
 const NativeError = Error, NativeMap = Map, NativeWeakSet = WeakSet, parse = JSON.parse;
 const weakHas = WeakSet.prototype.has, weakAdd = WeakSet.prototype.add;
 const nativeMapGet = Map.prototype.get, nativeMapSet = Map.prototype.set, nativeMapHas = Map.prototype.has;
@@ -61,15 +75,15 @@ function installInitialControlImageLoader(groups) {
 // Byte/module custody only. This separate ordinary implementation never
 // authenticates a startup or issues an installation scope. Its actual package
 // prefix must already hold the ordinary runtime/compiler/lifetime original.
-function installOrdinaryInitialControlImageLoader(groups) {
+function installOrdinaryInitialControlImageLoader(groups, requiredModules) {
   if (typeof preloading !== 'function' || nativeApply(preloading, module, []) !== false ||
       typeof registerHooks !== 'function' || typeof register !== 'function') {
     fail('InitialControlImageLoaderUnavailable');
   }
-  return installImageLoader(groups, true);
+  return installImageLoader(groups, true, requiredModules);
 }
 
-function installImageLoader(groups, ordinary) {
+function installImageLoader(groups, ordinary, requiredModules) {
   if (!isArray(groups) || groups.length === 0) fail('InvalidInitialControlLoaderImage');
   const images = new NativeMap(), prefixes = [];
   const initialCache = new NativeMap(), delivered = new NativeMap(), selectedModules = new NativeMap();
@@ -125,6 +139,12 @@ function installImageLoader(groups, ordinary) {
       }
     }
   }
+  if (requiredModules !== undefined) {
+    for (const filename of requiredModules) {
+      const image = nativeApply(nativeMapGet, images, [pathToFileURL(filename).href]);
+      if (image?.format !== 'module') fail('InvalidInstalledModelSdkInstallation');
+    }
+  }
   function assertCurrent() {
     if (registration === undefined || invalidated ||
         descriptor(NodeModule, '_load')?.value !== stockLoad ||
@@ -142,6 +162,13 @@ function installImageLoader(groups, ordinary) {
           descriptor(held.module, 'filename')?.value === held.filename &&
           (descriptor(held.module, 'loaded')?.value === true ||
             held.loading && (ordinary || nativeApply(preloading, module, []) === true)));
+      if (same && held.parser !== undefined) {
+        const bytes = held.exports, parser = held.parser;
+        same = prototype(bytes) === bufferPrototype &&
+          nativeApply(parserLength, bytes, []) === parser.length &&
+          nativeApply(parserBacking, bytes, []) === parser.backing &&
+          parserDigest(bytes) === parser.digest;
+      }
       if (same && held.properties !== undefined) {
         const names = ownKeys(held.exports);
         same = names.length === held.properties.length;
@@ -220,6 +247,9 @@ function installImageLoader(groups, ordinary) {
     if (loadedCaptured) return;
     nativeApply(nativeMapEach, images, [original => {
       if (original.format !== 'commonjs' && original.format !== 'json') return;
+      // An explicitly selected parser already has its own cache record and
+      // a bounded byte digest. Preserve that record without enumerating bytes.
+      if (original.format === 'commonjs' && nativeApply(nativeMapHas, selectedModules, [original.url])) return;
       const filename = fileURLToPath(original.url), property = descriptor(stockCache, filename);
       if (property === undefined) {
         loadedModules[loadedModules.length] = {filename, module: undefined};
@@ -333,11 +363,14 @@ function installImageLoader(groups, ordinary) {
     // this body to a mutable pathname, synthesize a FileHandle, or issue an ACK.
     return {format: original.format, source: original.source, shortCircuit: true};
   }
-  function loadSelectedModule(filename, sha256) {
+  function loadSelectedModule(filename, sha256, kind = 'module') {
     assertCurrent();
+    const parser = kind === 'wasm-parser';
     const url = pathToFileURL(filename).href;
     const image = nativeApply(nativeMapGet, images, [url]);
-    if (image?.format !== 'module' || image.sha256 !== sha256) fail('InitialControlPackageImageChanged');
+    if ((!parser && kind !== 'module') || image?.format !== (parser ? 'commonjs' : 'module') ||
+        image.sha256 !== sha256 || parser && image.path !== 'lib/llhttp/llhttp-wasm.js' &&
+          image.path !== 'lib/llhttp/llhttp_simd-wasm.js') fail('InitialControlPackageImageChanged');
     const selected = nativeApply(nativeMapGet, selectedModules, [url]);
     if (selected !== undefined) return selected;
     if (loadedCaptured) fail('InitialControlSdkImageUnavailable');
@@ -347,12 +380,33 @@ function installImageLoader(groups, ordinary) {
     if (descriptor(stockCache, filename) !== undefined) fail('InitialControlPackageImageChanged');
     const namespace = requireSelected(filename);
     const entry = descriptor(stockCache, filename)?.value;
-    if (!isModuleNamespaceObject(namespace) || !nativeApply(nativeMapHas, delivered, [url]) ||
-        entry === undefined || descriptor(entry, 'exports')?.value !== namespace ||
+    if (!nativeApply(nativeMapHas, delivered, [url]) || entry === undefined ||
         descriptor(entry, 'filename')?.value !== filename || descriptor(entry, 'loaded')?.value !== true) {
       fail('InitialControlPackageImageChanged');
     }
-    loadedModules[loadedModules.length] = {filename, module: entry, exports: namespace};
+    const exportsProperty = descriptor(entry, 'exports');
+    const held = {filename, module: entry, exports: namespace};
+    if (parser) {
+      // The pinned transport generates this one lazy accessor. Require has
+      // materialized its original Buffer. Keep that exact backing as a data
+      // property before the general cache seal, which still rejects accessors.
+      if (exportsProperty?.configurable !== true || typeof exportsProperty.get !== 'function' ||
+          exportsProperty.set !== undefined || !isBuffer(namespace) ||
+          prototype(namespace) !== bufferPrototype) fail('InitialControlPackageImageChanged');
+      const length = nativeApply(parserLength, namespace, []);
+      const backing = nativeApply(parserBacking, namespace, []);
+      if (length < 8 || length > image.bytes || prototype(backing) !== arrayBufferPrototype ||
+          namespace[0] !== 0 || namespace[1] !== 97 || namespace[2] !== 115 || namespace[3] !== 109) {
+        fail('InitialControlPackageImageChanged');
+      }
+      preventExtensions(namespace);
+      defineProperty(entry, 'exports', {value: namespace, enumerable: exportsProperty.enumerable,
+        writable: false, configurable: false});
+      held.parser = freeze({length, backing, digest: parserDigest(namespace)});
+    } else if (!isModuleNamespaceObject(namespace) || exportsProperty?.value !== namespace) {
+      fail('InitialControlPackageImageChanged');
+    }
+    loadedModules[loadedModules.length] = held;
     assertCurrent();
     nativeApply(nativeMapSet, selectedModules, [url, namespace]);
     return namespace;
