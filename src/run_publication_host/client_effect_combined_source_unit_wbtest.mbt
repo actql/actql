@@ -1,7 +1,10 @@
 ///|
 fn combined_unit_finish_export(
   exported : @strategy.CapturedEffectLocalResultExport,
-) -> @execution.CompletedRelationExportReceipt {
+) -> (
+  @execution.CompletedOutputExport,
+  @execution.CompletedRelationExportReceipt,
+) {
   let preparation = @strategy.captured_effect_local_result_export_preparation(
     exported,
   )
@@ -19,7 +22,7 @@ fn combined_unit_finish_export(
         is Some(_) {
 
   }
-  @execution.finish_completed_relation_export(stream).unwrap().0
+  (stream, @execution.finish_completed_relation_export(stream).unwrap().0)
 }
 
 ///|
@@ -708,7 +711,7 @@ fn combined_source_unit_completed_fixture(
       { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
       1000,
     ).unwrap()
-    let receipt = combined_unit_finish_export(exported)
+    let (_, receipt) = combined_unit_finish_export(exported)
     let metadata_geometry = if artifact_geometry {
       Some(
         client_effect_source_unit_artifact_construction_geometry(
@@ -1713,7 +1716,7 @@ fn combined_source_unit_completed_fixture(
             { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
             1000,
           ).unwrap()
-          let physical_receipt = combined_unit_finish_export(physical)
+          let (_, physical_receipt) = combined_unit_finish_export(physical)
           assert_false(physical_equal(original_receipt, physical_receipt))
           check_client_effect_unit_artifact_export(
             prepared, final_inputs, artifact, physical, physical_receipt,
@@ -1814,7 +1817,7 @@ fn combined_source_unit_completed_fixture(
     { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
     1000,
   ).unwrap()
-  let receipt = combined_unit_finish_export(exported)
+  let (stream, receipt) = combined_unit_finish_export(exported)
   let local_definition = issue_client_effect_local_result_definition(
     prepared, 0, "out", 100000, 10000, 100,
   ).unwrap()
@@ -1857,28 +1860,61 @@ fn combined_source_unit_completed_fixture(
       { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
       1000,
     ).unwrap()
-    let other_preparation = @strategy.captured_effect_local_result_export_preparation(
+    let (other_stream, other_receipt) = combined_unit_finish_export(
       other_export,
     )
-    for _ in 0..<100 {
-      if @execution.advance_completed_result_relation_export(
-          other_preparation, 64,
-        ).unwrap().0 {
-        break
-      }
+    let limits : PublicationOutputExportLimits = {
+      max_result_fields: 2,
+      max_result_mapping_work: 1000,
+      max_result_order_work: 10000,
+      max_result_workspace_entries: 20,
+      max_rows: 10,
+      values: execution.rows.input_values,
+      payload_wire: wire,
+      logical_wire: wire,
+      schema: {
+        max_fields: 2,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 20,
+      },
+      max_batch_bytes: 1000,
     }
-    let other_stream = @execution.finish_completed_result_relation_export_preparation(
-      other_preparation,
+    let public = borrow_captured_effect_result_publication_export(
+      run, inputs, 0, exported, stream, receipt, limits,
     ).unwrap()
-    while @execution.next_completed_output_export_canonical_row(
-            other_stream, 1000, 20, 1000,
-          ).unwrap()
-          is Some(_) {
-
-    }
-    let (other_receipt, _) = @execution.finish_completed_relation_export(
-      other_stream,
-    ).unwrap()
+    assert_true(
+      public.matches_captured_run(@strategy.captured_effect_run_dag(run)),
+    )
+    assert_eq(
+      public.receipt.map(value => physical_equal(value, receipt)),
+      Some(true),
+    )
+    assert_true(
+      borrow_captured_effect_result_publication_export(
+        run, inputs, 0, exported, other_stream, receipt, limits,
+      )
+      is Err(Output(ForeignMaterial)),
+    )
+    assert_true(
+      borrow_captured_effect_result_publication_export(
+        run,
+        inputs,
+        0,
+        exported,
+        stream,
+        receipt,
+        { ..limits, max_rows: 0, },
+      )
+      is Err(Output(Admission(CaptureLimit))),
+    )
+    public.cancel()
+    assert_true(@execution.completed_relation_export_receipt_live(receipt))
+    assert_true(
+      @strategy.captured_effect_local_result_export_matches_receipt(
+        inputs, exported, receipt,
+      ),
+    )
     assert_true(
       issue_combined_source_client_effect_local_result_artifact(
         prepared,

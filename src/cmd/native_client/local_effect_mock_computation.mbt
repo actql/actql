@@ -127,31 +127,27 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   }
   state.computation = Some(held)
   let run = @strategy.captured_effect_run_dag(captured)
-  // Keep every checked Named Result, in original graph order. Each wrapper
-  // retains its own captured pin and any managed bridge before further work.
+  // A measured Model proposal already completed and retained the same
+  // exports for its members and other Unit Results. Reuse those pins and
+  // receipts under the original public limits instead of copying rows again.
+  let reuse_original_exports = proposals._retained_combined_source_unit
+    is Some(_) ||
+    (
+      proposals.imports is Some(_) &&
+      proposals.members
+      .get(0)
+      .bind(entry => {
+        @strategy.captured_effect_proposal_plan_staged_rows(entry.plan)
+      })
+      is Some(_)
+    )
   let bridge = proposals.bridge_limits
   let row = bridge.row
   for
     index in 0..<@strategy.graph_result_count(@strategy.captured_dag_graph(run)) {
-    if proposals._retained_combined_source_unit is Some(_) {
-      guard proposals.unit_results
-        .iter()
-        .find_first(entry => {
-          entry.artifact
-          .map(artifact => {
-            @run_host.client_effect_local_result_artifact_matches_public_result(
-              materials.prepared,
-              proposals.inputs,
-              artifact,
-              index,
-            )
-          })
-          .unwrap_or(false)
-        })
-        is Some(entry) &&
-        entry.exported is Some(original) &&
-        entry.stream is Some(stream) &&
-        entry.receipt is Some(receipt) else {
+    if reuse_original_exports {
+      guard proposals.original_public_result_export(materials, index)
+        is Some((original, stream, receipt)) else {
         stop("LocalOriginalEffectComputationResultUnavailable")
       }
       let output = @run_host.borrow_captured_effect_result_publication_export(
@@ -258,7 +254,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
       })
       .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
       .native_effect_proposal_with_cause(report)
-    if proposals._retained_combined_source_unit is None {
+    if !reuse_original_exports {
       while true {
         match
           output
@@ -447,6 +443,51 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     .map_err(issue => LocalNativeMockEffectProposalIssue::CapturedSource(issue))
     .native_effect_proposal_with_cause(report),
   )
+}
+
+///|
+// Pin selection is by the same public Result occurrence and the same inputs.
+// The original proposal record remains the sole owner of the export and
+// receipt. A selected incomplete export is a refusal, even for equal rows.
+fn LocalNativeMockEffectProposals::original_public_result_export(
+  self : Self,
+  materials : @run_host.ClientEffectRunMaterials,
+  index : Int,
+) -> (
+  @strategy.CapturedEffectLocalResultExport,
+  @execution.CompletedOutputExport,
+  @execution.CompletedRelationExportReceipt,
+)? {
+  let matches = fn(artifact) {
+    @run_host.client_effect_local_result_artifact_matches_public_result(
+      materials.prepared,
+      self.inputs,
+      artifact,
+      index,
+    )
+  }
+  if self.acquired is Some(_) &&
+    self.members
+    .iter()
+    .find_first(entry => entry._retained_artifact.map(matches).unwrap_or(false))
+    is Some(entry) {
+    guard entry.exported is Some(original) &&
+      entry.stream is Some(stream) &&
+      entry.receipt is Some(receipt) else {
+      return None
+    }
+    return Some((original, stream, receipt))
+  }
+  guard self.unit_results
+    .iter()
+    .find_first(entry => entry.artifact.map(matches).unwrap_or(false))
+    is Some(entry) &&
+    entry.exported is Some(original) &&
+    entry.stream is Some(stream) &&
+    entry.receipt is Some(receipt) else {
+    return None
+  }
+  Some((original, stream, receipt))
 }
 
 ///|
