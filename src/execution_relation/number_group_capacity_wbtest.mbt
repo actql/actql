@@ -3,6 +3,7 @@ fn number_group_capacity_owner(
   recursive : Bool,
   aggregate : String,
   additional? : String = "",
+  keyed? : Bool = true,
 ) -> @lower.BoundPrepared {
   bound_pipeline(
     "[{\"values\":{\"schema\":{\"bucket\":{\"type\":\"string\",\"nullable\":false},\"n\":{\"type\":\"number\",\"nullable\":true}" +
@@ -13,7 +14,9 @@ fn number_group_capacity_owner(
     }) +
     "},\"rows\":[{\"bucket\":{\"literal\":\"a\"},\"n\":1" +
     (if recursive { ",\"payload\":{\"literal\":[1]}" } else { "" }) +
-    "}]},\"as\":\"seed\"},{\"group\":{\"by\":[\"bucket\"],\"aggregates\":{\"total\":" +
+    "}]},\"as\":\"seed\"},{\"group\":{\"by\":" +
+    (if keyed { "[\"bucket\"]" } else { "[]" }) +
+    ",\"aggregates\":{\"total\":" +
     aggregate +
     additional +
     "}}}]",
@@ -25,8 +28,14 @@ fn number_group_capacity_fixture(
   recursive : Bool,
   aggregate : String,
   additional? : String = "",
+  keyed? : Bool = true,
 ) -> GeneratedSequence raise {
-  let owner = number_group_capacity_owner(recursive, aggregate, additional~)
+  let owner = number_group_capacity_owner(
+    recursive,
+    aggregate,
+    additional~,
+    keyed~,
+  )
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     prepared_sequence(owner),
@@ -40,6 +49,65 @@ fn number_group_capacity_fixture(
     1000,
   ).unwrap()
   select_generated_sequence_step(generated, 1).unwrap()
+}
+
+///|
+test "unkeyed direct Number extrema quote one nullable output cell" {
+  let value_limits : ValueLimits = {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  let limits : SequenceExecutionLimits = {
+    rows: {
+      max_rows: 3,
+      retained_entries: 100,
+      metadata_entries: 100,
+      operation_entries: 1000,
+      input_values: value_limits,
+      output_values: value_limits,
+    },
+    max_work: 10000,
+    max_frames: 100,
+  }
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_nodes: 100,
+    max_bytes: 100,
+    max_depth: 10,
+  }
+  let expanded = {
+    ..limits,
+    rows: {
+      ..limits.rows,
+      output_values: { ..value_limits, max_nodes: 101, max_text_bytes: 101, },
+    },
+  }
+  for aggregate in ["min", "max"] {
+    let field = "{\"fn\":\"" + aggregate + "\",\"field\":\"n\"}"
+    for
+      (keyed, recursive, fixed_output) in [
+        (false, false, true),
+        (true, false, false),
+        (false, true, false),
+      ] {
+      let selected = number_group_capacity_fixture(recursive, field, keyed~)
+      let original = generated_bounded_sequence_capacity(
+        selected, limits, measurement,
+      ).unwrap()
+      let extra = generated_bounded_sequence_capacity(
+        selected, expanded, measurement,
+      ).unwrap()
+      if fixed_output {
+        assert_eq(extra.retained_bytes, original.retained_bytes)
+        assert_eq(extra.execution_bytes, original.execution_bytes)
+      } else {
+        assert_true(extra.retained_bytes > original.retained_bytes)
+        assert_true(extra.execution_bytes > original.execution_bytes)
+      }
+    }
+  }
 }
 
 ///|

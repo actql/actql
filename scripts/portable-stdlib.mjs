@@ -13,7 +13,7 @@ const groups = [
   ['Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.',
     ['bigint','char','double','float','int','int16','int64','uint','uint16','uint64','v128','internal/strconv']],
   ['In-memory parsing/encoding; test-only imports are not production edges.',
-    ['encoding/utf8','json','string','string/internal/regex_engine','string/internal/regex_engine/ast',
+    ['encoding/base64','encoding/utf8','json','string','string/internal/regex_engine','string/internal/regex_engine/ast',
       'string/internal/regex_engine/symbol_map','string/internal/regex_parser',
       'internal/regex_engine/automata','internal/regex_engine/shared_types','internal/regex_engine/shared_types/rechar_set']],
   ['Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.',

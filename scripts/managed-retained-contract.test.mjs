@@ -58,9 +58,9 @@ test('managed profile pins quantities, current evidence wire and query-time owne
   // runtime output. Dependency and owner checks explain the current law without
   // requiring any former commit or reconstructing a historical schema.
   for (const [name, expected, dependencyNames] of [
-    ['actql-query-acquisition', 'sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc', ['canonical_value_contract', 'consumer_capacity']],
-    ['actql-query-process-evidence', 'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d', ['query_acquisition']],
-    ['actql-query-two-receipt', 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929', ['query_acquisition', 'process_evidence']],
+    ['actql-query-acquisition', 'sha256:160f77d834848dcfe4249f6b204d915ce21275c78b7f7042edba8d0b4bd2156f', ['canonical_value_contract', 'consumer_capacity']],
+    ['actql-query-process-evidence', 'sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf', ['query_acquisition']],
+    ['actql-query-two-receipt', 'sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807', ['query_acquisition', 'process_evidence']],
   ]) {
     const current = read(`spec/contracts/${name}.json`);
     assert.equal(current.version, `${name}-contract/0.1`);

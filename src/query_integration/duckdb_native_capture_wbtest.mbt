@@ -404,7 +404,7 @@ fn native_observation_oracle(
       "}",
     )
   }
-  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929\",\"requirement_cid\":" +
+  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807\",\"requirement_cid\":" +
     query_oracle_quote(requirement_cid) +
     ",\"owner\":" +
     req.get("owner").unwrap().stringify() +

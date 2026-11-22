@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {setImmediate as turn} from 'node:timers/promises';
-import {createInstalledOpenAIChatRegistration, createConfiguredUndiciOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
+import {createInstalledOpenAIChatRegistration, createConfiguredUndiciOpenAIChatRegistration,
+  createConfiguredUndiciRegisteredSdkRegistration} from './_internal/installed-openai-chat.mjs';
 import {installFixtureModelProviders as installModelProviders} from './original-materials.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
@@ -505,4 +506,58 @@ test('configured physical timeout continuation keeps legacy public registrations
     {code: 'InvalidInstalledOpenAIChatConfiguration'});
   assert.throws(() => createConfiguredUndiciOpenAIChatRegistration(config, {...settings, bodyMs: 0}),
     {code: 'UndiciOriginalTimeoutsUnavailable'});
+});
+
+test('registered physical route consumes the same installed SDK and credential without Chat runtime exports', () => {
+  const original = configuration(), f = runtime(original);
+  const {apiKey, baseURL, fetch, modelId, modelSelector, originalStringLimits,
+    originalReadInstallation, ...config} = original;
+  const endpoint = 'https://provider.fixture.invalid/v1/messages';
+  const sdk = Object.freeze({package_name: '@test/provider-sdk', version: '1.0.0',
+    interface: 'v4', lock_artifact_cid: cid('a')});
+  const installation = Object.freeze({...original.rawCaptureSelection.installation, endpoint, sdk,
+    build_artifact_cid: cid('b')});
+  config.rawCaptureSelection = Object.freeze({...original.rawCaptureSelection, installation});
+  config.originalReadRecipe = Object.freeze({...originalReadInstallation,
+    nodeInstallation: Object.freeze({...originalReadInstallation.nodeInstallation, installation})});
+  config.physicalAcquisitionLimits = physicalAcquisitionLimits;
+  const route = Object.freeze({providerId: config.providerId, selector: modelSelector,
+    modelId, apiMode: 'messages', endpoint});
+  const transport = Object.freeze({reference: 'FIXTURE_API_KEY', header: 'x-api-key', endpoint,
+    prefix: '', placeholder: 'fixture-marker'});
+  const registration = Object.freeze({route, sdkPackage: sdk.package_name, sdkVersion: sdk.version,
+    adapterArtifactCid: installation.build_artifact_cid, lockArtifactCid: sdk.lock_artifact_cid,
+    credential: Object.freeze({transport})});
+  // Use only the generic runtime ports. The fixture terminates at the
+  // imported physical preflight boundary, before any acquisition or send.
+  delete f.moon.clientProgramStartOpenAIChatProjection;
+  delete f.moon.clientProgramFinishOpenAIChatSdkV4Projection;
+  delete f.moon.clientProgramModelPhysicalSavedChat;
+  delete f.moon.clientProgramModelAsyncPhysicalRequestPlan;
+  for (const port of ['clientProgramStartAdmittedStructuredSdkProjection',
+    'clientProgramAdmittedStructuredSdkRouteMatches', 'clientProgramModelStructuredRequestPlan',
+    'clientProgramModelPhysicalSavedStructured']) {
+    f.moon[port] = () => assert.fail('No physical preflight or send during registration');
+  }
+  const register = (selected = registration) => createConfiguredUndiciRegisteredSdkRegistration(
+    config, {connectMs: 100, headersMs: 200, bodyMs: 300, callMs: 500}, 64, selected);
+  const [entry] = register()(f.moon);
+  assert.strictEqual(entry.registeredSdk, registration);
+  assert.strictEqual(entry.rawCaptureSelection, config.rawCaptureSelection);
+  assert.equal(Object.hasOwn(entry, 'sdkStaticOriginals'), false);
+  assert.equal(entry.validatePrompt(config.taskCid, modelSelector, config.promptPayloadWire), true);
+  assert.equal(entry.validatePrompt(config.taskCid, 'other', config.promptPayloadWire), false);
+  assert.throws(() => entry.physicalPreflight(f.request, createInferIoNotification(), () => {}, f.provider),
+    {code: 'RegisteredSdkPhysicalInstallationUnavailable'});
+  for (const changed of [{sdkPackage: '@test/foreign-sdk'}, {adapterArtifactCid: cid('c')},
+    {route: Object.freeze({...route, endpoint: 'https://elsewhere.invalid/v1/messages'})},
+    {route: Object.freeze({...route, providerId: 'other'})}]) {
+    assert.throws(() => register(Object.freeze({...registration, ...changed})),
+      {code: 'OpenAIOriginalInstallationMismatch'});
+  }
+  assert.throws(() => register(Object.freeze({...registration, credential: undefined})),
+    {code: 'RegisteredSdkPhysicalInstallationUnavailable'});
+  assert.equal(f.counts.installs, 0);
+  assert.equal(f.counts.starts, 0);
+  assert.equal(f.counts.fetch, 0);
 });

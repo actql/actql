@@ -46793,15 +46793,46 @@
     },
     {
       "module": "adapters/host-node/host-journal-native-image.cjs",
-      "sha256": "83a0655c8f0c6c080c594d5686c9b8491958c05cf03f6463e53dcbb80bff4881",
+      "sha256": "dc042713fc2639bdc85ff654363c675358024f98f0418700357a7b0c835c0d4e",
       "exports": [
-        "commonjs:loadHostJournalDirectoryNative"
+        "commonjs:loadHostJournalDirectoryNative",
+        "commonjs:loadOrdinaryLocalFilesNative"
       ],
       "operations": [
         {
           "name": "currentBindings/currentBindings",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "name",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/observeCleanup/observeCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/status/status/status",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -46816,32 +46847,19 @@
           "async": false
         },
         {
-          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+          "name": "loadOrdinaryLocalFilesNative",
           "parameters": [
-            "name",
-            "operation"
+            "packageRoot",
+            "images",
+            "limits",
+            "assertRuntimeCurrent"
           ],
           "async": false
         },
         {
-          "name": "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/status/status/status",
+          "name": "loadOrdinaryLocalFilesNative/matching/matching",
           "parameters": [
-            "value"
+            "image"
           ],
           "async": false
         },
@@ -46870,16 +46888,19 @@
         {
           "operations": [
             "currentBindings/currentBindings",
+            "loadDirectoryNative/init:assertCurrent/init:assertCurrent",
+            "loadDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+            "loadDirectoryNative/observeCleanup/observeCleanup",
+            "loadDirectoryNative/status/status",
+            "loadDirectoryNative/status/status/status",
             "loadHostJournalDirectoryNative",
-            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
-            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
-            "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
-            "loadHostJournalDirectoryNative/status/status",
-            "loadHostJournalDirectoryNative/status/status/status",
+            "loadOrdinaryLocalFilesNative",
+            "loadOrdinaryLocalFilesNative/matching/matching",
             "operations/operations"
           ],
           "exports": [
-            "commonjs:loadHostJournalDirectoryNative"
+            "commonjs:loadHostJournalDirectoryNative",
+            "commonjs:loadOrdinaryLocalFilesNative"
           ],
           "attributes": {
             "responsibility": [
@@ -46909,13 +46930,13 @@
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
+                "anchor": "if (selected.root !== packageRoot || selected.pathKey !== path || selected.ordinary !== ordinary ||"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "anchor": "const entry = selected = {root: packageRoot, pathKey: path, ordinary, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
@@ -47045,13 +47066,13 @@
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
+                "anchor": "if (selected.root !== packageRoot || selected.pathKey !== path || selected.ordinary !== ordinary ||"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "anchor": "const entry = selected = {root: packageRoot, pathKey: path, ordinary, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
@@ -54009,7 +54030,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "c16512bb67d6750c251263eba57d53a2aedcf007c7a0100413ef974029352031",
+      "sha256": "f682b21b0350d506d8fb24794dfb5e7558700bfe4cbaa1a25b9a41551a97dc51",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -54049,6 +54070,15 @@
           "async": false
         },
         {
+          "name": "installImageLoader/loadSelectedModule",
+          "parameters": [
+            "filename",
+            "sha256",
+            "kind"
+          ],
+          "async": false
+        },
+        {
           "name": "installImageLoader/registerFence",
           "parameters": [
             "args"
@@ -54081,16 +54111,20 @@
         {
           "name": "installOrdinaryInitialControlImageLoader",
           "parameters": [
-            "groups"
+            "groups",
+            "requiredModules"
           ],
           "async": false
         }
       ],
       "imports": [
+        "node:buffer",
+        "node:crypto",
         "node:fs",
         "node:module",
         "node:path",
-        "node:url"
+        "node:url",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -54109,7 +54143,8 @@
             "installImageLoader/registerHooksFence",
             "installImageLoader/resolve",
             "installInitialControlImageLoader",
-            "installOrdinaryInitialControlImageLoader"
+            "installOrdinaryInitialControlImageLoader",
+            "installImageLoader/loadSelectedModule"
           ],
           "exports": [
             "commonjs:installInitialControlImageLoader",
@@ -54342,6 +54377,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a genuine namespace at another ESM image cannot substitute the selected module"
               }
             ]
           }
@@ -55589,10 +55628,14 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
+      "sha256": "41420c57f91f6aac35a2593d16e0bad8efe769668c9f4d09c25c413ca0972202",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
-        "commonjs:captureOrdinaryInitialControlPackageCustody"
+        "commonjs:captureOrdinaryInitialControlPackageCustody",
+        "commonjs:ordinaryLocalFilesNative",
+        "commonjs:ordinaryModelSdkInstallation",
+        "commonjs:prepareOrdinaryModelSdkInstallation",
+        "commonjs:readVerifiedSdkImage"
       ],
       "operations": [
         {
@@ -55611,7 +55654,8 @@
             "inventory",
             "localRoot",
             "consumerEntry",
-            "publicDeliveryEntry"
+            "publicDeliveryEntry",
+            "initialSdkRegistrations"
           ],
           "async": false
         },
@@ -55626,9 +55670,61 @@
           "async": false
         },
         {
+          "name": "capturePackageCustody/initializeHostNamespace/entry/entry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/group/group",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/parser/parser",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/transport/transport",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "capturePackageCustody/readAsset",
           "parameters": [
             "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/readSdkImage",
+          "parameters": [
+            "packageName",
+            "path",
+            "cid",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/selectSdkImage/group/group",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/selectSdkImage/image/image",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -55638,14 +55734,72 @@
             "part"
           ],
           "async": false
+        },
+        {
+          "name": "ordinaryLocalFilesNative",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ordinaryModelSdkInstallation",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryModelSdkInstallation",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryModelSdkInstallation/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryModelSdkInstallation/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryModelSdkInstallation/data/data/data#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readVerifiedSdkImage",
+          "parameters": [
+            "custody",
+            "packageName",
+            "path",
+            "cid",
+            "kind"
+          ],
+          "async": false
         }
       ],
       "imports": [
+        "./host-journal-native-image.cjs",
+        "./host-journal-service-recipe.cjs",
         "./initial-control-image-loader.cjs",
         "./initial-control-image-source.cjs",
+        "./initial-control-package-original.cjs",
+        "./initial-control-phase-envelope.cjs",
         "node:fs",
         "node:module",
-        "node:path"
+        "node:os",
+        "node:path",
+        "node:util",
+        "node:v8"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -55659,12 +55813,30 @@
             "captureOrdinaryInitialControlPackageCustody",
             "capturePackageCustody/assertCurrent",
             "capturePackageCustody/initializeHostNamespace",
+            "capturePackageCustody/initializeHostNamespace/entry/entry",
+            "capturePackageCustody/initializeHostNamespace/group/group",
+            "capturePackageCustody/initializeHostNamespace/parser/parser",
+            "capturePackageCustody/initializeHostNamespace/transport/transport",
             "capturePackageCustody/readAsset",
-            "concrete/concrete/concrete"
+            "capturePackageCustody/readSdkImage",
+            "capturePackageCustody/selectSdkImage/group/group",
+            "capturePackageCustody/selectSdkImage/image/image",
+            "concrete/concrete/concrete",
+            "ordinaryLocalFilesNative",
+            "ordinaryModelSdkInstallation",
+            "prepareOrdinaryModelSdkInstallation",
+            "prepareOrdinaryModelSdkInstallation/data/data/data",
+            "prepareOrdinaryModelSdkInstallation/data/data/data#2",
+            "prepareOrdinaryModelSdkInstallation/data/data/data#3",
+            "readVerifiedSdkImage"
           ],
           "exports": [
             "commonjs:captureInitialControlPackageCustody",
-            "commonjs:captureOrdinaryInitialControlPackageCustody"
+            "commonjs:captureOrdinaryInitialControlPackageCustody",
+            "commonjs:ordinaryLocalFilesNative",
+            "commonjs:ordinaryModelSdkInstallation",
+            "commonjs:prepareOrdinaryModelSdkInstallation",
+            "commonjs:readVerifiedSdkImage"
           ],
           "attributes": {
             "responsibility": [
@@ -55817,6 +55989,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "the original Host verifies SDK software and closes the options before supplying its factory"
               }
             ]
           }
@@ -56267,7 +56443,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "8da5c456fdb99828d8f4e7d3f000cfde94eb1fdea909ceb0501018786508eb57",
+      "sha256": "cc5c477671d2b7f522b94f9ce54c252fb964eb4d5799e7f8cd226617ecfc4d74",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
@@ -56364,7 +56540,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "// only the real early preload retains the runtime/module original and can"
+                "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -56532,7 +56708,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "// only the real early preload retains the runtime/module original and can"
+                "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -83627,12 +83803,13 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "9d5a32588b500bf513d78dc9de99f6c16ec700941a1f23bb7b0b68da4fd03d14",
+      "sha256": "363de0776b2bf111c94d848d5f7b3a6a6889c23faa95e6744e16c944b4d9bddb",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
         "readInitialControlInstallationAsset",
-        "readInitialControlInstallationInput"
+        "readInitialControlInstallationInput",
+        "readInitialControlInstallationModelSdk"
       ],
       "operations": [
         {
@@ -83674,6 +83851,14 @@
             "sameOriginals"
           ],
           "async": false
+        },
+        {
+          "name": "readInitialControlInstallationModelSdk",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -83693,13 +83878,15 @@
             "beginInitialControlInstallation",
             "explicitStartup/explicitStartup",
             "readInitialControlInstallationAsset",
-            "readInitialControlInstallationInput"
+            "readInitialControlInstallationInput",
+            "readInitialControlInstallationModelSdk"
           ],
           "exports": [
             "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation",
             "readInitialControlInstallationAsset",
-            "readInitialControlInstallationInput"
+            "readInitialControlInstallationInput",
+            "readInitialControlInstallationModelSdk"
           ],
           "attributes": {
             "responsibility": [
@@ -107764,12 +107951,13 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "cf299c8a5f04952b2de823dbc131c219d2c86c640e33ae786bb95ee802428093",
+      "sha256": "592e102749833cdcdcebf26acf10ead10a1ffc73588b8803aef367c5aa720a96",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
         "isOrdinaryHostControl",
         "ordinaryHostControlInput",
+        "ordinaryHostControlModelSdk",
         "readOrdinaryHostAsset"
       ],
       "operations": [
@@ -107856,6 +108044,14 @@
           "async": false
         },
         {
+          "name": "ordinaryHostControlModelSdk",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "readOrdinaryHostAsset",
           "parameters": [
             "scope",
@@ -107883,6 +108079,7 @@
         }
       ],
       "imports": [
+        "./initial-control-package-custody.cjs",
         "./installed-host-policy.mjs",
         "node:fs",
         "node:path",
@@ -107908,6 +108105,7 @@
             "close/flight/flight",
             "isOrdinaryHostControl",
             "ordinaryHostControlInput",
+            "ordinaryHostControlModelSdk",
             "readOrdinaryHostAsset",
             "readOrdinaryHostAsset/readOrdinaryHostAsset",
             "readOrdinaryHostAsset/readOrdinaryHostAsset#2",
@@ -107918,6 +108116,7 @@
             "beginOrdinaryHostControl",
             "isOrdinaryHostControl",
             "ordinaryHostControlInput",
+            "ordinaryHostControlModelSdk",
             "readOrdinaryHostAsset"
           ],
           "attributes": {
@@ -117795,7 +117994,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "51864ca4585832dd6a30955451ce74454685e8b12e4e42618665c1434ee02559",
+      "sha256": "a5d5b077c831f7c5af1d3e8f7e1f67ec2362d04aff33ee794977d11aed40e224",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -133572,7 +133771,18 @@
         }
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
-      "sha256": "ad0183807b617627f9942145233dffdcbf4e9ea3c61b721f25d32aef2361acf6"
+      "sha256": "d21b730621205c1445b64a3fccc7034604aa4b0789460b5332781041bddc34cb",
+      "imports": [
+        "../../_build/native/directory-darwin-arm64.node",
+        "../../_build/native/directory-darwin-x64.node",
+        "../../_build/native/local-files-linux-x64.node",
+        "../../packages/local-node/_build/native/directory-darwin-arm64.node",
+        "../../packages/local-node/_build/native/directory-darwin-x64.node",
+        "../../packages/local-node/_build/native/local-files-linux-x64.node",
+        "./initial-control-package-custody.cjs",
+        "node:fs",
+        "node:module"
+      ]
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
@@ -137906,8 +138116,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5513,
-    "exports": 1194,
+    "operations": 5532,
+    "exports": 1201,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

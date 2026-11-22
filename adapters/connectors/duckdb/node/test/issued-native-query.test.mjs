@@ -21,7 +21,7 @@ const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(
     ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
     : JSON.stringify(value);
 const hash = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
-const twoReceiptContractCid = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
+const twoReceiptContractCid = 'sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807';
 
 // Independent contract preimages and fixed rows; no product receipt, record,
 // observation or returned SQL value is used to construct expected content.

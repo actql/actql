@@ -134,7 +134,7 @@ pub fn advance_model_reconciled_raw_usage(
   // An incomplete/failed native decode may retain a nominal saved prefix.
   // Only its stopped original execution may reconcile usage; never run two
   // CPU readers concurrently or replace its immutable physical terminal.
-  if !stopped_original {
+  if !stopped_original || model_call_requires_structured_receipt(call) {
     return Err(RequestIdentity)
   }
   if raw.usage_retired {
@@ -309,6 +309,17 @@ fn advance_model_stopped_raw_usage_owned(
   guard state.attempts.get(slot) is Some(trace) &&
     physical_equal(trace, entry.trace) else {
     return Err(RequestIdentity)
+  }
+  // Structured adapters report decoded usage alongside the saved answer.
+  // Never interpret their arbitrary raw response with the Chat codec.
+  if model_call_requires_structured_receipt(call) {
+    guard !call.polling && call.terminal is Some(observed) else {
+      return Err(RequestIdentity)
+    }
+    return match observe_model_physical_usage(state, call, observed) {
+      Ok(_) => Ok((true, 0L, None))
+      Err(issue) => Ok((true, 0L, Some(issue)))
+    }
   }
   guard call.raw_capture is Some(raw) else {
     return match call.usage_result {

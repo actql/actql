@@ -150,7 +150,36 @@ function sameResponseLimits(limits, original) {
 // be funded by the original installation/Call before physical preparation.
 export const unboundOpenAICredential = 'actql-unbound-openai-credential';
 
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts, openAICredentialBytes}) {
+// The verified registered adapter supplies a single credential reference
+// and wire position. Snapshot only DATA. The environment is read by the
+// prepared credential port during the original authorized continuation.
+function snapshotRegisteredCredential(value, endpoint, protocol) {
+  const names = ['endpoint', 'reference', 'header', 'prefix', 'placeholder', 'maxBytes'];
+  if (value === null || typeof value !== 'object' || types.isProxy(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype || Reflect.ownKeys(value).length !== names.length) {
+    throw issue('RegisteredSdkCredentialUnavailable');
+  }
+  const fields = {};
+  for (const name of names) {
+    const field = Object.getOwnPropertyDescriptor(value, name);
+    if (!field?.enumerable || !Object.hasOwn(field, 'value')) throw issue('RegisteredSdkCredentialUnavailable');
+    fields[name] = field.value;
+  }
+  const {reference, header, prefix, placeholder, maxBytes} = fields;
+  if (fields.endpoint !== endpoint || protocol !== 'https:' ||
+      typeof reference !== 'string' || !/^[A-Z_][A-Z0-9_]{0,255}$/u.test(reference) ||
+      typeof header !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/u.test(header) ||
+      ['connection', 'content-length', 'expect', 'host', 'proxy-authorization', 'proxy-connection',
+        'te', 'trailer', 'transfer-encoding', 'upgrade'].includes(header) ||
+      typeof prefix !== 'string' || prefix !== '' && !/^[A-Za-z][A-Za-z0-9_-]{0,15} $/u.test(prefix) ||
+      typeof placeholder !== 'string' || !/^[\x21-\x7e]{1,64}$/u.test(placeholder) ||
+      !positive(maxBytes) || maxBytes > 4096) throw issue('RegisteredSdkCredentialUnavailable');
+  return Object.freeze({reference, header, prefix, marker: prefix + placeholder, maxBytes,
+    missing: 'ModelProjectCredentialUnavailable', unavailable: 'ModelProjectCredentialPreparationUnavailable'});
+}
+
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits,
+  transportTimeouts, openAICredentialBytes, registeredCredential}) {
   const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   const timeouts = fixedOriginalTransportTimeouts(transportTimeouts);
   let url;
@@ -158,9 +187,15 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
       !['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
       url.hash || url.search) throw issue('UndiciOriginalEndpointUnavailable');
-  if (openAICredentialBytes !== undefined && (!positive(openAICredentialBytes) || openAICredentialBytes > 4096 ||
-      endpoint !== 'https://api.openai.com/v1/chat/completions')) {
-    throw issue('OpenAIProjectCredentialEndpointUnavailable');
+  let credential;
+  if (openAICredentialBytes !== undefined) {
+    if (registeredCredential !== undefined || !positive(openAICredentialBytes) || openAICredentialBytes > 4096 ||
+        endpoint !== 'https://api.openai.com/v1/chat/completions') throw issue('OpenAIProjectCredentialEndpointUnavailable');
+    credential = Object.freeze({reference: 'OPENAI_API_KEY', header: 'authorization', prefix: 'Bearer ',
+      marker: 'Bearer ' + unboundOpenAICredential, maxBytes: openAICredentialBytes,
+      missing: 'OpenAIProjectCredentialUnavailable', unavailable: 'OpenAIProjectCredentialPreparationUnavailable'});
+  } else if (registeredCredential !== undefined) {
+    credential = snapshotRegisteredCredential(registeredCredential, endpoint, url.protocol);
   }
   const {maxBytes, maxHeaderBytes, maxHeaders} = requestLimits ?? {};
   if (![maxBytes, maxHeaderBytes, maxHeaders].every(positive) || maxHeaders > 64) {
@@ -176,7 +211,7 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   const original = {endpoint, origin: url.origin,
     path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition};
   if (timeouts !== undefined) original.timeouts = timeouts;
-  if (openAICredentialBytes !== undefined) original.openAICredentialBytes = openAICredentialBytes;
+  if (credential !== undefined) original.credential = credential;
   installations.set(fetch, Object.freeze(original));
   return fetch;
 }
@@ -199,6 +234,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
       !sameResponseLimits(limits, original.limits)) {
     throw issue('UndiciOriginalRequestMismatch');
   }
+  const credential = original.credential;
   let headerBytes = 0;
   let headers = [];
   let credentialIndex;
@@ -208,15 +244,15 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
     }
     headerBytes += Buffer.byteLength(pair[0]) + Buffer.byteLength(pair[1]);
     if (headerBytes > original.maxHeaderBytes) throw issue('UndiciOriginalRequestMismatch');
-    if (original.openAICredentialBytes !== undefined && pair[0].toLowerCase() === 'authorization') {
-      if (credentialIndex !== undefined || pair[1] !== `Bearer ${unboundOpenAICredential}`) {
+    if (credential !== undefined && pair[0].toLowerCase() === credential.header) {
+      if (credentialIndex !== undefined || pair[1] !== credential.marker) {
         throw issue('UndiciOriginalRequestMismatch');
       }
       credentialIndex = headers.length + 1;
     }
     headers.push(pair[0], pair[1]);
   }
-  if (original.openAICredentialBytes !== undefined && credentialIndex === undefined) {
+  if (credential !== undefined && credentialIndex === undefined) {
     throw issue('UndiciOriginalRequestMismatch');
   }
   // These are acquisition/backpressure controls, NOT hard socket/TLS/chunk or
@@ -331,23 +367,23 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, c
   let retired = false;
   const bindCredential = credentialIndex === undefined ? undefined : () => {
     if (retired || destroying !== undefined || pending !== undefined || headers === undefined || init.signal.aborted) {
-      throw issue('OpenAIProjectCredentialPreparationUnavailable');
+      throw issue(credential.unavailable);
     }
-    // This fixed source is read by the authorized continuation on the same
-    // funded call. The SDK's suspended preparation never sees these bytes.
-    const key = process.env.OPENAI_API_KEY;
-    if (typeof key !== 'string' || key.length === 0 || key.length > original.openAICredentialBytes ||
-        headerBytes - unboundOpenAICredential.length + key.length > original.maxHeaderBytes ||
+    // The SDK has already supplied the exact placeholder in its selected
+    // header. The suspended SDK never sees the value read for this Call.
+    const key = process.env[credential.reference];
+    if (typeof key !== 'string' || key.length === 0 || key.length > credential.maxBytes ||
+        headerBytes - credential.marker.length + credential.prefix.length + key.length > original.maxHeaderBytes ||
         !/^[\x21-\x7e]+$/u.test(key)) {
-      throw issue('OpenAIProjectCredentialUnavailable');
+      throw issue(credential.missing);
     }
-    headers[credentialIndex] = `Bearer ${key}`;
+    headers[credentialIndex] = credential.prefix + key;
     Object.freeze(headers);
     headers = undefined;
   };
   const invoke = () => {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
-    if (headers !== undefined) throw issue('OpenAIProjectCredentialPreparationUnavailable');
+    if (headers !== undefined) throw issue(credential.unavailable);
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
     const response = Reflect.apply(method, client, [request]).then(response => {

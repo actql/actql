@@ -1,7 +1,7 @@
 # Optional AI SDK Host installer (development)
 
-This private development package provides `createOpenAIChatProvider` for the
-configured Node Host and the lower-level original-registration assemblers below.
+This private development package provides configured and lower-level
+registration callbacks for the installed Node Host.
 Registry publication and live OpenAI acceptance remain separate work.
 
 For development-package acceptance, install the optional provider tar alongside
@@ -20,6 +20,32 @@ npm install ./actql-client-wire-0.0.0-development.tgz \
 
 This is a local tar installation, not a registry release. Do not substitute a
 checkout import, private runtime path, or a differently built Host artifact.
+
+## Use a verified SDK registration
+
+Pass the selected `modelSdkRegistrations` to the installed Node Host and use
+`createRegisteredSdkProvider` for its `registerModelProviders` callback. Supply
+the matching Provider ID, the original request-data-handling contract wire,
+generation defaults, bounds, a whole-call timeout and the current egress
+observer. The trusted registration supplies the SDK and adapter identities,
+resolved model, endpoint and credential reference. The Host reads the
+credential only at authorized dispatch.
+
+On the first SDK-enabled Host initialization in a process, include every SDK
+and adapter module that later Hosts in that process will need. That first
+initialization seals the module inventory. Later Hosts can reuse those same
+modules. Selecting an unheld module fails before Provider registration.
+Each Host authorizes its own Provider registrations and credential use.
+
+The pinned Anthropic Messages adapter selects `claude-sonnet-4-6` with
+`structuredOutputMode: 'outputFormat'`. Its serial text profile sends
+temperature, requires neutral `topP: 1`, and refuses a seed. Put only the
+credential reference `ANTHROPIC_API_KEY` in the deployment configuration.
+
+The pinned Google GenerateContent adapter selects `gemini-2.5-flash` with
+`structuredOutputs: true`. Its serial text profile sends temperature and
+`topP`, refuses a seed, and uses the deployment credential reference
+`GOOGLE_GENERATIVE_AI_API_KEY`.
 
 ## Configure a Host from project Tasks
 

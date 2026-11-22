@@ -9,7 +9,7 @@ const resident = readFileSync(new URL('../src/run_publication_host/client_reside
 const wire = fixture.split('\n').find(line => line.startsWith('  #|')).slice(4);
 const environment = JSON.parse(wire);
 const hash = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
-const currentCid = 'sha256:c9cf17f3e181c97a69e3419d4543e98c9a04af6da9490b359511a673a64c49a7';
+const currentCid = 'sha256:e1dc91d1c0f04c71dbe7ee5627e6928eb3cfc501592ed903fdd75287709c9117';
 
 test('legacy Source fixture pins canonical ordered evidence with independent hashes', () => {
   assert.equal(wire, canonicalText(environment));
@@ -29,7 +29,15 @@ test('original refusal is only reversed capability evidence, not substituted Sou
   const {evidence_bundle_cid: _cid, ...body} = environment;
   assert.equal(body.connector_capabilities.length, 2);
   const original = {...body, connector_capabilities: [...body.connector_capabilities].reverse()};
-  assert.equal(hash(original), 'sha256:ffdbff2b01c462b11cef68339cd18440d7547db44c17c6223e5d76a2e507ff8c');
+  assert.equal(hash(original), 'sha256:adc1a3c4860fc608b843161e2d6940af7b30466b3fe6f798fdb6593511ed25de');
+  // Reconstruct the pre-Bytes refusal with its own capability identities.
+  const previous = structuredClone(body);
+  for (const entry of previous.connector_capabilities) entry.capability_contract_cids = [
+    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d',
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929',
+  ];
+  previous.connector_capabilities.sort((a,b) => hash(a) < hash(b) ? 1 : -1);
+  assert.equal(hash(previous), 'sha256:ffdbff2b01c462b11cef68339cd18440d7547db44c17c6223e5d76a2e507ff8c');
   // Retain the earlier refusal preimage with its original dependency roles.
   const retained = structuredClone(body);
   // The retained wire predates this current Host policy declaration. Keep
@@ -46,9 +54,11 @@ test('original refusal is only reversed capability evidence, not substituted Sou
   assert.deepEqual(body.schema_snapshots.map(item => item.source_ref), [
     'connector://crm/main/r#v', 'connector://crm/right/r#v',
   ]);
-  // Current dependency CIDs reverse the member digest order, not Source roles.
   assert.deepEqual(body.connector_capabilities.map(item => item.source_ref), [
-    'connector://crm/right/r#v', 'connector://crm/main/r#v',
+    'connector://crm/main/r#v', 'connector://crm/right/r#v',
   ]);
+  for (const item of body.connector_capabilities) {
+    assert.deepEqual(item.capability_contract_cids, [...item.capability_contract_cids].sort());
+  }
   assert(hash(original.connector_capabilities[0]) > hash(original.connector_capabilities[1]));
 });

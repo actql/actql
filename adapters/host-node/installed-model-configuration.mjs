@@ -6,16 +6,57 @@ import {fileURLToPath} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {types as nodeTypes} from 'node:util';
+import {isDeepStrictEqual, types as nodeTypes} from 'node:util';
+import packageCustody from './initial-control-package-custody.cjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
+const invalidSdkInstallation = 'InvalidInstalledModelSdkInstallation';
+const plainSdkRecord = value => value !== null && typeof value === 'object' &&
+  !nodeTypes.isProxy(value) && Object.getPrototypeOf(value) === Object.prototype;
+
+function originalSdkRecord(value, keys, optional = []) {
+  if (!plainSdkRecord(value) || !Object.isFrozen(value) ||
+      Reflect.ownKeys(value).some(key => !keys.includes(key) && !optional.includes(key)) ||
+      [...keys, ...optional.filter(key => Object.hasOwn(value, key))].some(key => {
+        const field = Object.getOwnPropertyDescriptor(value, key);
+        return !field?.enumerable || !Object.hasOwn(field, 'value');
+      })) fail(invalidSdkInstallation);
+  return value;
+}
+
+function sdkProviderOptions(values, namespace, schema) {
+  if (!plainSdkRecord(values) || !Object.isFrozen(values) || !plainSdkRecord(schema) ||
+      !Object.isFrozen(schema) || typeof namespace !== 'string' ||
+      !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/u.test(namespace)) fail(invalidSdkInstallation);
+  const keys = Reflect.ownKeys(values);
+  if (keys.length > 32) fail(invalidSdkInstallation);
+  const snapshot = {};
+  for (const key of keys) {
+    if (typeof key !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/u.test(key) ||
+        Object.hasOwn(Object.prototype, key)) fail(invalidSdkInstallation);
+    const field = Object.getOwnPropertyDescriptor(values, key);
+    const rule = Object.getOwnPropertyDescriptor(schema, key);
+    if (!field?.enumerable || !Object.hasOwn(field, 'value') ||
+        !rule?.enumerable || !Object.hasOwn(rule, 'value')) fail('UnsupportedInstalledModelSdkOption');
+    const value = field.value, allowed = rule.value;
+    if (!(typeof value === 'boolean' || Number.isSafeInteger(value) && !Object.is(value, -0) ||
+          typeof value === 'string' && value.length <= 256) ||
+        !Array.isArray(allowed) || nodeTypes.isProxy(allowed) || !Object.isFrozen(allowed) ||
+        allowed.length > 32 || !Array.prototype.includes.call(allowed, value)) {
+      fail('UnsupportedInstalledModelSdkOption');
+    }
+    snapshot[key] = value;
+  }
+  return Object.freeze({[namespace]: Object.freeze(snapshot)});
+}
 
 // Same installation and original Model/defaults owners. This callback context
 // is not a Provider registry, a Resource, permission or a physical profile.
 // Only trusted Host configuration supplies paths and registration callbacks.
 export async function installConfiguredModelProviders({moon, register, project,
   taskLimits, installationServices, assertCurrent, assertHostRuntime,
-  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl}) {
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl,
+  verifiedSdkInstallations, sdkImageCustody}) {
   if (register === undefined) return {providers: new Map(), projectTasks: undefined};
   if (typeof register !== 'function' || typeof assertCurrent !== 'function') {
     fail('InvalidInstalledModelProviderRegistration');
@@ -23,6 +64,7 @@ export async function installConfiguredModelProviders({moon, register, project,
   let phase = 'registering', failure, preparing = false;
   let defaults, candidates;
   const executionOriginals = new Map();
+  let preparedSdkIds, preparedSdkRegistrations;
   const pending = new Set();
   const track = operation => {
     // A sealed context cannot create even a new asynchronous child from an
@@ -89,6 +131,121 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
+    registeredSdkSelected(providerId) {
+      check();
+      return verifiedSdkInstallations?.has(providerId) === true;
+    },
+    prepareRegisteredSdk(providerId) {
+      return track(async () => {
+        check();
+        const construction = reader();
+        // Only the original Host installer supplies independently verified
+        // file identities. The configuration callback selects by ID alone.
+        if (arguments.length !== 1 || typeof providerId !== 'string' ||
+            providerId.length < 1 || providerId.length > 256) {
+          fail(invalidSdkInstallation);
+        }
+        const original = verifiedSdkInstallations?.get(providerId);
+        if (original === undefined) fail(invalidSdkInstallation);
+        const requireOriginal = () => {
+          if (verifiedSdkInstallations.get(providerId) !== original) fail(invalidSdkInstallation);
+        };
+        construction.prepareModelTaskInput(Object.freeze({
+          capacity: () => capacity(16n),
+          project() {
+            preparedSdkIds ??= new Set();
+            if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
+            preparedSdkIds.add(providerId);
+            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential']);
+            if (Object.hasOwn(original, 'credential')) originalSdkRecord(original.credential, ['reference', 'header']);
+            originalSdkRecord(original.adapter, ['path', 'cid']);
+            originalSdkRecord(original.lock, ['path', 'cid']);
+            originalSdkRecord(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
+            originalSdkRecord(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
+            const {route, sdk} = original;
+            if (route.providerId !== providerId ||
+                [route.selector, route.modelId, route.apiMode, sdk.packageName, sdk.version, sdk.exportName]
+                  .some(value => typeof value !== 'string' || value.length === 0 || value.length > 256) ||
+                typeof route.endpoint !== 'string' || route.endpoint.length > 2048) {
+              fail(invalidSdkInstallation);
+            }
+            return Object.freeze({});
+          },
+          retained: () => capacity(16n),
+        }));
+        const explicitCredential = Object.hasOwn(original, 'credential');
+        const credentialNodes = explicitCredential ? 16n : 0n;
+        return construction.prepareModelTaskInput(Object.freeze({
+          capacity: () => capacity(64n + credentialNodes, 10304n, 0n, 128n + credentialNodes, 10304n),
+          project() {
+            // Borrow module originals only from the package custody already
+            // held by this Host. A registration cannot supply a loader, a
+            // namespace, a file URL or an independent package search.
+            const read = (name, file, kind) => {
+              const image = packageCustody.readVerifiedSdkImage(sdkImageCustody, name, file.path, file.cid, kind);
+              check();
+              requireOriginal();
+              return image;
+            };
+            const adapterName = '@actql/provider-ai-sdk';
+            read(adapterName, original.lock, 'lock');
+            const sdkImage = read(original.sdk.packageName, original.sdk, 'module');
+            if (sdkImage.version !== original.sdk.version) fail(invalidSdkInstallation);
+            const sdk = sdkImage.namespace;
+            const adapter = read(adapterName, original.adapter, 'module').namespace;
+            sdkImageCustody.assertCurrent();
+            const factory = sdk[original.sdk.exportName];
+            const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage} = adapter;
+            if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
+                typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function' ||
+                typeof sdkProvider !== 'string' || sdkProvider.length < 1 || sdkProvider.length > 256 ||
+                readReportedUsage !== undefined && typeof readReportedUsage !== 'function') {
+              fail(invalidSdkInstallation);
+            }
+            const providerOptions = sdkProviderOptions(original.providerOptions,
+              adapter.optionNamespace, adapter.optionSchema);
+            let credential;
+            if (explicitCredential) {
+              // Borrow the nonsecret route contract from the same verified
+              // adapter. User Task options never supply an environment key.
+              const declared = originalSdkRecord(adapter.credentialBinding,
+                ['reference', 'header', 'endpoint', 'prefix', 'placeholder']);
+              if (declared.reference !== original.credential.reference ||
+                  declared.header !== original.credential.header || declared.endpoint !== original.route.endpoint) {
+                fail('RegisteredSdkCredentialMismatch');
+              }
+              credential = Object.freeze({transport: declared,
+                profile: Object.freeze({reference: declared.reference, header: declared.header,
+                  endpoint: declared.endpoint, prefix: declared.prefix})});
+            }
+            check();
+            const registration = Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
+              ...(credential === undefined ? {} : {credential}),
+              sdkPackage: original.sdk.packageName,
+              sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
+              adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
+              createLanguageModel(fetch) {
+                assertCurrent();
+                assertNewHostRuntime?.();
+                requireOriginal();
+                sdkImageCustody.assertCurrent();
+                return createLanguageModel(factory, original.route.modelId, fetch, original.route);
+              },
+              verifyRequest(wire, call) {
+                assertCurrent();
+                assertNewHostRuntime?.();
+                requireOriginal();
+                sdkImageCustody.assertCurrent();
+                return verifyRequest(wire, call, original.route, providerOptions);
+              }});
+            preparedSdkRegistrations ??= new Map();
+            preparedSdkRegistrations.set(providerId, registration);
+            return registration;
+          },
+          retained: () => capacity(64n + credentialNodes, 10304n),
+        }));
+      });
+    },
     projectOpenAIProvider() {
       return track(async () => {
         check();
@@ -463,12 +620,54 @@ export async function installConfiguredModelProviders({moon, register, project,
       }
     }
     const taskOriginals = candidates?.originalsForRuntime(moon);
+    const prepareSdkCapability = preparedSdkRegistrations === undefined ? undefined :
+      (registration, providerId, taskCid, provider, raw) => {
+        const original = taskOriginals?.find(task => task.taskCid === taskCid && task.providerId === providerId);
+        if (preparedSdkRegistrations.get(providerId) !== registration || original === undefined ||
+            typeof moon.clientProgramPrepareInstalledStructuredSdkCapability !== 'function' ||
+            typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function') {
+          fail(invalidSdkInstallation);
+        }
+        assertCurrent(); assertNewHostRuntime?.();
+        const {route} = registration, {binding} = original.defaults;
+        const revision = JSON.parse(binding.originals.installationRevision.wire);
+        const configuration = JSON.parse(binding.originals.configuration.wire);
+        const {installation} = raw;
+        const sdk = installation.sdk;
+        if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
+            revision.builder_artifact_cid !== registration.adapterArtifactCid ||
+            revision.lock_artifact_cid !== registration.lockArtifactCid ||
+            !isDeepStrictEqual(configuration.provider_options, registration.providerOptions) ||
+            !isDeepStrictEqual(configuration.registered_credential, registration.credential?.profile) ||
+            installation.build_artifact_cid !== registration.adapterArtifactCid ||
+            installation.endpoint !== route.endpoint || sdk?.package_name !== registration.sdkPackage ||
+            sdk.version !== registration.sdkVersion || sdk.interface !== 'v4' ||
+            sdk.lock_artifact_cid !== registration.lockArtifactCid) {
+          fail(invalidSdkInstallation);
+        }
+        const opaque = checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
+          provider, binding.value, binding.originals.configuration.wire,
+          route.selector, route.modelId, route.apiMode, route.endpoint, raw.profile));
+        return Object.freeze({opaque, installation});
+      };
     const install = () => installModelProviders(moon, () => entries, assertHostRuntime,
-      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals);
+      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability);
+    let registeredTaskNodes = 0n;
+    if (preparedSdkRegistrations !== undefined && taskOriginals !== undefined) {
+      for (const task of taskOriginals) {
+        if (preparedSdkRegistrations.has(task.providerId)) registeredTaskNodes += 24n;
+      }
+    }
     const providerNodes = candidates === undefined ? 0n : 64n +
-      64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length);
+      64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length) + registeredTaskNodes;
+    // Install all provider views in the same original constructor. Each
+    // capability remains retained, while one Task at a time borrows canonical
+    // binding material and checks the two DATA bodies and their Common CID.
     const providers = candidates === undefined ? install() : reader().prepareModelTaskInput(Object.freeze({
-      capacity: () => capacity(providerNodes, 0n, 0n, providerNodes),
+      capacity: () => registeredTaskNodes === 0n
+        ? capacity(providerNodes, 0n, 0n, providerNodes)
+        : capacity(providerNodes, 0n, 0n, providerNodes + 12n * BigInt(bodyLimits.maxNodes),
+          12n * BigInt(bodyLimits.maxBytes), 8n * BigInt(bodyLimits.maxBytes)),
       project: install, retained: () => capacity(providerNodes),
     }));
     const projectTasks = candidates?.bindInstalledProviders(providers);

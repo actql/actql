@@ -109,24 +109,47 @@ function inspectOrdinaryInitialControlPhaseEnvelope(inventory, declaration, runt
   return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true);
 }
 
-function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary) {
-  if (declaration?.limits !== limits) unavailable();
-  // The generated recipe must describe this actual selected backend, not just
-  // a similarly sized image graph. This comparison is DATA correspondence;
-  // only the real early preload retains the runtime/module original and can
-  // operationally adopt the declaration. It authenticates no caller factory.
-  const engine = own(inventory, ordinary ? 'ordinaryEngine' : 'engine');
+function matchesEngine(engine, runtimeOriginal) {
   for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
-    if (own(engine, name) !== own(runtimeOriginal, name)) unavailable();
+    if (own(engine, name) !== own(runtimeOriginal, name)) return false;
   }
   const libraries = own(engine, 'libraries'), originalLibraries = own(runtimeOriginal, 'libraries');
+  if (libraries === null || typeof libraries !== 'object' || array(libraries)) unavailable();
   const names = ownKeys(originalLibraries), declaredNames = ownKeys(libraries);
-  if (names.length > 64 || declaredNames.length !== names.length) unavailable();
+  if (names.length > 64 || declaredNames.length !== names.length) return false;
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
     if (typeof name !== 'string' || declaredNames[index] !== name ||
-        own(libraries, name) !== own(originalLibraries, name)) unavailable();
+        own(libraries, name) !== own(originalLibraries, name)) return false;
   }
+  return true;
+}
+
+function requireEngine(inventory, runtimeOriginal, ordinary) {
+  if (inventory === null || typeof inventory !== 'object') unavailable();
+  if (!ordinary || descriptor(inventory, 'engineProfiles') === undefined) {
+    if (!matchesEngine(own(inventory, ordinary ? 'ordinaryEngine' : 'engine'), runtimeOriginal)) unavailable();
+    return;
+  }
+  // A combined artifact must attest the actual ordinary process. Its legacy
+  // top-level record represents only one producer and does not fill a gap.
+  const profiles = own(inventory, 'engineProfiles');
+  if (!array(profiles) || profiles.length === 0 || profiles.length > 4) unavailable();
+  let matched = false;
+  for (let index = 0; index < profiles.length; index++) {
+    if (!matchesEngine(own(own(profiles, index), 'ordinaryEngine'), runtimeOriginal)) continue;
+    if (matched) unavailable();
+    matched = true;
+  }
+  if (!matched) unavailable();
+}
+
+function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary) {
+  if (declaration?.limits !== limits) unavailable();
+  // Engine facts describe the actual selected backend before image capture.
+  // The operational lifetime and image checks still belong to the original
+  // loader. This comparison does not authenticate a caller factory.
+  requireEngine(inventory, runtimeOriginal, ordinary);
   const packages = own(inventory, 'packages');
   if (!array(packages) || packages.length > limits.packages) unavailable();
   let files = 0, sourceBytes = 0, edges = 0;

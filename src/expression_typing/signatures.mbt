@@ -1,20 +1,6 @@
 ///|
 fn type_name(c : @contract.Contract) -> String {
-  match c.shape {
-    @contract.Text(_) => "string"
-    @contract.Number => "number"
-    @contract.Signed64 => "int64"
-    @contract.Boolean => "boolean"
-    @contract.Date => "date"
-    @contract.Timestamp => "timestamp"
-    @contract.Json => "json"
-    @contract.Decimal(..) => "decimal"
-    @contract.Vector(..) => "vector"
-    @contract.Array(_, ..) => "array"
-    @contract.Object(_) => "object"
-    @contract.ResourceRef(..) => "resource_ref"
-    @contract.ContentRef(..) => "content_ref"
-  }
+  @contract.contract_type_name(c)
 }
 
 ///|
@@ -401,6 +387,19 @@ fn infer(
     )
   }
   match tag {
+    "sha256" => {
+      let input = nodes[node.children[0]]
+      if immediate_null(input) {
+        let hint = primitive(t, StringType, false, input.source)
+        provide(t, input.inferred, hint, input.source)
+      }
+      let contract = resolve_type(t, input.inferred, input.source)
+      match contract.shape {
+        Text(_) | Bytes => ()
+        _ => fail(input.source, TypeMismatch("String or Bytes"))
+      }
+      primitive(t, BytesType, contract.nullable, source)
+    }
     "farm_fingerprint" => {
       let nullable = arguments(t, nodes, node, "string")
       primitive(t, Signed64Type, nullable, source)

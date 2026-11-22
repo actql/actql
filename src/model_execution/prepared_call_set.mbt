@@ -187,6 +187,14 @@ pub fn bind_prepared_model_scope(
     return Err(RequestIdentity)
   }
   for index in 0..<slots.length() {
+    // A matching connector name does not bind a selected SDK configuration.
+    // Refuse a different original approval before an Entry can be issued.
+    if value.owner.state.physical_plans.get(index) is Some(plan) &&
+      plan.invocation is AsynchronousSavedStructured(capability, _, _) &&
+      @publication.model_invocation_scope_provider_cid(scope) !=
+      @publication.run_evidence_value_identity(capability.binding) {
+      return Err(RequestIdentity)
+    }
     guard prepared_model_call_at(value, index) is Some(call) &&
       @publication.run_evidence_value_identity(call) == slots[index] else {
       return Err(RequestIdentity)

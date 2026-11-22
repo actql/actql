@@ -216,7 +216,7 @@ export function createModelRawTransportPersistence({store, moon, registration,
   const wake = () => {
     try { notify(); } catch { /* Cleanup wake is not a terminal Run fact. */ }
   };
-  const persist = async (call, raw) => {
+  const persist = async (call, raw, bytesOnly = false) => {
     if (retired) throw new TypeError('OriginalRawPersistenceRetired');
     if (originalCall !== undefined &&
         (originalCall !== call || originalRaw !== raw)) {
@@ -243,9 +243,9 @@ export function createModelRawTransportPersistence({store, moon, registration,
         retainHolding(port);
         custodyRetained = true;
       }
-      // No extra provider metadata was observed by this physical profile.
-      // Unknown response fields remain in the authenticated raw Artifact.
-      return await port.persistChat(undefined);
+      // The selected SDK decodes the Store's verified byte loan. Existing
+      // Chat and native callers keep their original Common envelope view.
+      return await (bytesOnly === true ? port.persist() : port.persistChat(undefined));
     } catch (error) {
       throw retainedRawFailure(error, {
         rawCustodyRetained: true,

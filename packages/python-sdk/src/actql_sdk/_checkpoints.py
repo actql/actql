@@ -1,7 +1,6 @@
 """Existing Checkpoint artifact preimages, signed by an application callback."""
 from dataclasses import dataclass
 import inspect
-import re
 from collections.abc import Callable
 from ._errors import ClientError
 from ._values import bytes_cid, canonical_bytes
@@ -23,8 +22,7 @@ class Signer:
 
 def capture_signer(signer):
     if (not isinstance(signer, Signer) or not callable(signer.sign)
-            or any(type(name) is not str or re.fullmatch(r'[A-Za-z0-9._:-]{1,128}', name) is None
-                   for name in (signer.key_id, signer.reviewer_id))):
+            or not _ANSWER_CODEC.valid_signer_ids(signer.key_id, signer.reviewer_id)):
         raise ClientError('InvalidCheckpointSigner')
     return Signer(signer.key_id, signer.reviewer_id, signer.sign, signer.authority_scope_cid)
 

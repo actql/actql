@@ -79,6 +79,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
+          node-version: '24.21.0'
+      - name: Retain the ordinary compatibility executable for this platform
+        run: |
+          printf 'ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE=%s\n' \
+            "$(node -p 'require("node:fs").realpathSync(process.execPath)')" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
           node-version: '22.22.0'
           cache: npm
       - run: npm ci

@@ -941,6 +941,22 @@
                 "type": "boolean"
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "nullable"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "bytes"
+              },
+              "nullable": {
+                "type": "boolean"
+              }
+            }
           }
         ]
       }
@@ -2300,7 +2316,7 @@
     ],
     "type": "object"
   },
-  "barrier_schema_cid": "sha256:44d5fccfc562b1292224b6d8920dc8c56e59bf3066417bd50c2b942545b07ac7",
+  "barrier_schema_cid": "sha256:c0d25295eaf1258099531f2ae14e639858474b8f13007f08879e052156326bc2",
   "bound_derivation": {
     "case_fold": {
       "max_output_bytes": "max_output_codepoints*4",
