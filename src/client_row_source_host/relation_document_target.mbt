@@ -667,16 +667,16 @@ fn emit_relation_document_value(
 }
 
 ///|
-/// Prepare an insertion from the original locked document DATA and a complete
-/// typed storage row. The caller supplies the resolved Text identity in that
-/// row and owns construction funding, approval and physical replacement.
+/// Prepare an insertion from the original locked document DATA and mapped
+/// CREATE values. The caller supplies the physical Text identity separately
+/// and owns construction funding, approval and physical replacement.
 pub fn prepare_relation_target_insert(
   backing : RelationDocument,
   prepared : RelationDocumentPreparedContract,
   items_path : Array[String],
   key_path : Array[String]?,
-  expected_identity : String,
-  row_wire : String,
+  identity : String,
+  mapped_wire : String,
 ) -> Result[Bytes, RowSourceIssue] {
   let document = match
     project_relation_target_document(
@@ -706,16 +706,18 @@ pub fn prepare_relation_target_insert(
       room < 1 ||
       nodes < 1 ||
       depth < 1 ||
-      row_wire.length() > limits.max_bytes {
+      mapped_wire.length() > limits.max_bytes ||
+      identity.is_empty() ||
+      identity.length() > limits.max_bytes {
       raise RelationDocumentStop(InvalidPage)
     }
-    relation_document_work(work, row_wire.length())
-    let wire_bytes = @scalar.admit_utf8_length(row_wire, limits.max_bytes).unwrap_or_else(() => {
+    relation_document_work(work, mapped_wire.length())
+    let wire_bytes = @scalar.admit_utf8_length(mapped_wire, limits.max_bytes).unwrap_or_else(() => {
         raise RelationDocumentStop(InvalidPage)
       },
     )
     relation_document_work(work, wire_bytes)
-    let wire = @utf8.encode(row_wire)
+    let wire = @utf8.encode(mapped_wire)
     // Typed wire can be larger or deeper than physical JSON because it
     // carries wrappers. Bound its construction by the original request
     // envelope. The writer checks remaining file room independently.
@@ -736,29 +738,22 @@ pub fn prepare_relation_target_insert(
         raise RelationDocumentStop(InvalidPage)
       },
     )
+    if @decode.lookup(object, document.columns[document.identity_index])
+      is Some(_) {
+      // The installer supplies the storage key, never the mapped Effect.
+      raise RelationDocumentStop(ForeignSource)
+    }
     let writer = @encode.writer(room, nodes, depth)
     @encode.begin_object(writer)
     for index, name in document.columns {
       relation_document_work(work, wire_nodes)
       let contract = @schema.field_at(document.schema, index).unwrap().contract
-      let checked = @admitted.admit_wire(
-        contract,
-        relation_document_field(object, name),
-        {
-          max_nodes: wire_nodes,
-          max_depth: limits.max_depth,
-          max_text_bytes: limits.max_bytes,
-        },
-      ).unwrap_or_else(() => raise RelationDocumentStop(Value(name)))
-      if index == document.identity_index {
-        guard checked.value is @admitted.Text(identity) && !identity.is_empty() else {
-          raise RelationDocumentStop(InvalidInputSchema)
-        }
+      let checked = if index == document.identity_index {
         relation_document_work(work, identity.length())
-        relation_document_work(work, expected_identity.length())
-        if identity != expected_identity {
-          raise RelationDocumentStop(ForeignSource)
-        }
+        let key = @admitted.checked_text_value(identity, contract).unwrap_or_else(() => {
+            raise RelationDocumentStop(Value(name))
+          },
+        )
         for row in document.rows {
           guard row[index].value is @admitted.Text(previous) else {
             raise RelationDocumentStop(InvalidInputSchema)
@@ -769,6 +764,13 @@ pub fn prepare_relation_target_insert(
             raise RelationDocumentStop(InvalidPage)
           }
         }
+        key
+      } else {
+        @admitted.admit_wire(contract, relation_document_field(object, name), {
+          max_nodes: wire_nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: limits.max_bytes,
+        }).unwrap_or_else(() => raise RelationDocumentStop(Value(name)))
       }
       @encode.key(writer, name)
       emit_relation_document_value(checked.value, writer)

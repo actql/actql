@@ -37,8 +37,10 @@ test "relation insertion keeps original bytes in both empty and populated collec
     "\",\"control\":[9223372036854775807],\"keys\":[\"id\"],\"collection\":{\"records\":["
   let suffix = " \t]}}\n"
   let previous = " {\"label\":null,\"choices\":[],\"amount\":null,\"id\":\"previous\"}"
-  let row = "{\"amount\":\"123.450\",\"choices\":[\"é\"],\"id\":\"new\",\"label\":\"🌱\"}"
-  for case_ in [("", row, 1, 0), (previous, previous + "," + row, 2, 1)] {
+  let mapped = "{\"amount\":\"123.450\",\"choices\":[\"é\"],\"label\":\"🌱\"}"
+  let inserted = "{\"amount\":\"123.450\",\"choices\":[\"é\"],\"id\":\"new\",\"label\":\"🌱\"}"
+  for
+    case_ in [("", inserted, 1, 0), (previous, previous + "," + inserted, 2, 1)] {
     let (existing, output, count, index) = case_
     let input = @utf8.encode(prefix + existing + suffix)
     let expected = @utf8.encode(prefix + output + suffix)
@@ -57,7 +59,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
       ["collection", "records"],
       Some(["keys"]),
       "new",
-      row,
+      mapped,
     ).unwrap()
     assert_eq(replacement, expected)
     let reopened = admit_relation_document(replacement, limits, 10000000).unwrap()
@@ -82,7 +84,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
         ["collection", "records"],
         Some(["keys"]),
         "new",
-        row,
+        mapped,
       )
       is Err(InvalidPage),
     )
@@ -98,7 +100,7 @@ test "relation insertion keeps original bytes in both empty and populated collec
         ["collection", "records"],
         Some(["keys"]),
         "new",
-        row,
+        mapped,
       )
       is Err(InvalidPage),
     )
@@ -115,10 +117,10 @@ test "relation insertion refuses malformed identity row limits and retired backi
     declaration, "records", "id", limits,
   ).unwrap()
   let items_path = ["collection", "records"]
-  let duplicate = "{\"id\":\"first\",\"label\":null,\"amount\":null,\"choices\":[]}"
-  let missing = "{\"id\":\"new\",\"label\":null,\"choices\":[]}"
-  let invalid = "{\"id\":\"new\",\"label\":null,\"amount\":true,\"choices\":[]}"
-  let row = "{\"id\":\"new\",\"label\":null,\"amount\":null,\"choices\":[]}"
+  let injected = "{\"id\":\"new\",\"label\":null,\"amount\":null,\"choices\":[]}"
+  let missing = "{\"label\":null,\"choices\":[]}"
+  let invalid = "{\"label\":null,\"amount\":true,\"choices\":[]}"
+  let row = "{\"label\":null,\"amount\":null,\"choices\":[]}"
   assert_true(
     prepare_relation_target_insert(
       original,
@@ -126,7 +128,7 @@ test "relation insertion refuses malformed identity row limits and retired backi
       items_path,
       None,
       "first",
-      duplicate,
+      row,
     )
     is Err(InvalidPage),
   )
@@ -158,8 +160,8 @@ test "relation insertion refuses malformed identity row limits and retired backi
       prepared,
       items_path,
       None,
-      "foreign",
-      row,
+      "new",
+      injected,
     )
     is Err(ForeignSource),
   )
@@ -184,10 +186,52 @@ test "relation insertion refuses malformed identity row limits and retired backi
 }
 
 ///|
+test "relation insertion checks the supplied storage key against the original Text bound" {
+  let schema =
+    #|{"id":{"max_utf8_bytes":4,"nullable":false,"type":"string"},"value":{"nullable":true,"type":"string"}}
+  let declaration = generate_relation_row_declaration(
+    "bounded-key",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "records",
+        resource_kind: "record",
+        schema_wire: schema,
+        schema_cid: "sha256:2cc0f64c724fff26994e950fd55362a8d478f0d0fdf2ad4dba6fc74402edc954",
+        request_schema_wire: None,
+        facts_wire: None,
+        acquisition_wire: None,
+      },
+    ],
+    delete_mapping_limits(),
+  ).unwrap()
+  let limits = relation_document_test_limits()
+  let prepared = prepare_relation_document_contract(
+    declaration, "records", "id", limits,
+  ).unwrap()
+  let original = admit_relation_document(@utf8.encode("[]"), limits, 10000000).unwrap()
+  let value = "{\"value\":null}"
+  let bytes = prepare_relation_target_insert(
+    original,
+    prepared,
+    [],
+    None,
+    "éé",
+    value,
+  ).unwrap()
+  assert_eq(@utf8.decode(bytes), "[{\"id\":\"éé\",\"value\":null}]")
+  assert_true(
+    prepare_relation_target_insert(original, prepared, [], None, "ééa", value)
+    is Err(Value("id")),
+  )
+}
+
+///|
 test "relation insertion workspace includes decoded input row output and full replacement" {
   let limits = relation_document_test_limits()
   let source = @utf8.encode("{\"collection\":{\"records\":[]}}")
-  let wire = "{\"id\":\"new🌱\",\"label\":\"é\",\"amount\":\"1.000\",\"choices\":[]}"
+  let wire = "{\"label\":\"é\",\"amount\":\"1.000\",\"choices\":[]}"
   let prepared = prepare_relation_document_contract(
     relation_mapping_declaration(),
     "records",
@@ -574,7 +618,7 @@ test "relation insertion fits physical depth after removing the typed JSON wrapp
   let suffix = "}".repeat(path.length())
   let input = @utf8.encode(prefix + "[]" + suffix)
   let row =
-    #|{"id":"new","nested":{"counts":[],"payload":{"$json":{"$json":"literal"}}}}
+    #|{"nested":{"counts":[],"payload":{"$json":{"$json":"literal"}}}}
   let physical =
     #|[{"id":"new","nested":{"counts":[],"payload":{"$json":"literal"}}}]
   let expected = @utf8.encode(prefix + physical + suffix)

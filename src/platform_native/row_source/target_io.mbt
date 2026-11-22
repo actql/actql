@@ -332,12 +332,12 @@ pub fn prepare_native_relation_file_target_delete_io(
 
 ///|
 /// Enter the existing locked file child with an already selected physical
-/// Text key and complete typed storage row. The Host still owns the original
+/// Text key and the original mapped values. The Host still owns the original
 /// claim and must admit the full insertion peak in before_response.
 pub fn prepare_native_relation_file_target_insert_io(
   provider : NativeRelationFilePreparedProvider,
   identity : String,
-  row_wire : String,
+  mapped_wire : String,
   staging : String,
   before_response : (Int) -> Bool,
   predecessor? : NativeRelationFileReplacementAck? = None,
@@ -346,7 +346,7 @@ pub fn prepare_native_relation_file_target_insert_io(
     provider,
     [],
     identity,
-    InsertTarget(row_wire, staging),
+    InsertTarget(mapped_wire, staging),
     predecessor~,
     before_response=Some(before_response),
     staged_update=true,
@@ -404,8 +404,8 @@ fn prepare_native_relation_file_target_io_original(
       if !native_relation_file_target_write_names(provider, version, staging) {
         return Err(InvalidInput)
       }
-    InsertTarget(row_wire, staging) =>
-      if !file_capture_text(row_wire, provider.limits.page.max_bytes) ||
+    InsertTarget(mapped_wire, staging) =>
+      if !file_capture_text(mapped_wire, provider.limits.page.max_bytes) ||
         !native_relation_file_target_staging_name(provider, staging) {
         return Err(InvalidInput)
       }
@@ -625,7 +625,7 @@ fn NativeRelationFileTargetIO::project(
   // Retain the raw original BEFORE the fallible typed projection. Both marks
   // stay with this same child until its actual consumer and cleanup return.
   self.backing = Some(backing)
-  if self.mutation is InsertTarget(row_wire, _) {
+  if self.mutation is InsertTarget(mapped_wire, _) {
     self.replacement = Some(
       file_require(
         @rows.prepare_relation_target_insert(
@@ -634,7 +634,7 @@ fn NativeRelationFileTargetIO::project(
           selected.items_path,
           selected.key_path,
           self.identity,
-          row_wire,
+          mapped_wire,
         ).map_err(issue => Document(issue)),
       ),
     )
@@ -709,7 +709,8 @@ fn NativeRelationFileTargetIO::write(self : Self) -> Unit raise FileCaptureStop 
     UpdateTarget(version, changes, staging) =>
       (version, changes, staging, TargetUpdated)
     DeleteTarget(version, staging) => (version, "", staging, TargetDeleted)
-    InsertTarget(row_wire, staging) => ("", row_wire, staging, TargetInserted)
+    InsertTarget(mapped_wire, staging) =>
+      ("", mapped_wire, staging, TargetInserted)
     ObserveTarget | ObserveDeleteTarget => raise FileCaptureStop(Unavailable)
   }
   let root = self.root.unwrap()

@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "aca7d0ee57e00b8dec7880b99a77561aebc378f3a3b7d2e9fbcaaafd6cd503f9",
+      "sha256": "e4fd5943834d566027507a2138caf9aaa7ca5a6afacdea47677a654e3900b302",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

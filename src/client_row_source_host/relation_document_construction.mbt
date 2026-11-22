@@ -714,6 +714,8 @@ pub fn relation_target_insert_workspace_inventory(
     max_rows: 1,
   }
   let room = limits.max_bytes - original_bytes
+  // One additional Text node is emitted from the separately borrowed key.
+  let physical_nodes = if nodes < limits.max_nodes { nodes + 1 } else { nodes }
   let output_depth = Int::min(
     input_depth,
     limits.max_depth - items_path_depth - 1,
@@ -730,7 +732,7 @@ pub fn relation_target_insert_workspace_inventory(
       row_limits,
     )
     is Some(values) &&
-    relation_construction_writer_units(room, nodes, output_depth)
+    relation_construction_writer_units(room, physical_nodes, output_depth)
     is Some(writer) &&
     @admitted.wire_emit_workspace_construction_inventory(1) is Some(emit) &&
     relation_document_construction_scale(
@@ -741,7 +743,7 @@ pub fn relation_target_insert_workspace_inventory(
         owned_utf16_units: emit.owned_utf16_units,
         owned_wire_bytes: 0L,
       },
-      nodes.to_int64(),
+      physical_nodes.to_int64(),
     )
     is Some(emitters) else {
     return None
@@ -752,11 +754,12 @@ pub fn relation_target_insert_workspace_inventory(
     writer,
     emitters,
     // The encoded physical row and complete replacement Bytes coexist with
-    // the writer and original reference. Include spans and output closures.
+    // the writer and original reference. Include spans and output closures,
+    // plus the separate key's Text wrapper, scalar recheck and result.
     {
-      record_headers: 8L,
-      reference_slots: 12L,
-      scalar_words: 16L,
+      record_headers: 16L,
+      reference_slots: 24L,
+      scalar_words: 28L,
       owned_utf16_units: 0L,
       owned_wire_bytes: room.to_int64() + limits.max_bytes.to_int64(),
     },

@@ -605,13 +605,13 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
     "target-insert.json",
     max_rows=3,
   )
-  let row_wire = "{\"value\":3,\"id\":\"third\"}"
+  let mapped_wire = "{\"value\":3}"
   let original_bytes = target_io_fixture_text.length()
   let placed = Ref(0)
   let insert = prepare_native_relation_file_target_insert_io(
     provider,
     "third",
-    row_wire,
+    mapped_wire,
     "target-insert-stage",
     bytes => {
       placed.val = bytes
@@ -619,7 +619,7 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
         provider.prepared_contract,
         provider.selection.items_path.length(),
         bytes,
-        row_wire.length(),
+        mapped_wire.length(),
       )
       is Some(_)
     },
@@ -631,7 +631,7 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
   assert_true(acknowledgment.is_insert())
   assert_false(acknowledgment.is_delete())
   assert_eq(acknowledgment.identity(), "third")
-  assert_eq(acknowledgment.changes_wire(), row_wire)
+  assert_eq(acknowledgment.changes_wire(), mapped_wire)
   assert_eq(acknowledgment.replacement(), @utf8.encode(expected))
   assert_eq(
     insert.byte_counts(),
@@ -649,7 +649,7 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
   let refused = prepare_native_relation_file_target_insert_io(
     provider,
     "fourth",
-    "{\"value\":4,\"id\":\"fourth\"}",
+    "{\"value\":4}",
     "target-refused-insert",
     _ => true,
   ).unwrap()
