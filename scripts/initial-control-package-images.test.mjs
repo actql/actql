@@ -190,6 +190,21 @@ test('the dual-platform original retains both native facts and exact producer en
     sha(outputs.get('_build/native/directory-original.json')));
   f.options.nativeOutputs = new Map([...outputs].reverse());
   assert.deepEqual(f.render(), bytes);
+
+  for (const target of targets) {
+    target.compatibilityEngine = {...target.engine, node: '24.21.0', v8: 'fixture-v8-24',
+      libraries: {...target.engine.libraries, node: '24.21.0', v8: 'fixture-v8-24'}};
+  }
+  update(); f.options.nativeOutputs = outputs;
+  const compatible = f.read(f.render());
+  assert.deepEqual(compatible.engineProfiles, [...value.engineProfiles,
+    ...targets.map(({compatibilityEngine}) => ({ordinaryEngine: {...compatibilityEngine, eager: false}}))]);
+  assert.deepEqual(compatible.engine, value.engine);
+  assert.deepEqual(compatible.ordinaryEngine, value.ordinaryEngine);
+  delete targets[1].compatibilityEngine; update();
+  assert.throws(f.render, /InvalidInitialControlNativeImage/);
+  delete targets[0].compatibilityEngine; update();
+
   outputs.set('_build/native/local-files-linux-x64.node', Buffer.from('changed native DATA'));
   f.options.nativeOutputs = outputs;
   assert.throws(f.render, /InvalidInitialControlNativeImage/);

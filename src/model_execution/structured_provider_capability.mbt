@@ -82,6 +82,48 @@ pub fn admit_structured_model_provider(
   installation : @environment.ModelResponseProfileInstallation,
   validate : (@environment.ModelTaskContract, @environment.ModelDependency) -> Bool,
 ) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue] {
+  match
+    check_structured_model_selection(
+      capability, selected, execution, installation,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    admit_model_provider(capability.provider, execution, dependencies, validate) {
+    Ok(original) => Ok({ capability, original, })
+    Err(issue) => Err(ProviderAdmission(issue))
+  }
+}
+
+///|
+/// Specialize the already admitted provider without reopening its prompt,
+/// dependency or authority decisions.
+pub fn bind_admitted_structured_model_provider(
+  capability : StructuredModelCapability,
+  original : AdmittedModelProvider,
+  installation : @environment.ModelResponseProfileInstallation,
+) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue] {
+  guard admitted_model_provider_for(original, original.execution)
+    is Some(provider) &&
+    physical_equal(provider, capability.provider) else {
+    return Err(ProviderAdmission(ForeignProvider))
+  }
+  check_structured_model_selection(
+    capability,
+    capability.resolved,
+    original.execution,
+    installation,
+  ).map(_ => { capability, original, })
+}
+
+///|
+fn check_structured_model_selection(
+  capability : StructuredModelCapability,
+  selected : ResolvedStructuredModel,
+  execution : @environment.ModelExecutionContract,
+  installation : @environment.ModelResponseProfileInstallation,
+) -> Result[Unit, StructuredModelCapabilityIssue] {
   let task = @environment.model_execution_task(execution)
   if capability.resolved != selected ||
     @environment.model_task_model_selector(task) != selected.selector {
@@ -104,11 +146,7 @@ pub fn admit_structured_model_provider(
     is Err(_) {
     return Err(ForeignProfile)
   }
-  match
-    admit_model_provider(capability.provider, execution, dependencies, validate) {
-    Ok(original) => Ok({ capability, original, })
-    Err(issue) => Err(ProviderAdmission(issue))
-  }
+  Ok(())
 }
 
 ///|
@@ -130,6 +168,24 @@ pub fn admitted_structured_model_provider_for(
 }
 
 ///|
+/// Check the installer-selected route before initializing the SDK factory.
+/// This is not the original Entry, credential or transport gate.
+pub fn admitted_structured_model_route_matches(
+  value : AdmittedStructuredModelProvider,
+  actual : ResolvedStructuredModel,
+) -> Bool {
+  let current = value.capability
+  admitted_structured_model_provider_for(
+    value,
+    current,
+    current.binding,
+    actual,
+    value.original.execution,
+  )
+  is Some(_)
+}
+
+///|
 /// Consume the admitted route and actual response profile before the existing
 /// physical builder can supply a Plan for an Entry. The builder still owns
 /// Task binding, exact codec/SDK installation checking and resource bounds.
@@ -145,6 +201,7 @@ pub fn structured_model_async_request_plan(
   profile : @environment.ModelResponseProfile,
   installation : @environment.ModelResponseProfileInstallation,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
+  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?,
   evidence? : ModelPhysicalRequestEvidence,
   attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
@@ -158,14 +215,77 @@ pub fn structured_model_async_request_plan(
     installation.endpoint != actual.endpoint {
     return Err(InvalidProvider)
   }
-  model_async_physical_request_plan(
+  prepare_structured_model_physical_plan(
+    request,
+    wire_bytes,
+    quantities,
+    profile,
+    installation,
+    AsynchronousSavedStructured(current, start, read_decoded),
+    evidence,
+    attachments,
+  )
+}
+
+///|
+/// The installed port already carries the one original admitted selection.
+pub fn bound_structured_model_async_request_plan(
+  value : AdmittedStructuredModelProvider,
+  request : ModelRequest,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  start : (ModelCallEntry) -> ModelPhysicalCall?,
+  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  let original = value.capability
+  structured_model_async_request_plan(
+    value,
+    original,
+    original.binding,
+    original.resolved,
     request,
     wire_bytes,
     quantities,
     profile,
     installation,
     start,
-    evidence?,
-    attachments~,
+    read_decoded,
+  )
+}
+
+///|
+/// Project the existing admitted text instructions, typed inputs and output
+/// schema for an installed SDK. This cursor produces no provider HTTP body.
+pub fn start_admitted_structured_sdk_projection(
+  value : AdmittedStructuredModelProvider,
+  request : ModelRequest,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[OpenAIChatProjection, OpenAIChatProjectionIssue] {
+  if !physical_equal(value.capability.profile, profile) ||
+    check_structured_model_selection(
+      value.capability,
+      value.capability.resolved,
+      value.original.execution,
+      installation,
+    )
+    is Err(_) {
+    return Err(ForeignRequest)
+  }
+  start_openai_chat_projection(
+    value.original,
+    request,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_frames,
+    max_work,
   )
 }

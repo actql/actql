@@ -565,6 +565,14 @@ SDK identity. Installed consumers use the package's ordinary platform-selected
 image; copying another build's native module into an installation is not normal
 delivery or acceptance evidence.
 
+Registered Model SDK startup also checks the installed package's ordinary
+engine profile. The release producer records Node 22.22.0 and observes Node
+24.21.0 on each target. Startup requires one exact match for the Node, V8,
+OpenSSL, platform, architecture and library identities. For a local pack, set
+`ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE` to the real absolute path of
+the pinned Node 24 executable when building and checking the package. Use the
+same resulting tarballs in fresh consumers under both runtimes.
+
 ### Source-free Local scalar capacity
 
 Pure source-free Local preparation can use a smaller scalar value-node envelope

@@ -19,6 +19,8 @@ fn raw_save_fixture(
   cleanup_calls? : Array[Bool] = [],
   release? : Ref[Bool] = Ref(true),
   limits? : Limits = standard_limits(),
+  structured? : Bool = false,
+  foreign_decoder_profile? : Bool = false,
 ) -> RawSaveFixture raise {
   let calls = Ref(0)
   let current = Ref(
@@ -32,6 +34,31 @@ fn raw_save_fixture(
   let response = Ref(
     @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
   )
+  let profile = if structured {
+    structured_raw_fixture_profile()
+  } else {
+    async_response_profile()
+  }
+  let (start_original, capacity, provider_original, structured_plan) = if structured {
+    let fixture = structured_raw_fixture_binding()
+    (
+      Some(() => start_structured_raw_fixture(limits)),
+      Some(fixture_quantity_capacity(33L, 500L)),
+      Some(fixture),
+      Some((active, request, start) => {
+        structured_raw_fixture_plan(
+          active,
+          request,
+          fixture.0,
+          profile,
+          start,
+          foreign_decoder_profile,
+        )
+      }),
+    )
+  } else {
+    (None, None, None, None)
+  }
   let (active, prefix) = async_response_fixture(
     calls,
     Ref(0),
@@ -43,6 +70,12 @@ fn raw_save_fixture(
     current~,
     now~,
     limits~,
+    slots=if structured { 1 } else { 2 },
+    start_original~,
+    capacity?,
+    profile~,
+    provider_original?,
+    structured_plan?,
     observe_call=call => captured.val = Some(call),
     observe_response=Some(() => response.val),
   )
@@ -52,8 +85,8 @@ fn raw_save_fixture(
   let registration = @publication_host.register_client_model_raw_capture(
     active.dispatch_admission.unwrap(),
     scope,
-    raw_registration_policy(active, prepared),
-    async_response_profile(),
+    raw_registration_policy(active, prepared, response_profile=profile),
+    profile,
     async_response_installation(),
     None,
     current.val,

@@ -3,6 +3,7 @@ import {existsSync, lstatSync, readFileSync, readdirSync, realpathSync} from 'no
 import {dirname, isAbsolute, join} from 'node:path';
 import {createRequire} from 'node:module';
 import {admitCohort, releasePackageMetadata} from './package-release.mjs';
+import {ordinaryCompatibilityNode} from './build-node-directory-native.mjs';
 
 export const initialControlPackageOriginal = 'adapters/host-node/initial-control-package-original.cjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -196,7 +197,9 @@ function dependencyImages(root, destination, localManifest, cohort) {
 // The caller supplies exactly the bytes it will publish after its ordinary
 // import rewrite. Normal runtime assets are read from that same destination.
 // This returns only generated Source; it cannot issue or price a scope.
-export function renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs = new Map()}) {
+export function renderInitialControlPackageOriginal({
+  root, destination, inputs, outputs, nativeOutputs = new Map(), compatibilityEngine,
+}) {
   if (!(outputs instanceof Map) || !outputs.has(initialControlPackageOriginal)) {
     fail('MissingInitialControlPackageTemplate');
   }
@@ -215,12 +218,19 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   }
   nativeImages.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   let engineProfiles, nativeReleaseVersion;
+  const ordinaryCompatibilityProfile = (engine, platform, arch) => {
+    if (engine?.node !== ordinaryCompatibilityNode || engine.platform !== platform || engine.arch !== arch ||
+        ['node', 'v8', 'openssl'].some(name => typeof engine[name] !== 'string' || engine[name] !== engine.libraries?.[name])) {
+      fail('InvalidInitialControlNativeImage');
+    }
+    return {ordinaryEngine: {...engine, eager: false}};
+  };
   const descriptorBytes = nativeOutputs.get('_build/native/directory-original.json');
   if (descriptorBytes !== undefined) {
     const descriptor = JSON.parse(descriptorBytes);
     if (descriptor.version === 'actql-node-directory-native-cohort/0.1') {
       nativeReleaseVersion = descriptor.source?.packageVersion;
-      if (!Array.isArray(descriptor.targets) ||
+      if (compatibilityEngine !== undefined || !Array.isArray(descriptor.targets) ||
           descriptor.targets.length !== 2 || nativeImages.length !== 2) fail('InvalidInitialControlNativeImage');
       const targets = new Set();
       engineProfiles = descriptor.targets.map(target => {
@@ -242,6 +252,11 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       });
       engineProfiles.sort((a, b) => `${a.engine.platform}-${a.engine.arch}` <
         `${b.engine.platform}-${b.engine.arch}` ? -1 : 1);
+      const compatibilityTargets = descriptor.targets.filter(target => target.compatibilityEngine !== undefined);
+      if (compatibilityTargets.length !== 0 && compatibilityTargets.length !== 2) fail('InvalidInitialControlNativeImage');
+      for (const {compatibilityEngine, platform, arch} of compatibilityTargets) {
+        engineProfiles.push(ordinaryCompatibilityProfile(compatibilityEngine, platform, arch));
+      }
     }
   }
   for (const file of inputs.runtimeFiles) {
@@ -286,15 +301,19 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       if (!concrete(path)) fail('InvalidInitialControlImage');
       return manifestFact(path, bytes, cohort);
     });
-  // A combined normal payload has one deterministic legacy profile. The list
-  // retains both producers as DATA, not an operational runtime selection; a
-  // verifier on another OS must not rewrite either producer's engine facts.
-  const recipe = {engine: engineProfiles?.[0].engine ?? {node: process.versions.node, v8: process.versions.v8,
-    openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true,
-    libraries: {...process.versions}},
-  ordinaryEngine: engineProfiles?.[0].ordinaryEngine ?? {node: process.versions.node, v8: process.versions.v8,
-    openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: false,
-    libraries: {...process.versions}},
+  // Preserve the legacy profile and the exact process observations. A
+  // compatibility observation attests ordinary startup only.
+  const buildEngine = {node: process.versions.node, v8: process.versions.v8,
+    openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
+    libraries: {...process.versions}};
+  const engine = engineProfiles?.[0].engine ?? {...buildEngine, eager: true};
+  const ordinaryEngine = engineProfiles?.[0].ordinaryEngine ?? {...buildEngine, eager: false};
+  if (compatibilityEngine !== undefined) {
+    if (nativeImages.length !== 1) fail('InvalidInitialControlNativeImage');
+    engineProfiles = [{engine, ordinaryEngine},
+      ordinaryCompatibilityProfile(compatibilityEngine, buildEngine.platform, buildEngine.arch)];
+  }
+  const recipe = {engine, ordinaryEngine,
   ...(engineProfiles === undefined ? {} : {engineProfiles}),
   images: facts, nativeImages, packages: dependencies.packages, dependencies: dependencies.bindings,
   localVersion: manifest.version,

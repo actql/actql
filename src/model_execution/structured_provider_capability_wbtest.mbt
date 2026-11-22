@@ -181,8 +181,17 @@ test "structured Provider admission requires support on the resolved model and m
   }
   let plan = (actual, response_profile, physical) => {
     structured_model_async_request_plan(
-      admitted, supported, binding, actual, request, 128L, amounts, response_profile,
-      physical, start,
+      admitted,
+      supported,
+      binding,
+      actual,
+      request,
+      128L,
+      amounts,
+      response_profile,
+      physical,
+      start,
+      (_, _, _) => None,
     )
   }
   assert_true(

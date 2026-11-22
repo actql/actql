@@ -359,10 +359,17 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
+  const runtime = job.steps.find(step => step.uses?.startsWith('actions/setup-node@'));
+  assert.equal(runtime.with['node-version'], "${{ matrix.node == '24' && '24.21.0' || matrix.node }}");
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
   assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
+  const registered = job.steps.find(step => step.run?.includes('--registered-only'));
+  assert.equal(registered.run, 'node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/registered-provider" --registered-only');
+  assert(job.steps.indexOf(input) < job.steps.indexOf(registered));
+  assert.equal(registered.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(registered['continue-on-error'], undefined);
   const union = job.steps.find(step => step.id === 'packed-union-budget');
   assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
   assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
@@ -377,6 +384,8 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(output.if, 'always()'); assert.equal(output.with['if-no-files-found'], 'error');
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
+  assert(output.with.path.includes('/registered-provider/summary.json'));
+  assert(output.with.path.includes('/registered-provider/raw/*/*'));
   assert(output.with.path.includes('mock-project-*/*.pending.json'));
   assert(output.with.path.includes('collection/*.pending.json'));
   assert(output.with.path.includes('collection/*.progress.json'));

@@ -24,9 +24,9 @@ const observePromise = Promise.prototype.then;
 // Only a refusal from the same prepared physical credential port can end a
 // resumed Run through the existing stopped-Model failure path.
 class ModelCredentialRefusal extends Error {
-  constructor() {
-    super('OpenAIProjectCredentialUnavailable');
-    this.code = 'OpenAIProjectCredentialUnavailable';
+  constructor(code) {
+    super(code);
+    this.code = code;
   }
 }
 export function isModelCredentialRefusal(error) {
@@ -1124,7 +1124,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }
           try { original.prepare(); }
           catch (cause) {
-            if (cause?.code === 'OpenAIProjectCredentialUnavailable') throw new ModelCredentialRefusal();
+            const code = cause?.code;
+            if (code === 'OpenAIProjectCredentialUnavailable' || code === 'ModelProjectCredentialUnavailable') {
+              throw new ModelCredentialRefusal(code);
+            }
             throw cause;
           }
         }
