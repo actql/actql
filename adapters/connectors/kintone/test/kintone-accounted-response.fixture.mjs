@@ -30,10 +30,12 @@ export async function accountedKintoneResponses(catalog, stopped, {fields, progr
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const sequenceContracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0,
-    registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    sequenceContracts, values, fragment, ordered));
   const prepared = checked(common.clientProgramKintonePrepareRead(original, requirement, query, evidence));
   // Explicit independent fixture units, never a normal physical funding quote.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 65536n, 100000000n, 100000000n, 0));
