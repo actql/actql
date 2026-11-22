@@ -18233,7 +18233,10 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
             "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
-            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2",
+            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+            "prepareRequestMockModelPlan/planArguments/planArguments",
+            "prepareRequestMockModelPlan/planArguments/planArguments#2"
           ],
           "exports": [],
           "attributes": {
@@ -28768,6 +28771,27 @@
           "async": false
         },
         {
+          "name": "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/planArguments/planArguments",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/planArguments/planArguments#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
           "parameters": [
             "member",
@@ -28778,7 +28802,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
           "parameters": [
-            "member"
+            "index"
           ],
           "async": false
         },
@@ -28852,7 +28876,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
@@ -28875,7 +28899,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -28903,17 +28927,17 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
           "parameters": [
-            "index",
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "source"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
-            "member"
+            "index",
+            "_capacity",
+            "prefix",
+            "bindSuffix"
           ],
           "async": false
         },
@@ -29352,7 +29376,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "cf4a8e518cefcd3c0836d6500061e72d35fe73b4727ed07198be4d457c86bc07"
+      "sha256": "8ca5d82648a328e7f9a2ef776a6e55a4b37c550a603af6a54a0f1987a64381a5"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

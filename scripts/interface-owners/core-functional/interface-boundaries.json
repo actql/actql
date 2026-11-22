@@ -5335,7 +5335,9 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
@@ -5717,6 +5719,10 @@
               {
                 "path": "adapters/host-node/request-model-plan.test.mjs",
                 "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph"
               }
             ]
           }
@@ -15451,6 +15457,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected",
+            "installationAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "index",
+            "check"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
           "parameters": [
             "parent",
@@ -19500,7 +19530,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ab052067eb3b9e969f3a3ec131d2c34b0a21a84136aa319391e76e57d47d006c"
+      "sha256": "0da1ef5130c48c2ecd89d4bc389159b155e8beb37b26503abe0136b5206dc05c"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -60959,7 +60989,9 @@
             "client_program_prepared_request_model_input_suffix",
             "client_program_request_model_direct_source_coordinates",
             "client_request_models_plan_projection",
-            "installed_effect_model_plan_from_original_sources"
+            "installed_effect_model_plan_from_original_sources",
+            "check_client_node_group_model_demand",
+            "client_program_prepare_request_node_models_source_free_plan"
           ],
           "exports": [],
           "attributes": {
@@ -61525,6 +61557,10 @@
       "exports": [],
       "operations": [
         {
+          "name": "check_client_node_group_model_demand",
+          "declaration": "check_client_node_group_model_demand ( graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained : Int64 , model_execution : Int64 , reservations : Int , holdings : Int , delegations : Int , bootstrap_retained : Int64 , bootstrap_execution : Int64 , ) - > Result [ ClientNodeGroupModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_content_model_managed_plan_prepare",
           "declaration": "client_program_installed_effect_content_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -61617,6 +61653,10 @@
           "declaration": "client_program_prepare_request_node_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_node_models_source_free_plan",
+          "declaration": "client_program_prepare_request_node_models_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , project : ProjectClientNodeGroupModelDemand , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepared_request_model_input_prefix",
           "declaration": "client_program_prepared_request_model_input_prefix ( original : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -61630,14 +61670,14 @@
         },
         {
           "name": "client_request_models_plan_projection",
-          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ( Int64 , Int64 ) ? , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , project ? : ProjectClientNodeGroupModelDemand ?"
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "a1430d564ea81fd02c47e6ce4eea1d66ff4244a1c743f69ee0ef52f01c861327"
+      "sha256": "8fc1af51a32911d5819ce9e86f6a6e81b85643671e5ce6b308d2317be1acc2cf"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
@@ -96790,7 +96830,7 @@
         },
         {
           "name": "[I]reserve_request_models_plan_projection",
-          "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , node_physical ? : Bool"
         },
         {
           "name": "bind_request_multiple_model_read_scopes",
@@ -97188,7 +97228,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "e2030f339226a8d729dc018b1cc24a76f5b76e15d4e01e3fa9405ddee9f47381"
+      "sha256": "d0dffd6976ef15d7167ac575b056c822d2e95d60f034bfe7de02cd5d69161700"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",

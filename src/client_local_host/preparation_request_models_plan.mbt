@@ -546,6 +546,7 @@ pub fn[I] reserve_request_models_plan_projection(
   owner : ClientRequestPreparation[I],
   input : I,
   count : Int,
+  node_physical? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(original) &&
@@ -557,9 +558,21 @@ pub fn[I] reserve_request_models_plan_projection(
     count == graphs.length() &&
     owner.program_model is None &&
     @execution.preparation_array_representation(3L, 3L * count.to_int64(), true)
-    is Some(arrays) &&
-    @execution.preparation_representation_cost(arrays) is Some(bytes) else {
+    is Some(arrays) else {
     return Err(ForeignOriginal)
+  }
+  let n = if node_physical { count.to_int64() } else { 0L }
+  // Node projects a checked demand, changed LedgerLimits, Result/Option
+  // and the synchronous per-member projector closure. The original
+  // Request backs these alongside all three native arrays.
+  guard @execution.preparation_representation_cost({
+      ..arrays,
+      record_headers: arrays.record_headers + 8L * n,
+      reference_slots: arrays.reference_slots + 24L * n,
+      scalar_words: arrays.scalar_words + 24L * n,
+    })
+    is Some(bytes) else {
+    return Err(InsufficientCapacity)
   }
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {

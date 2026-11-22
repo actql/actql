@@ -731,16 +731,23 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     const members = model.components, selected = model.selection?.components;
     let moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
       : 'prepareCheckedClientRequestModelsProviderComponentCaptureModule';
-    const planName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreePlan'
-      : 'prepareCheckedClientRequestModelsCapturePlan';
     if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
         !Array.isArray(selected) || selected.length !== members.length || !Array.isArray(model.graph) ||
         model.graph.length !== members.length || members.some((member, index) =>
           member.group !== model || member.selection !== selected[index] || member.graph !== model.graph[index] ||
           member.occurrence !== selected[index].occurrence || member.serializationGraph !== undefined ||
-          member.originalReadInstallation !== undefined || member.component !== undefined) ||
-        count === 0 && typeof model.control[moduleName] !== 'function' ||
-        typeof model.control[planName] !== 'function') {
+          member.originalReadInstallation !== selected[index].originalReadInstallation || member.component !== undefined) ||
+        count === 0 && typeof model.control[moduleName] !== 'function') {
+      throw clientOperationError('InstalledModelGroupPreparationUnavailable');
+    }
+    const nodePhysicalGroup = members.some(member => member.originalReadInstallation !== undefined);
+    if (nodePhysicalGroup && (count !== 0 ||
+        members.some(member => member.originalReadInstallation === undefined))) {
+      throw clientOperationError('InstalledModelGroupPreparationUnavailable');
+    }
+    const planName = nodePhysicalGroup ? 'prepareCheckedClientRequestNodeModelsSourceFreePlan'
+      : count === 0 ? 'prepareCheckedClientRequestModelsSourceFreePlan' : 'prepareCheckedClientRequestModelsCapturePlan';
+    if (typeof model.control[planName] !== 'function') {
       throw clientOperationError('InstalledModelGroupPreparationUnavailable');
     }
     for (const member of members) retainRequestModelBoundsAndBudget(moon, count, member);
@@ -814,10 +821,26 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         return component.provider;
       }]);
     current();
-    run.modelPlan = Reflect.apply(model.control[planName], model.control, [parent, input,
-      run.preparedSequences, run.request, model.compiled, model.runDefinition,
+    const planArguments = [parent, input, run.preparedSequences, run.request, model.compiled, model.runDefinition,
       Object.freeze(members.map(member => member.occurrence)), model.graph,
-      Object.freeze(members.map(member => member.selectedBounds))]);
+      Object.freeze(members.map(member => member.selectedBounds))];
+    if (nodePhysicalGroup) planArguments.push(index => {
+      current();
+      const member = members[index], installation = member?.originalReadInstallation;
+      if (installation === undefined || member.selection !== selected[index] ||
+          member.graph !== model.graph[index] || member.selection.originalReadInstallation !== installation ||
+          member.selection.currentProvider() !== true) {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      member.selection.assertNewTrustedRuntime?.();
+      current();
+      if (member.originalReadInstallation !== installation || member.selection !== selected[index] ||
+          member.selection.currentProvider() !== true) {
+        throw clientOperationError('ForeignInstalledModelPreparation');
+      }
+      return installation;
+    });
+    run.modelPlan = Reflect.apply(model.control[planName], model.control, planArguments);
     current();
     return run.modelPlan;
   }

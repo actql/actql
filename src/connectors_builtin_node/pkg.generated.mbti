@@ -3704,6 +3704,8 @@ pub fn client_program_prepare_request_node_model_capture_plan(@client_local_host
 
 pub fn client_program_prepare_request_node_model_source_free_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledManagedModelPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_prepare_request_node_models_source_free_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@run_publication_host.ClientInferOccurrence], Array[@run_publication_host.ClientInferPlanGraph], Array[@client_infer_host.Limits], (Int, (@run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]) -> Result[@client_local_host.ClientInstalledManagedModelPlan, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_prepare_request_policy_subjects(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment) -> Result[Int, @client_local_host.ClientRequestTerminalIssue]
@@ -6841,6 +6843,8 @@ type ClientLocalEffectHost
 
 type ClientLocalPreparationInputOriginal
 
+type ClientNodeGroupModelDemand
+
 pub(all) enum ClientProgramBridgeIssue {
   InvalidFormat
   SuppliedSyntax(@source_value.ParseError)
@@ -6923,10 +6927,14 @@ type StrategyHostOutputExport
 type StrategyHostResultTransformation
 
 // Type aliases
+pub type CheckClientNodeGroupModelDemand = (@run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub using @client_local_preparation {type ClientCheckSourceNamespace}
 
 pub using @client_local_preparation {type ClientCheckSourceSelectorNamespace}
 
 pub using @client_local_preparation {type ClientCheckSourceSelectorRange}
+
+pub type ProjectClientNodeGroupModelDemand = (Int, (@run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]) -> Result[ClientNodeGroupModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
 // Traits
