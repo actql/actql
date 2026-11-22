@@ -169015,9 +169015,9 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9f3fc78c48515de73ed14360dafff6318a4bac68191eb53e68fe728dab40ab0c",
+      "sha256": "05962bafa159d559e9c17b5a0fa2fd7ba55d0d46ccccd64659abff2566400990",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"
@@ -169236,15 +169236,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169254,15 +169254,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169272,15 +169272,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169290,15 +169290,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               },
               {
@@ -169312,15 +169312,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169330,15 +169330,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169348,15 +169348,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169366,15 +169366,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               },
               {
@@ -169392,15 +169392,15 @@
                 "anchor": "# Original composed keyed Model prefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
               },
               {
-                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mts",
                 "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
@@ -169440,6 +169440,7 @@
         "../host-common/runtime-result.mjs",
         "./installed-source.mjs",
         "./local-account-config.mjs",
+        "./local-publication-limits.mjs",
         "./local-values-plan.mjs",
         "node:perf_hooks",
         "node:timers/promises"
