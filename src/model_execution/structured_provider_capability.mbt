@@ -15,6 +15,7 @@ pub(all) struct ResolvedStructuredModel {
 pub struct StructuredModelCapability {
   priv provider : ModelProvider
   priv binding : @publication.RunEvidenceValue
+  priv profile : @environment.ModelResponseProfile
   priv resolved : ResolvedStructuredModel
   priv adapter_supports : Bool
   priv model_supports : Bool
@@ -24,6 +25,7 @@ pub struct StructuredModelCapability {
 pub(all) enum StructuredModelCapabilityIssue {
   InvalidRegistration
   ForeignConfiguration
+  ForeignProfile
   ChangedSelection
   UnsupportedAdapter
   UnsupportedModel
@@ -44,6 +46,7 @@ pub fn register_structured_model_capability(
   binding : @publication.RunEvidenceValue,
   configuration_wire : String,
   resolved : ResolvedStructuredModel,
+  profile : @environment.ModelResponseProfile,
   adapter_supports : Bool,
   model_supports : Bool,
 ) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue] {
@@ -67,7 +70,7 @@ pub fn register_structured_model_capability(
     ) {
     return Err(ForeignConfiguration)
   }
-  Ok({ provider, binding, resolved, adapter_supports, model_supports, })
+  Ok({ provider, binding, profile, resolved, adapter_supports, model_supports, })
 }
 
 ///|
@@ -76,6 +79,7 @@ pub fn admit_structured_model_provider(
   selected : ResolvedStructuredModel,
   execution : @environment.ModelExecutionContract,
   dependencies : @environment.SingleAttemptModelDependencies,
+  installation : @environment.ModelResponseProfileInstallation,
   validate : (@environment.ModelTaskContract, @environment.ModelDependency) -> Bool,
 ) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue] {
   let task = @environment.model_execution_task(execution)
@@ -89,6 +93,16 @@ pub fn admit_structured_model_provider(
   }
   if !capability.model_supports {
     return Err(UnsupportedModel)
+  }
+  if installation.endpoint != selected.endpoint ||
+    @environment.check_model_response_profile_binding(
+      capability.profile,
+      task,
+      installation,
+      None,
+    )
+    is Err(_) {
+    return Err(ForeignProfile)
   }
   match
     admit_model_provider(capability.provider, execution, dependencies, validate) {
@@ -113,4 +127,45 @@ pub fn admitted_structured_model_provider_for(
     return None
   }
   admitted_model_provider_for(value.original, execution)
+}
+
+///|
+/// Consume the admitted route and actual response profile before the existing
+/// physical builder can supply a Plan for an Entry. The builder still owns
+/// Task binding, exact codec/SDK installation checking and resource bounds.
+/// No new transport, dispatch decision or send gate is issued here.
+pub fn structured_model_async_request_plan(
+  value : AdmittedStructuredModelProvider,
+  current : StructuredModelCapability,
+  binding : @publication.RunEvidenceValue,
+  actual : ResolvedStructuredModel,
+  request : ModelRequest,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  start : (ModelCallEntry) -> ModelPhysicalCall?,
+  evidence? : ModelPhysicalRequestEvidence,
+  attachments? : Array[ModelContentAdmission] = [],
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  let execution = value.original.execution
+  if admitted_structured_model_provider_for(
+      value, current, binding, actual, execution,
+    )
+    is None ||
+    !physical_equal(current.profile, profile) ||
+    !physical_equal(@environment.model_execution_task(execution), request.task) ||
+    installation.endpoint != actual.endpoint {
+    return Err(InvalidProvider)
+  }
+  model_async_physical_request_plan(
+    request,
+    wire_bytes,
+    quantities,
+    profile,
+    installation,
+    start,
+    evidence?,
+    attachments~,
+  )
 }

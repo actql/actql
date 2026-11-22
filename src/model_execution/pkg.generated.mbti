@@ -33,7 +33,7 @@ pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionCont
 
 pub fn admit_original_model_mock_provider(ModelMockInstallation, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
 
-pub fn admit_structured_model_provider(StructuredModelCapability, ResolvedStructuredModel, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue]
+pub fn admit_structured_model_provider(StructuredModelCapability, ResolvedStructuredModel, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, @check_environment.ModelResponseProfileInstallation, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue]
 
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
@@ -349,7 +349,7 @@ pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_envir
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
-pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
+pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, @check_environment.ModelResponseProfile, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
 
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
 
@@ -416,6 +416,8 @@ pub fn stop_original_model_usage_publication(ModelUsagePublication) -> Unit
 pub fn stopped_model_attempt_count(ModelExecution) -> Int?
 
 pub fn stopped_model_attempt_slot(ModelExecution, Int) -> Int?
+
+pub fn structured_model_async_request_plan(AdmittedStructuredModelProvider, StructuredModelCapability, @run_publication.RunEvidenceValue, ResolvedStructuredModel, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn update_model_content_bytes(ModelContentByteCheck, Bytes) -> Result[Int, ModelContentIssue]
 
@@ -971,6 +973,7 @@ pub struct StructuredModelCapability {
 pub(all) enum StructuredModelCapabilityIssue {
   InvalidRegistration
   ForeignConfiguration
+  ForeignProfile
   ChangedSelection
   UnsupportedAdapter
   UnsupportedModel
