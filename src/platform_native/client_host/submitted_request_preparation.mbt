@@ -120,6 +120,21 @@ pub fn[I] borrow_native_client_request_plan_input(
 }
 
 ///|
+/// Select the Model Plan phase of the same checked Request and retain its
+/// borrow in the existing Native cleanup carrier.
+pub fn[I] borrow_native_client_model_plan_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  NativeClientSubmittedRequestBody,
+  @local.ClientRequestPreparationIssue,
+] {
+  @local.borrow_request_model_plan_input(owner, input).map(value => {
+    Program(value)
+  })
+}
+
+///|
 /// The ordinary Native command's SAME intent and retained Request. The shared
 /// source preflight funds original native decoding before this caller enters
 /// it; the shared checker/compiler then consumes that original input once.

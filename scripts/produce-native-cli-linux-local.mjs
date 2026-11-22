@@ -17,7 +17,7 @@ const usage = 'Required: --source SHA --package-version VERSION --output NEW_ABS
   '--clang REAL_ABSOLUTE_CLANG --sqlite-archive ORIGINAL_ZIP ' +
   '--openssl-package-archive DEV_DEB --openssl-package-archive COPYRIGHT_DEB ' +
   '[--component-seconds 1..1800] [--compile-seconds 1..86400] ' +
-  '[--system-header-root /usr/lib/linux/uapi] [--remote-http-preparation ORIGINAL_JSON]';
+  '[--system-header-root /usr/lib/linux/uapi] [--remote-http-preparation ORIGINAL_JSON] [--model-http-preparation ORIGINAL_JSON]';
 const absolute = (path, label) => {
   assert(typeof path === 'string' && isAbsolute(path) && resolve(path) === path &&
     !/[\0\r\n:]/u.test(path), `${label} requires an explicit canonical absolute path`);
@@ -29,7 +29,7 @@ export function parseNativeLinuxLocalArguments(args) {
   const flags = {'--source': 'sourceSha', '--package-version': 'packageVersion', '--output': 'outputDirectory',
     '--clang': 'clang', '--sqlite-archive': 'sqliteArchive', '--component-seconds': 'componentSeconds',
     '--compile-seconds': 'compileSeconds', '--openssl-package-archive': 'opensslPackageArchives',
-    '--system-header-root': 'systemHeaderRoots', '--remote-http-preparation': 'remoteHttpPreparation'};
+    '--system-header-root': 'systemHeaderRoots', '--remote-http-preparation': 'remoteHttpPreparation', '--model-http-preparation': 'modelHttpPreparation'};
   assert(Array.isArray(args) && args.length % 2 === 0, usage);
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
@@ -52,10 +52,10 @@ export function parseNativeLinuxLocalArguments(args) {
 export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(repository), node = process.execPath} = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options));
   const allowed = ['sourceSha', 'packageVersion', 'outputDirectory', 'clang', 'sqliteArchive',
-    'opensslPackageArchives', 'systemHeaderRoots', 'componentSeconds', 'compileSeconds', 'remoteHttpPreparation'];
+    'opensslPackageArchives', 'systemHeaderRoots', 'componentSeconds', 'compileSeconds', 'remoteHttpPreparation', 'modelHttpPreparation'];
   assert(Object.keys(options).every(key => allowed.includes(key)), 'Unknown Local production selection');
   const {sourceSha, clang, sqliteArchive, outputDirectory, opensslPackageArchives,
-    componentSeconds = 600, compileSeconds = 900, systemHeaderRoots = [], remoteHttpPreparation} = options;
+    componentSeconds = 600, compileSeconds = 900, systemHeaderRoots = [], remoteHttpPreparation, modelHttpPreparation} = options;
   assert.match(sourceSha, /^[a-f0-9]{40}$/u, 'Exact full source SHA required');
   const packageVersion = nativePackageVersion(options.packageVersion);
   for (const [label, path] of Object.entries({sourceRoot, node, clang, sqliteArchive, outputDirectory})) absolute(path, label);
@@ -65,10 +65,16 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
   for (const path of opensslPackageArchives) absolute(path, 'OpenSSL package archive');
   const inputs = [clang, sqliteArchive, ...opensslPackageArchives];
   const remoteSelection = [];
+  const modelSelection = [];
   if (remoteHttpPreparation !== undefined) {
     absolute(remoteHttpPreparation, 'Remote HTTP preparation');
     inputs.push(remoteHttpPreparation);
     remoteSelection.push('--remote-http-preparation', remoteHttpPreparation);
+  }
+  if (modelHttpPreparation !== undefined) {
+    absolute(modelHttpPreparation, 'Model HTTP preparation');
+    inputs.push(modelHttpPreparation);
+    modelSelection.push('--model-http-preparation', modelHttpPreparation);
   }
   assert.equal(new Set(inputs).size, inputs.length, 'Compiler and original archives must be distinct');
   assert(inputs.every(path => !inside(path, outputDirectory)), 'Original inputs cannot be inside fresh output');
@@ -83,7 +89,7 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
   const extraHeaders = systemHeaderRoots.flatMap(path => ['--system-header-root', path]);
   const command = (phase, executable, args, timeoutMs) => ({phase, command: executable, args, timeoutMs});
   return {sourceSha, packageVersion, sourceRoot, outputDirectory, clang, sqliteArchive,
-    opensslPackageArchives: [...opensslPackageArchives], remoteHttpPreparation, directories,
+    opensslPackageArchives: [...opensslPackageArchives], remoteHttpPreparation, modelHttpPreparation, directories,
     commands: [
       command('sqlite', 'python3', [join(sourceRoot, 'scripts/produce-python-sqlite-component.py'),
         '--source', sourceSha, '--archive', sqliteArchive, '--process-provider', '--process-target', platform,
@@ -95,7 +101,7 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
         '--seconds', String(componentSeconds), ...extraHeaders], componentSeconds * 1000),
       command('recipe', node, [join(sourceRoot, 'scripts/native-cli-linux-local-recipe.mjs'),
         '--source', sourceSha, '--sqlite-component', directories.sqlite, '--crypto-component', directories.crypto,
-        '--output', directories.recipe, ...remoteSelection], 120000),
+        '--output', directories.recipe, ...remoteSelection, ...modelSelection], 120000),
       // The extra finite allowance covers the ordinary producer's preparation,
       // version observation and ABI inspection outside its compilation timeout.
       command('artifact', node, [join(sourceRoot, 'scripts/native-cli-artifact.mjs'), directories.artifact,
@@ -156,6 +162,7 @@ export async function produceNativeCliLinuxLocal(options, {execute = execFileSyn
     ...plan.opensslPackageArchives.map(path => [path, 16 * 1024 * 1024]),
     [join(sourceRoot, 'packages/python-local-runtime/native/sqlite-component/source.json'), 65536]];
   if (plan.remoteHttpPreparation !== undefined) selections.push([plan.remoteHttpPreparation, 32 * 1024 * 1024]);
+  if (plan.modelHttpPreparation !== undefined) selections.push([plan.modelHttpPreparation, 32 * 1024 * 1024]);
   const inputs = Object.fromEntries(selections.map(([path, maximum]) => [path, original(path, maximum).identity]));
   const verifyInputs = () => {
     for (const [path, maximum] of selections) assert.deepEqual(original(path, maximum).identity, inputs[path], `Original input changed: ${path}`);

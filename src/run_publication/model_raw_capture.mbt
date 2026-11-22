@@ -192,6 +192,17 @@ pub fn model_raw_response_store_binding(
 }
 
 ///|
+/// Check that this original descriptor selected the consuming Store. The
+/// Store still verifies and durably confirms the actual response bytes.
+pub fn model_raw_response_matches_store(
+  value : BoundModelRawResponse,
+  authority : String,
+) -> Bool {
+  evidence_string(value.response.value, "store_authority_cid") ==
+  Some(authority)
+}
+
+///|
 pub fn model_raw_response_matches_selection(
   value : BoundModelRawResponse,
   policy : BoundModelRawCapturePolicy,

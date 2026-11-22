@@ -660,6 +660,8 @@ pub fn settle_capacity(Ledger, CapacityReservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_completed_output_reservation(Ledger, Reservation, Holding?, Int64, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn settle_entered_transfer(Ledger, Reservation, Int64, Int64?) -> Result[Bool, LedgerIssue]
+
 pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) -> Result[Unit, LedgerIssue]
 
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]

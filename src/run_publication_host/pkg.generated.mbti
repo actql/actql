@@ -1151,7 +1151,11 @@ pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -
 
 pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
-pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+pub fn client_local_configuration_file_count_supported(Int, Bool, Int) -> Bool
+
+pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?, model_files? : Int) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_configuration_selection_limits(Int) -> (Int, Int, Int)?
 
 pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBootstrapPolicy
 
@@ -1166,6 +1170,8 @@ pub fn client_local_initialization_record_body(Array[String]) -> Result[Bytes, C
 pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_model_configuration_file_limit() -> Int
 
 pub fn client_local_normalization_preparation_work(ClientLocalNormalizationPreparation) -> Int
 
@@ -1251,6 +1257,8 @@ pub fn client_model_handed_off_read_capacity_available(ClientModelReadScope, Cli
 
 pub fn client_model_input_materialization_matches(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, @execution_relation.CompletedOutput) -> Bool
 
+pub fn client_model_original_credential_reference(@run_publication.RunEvidenceValue, String, String) -> String?
+
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
 
 pub fn client_model_parked_read_capacity_available(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
@@ -1262,6 +1270,8 @@ pub fn client_model_provider_defaults_construction_extent(String, String, String
 pub fn client_model_provider_defaults_generation(ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
 
 pub fn client_model_provider_defaults_resolution_extents(ClientModelProviderDefaults, Int64?) -> (@check_environment.RegistryConstructionExtent, @check_environment.RegistryConstructionExtent)
+
+pub fn client_model_provider_defaults_retained_bound(Int, Int, Int) -> @check_environment.RegistryConstructionExtent?
 
 pub fn client_model_provider_defaults_retained_extent(ClientModelProviderDefaults) -> @check_environment.RegistryConstructionExtent?
 

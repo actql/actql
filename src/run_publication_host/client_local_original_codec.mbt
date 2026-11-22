@@ -92,20 +92,64 @@ pub(all) struct ClientLocalOriginalManagedRoot {
 }
 
 ///|
+/// The configured Provider has at most eleven distinct nonsecret originals:
+/// installation selector, Provider, revision, contract, profile, execution,
+/// Run policy, and its four evidence dependencies.
+pub fn client_local_model_configuration_file_limit() -> Int {
+  11
+}
+
+///|
+/// Restrict the ordinary inventory independently of the checked Model
+/// selection. One separately selected Host file keeps its existing slot.
+pub fn client_local_configuration_file_count_supported(
+  count : Int,
+  includes_host : Bool,
+  model_files : Int,
+) -> Bool {
+  count >= 0 &&
+  model_files >= 0 &&
+  model_files <= client_local_model_configuration_file_limit() &&
+  model_files <= count - (if includes_host { 1 } else { 0 }) &&
+  count - model_files <= (if includes_host { 11 } else { 10 })
+}
+
+///|
+/// One additional file contributes its object plus five field values.
+pub fn client_local_configuration_selection_limits(
+  model_files : Int,
+) -> (Int, Int, Int)? {
+  if model_files < 0 ||
+    model_files > client_local_model_configuration_file_limit() {
+    None
+  } else {
+    Some((8192, 128 + 6 * model_files, 4))
+  }
+}
+
+///|
 /// Encode the original Native selection order and domain without doing I/O.
 /// The Host's existing selection Owner validates names, pins files and roots,
 /// and retains exact bytes. This codec cannot establish those physical facts.
 pub fn client_local_configuration_selection_body(
   files : Array[ClientLocalOriginalConfigurationFile],
   managed : ClientLocalOriginalManagedRoot?,
+  model_files? : Int = 0,
 ) -> Result[Bytes, ClientLocalOriginalCodecIssue] {
-  // The original ten selections plus the distinct initialized Host file.
-  // This is one additional physical original, not a resource allowance.
-  if files.length() > 11 ||
-    (files.length() == 11 && !files.any(file => file.name == "host.json")) {
+  if !client_local_configuration_file_count_supported(
+      files.length(),
+      files.any(file => file.name == "host.json"),
+      model_files,
+    ) {
     return Err(ConfigurationLimit)
   }
-  let writer = @encode.writer(8192, 128, 4) catch { _ => return Err(Encoding) }
+  guard client_local_configuration_selection_limits(model_files)
+    is Some((bytes, nodes, depth)) else {
+    return Err(ConfigurationLimit)
+  }
+  let writer = @encode.writer(bytes, nodes, depth) catch {
+    _ => return Err(Encoding)
+  }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "files")

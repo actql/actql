@@ -602,7 +602,20 @@ fn assemble_native_effect_free_publication_owned(
   let artifacts = outputs.map(output => output.artifact)
   let derivations = outputs.map(output => output.derivation)
   let orderings = outputs.map(output => output.ordering)
-  let retentions = outputs.map(output => output.retention)
+  // Several named Results can reference the same admitted retention contract.
+  // The commit takes one original per identity in this evidence inventory.
+  let retentions : Array[@publication.PublicationContract] = Array(
+    capacity=outputs.length(),
+  )
+  for output in outputs {
+    let policy = output.retention
+    let identity = @publication.publication_contract_identity(policy)
+    if !retentions.any(original => {
+        @publication.publication_contract_identity(original) == identity
+      }) {
+      retentions.push(policy)
+    }
+  }
   let bindings = outputs.map(output => output.binding)
   let binding_schema_wires = outputs.map(output => output.binding_schema_wire)
   let snapshots = outputs.map(output => output.snapshot)

@@ -216,6 +216,8 @@ pub fn model_execution_attempt_evidence(
     }
     @encode.key(writer, "cumulative_work")
     @encode.number_value(writer, trace.work.to_double())
+    // Version 0.1 records the configured Entry envelope. The live Ledger can
+    // settle a measured port separately; it does not revise this saved wire.
     @encode.key(writer, "uncertain_wire_bytes")
     @encode.decimal_number_value(
       writer,

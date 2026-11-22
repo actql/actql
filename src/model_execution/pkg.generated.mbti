@@ -47,6 +47,8 @@ pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, St
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
+pub fn advance_model_http_chat_request_projection(ModelHttpChatProjection) -> Result[PreparedModelHttpChatRequest?, OpenAIChatProjectionIssue]
+
 pub fn advance_model_observation_verification(ModelObservationVerification, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
@@ -86,6 +88,10 @@ pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bo
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
 
 pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
+
+pub fn check_model_physical_call_dispatch_current(ModelPhysicalCall, ModelRequest, @check_environment.ModelResponseProfile, @run_publication_host.ClientModelRawCaptureRegistration) -> Result[Unit, ModelPhysicalDispatchReadIssue]
+
+pub fn check_prepared_model_http_chat_dispatch_current(ModelPhysicalCall, PreparedModelHttpChatRequest, @run_publication_host.ClientModelRawCaptureRegistration) -> Result[Unit, ModelPhysicalDispatchReadIssue]
 
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
@@ -187,6 +193,10 @@ pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
 pub fn model_execution_unknown_calls(ModelExecution) -> Bool
 
+pub fn model_http_chat_installation_matches(AdmittedStructuredModelProvider, @check_environment.ModelResponseProfileInstallation) -> Bool
+
+pub fn model_http_original_credential_reference(AdmittedStructuredModelProvider, String) -> String?
+
 pub fn model_mock_answer_at(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration, Int) -> Result[(String, @value_admission.CheckedValue)?, ModelMockAnswerIssue]
 
 pub fn model_mock_answer_count(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Int, ModelMockAnswerIssue]
@@ -232,6 +242,8 @@ pub fn model_provider_synchronous_invoke(ModelProvider) -> ((ModelRequest) -> Re
 pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.BoundModelRawResponse
 
 pub fn model_raw_capture_save_current(ModelRawCaptureSave) -> Result[Unit, ModelRawCaptureSaveIssue]
+
+pub fn model_raw_capture_save_matches_run(ModelRawCaptureSave, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn model_raw_capture_save_originals(ModelRawCaptureSave) -> Array[@run_publication.CapturedEffectDependencyBody]
 
@@ -305,6 +317,8 @@ pub fn original_model_usage_item_count(ModelUsagePublication) -> Int
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
+pub fn prepare_model_http_chat_request(AdmittedStructuredModelProvider, ModelRequest, @check_environment.ModelResponseProfileInstallation, Int) -> Result[PreparedModelHttpChatRequest, OpenAIChatProjectionIssue]
+
 pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
 
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
@@ -319,11 +333,17 @@ pub fn prepare_original_model_provider_consumer_startup(@run_publication_host.Cl
 
 pub fn prepare_original_model_startup(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 
+pub fn prepared_model_awaits_portable_http(ModelPreparedCallSet) -> Bool
+
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn prepared_model_call_count(ModelPreparedCallSet) -> Int?
 
 pub fn prepared_model_call_set(ModelExecution) -> ModelPreparedCallSet?
+
+pub fn prepared_model_http_chat_material(PreparedModelHttpChatRequest, ModelRequest, AdmittedStructuredModelProvider) -> (String, @check_environment.ModelResponseProfile, Bytes)?
+
+pub fn prepared_model_http_chat_plan(PreparedModelHttpChatRequest, @check_environment.ModelResponseProfileInstallation, @physical_resources.QuantityAmounts, (ModelCallEntry) -> ModelPhysicalCall?, measured_transfer? : Bool) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn prepared_model_identities(ModelPreparedCallSet) -> (String, String, String)?
 
@@ -357,6 +377,8 @@ pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_envir
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
+pub fn register_model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
+
 pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, @check_environment.ModelResponseProfile, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
 
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
@@ -385,6 +407,8 @@ pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
 
+pub fn retire_model_http_chat_request_projection(ModelHttpChatProjection) -> Unit
+
 pub fn retire_model_mock_answers(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Unit, ModelMockAnswerIssue]
 
 pub fn retire_native_decision_projection(NativeDecisionProjection) -> Unit
@@ -406,6 +430,8 @@ pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_pu
 pub fn start_model_content_byte_check(ModelContentInput, String, String, Int64?, Int64?, () -> Bool) -> Result[ModelContentByteCheck, ModelContentIssue]
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_http_chat_request_projection(AdmittedStructuredModelProvider, ModelRequest, @check_environment.ModelResponseProfileInstallation, Int) -> Result[ModelHttpChatProjection, OpenAIChatProjectionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -626,6 +652,10 @@ pub(all) struct ModelExecutionLimits {
   ledger : @physical_resources.LedgerLimits
 }
 
+pub struct ModelHttpChatProjection {
+  // private fields
+}
+
 pub(all) enum ModelMockAnswerIssue {
   InvalidLimits
   BodyLimit
@@ -718,10 +748,16 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalIoPending(ModelPhysicalCall, ModelPhysicalCallPoll)
   PhysicalIoQuiescent(ModelPhysicalCall, ModelPhysicalCallPoll)
   PhysicalSavedStructuredResponse(ModelPhysicalSavedStructuredResponse)
+  PhysicalMeasuredHttp(ModelSavedRawReceipt, Int64, Int64, ModelPhysicalCallPoll)
 }
 
 pub struct ModelPhysicalChatResponse {
   // private fields
+}
+
+pub(all) enum ModelPhysicalDispatchReadIssue {
+  Dispatch(ModelExecutionIssue)
+  Raw(@run_publication_host.ClientModelRawCaptureIssue)
 }
 
 pub(all) struct ModelPhysicalEncodedResponse {
@@ -972,6 +1008,10 @@ pub(all) enum OpenAIChatProjectionIssue {
 type OriginalModelPublicationCapacity
 
 type OriginalModelStartup
+
+pub struct PreparedModelHttpChatRequest {
+  // private fields
+}
 
 pub(all) struct ResolvedStructuredModel {
   selector : String

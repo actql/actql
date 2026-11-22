@@ -210,6 +210,22 @@ class LinuxInspectionTools(unittest.TestCase):
             self.assertFalse((root/'output').exists())
 
 
+class ModelResolverImageInspection(unittest.TestCase):
+    def test_refuses_external_cares_functions_and_allocator_slots(self):
+        require_private = P.HTTP.require_private_model_resolver
+        for exports, imports in [
+            ('000000000011bbc0 T _ares_library_init_mem\n', ''),
+            ('', '                 U _ares_cancel\n'),
+            ('000000000011bbc0 D __ares_malloc@@CARES_1\n', ''),
+            ('', '                 U ares_library_cleanup@CARES_1\n'),
+        ]:
+            with self.subTest(exports=exports, imports=imports):
+                with self.assertRaisesRegex(ValueError, 'symbols must remain private'):
+                    require_private(exports, imports)
+        require_private('000000000001 T _curl_multi_cleanup\n',
+                        '                 U _getaddrinfo\n')
+
+
 class ExistingProducerComposition(unittest.TestCase):
     def compose(self,target,fail=False,key_fingerprint='A'*40,tls_jobs=1):
         with tempfile.TemporaryDirectory() as raw:

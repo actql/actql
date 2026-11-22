@@ -9,7 +9,7 @@ struct NativeClientMockModelWork {
   compiled : @host.ClientCompiledRun
   definition : @publication.PublicationContract
   graph : @host.ClientInferPlanGraph
-  profile : @environment.ModelMockProfile
+  provider_role : NativeClientModelWorkProvider
   _retained_provider : @model.ModelProvider
   _retained_limits : @infer.Limits
   _retained_observation_capacity : @execution.ExecutionCapacity
@@ -26,6 +26,7 @@ struct NativeClientMockModelWork {
   mut entry : @model.ModelCallEntry?
   mut entry_recording : Bool
   mut entry_recorded : Bool
+  mut entry_not_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
   mut effect_review : NativeMockEffectReview?
@@ -33,6 +34,7 @@ struct NativeClientMockModelWork {
   mut publication_retained : Int64
   mut publication_execution : Int64
   mut observation : @infer.ObservationIssuance?
+  mut publication_inputs : (Array[String], Array[@publication.RunEvidenceValue])?
   mut local_scan : @execution.CompletedRelationIdentityScan?
   mut local_receipt : @execution.CompletedRelationExportReceipt?
   mut local_observation : @infer.LocalModelObservation?
@@ -58,6 +60,7 @@ pub(all) enum NativeClientMockModelIssue {
   Evidence(@publication.RunEvidenceValueIssue)
   Capture(@model.ModelExecutionIssue)
   Store(@publication_store.NativePublicationStoreIssue)
+  Transport(NativeClientModelHttpIssue)
   Start(NativeClientSourceWorkIssue)
   Review(NativeClientMockEffectReviewIssue)
   Encoding
@@ -80,9 +83,40 @@ pub fn prepare_native_client_mock_model_work(
   namespace_id : String,
   current_time : () -> String,
 ) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
+  if !@environment.model_mock_profile_current(profile) {
+    return Err(ForeignOriginal)
+  }
+  prepare_native_client_model_work(
+    capture,
+    request,
+    compiled,
+    definition,
+    graph,
+    Mock(profile),
+    provider,
+    limits,
+    principal,
+    namespace_id,
+    current_time,
+  )
+}
+
+///|
+fn prepare_native_client_model_work(
+  capture : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @host.ClientInferPlanGraph,
+  provider_role : NativeClientModelWorkProvider,
+  provider : @model.ModelProvider,
+  limits : @infer.Limits,
+  principal : String,
+  namespace_id : String,
+  current_time : () -> String,
+) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
   if principal.is_empty() ||
     namespace_id.is_empty() ||
-    !@environment.model_mock_profile_current(profile) ||
     @infer.check_original_composed_preparation(
       compiled,
       definition,
@@ -102,7 +136,7 @@ pub fn prepare_native_client_mock_model_work(
     compiled,
     definition,
     graph,
-    profile,
+    provider_role,
     _retained_provider: provider,
     _retained_limits: limits,
     _retained_observation_capacity: observation_capacity,
@@ -119,6 +153,7 @@ pub fn prepare_native_client_mock_model_work(
     entry: None,
     entry_recording: false,
     entry_recorded: false,
+    entry_not_recorded: false,
     entry_issue: None,
     settlement: None,
     effect_review: None,
@@ -126,6 +161,7 @@ pub fn prepare_native_client_mock_model_work(
     publication_retained: 0L,
     publication_execution: 0L,
     observation: None,
+    publication_inputs: None,
     local_scan: None,
     local_receipt: None,
     local_observation: None,
@@ -200,6 +236,14 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
 pub fn NativeClientMockModelWork::observe_step_in_original_read(
   self : Self,
 ) -> Result[Unit, NativeClientMockModelIssue] {
+  self.observe_model_step_in_original_read(physical=false)
+}
+
+///|
+fn NativeClientMockModelWork::observe_model_step_in_original_read(
+  self : Self,
+  physical~ : Bool,
+) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.closing ||
       self.closed ||
@@ -235,9 +279,19 @@ pub fn NativeClientMockModelWork::observe_step_in_original_read(
           @publication.publication_contract_identity(self.definition) {
           return Err(Journal(ForeignRun))
         }
-        @host.client_local_adopted_current_account(material, host.database).map_err(
-          local_current_material_issue,
-        )
+        let current = match
+          @host.client_local_adopted_current_account(material, host.database) {
+          Ok(value) => value
+          Err(issue) => return Err(local_current_material_issue(issue))
+        }
+        if physical {
+          host.journal
+          .recheck_model_run_cut(self.request, operations.reads)
+          .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
+          .map(_ => current)
+        } else {
+          Ok(current)
+        }
       })
       .map_err(issue => NativeClientMockModelIssue::Original(issue)),
     )
@@ -259,15 +313,17 @@ pub fn NativeClientMockModelWork::observe_step_in_original_read(
 pub fn NativeClientMockModelWork::open(
   self : Self,
   sequence : @execution.GeneratedSequence,
-  sources : @host.ClientInferComposedSources,
   consumer : @host.ClientModelReadConsumer,
   read_retained_bytes : Int64,
   read_execution_bytes : Int64,
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
+  sources? : @host.ClientInferComposedSources? = None,
   input_body_read? : @host.ClientModelReadPreparation? = None,
   inputs? : Array[@compute_local.ManagedProviderInput] = [],
   prior_input_work? : Int64 = 0L,
+  compiled_prefix? : Bool = false,
+  compiled_suffix? : @execution.GeneratedSequence? = None,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.open_attempted ||
@@ -289,7 +345,13 @@ pub fn NativeClientMockModelWork::open(
     // Real producer ports consume exactly the checked pre-Model prefix. Keep
     // the full original for the later suffix; this view preserves its owner
     // and step coordinates and neither recompiles nor copies kernel contexts.
-    let input_sequence = if inputs.is_empty() {
+    let input_sequence = if compiled_prefix {
+      guard sources is None &&
+        @execution.generated_sequence_step_count(sequence) == model_step else {
+        return Err(ForeignOriginal)
+      }
+      sequence
+    } else if inputs.is_empty() {
       sequence
     } else {
       guard @execution.select_generated_sequence_prefix(
@@ -316,7 +378,7 @@ pub fn NativeClientMockModelWork::open(
         read_execution_bytes,
         model_retained_bytes,
         model_execution_bytes,
-        sources=Some(sources),
+        sources~,
         input_body_read~,
         prior_input_work~,
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
@@ -328,23 +390,27 @@ pub fn NativeClientMockModelWork::open(
       return Err(ForeignOriginal)
     }
     if last > model_step {
-      // A view of the SAME already compiled Plan sequence, inside this entered
-      // original read window. No Program, kernels, clock or Model is reissued.
-      // Bind before the first advance: raw INFER output cannot stand in for
-      // its checked WHERE/SELECT/Result tail or the Effect dependency port.
-      guard @execution.select_generated_sequence_range(
+      // Ordinary deferred providers borrow the funded suffix lowered by
+      // Request preparation. The existing Effect route still uses its whole
+      // selected sequence. The Core checks exact owner and step coordinates.
+      let suffix = if compiled_prefix {
+        compiled_suffix
+      } else {
+        @execution.select_generated_sequence_range(
           sequence,
           model_step + 1,
           last,
         )
-        is Some(suffix) else {
-        return Err(ForeignOriginal)
       }
+      guard suffix is Some(suffix) else { return Err(ForeignOriginal) }
       mock_model_require(
         @infer.bind_compute_suffix(active, suffix).map_err(issue => {
           NativeClientMockModelIssue::Model(issue)
         }),
       )
+    }
+    if compiled_suffix is Some(_) && (!compiled_prefix || last == model_step) {
+      return Err(ForeignOriginal)
     }
     mock_model_require(
       @infer.require_model_call_entry(active).map_err(issue => {
@@ -357,25 +423,32 @@ pub fn NativeClientMockModelWork::open(
     // and no retention/training. Core combines this observation with ALL checked
     // source policies; the provider can never lower an unknown classification.
     let region = @environment.model_task_region_at(task, 0).unwrap_or("")
-    let egress = mock_model_require(
-      @host.admit_client_infer_occurrence_egress(
-        self.graph.occurrence,
-        execution,
-        () => {
-          if self.closing ||
-            !@environment.model_mock_profile_current(self.profile) {
-            None
-          } else {
-            Some({
-              classification: @environment.Public,
-              region,
-              provider_retention: false,
-              training_use: false,
-            })
-          }
-        },
-      ).map_err(issue => NativeClientMockModelIssue::Egress(issue)),
-    )
+    let egress = match self.provider_role {
+      Mock(profile) =>
+        mock_model_require(
+          @host.admit_client_infer_occurrence_egress(
+            self.graph.occurrence,
+            execution,
+            () => {
+              if self.closing ||
+                !@environment.model_mock_profile_current(profile) {
+                None
+              } else {
+                Some({
+                  classification: @environment.Public,
+                  region,
+                  provider_retention: false,
+                  training_use: false,
+                })
+              }
+            },
+          ).map_err(issue => NativeClientMockModelIssue::Egress(issue)),
+        )
+      PortableHttp(work) => {
+        mock_model_require(work.bind_preflight(active))
+        work.installation.run_policy.egress
+      }
+    }
     mock_model_require(
       @infer.bind_egress_admission(active, egress).map_err(issue => {
         NativeClientMockModelIssue::Model(issue)
@@ -497,7 +570,6 @@ fn NativeClientMockModelWork::bind_prepared(
       self.admission is None &&
       self.account is Some(account) &&
       self.observation_time is Some(at) &&
-      @environment.model_mock_profile_originals(self.profile) is Some(originals) &&
       @infer.call_scope(active) is Some(call_scope) &&
       @host.client_infer_call_scope_unit_id(call_scope) is Some(unit_id) else {
       return Err(ForeignOriginal)
@@ -518,14 +590,27 @@ fn NativeClientMockModelWork::bind_prepared(
       @authorization.Allow(entry) => entry
       _ => return Err(Account(outcome))
     }
-    let provider = mock_model_require(
-      @host.issue_client_model_provider_binding(
-        connection,
-        originals.0,
-        originals.2,
-        originals.4,
-      ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
-    )
+    let provider = match self.provider_role {
+      Mock(profile) => {
+        guard @environment.model_mock_profile_originals(profile)
+          is Some(originals) else {
+          return Err(ForeignOriginal)
+        }
+        mock_model_require(
+          @host.issue_client_model_provider_binding(
+            connection,
+            originals.0,
+            originals.2,
+            originals.4,
+          ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
+        )
+      }
+      PortableHttp(work) => work.installation.binding
+    }
+    guard @publication.model_provider_binding_configuration_cids(provider)
+      is Some((revision_cid, contract_cid, configuration_cid)) else {
+      return Err(ForeignOriginal)
+    }
     let boundary : @publication.ModelInvocationBoundary = {
       unit_id,
       task_index: @host.client_infer_occurrence_coordinates(
@@ -544,9 +629,9 @@ fn NativeClientMockModelWork::bind_prepared(
       context_cid: @publication.run_publication_execution_context(
         self.compiled.admission,
       ),
-      installation_revision_cid: originals.1,
-      configuration_contract_cid: originals.3,
-      provider_configuration_cid: originals.5,
+      installation_revision_cid: revision_cid,
+      configuration_contract_cid: contract_cid,
+      provider_configuration_cid: configuration_cid,
     }
     let scope = mock_model_require(
       native_mock_model_invocation_scope(
@@ -594,6 +679,7 @@ fn NativeClientMockModelWork::bind_prepared(
         self.entry = Some(entry)
         self.entry_recording = false
         self.entry_recorded = false
+        self.entry_not_recorded = false
         self.entry_issue = None
         @model.model_call_entry_persistence(entry, prepared, () => {
           self.entry_observation(entry, prepared)
@@ -637,6 +723,8 @@ fn NativeClientMockModelWork::entry_observation(
       Some(acknowledgement) => @model.Saved(acknowledgement)
       None => @model.Unknown
     }
+  } else if self.entry_not_recorded {
+    @model.NotRecorded
   } else if self.entry_issue is Some(_) {
     @model.Unknown
   } else {
@@ -666,15 +754,18 @@ pub fn NativeClientMockModelWork::persist_entry_in_original_read(
   self.account = None
   self.observation_time = None
   self.entry_recording = true
-  match
-    self.capture.persist_model_call_entry_in_original_read(
-      self.request,
-      self.compiled,
-      self.definition,
-      prepared,
-      admission,
-      entry,
-    ) {
+  if self.provider_role is PortableHttp(work) {
+    if self.prepare_http_entry_in_original_read(
+        work, entry, prepared, admission,
+      )
+      is Err(issue) {
+      // No persistence call has run. Keep the transport cleanup with its
+      // original Runtime and make the same Entry's refusal observable.
+      self.entry_not_recorded = true
+      return Err(issue)
+    }
+  }
+  match self.persist_model_entry_original(prepared, admission, entry) {
     Ok(_) => {
       self.entry_recorded = true
       Ok(())
@@ -713,41 +804,223 @@ pub fn NativeClientMockModelWork::borrow_opened_original_model(
 }
 
 ///|
-/// One bounded Core work batch. Its just-observed Account snapshot is
-/// spent on return; even a Waiting/failed step must refresh before another.
-/// Actual save and subsequent ACK are separated by this outer return boundary.
+// Core advances and outer physical steps borrow the same bounded observation.
+// Neither can use it after the step returns, even when the step failed.
+fn[T] NativeClientMockModelWork::with_observed_step(
+  self : Self,
+  step : (@infer.Execution) -> Result[T, NativeClientMockModelIssue],
+) -> Result[T, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.account is Some(_) &&
+    self.observation_time is Some(_) &&
+    self.settlement is None &&
+    self.active is Some(active) else {
+    return Err(NotOpened)
+  }
+  self.advancing = true
+  defer self.release_observed_step()
+  step(active)
+}
+
+///|
+fn NativeClientMockModelWork::release_observed_step(self : Self) -> Unit {
+  self.advancing = false
+  self.account = None
+  self.observation_time = None
+}
+
+///|
+/// One bounded Core work batch. Actual Entry persistence and acknowledgement
+/// remain on opposite sides of this original Model step.
 pub fn NativeClientMockModelWork::advance(
   self : Self,
 ) -> Result[@infer.Poll, NativeClientMockModelIssue] {
-  try {
-    guard !self.closing &&
-      !self.closed &&
-      !self.advancing &&
-      self.account is Some(_) &&
-      self.observation_time is Some(_) &&
-      self.settlement is None &&
-      self.active is Some(active) else {
-      return Err(NotOpened)
-    }
-    self.advancing = true
-    defer {
-      self.advancing = false
-      self.account = None
-      self.observation_time = None
-    }
-    let result = mock_model_require(
-      @infer.advance(active, 31).map_err(issue => {
-        NativeClientMockModelIssue::Model(issue)
-      }),
-    )
-    if self.prepared is None &&
-      @infer.prepared_call_set(active) is Some(prepared) {
-      mock_model_require(self.bind_prepared(active, prepared))
-    }
-    Ok(result)
-  } catch {
-    NativeMockModelStop(issue) => Err(issue)
+  self.with_observed_step(active => {
+    @infer.advance(active, 31)
+    .map_err(issue => NativeClientMockModelIssue::Model(issue))
+    .bind(result => self.bind_observed_call_set(active).map(_ => result))
+  })
+}
+
+///|
+// The Local driver owns Core's advance. These two ports borrow the same
+// Work's Account snapshot only for that one original, synchronous step.
+pub fn NativeClientMockModelWork::enter_managed_model_step(
+  self : Self,
+  active : @infer.Execution,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.account is Some(_) &&
+    self.observation_time is Some(_) &&
+    self.settlement is None &&
+    self.active is Some(original) &&
+    physical_equal(original, active) else {
+    return Err(ForeignOriginal)
   }
+  self.advancing = true
+  Ok(())
+}
+
+///|
+pub fn NativeClientMockModelWork::leave_managed_model_step(
+  self : Self,
+  active : @infer.Execution,
+  advanced : Bool,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.advancing &&
+    self.active is Some(original) &&
+    physical_equal(original, active) else {
+    return Err(ForeignOriginal)
+  }
+  defer self.release_observed_step()
+  if advanced {
+    self.bind_observed_call_set(active)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn NativeClientMockModelWork::bind_observed_call_set(
+  self : Self,
+  active : @infer.Execution,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if self.prepared is None && @infer.prepared_call_set(active) is Some(prepared) {
+    self.bind_prepared(active, prepared)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn[T] NativeClientMockModelWork::with_observed_http_step(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  step : () -> Result[T, NativeClientModelHttpIssue],
+) -> Result[T, NativeClientMockModelIssue] {
+  self
+  .observe_model_step_in_original_read(physical=true)
+  .bind(_ => {
+    self.with_observed_step(_ => {
+      guard physical_equal(call.capture, self.capture) &&
+        self.entry_recorded &&
+        self.entry is Some(entry) &&
+        call.original is Some(original) &&
+        original.entry is Some(entered) &&
+        physical_equal(entered, entry) &&
+        self.prepared is Some(prepared) &&
+        @model.prepared_model_request(prepared, call.request.slot)
+        is Some(request) &&
+        physical_equal(request, call.request) else {
+        return Err(ForeignOriginal)
+      }
+      step().map_err(issue => Transport(issue))
+    })
+  })
+}
+
+///|
+/// Preserve other Model waits. A portable response wait must find the
+/// retained transport for this exact consumed Entry before advancing again.
+pub fn NativeClientMockModelWork::entered_model_http_call(
+  self : Self,
+  runtime : NativeLocalPackagedRuntime?,
+) -> Result[NativeClientModelHttpCall?, NativeClientMockModelIssue] {
+  guard self.prepared is Some(prepared) &&
+    @model.prepared_model_awaits_portable_http(prepared) else {
+    return Ok(None)
+  }
+  guard !self.closing &&
+    !self.closed &&
+    self.entry_recorded &&
+    self.entry is Some(entry) &&
+    runtime is Some(runtime) &&
+    runtime.model_http_load is Some(Ok(loaded)) &&
+    !loaded.stopping else {
+    return Err(ForeignOriginal)
+  }
+  let mut pending = loaded.calls
+  while pending is Some(call) {
+    if physical_equal(call.capture, self.capture) &&
+      call.original is Some(original) &&
+      original.entry is Some(entered) &&
+      physical_equal(entry, entered) {
+      return Ok(pending)
+    }
+    pending = call.next_in_runtime
+  }
+  Err(ForeignOriginal)
+}
+
+///|
+/// One bounded readiness step on the exact consumed Entry, after its durable
+/// acknowledgement. True means that this Call has a complete HTTP response
+/// and its Client has returned. Store confirmation is a separate step.
+pub fn NativeClientMockModelWork::drive_http_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+) -> Result[Bool, NativeClientMockModelIssue] {
+  self.with_observed_http_step(call, () => {
+    call
+    .drive_in_original_read()
+    .map(_ => call.response is Some(_) && call.client is None)
+  })
+}
+
+///|
+/// Retain the returned child on the original command before saving it. The
+/// response facts and durable Run identity both come from this exact Work.
+pub fn NativeClientMockModelWork::prepare_http_raw_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  store : @publication_store.Store,
+) -> Result[NativeClientModelRawCapture, NativeClientMockModelIssue] {
+  guard self.provider_role is PortableHttp(configured) &&
+    physical_equal(configured.store, store) else {
+    return Err(ForeignOriginal)
+  }
+  self.with_observed_http_step(call, () => {
+    guard self.observation_time is Some(at) else {
+      return Err(NativeClientModelHttpIssue::ForeignOriginal)
+    }
+    call.prepare_raw_save_in_original_read(
+      self.request,
+      self.compiled,
+      self.definition,
+      self.namespace_id,
+      store,
+      at,
+    )
+  })
+}
+
+///|
+/// Confirm the already retained Store child and decode its original response
+/// under the same fresh observation. A refusal leaves the child with the caller.
+pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
+  self : Self,
+  call : NativeClientModelHttpCall,
+  raw : NativeClientModelRawCapture,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  self.with_observed_http_step(call, () => {
+    guard !call.cancelled &&
+      call.raw is Some(original) &&
+      call.raw_store is Some(child) &&
+      physical_equal(raw, child) &&
+      physical_equal(raw.capture, self.capture) &&
+      physical_equal(raw.view, original) else {
+      return Err(NativeClientModelHttpIssue::ForeignOriginal)
+    }
+    raw
+    .persist_in_original_read()
+    .map_err(issue => NativeClientModelHttpIssue::RawStore(issue))
+    .bind(_ => call.adopt_saved_chat(raw))
+    .map(_ => call.raw_store = None)
+  })
 }
 
 ///|
@@ -837,6 +1110,12 @@ pub fn NativeClientMockModelWork::close(
           }),
         )
         if closed {
+          if self.provider_role is PortableHttp(work) {
+            // Its Raw/current callbacks retain this Work. Cut the Work's
+            // own edge only after the Model confirms retirement. Any pending
+            // Store child still owns its exact registration and cleanup.
+            work.registration = None
+          }
           self.lookup_entries = None
           self.active = None
           self.prepared = None
@@ -876,10 +1155,10 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    // Existing controls plus the one retained lookup-entry vector and field.
-    record_headers: 12L,
-    reference_slots: 55L,
-    scalar_words: 19L,
+    // Include the selected provider arm and explicit pre-entry refusal bit.
+    record_headers: 13L,
+    reference_slots: 57L,
+    scalar_words: 20L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

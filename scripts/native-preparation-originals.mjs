@@ -113,7 +113,7 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-function readVerifiedNativeHttpPreparation(path,selected,item) {
+function readVerifiedNativeHttpPreparation(path,selected,item,requireModelResolver) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
   for (const key of ['source', 'target']) {
     assert.equal(body[key], selected[key], `HTTP preparation ${key} differs from the selected original`);
@@ -125,7 +125,8 @@ function readVerifiedNativeHttpPreparation(path,selected,item) {
   assert.equal(body.tls.path,join(directory,'owned-tls/build.json'));
   assert.equal(body.component.path,join(directory,'component/build.json'));
   const tls=json(body.tls.path,body.tls),component=json(body.component.path,body.component);
-  const recipe=json(fileURLToPath(new URL('./native-http-component-source.json',import.meta.url)));
+  const recipePath = fileURLToPath(new URL('./native-http-component-source.json', import.meta.url));
+  const recipe = json(recipePath);
   for(const receipt of [tls,component]) {
     assert.equal(receipt.source,selected.source);assert.equal(receipt.target,selected.target);
     assert.equal(receipt.minimumMacOS,minimum);assert.equal(receipt.loaded,0);
@@ -138,14 +139,88 @@ function readVerifiedNativeHttpPreparation(path,selected,item) {
   assert.deepEqual(component.upstream,recipe.upstream);
   assert.equal(component.initialized,0);assert.equal(component.installed_supplier,false);
   for(const key of ['path','bytes','sha256'])assert.equal(component.ownedOpenSSLReceipt[key],body.tls[key]);
-  assert.equal(component.library.path,join(directory,'component/bundle',
-    selected.target==='darwin-arm64'?'libcurl.4.dylib':'libcurl.so.4'));
+  if (requireModelResolver) {
+    const resolver = component.modelResolver;
+    assert(resolver && resolver.backend === 'c-ares' && resolver.addressLookup === 'c-ares',
+      'The existing HTTP preparation did not select the Model resolver');
+    assert.equal(component.recipe_sha256, checksum(readFileSync(recipePath)));
+    const resolverRecipe = readFileSync(new URL('./native-model-http-resolver-source.json', import.meta.url));
+    assert.equal(resolver.recipe_sha256, checksum(resolverRecipe));
+    const pinned = JSON.parse(resolverRecipe);
+    assert.equal(resolver.version, pinned.version);
+    assert.deepEqual(resolver.allocatorPatch, pinned.allocatorPatch);
+    assert.equal(resolver.source.bytes, pinned.archive.bytes);
+    assert.equal(resolver.source.sha256, pinned.archive.sha256);
+    assert(component.inputs.some(item => item.path === resolver.source.path &&
+      item.bytes === resolver.source.bytes && item.sha256 === resolver.source.sha256));
+    assert.equal(resolver.staticLibrary.path, join(directory, 'component/resolver-input/lib/libcares.a'));
+    assert.equal(resolver.notice.path, join(directory, 'component/bundle/CARES-LICENSE.md'));
+    for (const original of [resolver.source, resolver.staticLibrary, resolver.notice]) verifyOriginal(original);
+  } else {
+    assert.equal(component.modelResolver, undefined, 'Remote HTTP requires the synchronous component original');
+  }
+  const member = selected.target === 'darwin-arm64'
+    ? (requireModelResolver ? 'libcurl-model.4.dylib' : 'libcurl.4.dylib')
+    : (requireModelResolver ? 'libcurl-model.so.4' : 'libcurl.so.4');
+  assert.equal(component.library.path, join(directory, 'component/bundle', member));
   verifyOriginal(component.library);
   return {path: body.component.path, component, tls};
 }
 
-export function verifyNativeHttpPreparation(path, selected, item) {
-  return readVerifiedNativeHttpPreparation(path, selected, item).path;
+export function verifyNativeHttpPreparation(path, selected, item, {requireModelResolver = false} = {}) {
+  return readVerifiedNativeHttpPreparation(path, selected, item, requireModelResolver).path;
+}
+
+// Model HTTP is a separately compiled component. Keep its real producer SHA
+// and allow a successor package to use it only if its complete repository
+// producer inputs are unchanged. The physical inputs and receipts are still
+// checked by the original preparation reader.
+function verifyModelHttpProducerInputs(producerSource, packageSource) {
+  for (const source of [producerSource, packageSource]) assert.match(source, /^[0-9a-f]{40}$/u);
+  if (producerSource === packageSource) return;
+  const git = args => execFileSync('git', args, {
+    cwd: new URL('../', import.meta.url), timeout: 15000, maxBuffer: 65536,
+  });
+  git(['merge-base', '--is-ancestor', producerSource, packageSource]);
+  git(['diff', '--quiet', producerSource, packageSource, '--',
+    'scripts/native-http-component-source.json',
+    'scripts/native-model-http-resolver-source.json',
+    'scripts/prepare-native-resident-http-component.py',
+    'scripts/produce-native-http-component.py',
+    'scripts/produce-native-http-tls.py',
+    'scripts/produce-native-remote-scoped-runtime.py',
+    'scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc',
+    'src/platform_native/http_client/component_tls_lifetime.c',
+    'src/platform_native/http_client/component_tls_lifetime.h']);
+}
+
+export function verifiedNativeModelHttpPackage(preparation, selected) {
+  const producerSource = preparation.source ?? selected.source;
+  verifyModelHttpProducerInputs(producerSource, selected.source);
+  const {component, tls} = readVerifiedNativeHttpPreparation(
+    preparation.path, {...selected, source: producerSource}, preparation, true);
+  const {path, bytes, sha256} = component.library;
+  const {version, archive} = component.upstream;
+  const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
+    item.sha256 === archive.sha256 && basename(item.path) === `curl-${version}.tar.xz`);
+  assert.equal(curlArchives.length, 1, 'One original curl source archive required');
+  const curlArchive = curlArchives[0];
+  // Use the selected archive bytes themselves for the upstream notice.
+  const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
+    input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
+  });
+  const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
+  assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
+  const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
+  const resolver = component.modelResolver.notice;
+  const resolverNotice = data(resolver.path, resolver);
+  assert(curlNotice.length > 0 && tlsNotice.length <= 65536 && resolverNotice.length <= 65536);
+  const separator = Buffer.from('\n\n');
+  return {
+    library: {path, bytes, sha256},
+    dependencies: component.systemDependencies,
+    notice: Buffer.concat([curlNotice, separator, tlsNotice, separator, resolverNotice]),
+  };
 }
 
 export function verifiedNativeRemoteHttpPackage(preparation, selected) {
@@ -153,7 +228,6 @@ export function verifiedNativeRemoteHttpPackage(preparation, selected) {
   assert.equal(preparation.source, selected.source, 'Remote HTTP preparation source differs');
   const recipe = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
   assert.equal(component.recipe_sha256, checksum(recipe));
-  assert.equal(component.modelResolver, undefined, 'Remote HTTP requires the synchronous component original');
   const {path, bytes, sha256} = component.library;
   const {version, archive} = component.upstream;
   const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
@@ -174,11 +248,11 @@ export function verifiedNativeRemoteHttpPackage(preparation, selected) {
   };
 }
 
-export function preparedNativeHttpReceipt(root,selected) {
+export function preparedNativeHttpReceipt(root,selected,options) {
   const {root:canonical,record}=index(root,selected);
   assert(record.http,'Complete original HTTP preparation is required for Resident');
   const path=join(canonical,'http/preparation.json');assert.equal(record.http.path,path);
-  return verifyNativeHttpPreparation(path,selected,record.http);
+  return verifyNativeHttpPreparation(path,selected,record.http,options);
 }
 export function preparedNativeCommand(root,entry,selected) {
   const {root:canonical,record}=index(root,selected);

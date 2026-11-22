@@ -1,5 +1,15 @@
 ///|
 test "managed ledger preparation retains its first capacity original through open and retirement" {
+  check_source_free_task_driver(false)
+}
+
+///|
+test "Host task failure keeps its original cleanup while the Compute scope is unavailable" {
+  check_source_free_task_driver(true)
+}
+
+///|
+fn check_source_free_task_driver(fail_after_advance : Bool) -> Unit raise {
   let prepared = single_source_free_capacity_prepared()
   let assets = @publication_host.client_local_product_assets()
   let installed = prepare_installed_sequence_contracts(
@@ -87,11 +97,57 @@ test "managed ledger preparation retains its first capacity original through ope
   assert_true(physical_equal(run.source_free_preparation.unwrap(), first))
   assert_true(physical_equal(first.sequences, sequences))
   assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
-  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
-    true
-  }).unwrap()
-  assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
-  assert_true(execution.close())
+  let seen = []
+  let cleanup_ready = Ref(!fail_after_advance)
+  let result = execute_source_free_local_tasks_guarded(
+    setup,
+    64,
+    100000,
+    () => true,
+    cleanup_ready=Some(() => cleanup_ready.val),
+    drive_task=Some((index, operations) => {
+      seen.push(index)
+      // Host-pumped mode advances the exact already selected operations.
+      let mut complete = false
+      for _ in 0..<1024 {
+        match (operations.advance)(64) {
+          Err(issue) => return Err(Driver(issue))
+          Ok(value) => {
+            if fail_after_advance {
+              return Err(Fenced)
+            }
+            if value.waiting || value.await_io || value.settlement is Some(_) {
+              return Err(UnsupportedGraph)
+            }
+            if value.complete {
+              complete = true
+              break
+            }
+          }
+        }
+      }
+      if complete {
+        Ok(())
+      } else {
+        Err(FinalizationLimit)
+      }
+    }),
+  )
+  assert_eq(seen, [0])
+  if fail_after_advance {
+    guard result is Err(failure) else {
+      fail("the same task must retain its primary refusal")
+    }
+    assert_true(local_values_execution_failure_issue(failure) is Fenced)
+    assert_true(local_values_execution_failure_cleanup_pending(failure))
+    assert_false(retry_local_values_execution_failure_cleanup(failure))
+    cleanup_ready.val = true
+    assert_true(retry_local_values_execution_failure_cleanup(failure))
+  } else {
+    let execution = result.unwrap()
+    assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
+    assert_true(execution.close())
+  }
   retire_installed_managed_run(run).unwrap()
   assert_true(run.source_free_preparation is None)
   assert_true(require_installed_managed_run(run) is Err(Retired))

@@ -12,6 +12,7 @@ fn private_evidence_binding(name : String, cid : String) -> Bytes? {
       "continuation_record", "checkpoint", "model_call_attempt", "model_attempt_accounting",
       "model_attempt_outcome", "model_dispatch_authority", "model_slot_capture",
       "model_invocation_evidence", "model_capture_bundle", "model_attachment_admission",
+      "model_raw_response",
     ].contains(name) ||
     cid.length() != 71 ||
     !cid.has_prefix("sha256:") {

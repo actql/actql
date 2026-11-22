@@ -49,6 +49,48 @@ test "Runtime binding rejects noncapacity Environment and policy changes" {
 }
 
 ///|
+test "configured Runtime binding isolates the adopted Provider declarations from packaged defaults" {
+  let installed = @host.client_local_product_assets().environment
+  let original = "\"model_task_contracts\":[]"
+  assert_true(installed.contains(original))
+  let selected = runtime_operator_fixture(
+    installed.replace(
+      old=original,
+      new="\"model_task_contracts\":[{\"connector_id\":\"models/http\"}]",
+    ),
+  )
+  assert_true(
+    local_runtime_configured_model_environment_compatible(
+      selected, installed, "models/http",
+    ),
+  )
+  assert_false(
+    local_runtime_capacity_environment_compatible(selected, installed),
+  )
+  assert_false(
+    local_runtime_configured_model_environment_compatible(
+      selected, installed, "models/foreign",
+    ),
+  )
+  assert_false(
+    local_runtime_configured_model_environment_compatible(
+      selected, selected, "models/http",
+    ),
+  )
+  let substituted = runtime_operator_fixture(
+    selected.replace(
+      old="\"command_contracts\":[]",
+      new="\"command_contracts\":[{}]",
+    ),
+  )
+  assert_false(
+    local_runtime_configured_model_environment_compatible(
+      substituted, installed, "models/http",
+    ),
+  )
+}
+
+///|
 test "Runtime binding rejects stale Environment self identity" {
   let installed = @host.client_local_product_assets().environment
   let changed = installed.replace(
