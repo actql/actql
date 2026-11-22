@@ -57,15 +57,6 @@ export type CalendarArtifactInstallation = Readonly<{
   maxSelectionWork: number;
 }>;
 
-type InstalledModelSdkImage = Readonly<{path: string; cid: `sha256:${string}`}>;
-export type InstalledModelSdkRegistration = Readonly<{
-  adapter: InstalledModelSdkImage;
-  sdk: InstalledModelSdkImage & Readonly<{packageName: string; version: string; exportName: string}>;
-  lock: InstalledModelSdkImage;
-  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
-  providerOptions: Readonly<Record<string, string | boolean | number>>;
-}>;
-
 export type HostInstallation = Readonly<{
   directory?: string;
   connectorTable?: InstalledConnectorTable;
@@ -99,8 +90,6 @@ export type HostInstallation = Readonly<{
   modelInstallation?: Readonly<Record<string, unknown>>;
   calendarArtifact?: CalendarArtifactInstallation;
   registerModelProviders?: (...args: any[]) => any;
-  /** Trusted, frozen registrations selected before this installed SDK's first module load. */
-  modelSdkRegistrations?: readonly InstalledModelSdkRegistration[];
   verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{

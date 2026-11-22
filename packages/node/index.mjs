@@ -27,6 +27,13 @@ function captureOptions(original, captured = new Map()) {
   return Object.freeze(Object.create(Object.getPrototypeOf(original), fields));
 }
 
+function assertOwnModelSdkSelection(installation) {
+  if (installation != null && typeof installation === 'object' &&
+      !Object.hasOwn(installation, 'modelSdkRegistrations') && 'modelSdkRegistrations' in installation) {
+    throw new ClientError('InvalidInstalledModelSdkInstallation');
+  }
+}
+
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.
 async function localProvider(modelSdkRegistrations) {
@@ -71,6 +78,7 @@ export async function connect(options, stringOptions) {
       owner === 'local') && endpoint === undefined;
   } catch { throw new ClientError('InvalidConnectionOptions', {hint}); }
   if (embeddedLocal) {
+    let modelSdkRegistrations;
     // Detach this new Host-only value before lazy provider loading. Admission
     // stays with the installed Host; connected Remote loads no Local module.
     try {
@@ -85,7 +93,9 @@ export async function connect(options, stringOptions) {
       let installation = options.installation;
       if (installation !== undefined && installation !== null &&
           typeof installation === 'object' && !Array.isArray(installation)) {
+        assertOwnModelSdkSelection(installation);
         installation = captureOptions(installation);
+        modelSdkRegistrations = Object.getOwnPropertyDescriptor(installation, 'modelSdkRegistrations')?.value;
         const selected = installation.hostCapacityPolicy;
         // Capture omission as well as selection. Later caller mutations must
         // not choose a different Host policy while the provider is loading.
@@ -110,7 +120,7 @@ export async function connect(options, stringOptions) {
       if (error instanceof ClientError) throw error;
       throw new ClientError('InvalidInstalledHostCapacityPolicy');
     }
-    return (await localProvider(options.installation?.modelSdkRegistrations)).connect(options);
+    return (await localProvider(modelSdkRegistrations)).connect(options);
   }
   return connectHost(options);
 }
@@ -158,6 +168,7 @@ export async function open(options) {
         Object.hasOwn(options.installation, 'directory'))) {
     throw new ClientError('InvalidOpenOptions');
   }
+  assertOwnModelSdkSelection(options.installation);
   const stateDir = resolve(options.stateDir ?? '.actql');
   const client = await connect({mode: 'local', owner: 'local',
     ...(Object.hasOwn(options, 'profile') ? {profile: options.profile} : {}),

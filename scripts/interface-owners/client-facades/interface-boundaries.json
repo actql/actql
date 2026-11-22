@@ -1948,7 +1948,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "671a18716f4a839a547453862676de844bbf9395e49f8120f37b55637b562d61",
+      "sha256": "73d5a3e6a63f9640616ce7c5623bcb006b36072f59b411f8c91943f16af44e07",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -1960,7 +1960,6 @@
         "HostRequestValuePolicyVerifier",
         "InstalledConnectorEntry",
         "InstalledConnectorTable",
-        "InstalledModelSdkRegistration",
         "SourceProfilePaths",
         "connect",
         "createInstalledConnectorTable",
@@ -2088,7 +2087,6 @@
             "HostRequestValuePolicyVerifier",
             "InstalledConnectorEntry",
             "InstalledConnectorTable",
-            "InstalledModelSdkRegistration",
             "publishEffect",
             "publishSource",
             "SourceProfilePaths"
@@ -2974,7 +2972,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "d66ad3cf8886b106f8690197fa59594ba7bd14f9c53faa9f36cb19f384844651",
+      "sha256": "bb63774013d4f5aa1103cbe129439dea811e4f414e9cffeb160e13eee5144e4b",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -2990,6 +2988,7 @@
         "HostCapacityPolicy",
         "HostLookupExecutionPolicy",
         "InstalledConnectorTable",
+        "InstalledModelSdkRegistration",
         "LocalSession",
         "NodeConnectionOptions",
         "OpenOptions",
@@ -3071,6 +3070,7 @@
             "Client",
             "ClientError",
             "ConfirmedProfile",
+            "connect",
             "DeliveryAttemptLookup",
             "DynamicRow",
             "EffectProfilePaths",
@@ -3081,13 +3081,15 @@
             "HostCapacityPolicy",
             "HostLookupExecutionPolicy",
             "InstalledConnectorTable",
+            "InstalledModelSdkRegistration",
             "LocalSession",
             "NodeConnectionOptions",
+            "open",
             "OpenOptions",
             "QueryOptions",
             "QueryParameters",
-            "ReadOptions",
             "Reader",
+            "ReadOptions",
             "RequestHeld",
             "RequestLookup",
             "RequestLookupTarget",
@@ -3097,9 +3099,7 @@
             "ResultReference",
             "RunReference",
             "SourceProfilePaths",
-            "StandardSchemaV1",
-            "connect",
-            "open"
+            "StandardSchemaV1"
           ],
           "attributes": {
             "responsibility": [
@@ -3361,7 +3361,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e6e0a7c306526617c6ea6d11c318473dc564e9405f8d93c946bccd9298f81603",
+      "sha256": "b03aba3564372e3495c7c1764d9901c29839aa25ebbc36a1bc6207cd2f72e7d0",
       "exports": [
         "ClientError",
         "RequestHeld",

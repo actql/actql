@@ -10,6 +10,15 @@ export type {Client, Execution, Result, Reader, RunReference,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
   QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
 
+type InstalledModelSdkImage = Readonly<{path: string; cid: `sha256:${string}`}>;
+export type InstalledModelSdkRegistration = Readonly<{
+  adapter: InstalledModelSdkImage;
+  sdk: InstalledModelSdkImage & Readonly<{packageName: string; version: string; exportName: string}>;
+  lock: InstalledModelSdkImage;
+  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
+  providerOptions: Readonly<Record<string, string | boolean | number>>;
+}>;
+
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
   connectorTable?: InstalledConnectorTable;
@@ -42,7 +51,8 @@ export type EmbeddedHostInstallation = Readonly<{
   modelInstallation?: HostInstallation['modelInstallation'];
   calendarArtifact?: HostInstallation['calendarArtifact'];
   registerModelProviders?: HostInstallation['registerModelProviders'];
-  modelSdkRegistrations?: HostInstallation['modelSdkRegistrations'];
+  /** Trusted registrations selected before Node imports the Local Host. Supply a frozen array of frozen records. */
+  modelSdkRegistrations?: readonly InstalledModelSdkRegistration[];
   verifyRequestValuePolicy?: HostInstallation['verifyRequestValuePolicy'];
   resultDataPolicy?: HostInstallation['resultDataPolicy'];
   inferEvidence?: HostInstallation['inferEvidence'];
