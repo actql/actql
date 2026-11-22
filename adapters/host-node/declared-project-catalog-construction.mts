@@ -5,6 +5,21 @@
 import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 import {types as nodeTypes} from 'node:util';
 
+type WireShape = Pick<ReturnType<typeof sourceJsonWireGeometry>, 'nodes' | 'units' | 'weighted' | 'depth'>;
+type Quantity = {nodes: bigint; text: bigint; wire: bigint};
+type Bounds = Readonly<Record<string, bigint>>;
+type JsonShape = Readonly<{nodes: bigint; units: bigint; outputUnits: bigint; recursiveUnits: bigint}>;
+type JsonAncestor = Readonly<{value: object; parent?: JsonAncestor}>;
+type WritablePhysical = Readonly<{
+  primaryIdentity: unknown; itemsPath: readonly unknown[]; keyPath: readonly unknown[];
+}>;
+type RuntimeWrite = Readonly<{aliases: readonly unknown[]}>;
+type RuntimeSource = Readonly<{
+  writes: readonly RuntimeWrite[];
+  effectPrepared?: Readonly<{environment?: Readonly<{wire: string}>}>;
+}>;
+type RuntimeWritable = Readonly<{source: RuntimeSource; write: RuntimeWrite}>;
+
 // Exact keys of the saved-view record passed to the first native restore.
 // Optional fields co-count even when absent. Original identifier Strings are
 // borrowed; canonical schema/optional body Strings and schema CID are owned.
@@ -15,7 +30,7 @@ const optionalWireKeys = 'request_schema_wirefacts_wireacquisition_wireresource_
 // Same canonicalJson(dataKeys:true) constructor families as the Environment
 // recipe. In particular this mode never NFC-normalizes opaque member names.
 // Geometry is a bound, not a claim that the unparsed input has any shape.
-function canonicalConstruction({nodes, units, weighted, depth}) {
+function canonicalConstruction({nodes, units, weighted, depth}: WireShape) {
   const entries = nodes, originalPairs = nodes, filtered = nodes;
   const replacementPairs = nodes, replacementArray = nodes, keys = nodes;
   const keySet = nodes, sort = nodes, children = nodes, frames = nodes;
@@ -52,7 +67,7 @@ function canonicalConstruction({nodes, units, weighted, depth}) {
  * construction and final source descriptors. Each needs its own later staged
  * quote using its actual retained originals. This is not whole-loader funding.
  */
-export function declaredProjectCatalogEntryConstructionGeometry(entryWire) {
+export function declaredProjectCatalogEntryConstructionGeometry(entryWire: string) {
   const input = sourceJsonWireGeometry(entryWire);
   const n = input.nodes, u = input.units;
   // The actual loader checks list length <=128 before processing any view.
@@ -123,23 +138,23 @@ export function declaredProjectCatalogEntryConstructionGeometry(entryWire) {
 // Subsequent stages deliberately receive their extra exact borrowed originals.
 // These functions do not replace/discount earlier material: the same owner
 // retains each quote cumulatively until its normal constructor retirement.
-const invalidGeometry = () => {throw new TypeError('InvalidDeclaredProjectCatalogConstructionGeometry');};
-const stringUnits = value => {
+const invalidGeometry: () => never = () => {throw new TypeError('InvalidDeclaredProjectCatalogConstructionGeometry');};
+const stringUnits = (value: unknown) => {
   if (typeof value !== 'string') invalidGeometry();
   return BigInt(value.length);
 };
-const admittedCount = value => {
+const admittedCount = (value: number) => {
   if (!Number.isSafeInteger(value) || value < 0 || value > 128) invalidGeometry();
   return BigInt(value);
 };
 const zero = () => ({nodes: 0n, text: 0n, wire: 0n});
-const stage = (retained, workspace, bounds = {}) => ({
+const stage = <Counts extends Bounds>(retained: Quantity, workspace: Quantity, bounds = {} as Counts) => ({
   nodes: retained.nodes + workspace.nodes,
   text: retained.text + workspace.text,
   wire: retained.wire + workspace.wire,
   retained, workspace, bounds,
 });
-const maximum = (left, right) => left > right ? left : right;
+const maximum = (left: bigint, right: bigint) => left > right ? left : right;
 const scopeTemplate = '{"connection":"","connector":"","dataPath":"","catalog":""}';
 const versionTemplate = '{"scope":"","physical":{},"version_field":"","representation":"exact_stored_bytes"}';
 const listingTemplate = '{"file_listing":{"version":"actql-file-list/0.1","kind":"file_listing","selectable":[],"allow_unfiltered_listing":true,"admitted_scope_contract_cid":"","listing_schema_contract_cid":"","version_capability":{"contract_cid":"","required_nonnull":true},"max_listing_items":100,"max_examined_items":100,"max_listing_pages":1,"max_request_attempts":1,"max_listing_bytes":1048576,"max_listing_duration_ms":30000,"maximum_path_length":4096}}';
@@ -147,7 +162,7 @@ const contentTemplate = '{"file_content":{"version":"actql-file-content/0.1","ki
 const candidateTemplate = '{"relation_keys":{"candidate_keys":[[""]]}}';
 
 // These are fixed implementation vocabularies, not parsing caller input.
-const fixedCanonical = (template, additionalUnits) => {
+const fixedCanonical = (template: string, additionalUnits: bigint) => {
   const shape = sourceJsonWireGeometry(template);
   const units = shape.units + additionalUnits;
   return {shape, canonical: canonicalConstruction({...shape, units,
@@ -160,7 +175,7 @@ const fixedCanonical = (template, additionalUnits) => {
  * not performed or funded by this quote. Whole catalog text is a STRING in
  * this preimage and is not reparsed, even if it contains detached JSON. */
 export function declaredProjectCatalogScopeConstructionGeometry(
-  connection, providerNamespace, resolvedDataPath, originalCatalogWire,
+  connection: string, providerNamespace: string, resolvedDataPath: string, originalCatalogWire: string,
 ) {
   const units = stringUnits(connection) + stringUnits(providerNamespace) +
     stringUnits(resolvedDataPath) + stringUnits(originalCatalogWire);
@@ -182,7 +197,7 @@ export function declaredProjectCatalogScopeConstructionGeometry(
  * Covers final saved-view wire and its seven native argument arrays, but NOT
  * the subsequent native final restore/export, which gets its own quote. */
 export function declaredProjectCatalogFileFactsConstructionGeometry(
-  entryWire, initialDeclarationWire, scopeCid, fileBindingCount,
+  entryWire: string, initialDeclarationWire: string, scopeCid: string, fileBindingCount: number,
 ) {
   const entry = sourceJsonWireGeometry(entryWire);
   const initial = sourceJsonWireGeometry(initialDeclarationWire);
@@ -232,7 +247,7 @@ export function declaredProjectCatalogFileFactsConstructionGeometry(
  * Aliased schemas are counted once PER INVOCATION, never deduplicated by data.
  * First argument may instead be the already-funded frozen parsed entry; that
  * path measures each selected original schema and checks the exact count. */
-export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire, overrideCount) {
+export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire: unknown, overrideCount: number) {
   if (typeof entryWire !== 'string') return physicalOverridesFromImmutableEntry(entryWire, overrideCount);
   const entry = sourceJsonWireGeometry(entryWire), count = admittedCount(overrideCount);
   if (count === 0n) return stage({nodes: 1n, text: 0n, wire: 0n}, zero(), {savedViewsWireUnits: 0n});
@@ -270,10 +285,10 @@ export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entr
  * the already-completed source prefix. The first argument also accepts an
  * already-funded frozen parsed entry, using its actual data-binding count. */
 export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
-  entryWire, declarationWire, mappingWires, sourceCount,
+  entryWire: unknown, declarationWire: string, mappingWires: unknown, sourceCount: number,
 ) {
   const originalEntry = typeof entryWire === 'string' ? undefined : entryWire;
-  const entry = originalEntry === undefined ? sourceJsonWireGeometry(entryWire)
+  const entry = originalEntry === undefined ? sourceJsonWireGeometry(entryWire as string)
     : immutableJsonShape(originalEntry);
   stringUnits(declarationWire);
   const sources = admittedCount(sourceCount);
@@ -320,7 +335,7 @@ export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
  * Keep array growth and both sort workspaces before the first target record.
  * This is the existing Source-initialization allowance, not maxMembers or a
  * new installed-target quota. */
-export function declaredProjectWritableInventoryConstructionGeometry(sources) {
+export function declaredProjectWritableInventoryConstructionGeometry(sources: unknown) {
   if (!Array.isArray(sources) || nodeTypes.isProxy(sources)) invalidGeometry();
   let targets = 0n;
   let fields = 0n;
@@ -328,7 +343,8 @@ export function declaredProjectWritableInventoryConstructionGeometry(sources) {
     const writes = immutableList(ownData(source, 'writes'));
     targets += BigInt(writes.length);
     for (const write of writes) {
-      const physical = ownData(source, 'physical').find(value => value.resource === ownData(write, 'resource'));
+      const physical = (ownData(source, 'physical') as readonly {resource: string; schema: object}[])
+        .find(value => value.resource === ownData(write, 'resource'));
       if (physical === undefined) invalidGeometry();
       for (const key in physical.schema) if (Object.hasOwn(physical.schema, key)) fields++;
     }
@@ -352,7 +368,9 @@ export function declaredProjectWritableInventoryConstructionGeometry(sources) {
 // bound a second time. All returned CID Strings coexist, but only one target
 // canonical writer/hash Buffer is live at a time. This is a logical lifetime
 // cut, not a GC or physical-memory acknowledgement.
-export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes) {
+export function declaredProjectMockFootprintConstructionGeometry(
+  writables: readonly Readonly<{physical: WritablePhysical}>[], maxRows: number, maxRequestBytes: number,
+) {
   if (!Number.isSafeInteger(maxRows) || maxRows < 1 ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1) invalidGeometry();
   let pathItems = 0n, pathUnits = 0n;
@@ -377,33 +395,35 @@ export function declaredProjectMockFootprintConstructionGeometry(writables, maxR
       wire: wireBytes + 128n}, {pathItems, pathUnits, rows, wireBytes});
 }
 
-export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected) {
+export function declaredProjectWritableRuntimeConstructionGeometry(
+  sources: readonly RuntimeSource[], writables: readonly RuntimeWritable[], phase: 'root' | 'source' | 'aliases', selected?: RuntimeSource,
+) {
   if (phase === 'root') {
     let connections = 0n;
     for (const source of sources) if (source.writes.length !== 0) connections++;
     return stage({nodes: 192n + connections, text: 0n, wire: 0n},
       {nodes: 128n + 2n * connections, text: 0n, wire: 0n}, {connections});
   }
-  if (!sources.includes(selected) || selected.writes.length === 0) invalidGeometry();
+  if (!sources.includes(selected!) || selected!.writes.length === 0) invalidGeometry();
   let targets = 0n, aliases = 0n;
   for (const target of writables) if (target.source === selected) {
     targets++;aliases += BigInt(target.write.aliases.length);
   }
   if (phase === 'source') {
     const pluralFootprint = writables.length > 1;
-    const operation = ownData(selected.writes[0], 'permission');
-    const read = ownData(selected.writes[0], 'observe_permission');
-    const routed = selected.writes.some(write => ownData(write, 'permission') !== operation ||
+    const operation = ownData(selected!.writes[0], 'permission');
+    const read = ownData(selected!.writes[0], 'observe_permission');
+    const routed = selected!.writes.some(write => ownData(write, 'permission') !== operation ||
       ownData(write, 'observe_permission') !== read);
     // The physical recipe owns capture/request names and its three target
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
-    const unitsFor = (operation, read) => 2n * operation + 3n * read + 80n +
+    const unitsFor = (operation: bigint, read: bigint) => 2n * operation + 3n * read + 80n +
       (pluralFootprint ? operation + 10n : 0n);
     let operationUnits = unitsFor(stringUnits(operation), stringUnits(read));
     if (routed) {
       operationUnits = 0n;
-      for (const write of selected.writes) operationUnits += unitsFor(
+      for (const write of selected!.writes) operationUnits += unitsFor(
         stringUnits(ownData(write, 'permission')), stringUnits(ownData(write, 'observe_permission')));
     }
     // The selected physical recipe has 2 member + 5 row operations and 3
@@ -450,7 +470,7 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
       {targets, descriptorCalls, descriptorProperties});
   }
   if (phase !== 'aliases') invalidGeometry();
-  const parsed = sourceJsonWireGeometry(selected.effectPrepared.environment.wire);
+  const parsed = sourceJsonWireGeometry(selected!.effectPrepared!.environment!.wire);
   const canonical = canonicalConstruction(parsed);
   // installedUpdateTargets validates the real full Environment, its owned
   // contracts and manifest hashes. Keep both parse forests, their String
@@ -476,7 +496,7 @@ const mappingEnvelope = '{"writes":[]}';
  * Native Mapping construction, declaration borrowing and Environment work are
  * outside this phase and remain in the original prepareMappings recipe.
  */
-export function declaredProjectCatalogMappingInputsConstructionGeometry(entryWire, actualValidatedWriteCount) {
+export function declaredProjectCatalogMappingInputsConstructionGeometry(entryWire: string, actualValidatedWriteCount: number) {
   const entry = sourceJsonWireGeometry(entryWire), count = admittedCount(actualValidatedWriteCount);
   const template = sourceJsonWireGeometry(mappingWriteTemplate);
   const envelope = sourceJsonWireGeometry(mappingEnvelope);
@@ -517,7 +537,7 @@ export function declaredProjectCatalogMappingInputsConstructionGeometry(entryWir
 // Parse-first alternatives. Legacy whole-wire recipes above remain compatible.
 // These helpers inspect already-owned immutable JSON data. They do not parse,
 // stringify, canonicalize, hash, mutate, or confer semantic admission.
-const ownData = (value, name) => {
+const ownData = (value: unknown, name: string): unknown => {
   if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
       !Object.isFrozen(value)) invalidGeometry();
   const property = Object.getOwnPropertyDescriptor(value, name);
@@ -525,7 +545,7 @@ const ownData = (value, name) => {
   if (!Object.hasOwn(property, 'value')) invalidGeometry();
   return property.value;
 };
-const exactEscapedUnits = value => {
+const exactEscapedUnits = (value: string) => {
   stringUnits(value);
   let units = 2n;
   for (let index = 0; index < value.length; index++) {
@@ -542,7 +562,7 @@ const exactEscapedUnits = value => {
   }
   return units;
 };
-function immutableJsonShape(value, ancestors = undefined, depth = 0) {
+function immutableJsonShape(value: unknown, ancestors: JsonAncestor | undefined = undefined, depth = 0): JsonShape {
   if (depth > 256) invalidGeometry(); // explicit unsupported quote shape
   let output, nodes = 1n, recursive = 0n, units = 0n;
   if (value === null) output = 4n;
@@ -577,15 +597,15 @@ function immutableJsonShape(value, ancestors = undefined, depth = 0) {
   }
   return {nodes, units, outputUnits: output, recursiveUnits: recursive + output};
 }
-const actualCanonical = shape => ({nodes: 10n * shape.nodes,
+const actualCanonical = (shape: Pick<JsonShape, 'nodes' | 'recursiveUnits' | 'outputUnits'>) => ({nodes: 10n * shape.nodes,
   text: 2n * (3n * shape.recursiveUnits + 2n * shape.outputUnits),
   wire: 0n, outputUnits: shape.outputUnits});
-const immutableList = value => {
+const immutableList = (value: unknown): readonly unknown[] => {
   if (!Array.isArray(value) || nodeTypes.isProxy(value) || !Object.isFrozen(value) ||
       value.length > 128) invalidGeometry();
   return value;
 };
-const optionalList = (entry, key) => {
+const optionalList = (entry: unknown, key: string) => {
   const value = ownData(entry, key);
   return value === undefined ? undefined : immutableList(value);
 };
@@ -595,7 +615,7 @@ const optionalList = (entry, key) => {
  * arrays/slots, recursive frames and failure controls coexist. Even malformed
  * or oversized documents receive this quote before parse/shape refusal.
  * The original String is borrowed; parsed keys/values own decoded text. */
-export function declaredProjectCatalogJsonParseConstructionGeometry(originalWire) {
+export function declaredProjectCatalogJsonParseConstructionGeometry(originalWire: string) {
   const input = sourceJsonWireGeometry(originalWire);
   return stage({nodes: input.nodes, text: 2n * input.units, wire: 0n}, {
     nodes: 5n * input.nodes + 4n,
@@ -609,7 +629,7 @@ export function declaredProjectCatalogJsonParseConstructionGeometry(originalWire
  * and all subtrees stay borrowed. Freeze the saved records/array before their
  * separate SavedInput quote. Invalid supported JSON shapes still get the
  * validation prefix; no absent/invalid list authorizes a constructor loop. */
-export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozenEntry) {
+export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozenEntry: unknown) {
   const input = immutableJsonShape(frozenEntry);
   const rawViews = frozenEntry !== null && typeof frozenEntry === 'object'
     ? ownData(frozenEntry, 'views') : undefined;
@@ -648,7 +668,7 @@ export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozen
  * Common projector owns every schema/CID/body wire. Original parsed subtrees
  * remain borrowed from the separately funded JSON parse; no saved-view body
  * or old JS canonical/hash constructor is claimed as still live here. */
-export function declaredProjectCatalogEntryHostConstructionGeometry(frozenEntry) {
+export function declaredProjectCatalogEntryHostConstructionGeometry(frozenEntry: unknown) {
   const input = immutableJsonShape(frozenEntry);
   const raw = frozenEntry !== null && typeof frozenEntry === 'object'
     ? ownData(frozenEntry, 'views') : undefined;
@@ -664,7 +684,7 @@ export function declaredProjectCatalogEntryHostConstructionGeometry(frozenEntry)
 
 /** The exact already-returned Common wire is borrowed. This stage allocates
  * only the seven restore argument arrays, wrapper and freeze traversal. */
-export function declaredProjectCatalogSavedInputArraysConstructionGeometry(frozenSavedViews) {
+export function declaredProjectCatalogSavedInputArraysConstructionGeometry(frozenSavedViews: unknown) {
   const views = immutableList(frozenSavedViews), count = BigInt(views.length);
   const retained = {nodes: 10n + 7n * (1n + count), text: 0n, wire: 0n};
   return stage(retained, {nodes: 3n * retained.nodes + 8n, text: 0n, wire: 0n}, {views: count});
@@ -673,7 +693,7 @@ export function declaredProjectCatalogSavedInputArraysConstructionGeometry(froze
 /** Exact already-owned detached Strings, no re-escaping bound from an earlier
  * unparsed body. Funds canonical {views}, seven native argument arrays, their
  * wrapper and freeze traversal. Call separately for initial/final inputs. */
-export function declaredProjectCatalogSavedInputConstructionGeometry(frozenSavedViews) {
+export function declaredProjectCatalogSavedInputConstructionGeometry(frozenSavedViews: unknown) {
   const views = immutableList(frozenSavedViews), shape = immutableJsonShape(views);
   const count = BigInt(views.length);
   // Add the one outer record, key and child reference; each subtree's recursive
@@ -692,7 +712,7 @@ export function declaredProjectCatalogSavedInputConstructionGeometry(frozenSaved
  * it must not mutate prior frozen records. Prior outputs and all failure
  * prefixes remain retained under their full earlier provider quantities. */
 export function declaredProjectCatalogFileFactsProjectionConstructionGeometry(
-  frozenEntry, frozenInitialExport, scopeCid,
+  frozenEntry: unknown, frozenInitialExport: unknown, scopeCid: string,
 ) {
   const entry = immutableJsonShape(frozenEntry);
   immutableJsonShape(frozenInitialExport);
@@ -703,7 +723,7 @@ export function declaredProjectCatalogFileFactsProjectionConstructionGeometry(
   const scope = stringUnits(scopeCid), count = BigInt(bindings?.length ?? 0);
   const workspace = zero();
   let factsUnits = 0n, versionUnits = 0n;
-  const find = (list, name) => {
+  const find = (list: readonly unknown[], name: unknown) => {
     for (let index = 0; index < list.length; index++) {
       const value = ownData(list, String(index));
       if (ownData(value, 'resource') === name) return value;
@@ -719,7 +739,7 @@ export function declaredProjectCatalogFileFactsProjectionConstructionGeometry(
       ? immutableJsonShape(ownData(find(views, ownData(physical, 'resource')), 'schema')) : undefined;
     const physicalOutput = physicalShape.outputUnits +
       (schema === undefined ? 0n : schema.outputUnits + BigInt(',"schema":'.length));
-    const versionField = ownData(binding, 'version_field');
+    const versionField = ownData(binding, 'version_field') as string;
     const versionOutput = physicalOutput + exactEscapedUnits(scopeCid) +
       exactEscapedUnits(versionField) + BigInt('{"scope":,"physical":,"version_field":,"representation":"exact_stored_bytes"}'.length);
     const version = actualCanonical({nodes: physicalShape.nodes + (schema?.nodes ?? 0n) + 10n,
@@ -749,7 +769,7 @@ export function declaredProjectCatalogFileFactsProjectionConstructionGeometry(
 // Same physical-override stage and output Map as the legacy String API. Each
 // schema is measured from its exact frozen original; the later saved wire is
 // bounded from that schema's output, never from the whole catalog entry.
-function physicalOverridesFromImmutableEntry(frozenEntry, overrideCount) {
+function physicalOverridesFromImmutableEntry(frozenEntry: unknown, overrideCount: number) {
   immutableJsonShape(frozenEntry);
   const expected = admittedCount(overrideCount);
   const data = immutableList(ownData(frozenEntry, 'data'));
@@ -791,7 +811,7 @@ function physicalOverridesFromImmutableEntry(frozenEntry, overrideCount) {
  * own descriptor/schema/writer bodies. These are the actual JS argument,
  * spread/destructure, iterator and projection envelopes, from the already
  * admitted binding count; borrowed entry/schema trees are not traversed. */
-export function declaredFileReadProfileBindingConstructionGeometry(bindingCount) {
+export function declaredFileReadProfileBindingConstructionGeometry(bindingCount: number) {
   const count = admittedCount(bindingCount);
   // Pending/projection/result records and fixed methods/closure references.
   const retained = {nodes: 12n, text: 0n, wire: 0n};

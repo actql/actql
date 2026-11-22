@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "bcf583a5fdd3e2d8fd05e9d0568aba9f9d4bb9ee03909dc846f61e36ddf6b4cc",
+      "sha256": "e5d9a34b1bab22fbffb95eef81003e7507c1f4f64d7b9cbd095c7f107c27841d",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -713,7 +713,7 @@
                 "anchor": "mappingOriginals = effectPrepared.mappings!;"
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
               }
             ],
@@ -953,7 +953,7 @@
                 "anchor": "mappingOriginals = effectPrepared.mappings!;"
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
               }
             ],

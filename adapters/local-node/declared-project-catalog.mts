@@ -19,7 +19,6 @@ import {declaredProjectCatalogJsonParseConstructionGeometry,
   declaredProjectCatalogFinalDescriptorsConstructionGeometry,
   declaredProjectWritableInventoryConstructionGeometry,
   declaredFileReadProfileBindingConstructionGeometry}
-  // @ts-expect-error TS7016: the catalog construction geometry is still authored in JavaScript.
   from '../host-node/declared-project-catalog-construction.mjs';
 
 type Inventory = ReturnType<typeof createDeclaredFileInstallationInventory>;
@@ -383,7 +382,7 @@ async function projectDeclaredCatalog(moon: Runtime, {directory, catalogFile, da
     if (fileBindings.length) {
       const initialDeclaration = restoreInput(sourceMember, connectorId, registration, revision, finalInput);
       const {initial} = inputStage(sourceMember,
-        () => declaredProjectCatalogJsonParseConstructionGeometry(initialDeclaration.wire),
+        () => declaredProjectCatalogJsonParseConstructionGeometry(initialDeclaration.wire!),
         () => Object.freeze({initial: freeze(JSON.parse(initialDeclaration.wire!) as {views: readonly {resource: string; carrier_schema_cid: string}[]})}));
       const facts = inputStage(sourceMember,
         () => declaredProjectCatalogFileFactsProjectionConstructionGeometry(entry, initial, scopeCid), () => {

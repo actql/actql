@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "65560d70aa53adfc5968bb951266bd34375aab983aac0099912fc5d0f1c7246d",
+      "sha256": "2a9f4c2ddabe4c883bf1995f9899345bd1970dcd4cb9f3bdfe5b6620fd9b8d77",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
@@ -279,21 +279,21 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
-                "anchor": "export function declaredProjectWritableInventoryConstructionGeometry(sources)"
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
+                "anchor": "export function declaredProjectWritableInventoryConstructionGeometry(sources: unknown)"
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
-                "anchor": "export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes)"
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
+                "anchor": "export function declaredProjectMockFootprintConstructionGeometry("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
-                "anchor": "export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected)"
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
+                "anchor": "export function declaredProjectWritableRuntimeConstructionGeometry("
               },
               {
-                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "path": "adapters/host-node/declared-project-catalog-construction.mts",
                 "anchor": "const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;"
               }
             ],
