@@ -406,6 +406,49 @@ test "Native Unit Result row funding keeps its own writer beside its decoder" {
 }
 
 ///|
+test "Native proposal projection funds both pair arrays beside the decoded row" {
+  // Two mapped fields at depth four: two growing arrays and six pair/value
+  // carriers, one canonical emitter, and one Writer with four unordered keys.
+  // Source-owned keys/values are borrowed. H112/R271/W201/UTF16 30 gives5628B.
+  let projection = @local_values.installed_effect_capture_field_projection_workspace(
+    2, 4,
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(projection), 0L)
+  assert_eq(@execution.execution_capacity_execution_bytes(projection), 5628L)
+  let decoded = 311L
+  let retained = 40L
+  let exact = retained + decoded + 5628L
+  for maximum in [exact - 1L, exact] {
+    with_native_mock_capture_construction(
+      max_retained=retained,
+      max_execution=maximum,
+      fn(construction) raise {
+        let original = construction.operation
+        construction
+        .prepare_body_result(@execution.execution_capacity(10L, 10L))
+        .unwrap()
+        construction
+        .prepare_body_result(@execution.execution_capacity(0L, decoded))
+        .unwrap()
+        let entered = construction.reserve_proposal_projection(
+          decoded,
+          @execution.execution_capacity_execution_bytes(projection),
+        )
+        assert_true(physical_equal(construction.operation, original))
+        assert_eq(construction.retained, 10L)
+        if maximum == exact {
+          entered.unwrap()
+          assert_eq(construction.workspace, decoded + 5628L)
+        } else {
+          assert_true(entered is Err(Managed(InsufficientCapacity)))
+          assert_eq(construction.workspace, decoded)
+        }
+      },
+    )
+  }
+}
+
+///|
 test "Native proposal return drops only its old workspace before the next construction" {
   with_native_mock_capture_construction(fn(construction) raise {
     let original_recipe = construction.recipe

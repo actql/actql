@@ -948,6 +948,22 @@ fn LocalNativeMockEffectImportConstruction::append_proposal_row(
 }
 
 ///|
+// The complete export row is still borrowed when projection starts. The
+// same construction reservation keeps both until the synchronous projection
+// returns. Its two returned Strings then move into the existing row owner.
+fn LocalNativeMockEffectImportConstruction::reserve_proposal_projection(
+  self : Self,
+  decoded : Int64,
+  projection : Int64,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  self.prepare_body_result(
+    @execution.checked_preparation_add_product(decoded, projection, 1L).bind(peak => {
+      @execution.execution_capacity(0L, peak)
+    }),
+  )
+}
+
+///|
 // The checked export can sort two growing index arrays at once. The selected
 // order remains with the finished view and its snapshot; the other array and
 // replacement buffers unwind during preparation. Existing fixed capture

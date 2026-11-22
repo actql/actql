@@ -19,6 +19,21 @@ pub(all) enum EffectPlanRowIssue {
 } derive(Eq, Debug)
 
 ///|
+/// The field-only projection borrows canonical row values for every change.
+/// The separate typed-literal emitter is outside this construction profile.
+pub fn effect_plan_row_field_only_construction_count(
+  terminal : EffectPlanTerminal,
+  literals : EffectMappingLiterals,
+) -> Int? {
+  let count = terminal.field_map.length()
+  if terminal.checked_changes != count ||
+    effect_mapping_literal_count(literals) != 0 {
+    return None
+  }
+  Some(count)
+}
+
+///|
 /// Resolve the selector and every mapped value from one immutable Result row.
 /// Charge the complete linear-scan bound before looking up any field, so a
 /// wide row cannot bypass the shared planning work ceiling.

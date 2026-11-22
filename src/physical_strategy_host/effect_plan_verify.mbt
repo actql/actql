@@ -224,6 +224,23 @@ pub fn captured_effect_proposal_plan_staged_rows(
 }
 
 ///|
+/// Borrow the checked projection width from the same prepared plan. A
+/// command, create or typed literal keeps the caller's original full quote.
+pub fn captured_effect_proposal_plan_field_only_count(
+  value : CapturedEffectProposalPlan,
+) -> Int? {
+  if value.command is Some(_) {
+    return None
+  }
+  value.terminal.bind(terminal => {
+    @results.effect_plan_row_field_only_construction_count(
+      terminal,
+      value.literals,
+    )
+  })
+}
+
+///|
 /// Project one checked Result row. This proposal is not a payload proof or
 /// apply permit; the later Preview binding verifies the same captured input.
 /// For a checked mapping, before_encode receives the measured next writer

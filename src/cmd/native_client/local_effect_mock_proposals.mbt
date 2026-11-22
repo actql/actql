@@ -630,10 +630,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       } else {
         None
       }
-      // Keep the original fixed scratch for projection controls and row
-      // measurement. The checked row allowance is reserved at emission and
-      // decoding using this row's actual bounds rather than the full recipe.
-      let fixed_workspace = if measure_proposal_rows {
+      let projection_workspace = if measure_proposal_rows {
+        @strategy.captured_effect_proposal_plan_field_only_count(plan)
+        .bind(fields => {
+          @local_values.installed_effect_capture_field_projection_workspace(
+            fields,
+            wire.max_depth,
+          )
+        })
+        .map(@execution.execution_capacity_execution_bytes)
+      } else {
+        None
+      }
+      // Unknown projectors still need the original fixed scratch alongside
+      // the observed export. Field-only projections reserve at their actual
+      // entry, after the decoder returns its row and before the first pair.
+      let fixed_workspace = if measure_proposal_rows &&
+        projection_workspace is None {
         let fixed = state._retained_import_recipes[1][0]
         @execution.execution_capacity_execution_bytes(fixed) -
         @execution.execution_capacity_retained_bytes(fixed)
@@ -661,6 +674,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             self.original,
             native_mock_effect_proposal_write_workspace(
               row_decode_workspace.val,
+              projection_workspace.unwrap_or(0L),
               bytes,
               nodes,
               depth,
@@ -684,6 +698,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .native_effect_proposal(self.original)
           is Some((row_index, _, row)) else {
           return None
+        }
+        if projection_workspace is Some(workspace) {
+          construction
+          .unwrap()
+          .reserve_proposal_projection(export_funding.unwrap().2.val, workspace)
+          .native_effect_proposal(self.original)
         }
         Some(
           @strategy.project_captured_effect_proposal_row(
@@ -1050,6 +1070,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
 // prior_text_units is the length of the co-held returned changes wire.
 fn native_mock_effect_proposal_write_workspace(
   row_decode_workspace : Int64,
+  projection_workspace : Int64,
   bytes : Int,
   nodes : Int,
   depth : Int,
@@ -1068,8 +1089,10 @@ fn native_mock_effect_proposal_write_workspace(
   })
   .bind(workspace => {
     @execution.checked_preparation_add_product(
-      row_decode_workspace, workspace, 1L,
-    )
+      row_decode_workspace, projection_workspace, 1L,
+    ).bind(coheld => {
+      @execution.checked_preparation_add_product(coheld, workspace, 1L)
+    })
   })
   .bind(workspace => @execution.execution_capacity(0L, workspace))
 }

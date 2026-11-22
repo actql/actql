@@ -603,6 +603,8 @@ pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientIn
 
 pub fn installed_duckdb_capture_capacity_accepts(ClientInstalledCaptureCapacity, @host.CaptureConfiguration) -> Bool
 
+pub fn installed_effect_capture_field_projection_workspace(Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_effect_capture_prepared_available(ClientInstalledEffectCaptureRecovery) -> Bool
 
 pub fn installed_effect_capture_publication_input_limit(ClientInstalledEffectCaptureRecovery) -> Result[Int, ClientInstalledManagedRunIssue]

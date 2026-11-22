@@ -276,6 +276,57 @@ pub fn installed_effect_capture_row_decode_workspace(
 }
 
 ///|
+/// One checked field-only Mapping row. The input and the returned output
+/// Strings have separate owners. This reserves the projected pair array,
+/// the in-place-sorted changes array and variants, plus the one synchronous
+/// canonical emitter and measuring Writer before either output is measured.
+pub fn installed_effect_capture_field_projection_workspace(
+  fields : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  if fields < 0 || fields > 2147483645 {
+    return None
+  }
+  let count = fields.to_int64()
+  guard @shape.collection_construction_extent({
+      // Per field: source pair (2R), changes pair (2R), Projected (1R).
+      // Fixed inventory includes the row, sort view/comparator, current
+      // Option/Result/tuple controls, and the two closed funding closures.
+      records: 12L + 3L * count,
+      record_references: 24L + 5L * count,
+      record_words: 16L,
+      reference_arrays: 2L,
+      reference_items: 2L * count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(projection) &&
+    compilation_canonical_emitter_layout(depth) is Some(emitter) &&
+    // Nested canonical objects emit ordered keys. Only state/value and
+    // the mapped field names can be in unordered writer maps together.
+    // Zero output retains scalar spelling/key controls without a row sink.
+    @encode.text_writer_live_key_inventory(0, fields + 2, depth)
+    is Some(measuring) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: projection.record_headers +
+    emitter.record_headers +
+    measuring.record_headers,
+    reference_slots: projection.reference_slots +
+    emitter.reference_slots +
+    measuring.reference_slots,
+    scalar_words: projection.scalar_words +
+    emitter.scalar_words +
+    measuring.scalar_words,
+    owned_utf16_units: measuring.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(0L, bytes))
+}
+
+///|
 // The Host parses the SAME native-produced valid JSON String, not an input
 // document or a second Source parser. Keep the existing complete literal
 // constructor peak as a conservative envelope. Only its returned tree can
