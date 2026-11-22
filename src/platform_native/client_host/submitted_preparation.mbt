@@ -16,6 +16,7 @@ pub(all) enum NativeClientSubmittedPreparationIssue {
   Request(@local.ClientRequestTerminalIssue)
   RequestPreparation(@local.ClientRequestPreparationIssue)
   RequestNormalization(@local.ClientRequestNormalizationIssue)
+  RequestAuthoring(@local.ClientRequestAuthoringIssue)
   RequestBranchUnavailable
 }
 

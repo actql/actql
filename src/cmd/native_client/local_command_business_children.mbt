@@ -771,3 +771,18 @@ fn LocalCommandBusinessPreparation::open_file_work(
     }
   }
 }
+
+///|
+// The same Request prepared and funded this immutable authoring context before
+// any Plan borrow. Publication only reads it through its exact prepared owner.
+fn LocalCommandBusinessPreparation::publication_authoring(
+  self : LocalCommandBusinessPreparation,
+  prepared : @run_host.PreparedClientProgram,
+) -> @publication.RunEvidenceValue raise ClientStop {
+  guard self.authoring is Some(original) else {
+    stop("LocalAuthoringEvidenceUnavailable")
+  }
+  @run_host.prepared_client_authoring_context_evidence(
+    prepared, original, 65536, 8192, 64,
+  ).unwrap_or_else(() => stop("LocalAuthoringEvidenceUnavailable"))
+}

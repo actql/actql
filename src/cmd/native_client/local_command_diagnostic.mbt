@@ -23,6 +23,8 @@ priv enum LocalCommandDiagnosticKind {
   PreparationFailedRequestPreparation
   PreparationFailedNormalizationPreparation
   PreparationFailedNormalization
+  PreparationFailedAuthoringPreparation
+  PreparationFailedAuthoring
   ReadOnlyEffect
   RunObservationFailed
   JournalMaintenanceFailed
@@ -162,6 +164,8 @@ fn[T] local_stop_submitted_preparation(
     RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
     RequestNormalization(_) => PreparationFailed
+    RequestAuthoring(Preparation(_)) => PreparationFailedAuthoringPreparation
+    RequestAuthoring(Authoring(_)) => PreparationFailedAuthoring
   }
   // The existing caller propagates this rejection; it never retries another
   // checker. Preserve its old private carrier and cleanup routing unchanged.
@@ -281,6 +285,14 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     PreparationFailedNormalization =>
       (
         "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestNormalization:Normalization]",
+      )
+    PreparationFailedAuthoringPreparation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestAuthoring:Preparation]",
+      )
+    PreparationFailedAuthoring =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "The original preparation could not be completed. [RequestAuthoring:Authoring]",
       )
     ReadOnlyEffect =>
       ("ACTQL_E_READ_ONLY_EFFECT", "The read-only request contains an Effect.")

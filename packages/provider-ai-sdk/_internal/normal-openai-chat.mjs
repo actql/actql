@@ -212,6 +212,8 @@ function configureOpenAIChatProvider(options, projectMode) {
     const selected = await context.prepareTasks([{providerId: config.providerId, bindingOriginals: bindings}]);
     const owned = selected.tasks.filter(task => task.providerId === config.providerId);
     if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
+    await selected.verifyChatConfiguration(owned[0].name, config.modelSelector,
+      config.modelId, config.baseURL + '/chat/completions');
     const raw = await context.prepareRawPolicies(policies);
     const profiles = new Map();
     for (const task of owned) {

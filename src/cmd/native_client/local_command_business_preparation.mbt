@@ -27,6 +27,7 @@ priv struct LocalCommandBusinessPreparation {
   preparation : @local_host.NativeClientSubmittedPreparation
   requirements : @local_values.ClientLocalRequirements?
   normalization : @run_host.ClientLocalNormalization?
+  authoring : @run_host.ClientAuthoringContextPreparation?
   mut file_source : LocalCommandFileSources?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   assets : @run_host.ClientLocalProductAssets
@@ -135,7 +136,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let intent = self.with_business_request(capture, () => {
     self.construct_business_intent()
   })
-  let (preparation, normalization) = self.prepare_business_request(
+  let (preparation, normalization, authoring) = self.prepare_business_request(
     capture, intent, environment,
   )
   let (requirements, file_source) = match
@@ -145,6 +146,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // requirements. An Effect is never coerced into its body or authority.
       guard normalization is Some(_) else {
         stop("LocalOriginalNormalizationNotInstalled")
+      }
+      guard authoring is Some(_) else {
+        stop("LocalAuthoringEvidenceUnavailable")
       }
       let assets = runtime.assets
       // This gate only separates Programs with checked Source work from
@@ -205,6 +209,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     preparation,
     requirements,
     normalization,
+    authoring,
     file_source,
     installed_contracts: runtime.installed_contracts,
     assets: runtime.assets,

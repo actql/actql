@@ -85,7 +85,7 @@ test "Preparation stage tags retain the same original failure across Read return
 
 ///|
 // This independently bounds every selected nullary presentation variant. It
-// does not fabricate the read-only Request/normalization error constructors.
+// does not fabricate read-only Request, normalization or authoring errors.
 test "Closed preparation stages fit the unchanged diagnostic writer envelope" {
   for
     kind in [
@@ -98,6 +98,8 @@ test "Closed preparation stages fit the unchanged diagnostic writer envelope" {
       PreparationFailedRequestPreparation,
       PreparationFailedNormalizationPreparation,
       PreparationFailedNormalization,
+      PreparationFailedAuthoringPreparation,
+      PreparationFailedAuthoring,
     ] {
     local_command_diagnostic_reset()
     command_preparation_diagnostic.val = kind
