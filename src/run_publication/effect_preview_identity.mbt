@@ -641,6 +641,73 @@ pub fn author_effect_preview_semantic_wire(
 }
 
 ///|
+/// The already admitted semantic Preview and its original codec scope.
+/// Dispatch completion can borrow it without deriving its identity again.
+struct AuthoredEffectPreview {
+  wire : String
+  identity : EffectPreviewIdentity
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+///|
+pub fn prepare_authored_effect_preview(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue] {
+  author_effect_preview_semantic_wire(
+    template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(value => {
+    wire: value.0,
+    identity: value.1,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  })
+}
+
+///|
+pub fn authored_effect_preview_identity(
+  value : AuthoredEffectPreview,
+) -> EffectPreviewIdentity {
+  value.identity
+}
+
+///|
+/// Complete the same immutable authored original under its original codec.
+/// The final wire is still admitted by the full Preview/identity validator.
+pub fn complete_authored_effect_preview_dispatch_keys(
+  value : AuthoredEffectPreview,
+  key_cids : Array[Array[String]],
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+  let semantic = match
+    parse_contract_wire(
+      value.wire,
+      value.max_wire_bytes,
+      value.max_nodes,
+      value.max_depth,
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  complete_effect_preview_dispatch_keys_original(
+    semantic,
+    value.identity,
+    key_cids,
+    value.max_wire_bytes,
+    value.max_nodes,
+    value.max_depth,
+  )
+}
+
+///|
 /// Complete only the non-semantic dispatch-key fields after the Preview CID
 /// is fixed. Re-admit the unchanged semantic chain before returning wire.
 pub fn complete_effect_preview_dispatch_keys(
@@ -685,6 +752,20 @@ pub fn complete_effect_preview_dispatch_keys_with_identity(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  complete_effect_preview_dispatch_keys_original(
+    semantic, identity, key_cids, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn complete_effect_preview_dispatch_keys_original(
+  semantic : @json.CanonicalValue,
+  identity : EffectPreviewIdentity,
+  key_cids : Array[Array[String]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
   let rows : Array[Array[String]] = []
   let members : Array[String] = []
   for member_index in 0..<effect_preview_member_count(identity) {
@@ -716,8 +797,12 @@ pub fn complete_effect_preview_dispatch_keys_with_identity(
   }
   match
     admit_effect_preview_identity(
-      wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
-      max_nodes, max_depth,
+      wire,
+      identity.run_identity_cid,
+      identity.authoring_context_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
     ) {
     Ok(original) => Ok((wire, original))
     Err(issue) => Err(issue)

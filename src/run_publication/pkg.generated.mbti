@@ -121,6 +121,8 @@ pub fn advance_content_bytes(ContentByteEncoder, Int) -> ContentBytePoll
 
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
+pub fn authored_effect_preview_identity(AuthoredEffectPreview) -> EffectPreviewIdentity
+
 pub fn begin_result_access_progress() -> ResultAccessProgress
 
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
@@ -336,6 +338,8 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
 pub fn cold_static_plan_validation_construction(String, Bool, Int, Int64, Int, Int, Int) -> StaticPlanValidationConstruction?
+
+pub fn complete_authored_effect_preview_dispatch_keys(AuthoredEffectPreview, Array[Array[String]]) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
 
@@ -859,6 +863,8 @@ pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_js
 
 pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
+pub fn prepare_authored_effect_preview(String, String, String, Int, Int, Int) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue]
+
 pub fn prepare_captured_content_reference(GeneratedContentBinding, String, String, Int, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
 
 pub fn prepare_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, Int, (Int) -> Bool, bounded_limits? : CapturedEffectDependencyLimits?) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
@@ -1359,6 +1365,8 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+type AuthoredEffectPreview
 
 type BoundContentGeneration
 

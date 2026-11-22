@@ -339,6 +339,22 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     256,
     12,
   ).unwrap()
+  let authored = prepare_authored_effect_preview(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  let (typed_wire, typed_identity) = complete_authored_effect_preview_dispatch_keys(
+    authored,
+    [[preview_identity_test_cid("4")]],
+  ).unwrap()
+  assert_eq(typed_wire, final_wire)
+  assert_eq(
+    effect_preview_semantic_identity(authored_effect_preview_identity(authored)),
+    effect_preview_semantic_identity(typed_identity),
+  )
+  assert_true(
+    complete_authored_effect_preview_dispatch_keys(authored, [])
+    is Err(InvalidMember),
+  )
   let readmitted = admit_effect_preview_identity(
     final_wire, run, authoring, 8192, 256, 12,
   ).unwrap()

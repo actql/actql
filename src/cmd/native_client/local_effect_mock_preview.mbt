@@ -519,11 +519,47 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     "executed": false,
     "effect_preview_cid": Json::string(pending),
   })
-  let (semantic, identity) = @publication.author_effect_preview_semantic_wire(
-      draft, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
+  let measured_keys = !state.first._retained_models.is_empty() &&
+    proposals.imports is Some(_) &&
+    @strategy.captured_effect_proposal_plan_staged_rows(
+      proposals.members[0].plan,
     )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+    is Some(_)
+  let (semantic, authored, identity) = if measured_keys {
+    // The authored carrier borrows the same wire and identity through
+    // dispatch completion. Reserve its control before constructing it.
+    construction
+    .prepare_body_result(
+      @execution.preparation_representation_cost({
+        record_headers: 2L,
+        reference_slots: 3L,
+        scalar_words: 3L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).bind(bytes => @execution.execution_capacity(0L, bytes)),
+    )
     .native_effect_proposal_with_cause(report)
+    let authored = @publication.prepare_authored_effect_preview(
+        draft, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
+      )
+      .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+      .native_effect_proposal_with_cause(report)
+    let identity = @publication.authored_effect_preview_identity(authored)
+    let capacity = native_mock_effect_preview_dispatch_capacity(
+      identity, key_bytes, key_nodes, key_depth,
+    ).native_effect_proposal_with_cause(report)
+    construction
+    .prepare_body_result(Some(capacity))
+    .native_effect_proposal_with_cause(report)
+    ("", Some(authored), identity)
+  } else {
+    let (semantic, identity) = @publication.author_effect_preview_semantic_wire(
+        draft, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
+      )
+      .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+      .native_effect_proposal_with_cause(report)
+    (semantic, None, identity)
+  }
   let keys : Array[Array[@effect.EffectDispatchKey]] = []
   let key_cids : Array[Array[String]] = []
   for index in 0..<@publication.effect_preview_member_count(identity) {
@@ -545,9 +581,17 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     key_cids.push(row_cids)
   }
   let (completed, completed_identity) = {
-    let (wire, identity) = @publication.complete_effect_preview_dispatch_keys_with_identity(
-        semantic, key_cids, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
-      )
+    let completed = match authored {
+      Some(original) =>
+        @publication.complete_authored_effect_preview_dispatch_keys(
+          original, key_cids,
+        )
+      None =>
+        @publication.complete_effect_preview_dispatch_keys_with_identity(
+          semantic, key_cids, run_cid, authoring_cid, max_bytes, max_nodes, max_depth,
+        )
+    }
+    let (wire, identity) = completed
       .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
       .native_effect_proposal_with_cause(report)
     @effect.check_admitted_effect_preview_apply_keys(identity, scope, keys)
@@ -628,4 +672,101 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       .native_effect_proposal_with_cause(report),
     )
   }
+}
+
+///|
+// Original Native UPDATE keys retain their same correlation Strings and one
+// newly owned CID each. Both vectors coexist with one bounded key codec;
+// the CID-only vector is a temporary input to Preview completion.
+fn native_mock_effect_preview_dispatch_capacity(
+  preview : @publication.EffectPreviewIdentity,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[@execution.ExecutionCapacity, LocalNativeMockEffectProposalIssue] {
+  let members = @publication.effect_preview_member_count(preview)
+  let mut rows = 0L
+  let mut text = 0L
+  let mut largest = 1
+  for index in 0..<members {
+    guard @publication.effect_preview_member_kind(preview, index) ==
+      Some("update") &&
+      @publication.effect_preview_row_count(preview, index) is Some(count) else {
+      return Err(PreviewDispatch(InvalidRowKey))
+    }
+    rows += count.to_int64()
+    for row in 0..<count {
+      guard @publication.effect_preview_row_correlation_wire(
+          preview, index, row,
+        )
+        is Some(correlation) &&
+        @scalar.admit_utf8_length(correlation, max_key_bytes) is Ok(bytes) &&
+        bytes > 0 else {
+        return Err(PreviewDispatch(InvalidRowKey))
+      }
+      largest = Int::max(largest, bytes)
+      text += correlation.length().to_int64()
+    }
+  }
+  let nodes = Int::min(largest, max_key_nodes)
+  let depth = Int::min(nodes, max_key_depth)
+  let levels = depth.to_int64()
+  let arrays = members.to_int64() + 1L
+  let slots = members.to_int64() + rows
+  // The dispatch wrapper opens one unordered object of four fields.
+  // Its canonical correlation uses ordered objects and a growing parent
+  // stack, with one cursor and one parent variant per open container.
+  let stack = @shape.collection_construction_extent({
+    // Keep the authored carrier and its option beside one key codec.
+    records: 6L + 2L * levels,
+    record_references: 11L + 2L * levels,
+    record_words: 11L + 2L * levels,
+    reference_arrays: 1L,
+    reference_items: levels,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  })
+  guard @execution.preparation_array_representation(arrays, slots, true)
+    is Some(vectors) &&
+    @execution.preparation_representation_cost({
+      ..vectors,
+      record_headers: vectors.record_headers + 3L * rows,
+      reference_slots: vectors.reference_slots + 4L * rows,
+      owned_utf16_units: text + 71L * rows,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost(vectors)
+    is Some(temporary_vectors) &&
+    @local_values.installed_effect_contract_response_construction_capacity(
+      largest, nodes, depth,
+    )
+    is Some(parser) &&
+    @encode.hash_writer_live_key_inventory(4, depth + 1) is Some(hash) &&
+    stack is Some(stack) &&
+    @execution.preparation_representation_cost({
+      record_headers: hash.record_headers + stack.record_headers,
+      reference_slots: hash.reference_slots + stack.reference_slots,
+      scalar_words: hash.scalar_words + stack.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    })
+    is Some(hash_workspace) &&
+    @execution.checked_preparation_add_product(retained, temporary_vectors, 1L)
+    .bind(bytes => {
+      @execution.checked_preparation_add_product(
+        bytes,
+        @execution.execution_capacity_execution_bytes(parser),
+        1L,
+      )
+    })
+    .bind(bytes => {
+      @execution.checked_preparation_add_product(bytes, hash_workspace, 1L)
+    })
+    .bind(bytes => @execution.execution_capacity(retained, bytes))
+    is Some(capacity) else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  Ok(capacity)
 }
