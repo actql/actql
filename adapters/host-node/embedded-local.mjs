@@ -6222,6 +6222,22 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('ModelResumeRunDefinitionMismatch');
             }
             assertCurrent();
+            // A top-level approved Model with no attempts can refuse a known
+            // replacement before opening a new physical owner. Entered calls
+            // still use their original reconciliation and stop path.
+            if (claim !== undefined && parentCheckpoint === undefined &&
+                calls.slots.every(slot => slot.attempts.length === 0)) {
+              const selection = inferSelections.get(submission.preparedProgram);
+              const isOriginalTask = component =>
+                runtimeField(moon.clientProgramInferPlanBoundary(component.graph), 0) === record.inventory.taskIndex;
+              const selected = selection?.components?.find(isOriginalTask) ??
+                (selection?.components === undefined && selection !== undefined && isOriginalTask(selection)
+                  ? selection : undefined);
+              const binding = selected?.providerBinding;
+              if (binding !== undefined && binding.identity !== record.inventory.providerBindingCid) {
+                throw new Error('ModelProviderBindingChanged');
+              }
+            }
             if (requested.effectful) {
               if (effectRun === undefined) throw new Error('InstalledEffectContinuationUnavailable');
               const accepted = await admitEffectDefinition(submission);
