@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, {type Mock, type TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile} from 'node:fs/promises';
@@ -12,6 +12,40 @@ import {checked} from '../runtime-result.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 import {acquisitionOutcome} from '../../../../host-common/acquisition-outcome.mjs';
+
+import type {SourceRecovery} from '../source-acquisition.mjs';
+
+type ConformanceRuntime = Readonly<{
+  strategyFixtureCreate(...args: string[]): unknown;
+  strategyFixtureAccounted(fixture: unknown): unknown;
+  strategyFixtureAcquisition(fixture: unknown): unknown;
+  strategyFixtureGraph(fixture: unknown): unknown;
+  strategyFixtureLedger(fixture: unknown): unknown;
+  strategyFixtureOpen(fixture: unknown, source: unknown): boolean;
+  strategyFixtureAttach(fixture: unknown, dag: unknown): boolean;
+  strategyFixtureCloseOutput(fixture: unknown, task: number): void;
+}>;
+type LedgerUsage = Readonly<{
+  attempts: number;
+  transferred_bytes: bigint;
+  reserved_transfer_bytes: bigint;
+  held_bytes: bigint;
+  reserved_retention_bytes: bigint;
+  reserved_execution_bytes: bigint;
+}>;
+type PhysicalRuntime = Readonly<{
+  applicationBoundedLedger(limits: Readonly<{
+    planning_work: number; attempts: number; holdings: number;
+    transfer_bytes: bigint; retained_bytes: bigint; execution_bytes: bigint;
+  }>): unknown;
+  applicationLedgerUsage(ledger: unknown): LedgerUsage;
+}>;
+type StrategyCapture = Extract<Awaited<ReturnType<typeof runStrategyNativeHostQuery>>, {openDAG(graph: unknown): unknown}>;
+type CaptureFailure = Readonly<{
+  primaryFailure: unknown;
+  cleanupHandle?: Readonly<{retry(): Promise<unknown>}>;
+}>;
+type EvidenceOptions = Parameters<typeof issueNativeSourceEvidence>[1];
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -27,20 +61,20 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'native-custody',
     results: {r: {from: 'out', fields: ['id']}}}],
   results: {r: {from: {stage: 'compute', result: 'r'}}}});
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   for (const pkg of ['connectors/duckdb/host_node', 'connectors/duckdb/conformance', 'physical_strategy_example']) {
     execFileSync('moon', ['build', '--target', 'js', '--release', `src/${pkg}`],
       {cwd: root, stdio: ['ignore', 'ignore', 'pipe']});
   }
-  const conformance = await import(pathToFileURL(join(root,
-    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
-  const physical = await import(pathToFileURL(join(root,
-    '_build/js/release/build/physical_strategy_example/physical_strategy_example.js')));
+  const conformance: ConformanceRuntime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')).href);
+  const physical: PhysicalRuntime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/physical_strategy_example/physical_strategy_example.js')).href);
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
-  const args = [JSON.parse(catalog[1]), catalog[2], ...await pinnedEngineContracts(root),
+  const args: string[] = [JSON.parse(catalog[1]) as string, catalog[2], ...await pinnedEngineContracts(root),
     ...await Promise.all(['actql-query-acquisition', 'actql-query-process-evidence', 'actql-query-two-receipt']
       .map(name => readFile(join(root, `spec/contracts/${name}.json`), 'utf8'))), program];
   await mkdir(join(root, '_build/duckdb-fixtures'), {recursive: true});
@@ -62,7 +96,7 @@ async function fixture(t) {
     usage: physical.applicationLedgerUsage};
 }
 
-function noReservations(usage) {
+function noReservations(usage: LedgerUsage) {
   assert.equal(usage.reserved_transfer_bytes, 0n);
   assert.equal(usage.reserved_retention_bytes, 0n);
   assert.equal(usage.reserved_execution_bytes, 0n);
@@ -75,19 +109,20 @@ test('original NativePhysical holds each capture on one ledger through second ac
       const prepared = f.prepared();
       const setup = f.conformance.strategyFixtureAcquisition(prepared);
       const ledger = f.ledger(mode === 'budget' ? 200000000n : undefined);
-      const first = await runStrategyNativeHostQuery(f.grant, setup, ledger, limits);
+      const first = await runStrategyNativeHostQuery(f.grant, setup, ledger, limits) as StrategyCapture;
       const firstSource = first.source();
       const firstUsage = f.usage(ledger);
       assert(firstUsage.held_bytes > 0n);
       noReservations(firstUsage);
-      let second, failure, mock;
+      let second: StrategyCapture | undefined, failure: CaptureFailure | undefined,
+        mock: Mock<typeof DuckDBInstance.prototype.closeSync> | undefined;
       let allowClose = false;
       try {
         const controller = new AbortController();
         if (mode === 'cancel') controller.abort();
         if (mode === 'cleanup') {
           const original = DuckDBInstance.prototype.closeSync;
-          mock = t.mock.method(DuckDBInstance.prototype, 'closeSync', function () {
+          mock = t.mock.method(DuckDBInstance.prototype, 'closeSync', function (this: DuckDBInstance) {
             if (!allowClose) throw new Error('SecondNativeCloseFailed');
             return original.call(this);
           });
@@ -96,29 +131,29 @@ test('original NativePhysical holds each capture on one ledger through second ac
           mode === 'failure' || mode === 'cleanup' ? {...limits, maxRows: 1} : limits,
           controller.signal);
         if (mode === 'success') {
-          second = await run;
+          second = await run as StrategyCapture;
           assert.notEqual(first.source(), second.source());
           assert.equal(first.source(), firstSource);
           assert.equal(f.usage(ledger).held_bytes,
-            firstUsage.held_bytes + second.physicalCapacity.retentionBytes);
+            firstUsage.held_bytes + second.physicalCapacity!.retentionBytes);
           const dag = first.openDAG(f.conformance.strategyFixtureGraph(prepared));
           // Equal rows and even the same checked Query owner do not authorize
           // substituting another acquisition's original physical handle.
-          assert.throws(() => second.retainTask(dag, 0));
+          assert.throws(() => second!.retainTask(dag, 0));
           assert.throws(() => first.retainTask(dag, 0));
-          assert.throws(() => second.retainTask(dag, 1));
+          assert.throws(() => second!.retainTask(dag, 1));
           second.close();
           assert.equal(f.usage(ledger).held_bytes, firstUsage.held_bytes);
         } else {
-          await assert.rejects(run, error => { failure = error; return true; });
+          await assert.rejects(run, error => { failure = error as CaptureFailure; return true; });
           assert.equal(f.usage(ledger).held_bytes, firstUsage.held_bytes);
           assert.equal(first.source(), firstSource);
           if (mode === 'cleanup') {
-            const outcome = acquisitionOutcome(failure);
+            const outcome = acquisitionOutcome(failure) as Readonly<{outcome: unknown; recovery: SourceRecovery}>;
             assert.equal(outcome.outcome, 'unknown');
             assert.equal(outcome.recovery.cleanupPending(), true);
             const pending = f.usage(ledger);
-            const primary = failure.primaryFailure;
+            const primary = failure!.primaryFailure;
             assert(primary, 'the acquisition failure survives cleanup wrapping');
             assert(pending.reserved_execution_bytes > 0n);
             allowClose = true;
@@ -126,7 +161,7 @@ test('original NativePhysical holds each capture on one ledger through second ac
             assert.equal(await outcome.recovery.cleanup(), true);
             assert.equal(await outcome.recovery.cleanup(), true);
             assert.equal(outcome.recovery.cleanupPending(), false);
-            assert.equal(failure.primaryFailure, primary);
+            assert.equal(failure!.primaryFailure, primary);
             assert.equal(f.usage(ledger).attempts, pending.attempts);
             assert.equal(f.usage(ledger).transferred_bytes, pending.transferred_bytes);
             assert.equal(f.usage(ledger).held_bytes, firstUsage.held_bytes);
@@ -147,7 +182,7 @@ test('original NativePhysical holds each capture on one ledger through second ac
       assert.deepEqual(f.usage(ledger), final);
       assert.throws(() => first.source(), {code: 'IssuerClosed'});
       assert.equal(nativeSourceIdentityMatches(first, undefined), false);
-      await assert.rejects(issueNativeSourceEvidence(first, {}), {code: 'IssuerClosed'});
+      await assert.rejects(issueNativeSourceEvidence(first, {} as EvidenceOptions), {code: 'IssuerClosed'});
       assert.equal(f.conformance.strategyFixtureOpen(prepared, firstSource), false);
     });
   }
@@ -159,7 +194,7 @@ test('adopted source custody requires issuer close and exact retained inode clea
     const prepared = f.prepared();
     const ledger = f.conformance.strategyFixtureLedger(prepared);
     const parentDirectory = await mkdtemp(join(f.directory, 'retained-'));
-    const capture = retained
+    const capture = (retained
       ? await runRetainedStrategyNativeHostQuery(f.grant,
         f.conformance.strategyFixtureAcquisition(prepared), ledger, limits, {
           parentDirectory, maxFrameBytes: 4096,
@@ -167,7 +202,7 @@ test('adopted source custody requires issuer close and exact retained inode clea
             max_columns: 10, max_order_work: 10000},
         })
       : await runStrategyNativeHostQuery(f.grant,
-        f.conformance.strategyFixtureAcquisition(prepared), ledger, limits);
+        f.conformance.strategyFixtureAcquisition(prepared), ledger, limits)) as StrategyCapture;
     const source = capture.source();
     const held = f.usage(ledger).held_bytes;
     assert(held > 0n);
@@ -177,7 +212,7 @@ test('adopted source custody requires issuer close and exact retained inode clea
     assert.equal(f.usage(ledger).held_bytes, held,
       'DAG close must not free an allocation still exposed by its source issuer');
     assert.equal(capture.source(), source);
-    let path, moved;
+    let path: string | undefined, moved: string | undefined;
     if (retained) {
       const directory = join(parentDirectory, (await readdir(parentDirectory))[0]);
       path = join(directory, (await readdir(directory))[0]);
@@ -188,22 +223,22 @@ test('adopted source custody requires issuer close and exact retained inode clea
     try {
       capture.close();
       if (retained) {
-        assert.equal(capture.cleanupHandle.status().pending, true);
-        await assert.rejects(capture.cleanupHandle.retry());
+        assert.equal(capture.cleanupHandle!.status().pending, true);
+        await assert.rejects(capture.cleanupHandle!.retry());
         assert.equal(f.usage(ledger).held_bytes, held);
         const pending = f.usage(ledger);
-        const cleanupOwner = capture.cleanupHandle;
+        const cleanupOwner = capture.cleanupHandle!;
         assert.throws(() => capture.source(), {code: 'IssuerClosed'});
-        await assert.rejects(issueNativeSourceEvidence(capture, {}), {code: 'IssuerClosed'});
-        await rm(path);
-        await rename(moved, path);
+        await assert.rejects(issueNativeSourceEvidence(capture, {} as EvidenceOptions), {code: 'IssuerClosed'});
+        await rm(path!);
+        await rename(moved!, path!);
         moved = undefined;
         await cleanupOwner.retry();
         await cleanupOwner.retry();
         assert.equal(capture.cleanupHandle, cleanupOwner);
         assert.equal(f.usage(ledger).attempts, pending.attempts);
         assert.equal(f.usage(ledger).transferred_bytes, pending.transferred_bytes);
-        assert.equal(capture.cleanupHandle.status().pending, false);
+        assert.equal(capture.cleanupHandle!.status().pending, false);
       }
       assert.equal(f.usage(ledger).held_bytes, 0n);
       noReservations(f.usage(ledger));
@@ -213,7 +248,7 @@ test('adopted source custody requires issuer close and exact retained inode clea
       assert.deepEqual(f.usage(ledger), final);
       assert.throws(() => capture.source(), {code: 'IssuerClosed'});
     } finally {
-      if (moved) { await rm(path, {force: true}); await rename(moved, path); }
+      if (moved) { await rm(path!, {force: true}); await rename(moved!, path!); }
       capture.close();
       await capture.cleanupHandle?.retry();
     }

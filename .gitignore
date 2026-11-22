@@ -1882,3 +1882,7 @@ target/
 /adapters/connectors/duckdb/node/test/issued-native-query.test.d.mts
 /adapters/connectors/duckdb/node/test/issued-broad-query.test.mjs
 /adapters/connectors/duckdb/node/test/issued-broad-query.test.d.mts
+/adapters/connectors/duckdb/node/test/moonbit-receiving.test.mjs
+/adapters/connectors/duckdb/node/test/moonbit-receiving.test.d.mts
+/adapters/connectors/duckdb/node/test/native-capture-custody.test.mjs
+/adapters/connectors/duckdb/node/test/native-capture-custody.test.d.mts

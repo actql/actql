@@ -4339,7 +4339,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/native-capture-custody.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/native-capture-custody.test.mts",
                 "anchor": "test('adopted source custody requires issuer close and exact retained inode cleanup"
               },
               {

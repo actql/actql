@@ -8,30 +8,58 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeAcquisition } from '../native-acquisition.mjs';
-import { runBroadAcquisition } from '../broad-acquisition.mjs';
-import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
+import { runNativeAcquisition, type NativeAcquisitionPort } from '../native-acquisition.mjs';
+import { runBroadAcquisition, type BroadAcquisitionPort } from '../broad-acquisition.mjs';
+import { matchesSourceAcquisition, releaseSourceAcquisition, type SourceChunk, type SourceParameters } from '../source-acquisition.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+
+import type {PhysicalScalar} from '../physical-values.mjs';
+
+type ReceiptRole = Parameters<NativeAcquisitionPort['beginReceipt']>[0];
+type ConformanceRuntime = Readonly<{
+  create(): unknown;
+  createGuarded(valueBytes: number, outputRows: number, nodes: number): unknown;
+  sql(state: unknown, kind: number): string;
+  parameter(state: unknown, kind: number, index: number): string;
+  metadata(state: unknown, rows: number, fields: string, columns: string): boolean;
+  begin(state: unknown, role: number, fields: string): unknown;
+  accept(state: unknown, port: unknown, rows: number, columns: string): boolean;
+  finish(state: unknown, port: unknown): boolean;
+  cancel(state: unknown): void;
+  ready(state: unknown): boolean;
+  demandUsage(state: unknown): string;
+  receiptIdentities(state: unknown): string;
+  broadCreate(nodes: number): unknown;
+  broadSql(state: unknown, metadata: boolean): string;
+  broadParameter(state: unknown, index: number): string;
+  broadMetadata(state: unknown, rows: number, fields: string, columns: string): boolean;
+  broadBegin(state: unknown, fields: string): boolean;
+  broadAccept(state: unknown, rows: number, columns: string): boolean;
+  broadFinish(state: unknown): boolean;
+  broadCancel(state: unknown): void;
+  broadIdentity(state: unknown): string;
+  broadResidual(state: unknown, ...args: [...string[], number]): string;
+}>;
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 
-function portFor(moon, state = moon.create()) {
-  const ports = new Map();
-  const events = [];
-  let readView;
+function portFor(moon: ConformanceRuntime, state = moon.create()) {
+  const ports = new Map<ReceiptRole, unknown>();
+  const events: string[] = [];
+  let readView: object | undefined;
   let metadataRows = 0;
-  let metadataColumns = [[]];
-  const owns = view => { if (readView) assert.equal(view, readView); else readView = view; };
-  const requireAccepted = (accepted, phase) => {
+  let metadataColumns: SourceChunk['columns'] = [[]];
+  const owns = (view: object) => { if (readView) assert.equal(view, readView); else readView = view; };
+  const requireAccepted = (accepted: boolean, phase: string) => {
     if (!accepted) throw new Error(`MoonBit rejected ${phase}`);
   };
-  const port = {
+  const port: NativeAcquisitionPort = {
     metadataSql: () => moon.sql(state, 0),
-    metadataParameters: () => [0, 1].map(index => JSON.parse(moon.parameter(state, 0, index))),
+    metadataParameters: () => [0, 1].map(index => JSON.parse(moon.parameter(state, 0, index)) as SourceParameters[number]),
     acceptMetadata(chunk, view) {
       owns(view); metadataRows += chunk.rowCount;
       metadataColumns = chunk.columns;
@@ -42,7 +70,7 @@ function portFor(moon, state = moon.create()) {
     },
     validationSql: () => moon.sql(state, 1),
     nativeSql: () => { events.push('native'); return moon.sql(state, 2); },
-    nativeParameters: () => [JSON.parse(moon.parameter(state, 1, 0))],
+    nativeParameters: () => [JSON.parse(moon.parameter(state, 1, 0)) as SourceParameters[number]],
     beginReceipt(role, fields, view) {
       owns(view); ports.set(role, moon.begin(state, role === 'validation_scan' ? 0 : 1, JSON.stringify(fields)));
     },
@@ -58,16 +86,16 @@ function portFor(moon, state = moon.create()) {
   return { state, port, events };
 }
 
-function broadPortFor(moon, nodes = 9) {
+function broadPortFor(moon: ConformanceRuntime, nodes = 9): {state: unknown; port: BroadAcquisitionPort} {
   const state = moon.broadCreate(nodes);
-  let readView;
+  let readView: object | undefined;
   let metadataRows = 0;
-  const metadataColumns = [[]];
-  const owns = view => { if (readView) assert.equal(view, readView); else readView = view; };
-  const accepted = value => { if (!value) throw new Error('MoonBit rejected broad receipt'); };
+  const metadataColumns: PhysicalScalar[][] = [[]];
+  const owns = (view: object) => { if (readView) assert.equal(view, readView); else readView = view; };
+  const accepted = (value: boolean) => { if (!value) throw new Error('MoonBit rejected broad receipt'); };
   return { state, port: {
     metadataSql: () => moon.broadSql(state, true),
-    metadataParameters: () => [0, 1].map(index => JSON.parse(moon.broadParameter(state, index))),
+    metadataParameters: () => [0, 1].map(index => JSON.parse(moon.broadParameter(state, index)) as SourceParameters[number]),
     acceptMetadata(chunk, view) {
       owns(view); metadataRows += chunk.rowCount;
       metadataColumns[0].push(...chunk.columns[0]);
@@ -88,7 +116,7 @@ function broadPortFor(moon, nodes = 9) {
 
 test('real Node callbacks use MoonBit admission before native filtering, including discarded invalid values', async () => {
   await promisify(execFile)('moon', ['build', '--target', 'js', 'src/connectors/duckdb/conformance'], { cwd: root });
-  const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')));
+  const moon: ConformanceRuntime = await import(pathToFileURL(join(root, '_build/js/debug/build/connectors/duckdb/conformance/conformance.js')).href);
   // Reuse the engine's adopted fixed contract fixture, not an unadmitted newer
   // registry or expected values derived from execution output.
   const residualContracts = await pinnedEngineContracts(root);
@@ -96,7 +124,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'moon-receiving-'));
   try {
-    const cases = [
+    const cases: readonly (readonly [name: string, schema: string, insert: string | undefined, succeeds: boolean])[] = [
       ['valid', 'CREATE TABLE records(id DOUBLE, amount DOUBLE)', 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20)', true],
       ['empty', 'CREATE TABLE records(id DOUBLE, amount DOUBLE)', undefined, true],
       ['unused-invalid', 'CREATE TABLE records(id DOUBLE, amount DOUBLE)', "INSERT INTO records VALUES (3,30),(1,'Infinity'::DOUBLE)", false],
@@ -149,7 +177,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
           '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]',
           '[{"id":3},{"id":2}]',
         ];
-        const digests = JSON.parse(moon.receiptIdentities(received.state));
+        const digests = JSON.parse(moon.receiptIdentities(received.state)) as readonly (readonly [string, number, number, number])[];
         for (let role = 0; role < 2; role++) {
           assert.equal(digests[role][0], `sha256:${createHash('sha256').update(preimages[role]).digest('hex')}`);
           assert.equal(digests[role][1], Buffer.byteLength(preimages[role]));
@@ -172,7 +200,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
       [21, 100, 1000, false], // Discarded row's record with unused NULL needs 22 bytes.
       [10000, 1, 1000, true], // Two native rows exceed the logical output ceiling.
       [10000, 100, 9, true], // Three records + six scalars consume all measurement nodes.
-    ]) {
+    ] as const) {
       const received = portFor(moon, moon.createGuarded(valueBytes, outputRows, nodes));
       await assert.rejects(runNativeAcquisition(validGrant, received.port, limits), /MoonBit rejected finish/);
       assert.equal(received.events.includes('native'), nativeStarted);
