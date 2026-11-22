@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "87cbd9b525a129242b6f68902d7e088f589fda8a6b7ce94d0aaa387d459be807",
+      "sha256": "a17f457c8e22da232d0695149e408155c65424acaf0c4507abfa69863dcfb50a",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
@@ -1339,28 +1339,6 @@
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "sourceEvidenceOriginalAccess/init:retire/init:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceEvidenceOriginalAccess/init:take/init:take",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess",
-          "parameters": [],
-          "async": false
         }
       ],
       "contracts": [
@@ -1559,11 +1537,7 @@
             "runRetainedStrategyHostCompute/runRetainedStrategyHostCompute",
             "runRetainedStrategyNativeHostQuery",
             "runStrategyHostCompute",
-            "runStrategyNativeHostQuery",
-            "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
-            "sourceEvidenceOriginalAccess/init:retire/init:retire",
-            "sourceEvidenceOriginalAccess/init:take/init:take",
-            "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess"
+            "runStrategyNativeHostQuery"
           ],
           "exports": [
             "consumeRetainedComputeInput",
@@ -1693,6 +1667,7 @@
         "./runtime-result.mjs",
         "./session.mjs",
         "./source-acquisition.mjs",
+        "./source-evidence-original.mjs",
         "./transport-bounds.mjs",
         "node:crypto",
         "node:timers/promises"
@@ -1701,6 +1676,146 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
+    },
+    {
+      "module": "adapters/connectors/duckdb/node/source-evidence-original.mjs",
+      "sha256": "419733eb039ae8d8987e356219385311dc3bafcb5cab04786ab3e02fbdb2b440",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
+      "exports": [
+        "sourceEvidenceOriginalAccess"
+      ],
+      "operations": [
+        {
+          "name": "sourceEvidenceOriginalAccess",
+          "parameters": [
+            "current",
+            "issue"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:take/init:take",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "sourceEvidenceOriginalAccess",
+            "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
+            "sourceEvidenceOriginalAccess/init:retire/init:retire",
+            "sourceEvidenceOriginalAccess/init:take/init:take",
+            "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess"
+          ],
+          "exports": [
+            "sourceEvidenceOriginalAccess"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "sourceEvidenceOriginalAccess<Options, Evidence>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "const original = await issue(options);"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "return original;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "anchor": "ownedSourceCaptures.set(result, Object.freeze({"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "evidence = original;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "if (preparing || evidence !== undefined)"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "throw new DuckDBTransportError('SourceEvidenceUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "anchor": "}, issuanceSignal);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/duckdb/node/source-evidence-original.mts",
+                "anchor": "evidence = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB original evidence transfer retains the same issuer value and rejects pending or retired access'"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./configuration.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-output-finish.mjs",

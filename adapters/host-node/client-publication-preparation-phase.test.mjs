@@ -11,6 +11,7 @@ import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {sourceFreeTaskPlan, sourceFreePlanOriginal, localContractLimits, localOutputLimits}
   from './local-values-plan.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {sourceEvidenceOriginalAccess} from '../connectors/duckdb/node/source-evidence-original.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
@@ -968,10 +969,7 @@ test('DuckDB original evidence transfer retains the same issuer value and reject
   const original = {}, options = {}, seen = [];
   let live = true, complete;
   class Failure extends Error {constructor(code) {super(code); this.code = code;}}
-  const create = get('../connectors/duckdb/node/host.mjs', 'sourceEvidenceOriginalAccess', {
-    DuckDBTransportError: Failure,
-  });
-  const access = create(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
+  const access = sourceEvidenceOriginalAccess(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
     assert.equal(value, options); seen.push(value);
     return new Promise(resolve => {complete = resolve;});
   });

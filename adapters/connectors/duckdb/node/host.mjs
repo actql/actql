@@ -12,6 +12,7 @@ import { computePhysicalCapacity, sourceTransportLimits } from './physical-capac
 import {boundedTransport} from './transport-bounds.mjs';
 import {createImportBatch} from './import-batch.mjs';
 import { checked } from './runtime-result.mjs';
+import {sourceEvidenceOriginalAccess} from './source-evidence-original.mjs';
 import {finishManagedOutputReceipt} from './managed-output-finish.mjs';
 import { retainedConfiguration } from './retained-configuration.mjs';
 import { createLocalRetainedStore } from '../../../store-local/files.mjs';
@@ -56,40 +57,6 @@ export async function issueNativeSourceEvidence(capture, options) {
   return owned.issue(options);
 }
 
-
-// The existing physical capture retains this original typed evidence through
-// preparation and one synchronous transfer. This is payload custody only;
-// current authorization and issuance remain with that capture's original issuer.
-function sourceEvidenceOriginalAccess(current, issue) {
-  let evidence, preparing = false;
-  return Object.freeze({
-    async prepare(options) {
-      current();
-      if (preparing || evidence !== undefined) {
-        throw new DuckDBTransportError('SourceEvidencePending');
-      }
-      preparing = true;
-      try {
-        const original = await issue(options);
-        current();
-        if (original === undefined) throw new DuckDBTransportError('SourceEvidenceUnavailable');
-        evidence = original;
-      } finally {preparing = false;}
-    },
-    take() {
-      current();
-      if (evidence === undefined) throw new DuckDBTransportError('SourceEvidenceUnavailable');
-      const original = evidence;
-      evidence = undefined;
-      return original;
-    },
-    pending: () => preparing,
-    retire() {
-      if (preparing) throw new DuckDBTransportError('SourceEvidencePending');
-      evidence = undefined;
-    },
-  });
-}
 
 // Only the original physical capture can prepare this nominal evidence. The
 // existing wire-returning entry above keeps its compatibility behavior.
