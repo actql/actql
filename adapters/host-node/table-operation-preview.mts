@@ -67,7 +67,7 @@ type PreviewInputs = Readonly<{
   members: readonly Member[]; bridge: Bridge; limits: PreviewBounds;
 }>;
 type ArtifactBody = Readonly<{logical_result_cid: string; result_schema_cid: string; effective_data_policy_cid: string}>;
-type Operation = Readonly<{request_cid: string; schema_cid: string}> & (
+type Operation = Readonly<{request_cid: string; schema_cid: string; effect_identity_cid: string}> & (
   Readonly<{action: 'replace'; expected_table: NonNullable<Target['expectedTable']>}> |
   Readonly<{action: 'create'; expected_table: null}>
 );

@@ -5,7 +5,7 @@ type Runtime = Readonly<{
   clientProgramEffectTableWriteBinding(prepared: unknown, stageIndex: number, effectId: string,
     maxWork: number): unknown;
 }>;
-type WriteTarget = Readonly<{action: string; capabilityCid: string; installationBindingCid: string;
+type WriteTarget = Readonly<{action: string; capabilityCid: string; installationBindingCid?: string;
   expectedTable: Readonly<{table_uuid: string; generation_cid: string}> | null}>;
 
 // Project admitted facts; never parse a Program independently in the Host.

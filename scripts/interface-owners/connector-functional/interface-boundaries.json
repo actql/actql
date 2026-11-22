@@ -19592,7 +19592,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-operation-preview.test.mjs",
+                "path": "adapters/host-node/table-operation-preview.test.mts",
                 "anchor": "test("
               }
             ]

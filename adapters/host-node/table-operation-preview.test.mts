@@ -1,18 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+// @ts-expect-error TS7016: the full Client Program bridge test still has a JavaScript fixture.
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {authorTableOperationPreview} from './table-operation-preview.mjs';
 import {issueIcebergStorageMapping, admitIcebergStorageMapping}
   from '../connectors/local/host/iceberg-process.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+type PreviewOptions = Parameters<typeof authorTableOperationPreview>[0];
+type Member = PreviewOptions['members'][number];
+type Fixture = Readonly<{
+  moon: PreviewOptions['moon'];
+  sourceControl: PreviewOptions['control'] & Readonly<{
+    tablePreviewLedgerBinding(preview: ReturnType<typeof authorTableOperationPreview>['tablePreviews'][number]):
+      Readonly<{operationWire: string}>;
+  }>;
+  sources: Readonly<{members: readonly Readonly<{payload: Member['payload']}>[]}>;
+  fixture: Readonly<{mappingCid: string}>;
+  template: Readonly<{effects: readonly Readonly<{write_footprint: unknown}>[]}>;
+  prepared: unknown; inputs: unknown; checkedHost: unknown; scope: unknown;
+  definition: unknown; invocation: unknown; evidence: readonly unknown[];
+  store: Readonly<{storeAuthorityCid: string}>;
+  tableLimits: PreviewOptions['limits']['material']; operations: readonly Readonly<{request_cid: string}>[];
+}>;
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
 
 for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
   test(`installed Table authoring ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} uses checked whole-Relation operations`,
     async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput, target: targetRef, mappingRef,
-      minimumApproval: 'required', onTablePreview: async f => {
+      minimumApproval: 'required', onTablePreview: async (f: Fixture) => {
         const members = f.sources.members.map((source,index) => ({
           stageIndex: 0, effectId: index === 0 ? 'first' : 'second',
           payload: source.payload,
@@ -22,7 +40,7 @@ for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true
             capabilityCid: cid('d'), permissions: ['write'],
             footprint: f.template.effects[index].write_footprint},
         }));
-        const options = {moon: f.moon, control: f.sourceControl,
+        const options: PreviewOptions = {moon: f.moon, control: f.sourceControl,
           bridge: {issueStorageMapping: issueIcebergStorageMapping,
             admitStorageMapping: admitIcebergStorageMapping},
           prepared: f.prepared, inputs: f.inputs, checkedHost: f.checkedHost,
@@ -59,11 +77,11 @@ for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true
             authored.tablePreviews[index]).operationWire, authored.tableInputs[index].wire);
         }
         assert.equal(authorTableOperationPreview(options).wire, authored.wire);
-        assert.throws(() => authorTableOperationPreview({...options, bridge: undefined}),
+        assert.throws(() => authorTableOperationPreview({...options, bridge: undefined as unknown as PreviewOptions['bridge']}),
           {code: 'InvalidTablePreviewConfiguration'});
         assert.throws(() => authorTableOperationPreview({...options,
           bridge: {...options.bridge, admitStorageMapping: values => ({
-            ...admitIcebergStorageMapping(values), identity: cid('f')})}}),
+            ...admitIcebergStorageMapping(values) as object, identity: cid('f')})}}),
         {code: 'ForeignTableStorageMapping'});
         const replaceMembers = members.map(member => ({...member,
           target: {...member.target, action: 'replace', expectedTable: {

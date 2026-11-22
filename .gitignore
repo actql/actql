@@ -2106,3 +2106,5 @@ target/
 /scripts/checkpoint-answer-wire-python.d.mts
 /packages/sdk/checkpoint-candidate-boundary.test.mjs
 /packages/sdk/checkpoint-candidate-boundary.test.d.mts
+/adapters/host-node/table-operation-preview.test.mjs
+/adapters/host-node/table-operation-preview.test.d.mts
