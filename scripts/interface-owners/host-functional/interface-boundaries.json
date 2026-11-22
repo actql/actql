@@ -73097,7 +73097,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "39ee3a4482d815d3db3220757731cfd56e9f93fc9e7e4916099b1d0c208a8bf0",
+      "sha256": "0fbaf8efa1bf34a0ed08549811bb884376a42e44f680132edc839f87dd10fdb2",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -73306,7 +73306,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73318,13 +73318,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73336,13 +73336,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// An installation provides `environmentWire`, `connectorBindings`,"
               },
               {
@@ -73354,13 +73354,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// publication owners stay the same, and the Host never branches on a"
               },
               {
@@ -73372,13 +73372,13 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
@@ -73390,14 +73390,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "const refuse = (code, cause) => {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "const refuse: (code: string, cause?: unknown) => never = (code, cause) => {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -73408,13 +73408,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// the Host's Effect Site facts, and `close()`."
               },
               {
@@ -73428,7 +73428,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// Bound profile and identity-part reads before buffering, including files that"
               },
               {
@@ -73442,7 +73442,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// The standard Host's installed Effects, each selected by its Host profile's"
               },
               {
@@ -73454,8 +73454,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "verification": [
@@ -73494,7 +73494,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73506,13 +73506,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73524,13 +73524,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// An installation provides `environmentWire`, `connectorBindings`,"
               },
               {
@@ -73542,13 +73542,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// publication owners stay the same, and the Host never branches on a"
               },
               {
@@ -73560,13 +73560,13 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
@@ -73578,14 +73578,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "const refuse = (code, cause) => {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "const refuse: (code: string, cause?: unknown) => never = (code, cause) => {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -73596,13 +73596,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// the Host's Effect Site facts, and `close()`."
               },
               {
@@ -73616,7 +73616,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// Bound profile and identity-part reads before buffering, including files that"
               },
               {
@@ -73630,7 +73630,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// The standard Host's installed Effects, each selected by its Host profile's"
               },
               {
@@ -73642,8 +73642,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "verification": [
@@ -73666,7 +73666,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73678,13 +73678,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "export {installedEffectFor} from './installed-effect-inventory.mjs';"
               },
               {
@@ -73696,13 +73696,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// An installation provides `environmentWire`, `connectorBindings`,"
               },
               {
@@ -73714,13 +73714,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// publication owners stay the same, and the Host never branches on a"
               },
               {
@@ -73732,13 +73732,13 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
               },
               {
@@ -73750,14 +73750,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "const refuse = (code, cause) => {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "const refuse: (code: string, cause?: unknown) => never = (code, cause) => {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -73768,13 +73768,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// the Host's Effect Site facts, and `close()`."
               },
               {
@@ -73788,7 +73788,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// Bound profile and identity-part reads before buffering, including files that"
               },
               {
@@ -73802,7 +73802,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect.mjs",
+                "path": "adapters/host-node/installed-effect.mts",
                 "anchor": "// The standard Host's installed Effects, each selected by its Host profile's"
               },
               {
@@ -73814,8 +73814,8 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "function splitUpdateTargetProfile(profile) {"
+                "path": "adapters/host-node/installed-effect.mts",
+                "anchor": "function splitUpdateTargetProfile(profile: unknown) {"
               }
             ],
             "verification": [

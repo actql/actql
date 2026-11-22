@@ -51,7 +51,7 @@ type Alias = Readonly<{
 }>;
 type BoundAlias = Readonly<Required<Alias>>;
 type EffectRegistration = Readonly<{environmentWire: string; effectSelectors?: readonly Selector[]}>;
-type EffectOwner = EffectRegistration & Readonly<{
+export type EffectOwner = EffectRegistration & Readonly<{
   connectorBindings?: readonly ConnectorBinding[]; environmentOriginal?: NativeEnvironment;
   queryUpdateTargets?: readonly Alias[]; queryTableBindings?: readonly unknown[]; queryTableWriteAccesses?: readonly unknown[];
 }>;
@@ -295,13 +295,13 @@ export function installedUpdateTargetDisclosure<Target extends BoundAlias>(effec
 // Both kinds of owner are independent and are attempted on every drain; only
 // failed owners remain pending. Concurrent closes share the same flight.
 function inventoryCleanup() {
-  const pending = new Set<CleanupOwner>();
+  const pending = new Set<CleanupOwner | undefined>();
   let flight: Promise<void> | undefined;
   const status = () => Object.freeze({pending: pending.size !== 0});
   async function drain() {
     const errors: unknown[] = [];
     for (const owner of pending) {
-      try { await owner.close(); pending.delete(owner); }
+      try { await owner!.close(); pending.delete(owner); }
       catch (error) { errors.push(error); }
     }
     if (errors.length) {
@@ -314,7 +314,7 @@ function inventoryCleanup() {
     if (flight === undefined) flight = drain().finally(() => { flight = undefined; });
     return flight;
   }
-  const retain = (owner: CleanupOwner) => { pending.add(owner); };
+  const retain = (owner: CleanupOwner | undefined) => { pending.add(owner); };
   const retainFailure = (cause: CleanupFailure | null | undefined) => {
     if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) return cause;
     retain({async close() {
@@ -338,7 +338,7 @@ function inventoryCleanup() {
 
 export async function composeInstalledEffects<Path, Options extends InventoryOptions, Member extends EffectOwner>(
   paths: readonly Path[], options: Options,
-  load: (path: Path, options: Readonly<Options>, retain: (owner: CleanupOwner) => void) => Member | PromiseLike<Member>) {
+  load: (path: Path, options: Readonly<Options>, retain: (owner: CleanupOwner | undefined) => void) => Member | PromiseLike<Member>) {
   // Capture the options once: later callbacks cannot switch the admitted
   // service/runtime or revive a missing-services diagnostic path.
   options = Object.freeze({...options});
