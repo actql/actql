@@ -363,6 +363,17 @@ pub fn Library::version(self : Library) -> String {
 }
 
 ///|
+/// Feature check on the same current libcurl image, before any Model Entry
+/// or credential acquisition. Physical start repeats the image check.
+pub fn Library::incremental_bearer_post_supported(self : Library) -> Bool {
+  library_has_incremental_post_ffi(self)
+}
+
+///|
+#borrow(library)
+extern "C" fn library_has_incremental_post_ffi(library : Library) -> Bool = "actql_native_http_library_has_incremental_post"
+
+///|
 pub fn Library::create_client(
   self : Library,
   ca_path : String,

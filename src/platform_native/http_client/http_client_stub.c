@@ -12,6 +12,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +53,35 @@ typedef CURLcode (*actql_curl_global_init_fn)(long);
 typedef CURLcode (*actql_curl_global_init_mem_fn)(long, void *(*)(size_t),
   void (*)(void *), void *(*)(void *, size_t), char *(*)(const char *), void *(*)(size_t, size_t));
 typedef void (*actql_curl_global_cleanup_fn)(void);
-typedef struct { int age; const char *version; unsigned int version_num; const char *host; int features; } actql_curl_version_info;
+// Public curl_version_info_data prefix through CURLVERSION_ELEVENTH.
+typedef struct {
+  int age;
+  const char *version;
+  unsigned int version_num;
+  const char *host;
+  int features;
+  const char *ssl_version;
+  long ssl_version_num;
+  const char *libz_version;
+  const char *const *protocols;
+  const char *ares;
+  int ares_num;
+  const char *libidn;
+  int iconv_ver_num;
+  const char *libssh_version;
+  unsigned int brotli_ver_num;
+  const char *brotli_version;
+  unsigned int nghttp2_ver_num;
+  const char *nghttp2_version;
+  const char *quic_version;
+  const char *cainfo;
+  const char *capath;
+  unsigned int zstd_ver_num;
+  const char *zstd_version;
+  const char *hyper_version;
+  const char *gsasl_version;
+  const char *const *feature_names;
+} actql_curl_version_info;
 typedef const actql_curl_version_info *(*actql_curl_version_info_fn)(int);
 typedef const char *(*actql_curl_version_fn)(void);
 typedef CURL *(*actql_curl_easy_init_fn)(void);
@@ -85,6 +114,7 @@ typedef struct {
 enum {
   ACTQL_CURLE_OK = 0,
   ACTQL_CURLE_WRITE_ERROR = 23,
+  ACTQL_CURLE_OPERATION_TIMEDOUT = 28,
   ACTQL_CURLE_ABORTED_BY_CALLBACK = 42,
   ACTQL_CURLOPT_WRITEDATA = 10001,
   ACTQL_CURLOPT_URL = 10002,
@@ -110,6 +140,7 @@ enum {
   ACTQL_CURLOPT_TIMEOUT_MS = 155,
   ACTQL_CURLOPT_CONNECTTIMEOUT_MS = 156,
   ACTQL_CURLOPT_XFERINFOFUNCTION = 20219,
+  ACTQL_CURLOPT_DNS_SERVERS = 10211,
   ACTQL_CURLOPT_PROTOCOLS = 181,
   ACTQL_CURLOPT_QUICK_EXIT = 322,
   ACTQL_CURLINFO_RESPONSE_CODE = 0x200002,
@@ -208,6 +239,7 @@ typedef struct {
   bool constructor_metadata_retired;
   int32_t test_retire_failures;
   int32_t test_retire_reply_losses;
+  uint16_t test_dns_port;
 } actql_native_http_client;
 
 // Only realloc's original length is stored here. The existing Read/provider
@@ -711,6 +743,22 @@ static bool actql_http_same_image(void *left, void *right) {
   return dladdr(left, &a) != 0 && dladdr(right, &b) != 0 && a.dli_fbase == b.dli_fbase;
 }
 
+// Both ordinary resolver threads and c-ares advertise AsynchDNS. Hybrid
+// builds also report a c-ares version, but use a worker for A/AAAA lookups.
+static bool actql_http_uses_cares_for_addresses(const actql_curl_version_info *info) {
+  if (!info || (info->features & ACTQL_CURL_VERSION_ASYNCHDNS) == 0 ||
+      info->age < 1 || !info->ares || !info->ares[0] || info->ares_num <= 0)
+    return false;
+  if (info->version_num < 0x080c00) return true; // Before the hybrid resolver.
+  if (info->age < 10 || !info->feature_names) return false;
+  for (size_t i = 0; i < 128; ++i) {
+    const char *feature = info->feature_names[i];
+    if (!feature) return true;
+    if (strcmp(feature, "asyn-rr") == 0) return false;
+  }
+  return false;
+}
+
 static void actql_http_load_incremental_port(actql_native_http_library *library) {
   actql_curl_multi_api port = {0};
 #define ACTQL_MULTI(field) \
@@ -878,9 +926,10 @@ static void *actql_native_http_load_library_impl(
     library->tls_backend_pending = library->tls_owned || !info ||
       (info->features & ACTQL_CURL_VERSION_SSL) != 0;
     library->cleanup_threadsafe = info && (info->features & ACTQL_CURL_VERSION_THREADSAFE) != 0;
-    // An easy-only image is still usable by existing synchronous clients.
-    // Without async DNS, multi_perform can block in the system resolver.
-    if (info && (info->features & ACTQL_CURL_VERSION_ASYNCHDNS) != 0)
+    // No unresolved getaddrinfo thread may be joined by either timeout
+    // completion or remove/cleanup on a bounded incremental poll.
+    if (version_info && actql_http_same_image((void *)version_info, (void *)library->global_init) &&
+        actql_http_uses_cares_for_addresses(info))
       actql_http_load_incremental_port(library);
   }
   return library;
@@ -970,6 +1019,22 @@ int64_t actql_native_http_test_live_children(actql_native_http_library *library)
 
 // Test expectation DATA from this exact admitted image, not a cleanup result
 // or permission to unload a different/system TLS backend.
+int32_t actql_native_http_library_has_incremental_post(actql_native_http_library *library) {
+  if (!library) return false;
+  actql_http_library_lock(library);
+  bool available = actql_http_library_current(library) && library->multi.init != NULL;
+  actql_http_library_unlock(library);
+  return available;
+}
+
+// Native white-box test only. The production configuration cannot override
+// DNS. The selected c-ares image sends actual queries to this loopback peer.
+void actql_native_http_test_dns_port(actql_native_http_client *client, int32_t port) {
+  if (port <= 0 || port > UINT16_MAX || !actql_http_begin_request(client)) abort();
+  client->test_dns_port = (uint16_t)port;
+  actql_http_end_request(client);
+}
+
 int32_t actql_native_http_test_has_tls_cleanup(actql_native_http_library *library) {
   if (!library || library->original_process != getpid()) return false;
   actql_http_library_lock(library);
@@ -1557,6 +1622,7 @@ static void actql_http_advance_transfer(
     code = library->easy_getinfo(transfer->easy, ACTQL_CURLINFO_RESPONSE_CODE, &client->status);
   if (client->capacity_exceeded) transfer->result = 1;
   else if (code == ACTQL_CURLE_ABORTED_BY_CALLBACK) transfer->result = 2;
+  else if (code == ACTQL_CURLE_OPERATION_TIMEDOUT) transfer->result = 4;
   else if (code == ACTQL_CURLE_OK) transfer->result = 0;
   else {
     if (!client->error_present)
@@ -1716,6 +1782,13 @@ static int32_t actql_native_http_client_request_owned(
     // replacement. The installed destination does not use ambient proxies.
     ACTQL_SET(ACTQL_CURLOPT_HTTP_VERSION, (long)ACTQL_CURL_HTTP_VERSION_1_1);
     ACTQL_SET(ACTQL_CURLOPT_PROXY, "");
+    if (client->test_dns_port) {
+      char dns_server[sizeof("127.0.0.1:65535")];
+      (void)snprintf(dns_server, sizeof(dns_server), "127.0.0.1:%u",
+        (unsigned int)client->test_dns_port);
+      // libcurl copies the option before this scope ends.
+      ACTQL_SET(ACTQL_CURLOPT_DNS_SERVERS, dns_server);
+    }
   }
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);

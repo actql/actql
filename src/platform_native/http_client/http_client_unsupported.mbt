@@ -56,6 +56,11 @@ pub fn Library::version(_self : Library) -> String {
 }
 
 ///|
+pub fn Library::incremental_bearer_post_supported(_self : Library) -> Bool {
+  false
+}
+
+///|
 pub fn Library::create_client(
   _self : Library,
   ca_path : String,

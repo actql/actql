@@ -1,4 +1,8 @@
 ///|
+#borrow(client)
+extern "C" fn retirement_fixture_dns_port(client : Client, port : Int) -> Unit = "actql_native_http_test_dns_port"
+
+///|
 #borrow(library)
 extern "C" fn retirement_fixture_has_tls_cleanup(library : Library) -> Bool = "actql_native_http_test_has_tls_cleanup"
 
@@ -130,7 +134,31 @@ test "incremental bearer POST retains the original client until completion or ph
   }
   let url = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_URL").unwrap()
   let secret = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_SECRET").unwrap()
+  println("Native incremental HTTPS image: " + library.version())
+  let supported = library.incremental_bearer_post_supported()
+  if @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_EXPECT_CARES") is Some(expected) {
+    assert_eq(supported, expected == "1")
+  }
   let original = create()
+  if !supported {
+    // Missing credential would otherwise fail before transport. The resolver
+    // refusal must precede acquisition, and leaves no physical child to drain.
+    assert_true(
+      original.start_bearer_post(
+        url + "/incremental-complete",
+        [],
+        b"{}",
+        secret + ".absent",
+        9223372036854775807L,
+      )
+      is Err(UnsupportedTarget),
+    )
+    assert_true(original.poll_bearer_post() is Err(Closed))
+    original.close_checked().unwrap()
+    let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
+    assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
+    return
+  }
   let start = (client : Client, path : String) => {
     client.start_bearer_post(
       url + path,
@@ -179,4 +207,92 @@ test "incremental bearer POST retains the original client until completion or ph
   assert_true(start(interrupted, "/incremental-stop") is Err(Closed))
   let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
   assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
+}
+
+///|
+test "incremental bearer POST retires its original on pending DNS cancellation and libcurl timeout" {
+  let library = load_library_with_custody(
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY").unwrap(),
+    diagnostic_ceiling=Some(256),
+  ).unwrap()
+  let has_tls_cleanup = retirement_fixture_has_tls_cleanup(library)
+  if library.incremental_bearer_post_supported() {
+    retirement_fixture_check_dns(library, "cancel", 5000)
+    retirement_fixture_check_dns(library, "timeout", 800)
+  }
+  assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
+}
+
+///|
+fn retirement_fixture_check_dns(
+  library : Library,
+  scenario : String,
+  timeout_ms : Int,
+) -> Unit raise {
+  let environment = name => {
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_" + name).unwrap()
+  }
+  let client = library
+    .create_authenticated_client_with_custody(
+      environment("CA"),
+      MutualTls(environment("CERT"), environment("KEY")),
+      64L,
+      timeout_ms,
+      timeout_ms,
+    )
+    .unwrap()
+  let mut port = 0
+  for ch in environment("DNS_PORT") {
+    assert_true(ch >= '0' && ch <= '9' && port <= 6553)
+    port = port * 10 + ch.to_int() - '0'.to_int()
+  }
+  retirement_fixture_dns_port(client, port)
+  let url = "https://" +
+    scenario +
+    ".model.test:" +
+    environment("TLS_PORT") +
+    "/incremental-complete"
+  let secret = environment("SECRET")
+  let started = @env.now().reinterpret_as_int64()
+  // The credential deadline is deliberately later than the libcurl timeout.
+  // The timeout case must enter libcurl's own completion/teardown path.
+  client
+  .start_bearer_post(url, [], b"{}", secret, 9223372036854775807L)
+  .unwrap()
+  let root = @filesystem.open_root(environment("INCREMENTAL_ROOT")).unwrap()
+  for _ in 0..<15 {
+    if root.observe_file(scenario + "-dns") is Ok(_) {
+      break
+    }
+    assert_true(client.poll_bearer_post(wait_milliseconds=40).unwrap() is None)
+  }
+  assert_true(root.observe_file(scenario + "-dns") is Ok(_))
+  root.close().unwrap()
+  if scenario == "cancel" {
+    assert_true(client.cancel())
+    assert_true(client.close_checked() is Err(Transport(_)))
+    let pending = @env.now().reinterpret_as_int64()
+    assert_true(client.poll_bearer_post() is Err(Cancelled))
+    assert_true(@env.now().reinterpret_as_int64() - pending < 500L)
+  } else {
+    let mut timed_out = false
+    for _ in 0..<40 {
+      match client.poll_bearer_post(wait_milliseconds=50) {
+        Ok(None) => ()
+        Err(DeadlineExpired) => {
+          timed_out = true
+          break
+        }
+        _ => fail("pending DNS must reach the original libcurl deadline")
+      }
+    }
+    assert_true(timed_out)
+    assert_true(@env.now().reinterpret_as_int64() - started < 2000L)
+  }
+  client.close_checked().unwrap()
+  assert_true(client.poll_bearer_post() is Err(Closed))
+  assert_true(
+    client.start_bearer_post(url, [], b"{}", secret, 9223372036854775807L)
+    is Err(Closed),
+  )
 }

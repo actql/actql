@@ -381,10 +381,13 @@ completes.
 Synchronous callers check cancellation before the request and through libcurl's
 transfer progress callback. The incremental bearer POST port uses one fresh
 easy handle and one multi handle on the same Client and native thread. It
-requires the selected library to provide asynchronous DNS and the original
-multi operations. The caller may advance without a readiness wait, or the
-outer physical driver may wait for up to 50 ms per poll. The scoped allocator
-continues to use the original native Read.
+requires the selected library to provide c-ares address resolution and the
+original multi operations. An asynchronous system resolver can still join a
+blocked address lookup during timeout completion or multi handle removal.
+The incremental path refuses threaded and hybrid resolver images before
+credential acquisition. The caller may advance without a readiness wait, or
+the outer physical driver may wait for up to 50 ms for readiness. The original
+Read continues to own native allocations.
 
 The Client retains the request bytes and its native backing until the curl
 handles retire. A cancellation requests stop. The next original poll observes

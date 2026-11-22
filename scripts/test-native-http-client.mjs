@@ -14,6 +14,7 @@ import {
   generateKeyPairSync,
   X509Certificate,
 } from 'node:crypto';
+import {createSocket} from 'node:dgram';
 import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {createServer, request as httpsRequest} from 'node:https';
@@ -1274,34 +1275,75 @@ verification: try {
     // This exact file uses only the original HTTPS peer and selected libcurl.
     // No Common, DuckDB, Resident or other package supplier is built or run.
     await writeFile(join(root, 'credential.secret'), 'native-secret\n', {mode: 0o600, flag: 'wx'});
-    const child = spawn(process.execPath, ['--input-type=module', '-e',
-      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-      "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
-      "'src/platform_native/http_client/transport_retirement_native_wbtest.mbt']," +
-      "{cwd:process.cwd(),timeout:120000});"], {
-      cwd: new URL('../', import.meta.url), stdio: 'inherit',
-      env: {
-        ...process.env,
-        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
-        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
-        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
-        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
-        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
-        ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
-        ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT: root,
-      },
+    const dns = createSocket('udp4');
+    const dnsObservations = new Map();
+    dns.on('message', query => {
+      assert.equal(query.readUInt16BE(4), 1, 'The original DNS query has one question');
+      // These exact names use a single uncompressed question. Hold the
+      // answer until the original Client has retired, without a timeout reply.
+      const cancelName = Buffer.from('0663616e63656c056d6f64656c047465737400', 'hex');
+      const timeoutName = Buffer.from('0774696d656f7574056d6f64656c047465737400', 'hex');
+      const matchName = name => query.length >= 12 + name.length + 4 &&
+        query.subarray(12, 12 + name.length).equals(name);
+      const scenario = matchName(cancelName) ? 'cancel' : matchName(timeoutName) ? 'timeout' : undefined;
+      assert(scenario, 'DNS peer received a foreign question');
+      if (!dnsObservations.has(scenario)) {
+        dnsObservations.set(scenario, writeFile(join(root, `${scenario}-dns`), '', {flag: 'wx'}));
+      }
     });
-    const [code, signal] = await once(child, 'exit');
-    assert.equal(code, 0,
-      `focused HTTP retirement tests failed: ${code ?? signal}`);
-    assert.deepEqual(incrementalRequests, ['/incremental-complete', '/incremental-stop']);
-    let timeout;
+    dns.bind(0, '127.0.0.1');
+    await once(dns, 'listening');
+    const pendingDnsConnections = [];
+    const dnsDestination = createNetServer(socket => {
+      pendingDnsConnections.push(socket.remoteAddress);
+      socket.destroy();
+    });
+    dnsDestination.listen(0, '127.0.0.1');
+    await once(dnsDestination, 'listening');
     try {
-      await Promise.race([incrementalStop.promise, new Promise((_, reject) => {
-        timeout = setTimeout(() => reject(new Error('Original cancelled HTTPS peer did not close')), 2500);
-      })]);
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/http_client/transport_retirement_native_wbtest.mbt']," +
+        "{cwd:process.cwd(),timeout:120000});"], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {
+          ...process.env,
+          ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+          ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+          ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+          ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+          ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+          ACTQL_TEST_NATIVE_HTTP_INCREMENTAL_ROOT: root,
+          ACTQL_TEST_NATIVE_HTTP_DNS_PORT: String(dns.address().port),
+          ACTQL_TEST_NATIVE_HTTP_TLS_PORT: String(dnsDestination.address().port),
+        },
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0,
+        `focused HTTP retirement tests failed: ${code ?? signal}`);
+      await Promise.all(dnsObservations.values());
+      assert.deepEqual(pendingDnsConnections, [], 'DNS stop reached no TCP/TLS destination');
+      if (incrementalRequests.length === 0) {
+        assert.equal(dnsObservations.size, 0);
+        assert.notEqual(process.env.ACTQL_TEST_NATIVE_HTTP_EXPECT_CARES, '1');
+      } else {
+        assert.deepEqual(incrementalRequests, ['/incremental-complete', '/incremental-stop']);
+        assert.deepEqual([...dnsObservations.keys()], ['cancel', 'timeout']);
+        let timeout;
+        try {
+          await Promise.race([incrementalStop.promise, new Promise((_, reject) => {
+            timeout = setTimeout(() => reject(new Error('Original cancelled HTTPS peer did not close')), 2500);
+          })]);
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
     } finally {
-      clearTimeout(timeout);
+      dns.close();
+      dnsDestination.close();
+      await Promise.all([once(dns, 'close'), once(dnsDestination, 'close')]);
     }
     break verification;
   }
