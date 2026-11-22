@@ -218,11 +218,8 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
             const {mapping, write, physical} = target;
             const insert = createContracts?.get(target);
             const targetReadOperation = insert === undefined ? write.observe_permission : undefined;
-            // The insertion writer's largest remaining output room is at the
-            // minimum admitted file length. The immutable request uses its
-            // original bound even if the physical file grows before dispatch.
-            const insertion = insert === undefined ? undefined : checked(call('insertCapacity', insert,
-              physical.itemsPath.length, 1, targetLimits.maxFileBytes));
+            const insertion = insert === undefined ? undefined : (size, units) =>
+              checked(call('insertCapacity', insert, physical.itemsPath.length, size, units));
             recipes[mapping.mappingCid] = Object.freeze({targetReadOperation,
               recipe: mockFileEffectPlanRecipe(moon, bundle, write.permission, targetReadOperation, insertion)});
           }
@@ -297,7 +294,7 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
   // Projection owns checked values, admitted wrappers and row/cell indexes;
   // the file decoder is separate. Replacement Bytes coexist with original
   // file backing. Write additionally copies replacement Bytes into its Buffer.
-  let construction;
+  let construction, physicalInput;
   if (insertion === undefined) {
     construction = Object.freeze({retained: zero,
       workspace: Object.freeze({...workspace, wire: 2n * bytes})});
@@ -308,9 +305,29 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
     // and bounded JSON observation; keep both full native peaks in live E.
     // The insertion already funds its replacement Bytes, and the writer
     // still needs a separate copy of those Bytes in its Buffer.
-    construction = Object.freeze({
-      retained: Object.freeze({nodes: 40n, text: 512n, wire: BigInt(targetLimits.maxResponseBytes)}),
-      workspace: Object.freeze({...workspace, wire: bytes + executionBytes(decode) + executionBytes(insertion)}),
+    const retained = Object.freeze({nodes: 40n, text: 512n, wire: BigInt(targetLimits.maxResponseBytes)});
+    // The insertion writer's largest remaining output room is at the
+    // minimum admitted file length and the largest admitted request.
+    const maximumInsertion = insertion(1, targetLimits.maxFileBytes);
+    construction = Object.freeze({retained, workspace: Object.freeze({...workspace,
+      wire: bytes + executionBytes(decode) + executionBytes(maximumInsertion)})});
+    const exactCapacity = work => checked(moon.clientProgramInstalledSourceConstructionCapacity(
+      retained.nodes, retained.text, retained.wire, work.nodes, work.text, work.wire));
+    physicalInput = Object.freeze({
+      // The held child can open and check its FD and lock plus construct
+      // the bounded extent. File buffers are allocated after selection.
+      initialCapacity: exactCapacity({nodes: 64n, text: 0n, wire: 0n}),
+      capacity(size, requestUnits) {
+        if (!Number.isSafeInteger(size) || size < 1 || size >= targetLimits.maxFileBytes ||
+            !Number.isSafeInteger(requestUnits) || requestUnits < 1 || requestUnits > targetLimits.maxFileBytes) {
+          fail('InvalidMockEffectRequest');
+        }
+        const fileNodes = Math.min(size, targetLimits.maxNodes);
+        const fileDecoder = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(capacity(zero),
+          size, fileNodes, Math.min(fileNodes, targetLimits.maxDepth)));
+        return exactCapacity({nodes: 4n * BigInt(fileNodes) * projections, text: BigInt(size) * projections,
+          wire: bytes + executionBytes(fileDecoder) + executionBytes(insertion(size, requestUnits))});
+      },
     });
   }
   const inputLimits = installedRowEffectConstructionLimits({maxRows: targetLimits.maxRows});
@@ -322,7 +339,7 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
   }
   return prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits,
     construction, ...(insertion === undefined ? {physicalConstruction: decode} : {}),
-    requestConstruction, targetReadOperation,
+    requestConstruction, targetReadOperation, physicalInput,
     ...(footprintCapacity === undefined ? {} : {footprintCapacity}),
     limits: Object.freeze({maxRequestBytes: targetLimits.maxFileBytes,
       maxRecoveryBytes: targetLimits.maxFileBytes, maxResponseBytes: targetLimits.maxResponseBytes,
@@ -704,13 +721,15 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     recoverRequests: recover, recoverMemberRequests: recover,
     async send({member, request, current: selected, authorization: supplied, signal, runOriginal, physicalOperation}) {
       const target = memberCurrent(member);description(selected, runOriginal, target);runCurrent(runOriginal);
-      if (member.kind === 'create' && physicalOperation === undefined) fail('InstalledEffectPhysicalPlanUnavailable');
-      const {record, cid: requestCid} = own(request, runOriginal);
+      const creating = member.kind === 'create';
+      if (creating && typeof physicalOperation?.admitInput !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
+      const {record, cid: requestCid, retainedWire} = own(request, runOriginal);
       if (targetForRecord(record) !== target) fail('ForeignMockEffectRequest');
       let use, primary, failed = false;
       const child = file.updateChild({signal, runOriginal,
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
         authorize() {use = consume('write', supplied, selected, target);},
+        ...(creating ? {fundRead: size => physicalOperation.admitInput(size, retainedWire.length)} : {}),
         replace(bytes) {
           return codec.replace(member.kind, bytes, target, record, physicalOperation);
         }});

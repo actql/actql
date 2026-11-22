@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "9de554962a9b85f13f4e79fa745d845ec5639797898421127039f92020e8d698",
+      "sha256": "c67776afd174819d23ec153c62cf5f567d8190945a4de27d673a6d37bd5e6ac8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -20535,7 +20535,8 @@
             "requestConstruction",
             "physicalConstruction",
             "targetReadOperation",
-            "footprintCapacity"
+            "footprintCapacity",
+            "physicalInput"
           ],
           "async": false
         },
@@ -20560,6 +20561,14 @@
           "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
           "parameters": [
             "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3",
+          "parameters": [
+            "bytes",
+            "requestUnits"
           ],
           "async": false
         },
@@ -20651,7 +20660,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fa1a81cc2697b2790662adf905a03e98a9a6dbbe140b1f6135fa0eaa2243fd12",
+      "sha256": "a098ca74ec6ff5a6aab3ec44ccc14af7bc9197d71843a1816b5b4cb42d9cefa4",
       "contracts": [
         {
           "operations": [
@@ -21040,7 +21049,8 @@
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3"
           ],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
@@ -22116,7 +22126,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-owned-operation.mjs",
-      "sha256": "754ae858a011f86faf52d5f4acfcc6a59818689b023aa18ffe725ba777b9415f",
+      "sha256": "18e38cd7ee7d45ce724660788681bcaa43bc406b2de8b5827fac6acbbedf3438",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",
@@ -22134,7 +22144,16 @@
             "operation",
             "transferBytes",
             "invoke",
-            "requestsRetired"
+            "requestsRetired",
+            "inputExtent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/admitInput/admitInput",
+          "parameters": [
+            "bytes",
+            "requestUnits"
           ],
           "async": false
         },
@@ -22159,6 +22178,13 @@
         },
         {
           "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#3",
           "parameters": [],
           "async": false
         },
@@ -22190,7 +22216,9 @@
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
             "prepareInstalledEffectOwnedPhysicalChild/release/release",
-            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild"
+            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/admitInput/admitInput",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#3"
           ],
           "exports": [
             "prepareInstalledEffectOwnedPhysicalChild"

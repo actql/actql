@@ -117997,7 +117997,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eef49dacbf20f72f5209a1e0b592d160db2f4006558e0d837a3d4eff7ccb1eae",
+      "sha256": "32ca8fb6ee82adc158583c5422bcccdeb940b543f74bd1bd12fda004d6d65c98",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118132,6 +118132,14 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion",
+          "parameters": [
+            "size",
+            "units"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/targets/targets",
           "parameters": [
             "target"
@@ -118202,6 +118210,21 @@
             "operation",
             "targetReadOperation",
             "insertion"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/capacity/capacity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/init:capacity/init:capacity",
+          "parameters": [
+            "size",
+            "requestUnits"
           ],
           "async": false
         },
@@ -118422,6 +118445,13 @@
         {
           "name": "mockRowEffectDriver/driver/init:send/init:send/child/child",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:send/init:send/child/child#2",
+          "parameters": [
+            "size"
+          ],
           "async": false
         },
         {
@@ -118699,7 +118729,11 @@
             "mockRowEffectDriver/requestChild/init:prepare/init:prepare",
             "mockRowEffectDriver/requestChild/release/release",
             "mockRowEffectDriver/requestChild/requestChild",
-            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds"
+            "mockRowEffectDriver/supportedKinds/supportedKinds/supportedKinds",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/insertion/insertion",
+            "mockFileEffectPlanRecipe/capacity/capacity",
+            "mockFileEffectPlanRecipe/init:capacity/init:capacity",
+            "mockRowEffectDriver/driver/init:send/init:send/child/child#2"
           ],
           "exports": [
             "installPreparedProjectMockEffects",

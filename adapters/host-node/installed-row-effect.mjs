@@ -1926,7 +1926,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       return prepareInstalledRowCaptureChild({children: requestChildren,
         create: () => prepareInstalledEffectOwnedPhysicalChild({run: managedEffect,
           memberIndex: member.memberIndex, rowIndex, operationIndex: selected.operationIndex, operation,
-          transferBytes: selected.transferBytes, invoke, requestsRetired: retireRequestAliases}),
+          transferBytes: selected.transferBytes, invoke, requestsRetired: retireRequestAliases,
+          inputExtent: selected.inputExtent}),
         assertCurrent, signal});
     }
     const selected = selectInstalledEffectCredentialOperation(recipe, phase, credentialSlot);

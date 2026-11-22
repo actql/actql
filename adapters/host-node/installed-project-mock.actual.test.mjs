@@ -313,14 +313,23 @@ test('Mock actual CREATE codec inserts beside untouched rows through the locked 
     const decoder = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(zero, 1048576, 16384, 32));
     const decodingBytes = runtimeField(moon.clientProgramSerializationCapacityBytes(decoder), 1);
     const quoteOriginals = [];
+    const physicalCapacity = [];
     const observedRuntime = Object.create(moon, {clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest: {
       value(...args) {
         const physicalCapacity = args[12];
         quoteOriginals.push(physicalCapacity);
         return Reflect.apply(moon.clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest, moon, args);
       },
+    }, clientProgramInstalledEffectOperationExtentFromCapacityPrepare: {
+      value(...args) {
+        if (args[3]) physicalCapacity.push(args[1]);
+        return Reflect.apply(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare, moon, args);
+      },
     }});
-    mockFileEffectPlanRecipe(observedRuntime, bundle, account.write.permission, undefined, scratch);
+    const recipe = mockFileEffectPlanRecipe(observedRuntime, bundle, account.write.permission, undefined,
+      (size, units) => checked(moon.clientProgramRelationInsertWorkspaceCapacity(
+        contract, physical.itemsPath.length, size, units)));
+    recipe.physicalWrite.inputExtent(128, 100);
     assert(quoteOriginals.length > 0);
     for (const capacity of quoteOriginals) {
       const dimensions = moon.clientProgramSerializationCapacityBytes(capacity);
@@ -328,6 +337,9 @@ test('Mock actual CREATE codec inserts beside untouched rows through the locked 
       assert(retained >= receiptBound && retained < decodingBytes);
       assert(execution - retained >= decodingBytes + insertionBytes + 1048576n);
     }
+    const [maximum, initial, input] = physicalCapacity.map(token =>
+      runtimeField(moon.clientProgramSerializationCapacityBytes(token), 1));
+    assert(initial < input && input < maximum);
     const digest = character => 'sha256:' + character.repeat(64);
     const content = 'sha256:9f9eea815fedc32b706f3a87007cb26f3b61d5f16117949904ae53a88c508f9f';
     const key = checked(moon.clientProgramEffectFileCreateStorageKey(digest('b'), digest('a'), digest('a'), content, 0));
