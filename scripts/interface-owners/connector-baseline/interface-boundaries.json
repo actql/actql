@@ -2160,13 +2160,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "Only an explicitly selected DuckDB installation"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "loadDuckDBNativeRuntime"
               }
             ],
@@ -2178,19 +2178,19 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "return {host, session}"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "await Promise.all"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "DuckDBDependencyUnavailable"
               }
             ],
@@ -2199,7 +2199,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/native-runtime.mjs",
+                "path": "adapters/connectors/duckdb/node/native-runtime.mts",
                 "anchor": "Configuration, capacity and captured-handle inspection remain dependency-free"
               }
             ],

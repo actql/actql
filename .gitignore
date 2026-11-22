@@ -1768,3 +1768,7 @@ target/
 /adapters/connectors/duckdb/node/test/physical-capacity.test.d.mts
 /adapters/host-node/captured-duckdb-source.mjs
 /adapters/host-node/captured-duckdb-source.d.mts
+/adapters/connectors/duckdb/node/native-runtime.mjs
+/adapters/connectors/duckdb/node/native-runtime.d.mts
+/adapters/host-node/duckdb-import-boundary.test.mjs
+/adapters/host-node/duckdb-import-boundary.test.d.mts

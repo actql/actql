@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-function child(code, cwd = root) {
+function child(code: string, cwd = root) {
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', code],
     {cwd, encoding: 'utf8', timeout: 30_000});
   assert.equal(result.status, 0, result.stdout + result.stderr);

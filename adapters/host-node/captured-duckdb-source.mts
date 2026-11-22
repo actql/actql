@@ -13,7 +13,6 @@ import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
-// @ts-expect-error TS7016 The selected native loader still has authored JavaScript entrypoints.
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 
 type QueryOptions = Parameters<typeof prepareOriginalSourceQuery>[0];
@@ -379,7 +378,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         throw new Error('InstalledSourceCapacityEnvelopeMismatch');
       }
     }
-    native = await loadDuckDBNativeRuntime();
+    native = await loadDuckDBNativeRuntime() as NativeRuntime;
     grant = await native.session.authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
     failAcquisition(cause, 'not_started');
