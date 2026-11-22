@@ -715,7 +715,7 @@ pub fn issue_publication_request(PublicationContract, Array[PublicationContract]
 
 pub fn issue_result_delivery_receipt(PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
-pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
+pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int, funding? : ((Int) -> Bool, (Int, Int, Int) -> Bool)?) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
