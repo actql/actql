@@ -524,6 +524,8 @@ pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputS
 
 pub fn completed_export_preparation_workspace_slots(Int) -> Int?
 
+pub fn completed_export_reference_capacity(@relation_schema.Schema, Int, Int, ValueLimits, (Int) -> Bool) -> ExecutionCapacity?
+
 pub fn completed_fixed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, FixedRelationRead)]) -> CompletedOutput?
 
 pub fn completed_has_cell_access(CompletedOutput) -> Bool

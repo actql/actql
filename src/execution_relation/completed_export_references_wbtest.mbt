@@ -273,6 +273,113 @@ test "completed Content identity projection reads nested cached references witho
     { max_nodes: 100, max_depth: 10, max_text_bytes: 10000, },
     { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
   ).unwrap()
+  let id = @admitted.admit(id_contract, input_cursor("1"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  let source = nested_reference_test_output(schema, [id, nested])
+  let limits = { ..stream_value_limits(), max_nodes: 8, }
+  let pending_peak = Ref(0)
+  let cap = completed_export_reference_capacity(
+    schema,
+    1,
+    row_wire_limits().max_nodes,
+    limits,
+    count => {
+      pending_peak.val = Int::max(pending_peak.val, count)
+      true
+    },
+  ).unwrap()
+  assert_true(pending_peak.val >= 2)
+  assert_true(
+    completed_export_reference_capacity(
+      schema,
+      1,
+      row_wire_limits().max_nodes,
+      limits,
+      _ => false,
+    )
+    is None,
+  )
+  let receipt = nested_reference_test_export(source, limits)
+  // One row array, two cell arrays and two original occurrence records
+  // on this stream. Price the cap independently with eight allowed nodes:
+  // four Arrays, up to eleven entries, eight Some records and the owner/
+  // workspace controls. Growing Arrays keep both replacement buffers.
+  let inventory = receipt.rows.references.unwrap()
+  assert_eq(inventory.workspace.live, 5)
+  assert_eq(execution_capacity_retained_bytes(cap), 1000L)
+  assert_eq(execution_capacity_execution_bytes(cap), 1280L)
+  callbacks.val = 0
+  let cid = @admitted.reference_identity_cid(reference)
+  assert_eq(
+    completed_relation_export_content_reference_cids(receipt, 2, 100).unwrap(),
+    [cid, cid],
+  )
+  assert_eq(callbacks.val, 0)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(inventory.revoked)
+  assert_eq(inventory.workspace.live, 5)
+  assert_true(
+    completed_relation_export_content_reference_cids(receipt, 2, 100)
+    is Err(Unavailable),
+  )
+  cancel_completed_relation_export_receipt(
+    receipt,
+    discard_reference_inventory=true,
+  )
+  assert_true(receipt.rows.references is None)
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "completed reference-free nested values need no retained reference quote" {
+  let contract = select_checked_contract(
+    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false},\"max_items\":2}",
+  )
+  let id_contract = @contract.primitive(NumberType, nullable=false)
+  let schema = @schema.from_fields(
+    [(Unqualified("id"), id_contract), (Unqualified("p"), contract)],
+    max_fields=2,
+    max_name_bytes=3,
+  ).unwrap()
+  let nested = @admitted.admit(contract, input_cursor("[1,2]"), {
+    max_nodes: 8,
+    max_depth: 10,
+    max_text_bytes: 100,
+  }).unwrap()
+  let limits = { ..stream_value_limits(), max_nodes: 8, }
+  let cap = completed_export_reference_capacity(
+    schema,
+    1,
+    row_wire_limits().max_nodes,
+    limits,
+    _ => true,
+  ).unwrap()
+  assert_eq(execution_capacity_retained_bytes(cap), 0L)
+  assert_eq(execution_capacity_execution_bytes(cap), 0L)
+  let fallback = completed_export_reference_capacity(schema, 1, 1, limits, _ => {
+    true
+  }).unwrap()
+  assert_true(execution_capacity_retained_bytes(fallback) > 0L)
+  let id = @admitted.admit(id_contract, input_cursor("1"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  let source = nested_reference_test_output(schema, [id, nested])
+  let receipt = nested_reference_test_export(source, limits)
+  assert_true(receipt.rows.references is None)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(completed_output_available(source))
+}
+
+///|
+fn nested_reference_test_output(
+  schema : @schema.Schema,
+  cells : Array[@admitted.CheckedValue],
+) -> CompletedOutput raise {
   let owner = presence_output_owner(schema~)
   let admitted = prepare_admitted_output(
     owner,
@@ -280,12 +387,7 @@ test "completed Content identity projection reads nested cached references witho
     1,
     stream_value_limits(),
   ).unwrap()
-  let id = @admitted.admit(id_contract, input_cursor("1"), {
-    max_nodes: 1,
-    max_depth: 0,
-    max_text_bytes: 0,
-  }).unwrap()
-  append_admitted_output(admitted, [id, nested]).unwrap()
+  append_admitted_output(admitted, cells).unwrap()
   let rows = finish_admitted_output(admitted).unwrap()
   let prepared = prepare_completion(
     registered_relation_contracts(),
@@ -294,20 +396,32 @@ test "completed Content identity projection reads nested cached references witho
     10000,
     1000,
   ).unwrap()
-  let source = complete_trusted_output(
+  complete_trusted_output(
     prepare_trusted_output_port(prepared, Step(0), 1000, 10000, (_ : Unit) => {
       Some(rows)
     }).unwrap(),
     (),
   ).unwrap()
-  let receipt = content_borrow_export(source)
-  callbacks.val = 0
-  let cid = @admitted.reference_identity_cid(reference)
-  assert_eq(
-    completed_relation_export_content_reference_cids(receipt, 2, 100).unwrap(),
-    [cid, cid],
-  )
-  assert_eq(callbacks.val, 0)
+}
+
+///|
+fn nested_reference_test_export(
+  source : CompletedOutput,
+  limits : ValueLimits,
+) -> CompletedRelationExportReceipt {
+  let stream = prepare_completed_relation_export(
+    source,
+    1,
+    limits,
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    4096,
+  ).unwrap()
+  while next_completed_output_export(stream).unwrap() is Some(_) {
+    ()
+  }
+  finish_completed_relation_export(stream).unwrap().0
 }
 
 ///|

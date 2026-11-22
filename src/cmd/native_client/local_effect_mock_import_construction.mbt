@@ -737,3 +737,66 @@ fn native_mock_effect_proposal_order_capacity(
   }
   @execution.execution_capacity(retained, execution)
 }
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_proposal_export(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  result : @strategy.CapturedAnyResultBorrow,
+  limits : @infer.Limits,
+  rows : Int,
+) -> Bool {
+  let order = native_mock_effect_proposal_order_capacity(
+    Int::min(rows, limits.output_workspace),
+  ).bind(capacity => {
+    native_mock_effect_export_schema_workspace(0).bind(workspace => {
+      @execution.add_execution_capacity(capacity, workspace)
+    })
+  })
+  if !self.prepare_body(original, order) {
+    return false
+  }
+  let port = @execution.managed_result_occurrence_port(
+    @strategy.captured_any_result_borrow_occurrence(result),
+  )
+  let approved = Ref(0)
+  let capacity = @execution.completed_export_reference_capacity(
+    @results.port_schema(port),
+    Int::min(rows, limits.output_rows),
+    limits.identity.wire.max_nodes,
+    limits.output_values,
+    count => {
+      if count > approved.val {
+        if !self.prepare_body(
+            original,
+            native_mock_effect_export_schema_workspace(count),
+          ) {
+          return false
+        }
+        approved.val = count
+      }
+      true
+    },
+  )
+  guard capacity is Some(_) else { return false }
+  self.prepare_body(original, capacity)
+}
+
+///|
+// The same proof owns one growing pending array. Its funded callbacks and
+// scalar results are local to the pre-walk; the same peak also covers the
+// export's later schema test on the same projected Result schema.
+fn native_mock_effect_export_schema_workspace(
+  pending : Int,
+) -> @execution.ExecutionCapacity? {
+  @execution.preparation_array_representation(1L, pending.to_int64(), true)
+  .bind(array => {
+    @execution.preparation_representation_cost({
+      ..array,
+      record_headers: array.record_headers + 6L,
+      reference_slots: array.reference_slots + 12L,
+      scalar_words: array.scalar_words + 6L,
+    })
+  })
+  .bind(workspace => @execution.execution_capacity(0L, workspace))
+}

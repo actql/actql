@@ -277,7 +277,7 @@ pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> Strin
 
 pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
 
-pub fn captured_effect_proposal_plan_staged_rows(CapturedEffectProposalPlan, Int) -> Int?
+pub fn captured_effect_proposal_plan_staged_rows(CapturedEffectProposalPlan) -> Int?
 
 pub fn captured_effect_published_store_binding(CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, CapturedEffectProposalIssue]
 

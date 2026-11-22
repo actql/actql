@@ -245,10 +245,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
         .native_effect_proposal(self.original)
       let staged_rows = if entry == 0 {
-        @strategy.captured_effect_proposal_plan_staged_rows(
-          plan,
-          wire.max_nodes,
-        )
+        @strategy.captured_effect_proposal_plan_staged_rows(plan)
       } else {
         None
       }
@@ -456,13 +453,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       let measure_proposal_rows = staged_rows is Some(_) &&
         held.imports is Some(_)
-      if measure_proposal_rows {
-        let capacity = native_mock_effect_proposal_order_capacity(
-          Int::min(staged_rows.unwrap(), limits.output_workspace),
-        )
-        if !held.construction.unwrap().prepare_body(self.original, capacity) {
-          stop("LocalOriginalEffectProposalsUnavailable")
-        }
+      if measure_proposal_rows &&
+        !held.construction
+        .unwrap()
+        .prepare_proposal_export(
+          self.original,
+          @strategy.captured_effect_local_result_borrow(result),
+          limits,
+          staged_rows.unwrap(),
+        ) {
+        stop("LocalOriginalEffectProposalsUnavailable")
       }
       let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
           @strategy.captured_effect_local_result_borrow(result),
