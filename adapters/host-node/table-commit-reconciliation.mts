@@ -1,34 +1,61 @@
 // Readonly original-operation recovery under the existing Effect evidence,
 // Ledger and typed Table outcome owners. This path never claims or sends a write.
+// @ts-expect-error TS7016: the shared runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
 import {snapshotEffectDispatchClaim} from './effect-physical-dispatch.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+import type {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
+import type {captureClaimedEffectResponse, EffectDispatchClaim} from './effect-physical-dispatch.mjs';
+
+type EffectControl = Pick<ReturnType<typeof effectApplicationControl>, 'admitMemberRow' | 'previewMemberKind' |
+  'logicalItemLocatorCid' | 'admitLedgerEntry' | 'ledgerEntryMatchesBasis' |
+  'ledgerEntryStateCode' | 'ledgerEntryAdmitsDispatch'>;
+type Receipt = ReturnType<ReturnType<typeof effectApplicationControl>['admitRowOutcomeReceiptFromResponse']>;
+type Settlement = Parameters<typeof settleSavedTableCommit<EffectDispatchClaim, Receipt>>[0];
+type EvidenceOptions = Parameters<typeof readAuthorizedEffectResponse>[0];
+type ReconciliationControl = Omit<Settlement['control'], 'tablePreviewLedgerBinding'> & Readonly<{
+  tablePreviewLedgerBinding(preview: object): ReturnType<Settlement['control']['tablePreviewLedgerBinding']> &
+    Readonly<{rowPreviewCid: string}>;
+}>;
+type Bridge = Pick<ReturnType<typeof createIcebergPhysicalBridge>, 'reconcileOperation'> & Settlement['bridge'];
+type Ledger = Settlement['ledger'] & EvidenceOptions['ledger'] &
+  Pick<Parameters<typeof captureClaimedEffectResponse>[0]['ledger'], 'recordResponse'> &
+  Readonly<{history(locatorCid: string, maxRevisions: number): readonly Readonly<{entryJson: string}>[]}>;
+type ReconciliationOptions = Omit<Settlement, 'control' | 'ledger' | 'bridge'> & Readonly<{
+  control: ReconciliationControl; ledger: Ledger; bridge: Bridge; commonMoon: unknown;
+  authorizeEvidenceRead: EvidenceOptions['authorizeEvidenceRead']; credentialUseCid: string;
+  maxRevisions: number; entryLimits: Settlement['limits']; signal?: AbortSignal;
+}>;
+type Operation = Readonly<{request_cid: string; catalog_identity_cid: string}>;
+type LookupReply = Readonly<{ok?: unknown; result?: unknown}>;
+
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
 const unknown = () => Object.freeze({status: 'unknown'});
 
 export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   tablePreview, claim, bridge, authorizeEvidenceRead, credentialUseCid,
-  maxRevisions, entryLimits, limits, signal}) {
+  maxRevisions, entryLimits, limits, signal}: ReconciliationOptions) {
   if (typeof bridge?.reconcileOperation !== 'function' || !cid(credentialUseCid) ||
       !Number.isSafeInteger(maxRevisions) || maxRevisions < 1 ||
-      !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+      !(['maxWireBytes', 'maxNodes', 'maxDepth'] as const).every(key =>
         Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
         Number.isSafeInteger(entryLimits?.[key]) && entryLimits[key] > 0)) {
     fail('InvalidTableCommitReconciliation');
   }
   const ownedClaim = snapshotEffectDispatchClaim(claim);
   const binding = control.tablePreviewLedgerBinding(tablePreview);
-  const operation = JSON.parse(binding.operationWire);
+  const operation = JSON.parse(binding.operationWire) as Operation;
   if (ownedClaim.canonicalRequestCid !== operation.request_cid ||
       ownedClaim.intentFingerprintCid !== binding.rowPreviewCid) {
     fail('ForeignTableDispatchRequest');
   }
-  const effect = runtimeCore(commonMoon).effectApplicationControl;
+  const effect: EffectControl = runtimeCore(commonMoon).effectApplicationControl;
   effect.admitMemberRow(binding.preview, binding.memberIndex, 0,
-    effect.previewMemberKind(binding.preview, binding.memberIndex),
+    effect.previewMemberKind(binding.preview, binding.memberIndex)!,
     ownedClaim.scope, binding.rowPreviewCid, ownedClaim.locator, ownedClaim.key);
   const read = () => readAuthorizedEffectResponse({ledger, claims: ownedClaim,
     commonMoon, expectedRequestCid: operation.request_cid,
@@ -45,7 +72,7 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   // The validated complete history must contain the original possible dispatch.
   // Prepared/missing intent is not permission to query-and-manufacture a send.
   // The common Ledger verifies its chain; common admission verifies its basis.
-  let dispatching;
+  let dispatching: unknown;
   for (const row of ledger.history(effect.logicalItemLocatorCid(ownedClaim.locator),
     maxRevisions)) {
     const entry = effect.admitLedgerEntry(row.entryJson, entryLimits.maxWireBytes,
@@ -72,7 +99,7 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   const afterLookup = await read();
   signal?.throwIfAborted();
   if (afterLookup.stored !== undefined) return settle();
-  const observed = JSON.parse(responseBytes.toString('utf8'));
+  const observed = JSON.parse(responseBytes.toString('utf8')) as LookupReply | null;
   if (typeof observed?.ok !== 'boolean' || observed.result === null ||
       observed.result === undefined) return unknown();
   const statusCode = observed.ok ? 200 : 409;
@@ -92,7 +119,7 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   } catch (error) {
     // Another process can win the response CAS after our read. Its exact
     // durable bytes remain authoritative; an unrelated failure stays a failure.
-    if (error?.code !== 'EffectPhysicalResponseCollision' ||
+    if ((error as {code?: unknown} | null | undefined)?.code !== 'EffectPhysicalResponseCollision' ||
         ledger.readClaimedResponse(ownedClaim) === undefined) throw error;
   }
   // Only the response durably owned by the original dispatch can issue the

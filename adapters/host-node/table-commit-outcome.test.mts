@@ -5,6 +5,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 
+type FixtureClaim = Readonly<{canonicalRequestCid: string}>;
+type FixtureReceipt = Readonly<{terminalState: string}>;
+type Options = Parameters<typeof settleSavedTableCommit<FixtureClaim, FixtureReceipt>>[0];
+
 const limits = {maxWireBytes: 1024, maxNodes: 64, maxDepth: 8};
 function fixture() {
   const claim = {canonicalRequestCid: 'original-request'};
@@ -13,8 +17,8 @@ function fixture() {
   const tablePreview = Object.freeze({});
   const receipt = Object.freeze({terminalState: 'applied'});
   const saved = {responseBytes: Buffer.from(physical), statusCode: 200};
-  const calls = [];
-  const control = {
+  const calls: string[] = [];
+  const control: Options['control'] = {
     tablePreviewLedgerBinding(preview) {
       assert.equal(preview, tablePreview);
       return {operationWire: '{"request_cid":"original-request"}',
@@ -29,7 +33,7 @@ function fixture() {
       return 'admitted-outcome';
     },
   };
-  const ledger = {
+  const ledger: Options['ledger'] = {
     readClaimedResponse(actual) { assert.equal(actual, claim); return saved; },
     recordAdmittedRowOutcome({outcomeWire}) {
       assert.equal(outcomeWire, 'admitted-outcome');
@@ -37,7 +41,7 @@ function fixture() {
     },
     commitAdmittedRowOutcome() { calls.push('commit-outcome'); return {receipt}; },
   };
-  const bridge = {projectCommitResponse({control: actualControl,
+  const bridge: Options['bridge'] = {projectCommitResponse({control: actualControl,
     responseWire, statusCode, limits: actualLimits}) {
     assert.equal(actualControl, control);
     assert.equal(responseWire, physical);

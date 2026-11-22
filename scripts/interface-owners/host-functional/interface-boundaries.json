@@ -103501,7 +103501,7 @@
     {
       "module": "adapters/host-node/table-commit-apply.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ff083e0ec561e024caced8e22889f9599c08bc16103062ca3974c8f160484ae",
+      "sha256": "5123b4277b8e85f939890a93dca72c0f6830791a1eebc9c105d8f26844282828",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [
@@ -103649,8 +103649,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103663,8 +103663,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103677,8 +103677,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103691,7 +103691,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// owner. This is a trusted Host connection, not a public Table installer, a"
               },
               {
@@ -103705,8 +103705,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103719,8 +103719,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103733,7 +103733,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// The existing process owner supplies physical stop. Keep the preparation"
               },
               {
@@ -103747,7 +103747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "tableInput, identity, tablePreview, bridge, reservation, maxBytes, limits,"
               },
               {
@@ -103761,7 +103761,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// owner. This is a trusted Host connection, not a public Table installer, a"
               },
               {
@@ -103793,8 +103793,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103807,8 +103807,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103821,8 +103821,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103835,7 +103835,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// owner. This is a trusted Host connection, not a public Table installer, a"
               },
               {
@@ -103849,8 +103849,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "export function capturedTableCommitPhysicalStatus(prepared) {"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "export function capturedTableCommitPhysicalStatus(prepared: Prepared) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103863,8 +103863,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-commit-apply.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -103877,7 +103877,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// The existing process owner supplies physical stop. Keep the preparation"
               },
               {
@@ -103891,7 +103891,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "tableInput, identity, tablePreview, bridge, reservation, maxBytes, limits,"
               },
               {
@@ -103905,7 +103905,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-apply.mjs",
+                "path": "adapters/host-node/table-commit-apply.mts",
                 "anchor": "// owner. This is a trusted Host connection, not a public Table installer, a"
               },
               {
@@ -103944,7 +103944,7 @@
     {
       "module": "adapters/host-node/table-commit-outcome.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b0f3de6a77abc9c3043a9a0b506e8c64f996ff4253dee0e2c10e56282bf3d1b2",
+      "sha256": "0b04dc37c0f146c007be889aea79b56ad3b28ee4318920a83550ef47b4cb1eff",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [
@@ -103975,8 +103975,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -103989,8 +103989,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104003,7 +104003,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// reply remains uncertain; only the original Catalog receipt can supply the"
               },
               {
@@ -104017,7 +104017,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// Settle only the response already retained by the existing send-once Ledger."
               },
               {
@@ -104031,8 +104031,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -104045,7 +104045,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "throw Object.assign(new Error('ForeignTableDispatchRequest'),"
               },
               {
@@ -104059,8 +104059,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -104073,8 +104073,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "limits}) {"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "limits}: CommitOptions<Claim, Receipt>) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104087,7 +104087,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// This is not an installer/approval gate or a send/retry path. A lost or invalid"
               },
               {
@@ -104101,7 +104101,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-commit-outcome.test.mjs",
+                "path": "adapters/host-node/table-commit-outcome.test.mts",
                 "anchor": "test('Table settlement selects its Connector projection without a Local fallback', () => {"
               },
               {
@@ -104119,8 +104119,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -104133,8 +104133,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104147,7 +104147,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// reply remains uncertain; only the original Catalog receipt can supply the"
               },
               {
@@ -104161,7 +104161,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// Settle only the response already retained by the existing send-once Ledger."
               },
               {
@@ -104175,8 +104175,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -104189,7 +104189,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "throw Object.assign(new Error('ForeignTableDispatchRequest'),"
               },
               {
@@ -104203,8 +104203,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "export function settleSavedTableCommit({control, ledger, tablePreview, claim, bridge,"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "export function settleSavedTableCommit<Claim extends ClaimIdentity, Receipt extends ReceiptState>("
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -104217,8 +104217,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
-                "anchor": "limits}) {"
+                "path": "adapters/host-node/table-commit-outcome.mts",
+                "anchor": "limits}: CommitOptions<Claim, Receipt>) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104231,7 +104231,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-outcome.mjs",
+                "path": "adapters/host-node/table-commit-outcome.mts",
                 "anchor": "// This is not an installer/approval gate or a send/retry path. A lost or invalid"
               },
               {
@@ -104245,7 +104245,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/table-commit-outcome.test.mjs",
+                "path": "adapters/host-node/table-commit-outcome.test.mts",
                 "anchor": "test('Table settlement selects its Connector projection without a Local fallback', () => {"
               },
               {
@@ -104264,7 +104264,7 @@
     {
       "module": "adapters/host-node/table-commit-reconciliation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aba2d7bcec2a4c809ec3afea00a130c0368fa1adb05ef97f290a67ec8f0807f6",
+      "sha256": "ce156b6ced2e29ffe68db742fd3bbc8a21e426c3690412625f2badd756e670c9",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [
@@ -104309,7 +104309,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {
@@ -104323,7 +104323,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {
@@ -104337,7 +104337,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "// Readonly original-operation recovery under the existing Effect evidence,"
               },
               {
@@ -104351,7 +104351,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "// Ledger and typed Table outcome owners. This path never claims or sends a write."
               },
               {
@@ -104365,7 +104365,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "const initial = await read();"
               },
               {
@@ -104379,8 +104379,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -104393,8 +104393,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "maxRevisions, entryLimits, limits, signal}) {"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "maxRevisions, entryLimits, limits, signal}: ReconciliationOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -104407,8 +104407,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "maxRevisions, entryLimits, limits, signal}) {"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "maxRevisions, entryLimits, limits, signal}: ReconciliationOptions) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104421,7 +104421,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {
@@ -104453,7 +104453,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {
@@ -104467,7 +104467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {
@@ -104481,7 +104481,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "// Readonly original-operation recovery under the existing Effect evidence,"
               },
               {
@@ -104495,7 +104495,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "// Ledger and typed Table outcome owners. This path never claims or sends a write."
               },
               {
@@ -104509,7 +104509,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "const initial = await read();"
               },
               {
@@ -104523,8 +104523,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -104537,8 +104537,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "maxRevisions, entryLimits, limits, signal}) {"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "maxRevisions, entryLimits, limits, signal}: ReconciliationOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -104551,8 +104551,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
-                "anchor": "maxRevisions, entryLimits, limits, signal}) {"
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
+                "anchor": "maxRevisions, entryLimits, limits, signal}: ReconciliationOptions) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -104565,7 +104565,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/table-commit-reconciliation.mjs",
+                "path": "adapters/host-node/table-commit-reconciliation.mts",
                 "anchor": "export async function reconcileOriginalTableCommit({control, commonMoon, ledger,"
               },
               {

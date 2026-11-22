@@ -2,17 +2,84 @@
 // owner. This is a trusted Host connection, not a public Table installer, a
 // second approval/Run owner, or authority derived from operation content.
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
+// @ts-expect-error TS7016: Effect input export still has a JavaScript entry.
 import {readPinnedEffectTableInput} from './effect-input-export.mjs';
 import {readRecoveredTableInput, assertRecoveredTableInputAvailable}
   from './table-capture-recovery.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {settleSavedTableCommit} from './table-commit-outcome.mjs';
 
-const materials = new WeakMap();
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+import type {assertAuthorizationAccountCurrent} from '../host-common/authorization-gate.mjs';
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+import type {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
+import type {EffectDispatchClaim} from './effect-physical-dispatch.mjs';
+import type {prepareRecoveredTableInput} from './table-capture-recovery.mjs';
 
-const ownMaterial = prepared => {
+type Receipt = ReturnType<ReturnType<typeof effectApplicationControl>['admitRowOutcomeReceiptFromResponse']>;
+type Settlement = Parameters<typeof settleSavedTableCommit<EffectDispatchClaim, Receipt>>[0];
+type CaptureLedger = Parameters<typeof captureClaimedEffectResponse>[0]['ledger'];
+type PhysicalBridge = Pick<ReturnType<typeof createIcebergPhysicalBridge>,
+  'prepareWrite' | 'status' | 'inspect' | 'cleanup' | 'execute'> & Settlement['bridge'];
+type PhysicalWrite = ReturnType<PhysicalBridge['prepareWrite']>;
+type Decision = Parameters<typeof assertAuthorizationAccountCurrent>[0];
+type Scope = Pick<Decision['tuple'], 'connection' | 'resource'>;
+type TablePreview = Readonly<{subjectCid: string}>;
+type Binding = ReturnType<Settlement['control']['tablePreviewLedgerBinding']> & Readonly<{rowPreviewCid: string}>;
+type SettlementControl = Omit<Settlement['control'], 'tablePreviewLedgerBinding'> & Readonly<{
+  tablePreviewLedgerBinding(preview: object): Binding;
+}>;
+type DispatchControl = SettlementControl & Readonly<{
+  admitTablePreviewClaim(preview: object, claim: EffectDispatchClaim): unknown;
+}>;
+type CapturedControl = SettlementControl & Readonly<{
+  tablePreviewInputAvailable(preview: object): boolean;
+  tableInputStorageMappingWire(input: object): string;
+  tableInputSchemaWire(input: object): string;
+  tableInputMatchesSource(input: object, artifact: object, identity: object): boolean;
+}>;
+type TableVersion = Readonly<{table_uuid: string; generation_cid: string}>;
+type Operation = Readonly<{request_cid: string; schema_cid: string; storage_mapping_cid: string}> &
+  (Readonly<{action: 'create'; expected_table: null}> | Readonly<{action: 'replace'; expected_table: TableVersion}>);
+type TargetObservation = Readonly<{ok?: unknown; result: (TableVersion & Readonly<{
+  schema_cid: string; storage_mapping_cid: string;
+}>) | null}>;
+type CleanupReply = Readonly<{ok?: unknown; result?: Readonly<{pending?: unknown}>}>;
+type PreparePorts = Readonly<{
+  bridge: PhysicalBridge; reservation: Parameters<PhysicalBridge['prepareWrite']>[0]['reservation'];
+  maxBytes: number; signal?: AbortSignal;
+}>;
+type CapturedInput = PreparePorts & Readonly<{
+  control: CapturedControl; store: Parameters<typeof prepareRecoveredTableInput>[0]['store'];
+  holding: object; tableInput: Readonly<{wire: string}>; identity: object;
+  tablePreview: TablePreview; limits: Settlement['limits'];
+}>;
+type RecoveredInput = PreparePorts & Readonly<{
+  control: SettlementControl; recoveredInput: Parameters<typeof readRecoveredTableInput>[0]['prepared'];
+}>;
+type Material = Readonly<{
+  control: SettlementControl; bridge: PhysicalBridge; physical: PhysicalWrite; tablePreview: TablePreview;
+  assertAvailable(): void; memberIndex: number; operation: Operation; rowPreviewCid: string;
+  requestCid: string; subjectCid: string;
+}>;
+type MaterialInput = Pick<Material, 'control' | 'bridge' | 'physical' | 'tablePreview' | 'assertAvailable' | 'operation'> &
+  Readonly<{binding: Binding}>;
+declare const tableCommitPreparation: unique symbol;
+type Prepared = Readonly<{[tableCommitPreparation]: true}>;
+type OwnedInput = Readonly<{prepared: Prepared; signal?: AbortSignal}>;
+type DispatchOwner = Readonly<{
+  control: DispatchControl; ledger: CaptureLedger & Settlement['ledger']; prepared: readonly (Prepared | undefined)[];
+  scopes: readonly Scope[]; credentialUseCid: string; limits: Settlement['limits'];
+}>;
+type DispatchFacts = Readonly<{
+  members: readonly Readonly<{claims: readonly EffectDispatchClaim[]}>[];
+  subjectCid: string; decisions: readonly Decision[]; signal?: AbortSignal;
+}>;
+
+const materials = new WeakMap<Prepared, Material>();
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+
+const ownMaterial = (prepared: Prepared) => {
   const material = materials.get(prepared);
   if (material === undefined) fail('ForeignTableCommitMaterial');
   return material;
@@ -21,12 +88,12 @@ const ownMaterial = prepared => {
 // The existing process owner supplies physical stop. Keep the preparation
 // reachable when cleanup fails: a caller can retry the same Catalog fence and
 // file manifest, without recreating input or inferring noncommit from a head.
-export function capturedTableCommitPhysicalStatus(prepared) {
+export function capturedTableCommitPhysicalStatus(prepared: Prepared) {
   const material = ownMaterial(prepared);
   return material.bridge.status(material.physical);
 }
 
-export async function cleanupCapturedTableCommit({prepared, signal}) {
+export async function cleanupCapturedTableCommit({prepared, signal}: OwnedInput) {
   const material = ownMaterial(prepared);
   const status = material.bridge.status(material.physical);
   if (!status.attempted) {
@@ -38,12 +105,12 @@ export async function cleanupCapturedTableCommit({prepared, signal}) {
     return Object.freeze({ok: true,
       result: Object.freeze({retained: false, pending: false, removed: 0})});
   }
-  return material.bridge.cleanup(material.physical, signal);
+  return material.bridge.cleanup(material.physical, signal) as Promise<CleanupReply | null | undefined>;
 }
 
 export async function prepareCapturedTableCommit({control, store, holding,
   tableInput, identity, tablePreview, bridge, reservation, maxBytes, limits,
-  signal}) {
+  signal}: CapturedInput) {
   const binding = control.tablePreviewLedgerBinding(tablePreview);
   if (tableInput.wire !== binding.operationWire ||
       control.tablePreviewInputAvailable(tablePreview) !== true) {
@@ -55,7 +122,7 @@ export async function prepareCapturedTableCommit({control, store, holding,
   if (control.tablePreviewInputAvailable(tablePreview) !== true) {
     fail('UnavailableTableCommitInput');
   }
-  const operation = JSON.parse(binding.operationWire);
+  const operation = JSON.parse(binding.operationWire) as Operation;
   const mapping = JSON.parse(control.tableInputStorageMappingWire(tableInput));
   // Pure bounded preparation, before any durable send claim. No Catalog I/O.
   const schemaWire = control.tableInputSchemaWire(tableInput);
@@ -72,7 +139,7 @@ export async function prepareCapturedTableCommit({control, store, holding,
 // exact capture/Store owners supply availability; common apply supplies the
 // current approval and durable dispatch claim before execute.
 export async function prepareRecoveredTableCommit({control, recoveredInput,
-  bridge, reservation, maxBytes, signal}) {
+  bridge, reservation, maxBytes, signal}: RecoveredInput) {
   assertRecoveredTableInputAvailable(recoveredInput);
   const {tablePreview, operationWire, mappingWire, schemaWire} = recoveredInput;
   const binding = control.tablePreviewLedgerBinding(tablePreview);
@@ -80,15 +147,15 @@ export async function prepareRecoveredTableCommit({control, recoveredInput,
   const rows = await readRecoveredTableInput({prepared: recoveredInput, maxBytes, signal});
   signal?.throwIfAborted();
   assertRecoveredTableInputAvailable(recoveredInput);
-  const operation = JSON.parse(operationWire), mapping = JSON.parse(mappingWire);
+  const operation = JSON.parse(operationWire) as Operation, mapping = JSON.parse(mappingWire);
   const physical = bridge.prepareWrite({operation, mapping, rows, reservation, schemaWire});
   return retainMaterial({control, bridge, physical, tablePreview, binding, operation,
     assertAvailable: () => assertRecoveredTableInputAvailable(recoveredInput)});
 }
 
 function retainMaterial({control, bridge, physical, tablePreview, binding,
-  operation, assertAvailable}) {
-  const prepared = Object.freeze({});
+  operation, assertAvailable}: MaterialInput) {
+  const prepared = Object.freeze({}) as Prepared;
   materials.set(prepared, Object.freeze({control, bridge, physical,
     tablePreview, assertAvailable, memberIndex: binding.memberIndex,
     operation, rowPreviewCid: binding.rowPreviewCid, requestCid: operation.request_cid,
@@ -99,12 +166,14 @@ function retainMaterial({control, bridge, physical, tablePreview, binding,
 // Called by the existing apply owner's refreshPreflight, after current target
 // read authorization. Publication still compares the approved generation
 // atomically, so a race after this observation cannot overwrite another head.
-export async function refreshCapturedTableTargets({prepared, preflight, signal}) {
+export async function refreshCapturedTableTargets<Preflight extends object>({prepared, preflight, signal}: Readonly<{
+  prepared: readonly Prepared[]; preflight: Preflight; signal?: AbortSignal;
+}>) {
   const observedRows = [], guardVersions = [];
   for (const value of prepared) {
     const material = ownMaterial(value);
     signal?.throwIfAborted();
-    const observed = await material.bridge.inspect(material.physical, signal);
+    const observed = await material.bridge.inspect(material.physical, signal) as TargetObservation | null | undefined;
     if (observed?.ok !== true) fail('TableTargetObservationUnknown');
     const {operation} = material;
     const current = observed.result;
@@ -133,12 +202,12 @@ export async function refreshCapturedTableTargets({prepared, preflight, signal})
 // current-use checks and journal-authoritative approval. An account allow, a
 // copied decision or an approval of another sealed Set cannot send a Table.
 export function bindApprovedTableCommitDispatch({control, ledger, prepared,
-  scopes, credentialUseCid, limits}, {members, subjectCid, decisions, signal}) {
+  scopes, credentialUseCid, limits}: DispatchOwner, {members, subjectCid, decisions, signal}: DispatchFacts) {
   if (!Array.isArray(prepared) || prepared.length !== members.length ||
       !Array.isArray(scopes) || scopes.length !== members.length ||
       !cid(credentialUseCid)) fail('InvalidTableCommitDispatch');
   const owned = prepared.map((value, index) => {
-    const material = materials.get(value);
+    const material = materials.get(value!);
     const scope = scopes[index];
     const decision = decisions.find(value =>
       value.tuple?.connection === scope?.connection &&
@@ -149,17 +218,19 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
       fail('ForeignTableCommitDispatch');
     }
     if (!authorizationDispatchFacts(decision) ||
-        decision.action !== 'dispatch' || decision.boundary !== 'effect_commit' ||
-        decision.tuple.operation !== 'effect' || decision.subjectCid !== subjectCid ||
-        decision.basis !== 'resumed' || !cid(decision.checkpointCid) ||
-        !cid(decision.resolutionCid)) fail('TableCommitApprovalRequired');
+        decision!.action !== 'dispatch' || decision!.boundary !== 'effect_commit' ||
+        decision!.tuple.operation !== 'effect' || decision!.subjectCid !== subjectCid ||
+        decision!.basis !== 'resumed' || !cid(decision!.checkpointCid) ||
+        !cid(decision!.resolutionCid)) fail('TableCommitApprovalRequired');
     // Semantic Preview/request CIDs cannot distinguish legitimate copies
     // authored under different scopes. Admit the actual claim against the
     // exact typed Preview before any durable send claim or provider call.
     control.admitTablePreviewClaim(material.tablePreview, members[index].claims[0]);
     return material;
   });
-  return async ({memberIndex, rowIndex, claim}) => {
+  return async ({memberIndex, rowIndex, claim}: Readonly<{
+    memberIndex: number; rowIndex: number; claim: EffectDispatchClaim;
+  }>) => {
     const material = owned[memberIndex];
     if (rowIndex !== 0 || claim !== members[memberIndex]?.claims[0] ||
         material === undefined) fail('ForeignTableCommitDispatch');
