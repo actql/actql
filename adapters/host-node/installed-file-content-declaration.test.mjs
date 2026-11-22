@@ -634,6 +634,14 @@ test('original Program captured left supplies the exact live version-fixed keyed
   assert.equal(ready, undefined);
 });
 
+async function prepareOriginalKeyedLookupRead(value) {
+  const requestIdentity = moon.clientProgramRequestIdentity(value.preparedProgram,
+    token('a'), 'fixture-keyed-lookup', moon.clientProgramSourceFreeInputIntentCid());
+  const selected = await value.adapter.prepareKeyed({preparedProgram: value.preparedProgram,
+    keyedAcquisition: value.acquisition, requestIdentity});
+  return selected.prepared;
+}
+
 async function originalKeyedRequest(value, row = 0) {
   const cursor = checked(moon.clientProgramKeyedRequestStart(value.left, row, 100000, 10000));
   for (let poll = 0; poll < 10000; poll++) {
@@ -1073,10 +1081,11 @@ test('installed whole lookup assembles every original key before exposing its ex
       await consumePage([{content: admittedContent, ...request}]);
     }});
   t.after(value.close);
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 2);
   const ledger = lookupLedger();
   const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-    keyedAcquisition: value.acquisition, left: value.left, ledger, quantum: 1});
+    keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, quantum: 1});
   t.after(lookup.close);
   assert.deepEqual(requests, items.map(row => ({resource: row.resource, version: row.version})));
   assert.ok(lookup.capture.read());
@@ -1168,8 +1177,9 @@ test('real assembled lookup feeds only the original managed JOIN with its actual
         await consumePage([{content: admittedContent, ...request}]);
       }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger: lookupLedger(), quantum});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger: lookupLedger(), quantum});
     t.after(lookup.close);
     const prepared = await lookup.prepareJoin(value.joinContracts);
     assert.ok(prepared);
@@ -1327,8 +1337,9 @@ test('complete keyed lookup issues its own logical input and live Source observa
         await consumePage([{...JSON.parse(requestWire), content: admittedContent}]);
       }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger: lookupLedger()});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger: lookupLedger()});
     t.after(lookup.close);
     const options = {authorityScopeCid: token('a'), observedAt: '2026-10-09T00:00:00.000Z'};
     await assert.rejects(lookup.issueObservation({...options, observedAt: '2026-10-09T00:00:00Z'}),
@@ -2522,9 +2533,10 @@ test('installed lookup retains the same rows identity and logical work across qu
       await consumePage(expected);
     }});
     t.after(value.close);
+    const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
     const ledger = lookupLedger();
     const lookup = await value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-      keyedAcquisition: value.acquisition, left: value.left, ledger, quantum});
+      keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, quantum});
     t.after(lookup.close);
     assert.equal(lookup.capture.identity(), cid(expected));
     totals.push(lookup.work());
@@ -2547,9 +2559,10 @@ test('installed lookup refuses cancellation after positive physical work without
       if (sends === 2) abort.abort(new Error('StoppedOriginalLookup'));
     }});
   t.after(value.close);
+  const preparedKeyed = await prepareOriginalKeyedLookupRead(value);
   const ledger = lookupLedger();
   await assert.rejects(value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
-    keyedAcquisition: value.acquisition, left: value.left, ledger, signal: abort.signal}),
+    keyedAcquisition: value.acquisition, left: value.left, preparedKeyed, ledger, signal: abort.signal}),
   error => error.code === 'StoppedOriginalLookup' && error.outcome === 'stopped');
   assert.equal(sends, 2);
   assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes > 0n,
