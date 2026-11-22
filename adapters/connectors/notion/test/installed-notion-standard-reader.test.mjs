@@ -121,7 +121,9 @@ async function loaderFixture({changeAfterRead = false, implementationFailure, re
     notionUserListRelationFactsWire() {assert.equal(this, provider);return 'facts';},
     notionUserListColumnNames() {assert.equal(this, provider);return ['id', 'name'];},
     notionUserListRowsWire() {assert.fail('No page in constructor scope');},
-    notionUserListMetadataJson() {assert.fail('No page');}, notionUserListIds() {assert.fail('No page');},
+    notionUserListMetadata() {assert.fail('No page');},
+    notionUserListPrepareIdentityProgress() {assert.fail('No page');},
+    notionUserListTrackPageIdentities() {assert.fail('No page');},
     notionProjectUserList() {assert.fail('No page');},
   };
   const site = {async close() {assert.equal(this, site);events.push('site.close');}};
@@ -201,7 +203,7 @@ test('Notion constructor captures original services and provider before configur
   assert.equal(f.readerInput.operation, 'notion:users:list');
   assert.throws(() => f.readerInput.preparePageReader({resource: 'foreign', columns: []}, () => {}),
     {code: 'UndeclaredNotionResource'});
-  assert.equal(f.implementationInput.cursorProgress, true);
+  assert.equal(f.implementationInput.cursorProgress, 'codec-identities');
   assert(Object.isFrozen(f.implementationInput.requestConstruction));
 });
 
