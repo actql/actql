@@ -5228,6 +5228,270 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-commit.mjs",
+      "sha256": "4bc2e6108347d52fcdf50dc6eac1ee12c1ad9534a4e58b4e3f2ef8f0d5fe4c79",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "approvalOf",
+        "approvedValue",
+        "createInstalledRowEffectApproval",
+        "createInstalledRowEffectCommit"
+      ],
+      "operations": [
+        {
+          "name": "approvalOf/approvalOf",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "approvedValue/approvedValue",
+          "parameters": [
+            "kind",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectApproval",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectApproval/requireApproval/requireApproval",
+          "parameters": [
+            "member",
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCommit",
+          "parameters": [
+            "moon",
+            "effect",
+            "ownerOf",
+            "sameEffectValue",
+            "sameValue",
+            "targeted",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCommit/admitRow/admitRow",
+          "parameters": [
+            "applyPreview",
+            "memberIndex",
+            "rowIndex",
+            "claim",
+            "member",
+            "entry",
+            "previewRow"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCommit/commitDecisions/commitDecisions",
+          "parameters": [
+            "decisions",
+            "subjectCid",
+            "members"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCommit/scopeKey/scopeKey",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCommit/settle/settle",
+          "parameters": [
+            "ledger",
+            "claim",
+            "applyPreview",
+            "memberIndex",
+            "rowIndex",
+            "projected"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "approvalOf/approvalOf",
+            "approvedValue/approvedValue",
+            "createInstalledRowEffectApproval",
+            "createInstalledRowEffectApproval/requireApproval/requireApproval"
+          ],
+          "exports": [
+            "approvalOf",
+            "approvedValue",
+            "createInstalledRowEffectApproval"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const requireApproval = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "export const approvalOf"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "export const approvedValue"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "decision?.basis !== 'resumed'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "approvalOf(member)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "before the"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "new Error('InstalledRowEffectApprovalRequired')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The approval floor and value projections are synchronous before claim."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "member.kind !== 'command'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "export function createInstalledRowEffectApproval"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "Command dispatch adds no contract floor to the original Account allow or immediate permit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectCommit",
+            "createInstalledRowEffectCommit/admitRow/admitRow",
+            "createInstalledRowEffectCommit/commitDecisions/commitDecisions",
+            "createInstalledRowEffectCommit/scopeKey/scopeKey",
+            "createInstalledRowEffectCommit/settle/settle"
+          ],
+          "exports": [
+            "createInstalledRowEffectCommit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const commitDecisions = "
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const admitRow = "
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const settle = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "return {scopeKey, commitDecisions, settle, admitRow}"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "claim.canonicalRequestCid !== entry.requestCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const ownedClaim = snapshotEffectDispatchClaim(claim)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "const terminal = ledger.commitAdmittedRowOutcome"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "reject('InstalledRowEffectCommitNotAuthorized')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These dispatch admission and ledger settlement operations complete synchronously within their caller."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "ledger.recordAdmittedRowOutcome({claim"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-commit.mts",
+                "anchor": "projected?.kind !== 'typed-success-response'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "Command uses the same original Account gate for allow deny no-match immediate permit reject and defer"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "./effect-physical-dispatch.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
       "sha256": "568fce846298deec781321bbe6d81237f09557b1c749d12facbf37bb2496f6af",
       "responsibilityFacet": "primary",
@@ -8828,7 +9092,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "58d134b98bf2a65fda9a67e0d76f5ac3df13cccf318ea23e0164d07bb275b8fb",
+      "sha256": "84d3a43a41757e701534b423613a6c26d316334a12b32a40ddd5c5736e011aef",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10048,13 +10312,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/scopeKey/scopeKey",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/targetPlanOf/targetPlanOf",
           "parameters": [
             "member",
@@ -10309,7 +10566,6 @@
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
-            "createRowEffectStage/scopeKey/scopeKey",
             "guarded/guarded",
             "optionalFunction/optionalFunction",
             "prepareInstalledCreateRows/createRows/createRows",
@@ -15039,7 +15295,6 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
-        "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
@@ -15055,6 +15310,7 @@
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-effect-authorization.mjs",
+        "./installed-row-effect-commit.mjs",
         "./installed-row-effect-construction.mjs",
         "./installed-row-effect-driver.mjs",
         "./installed-row-effect-members.mjs",

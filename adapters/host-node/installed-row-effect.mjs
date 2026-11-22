@@ -100,6 +100,7 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
+import {approvalOf, approvedValue, createInstalledRowEffectApproval, createInstalledRowEffectCommit} from './installed-row-effect-commit.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild,
   createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision,
@@ -109,8 +110,6 @@ import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} 
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
 import {invokeDeclaredRowUpdate} from '../host-common/owned-invocation-context.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {refusedEffectPreparation} from
-  '../host-common/effect-preparation-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from
@@ -123,7 +122,7 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
-import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
+import {captureClaimedEffectResponse} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
@@ -157,10 +156,6 @@ const guarded = kind => kind === 'update' || kind === 'upsert' || kind === 'dele
 const targeted = kind => guarded(kind) || kind === 'command';
 const contractCidOf = member => member.kind === 'command'
   ? member.command.commandCid : member.mapping.mappingCid;
-// Command has no contract minimum. Only legacy Mapping DATA uses this reader.
-const approvalOf = member => member.mapping.approval;
-const approvedValue = (kind, row) => kind === 'delete' ? undefined : kind === 'command'
-  ? row.intended_changes?.value : row.after?.value;
 // A deletion has no proposed value. It must not acquire an empty object,
 // null, an UPDATE body or a Command input to satisfy the shared comparison.
 const sameEffectValue = (kind, left, right) => kind === 'delete'
@@ -524,78 +519,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
 
   const decideTargetRead = createInstalledRowEffectTargetAuthorization({ownerOf, targetPlanOf, recipeOf, fail});
 
-  const scopeKey = member => JSON.stringify([ownerOf(member).connection, member.resource]);
-  // A resource name alone cannot identify a decision across installations.
-  const commitDecisions = (decisions, subjectCid, members) => {
-    const byScope = new Map();
-    const required = new Set(members.map(scopeKey));
-    for (const decision of decisions ?? []) {
-      const tuple = decision?.tuple;
-      const key = JSON.stringify([tuple?.connection ?? null, tuple?.resource ?? null]);
-      if (decision?.action !== 'dispatch' || decision.boundary !== 'effect_commit' ||
-          decision.subjectCid !== subjectCid || tuple?.operation !== 'effect' ||
-          !required.has(key) || byScope.has(key)) fail('InstalledRowEffectCommitNotAuthorized');
-      byScope.set(key, decision);
-    }
-    for (const key of required) if (!byScope.has(key)) fail('InstalledRowEffectCommitNotAuthorized');
-    return byScope;
-  };
-
-  // Settle one row from a typed provider outcome. Anything else leaves the
-  // row's possible dispatch unknown; it is never resent.
-  const settle = ({ledger, claim, applyPreview, memberIndex, rowIndex,
-    projected}) => {
-    if (projected?.kind !== 'typed-success-response' &&
-        projected?.kind !== 'typed-failure-response') return undefined;
-    const outcome = projected.outcome;
-    if (!['applied', 'failed'].includes(outcome?.state)) {
-      fail('InvalidInstalledRowEffectOutcome');
-    }
-    const recorded = ledger.recordAdmittedRowOutcome({claim,
-      preview: applyPreview, memberIndex, previewRowIndex: rowIndex,
-      outcomeWire: canonicalValueJson(outcome, {dataKeys: true})});
-    const terminal = ledger.commitAdmittedRowOutcome({claim,
-      preview: applyPreview, memberIndex, previewRowIndex: rowIndex});
-    return Object.freeze({outcomeReceipt: recorded.receipt,
-      terminal: terminal.transition});
-  };
-
-  // A Mapping that requires approval is written only under a commit the Host
-  // resumed from a resolved Checkpoint of this sealed Set; an account allow
-  // alone is not an approval. Decided from the commit decision before the
-  // row's claim, so the Set's prepared intents show nothing was sent.
-  const requireApproval = (member, decision) => {
-    if (member.kind !== 'command' && approvalOf(member) === 'required' &&
-        (decision?.basis !== 'resumed' || !text(decision.checkpointCid) ||
-          !text(decision.resolutionCid))) {
-      throw refusedEffectPreparation(Object.assign(
-        new Error('InstalledRowEffectApprovalRequired'),
-        {code: 'InstalledRowEffectApprovalRequired'}));
-    }
-  };
-
-  // Bind a row's request to its admitted Preview row: the request must write
-  // exactly the approved value to exactly the approved target, under its
-  // claim.
-  const admitRow = ({applyPreview, memberIndex, rowIndex, claim, member,
-    entry, previewRow}) => {
-    ownerOf(member).owned.assertRequestFinalized?.(entry.request, effect.dispatchKeyCid(claim.key));
-    if (claim.canonicalRequestCid !== entry.requestCid ||
-        !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, previewRow)) ||
-        (targeted(member.kind) &&
-          !sameValue(entry.target, previewRow.target_row_identity))) {
-      fail('ForeignInstalledRowEffectRequest');
-    }
-    const rowPreviewCid = moon.strategyEffectPreviewOrderedRowCid(
-      applyPreview, memberIndex, rowIndex);
-    if (typeof rowPreviewCid !== 'string') {
-      fail('InvalidInstalledRowEffectDispatch');
-    }
-    const ownedClaim = snapshotEffectDispatchClaim(claim);
-    effect.admitMemberRow(applyPreview, memberIndex, rowIndex, member.kind,
-      ownedClaim.scope, rowPreviewCid, ownedClaim.locator, ownedClaim.key);
-    return ownedClaim;
-  };
+  const {scopeKey, commitDecisions, settle, admitRow} = createInstalledRowEffectCommit({
+    moon, effect, ownerOf, sameEffectValue, sameValue, targeted, fail,
+  });
+  const requireApproval = createInstalledRowEffectApproval(text);
 
   // Current use and physical dispatch over one set of members. `entries`
   // and `previewRows` are each member's rows in the approved Preview's order.
