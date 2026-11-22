@@ -9,8 +9,8 @@ import {sourceJsonWireGeometry} from '../../../host-node/installed-source-constr
 import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: the original Local file writer is still authored in JavaScript.
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
+import type {captureLocalFileWriteConstructionProfile} from '../site/root-file-writer-profile.mjs';
 
 type Runtime = Readonly<{
   clientProgramInstalledLocalFileStoreControlWireBound(): number;
@@ -36,7 +36,8 @@ type Input = Readonly<{
     preview: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
   }>;
   limits: Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxFileBytes: number}>;
-  writerProfile: Readonly<{nativeOriginalBytes: number | bigint; maxRootBytes: number; maxNameBytes: number; maxDepth: number}>;
+  writerProfile: Pick<ReturnType<typeof captureLocalFileWriteConstructionProfile>,
+    'nativeOriginalBytes' | 'maxRootBytes' | 'maxNameBytes' | 'maxDepth'>;
   requestHeaderUnits?: number;
   grantIssuer?: unknown;
   responseProjector?: unknown;
@@ -59,7 +60,7 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     BigInt(writerProfile.nativeOriginalBytes), writerProfile.maxRootBytes, writerProfile.maxNameBytes,
-    localFileWriteMaxComponents as number, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes)) as readonly unknown[];
+    localFileWriteMaxComponents, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes)) as readonly unknown[];
   const quantities = quote(controlEntryBytes, limits.maxResponseBytes), fallback = quote(undefined, undefined);
   if (!Array.isArray(quantities) || ![6, 7, 8].includes(quantities.length)) {
     throw new TypeError('InvalidLocalFileStoreConstructionGeometry');

@@ -3,17 +3,40 @@
 // child; this module creates none of those capabilities or a success receipt.
 import {isAbsolute} from 'node:path';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const text = (value, max) => typeof value === 'string' && value.length > 0 &&
+type NativeMethods = Readonly<{
+  openFileRoot(path: string): unknown;
+  openFileDirectory(root: unknown, name: string, maxEntries: number): unknown;
+  openRootFileWriter(root: unknown, temporary: string, name: string, maxBytes: number): unknown;
+  fileRootCurrent(original: unknown): unknown;
+  fileRootWrite(writer: unknown, bytes: Buffer): unknown;
+  fileRootPublish(writer: unknown, overwrite: boolean): unknown;
+  fileRootClose(original: unknown): unknown;
+}>;
+type WriterInput = Readonly<{
+  native: unknown;
+  rootPath: string;
+  path: string;
+  temporaryName: string;
+  maxBytes: number;
+  overwrite?: boolean;
+  assertCurrent(): undefined;
+  signal?: AbortSignal;
+  writeQuantumBytes?: number;
+  observeWriteBytes?(bytes: bigint): undefined;
+}>;
+type OpenOperation = Extract<keyof NativeMethods, 'openFileRoot' | 'openFileDirectory' | 'openRootFileWriter'>;
+type Slot = {original: unknown; outcome: 'closed' | 'pending' | 'unknown' | undefined};
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const text = (value: unknown, max: number): value is string => typeof value === 'string' && value.length > 0 &&
   value.isWellFormed() && !value.includes('\0') && Buffer.byteLength(value) <= max;
-const bufferBacking = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype), 'buffer').get;
-const ordinaryBacking = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
+const bufferBacking = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype), 'buffer')!.get!;
+const ordinaryBacking = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')!.get!;
 export const localFileWriteMaxComponents = 128;
 const operations = ['openFileRoot','openFileDirectory','openRootFileWriter',
-  'fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose'];
+  'fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose'] as const;
 
 export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
-  maxBytes, overwrite = false, assertCurrent, signal, writeQuantumBytes = 65536, observeWriteBytes}) {
+  maxBytes, overwrite = false, assertCurrent, signal, writeQuantumBytes = 65536, observeWriteBytes}: WriterInput) {
   if (!text(rootPath,4096) || !isAbsolute(rootPath) || !text(path,4096) || isAbsolute(path) ||
       !text(temporaryName,1024) || temporaryName.includes('/') ||
       ['.','..'].includes(temporaryName) || typeof overwrite !== 'boolean' ||
@@ -29,16 +52,17 @@ export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
     const original = Object.getOwnPropertyDescriptor(native ?? {},name)?.value;
     if (typeof original !== 'function') fail('LocalFileWriterUnavailable');
     return [name,original];
-  })));
-  const call = (name,...args) => Reflect.apply(methods[name],native,args);
-  const slots = [];
-  let attempted = false, stopping = false, released = false, failure;
-  let writer, written = 0, publishAttempted = false;
+  })) as NativeMethods);
+  const call = <Name extends keyof NativeMethods>(name: Name,...args: Parameters<NativeMethods[Name]>) =>
+    Reflect.apply(methods[name] as (...args: Parameters<NativeMethods[Name]>) => unknown,native,args);
+  const slots: Slot[] = [];
+  let attempted = false, stopping = false, released = false, failure: unknown;
+  let writer: unknown, written = 0, publishAttempted = false;
   const current = () => {
     if (stopping || released) fail('LocalFileWriteClosing');
     if (failure !== undefined) throw failure;
     signal?.throwIfAborted();
-    const result = assertCurrent();
+    const result: unknown = assertCurrent();
     if (result !== undefined) {
       if (result instanceof Promise) void result.catch(()=>{});
       fail('InvalidLocalFileCurrentFence');
@@ -47,11 +71,11 @@ export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
     if (stopping || released) fail('LocalFileWriteClosing');
     signal?.throwIfAborted();
   };
-  const perform = operation => {
+  const perform = <T,>(operation: () => T): T => {
     try {current();return operation();}
     catch (cause) {failure ??= cause;throw cause;}
   };
-  const acquire = (name,...args) => {
+  const acquire = <Name extends OpenOperation>(name: Name,...args: Parameters<NativeMethods[Name]>) => {
     current();
     const original = call(name,...args);
     const slot = {original,outcome:undefined};
@@ -61,7 +85,7 @@ export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
   };
   const close = () => {
     stopping = true;
-    const errors = [];
+    const errors: unknown[] = [];
     for (const slot of slots.slice().reverse()) {
       if (slot.outcome === 'closed' || slot.outcome === 'unknown') continue;
       try {
@@ -85,10 +109,10 @@ export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
         let parent = acquire('openFileRoot',rootPath);
         for (const component of components.slice(0,-1))
           parent = acquire('openFileDirectory',parent,component,1);
-        writer = acquire('openRootFileWriter',parent,temporaryName,components.at(-1),Math.max(1,maxBytes));
+        writer = acquire('openRootFileWriter',parent,temporaryName,components.at(-1)!,Math.max(1,maxBytes));
       });
     },
-    write(bytes) {
+    write(bytes: unknown) {
       return perform(()=>{
         if (writer === undefined || publishAttempted || !Buffer.isBuffer(bytes))
           fail('LocalFileWriteUnavailable');

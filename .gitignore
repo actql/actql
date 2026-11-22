@@ -1141,6 +1141,12 @@ target/
 /adapters/connectors/local/host/local-file-store-target.test.d.mts
 /adapters/connectors/local/host/local-file-store-plan.mjs
 /adapters/connectors/local/host/local-file-store-plan.d.mts
+/adapters/connectors/local/site/root-file-writer-profile.mjs
+/adapters/connectors/local/site/root-file-writer-profile.d.mts
+/adapters/connectors/local/site/root-file-writer.mjs
+/adapters/connectors/local/site/root-file-writer.d.mts
+/adapters/connectors/local/site/root-stored-content-writer.mjs
+/adapters/connectors/local/site/root-stored-content-writer.d.mts
 /adapters/host-node/effect-ledger-implementation-bounds.mjs
 /adapters/host-node/effect-ledger-implementation-bounds.d.mts
 /scripts/local-node-table-assets.test.mjs

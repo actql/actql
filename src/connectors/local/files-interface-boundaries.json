@@ -3481,7 +3481,7 @@
     {
       "module": "adapters/connectors/local/site/root-file-writer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80a88b6c365696ed27f3139791d09841e9ce4cfb16e9614a235460d27440480c",
+      "sha256": "8351fd2ecce3dc8452671ba5b0f5c77a6df9e6dafbe67dfa3df76e8b66322700",
       "role": "physical-io",
       "owner": "Existing descriptor-relative Local Root write child, original staging/write/publication and close duties",
       "exports": [
@@ -3606,7 +3606,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "export function prepareLocalFileWrite("
               },
               {
@@ -3616,8 +3616,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
-                "anchor": "write(bytes)"
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
+                "anchor": "write(bytes: unknown)"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3626,8 +3626,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
-                "anchor": "Reflect.apply(methods[name],native,args)"
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
+                "anchor": "Reflect.apply(methods[name] as"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3636,7 +3636,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "slots.push(slot);"
               },
               {
@@ -3646,7 +3646,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "for (const slot of slots.slice().reverse())"
               },
               {
@@ -3656,7 +3656,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "LocalFileCloseUnconfirmed"
               },
               {
@@ -3666,7 +3666,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -3676,7 +3676,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "bytes.length > maxBytes-written"
               },
               {
@@ -3686,7 +3686,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "publishAttempted = true;"
               },
               {
@@ -3710,7 +3710,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "export function prepareLocalFileWrite("
               },
               {
@@ -3720,8 +3720,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
-                "anchor": "write(bytes)"
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
+                "anchor": "write(bytes: unknown)"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3730,8 +3730,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
-                "anchor": "Reflect.apply(methods[name],native,args)"
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
+                "anchor": "Reflect.apply(methods[name] as"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -3740,7 +3740,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "slots.push(slot);"
               },
               {
@@ -3750,7 +3750,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "for (const slot of slots.slice().reverse())"
               },
               {
@@ -3760,7 +3760,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "LocalFileCloseUnconfirmed"
               },
               {
@@ -3770,7 +3770,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -3780,7 +3780,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "bytes.length > maxBytes-written"
               },
               {
@@ -3790,7 +3790,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "publishAttempted = true;"
               },
               {
@@ -3814,7 +3814,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3824,7 +3824,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3834,7 +3834,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3844,7 +3844,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3854,7 +3854,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3864,7 +3864,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3874,7 +3874,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3884,7 +3884,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3894,7 +3894,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer.mts",
                 "anchor": "localFileWriteMaxComponents"
               },
               {
@@ -3921,7 +3921,7 @@
     {
       "module": "adapters/connectors/local/site/root-stored-content-writer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d2f2de2f04440ff179f4d6f4a8dbbaa93238dc1f605fe2ea46c21cf07910a3ad",
+      "sha256": "d25ef83197828cc05f96492a245b6ef2ea005f40d60cbb58c59f27eb88ecaa5c",
       "role": "physical-io",
       "owner": "Existing same-Run Content/Store reader and Local Root physical writer child",
       "exports": [
@@ -4020,7 +4020,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "export function prepareLocalStoredContentWrite("
               },
               {
@@ -4030,7 +4030,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "Reflect.apply(consume, contentOwner,"
               },
               {
@@ -4040,7 +4040,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "const original = Reflect.apply(select, contentOwner, [binding]);"
               },
               {
@@ -4050,7 +4050,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "reader = cause.cleanupHandle;"
               },
               {
@@ -4060,7 +4060,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "return writer.publish();"
               },
               {
@@ -4070,7 +4070,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "OriginalEffectContentUnavailable"
               },
               {
@@ -4080,7 +4080,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -4090,7 +4090,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "limits are the"
               },
               {
@@ -4100,7 +4100,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "attempted = true;"
               },
               {
@@ -4124,7 +4124,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "export function prepareLocalStoredContentWrite("
               },
               {
@@ -4134,7 +4134,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "Reflect.apply(consume, contentOwner,"
               },
               {
@@ -4144,7 +4144,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "const original = Reflect.apply(select, contentOwner, [binding]);"
               },
               {
@@ -4154,7 +4154,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "reader = cause.cleanupHandle;"
               },
               {
@@ -4164,7 +4164,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "return writer.publish();"
               },
               {
@@ -4174,7 +4174,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "OriginalEffectContentUnavailable"
               },
               {
@@ -4184,7 +4184,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -4194,7 +4194,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "limits are the"
               },
               {
@@ -4204,7 +4204,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mts",
                 "anchor": "attempted = true;"
               },
               {
@@ -4230,7 +4230,7 @@
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
-      "sha256": "513d127d43cfbca016976a5a4aaa5dc3bca6c26b5487ce99fc117062ac3481de",
+      "sha256": "aa8fe14c4255fe2b3fcd8688a21115b6c00116720f06d24259f26f9192a04601",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4469,7 +4469,7 @@
     },
     {
       "module": "adapters/connectors/local/site/root-file-writer-profile.mjs",
-      "sha256": "43b91aa98da212b849567bf47795ac86939a8c08e1bdef006cf4ffb2f45a8669",
+      "sha256": "211e7acb5c102f875ac597b33ba9b6880823e08576c3132ece1d79bdb20d2d77",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4502,7 +4502,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4512,7 +4512,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4522,7 +4522,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4532,7 +4532,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4542,13 +4542,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4561,7 +4561,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {
@@ -4571,7 +4571,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mts",
                 "anchor": "captureLocalFileWriteConstructionProfile"
               },
               {

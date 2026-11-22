@@ -2,10 +2,23 @@
 // borrowed from the same Run owner, never reconstructed from its wire or CID.
 import {prepareLocalFileWrite} from './root-file-writer.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
+type WriterOptions = Parameters<typeof prepareLocalFileWrite>[0];
+type Written = ReturnType<ReturnType<typeof prepareLocalFileWrite>['publish']>;
+type ContentOwner = Readonly<{
+  consumeContent(binding: unknown, write: (bytes: unknown) => void): unknown;
+  storageForContent(binding: unknown): unknown;
+  storageCurrentForContent(original: unknown, binding: unknown): boolean;
+}>;
+type Input = WriterOptions & Readonly<{
+  contentOwner: ContentOwner;
+  content: Readonly<{binding: unknown; current(): boolean}>;
+}>;
+type Status = Readonly<{pending: boolean}>;
+type Reader = Readonly<{status(): Status; retry(): unknown}>;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareLocalStoredContentWrite({contentOwner, content, assertCurrent,
-  ...options}) {
+  ...options}: Input) {
   const consume = contentOwner?.consumeContent;
   const select = contentOwner?.storageForContent;
   const selectedCurrent = contentOwner?.storageCurrentForContent;
@@ -15,10 +28,11 @@ export function prepareLocalStoredContentWrite({contentOwner, content, assertCur
       typeof assertCurrent !== 'function') fail('OriginalEffectContentUnavailable');
   const binding = content.binding;
   const original = Reflect.apply(select, contentOwner, [binding]);
-  let attempted = false, stopping = false, flight, cleanupFlight, reader;
-  const current = () => {
+  let attempted = false, stopping = false, flight: Promise<Written> | undefined,
+    cleanupFlight: Promise<Status> | undefined, reader: Reader | undefined;
+  const current = (): undefined => {
     if (stopping) fail('LocalFileWriteClosing');
-    const result = assertCurrent();
+    const result: unknown = assertCurrent();
     if (result !== undefined) {
       if (result instanceof Promise) void result.catch(() => {});
       fail('InvalidLocalFileCurrentFence');
@@ -52,11 +66,11 @@ export function prepareLocalStoredContentWrite({contentOwner, content, assertCur
     execute() {
       if (attempted) fail('LocalFileWriteAlreadyAttempted');
       attempted = true; // No resend after any partial write/publication outcome.
-      let operation;
+      let operation: Promise<Written>;
       operation = Promise.resolve().then(async () => {
         current();
         writer.start();
-        await Reflect.apply(consume, contentOwner, [binding, bytes => {
+        await Reflect.apply(consume, contentOwner, [binding, (bytes: unknown) => {
           current();
           writer.write(bytes);
         }]);

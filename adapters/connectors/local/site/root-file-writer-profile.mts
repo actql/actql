@@ -1,21 +1,22 @@
 // Capture inert implementation DATA once from the selected native image. This
 // supplies no path handle, physical attempt, permission or caller allowance.
 import {types as nodeTypes} from 'node:util';
-const fail = () => {throw Object.assign(new Error('LocalFileWriteConstructionUnavailable'),
+const fail: () => never = () => {throw Object.assign(new Error('LocalFileWriteConstructionUnavailable'),
   {code: 'LocalFileWriteConstructionUnavailable'});};
-const names = ['nativeOriginalBytes', 'maxRootBytes', 'maxNameBytes', 'maxDepth', 'writeQuantumBytes'];
+const names = ['nativeOriginalBytes', 'maxRootBytes', 'maxNameBytes', 'maxDepth', 'writeQuantumBytes'] as const;
+type Profile = Readonly<Record<typeof names[number], number>>;
 
-export function captureLocalFileWriteConstructionProfile(native) {
+export function captureLocalFileWriteConstructionProfile(native: unknown): Profile {
   if (native === null || typeof native !== 'object' || nodeTypes.isProxy(native)) fail();
   const field = Object.getOwnPropertyDescriptor(native, 'localFileWriteConstructionProfile');
   const method = field && Object.hasOwn(field, 'value') ? field.value : undefined;
   if (typeof method !== 'function' || nodeTypes.isProxy(method) || nodeTypes.isAsyncFunction(method)) fail();
-  const original = Reflect.apply(method, native, []);
+  const original: unknown = Reflect.apply(method, native, []);
   if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original) ||
       !Object.isFrozen(original)) fail();
   const fields = Object.getOwnPropertyDescriptors(original);
   if (Reflect.ownKeys(fields).length !== names.length) fail();
-  const profile = {};
+  const profile = {} as Record<typeof names[number], number>;
   for (const name of names) {
     const value = fields[name]?.value;
     if (!Object.hasOwn(fields[name] ?? {}, 'value') ||
