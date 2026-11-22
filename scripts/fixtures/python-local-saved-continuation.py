@@ -186,13 +186,15 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
     query = "SELECT '" + values[0] + "' AS s"
     async with await AsyncClient.open(state_dir=state_dir) as creator:
         if cancellation_records is not None:
-            # Both history levels have the same number of Runs. The extra
-            # original comes from the public AlreadyTerminal cancellation.
+            # History levels have the same number of Runs. Additional records
+            # come from public AlreadyTerminal cancellations.
+            assert cancellation_records in (0, 1, 10)
             control = await creator.start_source('SELECT 1 AS n', format='sql',
                                                  submission_ref=creator.new_submission())
             state = plain(await control.wait())
             assert state['status'] == 'succeeded'
-            if cancellation_records == 1:
+            cancellations = []
+            for _ in range(cancellation_records):
                 revision = original_terminal_revision(creator)
                 observed = plain(await control.cancel(expected_revision=revision))
                 original = observed['cancellation']
@@ -201,8 +203,8 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
                 assert plain(await control.lookup_cancellation(original['cancelRef'])) == {
                     'kind': 'found', 'cancellation': original}
                 assert plain(await control.status()) == state
-            else:
-                assert cancellation_records == 0
+                assert original['cancelRef'] not in cancellations
+                cancellations.append(original['cancelRef'])
         submission = creator.new_submission()
         execution = await creator.start_source(query, format='sql', submission_ref=submission)
         try:
@@ -262,10 +264,10 @@ async def exercise(state_dir):
                       'physical_sha256': physical_digest, 'first_close': True}))
 
 
-async def measure_history(destination, levels):
+async def measure_history(destination, levels, *, chunk_counts=(1, 2)):
     destination.mkdir(mode=0o700)
     for cancellation_records in levels:
-        for chunk_count in (1, 2):
+        for chunk_count in chunk_counts:
             # The one-row canonical array has ten framing bytes. A single
             # extra byte changes the physical read from one chunk to two.
             state_dir = destination / f'c{cancellation_records}-k{chunk_count}'
@@ -304,5 +306,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 3 and sys.argv[2] in ('--measure-history', '--measure-nonempty-history'):
         levels = (1,) if sys.argv[2] == '--measure-nonempty-history' else (0, 1)
         asyncio.run(measure_history(Path(sys.argv[1]), levels))
+    elif len(sys.argv) == 3 and sys.argv[2] == '--measure-terminal-budget':
+        asyncio.run(measure_history(Path(sys.argv[1]), (10,), chunk_counts=(1,)))
     else:
         asyncio.run(exercise(Path(sys.argv[1])))
