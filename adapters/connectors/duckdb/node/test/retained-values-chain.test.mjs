@@ -185,7 +185,7 @@ function familyProgram(family, filter = 'id >= 1') {
 // test installs Compute configuration directly; public Client dispatch mode
 // selection remains with its Host owner.
 async function openCapturedRetained(prepared, contracts, installedContracts, directory, rows, budgets,
-  fileInput = false, retainPublication) {
+  fileInput, evidenceBodies, retainPublication) {
   const [registry, values, fragment, ordered] = contracts;
   const planned = moon.clientProgramPrepareLocalQueryRequirement(
     prepared, 0, 0, installedContracts, values, fragment, ordered);
@@ -195,11 +195,8 @@ async function openCapturedRetained(prepared, contracts, installedContracts, dir
   const [sourceRef, sourceContractCid, carrierSchemaContractCid,
     sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
   const context = checked(moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
-  const bodies = await Promise.all(['actql-query-acquisition.json',
-    'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
-    .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
-    requirement, 'main', 'records', ...bodies));
+    requirement, 'main', 'records', ...evidenceBodies));
   const limits = {
     maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
     maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
@@ -287,7 +284,19 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const body = JSON.parse(await readFile(join(root, captureRows
       ? 'adapters/host-node/fixtures/query-amount-environment.json'
       : 'packages/sdk/fixtures/values.environment.json'), 'utf8'));
-    if (route.family === 'graph' || route.observeSchemaPreparation) {
+    const evidenceBodies = captureRows ? await Promise.all(['actql-query-acquisition.json',
+      'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
+      .map(name => readFile(join(root, 'spec/contracts', name), 'utf8'))) : undefined;
+    if (evidenceBodies !== undefined) {
+      // The archived environment supplied one Native receipt capability for
+      // this selector. Bind that same slot to the current body used below.
+      assert.equal(body.connector_capabilities.length, 1);
+      const [capability] = body.connector_capabilities;
+      assert.equal(capability.capability_contract_cids.length, 1);
+      capability.capability_contract_cids = ['sha256:' + createHash('sha256')
+        .update(canonicalText(JSON.parse(evidenceBodies[2]))).digest('hex')];
+    }
+    if (evidenceBodies !== undefined || route.family === 'graph' || route.observeSchemaPreparation) {
       if (route.family === 'graph') Object.assign(body.host_policy_profile.capacity, {
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, max_graph_construction_edges: 1000,
@@ -336,7 +345,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         cid('a'), 'retained-captured-chain', cid('b'));
       assert.ok(captureRequestIdentity);
       captured = await openCapturedRetained(prepared,
-        contracts, installedContracts, directory, captureRows, budgets, fileInput,
+        contracts, installedContracts, directory, captureRows, budgets, fileInput, evidenceBodies,
         (acquisition, limits) => {
           captureRun = adoptCapturedPublicationFixture({moon, preparation,
             prepared, request: preparationRequest, identity: captureRequestIdentity,
