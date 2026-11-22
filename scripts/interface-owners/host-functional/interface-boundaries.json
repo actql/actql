@@ -48002,7 +48002,7 @@
     {
       "module": "adapters/host-node/effect-target-read-continuation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fd4266d4523af99ff85b71ce7254ee001554ab10de948ce85f6aaee6786f4974",
+      "sha256": "b008d422ab209fd87a23380081f23df7ee9b72241a458059b305351f74c53dbf",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -48212,8 +48212,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export const isEffectTargetReadRefusal = error => error !== null &&"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export const isEffectTargetReadRefusal = (error: unknown): boolean => error !== null &&"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48224,14 +48224,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export const isEffectTargetReadRefusal = error => error !== null &&"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export const isEffectTargetReadRefusal = (error: unknown): boolean => error !== null &&"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48242,13 +48242,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Target-read approval is decided before any computation begins. The durable"
               },
               {
@@ -48260,13 +48260,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Checkpoint owner retains the submission and exact installed target inventory;"
               },
               {
@@ -48278,14 +48278,14 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export function assertEffectTargetReadBinding(binding, expected) {"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export function assertEffectTargetReadBinding(binding: unknown, expected?: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48296,13 +48296,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
@@ -48314,13 +48314,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "principalId, resume, signal, journalPort, effectTargetAuthority,"
               },
               {
@@ -48334,8 +48334,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "!Array.isArray(binding.targets) || binding.targets.length === 0 ||"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "!Array.isArray((binding as TargetBinding).targets) || (binding as TargetBinding).targets.length === 0 ||"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48348,7 +48348,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Checkpoint owner retains the submission and exact installed target inventory;"
               },
               {
@@ -48360,7 +48360,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
@@ -48384,8 +48384,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export const isEffectTargetReadRefusal = error => error !== null &&"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export const isEffectTargetReadRefusal = (error: unknown): boolean => error !== null &&"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48396,14 +48396,14 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export const isEffectTargetReadRefusal = error => error !== null &&"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export const isEffectTargetReadRefusal = (error: unknown): boolean => error !== null &&"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48414,13 +48414,13 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Target-read approval is decided before any computation begins. The durable"
               },
               {
@@ -48432,13 +48432,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Checkpoint owner retains the submission and exact installed target inventory;"
               },
               {
@@ -48450,14 +48450,14 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "export function assertEffectTargetReadBinding(binding, expected) {"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "export function assertEffectTargetReadBinding(binding: unknown, expected?: unknown) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48468,13 +48468,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';"
               },
               {
@@ -48486,13 +48486,13 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "principalId, resume, signal, journalPort, effectTargetAuthority,"
               },
               {
@@ -48506,8 +48506,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
-                "anchor": "!Array.isArray(binding.targets) || binding.targets.length === 0 ||"
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
+                "anchor": "!Array.isArray((binding as TargetBinding).targets) || (binding as TargetBinding).targets.length === 0 ||"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48520,7 +48520,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "// Checkpoint owner retains the submission and exact installed target inventory;"
               },
               {
@@ -48532,7 +48532,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/effect-target-read-continuation.mjs",
+                "path": "adapters/host-node/effect-target-read-continuation.mts",
                 "anchor": "if (assertOriginalCurrent !== undefined) {"
               }
             ],
@@ -48562,7 +48562,7 @@
     {
       "module": "adapters/host-node/effect-target-read-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e388dbb5f7238e562370b40908c4884e78515270865ca9a6a7d6145270cfce21",
+      "sha256": "fa7c9eb1aac06dccc1d1fb646371d57e5913fbd43a74521e0555d0f212706dca",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -48613,7 +48613,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48627,7 +48627,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48641,7 +48641,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// Pure binding of an installed Effect's read inventory. This is preparation"
               },
               {
@@ -48655,7 +48655,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// The CID binds the same value-preserving preimage as the retained data."
               },
               {
@@ -48669,8 +48669,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "export function effectTargetReadInventory(inventory) {"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "export function effectTargetReadInventory(inventory: unknown): Readonly<{targets: readonly EffectTarget[]; inventoryCid: string}> {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48683,8 +48683,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "const fail = () => { throw Object.assign(new Error('InvalidEffectTargetReadInventory'),"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "const fail: () => never = () => { throw Object.assign(new Error('InvalidEffectTargetReadInventory'),"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -48697,7 +48697,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48711,8 +48711,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 && value.length <= 512;"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 512;"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48725,7 +48725,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// Pure binding of an installed Effect's read inventory. This is preparation"
               },
               {
@@ -48757,7 +48757,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48771,7 +48771,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48785,7 +48785,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// Pure binding of an installed Effect's read inventory. This is preparation"
               },
               {
@@ -48799,7 +48799,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// The CID binds the same value-preserving preimage as the retained data."
               },
               {
@@ -48813,8 +48813,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "export function effectTargetReadInventory(inventory) {"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "export function effectTargetReadInventory(inventory: unknown): Readonly<{targets: readonly EffectTarget[]; inventoryCid: string}> {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -48827,8 +48827,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "const fail = () => { throw Object.assign(new Error('InvalidEffectTargetReadInventory'),"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "const fail: () => never = () => { throw Object.assign(new Error('InvalidEffectTargetReadInventory'),"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -48841,7 +48841,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';"
               },
               {
@@ -48855,8 +48855,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 && value.length <= 512;"
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 512;"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -48869,7 +48869,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-target-read-inventory.mjs",
+                "path": "adapters/host-node/effect-target-read-inventory.mts",
                 "anchor": "// Pure binding of an installed Effect's read inventory. This is preparation"
               },
               {
