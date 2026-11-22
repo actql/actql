@@ -489,7 +489,7 @@ test('current regex imports bind both literal aliases and complete pattern and r
 
   const selected = packageSourceInputs({tree: currentTree, packages: [relation, lowering], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
-  assert(selected.directories.some(row => row.path === 'src/sha256'));
+  assert(selected.directories.some(row => row.path === 'src/sha256/*'));
   const mutation = mutationSourceInputs(currentTree);
   assert.deepEqual(mutation.unresolved, []);
   assert(!mutation.directories.some(row => row.path === 'src/**'));
@@ -512,11 +512,11 @@ test('current regex imports bind both literal aliases and complete pattern and r
       }
     }
   }
-  for (const changed of [prior.read(path).toString(), body.replace('@regex', '@unreviewed'),
-    body.replace('regex_replacement', 'unreviewed_replacement'),
-    body.replace('[ "not", "js" ]', '[ "native" ]'),
-    body + '\noptions(pre_build: "unreviewed-hook")\n']) {
-    assert.notEqual(changed, body);
+  for (const changed of [prior.read(path).toString(), body, successor.replace('@regex', '@unreviewed'),
+    successor.replace('regex_replacement', 'unreviewed_replacement'),
+    successor.replace('[ "not", "js" ]', '[ "native" ]'),
+    successor + '\noptions(pre_build: "unreviewed-hook")\n']) {
+    assert.notEqual(changed, successor);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const changedTree = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: changedTree, packages: [relation], target: 'js'})
