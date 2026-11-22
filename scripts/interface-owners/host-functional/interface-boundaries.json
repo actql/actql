@@ -117490,7 +117490,7 @@
     {
       "module": "adapters/host-node/mock-file-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c7bb9286eab6640a907b4928e05542ff0fe0ebfe94bd5416ddb8530436d02f2",
+      "sha256": "8ee00b9d4eab8525adbe1f05669c747bce0b6963213fb5f9840d9e190789be18",
       "exports": [
         "createMockFileTarget"
       ],
@@ -117631,7 +117631,9 @@
         },
         {
           "name": "createMockFileTarget/makeChild/read",
-          "parameters": [],
+          "parameters": [
+            "fundRead"
+          ],
           "async": true
         },
         {
@@ -117699,7 +117701,8 @@
             "replace",
             "signal",
             "checkCurrent",
-            "runOriginal"
+            "runOriginal",
+            "fundRead"
           ],
           "async": false
         },

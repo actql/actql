@@ -89,13 +89,19 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
           !sameFile(before, now) || !sameFile(before, named)) fail('MockFileTargetChanged');
       childCurrent();
     }
-    async function read() {
+    async function read(fundRead) {
       const file = await acquire(dataPath, constants.O_RDONLY | constants.O_NOFOLLOW);
       const before = await call(file, 'stat', {bigint: true});
       if (!before.isFile() || before.nlink !== 1n || before.size > BigInt(maxBytes)) {
         fail('InvalidMockTargetFile');
       }
       const size = Number(before.size);
+      // The selected writer may grow its same physical reservation from
+      // this locked FD's checked size, before allocating or reading the body.
+      if (fundRead !== undefined) {
+        synchronous(fundRead(size));
+        childCurrent();
+      }
       const bytes = Buffer.alloc(size);
       let offset = 0;
       while (offset < size) {
@@ -191,9 +197,10 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
       return value;
     }, signal, checkCurrent, runOriginal);
   }
-  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent, runOriginal}) {
+  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent, runOriginal, fundRead}) {
     if (typeof authorize !== 'function' || typeof replace !== 'function' ||
-        (checkCurrent !== undefined && typeof checkCurrent !== 'function')) fail('InvalidMockFileUpdate');
+        (checkCurrent !== undefined && typeof checkCurrent !== 'function') ||
+        (fundRead !== undefined && typeof fundRead !== 'function')) fail('InvalidMockFileUpdate');
     current(signal);
     return makeChild(async ({acquire, call, read, unchanged, originalPath, current}) => {
       // This is entered only by the Row Effect's original durable dispatch claim.
@@ -203,7 +210,7 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
       const lock = await acquire(dataPath + '.actql-write.lock',
         constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
         0o600, true);
-      const {bytes, file, before} = await read();
+      const {bytes, file, before} = await read(fundRead);
       if (before.uid !== BigInt(process.getuid()) || (before.mode & 0o200n) === 0n) {
         fail('MockFileTargetNotWritable');
       }
