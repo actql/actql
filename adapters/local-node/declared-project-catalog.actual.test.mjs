@@ -157,8 +157,11 @@ test('actual catalog refuses missing duplicate and foreign resource bindings bef
     catalog => {catalog.connections.salesforce.query_aliases[0].resource = 'usage_30d';},
     catalog => {catalog.connections.salesforce.writes[0].resource = 'usage_30d';},
     catalog => {catalog.connections.snowflake.query_aliases[0].name = 'salesforce.accounts';},
-    catalog => {catalog.connections.salesforce.writes.push({...catalog.connections.salesforce.writes[0], aliases: ['other.Account']});},
   ]) await f.rejects(mutate);
+  await f.rejects(catalog => {
+    const writes = catalog.connections.salesforce.writes;
+    writes.push({...writes[0], aliases: ['other.Account']});
+  }, {code: 'OverlappingMockWritableCollections'});
   const files = await fixture(t, 'deal-review-mock');
   for (const mutate of [
     catalog => {catalog.connections.drive.file_bindings[0].listing_resource = 'Opportunity';},
