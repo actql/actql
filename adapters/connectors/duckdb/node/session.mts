@@ -4,13 +4,11 @@ import { realpath, stat, lstat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import type {DuckDBConnection, DuckDBAppender, DuckDBPreparedStatement} from '@duckdb/node-api';
-// @ts-expect-error TS7016 Physical values are still authored in JavaScript.
 import { bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes, physicalType } from './physical-values.mjs';
-// @ts-expect-error TS7016 Physical appending is still authored in JavaScript.
+import type {PhysicalParameter, PhysicalScalar, PhysicalType} from './physical-values.mjs';
 import {createPhysicalAppender} from './physical-appender.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
-// @ts-expect-error TS7016 Bounded vectors are still authored in JavaScript.
 import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
 import environmentContract from '../environment-contract.json' with {type: 'json'};
 export { DuckDBTransportError, validateLimits } from './configuration.mjs';
@@ -54,20 +52,17 @@ type TransportFailure = DuckDBTransportError & {
 type Deadline = {expired: true; failed?: never; error?: never; value?: never};
 type Completion<Value> = {value: Value; expired?: never; failed?: never; error?: never} |
   {failed: true; error: unknown; expired?: never; value?: never};
-type PhysicalType = Readonly<{id: string; precision?: number; scale?: number}>;
-type Parameter = Readonly<{type: PhysicalType; value: unknown}>;
 type Field = Readonly<{name: string; type: PhysicalType}>;
-type Scalar = string | boolean | number | null;
-type Frame = Readonly<{fields: readonly Field[]; rowCount: number; columns: readonly (readonly Scalar[])[]}>;
+type Frame = Readonly<{fields: readonly Field[]; rowCount: number; columns: readonly (readonly PhysicalScalar[])[]}>;
 type Consume = (chunk: Frame) => unknown;
 type ReceiveMetadata = (fields: readonly Field[]) => unknown;
-type Command = (sql: string, parameters: readonly Parameter[], consume: Consume,
+type Command = (sql: string, parameters: readonly PhysicalParameter[], consume: Consume,
   reuseInsert?: boolean, statementMode?: 'ordinary' | 'copy-parquet',
   receiveMetadata?: ReceiveMetadata) => Promise<readonly Field[]>;
 type ResidentAppender = Readonly<{
   types: readonly PhysicalType[];
-  appendScalars(values: readonly Scalar[]): void;
-  append(parameters: readonly Parameter[]): void;
+  appendScalars(values: readonly (PhysicalScalar | number)[]): void;
+  append(parameters: readonly PhysicalParameter[]): void;
   flush(): void;
   finish(): void;
 }>;
@@ -78,10 +73,10 @@ type Usage = Readonly<{
 }>;
 type Session = Readonly<{
   command: Command;
-  insert(sql: string, parameters: readonly Parameter[], consume: Consume): Promise<readonly Field[]>;
+  insert(sql: string, parameters: readonly PhysicalParameter[], consume: Consume): Promise<readonly Field[]>;
   openResidentAppender(table: string, columns: number): Promise<ResidentAppender>;
   createFileView(sql: string, inputPath: string, consume: Consume): Promise<readonly Field[]>;
-  copyParquet(selectSql: string, parameters: readonly Parameter[], outputPath: string):
+  copyParquet(selectSql: string, parameters: readonly PhysicalParameter[], outputPath: string):
     Promise<Readonly<{device: number; inode: number; bytes: number}>>;
   usage(): Usage;
 }>;
@@ -472,7 +467,7 @@ async function usingSession<Value>(path: string, readonly: boolean, suppliedLimi
         const frameLimit = limits.maxChunkBytes ?? limits.maxTransportBytes;
         for (let start = 0; start < chunk.rowCount;) {
           const maximumRows = Math.min(rowsPerBatch, chunk.rowCount - start);
-          const columns = fields.map((): Scalar[] => []);
+          const columns = fields.map((): PhysicalScalar[] => []);
           const emptyFrameBytes = Buffer.byteLength(JSON.stringify({
             rowCount: 0, columns,
           }) + '\n', 'utf8');
@@ -482,7 +477,7 @@ async function usingSession<Value>(path: string, readonly: boolean, suppliedLimi
           const vectors = fields.map((_, i) => chunk.getColumnVector(i).slice(start, maximumRows));
           let rowCount = 0;
           let batchBytes = emptyFrameBytes;
-          const candidate: Scalar[] = [];
+          const candidate: PhysicalScalar[] = [];
           while (rowCount < maximumRows) {
             candidate.length = 0;
             let nextBytes = batchBytes + String(rowCount + 1).length - String(rowCount).length;
@@ -556,7 +551,7 @@ async function usingSession<Value>(path: string, readonly: boolean, suppliedLimi
     chargeBytes(pathBytes);
     return command(sql.replace('?', quoted), [], consume);
   };
-  const runCopyParquet = async (selectSql: string, parameters: readonly Parameter[], outputPath: string) => {
+  const runCopyParquet = async (selectSql: string, parameters: readonly PhysicalParameter[], outputPath: string) => {
     if (typeof selectSql !== 'string' || !inputFiles.includes(outputPath)) {
       throw new DuckDBTransportError('UnauthorizedOutputPath');
     }

@@ -1782,3 +1782,9 @@ target/
 /adapters/connectors/duckdb/node/test/managed-output-finish.test.d.mts
 /adapters/connectors/duckdb/node/session.mjs
 /adapters/connectors/duckdb/node/session.d.mts
+/adapters/connectors/duckdb/node/physical-values.mjs
+/adapters/connectors/duckdb/node/physical-values.d.mts
+/adapters/connectors/duckdb/node/physical-appender.mjs
+/adapters/connectors/duckdb/node/physical-appender.d.mts
+/adapters/connectors/duckdb/node/bounded-vector.mjs
+/adapters/connectors/duckdb/node/bounded-vector.d.mts

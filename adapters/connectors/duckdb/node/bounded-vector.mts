@@ -2,6 +2,13 @@ import {DuckDBVarCharVector} from '@duckdb/node-api';
 import sdk from '@duckdb/node-api/package.json' with {type: 'json'};
 import {DuckDBTransportError} from './configuration.mjs';
 import {boundedVectorVersion} from './transport-bounds.mjs';
+import type {DuckDBVector} from '@duckdb/node-api';
+import type {PhysicalType} from './physical-values.mjs';
+
+type PinnedVarCharLayout = Readonly<{
+  dataView?: unknown;
+  validity?: {itemValid(row: number): boolean};
+}>;
 
 export function assertBoundedVectorRuntime() {
   if (sdk.version !== boundedVectorVersion) throw new DuckDBTransportError('UnsupportedBoundedVectorRuntime');
@@ -12,9 +19,9 @@ export function assertBoundedVectorRuntime() {
 // by that same SDK decoder. No pointer is dereferenced here, and no ActQL value
 // law is implemented. The 16-byte string descriptor and little-endian length
 // must be re-audited together with the SDK pin; unknown layouts fail closed.
-export function boundedVectorItem(vector, row, type, maxBytes) {
+export function boundedVectorItem(vector: DuckDBVector, row: number, type: PhysicalType, maxBytes: number) {
   if (type.id === 'VARCHAR') {
-    const {dataView, validity} = vector;
+    const {dataView, validity} = vector as PinnedVarCharLayout;
     if (!(vector instanceof DuckDBVarCharVector) || !(dataView instanceof DataView) ||
         typeof validity?.itemValid !== 'function' || !Number.isSafeInteger(row) || row < 0 ||
         row >= vector.itemCount || dataView.byteLength !== vector.itemCount * 16) {

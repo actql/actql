@@ -6,6 +6,10 @@
         "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/lib/index.d.ts",
         "./adapters/connectors/duckdb/node/neo-session-api.d.mts"
       ],
+      "@duckdb/node-api/package.json": [
+        "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/package.json",
+        "./adapters/connectors/duckdb/node/neo-package.d.mts"
+      ],
       "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
       "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
       "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],

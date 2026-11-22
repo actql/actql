@@ -254,37 +254,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "No pointer is dereferenced here"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "boundedVectorItem"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "sdk.version !== boundedVectorVersion"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "return vector.getItem(row)"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "dataView.getUint32"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "UnsupportedBoundedVectorRuntime"
               }
             ],
@@ -293,7 +293,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "maxBytes"
               }
             ],
@@ -2321,37 +2321,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "does not grant completion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "createPhysicalAppender"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "parameter.type.id !== expected.id"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "values.fill(undefined)"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "pending"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "A partial native row"
               }
             ],
@@ -2360,13 +2360,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-appender.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-appender.mts",
                 "anchor": "beforeWrite"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "bindPhysicalValue"
               }
             ],
@@ -2560,37 +2560,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "NOT ActQL canonical values or semantic admission"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "bindPhysicalValue"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "negative zero and nonfinite physical values"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "floatBitsScratch"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "synchronous function"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "PhysicalValueError"
               }
             ],
@@ -2599,7 +2599,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/physical-values.mjs",
+                "path": "adapters/connectors/duckdb/node/physical-values.mts",
                 "anchor": "physicalJsonScalarBytes"
               }
             ],
@@ -3684,7 +3684,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "UnsupportedBoundedVectorRuntime"
               }
             ],
@@ -3699,7 +3699,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/bounded-vector.mjs",
+                "path": "adapters/connectors/duckdb/node/bounded-vector.mts",
                 "anchor": "must be re-audited"
               }
             ],
