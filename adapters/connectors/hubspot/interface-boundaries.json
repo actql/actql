@@ -261,7 +261,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
-      "sha256": "4182cef1fc7b861fa9a92b5d9a932849dc3217bf3680caddd7a20ec2c70e2098",
+      "sha256": "414104e1e3faa75a73e94357f7d0d516df5fbf58b87e5b0cda135a6a042eaf38",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode, Host current, Credential nominal use and original accounted RowRun owners",
@@ -3195,7 +3195,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
-      "sha256": "cee0fc43d7bfab121d5b384a0dd6c357b9bb9474cd2aff4f8586b9812b7514eb",
+      "sha256": "999c7afe22ed43fb2396959e1844615c698e771945c324a589a8992ddfc40822",
       "exports": [
         "prepareHubSpotManagedSequence"
       ],
@@ -3324,6 +3324,7 @@
         }
       ],
       "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "./hubspot-account-read.mjs",
         "./hubspot-object-read.mjs"

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runtimePair} from './compiler-binding.generated.mjs';
 import {checkHttpRequestMethodBody, exchangeLimits, observeResponseHeaders, ownHttpRequest, ownHttpByteRequest,
   ownRequestHeaders, ownResponseHeaderNames, requestTarget} from
   './http-exchange.mjs';
@@ -251,7 +252,7 @@ test('actual HubSpot managed caller preserves all selected properties through fu
     hubspotRecheckAccountIdentityJson(){},hubspotProjectProperties(){return {$tag:1,_0:originalCatalog};},
     hubspotRecheckPropertyCatalog(){return {$tag:1};},hubspotPropertyCatalogObjectType(){return 'companies';},
     hubspotProjectObjectPage(){return {$tag:1,_0:{}};},hubspotObjectPageRowsWire(){return {$tag:1,_0:'[]'};},
-    hubspotObjectPageMetadataJson(){return '{"rowCount":0}';},
+    hubspotObjectPageProgress(){return runtimePair(0, '');},
     // This fixture exercises request construction only. The real generic
     // response Reader owns these existing ports; no preflight is claimed here.
     hubspotPreparePropertyResponseSource(){assert.fail('no response preflight in request-only fixture');},

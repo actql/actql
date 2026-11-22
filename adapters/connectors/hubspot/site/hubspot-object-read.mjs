@@ -2,6 +2,7 @@
 // compiled HubSpot projection; authority, nominal uses and physical cleanup
 // remain with the existing Host/Credential/RowRun owners.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatch,
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
@@ -13,7 +14,7 @@ const positive = value => Number.isSafeInteger(value) && value > 0 && value < 21
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const exports = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
   'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
-  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson'];
+  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageProgress'];
 const limitFields = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxProperties',
   'maxNameUnits', 'maxPages', 'maxRows', 'maxRequests', 'perPage', 'maxColumns',
   'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes',
@@ -136,8 +137,9 @@ export async function readHubSpotObjects({moon, originalPortalId, originalCatalo
         originalCatalog, selected, bound.maxResponseBytes, bound.maxNodes,
         bound.maxDepth, pageRows,
         bound.maxColumns, bound.maxCursorUnits, bound.maxValueNodes, bound.maxValueTextBytes));
-      const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(page));
-      if (rowCount + metadata.rowCount > bound.maxRows) fail('HubSpotReadRowLimit');
+      const progress = provider.hubspotObjectPageProgress(page);
+      const count = runtimeField(progress, 0), nextAfter = runtimeField(progress, 1);
+      if (rowCount + count > bound.maxRows) fail('HubSpotReadRowLimit');
       const rows = JSON.parse(checked(provider.hubspotObjectPageRowsWire(page,
         bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)));
       for (const row of rows) {
@@ -146,8 +148,8 @@ export async function readHubSpotObjects({moon, originalPortalId, originalCatalo
       }
       await context.callbacks.consumePage(rows, Object.freeze({charge}));
       await verify(HUBSPOT_OBJECT_LIST_OPERATION);
-      pages++; rowCount += metadata.rowCount;
-      after = metadata.nextAfter ?? undefined;
+      pages++; rowCount += count;
+      after = nextAfter === '' ? undefined : nextAfter;
       if (after !== undefined) {
         if (cursors.has(after)) fail('HubSpotReadCursorCycle');
         cursors.add(after);
