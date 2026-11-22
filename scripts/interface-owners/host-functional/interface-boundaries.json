@@ -56191,7 +56191,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "8da5c456fdb99828d8f4e7d3f000cfde94eb1fdea909ceb0501018786508eb57",
+      "sha256": "cc5c477671d2b7f522b94f9ce54c252fb964eb4d5799e7f8cd226617ecfc4d74",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
