@@ -415,14 +415,19 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
     readFile(new URL('../../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
   ]);
-  const requirementResult = publicUnknownSource ? undefined : moon.clientProgramPrepareLocalQueryRequirement(
-    value.preparedProgram, 0, 1 - keyed[0].input, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
-  if (!publicUnknownSource) assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
-    ? requirementResult._0 : 'ready', {depth: 5, maxArrayLength: 5, maxStringLength: 200}));
-  const requirement = publicUnknownSource ? undefined : checked(requirementResult);
+  let joinContracts, requirement;
+  if (!publicUnknownSource) {
+    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const installed = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+    joinContracts = {registry: installed, values, fragment, ordered};
+    const requirementResult = moon.clientProgramPrepareLocalQueryRequirement(
+      value.preparedProgram, 0, 1 - keyed[0].input, installed, values, fragment, ordered);
+    assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
+      ? requirementResult._0 : 'ready', {depth: 5, maxArrayLength: 5, maxStringLength: 200}));
+    requirement = checked(requirementResult);
+  }
   if (!stopCaptureAfterProgress) {
     const issuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
       kind === 'file' && items.some(row => wire === canonical(row.resource)),
@@ -524,9 +529,6 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
         }};
     }
     const adapter = await createInstalledRowSource(adapterOptions);
-    const joinContracts = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
     const occurrence = {stage: 0, input: 1 - keyed[0].input, task: 0};
     const preparedSource = await adapter.prepare({preparedProgram: value.preparedProgram,
       ...joinContracts, occurrence});
@@ -543,10 +545,7 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
       preparedSource, keyedAcquisition: acquisition, preparedProgram: value.preparedProgram,
       joinContracts, expectedDirectInput: reverseSourceInputs ? 1 : 0});
     const capture = await adapter.openCapture({preparedProgram: value.preparedProgram,
-      registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']),
-      occurrence, preparedSource, ledger});
+      ...joinContracts, occurrence, preparedSource, ledger});
     assert.equal(requests, empty ? 0 : 1);
     const source = capture.capture.source();
     const left = checked(moon.clientProgramKeyedCaptureLeftRead(acquisition, source));
