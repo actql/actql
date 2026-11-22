@@ -130,10 +130,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     held.unit_results.push(entry)
     // The order and reference collector survive through the returned
     // receipt. A Carrier without a checked count keeps the original basis.
-    if measure_results &&
-      @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) &&
-      !construction.prepare_proposal_export(self.original, borrow, limits, rows) {
-      stop("LocalOriginalEffectUnitResultsUnavailable")
+    let before_metadata = if measure_results &&
+      @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) {
+      guard construction.prepare_proposal_export(
+          self.original,
+          borrow,
+          limits,
+          rows,
+        )
+        is Some(schema_workspace) else {
+        stop("LocalOriginalEffectUnitResultsUnavailable")
+      }
+      Some(
+        construction.export_metadata_funding(self.original, schema_workspace),
+      )
+    } else {
+      None
     }
     let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
         borrow,
@@ -152,7 +164,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
     let preparation = @strategy.captured_effect_local_result_export_preparation(
       exported,
     )
-    while !@execution.advance_completed_result_relation_export(preparation, 31)
+    while !@execution.advance_completed_result_relation_export(
+            preparation,
+            31,
+            before_metadata~,
+          )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original).0 {
       ()

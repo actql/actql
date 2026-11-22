@@ -1016,7 +1016,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_proposal_export(
   result : @strategy.CapturedAnyResultBorrow,
   limits : @infer.Limits,
   rows : Int,
-) -> Bool {
+) -> Int64? {
   let order = native_mock_effect_proposal_order_capacity(
     Int::min(rows, limits.output_workspace),
   ).bind(capacity => {
@@ -1025,7 +1025,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_proposal_export(
     })
   })
   if !self.prepare_body(original, order) {
-    return false
+    return None
   }
   let port = @execution.managed_result_occurrence_port(
     @strategy.captured_any_result_borrow_occurrence(result),
@@ -1049,8 +1049,32 @@ fn LocalNativeMockEffectImportConstruction::prepare_proposal_export(
       true
     },
   )
-  guard capacity is Some(_) else { return false }
-  self.prepare_body(original, capacity)
+  guard capacity is Some(_) && self.prepare_body(original, capacity) else {
+    return None
+  }
+  // The same schema traversal runs once more when the stream opens its
+  // reference collector. Keep its observed frame bound alongside metadata.
+  native_mock_effect_export_schema_workspace(approved.val).map(
+    @execution.execution_capacity_execution_bytes,
+  )
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::export_metadata_funding(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  schema_workspace : Int64,
+) -> (@execution.ExecutionCapacity) -> Bool {
+  capacity => {
+    self.prepare_body(
+      original,
+      @execution.checked_preparation_add_product(
+        schema_workspace,
+        @execution.execution_capacity_execution_bytes(capacity),
+        1L,
+      ).bind(workspace => @execution.execution_capacity(0L, workspace)),
+    )
+  }
 }
 
 ///|

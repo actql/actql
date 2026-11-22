@@ -226,9 +226,13 @@ pub fn cancel_completed_result_relation_export(
 }
 
 ///|
+/// An optional metadata funding port admits the absolute next overlapping
+/// inventory of this view. The caller has already backed Result mapping and
+/// order. The original borrow is checked again before the funded step.
 pub fn advance_completed_result_relation_export(
   value : CompletedResultRelationExportPreparation,
   quantum : Int,
+  before_metadata? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
@@ -246,7 +250,12 @@ pub fn advance_completed_result_relation_export(
     while steps < quantum {
       if value.metadata is Some(metadata) {
         let (done, used) = match
-          advance_completed_output_export_preparation(metadata, quantum - steps) {
+          advance_completed_export_metadata_owned(
+            metadata,
+            quantum - steps,
+            None,
+            before_metadata~,
+          ) {
           Ok(value) => value
           Err(issue) => {
             value.poll_work = steps + metadata.poll_work
@@ -268,6 +277,25 @@ pub fn advance_completed_result_relation_export(
       } else if value.rows.done {
         steps += 1
         value.poll_work = steps
+        if before_metadata is Some(fund) {
+          guard completed_export_metadata_start_capacity(
+              value.rows.names.capacity().to_int64(),
+              false,
+            )
+            is Some(capacity) else {
+            return Err(Admission(CaptureLimit))
+          }
+          let funded = fund(capacity)
+          if value.closed {
+            return Err(Closed)
+          }
+          if !completed_output_available(value.rows.source) || value.closed {
+            return Err(ResultView(Unavailable))
+          }
+          if !funded {
+            return Err(Admission(CaptureLimit))
+          }
+        }
         let rows = match finish_completed_result_rows(value.rows) {
           Ok(value) => value
           Err(issue) => return Err(ResultView(issue))

@@ -106,6 +106,14 @@ pub fn completed_relation_identity_scan_start_construction_capacity(
   let width = producer_input
     .map(read => @schema.field_count(read.schema).to_int64())
     .unwrap_or(IndexedRows::column_count(table).to_int64())
+  completed_export_metadata_start_capacity(width, retain_body)
+}
+
+///|
+fn completed_export_metadata_start_capacity(
+  width : Int64,
+  retain_body : Bool,
+) -> ExecutionCapacity? {
   guard @shape.collection_construction_extent({
       records: 28L,
       record_references: 63L,

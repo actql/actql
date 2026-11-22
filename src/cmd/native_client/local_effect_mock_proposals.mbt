@@ -582,16 +582,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       let measure_proposal_rows = staged_rows is Some(_) &&
         held.imports is Some(_)
-      if measure_proposal_rows &&
-        !held.construction
-        .unwrap()
-        .prepare_proposal_export(
-          self.original,
-          @strategy.captured_effect_local_result_borrow(result),
-          limits,
-          staged_rows.unwrap(),
-        ) {
-        stop("LocalOriginalEffectProposalsUnavailable")
+      let before_metadata = if measure_proposal_rows {
+        let construction = held.construction.unwrap()
+        guard construction.prepare_proposal_export(
+            self.original,
+            @strategy.captured_effect_local_result_borrow(result),
+            limits,
+            staged_rows.unwrap(),
+          )
+          is Some(schema_workspace) else {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        Some(
+          construction.export_metadata_funding(self.original, schema_workspace),
+        )
+      } else {
+        None
       }
       let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
           @strategy.captured_effect_local_result_borrow(result),
@@ -611,7 +617,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         exported,
       )
       while !@execution.advance_completed_result_relation_export(
-              preparation, 31,
+              preparation,
+              31,
+              before_metadata~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Completed(issue)

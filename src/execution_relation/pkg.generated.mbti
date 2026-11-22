@@ -116,7 +116,7 @@ pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, I
 
 pub fn advance_completed_result_key_validation(CompletedResultKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, CompletedResultKeyIssue], @bounded_execution.Issue]
 
-pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
+pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int, before_metadata? : ((ExecutionCapacity) -> Bool)?) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export_progress(CompletedResultRelationExportPreparation, Int) -> (Bool, Int, CompletedExportIssue?)
 

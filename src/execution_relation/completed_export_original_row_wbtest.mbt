@@ -45,6 +45,157 @@ fn original_export_row_field(
 }
 
 ///|
+test "Result export funds metadata before creation and preserves the captured row" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  for accept in [false, true] {
+    let preparation = start_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      row_wire_limits(),
+      publication_schema_limits(),
+      4096,
+    ).unwrap()
+    let mut visits = 0
+    let mut saw_schema = false
+    let mut saw_stream_start = false
+    let mut valid_quote = true
+    let fund = fn(capacity) {
+      let size = execution_capacity_execution_bytes(capacity)
+      visits += 1
+      if visits == 1 {
+        valid_quote = preparation.metadata is None && preparation.stream is None
+        // Initial 55H/108R/155W plus three slots for each co-held name.
+        let expected = 2984L +
+          24L * preparation.rows.names.capacity().to_int64()
+        valid_quote = valid_quote && size == expected
+        return size <= expected - (if accept { 0L } else { 1L })
+      }
+      let metadata = preparation.metadata.unwrap()
+      if metadata.phase == 3 {
+        saw_schema = true
+      }
+      if metadata.phase == 4 {
+        saw_stream_start = true
+        valid_quote = valid_quote && metadata.stream is None
+      }
+      valid_quote = valid_quote && size > 0L
+      true
+    }
+    let finished = while true {
+      match
+        advance_completed_result_relation_export(
+          preparation,
+          31,
+          before_metadata=Some(fund),
+        ) {
+        Ok((false, _)) => continue
+        value => break value
+      }
+    } nobreak {
+      Err(Closed)
+    }
+    assert_true(valid_quote)
+    if accept {
+      assert_true(finished is Ok((true, _)) && saw_schema && saw_stream_start)
+      let stream = finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      let (_, row) = next_completed_output_export_original_row(
+          stream, 100, 10, 4096,
+        )
+        .unwrap()
+        .unwrap()
+      assert_true(
+        completed_result_export_preparation_matches_original_row(
+          preparation, row,
+        ),
+      )
+      assert_true(
+        original_export_row_field(row, "whole").value
+        is @admitted.Signed64(-9223372036854775808L),
+      )
+      retire_completed_output_export_original_row(row)
+      cancel_completed_output_export(stream)
+    } else {
+      assert_true(
+        finished is Err(Admission(CaptureLimit)) && preparation.closed,
+      )
+      assert_eq(visits, 1)
+      assert_true(preparation.metadata is None && preparation.stream is None)
+    }
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "Result export metadata cancellation cannot publish an open stream" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["day","whole"]}}
+    ),
+  )
+  let preparation = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    4096,
+  ).unwrap()
+  let mut cancelled = false
+  let mut reentry_refused = true
+  let mut schema_was_owned = false
+  let fund = fn(_) {
+    reentry_refused = reentry_refused &&
+      advance_completed_result_relation_export(preparation, 1) is Err(Closed)
+    if preparation.metadata is Some(metadata) && metadata.phase == 3 {
+      schema_was_owned = metadata.schema_cursor is Some(_)
+      cancelled = cancel_completed_result_relation_export(preparation)
+    }
+    true
+  }
+  let finished = while true {
+    match
+      advance_completed_result_relation_export(
+        preparation,
+        31,
+        before_metadata=Some(fund),
+      ) {
+      Ok((false, _)) => continue
+      value => break value
+    }
+  } nobreak {
+    Ok((false, 0))
+  }
+  assert_true(finished is Err(Closed) && reentry_refused && schema_was_owned)
+  assert_true(cancelled && preparation.closed && preparation.stream is None)
+  assert_true(
+    finish_completed_result_relation_export_preparation(preparation)
+    is Err(Closed),
+  )
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "original export row keeps typed cells and exact selected projection order" {
   let owner = original_export_row_owner()
   let source = export_fixture(owner)
