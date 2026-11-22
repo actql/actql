@@ -28723,7 +28723,7 @@
           ]
         }
       ],
-      "sha256": "80d9b892b3599501a379a1b379dd2781f2afa3bb4ac4234b47456004a5296d04",
+      "sha256": "0b3a4de662fe1cc01f504586af51d728a418f24e6cff9f154981d3265d08a819",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29255,6 +29255,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_routing_census_proof_requires_the_original_closed_export("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",

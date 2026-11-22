@@ -218,6 +218,8 @@ class _InvocationObservation:
             return prewrite is not None and prewrite()
         return name in (
             'actql_publication_commit_export_prepare_sdk_payload_codecs',
+            'actql_publication_commit_export_sdk_payload_ordinal',
+            'actql_publication_commit_export_bind_sdk_payload_record',
             'actql_publication_commit_export_prepare_sdk_payload_input',
             'actql_publication_commit_export_produce_sdk_payload_chunk',
             'actql_publication_commit_export_observe_sdk_terminal',

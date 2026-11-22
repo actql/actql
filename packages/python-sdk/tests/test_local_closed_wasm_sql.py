@@ -189,7 +189,8 @@ class ClosedWasmSqlTests(unittest.TestCase):
             return 0
 
         for export in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
-                       'observe_sdk_terminal', 'prepare_sdk_payload_codecs'):
+                       'observe_sdk_terminal', 'prepare_sdk_payload_codecs',
+                       'sdk_payload_ordinal', 'bind_sdk_payload_record'):
             with self.subTest(export=export):
                 core, binding, store, _ = self.fixture(effect=effect, census_export=export)
                 with self.assertRaises(LocalStorageError):
@@ -212,6 +213,23 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 self.assertEqual(actual, [expected])
                 self.assertIsNone(binding._observed_reader)
                 self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_routing_census_proof_requires_the_original_closed_export(self):
+        for export in ('sdk_payload_ordinal', 'bind_sdk_payload_record'):
+            for capture, effect, legacy, negotiate, expected in (
+                    (True, 0, False, 1, 11), (True, 1, False, 1, 10),
+                    (False, 0, False, 1, 0), (True, 0, True, 1, 0),
+                    (True, 0, False, 0, 0)):
+                with self.subTest(export=export, capture=capture, effect=effect,
+                                  legacy=legacy, negotiate=negotiate):
+                    core, binding, store, _ = self.fixture(
+                        capture=capture, census_export=export, legacy_census_supplier=legacy)
+                    actual = []
+                    binding.inspect(lambda _: actual.append(
+                        LocalCore._call(core, 'publication_commit_export', export, effect, negotiate)))
+                    self.assertEqual(actual, [expected])
+                    self.assertIsNone(binding._observed_reader)
+                    self.assertIsNone(store._connection._closed_invocation)
 
     def test_saved_terminal_census_proof_stays_in_the_committed_readback(self):
         for export, effect, legacy, negotiate, expected in (

@@ -3661,6 +3661,12 @@ Journal query retains its schema, mutation, metadata and cumulative query/copy
 fences; Core continues to inspect every requested row, final EOF and Account
 decision. No authorization import or original work/fuel boundary is removed.
 
+Saved payload routing and binding each run a complete cancellation census on
+entry. Within that export, the guest can ask the physical supplier whether the
+same reader still supports reusing that census. An unsupported supplier or an
+effect requires a fresh census; original current, row and binding checks still
+run. Saved routing uses this only for the paired selector.
+
 Every Host import passes through one classifier. Only the audited immutable
 input and same-reader Journal transports, plus the exact standard Wasmtime
 Store/Caller/Memory observation, remain inside the closed computation. The exact

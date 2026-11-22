@@ -147,7 +147,13 @@ pub fn bind_publication_sdk_payload_record(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }
@@ -196,7 +202,13 @@ pub fn publication_sdk_payload_ordinal(
     return -5
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=field == 2,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }
