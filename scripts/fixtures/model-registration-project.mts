@@ -1,11 +1,12 @@
 // Fixture DATA only. Registered metadata is distinct from selected Model work.
 import assert from 'node:assert/strict';
 import {twoModelDealReviewFiles} from './deal-review-two-models.mjs';
+import type {ModelTaskRegistry} from './deal-review-two-models.mjs';
 
 export const modelRegistryCount = 129;
 export function modelRegistrationProjectFiles() {
   const files = {...twoModelDealReviewFiles()};
-  const registry = JSON.parse(files['model-tasks.json']);
+  const registry = JSON.parse(files['model-tasks.json']) as ModelTaskRegistry;
   for (let index = 0; index < modelRegistryCount - 2; index++) {
     const name = `model-task:registration-${String(index).padStart(3, '0')}.v1`;
     const path = `model-tasks/registration-${index}.yaml`;

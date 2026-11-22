@@ -2010,3 +2010,7 @@ target/
 /scripts/fixtures/salesforce-approval/mock-project.d.mts
 /scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs
 /scripts/fixtures/hubspot-approval/binary-source-mock-project.d.mts
+/scripts/fixtures/deal-review-two-models.mjs
+/scripts/fixtures/deal-review-two-models.d.mts
+/scripts/fixtures/model-registration-project.mjs
+/scripts/fixtures/model-registration-project.d.mts

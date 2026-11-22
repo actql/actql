@@ -5,13 +5,26 @@ import {createHash} from 'node:crypto';
 import {canonicalJson} from '../../adapters/host-node/local-account-config.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
+type ProjectFiles = Readonly<Record<string, string>>;
+type MockConfig = {mock: {answers: Record<string, string>}};
+export type ModelTaskRegistry = {tasks: Record<string, string>};
+type FixtureStage = {
+  id: string;
+  inputs: Record<string, unknown>;
+  from?: string;
+  steps: {infer?: {contract: string; input: Record<string, {field: string}>}; [key: string]: unknown}[];
+  results: Record<string, unknown>;
+};
+type FixtureProgram = {id: string; stages: FixtureStage[]; results: Record<string, unknown>};
+type MockCatalog = {connections: {salesforce: {views: {resource: string; schema: unknown}[]}}};
+
 export function twoModelDealReviewFiles() {
   const files = {...projectTemplateFiles('deal-review-mock')};
   const task = 'model-task:deal-review-confirm.v1';
-  const config = JSON.parse(files['actql.config.json']);
+  const config = JSON.parse(files['actql.config.json']) as MockConfig;
   config.mock.answers[task] = './mock/deal-review-confirm.v1.answers.yaml';
   files['actql.config.json'] = JSON.stringify(config, null, 2) + '\n';
-  const registry = JSON.parse(files['model-tasks.json']);
+  const registry = JSON.parse(files['model-tasks.json']) as ModelTaskRegistry;
   registry.tasks[task] = './model-tasks/deal-review-confirm.v1.yaml';
   files['model-tasks.json'] = JSON.stringify(registry, null, 2) + '\n';
   files['model-tasks/deal-review-confirm.v1.yaml'] = `task: ${task}
@@ -44,7 +57,7 @@ answers:
 // consumer must read every declared Result, including on cold Saved recovery.
 export function twoModelWholeDealReviewFiles() {
   const files = {...twoModelDealReviewFiles()};
-  const program = JSON.parse(files['deal-review.program.json']);
+  const program = JSON.parse(files['deal-review.program.json']) as FixtureProgram;
   const fields = ['id', 'name', 'StageName', 'NextStep'];
   program.id = 'fixture.deal-review-dependent-models-whole';
   program.stages[0].inputs.opportunities = {result: {stage: 'source_opportunities', result: 'rows'}};
@@ -66,7 +79,7 @@ export function twoModelWholeDealReviewFiles() {
 // Existing README and Whole fixtures retain their original bodies/oracles.
 export function twoModelJoinedWholeDealReviewFiles() {
   const files = {...twoModelWholeDealReviewFiles()};
-  const program = JSON.parse(files['deal-review.program.json']);
+  const program = JSON.parse(files['deal-review.program.json']) as FixtureProgram;
   const producer = program.stages[0], review = program.stages[1];
   const fields = ['id', 'name', 'StageName', 'NextStep', 'resource', 'version'];
   program.id = 'fixture.deal-review-two-source-joined-whole';
@@ -88,10 +101,10 @@ export function twoModelJoinedWholeDealReviewFiles() {
 export function twoModelJoinedInputsDealReviewFiles() {
   const files = {...twoModelJoinedWholeDealReviewFiles()};
   const task = 'model-task:deal-review-joined-inputs.v1';
-  const config = JSON.parse(files['actql.config.json']);
+  const config = JSON.parse(files['actql.config.json']) as MockConfig;
   config.mock.answers[task] = './mock/deal-review-joined-inputs.v1.answers.yaml';
   files['actql.config.json'] = JSON.stringify(config, null, 2) + '\n';
-  const registry = JSON.parse(files['model-tasks.json']);
+  const registry = JSON.parse(files['model-tasks.json']) as ModelTaskRegistry;
   registry.tasks[task] = './model-tasks/deal-review-joined-inputs.v1.yaml';
   files['model-tasks.json'] = JSON.stringify(registry, null, 2) + '\n';
   files['model-tasks/deal-review-joined-inputs.v1.yaml'] = `task: ${task}
@@ -109,12 +122,12 @@ output:
 `;
   files['mock/deal-review-joined-inputs.v1.answers.yaml'] =
     files['mock/deal-review.v1.answers.yaml'].replace('model-task:deal-review.v1', task);
-  const program = JSON.parse(files['deal-review.program.json']);
+  const program = JSON.parse(files['deal-review.program.json']) as FixtureProgram;
   program.id = 'fixture.deal-review-two-source-joined-inputs';
   const review = program.stages[1];
   delete review.inputs.contents;
   review.steps.shift();
-  const infer = review.steps.find(step => step.infer !== undefined).infer;
+  const infer = review.steps.find(step => step.infer !== undefined)!.infer!;
   infer.contract = task;
   infer.input = {StageName: {field: 'StageName'}, NextStep: {field: 'NextStep'},
     fileVersion: {field: 'version'}};
@@ -126,9 +139,9 @@ output:
 // the second Model consumes the retained first Stage Result in the SAME Run.
 // The MappingRef is closed declaration DATA under the existing mapping
 // request preimage; it selects no installation, authority or accepted write.
-export function twoModelDealReviewProgram(files) {
-  const catalog = JSON.parse(files['mock/catalog.json']);
-  const view = catalog.connections.salesforce.views.find(value => value.resource === 'Opportunity');
+export function twoModelDealReviewProgram(files: ProjectFiles) {
+  const catalog = JSON.parse(files['mock/catalog.json']) as MockCatalog;
+  const view = catalog.connections.salesforce.views.find(value => value.resource === 'Opportunity')!;
   const targetSchema = {type: 'object', nullable: false, additional_properties: false, fields: view.schema};
   const request = {resource: 'Opportunity', kind: 'update', key: null, target_schema: targetSchema,
     write_fields: ['NextStep', 'StageName'], row_mapping: {
@@ -136,8 +149,8 @@ export function twoModelDealReviewProgram(files) {
       NextStep: {field: 'NextStep', null_behavior: 'reject'}}};
   const mapping = 'mapping:salesforce/Opportunity/update-' +
     createHash('sha256').update(canonicalJson(request)).digest('hex').slice(0, 16) + '.v1';
-  const field = name => ({field: name});
-  const property = (name, key) => ({property: {value: field(name), name: key}});
+  const field = (name: string) => ({field: name});
+  const property = (name: string, key: string) => ({property: {value: field(name), name: key}});
   const fields = ['id', 'StageName', 'NextStep', 'review'];
   return {version: 'actql/0.1', id: 'fixture.deal-review-dependent-models', stages: [
     {id: 'review', inputs: {
