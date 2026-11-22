@@ -42,9 +42,86 @@ struct NativeClientModelHttpCall {
 struct NativeModelHttpInstallation {
   capture : NativeLocalJournalCapture
   runtime : NativeLocalPackagedRuntime
+  execution : @environment.ModelExecutionContract
+  implementation : @model.ModelProvider
+  binding : @publication.RunEvidenceValue
   provider : @model.AdmittedStructuredModelProvider
+  response : @environment.ModelResponseProfile
   profile : @environment.ModelResponseProfileInstallation
   credential : @filesystem.PrivateFileProjection
+}
+
+///|
+/// Locators for the nonsecret originals in the already adopted settings.
+/// The credential remains the original private file chosen by the setting.
+pub(all) struct NativeModelHttpConfigurationFiles {
+  setting : String
+  installation_revision : String
+  configuration_contract : String
+  response_profile : String
+}
+
+///|
+// Checked configuration DATA borrowed by Task normalization and installation.
+// It retains the one existing adoption and the exact canonical Provider.
+struct NativeModelHttpConfiguration {
+  capture : NativeLocalJournalCapture
+  settings : NativeLocalConfigurationSelection
+  setting : NativeLocalSelectedFile
+  provider_file : NativeLocalSelectedFile
+  selected : NativeLocalPreparationInstallationSelection
+  defaults : @host.ClientModelProviderDefaults
+  provider_wire : String
+  response : @environment.ModelResponseProfile
+}
+
+///|
+/// The same configured defaults used by the later physical admission.
+pub fn NativeModelHttpConfiguration::provider_defaults(
+  self : Self,
+) -> @host.ClientModelProviderDefaults {
+  self.defaults
+}
+
+///|
+// The original protected provider document selects these three identities.
+// Another valid adopted file cannot substitute its revision, contract or
+// response profile simply because it is present in the same configuration.
+fn native_model_http_configuration_matches(
+  body : Bytes,
+  revision_cid : String,
+  contract_cid : String,
+  profile_cid : String,
+  limits : @environment.Limits,
+) -> Bool {
+  guard @source.parse_json_bytes_preserving(body, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    })
+    is Ok(node) &&
+    @decode.admit(node, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    })
+    is Ok(value) &&
+    @decode.open_object(value) is Ok(object) else {
+    return false
+  }
+  for
+    (field, expected) in [
+      ("installation_revision_cid", revision_cid),
+      ("configuration_contract_cid", contract_cid),
+      ("response_profile_cid", profile_cid),
+    ] {
+    guard @decode.lookup(object, field) is Some(original) &&
+      @decode.text(original) == Ok(expected) else {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -69,17 +146,97 @@ fn NativeLocalJournalCapture::require_loaded_model_http_in_original_read(
 }
 
 ///|
-/// Borrow the original private-file projection through the existing installed
-/// credential journal on the selected Runtime. The installer funds this
-/// configuration read and the retained profile/Runtime references first.
-pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_read(
+/// Read the adopted nonsecret Provider originals before Task normalization.
+/// The existing Read funds these Common readers and the retained selection.
+pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read(
+  self : NativeLocalJournalCapture,
+  files : NativeModelHttpConfigurationFiles,
+  provider_id : String,
+  response_profile_cid : String,
+  limits : @environment.ModelTaskLimits,
+) -> Result[NativeModelHttpConfiguration, NativeClientModelHttpIssue] {
+  self
+  .with_current_adoption_material_in_original_read((host, _, _) => {
+    let adopted = host.session.settings
+    let settings = adopted.files
+    guard settings.iter().find_first(file => file.name == files.setting)
+      is Some(file) &&
+      local_preparation_installation_selection(file.body) is Ok(selected) &&
+      settings.iter().find_first(file => file.name == selected.provider_file)
+      is Some(provider_file) &&
+      settings
+      .iter()
+      .find_first(file => file.name == files.installation_revision)
+      is Some(revision_file) &&
+      settings
+      .iter()
+      .find_first(file => file.name == files.configuration_contract)
+      is Some(contract_file) &&
+      settings.iter().find_first(file => file.name == files.response_profile)
+      is Some(response_file) &&
+      native_model_http_configuration_matches(
+        provider_file.body,
+        revision_file.content_cid,
+        contract_file.content_cid,
+        response_profile_cid,
+        limits.bodies,
+      ) &&
+      !settings.any(candidate => candidate.name == selected.credential_file) &&
+      selected.credential_file != host.session.source_name else {
+      return Err(CustodyLost)
+    }
+    let (wire, revision, contract) = (
+      @utf8.decode(provider_file.body),
+      @utf8.decode(revision_file.body),
+      @utf8.decode(contract_file.body),
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    guard @host.read_client_model_provider_defaults(
+        provider_id,
+        revision,
+        contract,
+        wire,
+        limits.bodies,
+        limits.max_work,
+      )
+      is Ok(defaults) &&
+      @environment.read_model_response_profile(
+        response_file.body,
+        response_profile_cid,
+        limits.bodies,
+        limits.max_work,
+      )
+      is Ok(response) else {
+      return Err(CustodyLost)
+    }
+    Ok({
+      capture: self,
+      settings: adopted,
+      setting: file,
+      provider_file,
+      selected,
+      defaults,
+      provider_wire: wire,
+      response,
+    })
+  })
+  .map_err(issue => NativeClientModelHttpIssue::Original(issue))
+}
+
+///|
+/// Join this exact configuration and checked execution to the loaded Runtime.
+/// The adopted provider binding is reused rather than recreated from copies.
+pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
-  provider : @model.AdmittedStructuredModelProvider,
+  configuration : NativeModelHttpConfiguration,
+  execution : @environment.ModelExecutionContract,
+  dependencies : @environment.SingleAttemptModelDependencies,
+  resolved : @model.ResolvedStructuredModel,
   profile : @environment.ModelResponseProfileInstallation,
-  installation_setting : String,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
-  if !@model.model_http_chat_installation_matches(provider, profile) {
+  if !physical_equal(configuration.capture, self) {
     return Err(ForeignOriginal)
   }
   if self.require_loaded_model_http_in_original_read(runtime) is Err(issue) {
@@ -87,20 +244,35 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
   }
   self
   .with_current_adoption_material_in_original_read((host, _, operations) => {
-    let files = host.session.settings.files
-    guard files.iter().find_first(file => file.name == installation_setting)
-      is Some(file) &&
-      local_preparation_installation_selection(file.body) is Ok(selected) &&
-      files.iter().find_first(file => file.name == selected.provider_file)
-      is Some(provider_file) &&
-      !files.any(candidate => candidate.name == selected.credential_file) &&
-      selected.credential_file != host.session.source_name else {
+    if !physical_equal(host.session.settings, configuration.settings) {
       return Err(CustodyLost)
     }
-    let wire = @utf8.decode(provider_file.body) catch {
-      _ => return Err(Encoding)
-    }
-    guard @model.model_http_original_credential_reference(provider, wire)
+    let task = @environment.model_execution_task(execution)
+    let connection = @environment.model_task_connector(task)
+    let binding = @host.client_model_provider_defaults_binding(
+      configuration.defaults,
+    )
+    let wire = configuration.provider_wire
+    let response = configuration.response
+    let selected = configuration.selected
+    guard @model.install_async_model_provider(connection) is Ok(implementation) &&
+      @model.register_structured_model_capability(
+        implementation, binding, wire, resolved, response, true, true,
+      )
+      is Ok(capability) &&
+      @model.admit_structured_model_provider(
+        capability,
+        resolved,
+        execution,
+        dependencies,
+        profile,
+        (_, prompt) => {
+          @environment.model_openai_chat_instructions(prompt) is Some(_)
+        },
+      )
+      is Ok(provider) &&
+      @model.model_http_chat_installation_matches(provider, profile) &&
+      @model.model_http_original_credential_reference(provider, wire)
       is Some(reference) &&
       reference == "file:" + selected.credential_file else {
       return Err(CustodyLost)
@@ -109,8 +281,8 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
     .transaction_with_reads(
       () => {
         host.installation_original_locked(
-          file,
-          provider_file,
+          configuration.setting,
+          configuration.provider_file,
           selected,
           false,
           () => self.check_original_read_lifetime().map_err(_ => CustodyLost),
@@ -122,12 +294,34 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
     .map(credential => {
       capture: self,
       runtime,
+      execution,
+      implementation,
+      binding,
       provider,
+      response,
       profile,
       credential,
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
+}
+
+///|
+/// Borrow the installed provider and binding only for their original checked
+/// execution contract. The caller may use these at its Graph and Model Scope.
+pub fn NativeModelHttpInstallation::originals_for(
+  self : Self,
+  execution : @environment.ModelExecutionContract,
+) -> (
+  @model.ModelProvider,
+  @publication.RunEvidenceValue,
+  @environment.ModelResponseProfile,
+)? {
+  if physical_equal(self.execution, execution) {
+    Some((self.implementation, self.binding, self.response))
+  } else {
+    None
+  }
 }
 
 ///|
