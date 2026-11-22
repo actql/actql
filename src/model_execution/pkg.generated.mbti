@@ -233,6 +233,8 @@ pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.B
 
 pub fn model_raw_capture_save_current(ModelRawCaptureSave) -> Result[Unit, ModelRawCaptureSaveIssue]
 
+pub fn model_raw_capture_save_matches_run(ModelRawCaptureSave, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn model_raw_capture_save_originals(ModelRawCaptureSave) -> Array[@run_publication.CapturedEffectDependencyBody]
 
 pub fn model_saved_raw_chat_response(ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[ModelPhysicalChatResponse, ModelRawCaptureSaveIssue]

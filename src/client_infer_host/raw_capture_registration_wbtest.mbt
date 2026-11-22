@@ -236,6 +236,91 @@ test "raw capture registration retains fixed selection and rechecks current fact
 }
 
 ///|
+test "raw save requires its original compiled Run even when public identity agrees" {
+  let calls = Ref(0)
+  let current = Ref(
+    evidence_account(@authorization.Allow, operations=[
+      "infer", "model_raw_capture",
+    ]),
+  )
+  let at = Ref("2026-10-02T00:00:00.000Z")
+  let ready = Ref(false)
+  let original_call : Ref[@model.ModelPhysicalCall?] = Ref(None)
+  let (active, prefix) = async_response_fixture(
+    calls,
+    Ref(0),
+    Ref(0),
+    [],
+    ready,
+    Ref(true),
+    @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+    current~,
+    now=at,
+    observe_call=call => original_call.val = Some(call),
+  )
+  let prepared = prepared_call_set(active).unwrap()
+  let scope = @model.prepared_model_scope(prepared).unwrap()
+  let registration = @publication_host.register_client_model_raw_capture(
+    active.dispatch_admission.unwrap(),
+    scope,
+    raw_registration_policy(active, prepared),
+    async_response_profile(),
+    async_response_installation(),
+    None,
+    current.val,
+    at.val,
+    "sha256:" + "e".repeat(64),
+    () => true,
+    () => Ok((current.val, at.val)),
+  ).unwrap()
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("original call must reach its physical observation")
+  }
+  let original = active.run_binding.unwrap()
+  let (copy, copied_definition) = invocation_fixture_compiled(active)
+  assert_eq(
+    @publication.publication_contract_identity(original.definition),
+    @publication.publication_contract_identity(copied_definition),
+  )
+  assert_false(physical_equal(copy, original.compiled))
+  let save = @model.observe_model_raw_capture(
+    original_call.val.unwrap(),
+    registration,
+    "sha256:" + "f".repeat(64),
+    12,
+    429,
+    true,
+    at.val,
+  ).unwrap()
+  assert_true(
+    @model.model_raw_capture_save_matches_run(
+      save,
+      original.compiled,
+      original.definition,
+    ),
+  )
+  assert_false(
+    @model.model_raw_capture_save_matches_run(save, copy, copied_definition),
+  )
+  assert_true(cancel(active))
+  ready.val = true
+  assert_true(
+    fixture_finish(active, initial_work=work)
+    is Failed(Model(@model.UnknownCalls), ..),
+  )
+  assert_true(!cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_false(
+    @model.model_raw_capture_save_matches_run(
+      save,
+      original.compiled,
+      original.definition,
+    ),
+  )
+  assert_eq(calls.val, 1)
+}
+
+///|
 test "raw capture registration policy issuer preserves the registered body without granting capture" {
   let calls = Ref(0)
   let current = Ref(
