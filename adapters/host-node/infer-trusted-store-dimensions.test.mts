@@ -12,7 +12,7 @@ import {issueInferTrustedRuntimeView, bindInferTrustedStore,
 const originals = () => Object.freeze({host: {}, supplier: {}, installation: {},
   generation: {}, runtime: process, moduleLifetime: import.meta, transport: {},
   target: 'nominal-test-only'});
-const rejects = (fn, code) => assert.throws(fn, {code});
+const rejects = (fn: () => unknown, code: string) => assert.throws(fn, {code});
 const dimensions = () => Object.freeze({directoryCodeUnits: 1, directoryUtf8Bytes: 1,
   privateNamespaceCodeUnits: 26, privateNamespaceUtf8Bytes: 26, privateKeyBytes: 32});
 
@@ -79,7 +79,7 @@ test('equal dimension packets cannot replace the original Host Store module or g
     [actual, store, {...storeModule}, 'InferTrustedStoreChanged'],
     [{...actual, host: {}}, store, storeModule, 'InferTrustedRuntimeOriginalChanged'],
     [{...actual, generation: {}}, store, storeModule, 'InferTrustedRuntimeOriginalChanged'],
-  ]) {
+  ] as const) {
     rejects(() => selectedInferTrustedStoreDimensions(view, selected, receiver, module), code);
   }
 });

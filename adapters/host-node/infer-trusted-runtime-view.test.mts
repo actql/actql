@@ -11,7 +11,7 @@ const original = () => Object.freeze({host: Object.freeze({}),
   generation: Object.freeze({}), runtime: Object.freeze({}),
   moduleLifetime: Object.freeze({}), transport: () => {},
   target: 'https://example.invalid/v1/chat/completions'});
-const rejects = (run, code) => assert.throws(run, error => error.code === code);
+const rejects = (run: () => unknown, code: string) => assert.throws(run, error => (error as {code?: string}).code === code);
 
 test('runtime view retains exact originals without exposing bindings or a grant', () => {
   const actual = original();
@@ -19,7 +19,7 @@ test('runtime view retains exact originals without exposing bindings or a grant'
   assert.equal(checkInferTrustedRuntimeView(view, actual), undefined);
   assert.deepEqual(Reflect.ownKeys(view), []);
   assert.equal(Object.isFrozen(view), true);
-  assert.equal(view.constructor.binding, undefined);
+  assert.equal((view.constructor as Function & {binding?: unknown}).binding, undefined);
   // An independent shell retaining the SAME actual originals is equivalent;
   // cloning the original handles is not. The shell itself is not authority.
   assert.equal(checkInferTrustedRuntimeView(view, {...actual}), undefined);
@@ -33,7 +33,7 @@ test('missing copied and prototype-forged runtime views are rejected', () => {
     rejects(() => checkInferTrustedRuntimeView(copied, actual),
       'InferTrustedRuntimeViewUnavailable');
   }
-  rejects(() => new view.constructor(Symbol(), actual),
+  rejects(() => new (view.constructor as unknown as new (key: symbol, bindings: typeof actual) => unknown)(Symbol(), actual),
     'InferTrustedRuntimeViewUnavailable');
 });
 
@@ -127,7 +127,7 @@ test('recheck validates a late malformed descriptor before reporting an earlier 
 test('recheck observes each descriptor once without reading descriptor values through property getters', () => {
   const actual = original();
   const view = issueInferTrustedRuntimeView(actual);
-  const reads = [];
+  const reads: PropertyKey[] = [];
   let gets = 0;
   const selected = new Proxy({...actual}, {
     get() { gets++; throw new Error('UnexpectedOriginalPropertyRead'); },
@@ -184,7 +184,7 @@ test('foreign Store module Host or generation cannot replace the same associatio
     [actual, store, {}, 'InferTrustedStoreChanged'],
     [{...actual, host: {}}, store, moduleLifetime, 'InferTrustedRuntimeOriginalChanged'],
     [{...actual, generation: {}}, store, moduleLifetime, 'InferTrustedRuntimeOriginalChanged'],
-  ]) {
+  ] as const) {
     rejects(() => checkInferTrustedStore(view, selected, selectedStore, selectedModule), code);
   }
   checkInferTrustedStore(view, actual, store, moduleLifetime);

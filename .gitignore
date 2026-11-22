@@ -2234,3 +2234,7 @@ target/
 /adapters/host-node/infer-trusted-runtime-view.d.mts
 /scripts/selected-infer-startup-entry.test.mjs
 /scripts/selected-infer-startup-entry.test.d.mts
+/adapters/host-node/infer-trusted-runtime-view.test.mjs
+/adapters/host-node/infer-trusted-runtime-view.test.d.mts
+/adapters/host-node/infer-trusted-store-dimensions.test.mjs
+/adapters/host-node/infer-trusted-store-dimensions.test.d.mts

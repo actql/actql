@@ -60428,7 +60428,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.test.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.test.mts",
                 "anchor": "test('runtime view retains exact originals without exposing bindings or a grant', () => {"
               },
               {
@@ -60584,7 +60584,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-trusted-runtime-view.test.mjs",
+                "path": "adapters/host-node/infer-trusted-runtime-view.test.mts",
                 "anchor": "test('runtime view retains exact originals without exposing bindings or a grant', () => {"
               },
               {
