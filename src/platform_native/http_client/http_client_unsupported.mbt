@@ -243,6 +243,17 @@ pub fn Library::create_authenticated_client_with_custody(
 }
 
 ///|
+pub fn Library::create_projected_bearer_client_with_custody(
+  _self : Library,
+  _ca_path : String,
+  _max_response_bytes : Int64,
+  _connect_timeout_ms : Int,
+  _operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 pub fn Library::close_checked(_self : Library) -> Result[Unit, NativeHttpIssue] {
   Err(UnsupportedTarget)
 }

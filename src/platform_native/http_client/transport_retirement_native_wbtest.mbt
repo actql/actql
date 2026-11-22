@@ -141,8 +141,13 @@ test "incremental bearer POST retains the original client until completion or ph
   if @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_EXPECT_CARES") is Some(expected) {
     assert_eq(supported, expected == "1")
   }
-  let original = create()
+  let ca = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_CA").unwrap()
   if !supported {
+    assert_true(
+      library.create_projected_bearer_client_with_custody(ca, 64L, 2000, 5000)
+      is Err(RefusedBeforeAcquisition(UnsupportedTarget)),
+    )
+    let original = create()
     // Missing credential would otherwise fail before transport. The resolver
     // refusal must precede acquisition, and leaves no physical child to drain.
     assert_true(
@@ -161,6 +166,31 @@ test "incremental bearer POST retains the original client until completion or ph
     assert_eq(library.close_checked() is Ok(_), has_tls_cleanup)
     return
   }
+  // This injected allocation failure acquires the same Client before the
+  // CA copy fails. Its first cleanup retry retains that physical original.
+  fail_http_constructor_path(library, 1)
+  guard library.create_projected_bearer_client_with_custody(ca, 64L, 2000, 5000)
+    is Err(CleanupRequired(partial)) else {
+    fail("the dedicated constructor lost its original failure custody")
+    return
+  }
+  let partial_client = partial.client.unwrap()
+  assert_true(partial_client.uses_library(library))
+  fail_http_constructor_retirement(partial_client, 1, 0)
+  assert_true(partial.retry_cleanup() is Err(Transport(_)))
+  assert_true(
+    partial.client is Some(held) && physical_equal(held, partial_client),
+  )
+  assert_true(physical_equal(partial.retry_cleanup().unwrap(), library))
+  assert_true(partial.client is None)
+  let create_projected = () => {
+    library
+    .create_projected_bearer_client_with_custody(ca, 64L, 2000, 5000)
+    .unwrap()
+  }
+  let projected_url = @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_PROJECTED_URL").unwrap() +
+    "/incremental-complete"
+  let original = create_projected()
   let start = (client : Client, path : String) => {
     client.start_bearer_post(
       url + path,
@@ -187,14 +217,25 @@ test "incremental bearer POST retains the original client until completion or ph
   let stale = fixture.adopt_private_file_projection("alternate.secret").unwrap()
   fixture.reclaim_generation("alternate.secret", old).unwrap()
   ignore(write_fixture_key(b"forged-secret\n"))
-  let refused = create()
+  let refused = create_projected()
   let payload = b"{\"original\":true}"
+  assert_true(original.post_json(projected_url, payload) is Err(InvalidRequest))
+  assert_true(
+    original.request(Post, projected_url, [], payload) is Err(InvalidRequest),
+  )
+  assert_true(
+    original.start_bearer_post(
+      projected_url,
+      [],
+      payload,
+      secret,
+      9223372036854775807L,
+    )
+    is Err(InvalidRequest),
+  )
   assert_true(
     refused.start_projected_bearer_post(
-      url + "/incremental-complete",
-      payload,
-      stale,
-      9223372036854775807L,
+      projected_url, payload, stale, 9223372036854775807L,
     )
     is Err(CredentialUnavailable),
   )
@@ -203,18 +244,12 @@ test "incremental bearer POST retains the original client until completion or ph
   refused.close_bearer_post_in_original_scope().unwrap()
   original
   .start_projected_bearer_post(
-    url + "/incremental-complete",
-    payload,
-    credential,
-    9223372036854775807L,
+    projected_url, payload, credential, 9223372036854775807L,
   )
   .unwrap()
   assert_true(
     original.start_projected_bearer_post(
-      url + "/incremental-complete",
-      payload,
-      credential,
-      9223372036854775807L,
+      projected_url, payload, credential, 9223372036854775807L,
     )
     is Err(Closed),
   )

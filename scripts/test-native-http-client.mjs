@@ -59,6 +59,24 @@ if (focus !== undefined &&
 const focusedRequests = [];
 const incrementalRequests = [];
 const incrementalStop = Promise.withResolvers();
+async function observeIncremental(request, response) {
+  let body = '';
+  for await (const chunk of request) body += chunk;
+  assert.equal(request.method, 'POST');
+  assert.equal(request.headers.authorization, 'Bearer native-secret');
+  assert.equal(request.headers['content-type'], 'application/json');
+  assert.equal(body, '{"original":true}');
+  incrementalRequests.push(request.url);
+  if (request.url === '/incremental-stop') {
+    response.once('close', incrementalStop.resolve);
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.write('{"pending":');
+    await writeFile(join(root, 'incremental-entered'), '', {flag: 'wx'});
+  } else {
+    response.writeHead(503, {'content-type': 'application/json'});
+    response.end('{"unavailable":true}');
+  }
+}
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -375,22 +393,7 @@ verification: try {
       return;
     }
     if (request.url === '/incremental-complete' || request.url === '/incremental-stop') {
-      let body = '';
-      for await (const chunk of request) body += chunk;
-      assert.equal(request.method, 'POST');
-      assert.equal(request.headers.authorization, 'Bearer native-secret');
-      assert.equal(request.headers['content-type'], 'application/json');
-      assert.equal(body, '{"original":true}');
-      incrementalRequests.push(request.url);
-      if (request.url === '/incremental-stop') {
-        response.once('close', incrementalStop.resolve);
-        response.writeHead(200, {'content-type': 'application/json'});
-        response.write('{"pending":');
-        await writeFile(join(root, 'incremental-entered'), '', {flag: 'wx'});
-      } else {
-        response.writeHead(503, {'content-type': 'application/json'});
-        response.end('{"unavailable":true}');
-      }
+      await observeIncremental(request, response);
       return;
     }
     const applicationInputContract = new Map([
@@ -1300,6 +1303,17 @@ verification: try {
     });
     dnsDestination.listen(0, '127.0.0.1');
     await once(dnsDestination, 'listening');
+    let projectedConnections = 0;
+    const projectedPeer = createServer({
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')),
+    }, async (request, response) => {
+      assert.equal(request.url, '/incremental-complete');
+      await observeIncremental(request, response);
+    });
+    projectedPeer.on('secureConnection', () => { projectedConnections++; });
+    projectedPeer.listen(0, nativeHttpHost);
+    await once(projectedPeer, 'listening');
     try {
       const child = spawn(process.execPath, ['--input-type=module', '-e',
         "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
@@ -1311,6 +1325,8 @@ verification: try {
           ...process.env,
           ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
           ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+          ACTQL_TEST_NATIVE_HTTP_PROJECTED_URL:
+            `https://${nativeHttpHost}:${projectedPeer.address().port}`,
           ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
           ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
           ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
@@ -1326,9 +1342,11 @@ verification: try {
       await Promise.all(dnsObservations.values());
       assert.deepEqual(pendingDnsConnections, [], 'DNS stop reached no TCP/TLS destination');
       if (incrementalRequests.length === 0) {
+        assert.equal(projectedConnections, 0);
         assert.equal(dnsObservations.size, 0);
         assert.notEqual(process.env.ACTQL_TEST_NATIVE_HTTP_EXPECT_CARES, '1');
       } else {
+        assert.equal(projectedConnections, 1);
         assert.deepEqual(incrementalRequests, ['/incremental-complete', '/incremental-stop']);
         assert.deepEqual([...dnsObservations.keys()], ['cancel', 'timeout']);
         let timeout;
@@ -1343,7 +1361,8 @@ verification: try {
     } finally {
       dns.close();
       dnsDestination.close();
-      await Promise.all([once(dns, 'close'), once(dnsDestination, 'close')]);
+      projectedPeer.close();
+      await Promise.all([once(dns, 'close'), once(dnsDestination, 'close'), once(projectedPeer, 'close')]);
     }
     break verification;
   }

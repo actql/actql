@@ -24,6 +24,7 @@ struct NativeClientModelHttpCall {
   mut original : @model.ModelPhysicalCall?
   mut next_in_runtime : NativeClientModelHttpCall?
   mut client : @http.Client?
+  mut client_create_failure : @http.NativeHttpClientCreateFailure?
   mut cancelled : Bool
   mut started : Bool
   mut start_refusal : NativeClientModelHttpIssue?
@@ -91,14 +92,16 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
 }
 
 ///|
-/// The installed caller supplies its already prepared, dedicated Client and
-/// the exact bytes retained by its paid portable HTTP codec preflight. This
-/// constructor funds the Call controls and the response copy made by the FFI.
-/// The Client's curl/TLS backing stays in its original physical allocation.
+/// Prepare a dedicated Client on the original Runtime before any Entry.
+/// The installed caller supplies the server trust path and the retained
+/// codec output. Link the Call before acquiring the physical Client so a
+/// partial constructor stays with the same Runtime's cleanup.
 pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
-  client : @http.Client,
+  ca_path : String,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
   request : @model.ModelRequest,
   installation : NativeModelHttpInstallation,
   prepared : @model.PreparedModelHttpChatRequest,
@@ -118,7 +121,6 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
     physical_equal(read, original.read) &&
     runtime.model_http_load is Some(Ok(loaded)) &&
     !loaded.stopping &&
-    client.uses_library(loaded.library) &&
     @model.prepared_model_http_chat_material(
       prepared,
       request,
@@ -127,39 +129,38 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
     is Some((endpoint, profile, wire)) else {
     return Err(ForeignOriginal)
   }
-  // A dedicated Client may back only one retained Call. The list is bounded
-  // by the same funded originals, including those awaiting physical close.
-  let mut attached = loaded.calls
-  while attached is Some(previous) {
-    if previous.client is Some(original) && physical_equal(original, client) {
-      return Err(ForeignOriginal)
-    }
-    attached = previous.next_in_runtime
-  }
-  let limits = @environment.model_response_profile_limits(profile)
+  loaded.retire_settled_call_aliases()
   if expires_at < 1L ||
-    !(client.response_limit() is Ok(maximum) &&
-    maximum == limits.response_bytes.to_int64()) {
+    ca_path.is_empty() ||
+    ca_path.length() > 4096 ||
+    ca_path.contains("\u{0}") ||
+    connect_timeout_ms <= 0 ||
+    operation_timeout_ms < connect_timeout_ms {
     return Err(ForeignOriginal)
   }
-  let maximum_body = limits.response_bytes.to_int64()
+  let maximum_body = @environment.model_response_profile_limits(profile).response_bytes.to_int64()
   let (header, _, _, _, _) = @bootstrap.native_managed_value_layout()
-  // poll_bearer_post copies curl's body into one managed Bytes before the
-  // Client closes. Its whole allocation may overlap every other retained Call.
+  // The server trust path can be live both as temporary UTF-8 and as the
+  // Client's native copy. The later managed body can overlap the native
+  // response until the Client closes. Charge these on the same Read.
+  let ca_bytes = 3L * ca_path.length().to_int64() + 1L
   guard header > 0L &&
     @execution.preparation_representation_cost({
-      record_headers: 10L,
-      reference_slots: 28L,
-      scalar_words: 10L,
+      record_headers: 13L,
+      reference_slots: 33L,
+      scalar_words: 13L,
       owned_utf16_units: 0L,
-      owned_wire_bytes: maximum_body + 1L,
+      owned_wire_bytes: maximum_body + 1L + 2L * ca_bytes,
     })
     is Some(copy) else {
     return Err(Original(ConfigurationLimit))
   }
   self
-  .fund_model_http_material_in_original_read(copy, header + maximum_body + 1L)
-  .map(_ => {
+  .fund_model_http_material_in_original_read(
+    copy,
+    header + Int64::max(maximum_body + 1L, ca_bytes),
+  )
+  .bind(_ => {
     let call : NativeClientModelHttpCall = {
       capture: self,
       request,
@@ -171,7 +172,8 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
       wire,
       original: None,
       next_in_runtime: loaded.calls,
-      client: Some(client),
+      client: None,
+      client_create_failure: None,
       cancelled: false,
       started: false,
       start_refusal: None,
@@ -183,7 +185,20 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
       outcome: None,
     }
     loaded.calls = Some(call)
-    call
+    match
+      loaded.library.create_projected_bearer_client_with_custody(
+        ca_path, maximum_body, connect_timeout_ms, operation_timeout_ms,
+      ) {
+      Ok(client) => {
+        call.client = Some(client)
+        Ok(call)
+      }
+      Err(@http.RefusedBeforeAcquisition(issue)) => Err(Http(issue))
+      Err(@http.CleanupRequired(failure)) => {
+        call.client_create_failure = Some(failure)
+        Err(Http(failure.issue()))
+      }
+    }
   })
 }
 
@@ -365,7 +380,9 @@ pub fn NativeClientModelHttpCall::close_in_original_cleanup(
   }
   // A completed Client has no claim on another child's pending Read leave.
   // Still finish the failed scope return from our own stop before ACK.
-  if self.client is None && !self.stop_scope_pending {
+  if self.client is None &&
+    self.client_create_failure is None &&
+    !self.stop_scope_pending {
     return Ok(())
   }
   self.advancing = true
@@ -378,23 +395,67 @@ pub fn NativeClientModelHttpCall::close_in_original_cleanup(
       Err(issue) => return Err(Original(issue))
     }
   }
-  guard self.client is Some(client) else { return Ok(()) }
+  if self.client is None && self.client_create_failure is None {
+    return Ok(())
+  }
   let stopped = original.stage(
     @arena.HostRead,
-    () => {
-      Ok(
-        client
-        .close_bearer_post_in_original_scope()
-        .map(_ => self.client = None)
-        .map_err(issue => Http(issue)),
-      )
-    },
+    () => Ok(self.retire_client_in_original_cleanup_read()),
     cleanup=true,
   )
   self.stop_scope_pending = original.interrupted
   stopped
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
   .bind(result => result)
+}
+
+///|
+fn NativeClientModelHttpCall::retire_client_in_original_cleanup_read(
+  self : NativeClientModelHttpCall,
+) -> Result[Unit, NativeClientModelHttpIssue] {
+  if self.client_create_failure is Some(failure) {
+    return failure
+      .retry_cleanup()
+      .map(_ => self.client_create_failure = None)
+      .map_err(issue => Http(issue))
+  }
+  guard self.client is Some(client) else { return Ok(()) }
+  client
+  .close_bearer_post_in_original_scope()
+  .map(_ => self.client = None)
+  .map_err(issue => Http(issue))
+}
+
+///|
+// Called in the original HostRead before the next Call is prepared. Core's
+// settlement and retirement are separate facts and both must be present.
+// Dropping these duplicate references does not refund the Read reservation.
+fn NativeLocalLoadedModelHttp::retire_settled_call_aliases(
+  self : NativeLocalLoadedModelHttp,
+) -> Unit {
+  let mut previous : NativeClientModelHttpCall? = None
+  let mut pending = self.calls
+  while pending is Some(call) {
+    let next = call.next_in_runtime
+    if call.original is Some(original) &&
+      original.settlement_acknowledged &&
+      original.retired &&
+      call.client is None &&
+      !call.stop_scope_pending {
+      match previous {
+        Some(older) => older.next_in_runtime = next
+        None => self.calls = next
+      }
+      call.next_in_runtime = None
+      call.response = None
+      call.raw = None
+      call.outcome = None
+      call.original = None
+    } else {
+      previous = pending
+    }
+    pending = next
+  }
 }
 
 ///|
@@ -545,10 +606,18 @@ pub fn NativeClientModelHttpCall::adopt_saved_chat(
           output_tokens: None,
         }),
       )
+      self.response = None
+      self.raw = None
       return Ok(())
     }
   }
   @model.model_saved_raw_chat_response(receipt, body, None)
-  .map(value => self.outcome = Some(@model.PhysicalChatResponse(value)))
+  .map(value => {
+    self.outcome = Some(@model.PhysicalChatResponse(value))
+    // The Store owns the confirmed bytes. The checked response now owns its
+    // separate decoded text and exact receipt.
+    self.response = None
+    self.raw = None
+  })
   .map_err(issue => Raw(issue))
 }

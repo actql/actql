@@ -240,6 +240,7 @@ typedef struct {
   bool capacity_exceeded;
   actql_native_http_transfer *transfer;
   bool incremental_started;
+  bool projected_bearer_only;
   bool constructor_failed;
   bool constructor_metadata_retired;
   int32_t test_retire_failures;
@@ -1401,7 +1402,7 @@ void *actql_native_http_create_client(
 
 // A client authenticated by a client certificate, by a per-request bearer
 // credential file, or by both. The server is always verified against the CA.
-void *actql_native_http_create_authenticated_client(
+static void *actql_http_create_authenticated_client(
   actql_native_http_library *library,
   moonbit_bytes_t ca_path,
   int32_t ca_path_length,
@@ -1413,7 +1414,8 @@ void *actql_native_http_create_authenticated_client(
   int32_t bearer_path_length,
   int64_t max_response_bytes,
   int32_t connect_timeout_ms,
-  int32_t operation_timeout_ms
+  int32_t operation_timeout_ms,
+  bool projected_bearer_only
 ) {
   actql_native_http_client *client = moonbit_make_external_object(
     actql_native_http_client_finalize,
@@ -1429,6 +1431,7 @@ void *actql_native_http_create_authenticated_client(
   client->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library != NULL) moonbit_incref(library);
   client->max_response_bytes = max_response_bytes;
+  client->projected_bearer_only = projected_bearer_only;
   client->connect_timeout_ms = connect_timeout_ms;
   client->operation_timeout_ms = operation_timeout_ms;
   bool mutual = certificate_path_length > 0 || key_path_length > 0;
@@ -1436,7 +1439,7 @@ void *actql_native_http_create_authenticated_client(
   if (!client->holder_counted ||
       max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms ||
-      (!mutual && !bearer) ||
+      (projected_bearer_only ? (!library->multi.init || mutual || bearer) : (!mutual && !bearer)) ||
       (mutual && (certificate_path_length <= 0 || key_path_length <= 0))) {
     actql_set_client_constructor_error(client, "invalid HTTP client configuration");
     return client;
@@ -1459,6 +1462,37 @@ void *actql_native_http_create_authenticated_client(
     actql_set_client_constructor_error(client, "HTTP credential path allocation failed");
   }
   return client;
+}
+
+void *actql_native_http_create_authenticated_client(
+  actql_native_http_library *library,
+  moonbit_bytes_t ca_path,
+  int32_t ca_path_length,
+  moonbit_bytes_t certificate_path,
+  int32_t certificate_path_length,
+  moonbit_bytes_t key_path,
+  int32_t key_path_length,
+  moonbit_bytes_t bearer_path,
+  int32_t bearer_path_length,
+  int64_t max_response_bytes,
+  int32_t connect_timeout_ms,
+  int32_t operation_timeout_ms
+) {
+  return actql_http_create_authenticated_client(library, ca_path, ca_path_length,
+    certificate_path, certificate_path_length, key_path, key_path_length,
+    bearer_path, bearer_path_length, max_response_bytes, connect_timeout_ms,
+    operation_timeout_ms, false);
+}
+
+// This constructor retains only the CA path. Authentication must arrive
+// through the checked incremental POST with its original file projection.
+void *actql_native_http_create_projected_bearer_client(
+  actql_native_http_library *library, moonbit_bytes_t ca_path, int32_t ca_path_length,
+  int64_t max_response_bytes, int32_t connect_timeout_ms, int32_t operation_timeout_ms
+) {
+  return actql_http_create_authenticated_client(library, ca_path, ca_path_length,
+    NULL, 0, NULL, 0, NULL, 0, max_response_bytes, connect_timeout_ms,
+    operation_timeout_ms, true);
 }
 
 int32_t actql_native_http_client_ready(actql_native_http_client *client) {
@@ -1490,6 +1524,7 @@ static int32_t actql_native_http_client_post_json_owned(
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (client == NULL || client->closed) return 3;
+  if (client->projected_bearer_only) return 6;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
   actql_clear_response(client);
   char *url_text = actql_copy_text(library, url, url_length);
@@ -1785,6 +1820,7 @@ static int32_t actql_native_http_client_request_owned(
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (client == NULL || client->closed) return 3;
+  if (client->projected_bearer_only && (!incremental || !credential_projection)) return 6;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
   actql_clear_response(client);
   char *method_text = actql_copy_text(library, method, method_length);
@@ -2043,6 +2079,10 @@ int32_t actql_native_http_client_request_bearer_file(
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (!actql_http_begin_request(client)) return 3;
+  if (client->projected_bearer_only) {
+    actql_http_end_request(client);
+    return 6;
+  }
   char *path = actql_copy_text(library, secret_path, secret_path_length);
   int32_t result = path ? actql_native_http_client_request_owned(client, method, method_length,
     url, url_length, headers, headers_length, body, body_length, path, NULL, true, expires_at_milliseconds, false) : 6;
@@ -2061,6 +2101,10 @@ int32_t actql_native_http_client_start_bearer_post(
   int64_t expires_at_milliseconds
 ) {
   if (!actql_http_begin_request(client)) return 3;
+  if (client->projected_bearer_only) {
+    actql_http_end_request(client);
+    return 6;
+  }
   actql_native_http_library *library = client->library;
   int32_t result = ACTQL_HTTP_INCREMENTAL_UNAVAILABLE;
   if (library->multi.init) {

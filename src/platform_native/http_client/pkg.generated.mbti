@@ -38,6 +38,7 @@ pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthenticati
 pub fn Library::create_authenticated_client_with_custody(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::create_client_with_custody(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
+pub fn Library::create_projected_bearer_client_with_custody(Self, String, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::incremental_bearer_post_supported(Self) -> Bool
 pub fn Library::version(Self) -> String
 

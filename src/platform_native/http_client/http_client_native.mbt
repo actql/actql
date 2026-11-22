@@ -158,6 +158,17 @@ extern "C" fn create_authenticated_client_ffi(
 ) -> Client = "actql_native_http_create_authenticated_client"
 
 ///|
+#borrow(library, ca_path)
+extern "C" fn create_projected_bearer_client_ffi(
+  library : Library,
+  ca_path : Bytes,
+  ca_path_length : Int,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Client = "actql_native_http_create_projected_bearer_client"
+
+///|
 #borrow(client)
 extern "C" fn client_ready_ffi(client : Client) -> Bool = "actql_native_http_client_ready"
 
@@ -571,6 +582,42 @@ pub fn Library::create_authenticated_client_with_custody(
 }
 
 ///|
+/// Prepare the one-shot POST client on this original Library. Only the
+/// server trust path is needed at construction; start requires a retained
+/// private-file projection.
+pub fn Library::create_projected_bearer_client_with_custody(
+  self : Library,
+  ca_path : String,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  if !valid_path(ca_path) ||
+    max_response_bytes < 0L ||
+    max_response_bytes > 2147483647L ||
+    connect_timeout_ms <= 0 ||
+    operation_timeout_ms < connect_timeout_ms {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  if !library_ready_ffi(self) {
+    return Err(RefusedBeforeAcquisition(Closed))
+  }
+  if !self.incremental_bearer_post_supported() {
+    return Err(RefusedBeforeAcquisition(UnsupportedTarget))
+  }
+  let ca = @utf8.encode(ca_path)
+  let client = create_projected_bearer_client_ffi(
+    self,
+    ca,
+    ca.length(),
+    max_response_bytes,
+    connect_timeout_ms,
+    operation_timeout_ms,
+  )
+  http_client_create_result_with_custody(self, client)
+}
+
+///|
 pub fn Client::post_json(
   self : Client,
   url : String,
@@ -593,6 +640,7 @@ pub fn Client::post_json(
     2 => Err(Cancelled)
     3 => Err(Closed)
     5 => Err(CredentialUnavailable)
+    6 => Err(InvalidRequest)
     _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
   }
 }
