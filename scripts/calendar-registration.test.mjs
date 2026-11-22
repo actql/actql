@@ -34,7 +34,7 @@ test('Calendar opcodes and arities match the existing normative mapping', () => 
   const language = readFileSync('docs/spec/language.md', 'utf8');
   assert(language.includes('`TEA.calendar.bucket` / `TEA.calendar.series`'));
   checkRegistration(aoa, registry);
-  assert.equal(cid(registry), 'sha256:f4f66d1ce9e86d1cf3326f86a4909a27eed1c83f6e0a7603d7bd3b5f819873cc');
+  assert.equal(cid(registry), 'sha256:52e62094b1162213605e27199aa9a0e4832ee7771bcc1be66124f2fefb0a01e7');
   assert.equal(cid(aoa.execution_contracts[operations[0]]), 'sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227');
   assert.equal(cid(aoa.execution_contracts[operations[1]]), 'sha256:8070a5fa9b6177df0d407b474a2b34aff2ecde9cf9c5b726191f7bd908a4dc83');
   assert.deepEqual(registry[operations[0]].inputs, ['relation']);
@@ -116,19 +116,49 @@ test('current Calendar registration preserves complete old bodies and changes on
   restoredOwner.expression_contract_cid = prior.aoa.expression_contract_cid;
   for (const [name, roles] of [
     ['ACTQL.expression_fragment/0.1', ['expression_contract', 'fragment_schema']],
-    ['REL.derive.ordered', ['expression_contract', 'expression_node', 'source_expression']],
+    ['REL.derive.ordered', ['expression_contract', 'expression_node', 'source_expression', 'value_contract']],
+    ['REL.values', ['canonical_value_contract']],
+    ['BRIDGE.rows.to_graph', ['canonical_value_contract']],
   ]) for (const role of roles) {
     const retained = prior.aoa.execution_contracts[name].dependencies[role];
     const current = restoredOwner.execution_contracts[name].dependencies[role];
     assert.deepEqual({...current, cid: retained.cid}, retained);
     current.cid = retained.cid;
   }
+  // BYTES adds one closed arm and deterministic wire weight. Reverse the
+  // current addition before comparing the whole published Calendar owner.
+  const removeByteArm = schema => {
+    const alternatives = schema.$defs.value_contract.oneOf;
+    const index = alternatives.findIndex(arm => arm.properties?.type?.const === 'bytes');
+    assert.notEqual(index, -1);
+    const [bytes] = alternatives.splice(index, 1);
+    assert.deepEqual(bytes, {
+      type: 'object', required: ['type', 'nullable'], additionalProperties: false,
+      properties: {type: {const: 'bytes'}, nullable: {type: 'boolean'}},
+    });
+  };
+  const ordered = restoredOwner.execution_contracts['REL.derive.ordered'];
+  removeByteArm(ordered.schemas.context);
+  removeByteArm(ordered.schemas.shape);
+  const bytesWeight = '_and_canonical_base64_octets_of_bytes_values';
+  assert.equal(ordered.semantics.value_weight.split(bytesWeight).length, 2);
+  ordered.semantics.value_weight = ordered.semantics.value_weight.replace(bytesWeight, '');
+  const values = restoredOwner.execution_contracts['REL.values'];
+  removeByteArm(values.params_schema);
+  assert.equal(values.semantics.byte_values, '^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])');
+  delete values.semantics.byte_values;
+  removeByteArm(restoredOwner.execution_contracts['BRIDGE.rows.to_graph'].params_schema);
   const fragmentCid = cid(restoredOwner.execution_contracts['ACTQL.expression_fragment/0.1']);
   const orderedCid = cid(restoredOwner.execution_contracts['REL.derive.ordered']);
   const restoredRegistry = structuredClone(registry);
   restoredRegistry['ACTQL.expression_fragment/0.1'].execution_contract.cid = fragmentCid;
   restoredRegistry['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
   restoredRegistry[operations[1]].execution_contract.cid = prior.series_cid;
+  for (const name of ['REL.values', 'BRIDGE.rows.to_graph']) {
+    const retainedCid = cid(restoredOwner.execution_contracts[name]);
+    restoredRegistry[name].execution_contract.cid = retainedCid;
+    restoredOwner.target_registry_requirements[name].execution_contract.cid = retainedCid;
+  }
   assert.deepEqual(restoredRegistry, prior.registry);
   restoredOwner.target_registry_requirements['ACTQL.expression_fragment/0.1'].execution_contract.cid = fragmentCid;
   restoredOwner.target_registry_requirements['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
