@@ -65,6 +65,8 @@ export interface DuckDBAppender {
   appendNull(): void;
 }
 
+export declare const DuckDBPreparedStatement: Readonly<{prototype: DuckDBPreparedStatement}>;
+
 export interface DuckDBPreparedStatement {
   readonly statementType: StatementType;
   readonly parameterCount: number;

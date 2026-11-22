@@ -305,7 +305,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/session.test.mts",
                 "anchor": "chunk transfer has cumulative bounds and immutable column payloads"
               }
             ]
@@ -3203,11 +3203,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/session.test.mts",
                 "anchor": "cleanup failure retains primary failure and same owned resources until retry settles"
               },
               {
-                "path": "adapters/connectors/duckdb/node/test/session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/session.test.mts",
                 "anchor": "source grants are opaque; existing file is read-only and isolated from Compute"
               }
             ]
@@ -3257,7 +3257,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/test/session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/session.test.mts",
                 "anchor": "source grants are opaque"
               }
             ],
@@ -3281,7 +3281,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/session.test.mts",
                 "anchor": "source grants are opaque; existing file is read-only and isolated from Compute"
               }
             ]

@@ -4,10 +4,20 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { fork } from 'node:child_process';
-import { DuckDBInstance, DuckDBPreparedStatement } from '@duckdb/node-api';
+import { fork, type ChildProcess } from 'node:child_process';
+import { DuckDBInstance, DuckDBPreparedStatement, type DuckDBConnection } from '@duckdb/node-api';
 import { authorizeLocalDatabase, withSourceDatabase, withComputeDatabase, DuckDBTransportError } from '../session.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+
+import type {PhysicalScalar} from '../physical-values.mjs';
+import type {SourceAccounting, SourceChunk, SourceLimits, SourceParameters, SourceSession} from '../source-acquisition.mjs';
+
+type Usage = ReturnType<SourceSession['usage']>;
+type CleanupStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type SessionFailure = Error & Readonly<{
+  code: string; primaryFailure: unknown; cleanupErrors: readonly unknown[]; cleanupPending: boolean;
+  cleanupHandle: Readonly<{status(): CleanupStatus; retry(): Promise<CleanupStatus>}>;
+}>;
 
 const limits = Object.freeze({
   maxRows: 10000, maxCells: 100000, maxTransportBytes: 2000000,
@@ -15,14 +25,14 @@ const limits = Object.freeze({
   memoryBytes: 128 * 1024 * 1024, threads: 1,
 });
 const discard = () => {};
-async function rows(session, sql, parameters = []) {
-  const result = [];
+async function rows(session: SourceSession, sql: string, parameters: SourceParameters = []) {
+  const result: PhysicalScalar[][] = [];
   await session.command(sql, parameters, chunk => {
     for (let r = 0; r < chunk.rowCount; r++) result.push(chunk.columns.map(column => column[r]));
   });
   return result;
 }
-const hasCode = code => error => error.code === code;
+const hasCode = (code: string) => (error: unknown) => (error as SessionFailure).code === code;
 
 test('native file grants permit exact files while external access remains disabled', async () => {
   const directory = await mkdtemp(join(tmpdir(), "actql-file-grant-'"));
@@ -31,7 +41,7 @@ test('native file grants permit exact files while external access remains disabl
     await writeFile(allowed, '[{"id":1},{"id":2}]');
     await writeFile(denied, '[{"id":3}]');
     const query = 'SELECT id FROM read_json(?, columns={id: \'DOUBLE\'}, format=\'array\')';
-    const parameter = path => [{type: {id: 'VARCHAR'}, value: path}];
+    const parameter = (path: string) => [{type: {id: 'VARCHAR'}, value: path}];
     const result = await withComputeDatabase(limits, async session => {
       assert.deepEqual(await rows(session, "SELECT current_setting('enable_external_access')"), [[false]]);
       assert.deepEqual(
@@ -96,7 +106,7 @@ test('falsy receiver and body failures cannot become successful sessions', async
 });
 
 test('reused INSERT keeps exact payloads and transfer charges without repeated preparation', async () => {
-  const execute = (reuse, configuration = limits) => withComputeDatabase(configuration, async session => {
+  const execute = (reuse: boolean, configuration: SourceLimits = limits) => withComputeDatabase(configuration, async session => {
     await session.command('CREATE TEMP TABLE imported(i BIGINT, s VARCHAR, d DECIMAL(38,2))', [], discard);
     const insert = reuse ? session.insert : session.command;
     for (const value of ['9223372036854775807', null, '-9223372036854775808']) {
@@ -112,7 +122,7 @@ test('reused INSERT keeps exact payloads and transfer charges without repeated p
   const reused = await execute(true);
   assert.deepEqual(reused.value, ordinary.value);
   assert.deepEqual(reused.value.map(row => row[0]), ['9223372036854775807', null, '-9223372036854775808']);
-  for (const field of ['rows', 'cells', 'transportBytes', 'statements', 'chunks']) {
+  for (const field of ['rows', 'cells', 'transportBytes', 'statements', 'chunks'] as const) {
     assert.equal(reused.usage[field], ordinary.usage[field], field);
   }
   assert.equal(ordinary.usage.preparations, 5);
@@ -150,19 +160,19 @@ test('reused INSERT cannot swallow invalid types or continue after cancellation'
 test('cached INSERT destruction failure retains native cleanup ownership until explicit retry', async t => {
   const destroy = DuckDBPreparedStatement.prototype.destroySync;
   let rejectDestroy = false;
-  t.mock.method(DuckDBPreparedStatement.prototype, 'destroySync', function () {
+  t.mock.method(DuckDBPreparedStatement.prototype, 'destroySync', function (this: DuckDBPreparedStatement) {
     if (rejectDestroy) throw Error('injected prepared destruction failure');
     return destroy.call(this);
   });
-  const settled = [];
-  let failure;
+  const settled: boolean[] = [];
+  let failure!: SessionFailure;
   try {
     await withComputeDatabase(limits, async session => {
       await session.command('CREATE TEMP TABLE imported(i BIGINT)', [], discard);
       await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '1'}], discard);
       rejectDestroy = true;
     }, undefined, {started() {}, chargeTransfer() {}, settled(value) { settled.push(value); }});
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as SessionFailure; }
   rejectDestroy = false;
   assert.equal(failure?.cleanupHandle?.status().pending, true);
   assert.deepEqual(settled, [false]);
@@ -175,7 +185,7 @@ test('single-table filtering and projection preserve duplicate relative order ac
   await mkdir(root, { recursive: true });
   const dir = await mkdtemp(join(root, 'order-'));
   const path = join(dir, 'input.duckdb');
-  const pattern = [[3, 0], [1, null], [2, 7], [3, 0]];
+  const pattern: [number, number | null][] = [[3, 0], [1, null], [2, 7], [3, 0]];
   const expected = Array.from({ length: 5000 }, (_, i) => pattern[i % 4]);
   try {
     const db = await DuckDBInstance.create(path);
@@ -187,8 +197,8 @@ test('single-table filtering and projection preserve duplicate relative order ac
     const result = await withSourceDatabase(await authorizeLocalDatabase(path, fixtureSourceAccess), limits, async session => {
       let scanChunks = 0;
       let nativeChunks = 0;
-      const scan = [];
-      const selected = [];
+      const scan: PhysicalScalar[][] = [];
+      const selected: PhysicalScalar[] = [];
       await session.command('SELECT id, amount FROM records', [], chunk => {
         scanChunks++;
         for (let r = 0; r < chunk.rowCount; r++) scan.push(chunk.columns.map(column => column[r]));
@@ -209,7 +219,7 @@ for (const bounded of [false, true]) {
 test(`exact physical scalar transport and prepared import preserve payloads (${bounded ? 'bounded' : 'whole-input'})`, async () => {
   const configuration = bounded ? {...limits, maxChunkRows: 128, maxChunkBytes: 4096} : limits;
   const output = await withComputeDatabase(configuration, async session => {
-    const chunks = [];
+    const chunks: SourceChunk[] = [];
     await session.command(`SELECT TRUE AS b, '日本語' AS s,
       9223372036854775807::BIGINT AS i, 18446744073709551615::UBIGINT AS u,
       999999999999999999999999999999999999.99::DECIMAL(38,2) AS d,
@@ -240,10 +250,10 @@ test(`exact physical scalar transport and prepared import preserve payloads (${b
 
 test('chunk transfer has cumulative bounds and immutable column payloads', async () => {
   const output = await withComputeDatabase(limits, async session => {
-    const sizes = [];
+    const sizes: number[] = [];
     await session.command('SELECT i::BIGINT AS i FROM range(5000) t(i)', [], chunk => {
       sizes.push(chunk.rowCount);
-      assert.throws(() => { chunk.columns[0][0] = 'broken'; }, TypeError);
+      assert.throws(() => { (chunk.columns[0] as PhysicalScalar[])[0] = 'broken'; }, TypeError);
     });
     assert(sizes.length > 1);
     return sizes.reduce((a, b) => a + b, 0);
@@ -267,8 +277,8 @@ test('source grants are opaque; existing file is read-only and isolated from Com
   await mkdir(root, { recursive: true });
   const dir = await mkdtemp(join(root, 'source-'));
   const path = join(dir, 'input.duckdb');
-  let db;
-  let conn;
+  let db: DuckDBInstance | undefined;
+  let conn: DuckDBConnection | undefined;
   try {
     db = await DuckDBInstance.create(path);
     conn = await db.connect();
@@ -282,7 +292,7 @@ test('source grants are opaque; existing file is read-only and isolated from Com
     assert.deepEqual(read.value, [['3'], ['3']]);
     await assert.rejects(withSourceDatabase(grant, limits,
       session => session.command('DELETE FROM input', [], discard)),
-    error => error.code === 'StatementKind' || /read.only/i.test(error.message));
+    error => (error as SessionFailure).code === 'StatementKind' || /read.only/i.test((error as Error).message));
     await assert.rejects(withComputeDatabase(limits,
       session => rows(session, 'SELECT * FROM input')), /does not exist/i);
     const after = await withSourceDatabase(grant, limits, session => rows(session, 'SELECT id FROM input'));
@@ -301,7 +311,7 @@ test('cancelled, failed and unawaited commands cannot become successful sessions
   await assert.rejects(withComputeDatabase(limits, () => { entered = true; }, abort.signal), hasCode('Cancelled'));
   assert.equal(entered, false);
   const mid = new AbortController();
-  let captured;
+  let captured!: SourceSession;
   await assert.rejects(withComputeDatabase(limits, async session => {
     captured = session;
     await session.command('SELECT i FROM range(5000) t(i)', [], () => mid.abort());
@@ -347,8 +357,8 @@ test('wire byte accounting is exact for declared transport frames', async () => 
 test('trusted physical accounting charges before acceptance and acknowledges real cleanup', async () => {
   let charged = 0;
   let started = 0;
-  const settled = [];
-  const accounting = Object.freeze({
+  const settled: boolean[] = [];
+  const accounting = Object.freeze<NonNullable<SourceAccounting>>({
     started() { started++; },
     chargeTransfer(bytes) { charged += bytes; },
     settled(confirmed) { settled.push(confirmed); },
@@ -378,18 +388,18 @@ test('cleanup failure retains primary failure and same owned resources until ret
   const primary = new DuckDBTransportError('PrimaryExecutionFailure');
   const cleanup = new Error('injected instance close failure');
   let failOnce = true;
-  t.mock.method(DuckDBInstance.prototype, 'closeSync', function () {
+  t.mock.method(DuckDBInstance.prototype, 'closeSync', function (this: DuckDBInstance) {
     if (failOnce) { failOnce = false; throw cleanup; }
     return close.call(this);
   });
-  const settled = [];
-  let failure;
+  const settled: boolean[] = [];
+  let failure!: SessionFailure;
   try {
     await withComputeDatabase(limits, async session => {
       await rows(session, 'SELECT 42');
       throw primary;
     }, undefined, { started() {}, chargeTransfer() {}, settled(value) { settled.push(value); } });
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as SessionFailure; }
   assert.equal(failure.code, 'PrimaryExecutionFailure');
   assert.equal(failure.primaryFailure, primary);
   assert.deepEqual(failure.cleanupErrors, [cleanup]);
@@ -425,11 +435,11 @@ test('abort waits for an active native command to settle before returning failur
 
 test('cancellation deadline returns the same pending cleanup responsibility without releasing capacity', async () => {
   const abort = new AbortController();
-  let ready;
-  let release;
-  const entered = new Promise(resolve => { ready = resolve; });
-  const held = new Promise(resolve => { release = resolve; });
-  const settlements = [];
+  let ready!: () => void;
+  let release!: () => void;
+  const entered = new Promise<void>(resolve => { ready = resolve; });
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const settlements: boolean[] = [];
   let bodyCalls = 0;
   const operation = withComputeDatabase({ ...limits, cancelWaitMs: 0 }, async session => {
     bodyCalls++;
@@ -442,9 +452,9 @@ test('cancellation deadline returns the same pending cleanup responsibility with
   });
   await entered;
   abort.abort();
-  let failure;
+  let failure!: SessionFailure;
   try { await operation; assert.fail('cancelled session must reject'); }
-  catch (error) { failure = error; }
+  catch (error) { failure = error as SessionFailure; }
   try {
     assert.equal(failure.code, 'Cancelled');
     assert.equal(failure.cleanupPending, true);
@@ -491,8 +501,8 @@ test('another process holding the source lock fails without capture and releases
   await mkdir(root, { recursive: true });
   const dir = await mkdtemp(join(root, 'lock-'));
   const path = join(dir, 'input.duckdb');
-  let child;
-  let exited;
+  let child: ChildProcess | undefined;
+  let exited: Promise<{code: number | null; signal: NodeJS.Signals | null}> | undefined;
   try {
     const instance = await DuckDBInstance.create(path);
     const connection = await instance.connect();
@@ -503,17 +513,17 @@ test('another process holding the source lock fails without capture and releases
       stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     });
     let stderr = '';
-    child.stderr.on('data', data => { stderr += data; });
-    exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
-    await new Promise((resolve, reject) => {
+    child.stderr!.on('data', data => { stderr += data; });
+    exited = new Promise(resolve => child!.once('exit', (code, signal) => resolve({ code, signal })));
+    await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('lock fixture startup timed out')), 10000);
-      child.once('message', message => {
+      child!.once('message', message => {
         clearTimeout(timer);
-        if (message.ready === true) resolve();
+        if ((message as {ready?: unknown}).ready === true) resolve();
         else reject(new Error('invalid lock fixture message'));
       });
-      child.once('error', error => { clearTimeout(timer); reject(error); });
-      exited.then(() => { clearTimeout(timer); reject(new Error(`lock fixture exited: ${stderr}`)); });
+      child!.once('error', error => { clearTimeout(timer); reject(error); });
+      exited!.then(() => { clearTimeout(timer); reject(new Error(`lock fixture exited: ${stderr}`)); });
     });
     let entered = false;
     await assert.rejects(withSourceDatabase(grant, limits, () => { entered = true; }), /lock/i);
@@ -530,7 +540,7 @@ test('another process holding the source lock fails without capture and releases
 
 
 test('optional native metadata receiver observes an empty cursor after its actual charge', async () => {
-  const events = [];
+  const events: string[] = [];
   let charged = 0;
   const result = await withComputeDatabase(limits, async session => {
     await session.command('SELECT 1::INTEGER AS id LIMIT 0', [], () => assert.fail('No row batch'),

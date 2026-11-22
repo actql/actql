@@ -1892,3 +1892,9 @@ target/
 /adapters/connectors/duckdb/node/examples/task-manifest-thread.d.mts
 /adapters/connectors/duckdb/node/test/task-manifest-thread.test.mjs
 /adapters/connectors/duckdb/node/test/task-manifest-thread.test.d.mts
+/adapters/connectors/duckdb/node/test/session.test.mjs
+/adapters/connectors/duckdb/node/test/session.test.d.mts
+/adapters/connectors/duckdb/node/test/chunk-limits.test.mjs
+/adapters/connectors/duckdb/node/test/chunk-limits.test.d.mts
+/adapters/connectors/duckdb/node/test/fixtures/hold-writer.mjs
+/adapters/connectors/duckdb/node/test/fixtures/hold-writer.d.mts
