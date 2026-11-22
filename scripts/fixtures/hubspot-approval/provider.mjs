@@ -2,33 +2,19 @@
 // installed Host retains all Account, Credential, Preview, approval and claims.
 // These routes neither grant a write nor classify a lost response as absent.
 import assert from 'node:assert/strict';
-import {recordUpdateFixtureSeed} from '../record-approval/cases.mjs';
+import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const sameKeys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
 
-export function hubspotApprovalProvider({recordId, controlId, previousName}) {
-  const seed = recordUpdateFixtureSeed({recordId, controlId, previousName});
-  const target = {...seed.target, marker: '', updatedAt: '2026-11-07T00:00:00.000Z'};
-  const control = {...seed.control, marker: '', updatedAt: target.updatedAt};
+export function hubspotApprovalProvider(selection) {
+  const {recordId} = selection;
+  const state = createRecordUpdateProviderState(selection, {marker: '', updatedAt: '2026-11-07T00:00:00.000Z'});
+  const {route} = state;
   const properties = {results: ['actql_request_id', 'name'].map(name => ({name,
     type: 'string', fieldType: 'text', calculated: false, modificationMetadata: {readOnlyValue: false}}))};
   const record = value => ({id: value.id, archived: false, updatedAt: value.updatedAt,
     properties: {name: value.name, actql_request_id: value.marker}});
-  let writes = 0;
-  const requests = [], failures = [];
-  const route = (method, pathname, action) => ({method, pathname, handle(exchange) {
-    try {
-      assert.equal(exchange.method, method);
-      assert.equal(exchange.pathname, pathname);
-      assert.equal(exchange.authorized, true, 'The original credential header must be present');
-      requests.push({method, pathname});
-      return {body: action(exchange)};
-    } catch (error) {
-      failures.push({name: error.name, code: error.code, message: error.message});
-      throw error;
-    }
-  }});
   const writeRoute = route('POST', '/crm/v3/objects/companies/batch/update', exchange => {
     const body = JSON.parse(exchange.body);
     sameKeys(body, ['inputs']);
@@ -38,29 +24,24 @@ export function hubspotApprovalProvider({recordId, controlId, previousName}) {
     assert.equal(item.id, recordId);
     assert.match(item.objectWriteTraceId, cid);
     sameKeys(item.properties, ['name', 'actql_request_id']);
-    assert.equal(typeof item.properties.name, 'string');
     assert.match(item.properties.actql_request_id, cid);
-    assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-    writes++;
-    target.name = item.properties.name;
-    target.marker = item.properties.actql_request_id;
-    target.updatedAt = '2026-11-07T00:00:01.000Z';
+    const target = state.updateTarget(item.properties.name, {marker: item.properties.actql_request_id,
+      updatedAt: '2026-11-07T00:00:01.000Z'});
     return {status: 'COMPLETE', results: [record(target)]};
   });
   const routes = [
     route('GET', '/account-info/v3/details', () => ({portalId: 7, accountType: 'STANDARD'})),
     route('GET', '/crm/v3/properties/companies', () => structuredClone(properties)),
-    route('GET', '/crm/v3/objects/companies', () => ({results: [record(target), record(control)]})),
+    route('GET', '/crm/v3/objects/companies', () => ({results: [record(state.target), record(state.control)]})),
     route('POST', '/crm/v3/objects/companies/batch/read', exchange => {
       const body = JSON.parse(exchange.body);
       sameKeys(body, ['inputs', 'properties']);
       assert.deepEqual(body.inputs, [{id: recordId}]);
       assert.deepEqual(body.properties, ['name']);
-      return {status: 'COMPLETE', results: [record(target)]};
+      return {status: 'COMPLETE', results: [record(state.target)]};
     }),
     writeRoute,
   ];
   return {routes, writeRequest: Object.freeze({method: writeRoute.method, pathname: writeRoute.pathname}), properties, account: {portalId: 7, accountType: 'STANDARD'},
-    snapshot: () => ({writes, target: structuredClone(target), control: structuredClone(control),
-      requests: structuredClone(requests), failures: structuredClone(failures)})};
+    snapshot: state.snapshot, reset: state.reset};
 }
