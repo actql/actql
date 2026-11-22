@@ -242,3 +242,52 @@ export function openLocalFileRoot({native, path, assertCurrent}: RootInput) {
     },
   });
 }
+
+type PhysicalReadInput = Readonly<{namespace: unknown; path: string; assertCurrent(): undefined}>;
+type ReadCleanup = Readonly<{retry?: unknown; status?: unknown}>;
+type ReadFailure = Readonly<{cleanupHandle?: ReadCleanup; cleanupPending?: unknown}> | null | undefined;
+
+export function physicalReadChild({namespace,path,assertCurrent}: PhysicalReadInput,
+  fail: (code: string) => never, acknowledged: (value: unknown) => boolean, openRoot: typeof openLocalFileRoot) {
+  let filesystem: ReturnType<typeof openLocalFileRoot> | undefined,
+    reader: ReturnType<ReturnType<typeof openLocalFileRoot>['openReader']> | undefined,
+    opening=false,attempted=false,stopping=false,closed=false,initialFailure: unknown;
+  let cleanup: ReadCleanup | undefined,cleanupCaptured=false,retry: unknown,status: unknown,
+    retryCaptured=false,statusCaptured=false;
+  const child=Object.freeze({
+    start(options: ReaderInput){
+      if(attempted||stopping||closed)fail('LocalFilesSourcePreparationMismatch');
+      attempted=true;opening=true;
+      try{
+        if(namespace===undefined)fail('LocalFilesNativeFilesystemUnavailable');
+        const native=namespace;
+        filesystem=openRoot({native,path,assertCurrent(){
+          if(stopping)fail('LocalFileReadClosing');assertCurrent();
+        }});
+        if(stopping)fail('LocalFileReadClosing');
+        reader=filesystem.openReader(options);return reader;
+      }catch(cause){initialFailure=cause;throw cause;}
+      finally{opening=false;}
+    },
+    status(){return Object.freeze({pending:!closed});},
+    async close(){
+      stopping=true;if(closed)return child.status();if(opening)return child.status();
+      if(filesystem!==undefined){
+        if(!acknowledged(filesystem.close()))return child.status();
+        filesystem=reader=undefined;
+      }
+      if(initialFailure!==undefined){
+        if(!cleanupCaptured){cleanup=(initialFailure as ReadFailure)?.cleanupHandle;cleanupCaptured=true;}
+        if(cleanup!==undefined){
+          if(!retryCaptured){retry=cleanup.retry;retryCaptured=true;}
+          if(!statusCaptured){status=cleanup.status;statusCaptured=true;}
+          if(typeof retry!=='function'||typeof status!=='function')fail('LocalFileCleanupPending');
+          if(!acknowledged(Reflect.apply(status,cleanup,[])))await Reflect.apply(retry,cleanup,[]);
+          if(!acknowledged(Reflect.apply(status,cleanup,[])))return child.status();
+        }else if((initialFailure as ReadFailure)?.cleanupPending===true)return child.status();
+      }
+      closed=true;return child.status();
+    },
+  });
+  return child;
+}

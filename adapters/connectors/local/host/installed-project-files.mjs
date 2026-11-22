@@ -10,7 +10,7 @@ import {createInstalledRowSource,rowSourceCheckEnvironment} from '../../../host-
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
-import {openLocalFileRoot} from '../site/root-filesystem.mjs';
+import {openLocalFileRoot,physicalReadChild} from '../site/root-filesystem.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
@@ -154,47 +154,6 @@ export async function prepareInstalledProjectLocalFiles(moon, project,
 
 const acknowledged = value => value !== null && typeof value === 'object' &&
   Object.getOwnPropertyDescriptor(value,'pending')?.value === false;
-
-function physicalReadChild({namespace,path,assertCurrent}) {
-  let filesystem,reader,opening=false,attempted=false,stopping=false,closed=false,initialFailure;
-  let cleanup,cleanupCaptured=false,retry,status,retryCaptured=false,statusCaptured=false;
-  const child=Object.freeze({
-    start(options){
-      if(attempted||stopping||closed)fail('LocalFilesSourcePreparationMismatch');
-      attempted=true;opening=true;
-      try{
-        if(namespace===undefined)fail('LocalFilesNativeFilesystemUnavailable');
-        const native=namespace;
-        filesystem=openLocalFileRoot({native,path,assertCurrent(){
-          if(stopping)fail('LocalFileReadClosing');assertCurrent();
-        }});
-        if(stopping)fail('LocalFileReadClosing');
-        reader=filesystem.openReader(options);return reader;
-      }catch(cause){initialFailure=cause;throw cause;}
-      finally{opening=false;}
-    },
-    status(){return Object.freeze({pending:!closed});},
-    async close(){
-      stopping=true;if(closed)return child.status();if(opening)return child.status();
-      if(filesystem!==undefined){
-        if(!acknowledged(filesystem.close()))return child.status();
-        filesystem=reader=undefined;
-      }
-      if(initialFailure!==undefined){
-        if(!cleanupCaptured){cleanup=initialFailure?.cleanupHandle;cleanupCaptured=true;}
-        if(cleanup!==undefined){
-          if(!retryCaptured){retry=cleanup.retry;retryCaptured=true;}
-          if(!statusCaptured){status=cleanup.status;statusCaptured=true;}
-          if(typeof retry!=='function'||typeof status!=='function')fail('LocalFileCleanupPending');
-          if(!acknowledged(Reflect.apply(status,cleanup,[])))await Reflect.apply(retry,cleanup,[]);
-          if(!acknowledged(Reflect.apply(status,cleanup,[])))return child.status();
-        }else if(initialFailure?.cleanupPending===true)return child.status();
-      }
-      closed=true;return child.status();
-    },
-  });
-  return child;
-}
 
 // The real Local Source consumer. Common retains original checked preparation,
 // Run/Ledger/RowRun and Reference admission; the Source supplier retains the
@@ -600,7 +559,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
               await options.beginRequest(Buffer.from(options.requestWire));entered=true;
               const checkRead=()=>{sameRun(run.prepared);
                 checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(read.value));};
-              read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead});
+              read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead},
+                fail,acknowledged,openLocalFileRoot);
               Reflect.apply(read.retain,read.raw,[read.physical]);checkRead();
               const limits=Object.fromEntries(['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes']
                 .map(name=>[name,entry.limits[name]]));
@@ -642,7 +602,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             const fileLimits=Object.fromEntries(['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes']
               .map(name=>[name,entry.limits[name]]));
             const checkRead=()=>{sameRun(run.prepared);checked(moon.clientProgramInstalledSourceReadCheckCurrent(read.value));};
-            read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead});
+            read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead},
+              fail,acknowledged,openLocalFileRoot);
             Reflect.apply(read.retain,read.raw,[read.physical]);
             sameRun(run.prepared);
             // The same raw Source child owns the physical constructor BEFORE

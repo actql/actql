@@ -4,9 +4,10 @@
     {
       "module": "adapters/connectors/local/site/root-filesystem.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31eb81e503c8eb2d0edf24857b0a8f2655e6798501698684f8d71e8297febef5",
+      "sha256": "9fb4fdcc76e30ab65e4629a27d94e4e0b320a350c1b061e6a5254ed0485a081f",
       "exports": [
-        "openLocalFileRoot"
+        "openLocalFileRoot",
+        "physicalReadChild"
       ],
       "operations": [
         {
@@ -139,6 +140,40 @@
           "async": false
         },
         {
+          "name": "physicalReadChild",
+          "parameters": [
+            "namespace",
+            "path",
+            "assertCurrent",
+            "fail",
+            "acknowledged",
+            "openRoot"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "readMetadata/readMetadata",
           "parameters": [
             "key"
@@ -194,10 +229,16 @@
             "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
             "readMetadata/readMetadata",
             "readMetadata/readMetadata#2",
-            "version/version"
+            "version/version",
+            "physicalReadChild",
+            "physicalReadChild/child/init:close/init:close",
+            "physicalReadChild/child/init:start/init:start",
+            "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+            "physicalReadChild/child/init:status/init:status"
           ],
           "exports": [
-            "openLocalFileRoot"
+            "openLocalFileRoot",
+            "physicalReadChild"
           ],
           "attributes": {
             "responsibility": [
@@ -230,6 +271,10 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem.inc",
                 "anchor": "fileRootClose"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
+                "anchor": "export function physicalReadChild"
               }
             ],
             "synchronization": [
@@ -383,13 +428,27 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c4589b00ca208d25d1d87149012e260c200d2ac990b2784ab7f762255f0c01fe",
+      "sha256": "ae3e8ad2e902050d3f17cd5307a29aa7e74d01ad118986435139d16d1064b1df",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
         "prepareInstalledProjectLocalFiles"
       ],
       "operations": [
+        {
+          "name": "acknowledged/acknowledged",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
         {
           "name": "installPreparedProjectLocalFiles",
           "parameters": [
@@ -771,28 +830,6 @@
           "async": false
         },
         {
-          "name": "physicalReadChild/child/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "physicalReadChild/child/init:start/init:start",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "physicalReadChild/child/init:status/init:status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstalledProjectLocalFiles",
           "parameters": [
             "moon",
@@ -883,6 +920,8 @@
       "contracts": [
         {
           "operations": [
+            "acknowledged/acknowledged",
+            "fail/fail",
             "installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/adapter/adapter",
             "installPreparedProjectLocalFiles/adapter/init:close/init:close",
@@ -927,10 +966,6 @@
             "ownLimits/ownLimits#2",
             "ownLimits/ownLimits#3",
             "ownLimits/value/value",
-            "physicalReadChild/child/init:close/init:close",
-            "physicalReadChild/child/init:start/init:start",
-            "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
-            "physicalReadChild/child/init:status/init:status",
             "prepareInstalledProjectLocalFiles",
             "prepareInstalledProjectLocalFiles/call/call",
             "prepareInstalledProjectLocalFiles/current/current",
@@ -1129,7 +1164,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "stopping=true"
               },
               {
@@ -1446,7 +1481,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "stopping=true"
               },
               {
@@ -1990,7 +2025,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "path": "adapters/connectors/local/site/root-filesystem.mts",
                 "anchor": "stopping=true"
               },
               {
