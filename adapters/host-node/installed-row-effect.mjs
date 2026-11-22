@@ -2605,11 +2605,25 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       provider_object_identity_cids: []};
   };
 
+  function previewMemberOriginal({control, prepared, inputs, member, payload, runInvocation,
+    storeAuthorityCid, limits}) {
+    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+      prepared, member.stageIndex, member.effectId, limits.planWork));
+    const binding = control.effectSourceArtifactPreviewBinding(payload.summary.artifact,
+      moon.strategyPublicationContractIdentity(runInvocation),
+      runtimeField(descriptor, 6), storeAuthorityCid);
+    const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
+    const identity = control.issueSourceFreeLocalEffectIdentity(
+      prepared, inputs, runtimeField(descriptor, 0), payload.localResultArtifact,
+      {maxWork: limits.planWork, maxWireBytes, maxNodes, maxDepth});
+    return {descriptor, sourceBindingCid: runtimeField(binding, 1), identity};
+  }
+
   // The Preview of the Effect Unit: the common draft with each member's rows
   // (create rows already in canonical order) stated as their exact values,
   // and each update row's observed target, version and before value.
   function authorPreview({control, prepared, inputs, context, requestScope, limits, managedEffect,
-    members, rowsOf, capabilities, footprints, payloads}) {
+    members, rowsOf, capabilities, footprints, payloads, createOriginals}) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
       requestScope);
@@ -2622,15 +2636,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const identities = [];
     let rowCount = 0;
     const effects = members.map((member, index) => {
-      const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-        prepared, member.stageIndex, member.effectId, limits.planWork));
-      const source = control.effectSourceArtifactPreviewBinding(
-        payloads[index].summary.artifact,
-        moon.strategyPublicationContractIdentity(context.runInvocation),
-        runtimeField(descriptor, 6), context.storeAuthorityCid);
-      const identity = control.issueSourceFreeLocalEffectIdentity(
-        prepared, inputs, runtimeField(descriptor, 0), payloads[index].localResultArtifact,
-        {maxWork: limits.planWork, maxWireBytes, maxNodes, maxDepth});
+      const {descriptor, sourceBindingCid, identity} = createOriginals?.[index] ??
+        previewMemberOriginal({control, prepared, inputs, member, payload: payloads[index],
+          runInvocation: context.runInvocation, storeAuthorityCid: context.storeAuthorityCid, limits});
       identities.push(identity);
       const rows = rowsOf[index];
       rowCount += rows.length;
@@ -2651,7 +2659,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         // export is bound separately by the existing captured-source owner.
         result_artifact_cid: payloads[index].localResultArtifact.identity,
         preview_strength: 'full_diff',
-        source_binding_cid: runtimeField(source, 1),
+        source_binding_cid: sourceBindingCid,
         capability_evidence_cid: capabilities[index].identity,
         authority_scope_cid: requestAuthority,
         write_footprint: footprints[index],
@@ -2804,7 +2812,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const requestChildren = [];
     const memberCaptures = [];
     const proposals = [], currents = [], rowsOf = [], observations = [];
-    let sourceSet;
+    let sourceSet, createOriginals;
     let entries, route, captureOpen = true;
     const retireRequestAliases = () => {
       if (captureOpen || (route !== undefined && !route.retire())) return false;
@@ -2813,6 +2821,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       rowsOf.length = 0;
       observations.length = 0;
       proposals.length = 0;
+      createOriginals = undefined;
       memberCaptures.length = 0;
       return true;
     };
@@ -3028,6 +3037,20 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
           fail('ForeignInstalledEffectManagedRun');
         }
+        let fileCreateIdentity;
+        if (member.kind === 'create' && constructor !== undefined && recipe.physicalWrite !== undefined) {
+          // A file request needs a stable storage key before there can be a
+          // Preview. Borrow the same admitted source and Effect originals
+          // that the Preview will seal, without observing a target or granting a write.
+          const original = previewMemberOriginal({control, prepared, inputs, member,
+            payload: sourceSet.members[index].payload, runInvocation: previewContext.runInvocation,
+            storeAuthorityCid: store.storeAuthorityCid, limits});
+          (createOriginals ??= [])[index] = original;
+          fileCreateIdentity = Object.freeze({
+            runDefinitionCid: moon.strategyPublicationContractIdentity(previewContext.runDefinition),
+            sourceBindingCid: original.sourceBindingCid, effectIdentityCid: original.identity.identity,
+          });
+        }
         if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
           const preparedEntries = [];
           for (const [rowIndex, row] of rows.entries()) {
@@ -3037,6 +3060,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             const context = {member, value: row.value, selector: row.selector,
               ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
                 proposalWire: row.proposalWire} : {}),
+              ...(fileCreateIdentity === undefined ? {} : {fileCreateIdentity}),
               current: description, content: commandContentRow(contentOf, rowIndex), signal,
               ...(contentOwner === undefined ? {} : {contentOwner}),
               ...resourceFields(member),
@@ -3130,7 +3154,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
         storeAuthorityCid: store.storeAuthorityCid},
-      requestScope, members, rowsOf, capabilities, footprints, payloads});
+      requestScope, members, rowsOf, capabilities, footprints, payloads, createOriginals});
     const body = managedEffect === undefined ? JSON.parse(preview.wire)
       : managedEffect.controlConstruction.parsePreview(preview.wire);
     // The admitted Preview must state exactly the rows its requests write.
