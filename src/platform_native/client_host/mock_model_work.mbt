@@ -1099,6 +1099,12 @@ pub fn NativeClientMockModelWork::close(
         @infer.cancel(active) |> ignore
         if !@infer.execution_stopped(active) {
           match @infer.advance_cancelled(active, 31) {
+            Ok(@infer.Failed(@infer.Model(@model.UnknownCalls), ..)) if self.provider_role
+              is PortableHttp(_) &&
+              @infer.execution_stopped(active) =>
+              // Preserve the entered Call's Unknown outcome and continue to
+              // the original cleanup, which still requires physical ACKs.
+              ()
             Err(issue) | Ok(@infer.Failed(issue, ..)) =>
               return Err(Model(issue))
             Ok(_) => ()
