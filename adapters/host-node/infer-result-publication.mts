@@ -3,11 +3,45 @@
 // this adapter neither creates a completion nor serializes semantic evidence.
 import {storeCompletedResultPublicationPayload} from
   '../host-common/durable-result-payload.mjs';
+// @ts-expect-error TS7016: the Local values planner still owns this authored JavaScript limit.
 import {localContractLimits} from './local-values-plan.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
+type PayloadArguments = Parameters<typeof storeCompletedResultPublicationPayload>;
+type ContractLimits = PayloadArguments[5]['limits'];
+type Definition = Readonly<{wire: string; identity: string}>;
+type Control = PayloadArguments[5]['control'] & Readonly<{
+  checkClientCompiledRunOwner(compiled: unknown, prepared: unknown): void;
+  admit(kind: 'result_definition', wire: string, limits: ContractLimits): Definition;
+}>;
+type StoreExport = (host: undefined, index: number, limits: PayloadArguments[4]) =>
+  ReturnType<NonNullable<PayloadArguments[7]>>;
+type ResultOriginal = Readonly<{selection: unknown; storeExport: StoreExport}>;
+type Operation = Readonly<{
+  withResult<Result>(binding: unknown, index: number, consume: (original: ResultOriginal) => Promise<Result>,
+    signal?: AbortSignal): Promise<Result>;
+}>;
+type Runtime = Readonly<{
+  clientProgramResultCount(prepared: unknown): number;
+  clientProgramInferPublicationBegin(binding: unknown, index: number): unknown;
+  clientProgramInferPublicationSelection(owner: unknown): unknown;
+  strategyPublicationContractJson(contract: unknown): string;
+  clientProgramInferResultDefinition(selection: unknown): unknown;
+  clientProgramInferResultName(selection: unknown): string;
+  clientProgramResultName(prepared: unknown, index: number): string;
+  clientProgramDefinitionCid(prepared: unknown): string;
+  clientProgramInferResultTask(selection: unknown): number;
+  clientProgramInferPublicationRelease(owner: unknown): boolean;
+}>;
+type Options = Readonly<{
+  moon: Runtime; core: Readonly<{publicationControl: Control; outputExportControl: PayloadArguments[1]}>;
+  operation: Operation; binding: unknown; compiled: Readonly<{kind: string}>; preparedProgram: unknown;
+}>;
+type Publication = Pick<PayloadArguments[5], 'runDefinition' | 'invocation' | 'retention' | 'evidenceContext'> &
+  Readonly<{outputLimits: PayloadArguments[4]; contractLimits: ContractLimits}>;
+
 export function inferPublicationExecution({moon, core, operation, binding,
-  compiled, preparedProgram}) {
+  compiled, preparedProgram}: Options) {
   const control = core.publicationControl;
   control.checkClientCompiledRunOwner(compiled, preparedProgram);
   if (compiled.kind !== 'infer' || typeof operation?.withResult !== 'function') {
@@ -40,7 +74,7 @@ export function inferPublicationExecution({moon, core, operation, binding,
   return Object.freeze({status: 'host-tasks-completed',
     resultInventory: occurrences,
     publicationInventory: Object.freeze({occurrences}),
-    async storePublicationResult(index, store, publication, signal) {
+    async storePublicationResult(index: number, store: PayloadArguments[0], publication: Publication, signal?: AbortSignal) {
       if (!Number.isSafeInteger(index) || occurrences[index] === undefined) {
         throw new TypeError('InvalidInferPublicationResult');
       }

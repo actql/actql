@@ -3938,7 +3938,7 @@
     {
       "module": "adapters/host-common/durable-result-payload.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b2ed3d63160bb6a2be86d8ec5f27106a353c2d0c99e102c3801e951387809a60",
+      "sha256": "291997c11a9164a5299b23b6a7a9420efab7f4695c704584a5d6b9fc2d154c29",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -58439,7 +58439,7 @@
     {
       "module": "adapters/host-node/infer-result-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "559159124143dee361baac4e75d985f6e97a2b865a23b3013bab1a830844fe44",
+      "sha256": "875ddef135245d9ff8d5c36a67ae18882022ec7cf316fd5414943ab1f9b6c5c5",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -58499,7 +58499,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58513,7 +58513,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58527,7 +58527,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "// publisher. The common Invocation binding retains the real completed output;"
               },
               {
@@ -58541,7 +58541,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "// publisher. The common Invocation binding retains the real completed output;"
               },
               {
@@ -58555,7 +58555,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58569,7 +58569,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "throw new TypeError('InvalidInferPublicationExecution');"
               },
               {
@@ -58583,7 +58583,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "moon.clientProgramInferPublicationRelease(owner);"
               },
               {
@@ -58597,7 +58597,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "import {localContractLimits} from './local-values-plan.mjs';"
               },
               {
@@ -58611,7 +58611,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58643,7 +58643,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58657,7 +58657,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58671,7 +58671,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "// publisher. The common Invocation binding retains the real completed output;"
               },
               {
@@ -58685,7 +58685,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "// publisher. The common Invocation binding retains the real completed output;"
               },
               {
@@ -58699,7 +58699,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {
@@ -58713,7 +58713,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "throw new TypeError('InvalidInferPublicationExecution');"
               },
               {
@@ -58727,7 +58727,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "moon.clientProgramInferPublicationRelease(owner);"
               },
               {
@@ -58741,7 +58741,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "import {localContractLimits} from './local-values-plan.mjs';"
               },
               {
@@ -58755,7 +58755,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-result-publication.mjs",
+                "path": "adapters/host-node/infer-result-publication.mts",
                 "anchor": "export function inferPublicationExecution({moon, core, operation, binding,"
               },
               {

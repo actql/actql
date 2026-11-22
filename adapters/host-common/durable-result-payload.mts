@@ -105,7 +105,7 @@ type PublicationOptions = Readonly<{
   evidenceContext: unknown;
   limits: unknown;
 }>;
-type BeginResult = (host: object, result: number, limits: ResultLimits) => Awaitable<ExportHandle>;
+type BeginResult<Host = object> = (host: Host, result: number, limits: ResultLimits) => Awaitable<ExportHandle>;
 type ReadBatch = (handle: ExportHandle, signal?: AbortSignal) => Awaitable<string | undefined>;
 type IssueEvidence = (handle: ExportHandle) => Awaitable<ResultPublicationEvidence>;
 type IssuePhysicalEvidence = (physical: Physical, orderedRows: PayloadIdentity, evidence: ResultPublicationEvidence) => CommonObject;
@@ -300,7 +300,19 @@ export async function storeCompletedResultPayload(
 /// Store and issue evidence for one exact Named Result export. Evidence is
 /// issued before the physical object is sealed, so a failed issuance cannot
 /// strand an otherwise unreferenced durable payload.
-export async function storeCompletedResultPublicationPayload(
+export function storeCompletedResultPublicationPayload(
+  store: PublicationPayloadStore,
+  control: PublicationResultControl,
+  host: undefined,
+  result: number,
+  limits: ResultLimits,
+  publication: PublicationOptions,
+  signal: AbortSignal | undefined,
+  beginResult: BeginResult<undefined>,
+  readBatch?: ReadBatch,
+  publicationResource?: unknown,
+): Promise<StoredPublicationPayload>;
+export function storeCompletedResultPublicationPayload(
   store: PublicationPayloadStore,
   control: PublicationResultControl,
   host: object,
@@ -309,6 +321,18 @@ export async function storeCompletedResultPublicationPayload(
   publication: PublicationOptions,
   signal?: AbortSignal,
   beginResult?: BeginResult,
+  readBatch?: ReadBatch,
+  publicationResource?: unknown,
+): Promise<StoredPublicationPayload>;
+export async function storeCompletedResultPublicationPayload(
+  store: PublicationPayloadStore,
+  control: PublicationResultControl,
+  host: object | undefined,
+  result: number,
+  limits: ResultLimits,
+  publication: PublicationOptions,
+  signal?: AbortSignal,
+  beginResult?: BeginResult | BeginResult<undefined>,
   readBatch?: ReadBatch,
   publicationResource?: unknown,
 ) {
@@ -332,8 +356,8 @@ export async function storeCompletedResultPublicationPayload(
     store,
     control,
     () => typeof beginResult === 'function'
-      ? beginResult(host, result, limits)
-      : control.beginResult(host, result, limits,
+      ? (beginResult as BeginResult<object | undefined>)(host, result, limits)
+      : control.beginResult(host!, result, limits,
         undefined, undefined, signal),
     limits,
     signal,
