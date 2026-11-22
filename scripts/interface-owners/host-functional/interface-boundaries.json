@@ -46678,13 +46678,13 @@
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
+                "anchor": "if (selected.root !== packageRoot || selected.pathKey !== path || selected.ordinary !== ordinary ||"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "anchor": "const entry = selected = {root: packageRoot, pathKey: path, ordinary, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
@@ -46814,13 +46814,13 @@
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "if (selected.root !== packageRoot || selected.sha256 !== sha256 || selected.bytes !== bytes ||"
+                "anchor": "if (selected.root !== packageRoot || selected.pathKey !== path || selected.ordinary !== ordinary ||"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
-                "anchor": "const entry = selected = {root: packageRoot, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
+                "anchor": "const entry = selected = {root: packageRoot, pathKey: path, ordinary, sha256, bytes, runtimeCurrent: assertRuntimeCurrent,"
               },
               {
                 "path": "adapters/host-node/host-journal-native-image.cjs",
