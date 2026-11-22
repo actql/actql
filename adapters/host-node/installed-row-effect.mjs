@@ -310,8 +310,8 @@ const selectionChanged = cause => {
     {code: 'InstalledRowEffectInstallationChanged'}));
 };
 const updateObservation = (owner, installation = ownerBinding(owner)) => ({installation,
-  update: owner.supportedKinds.includes('update'),
-  ...(owner.supportedKinds.includes('delete') ? {delete: true} : {}),
+  update: installedEffectKinds(owner).includes('update'),
+  ...(installedEffectKinds(owner).includes('delete') ? {delete: true} : {}),
   ...(owner.storeMappings.length === 0 ? {} : {store: true}),
   mappings: owner.installed.map(mapping => ({
     target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
@@ -508,11 +508,12 @@ function captureManagedPlanDefinition(definition, driver) {
 // immutable recipe retains that kind's actual operation strings/extents; a
 // create, update and upsert never borrow one another's credential occurrence.
 // Selection below uses the checked member kind, not provider DATA or a label.
-function captureManagedPlanRecipes(recipes, driver, maxOperations, supportedKinds = driver.kinds) {
+function captureManagedPlanRecipes(recipes, driver, maxOperations, declaredUpdate) {
   if (recipes === undefined) return undefined;
   if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
       !Object.isFrozen(recipes)) fail('InvalidInstalledEffectPlanRecipe');
   const fields = Object.getOwnPropertyDescriptors(recipes);
+  const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : driver.kinds;
   if (Reflect.ownKeys(fields).length !== supportedKinds.length || supportedKinds.some(kind =>
     !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
     fail('InvalidInstalledEffectPlanRecipe');
@@ -1060,6 +1061,12 @@ function prepareInstalledCreateRows(moon, proposals, limits) {
   return {rows: createRows.map(item => item.entry), createRows};
 }
 
+// Reobserve a legacy driver's kinds at each owner check. An admitted
+// declaration has the one fixed UPDATE kind from its selected write slot.
+function installedEffectKinds({owned, updateWriteSlot}) {
+  return updateWriteSlot === undefined ? owned.kinds : declaredRowUpdateKinds;
+}
+
 function installedEffectWriteOperation(driver, member, updateWriteSlot) {
   return updateWriteSlot === undefined ? driver.writeOperation(member) : driver.operation;
 }
@@ -1271,14 +1278,14 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const standard = write === undefined || declaredUpdate ? undefined
     : deriveInstalledRowWrite(write, connectorRegistration);
   const owned = checkDriver(write === undefined ? driver : standard?.driver ?? write, declaredUpdate);
-  const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : owned.kinds;
   if (declaredUpdate && (managedPlanDefinition !== undefined ||
       managedTargetPlanRecipes !== undefined || owned.check !== undefined || owned.confirmResponse !== undefined)) {
     fail('InvalidInstalledEffectPlanRecipe');
   }
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
-  const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned, localContractLimits.maxNodes, supportedKinds);
+  const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned,
+    localContractLimits.maxNodes, declaredUpdate);
   if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) fail('InvalidInstalledEffectPlanRecipe');
   const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
   if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
@@ -1296,7 +1303,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
       suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
       managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-      supportedKinds.length !== 1 || supportedKinds[0] !== 'update' ||
+      owned.kinds.length !== 1 || owned.kinds[0] !== 'update' ||
       owned.check !== undefined || owned.confirmResponse !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
     fail('InvalidInstalledEffectDriverConstruction');
@@ -1366,7 +1373,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   // STORE's checked Mapping resolves to a Command, but it remains a distinct
   // original selection purpose. Retain the exact published pair beside its
   // actual Command driver; a generic command or UPDATE flag is not STORE.
-  const storeMappings = Object.freeze(!supportedKinds.includes('command') ? [] :
+  const storeMappings = Object.freeze(declaredUpdate || !owned.kinds.includes('command') ? [] :
     installed.filter(mapping => mapping.storeCommand !== undefined).map(mapping => {
       const pair = mapping.storeCommand;
       const catalogs = JSON.parse(environmentWire).connector_catalogs;
@@ -1414,7 +1421,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     // not invoke current or repeat Mapping/Environment admission.
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
-  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, supportedKinds, profile, updateWriteSlot,
+  const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile, updateWriteSlot,
     configuredMaxRows, configuredMaxMembers,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
@@ -1701,12 +1708,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
       prepared, stageIndex, effectId, limits.planWork));
     const owner = selectOwner(descriptor);
-    const {installed, installedCommands, supportedKinds} = owner;
+    const {installed, installedCommands} = owner;
     if (runtimeField(descriptor, 2) === 'command') {
       const command = installedCommands.find(candidate =>
         candidate.commandCid === runtimeField(descriptor, 5) &&
         candidate.commandRef === runtimeField(descriptor, 4) && candidate.target === runtimeField(descriptor, 3));
-      if (command === undefined || !supportedKinds.includes('command') ||
+      if (command === undefined || !installedEffectKinds(owner).includes('command') ||
           runtimeField(descriptor, 6) === undefined) fail('InstalledRowEffectCommandNotInstalled');
       return retainMember(owner, {stageIndex, effectId: runtimeField(descriptor, 1),
         memberIndex: runtimeField(descriptor, 0), kind: 'command', command,
@@ -1715,7 +1722,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const mapping = installed.find(candidate =>
       candidate.mappingCid === runtimeField(descriptor, 5) &&
       candidate.mappingRef === runtimeField(descriptor, 4));
-    if (mapping === undefined || !supportedKinds.includes(runtimeField(descriptor, 2)) ||
+    if (mapping === undefined || !installedEffectKinds(owner).includes(runtimeField(descriptor, 2)) ||
         runtimeField(descriptor, 6) === undefined) {
       fail('InstalledRowEffectMappingNotInstalled');
     }
@@ -3325,7 +3332,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return Object.freeze(body.effects.map((member, index) => {
       const saved = provider.members[index];
       const owner = selectOwner(runtimeTupleFromFields({1: member.effect_id, 2: member.effect_kind, 3: member.target, 4: member.mapping, 5: member.resolved_mapping_contract_cid}));
-      const {installed, installedCommands, supportedKinds} = owner;
+      const {installed, installedCommands} = owner;
       // Initial composed-profile restriction: recovery requires every retained
       // installation identity, not merely equivalent Mappings/capabilities. A
       // republished revision or binding therefore refuses here even when the
@@ -3342,7 +3349,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         if (saved?.effect_id !== member.effect_id ||
             saved.command_cid !== member.resolved_command_contract_cid ||
             Object.hasOwn(saved, 'mapping_cid')) fail('InstalledEffectContinuationMismatch');
-        if (command === undefined || !supportedKinds.includes('command')) {
+        if (command === undefined || !installedEffectKinds(owner).includes('command')) {
           fail('InstalledRowEffectCommandNotInstalled');
         }
         return retainMember(owner, {effectId: member.effect_id, memberIndex: index,
@@ -3356,7 +3363,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           saved.mapping_cid !== member.resolved_mapping_contract_cid) {
         fail('InstalledEffectContinuationMismatch');
       }
-      if (mapping === undefined || !supportedKinds.includes(member.effect_kind)) {
+      if (mapping === undefined || !installedEffectKinds(owner).includes(member.effect_kind)) {
         if (selected) selectionChanged();
         fail('InstalledRowEffectMappingNotInstalled');
       }
@@ -3919,7 +3926,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     rowInstallations.set(adapter, Object.freeze([...owners]));
     return adapter;
   }
-  const {installed, installedCommands, supportedKinds, connectorId, bindingCid,
+  const {installed, installedCommands, connectorId, bindingCid,
     connectorRegistration, connectorRevision, connection, site, sourceInitialization} = singular;
   let constructionClosed = false;
   const adapter = Object.freeze({
@@ -3934,11 +3941,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       resource: command.resource, target: command.target,
       commandRef: command.commandRef, commandCid: command.commandCid}))),
     effectSelectors: Object.freeze([...installed.flatMap(mapping =>
-      [...new Set(supportedKinds)].filter(kind =>
+      [...new Set(installedEffectKinds(singular))].filter(kind =>
         mapping.rules.some(rule => rule.effect_kind === kind)).map(kind =>
         Object.freeze({kind, target: mapping.target,
           mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
-    ...(!supportedKinds.includes('command') ? [] : installedCommands.map(command =>
+    ...(!installedEffectKinds(singular).includes('command') ? [] : installedCommands.map(command =>
       Object.freeze({kind: 'command', target: command.target,
         commandRef: command.commandRef, commandCid: command.commandCid})))]),
     prepareManagedPlan, prepareCaptured, prepareRecovered,
