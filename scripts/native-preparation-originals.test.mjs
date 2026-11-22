@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {chmodSync,cpSync,existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -101,6 +102,45 @@ test('Remote HTTP cannot select a preparation stamped with a Model resolver', t 
   assert.throws(() => preparedNativeHttpReceipt(f.root, f.selected),
     /Remote HTTP requires the synchronous component original/u);
 });
+
+test('Remote HTTP preparation reuse requires an ancestor and the complete unchanged producer tree', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-remote-http-source-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const git = (...args) => execFileSync('git', ['-c', 'user.name=ActQL Test', '-c', 'user.email=test@example.com', ...args],
+    {cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
+  const write = (path, bytes) => {
+    mkdirSync(join(directory, path, '..'), {recursive: true});
+    writeFileSync(join(directory, path), bytes);
+  };
+  const commit = message => {
+    git('add', '.');
+    git('commit', '-m', message);
+    return git('rev-parse', 'HEAD');
+  };
+  git('init', '-q');
+  const adapter = 'src/platform_native/http_client/component_tls_lifetime.c';
+  for (const path of [
+    'scripts/native-http-component-source.json',
+    'scripts/prepare-native-resident-http-component.py',
+    'scripts/produce-native-http-component.py',
+    'scripts/produce-native-http-tls.py',
+    'scripts/produce-native-remote-scoped-runtime.py',
+    'scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc',
+    adapter, 'src/platform_native/http_client/component_tls_lifetime.h',
+  ]) write(path, path);
+  const original = commit('test: establish complete producer inputs');
+  write('README.md', 'independent package source');
+  const successor = commit('test: change unrelated package source');
+  assert.doesNotThrow(() => originals.verifyRemoteHttpProducerInputs(original, successor, directory));
+  assert.throws(() => originals.verifyRemoteHttpProducerInputs(successor, original, directory));
+  write(adapter, 'changed TLS allocator input');
+  const changed = commit('test: change one producer input');
+  assert.throws(() => originals.verifyRemoteHttpProducerInputs(original, changed, directory), /producer inputs changed/u);
+  rmSync(join(directory, adapter));
+  const incomplete = commit('test: remove one producer input');
+  assert.throws(() => originals.verifyRemoteHttpProducerInputs(original, incomplete, directory), /Incomplete Remote HTTP producer input tree/u);
+});
+
 test('Resident prepared originals refuse unsafe numbers or noncanonical decimal identities',t=>{
   for(const identity of [2**60,'01','+1','1e3','-1','18446744073709551616']) {
     const f=httpPreparation(t);f.component.library.ino=identity;f.publishHttp();

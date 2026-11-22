@@ -803,6 +803,7 @@ fn command_preparation_cleanup_cause(
         InvalidUtf8 => "InvalidUtf8"
         PreparationUnavailable => "PreparationUnavailable"
       }
+    CommandRemoteHttpCleanup => "RetirementUnconfirmed"
     CommandFilesystemCleanup(cause) =>
       match cause {
         UnsupportedTarget => "UnsupportedTarget"

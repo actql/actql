@@ -223,9 +223,39 @@ export function verifiedNativeModelHttpPackage(preparation, selected) {
   };
 }
 
+const remoteHttpProducerInputs = [
+  'scripts/native-http-component-source.json',
+  'scripts/prepare-native-resident-http-component.py',
+  'scripts/produce-native-http-component.py',
+  'scripts/produce-native-http-tls.py',
+  'scripts/produce-native-remote-scoped-runtime.py',
+  'scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc',
+  'src/platform_native/http_client/component_tls_lifetime.c',
+  'src/platform_native/http_client/component_tls_lifetime.h',
+];
+
+// The package and the separately produced component keep their own sources.
+// An ancestor preparation is usable only across the same complete producer
+// input tree. The retained outer, TLS and component receipts still rehash
+// their actual archives, tools, selected files and library at each admission.
+export function verifyRemoteHttpProducerInputs(producerSource, packageSource,
+  root = fileURLToPath(new URL('../', import.meta.url))) {
+  for (const source of [producerSource, packageSource]) assert.match(source, /^[0-9a-f]{40}$/u);
+  if (producerSource === packageSource) return;
+  const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', timeout: 15000, maxBuffer: 65536});
+  git(['merge-base', '--is-ancestor', producerSource, packageSource]);
+  const read = source => {
+    const entries = git(['ls-tree', '-r', '-z', source, '--', ...remoteHttpProducerInputs]).split('\0').filter(Boolean);
+    assert.equal(entries.length, remoteHttpProducerInputs.length, 'Incomplete Remote HTTP producer input tree');
+    return entries;
+  };
+  assert.deepEqual(read(producerSource), read(packageSource), 'Remote HTTP producer inputs changed');
+}
+
 export function verifiedNativeRemoteHttpPackage(preparation, selected) {
-  const {component, tls} = readVerifiedNativeHttpPreparation(preparation.path, selected, preparation);
-  assert.equal(preparation.source, selected.source, 'Remote HTTP preparation source differs');
+  verifyRemoteHttpProducerInputs(preparation.source, selected.source);
+  const {component, tls} = readVerifiedNativeHttpPreparation(
+    preparation.path, {...selected, source: preparation.source}, preparation);
   const recipe = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
   assert.equal(component.recipe_sha256, checksum(recipe));
   const {path, bytes, sha256} = component.library;
