@@ -2016,3 +2016,7 @@ target/
 /scripts/fixtures/model-registration-project.d.mts
 /scripts/node-benchmark-evidence.mjs
 /scripts/node-benchmark-evidence.d.mts
+/scripts/packed-project-file-store-inventory.mjs
+/scripts/packed-project-file-store-inventory.d.mts
+/scripts/fixtures/project-file-store-inventory-cases.mjs
+/scripts/fixtures/project-file-store-inventory-cases.d.mts

@@ -4,7 +4,9 @@
 import assert from 'node:assert/strict';
 import {copyFile, mkdir, readFile, readlink, symlink, unlink, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute, join} from 'node:path';
-import {verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages} from './node-benchmark-evidence.mjs';
+import type {BenchmarkPackageManifest} from './node-benchmark-evidence.mjs';
+import type {assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 export const packedProjectFileStoreInventoryCases = Object.freeze([
   Object.freeze({case: 'rows101', writes: 101, definitions: 1, rows: 101,
@@ -22,7 +24,73 @@ const fixtureMembers = [
   'adapters/host-node/fixtures/work-observation.fixture.mjs',
 ];
 
-export function assertPackedProjectFileStorePhase({selected, phase, actual, pid, original, previous}) {
+type Phase = 'capture' | 'approve' | 'saved';
+type SelectedCase = typeof packedProjectFileStoreInventoryCases[number];
+type PhaseObservation = {
+  case: unknown;
+  phase: Phase;
+  pid: number;
+  complete: unknown;
+  ref: unknown;
+  runId: unknown;
+  checkpointId: unknown;
+  checkpointCid: unknown;
+  submits: unknown;
+  approvals: unknown;
+  successfulStores: unknown;
+  memberPreviews: unknown;
+  newEffectCommits: unknown;
+  modelAttempts: unknown;
+  workObservation: Parameters<typeof assertRecordWorkflowWork>[0];
+  sourceStarts: unknown;
+  sourceAttempts: unknown;
+  newSourceAttempts: unknown;
+  sourceAcquisitionEvidence?: {receipts: unknown; attempts: unknown; capturedRunCid: string; snapshotCid: string};
+  rows: unknown[];
+  targets: unknown[];
+  requestMemory: unknown;
+  firstClose: unknown;
+  firstCloseCalls: unknown;
+  aliveScopedFD: unknown;
+  cleanup: unknown;
+  originalInputsAndProgramAbsent: unknown;
+  zeroWritesBeforeApproval: unknown;
+  captureState?: {status: unknown};
+};
+type OriginalHandoff = {
+  captureComplete: unknown;
+  ref: unknown;
+  capturePid: unknown;
+  checkpointId: unknown;
+  runId: unknown;
+  checkpoint: {checkpointCid: unknown};
+  approveComplete: unknown;
+  approvePid?: unknown;
+  rows?: unknown;
+  targets?: unknown;
+  ledger?: {receipts: unknown[]};
+};
+type FailureView = {name?: unknown; code?: unknown; message?: unknown};
+type PhaseRecord = {
+  case: SelectedCase['case']; phase: Phase; status: 'running' | 'passed' | 'failed';
+  completed: boolean; startedAt: string;
+  observation?: PhaseObservation; error?: FailureView;
+  pid?: number | null; exitCode?: number | null; signal?: NodeJS.Signals | null; endedAt?: string;
+};
+type Installation = {manifest: BenchmarkPackageManifest; manifestPath: string; consumer: string};
+type CommandResult = {code: number | null; signal?: NodeJS.Signals | null; pid: number; stdout: string};
+type RunnerOptions = {
+  prepared: Installation; root: string; repository: string;
+  command: (executable: string, args: string[], options: {cwd: string; env: NodeJS.ProcessEnv; name: string; timeout: number}) =>
+    CommandResult | PromiseLike<CommandResult>;
+  report?: {cases: PhaseRecord[]}; cleanup?: unknown[];
+  verifyPreparedPackages?: (value: Installation) => unknown;
+};
+
+export function assertPackedProjectFileStorePhase({selected, phase, actual, pid, original, previous}: {
+  selected: SelectedCase; phase: Phase; actual: PhaseObservation; pid: number;
+  original: OriginalHandoff; previous: readonly PhaseObservation[];
+}) {
   assert.equal(actual.case, selected.case); assert.equal(actual.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0); assert.equal(actual.pid, pid);
   assert.equal(actual.complete, true);
@@ -53,10 +121,10 @@ export function assertPackedProjectFileStorePhase({selected, phase, actual, pid,
     assert.equal(actual.sourceStarts, 0); assert.equal(actual.newSourceAttempts, 0);
   }
   if (selected.sourceAcquisitions > 0) {
-    assert.equal(actual.sourceAcquisitionEvidence.receipts, selected.sourceAcquisitions);
-    assert.equal(actual.sourceAcquisitionEvidence.attempts, selected.sourceAttempts);
-    for (const key of ['capturedRunCid', 'snapshotCid'])
-      assert.match(actual.sourceAcquisitionEvidence[key], /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(actual.sourceAcquisitionEvidence!.receipts, selected.sourceAcquisitions);
+    assert.equal(actual.sourceAcquisitionEvidence!.attempts, selected.sourceAttempts);
+    for (const key of ['capturedRunCid', 'snapshotCid'] as const)
+      assert.match(actual.sourceAcquisitionEvidence![key], /^sha256:[0-9a-f]{64}$/u);
     for (const earlier of previous) assert.deepEqual(actual.sourceAcquisitionEvidence,
       earlier.sourceAcquisitionEvidence, 'Every cold phase preserves the exact authenticated Source inventory');
   }
@@ -72,12 +140,12 @@ export function assertPackedProjectFileStorePhase({selected, phase, actual, pid,
   assert.equal(original.checkpoint.checkpointCid, actual.checkpointCid);
   if (phase === 'capture') {
     assert.equal(actual.zeroWritesBeforeApproval, true); assert.equal(original.approveComplete, false);
-    assert.equal(actual.captureState.status, 'waiting_checkpoint');
+    assert.equal(actual.captureState!.status, 'waiting_checkpoint');
   } else {
     assert.equal(original.approveComplete, true);
     assert.equal(original.approvePid, phase === 'approve' ? actual.pid : previous[1].pid);
     assert.deepEqual(original.rows, actual.rows); assert.deepEqual(original.targets, actual.targets);
-    assert.equal(original.ledger.receipts.length, selected.writes);
+    assert.equal(original.ledger!.receipts.length, selected.writes);
     if (phase === 'approve') assert.equal(actual.zeroWritesBeforeApproval, true);
     else {
       assert.deepEqual(actual.rows, previous[1].rows); assert.deepEqual(actual.targets, previous[1].targets);
@@ -88,7 +156,7 @@ export function assertPackedProjectFileStorePhase({selected, phase, actual, pid,
 
 export async function runPackedProjectFileStoreInventory({prepared, root, repository, command,
   report = {cases: []}, cleanup = [],
-  verifyPreparedPackages = value => verifyNodeBenchmarkPackages(value.manifest, value.manifestPath, value.consumer)}) {
+  verifyPreparedPackages = value => verifyNodeBenchmarkPackages(value.manifest, value.manifestPath, value.consumer)}: RunnerOptions) {
   assert(isAbsolute(root) && isAbsolute(repository));
   assert.equal(typeof command, 'function'); assert(Array.isArray(report.cases));
   assert.equal(typeof verifyPreparedPackages, 'function');
@@ -106,18 +174,18 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
     }
     await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
     const home = join(application, 'home'); await mkdir(home);
-    const env = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
+    const env: NodeJS.ProcessEnv = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
     delete env.ACTQL_PACKED_CLIENT_PACKAGES;
     const alias = join(application, 'node_modules'), handoff = join(application, 'original.json');
     await symlink(software, alias, 'dir');
-    const previous = [];
-    let primary;
+    const previous: PhaseObservation[] = [];
+    let primary: unknown;
     try {
-      for (const phase of ['capture', 'approve', 'saved']) {
-        const record = {case: selected.case, phase, status: 'running', completed: false,
+      for (const phase of ['capture', 'approve', 'saved'] as const) {
+        const record: PhaseRecord = {case: selected.case, phase, status: 'running', completed: false,
           startedAt: new Date().toISOString()};
         report.cases.push(record);
-        let observed;
+        let observed: CommandResult | undefined;
         try {
           await verifyPreparedPackages(prepared);
           observed = await command(process.execPath, [join(application, fixtureMembers[0]),
@@ -128,16 +196,17 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
             timeout: phase === 'capture' || selected.case === 'rows101' && phase === 'approve'
               ? 120_000 : 60_000});
           assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
-          const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1));
+          const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1)!) as PhaseObservation;
           record.observation = actual;
-          const original = JSON.parse(await readFile(handoff, 'utf8'));
+          const original = JSON.parse(await readFile(handoff, 'utf8')) as OriginalHandoff;
           assertPackedProjectFileStorePhase({selected, phase, actual, pid: observed.pid, original, previous});
           previous.push(actual);
           await verifyPreparedPackages(prepared);
           record.status = 'passed'; record.completed = true;
         } catch (error) {
-          observed ??= error?.commandResult;
-          record.status = 'failed'; record.error = {name: error?.name, code: error?.code, message: error?.message};
+          observed ??= (error as {commandResult?: CommandResult} | undefined)?.commandResult;
+          record.status = 'failed'; record.error = {name: (error as FailureView | undefined)?.name,
+            code: (error as FailureView | undefined)?.code, message: (error as FailureView | undefined)?.message};
           throw error;
         } finally {
           Object.assign(record, {pid: observed?.pid ?? null, exitCode: observed?.code ?? null,
@@ -145,7 +214,7 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
         }
       }
     } catch (error) {primary = error; throw error;} finally {
-      const errors = [];
+      const errors: unknown[] = [];
       try {await verifyPreparedPackages(prepared);}
       catch (error) {errors.push(error);}
       try {assert.equal(await readlink(alias), software); await unlink(alias);}
