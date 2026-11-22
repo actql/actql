@@ -193,6 +193,7 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
     operation.member_preview_cid != expected.member_preview_cid ||
     operation.row_preview_cid != expected.row_preview_cid ||
     operation.dispatch_entry_cid != expected.dispatch_entry_cid ||
+    ack.is_delete() ||
     ack.expected_version() != operation.target_version_cid ||
     @publication.effect_preview_ordered_row_intended_value_wire(
       preview, member_index, row_index,

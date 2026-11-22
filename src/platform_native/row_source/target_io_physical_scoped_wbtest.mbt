@@ -91,6 +91,7 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
   )
   assert_true(update.replacement_attempted)
   let ack = update.replacement_acknowledgment().unwrap()
+  assert_false(ack.is_delete())
   assert_eq(ack.identity(), "first")
   assert_eq(ack.expected_version(), version)
   assert_eq(ack.changes_wire(), "{\"value\":9}")
@@ -149,6 +150,41 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
   assert_eq(stale.snapshot(), None)
   assert_true(stale.replacement_acknowledgment() is None)
   assert_true(stale.close().unwrap())
+
+  let staged = Ref(None)
+  let delete = prepare_native_relation_file_target_delete_io(
+    provider,
+    "first",
+    after_version,
+    "target-delete-stage",
+    bytes => {
+      staged.val = Some(bytes)
+      native_relation_file_target_delete_construction(provider, bytes)
+      is Some(_)
+    },
+    predecessor=Some(ack),
+  ).unwrap()
+  target_io_fixture_run(delete)
+  assert_eq(staged.val, Some(expected.length()))
+  let removal = delete.replacement_acknowledgment().unwrap()
+  let remaining = " {\"items\":[{\"id\":\"second\",\"value\":2}],\"keep\":\"untouched\"}\n"
+  assert_true(removal.is_delete())
+  assert_eq(removal.expected_version(), after_version)
+  assert_eq(removal.replacement(), @utf8.encode(remaining))
+  assert_eq(
+    delete.byte_counts(),
+    (expected.length().to_int64(), remaining.length().to_int64()),
+  )
+  assert_true(delete.close().unwrap())
+  assert_true(delete.replacement_acknowledgment() is None)
+  let sibling = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "second",
+  ).unwrap()
+  target_io_fixture_run(sibling)
+  assert_eq(sibling.snapshot().unwrap().0, "{\"id\":\"second\",\"value\":2}")
+  assert_true(sibling.close().unwrap())
 }
 
 ///|
