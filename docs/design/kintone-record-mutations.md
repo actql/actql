@@ -319,6 +319,11 @@ before data and conditional DELETE body from that one record and its revision.
 - The read, response, identity and recovery limits apply independently.
   The calling Effect must fund its byte copies, canonical encoding, hash
   workspace and retained request under the actual selected plan.
+  The native comparison quote retains the encoded query and charges its
+  temporary concatenation and writer separately. Form comparison leaves no
+  retained metadata. Target projection shares the existing page, checked
+  before data and revision quote and adds the conditional request writer,
+  document and one-target vector.
 - The Node and RelA bridges forward the same typed Mapping and original
   Catalog request. Approval and provider response classification stay on
   the existing Effect and Site paths.

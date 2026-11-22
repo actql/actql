@@ -1,6 +1,44 @@
 // Thin same-runtime projection. This neither issues authority nor settles a claim.
 
 ///|
+#export_name("clientProgramKintoneDeleteTargetReadConstructionCapacity")
+pub fn client_program_kintone_delete_target_read_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  max_fields : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_target_read_construction_capacity(
+    mapping, max_fields, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteFormConstructionCapacity")
+pub fn client_program_kintone_delete_form_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_form_construction_capacity(
+    mapping, body_bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteTargetConstructionCapacity")
+pub fn client_program_kintone_delete_target_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_target_construction_capacity(
+    mapping, body_bytes, pages, values, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneDeleteMappingRecheckForm")
 pub fn client_program_kintone_delete_mapping_recheck_form(
   mapping : @kintone_host.RecordDeleteMapping,

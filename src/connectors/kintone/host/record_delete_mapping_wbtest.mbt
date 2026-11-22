@@ -1,19 +1,29 @@
 ///|
+fn delete_form_fixture() -> Bytes {
+  @utf8.encode(
+    (
+      #|{"revision":"7","properties":{"Subject":{"code":"Subject","type":"SINGLE_LINE_TEXT"}}}
+    ),
+  )
+}
+
+///|
+fn delete_form_limits() -> @catalog.FormFieldLimits {
+  {
+    max_bytes: 8192,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_fields: 16,
+    max_name_units: 512,
+  }
+}
+
+///|
 fn delete_mapping_form() -> @catalog.FormFieldCatalog {
   @catalog.project_form_fields(
-    @utf8.encode(
-      (
-        #|{"revision":"7","properties":{"Subject":{"code":"Subject","type":"SINGLE_LINE_TEXT"}}}
-      ),
-    ),
+    delete_form_fixture(),
     "12",
-    {
-      max_bytes: 8192,
-      max_nodes: 1000,
-      max_depth: 16,
-      max_fields: 16,
-      max_name_units: 512,
-    },
+    delete_form_limits(),
   ).unwrap()
 }
 
