@@ -132,6 +132,7 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
         host.journal.invalidate_operation_submission()
       }
       if table is None ||
+        table == Some(effect_ledger_entry_table) ||
         table
         is Some(
           "client_runs"

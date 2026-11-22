@@ -130,6 +130,7 @@ fn selected_policy_fixture_record() -> NativeClientRunRecord raise {
     observation_original: None,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
 }
 

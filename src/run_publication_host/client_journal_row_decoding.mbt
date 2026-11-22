@@ -170,6 +170,32 @@ pub fn decode_client_run_journal_row_with_retained_identity(
 }
 
 ///|
+/// Native Journal opt-in. The final flag requires reading the Checkpoint
+/// through original same-transaction companion validation. Hosts without that
+/// reader continue to reject this persisted Run version before mutation.
+pub fn decode_native_client_run_journal_row_with_checkpoint_companion(
+  body : Bytes,
+  retained_identity : (ClientRequestIdentity, @publication.PublicationContract)?,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
+) -> Result[
+  (ClientRunJournalEncoding, String?, String?, Bool),
+  ClientJournalDecodingIssue,
+] {
+  let companion = Ref(false)
+  decode_client_run_journal_row_originals(
+    body,
+    true,
+    true,
+    retained_identity~,
+    checkpoint_companion=Some(companion),
+    before_construction~,
+  ).map(value => (value.0, value.1, value.2, companion.val))
+}
+
+///|
 fn decode_client_journal_request(
   wire : String,
   original : ClientRequestIdentity?,
@@ -230,6 +256,7 @@ fn decode_client_run_journal_row_originals(
   allow_local_policy : Bool,
   allow_observation_originals : Bool,
   retained_identity? : (ClientRequestIdentity, @publication.PublicationContract)? = None,
+  checkpoint_companion? : Ref[Bool]? = None,
   before_construction? : ((ClientRunJournalConstruction) -> Result[
     Unit,
     ClientJournalDecodingIssue,
@@ -325,8 +352,13 @@ fn decode_client_run_journal_row_originals(
   let flag = key => {
     @decode.lookup(object, key).bind(value => @decode.boolean(value).to_option())
   }
-  guard text("version") == Some("actql-native-client-run-row/0.1") &&
-    text("request") is Some(request_wire) &&
+  let has_checkpoint_companion = match text("version") {
+    Some("actql-native-client-run-row/0.1") => false
+    Some("actql-native-client-run-row-with-effect-ledger/0.1") if checkpoint_companion
+      is Some(_) => true
+    _ => return Err(CustodyLost)
+  }
+  guard text("request") is Some(request_wire) &&
     text("run_definition") is Some(definition_wire) &&
     flag("dispatch_reserved") is Some(dispatch_reserved) &&
     flag("physical_start_claimed") is Some(physical_start_claimed) &&
@@ -433,6 +465,7 @@ fn decode_client_run_journal_row_originals(
       definition_wire,
       local_run_policy_originals~,
       run_observation_originals~,
+      checkpoint_companion=has_checkpoint_companion,
       comparison_bytes=if observed { Some(row_bytes) } else { None },
       // Canonical emission is covered by this same observed decode lifetime;
       // its resource callback has already run before any reconstruction.
@@ -456,6 +489,9 @@ fn decode_client_run_journal_row_originals(
           Err(issue) => return Err(issue)
           Ok(_) => ()
         }
+      }
+      if checkpoint_companion is Some(format) {
+        format.val = has_checkpoint_companion
       }
       Ok((record, local_run_policy_originals, run_observation_originals))
     }

@@ -455,6 +455,42 @@ test "Native row dispatch distinguishes precommit failure from lost committed re
         0
       },
     )
+    assert_eq(restored.checkpoint_companion, reply_lost)
+    let physical_run = reopened
+      .read("client_runs", @host.client_request_scope_cid(request))
+      .unwrap()
+    if reply_lost {
+      assert_true(
+        @host.decode_client_run_journal_row_with_observation_originals(
+          physical_run.body,
+        )
+        is Err(_),
+      )
+      for entry in restored.checkpoint.unwrap().effect_ledger {
+        let key = native_effect_ledger_entry_key(
+          @host.client_request_scope_cid(request),
+          restored.checkpoint.unwrap().artifact.checkpoint_cid,
+          @effect.effect_ledger_entry_cid(entry),
+        )
+        let stored = reopened.read(effect_ledger_entry_table, key).unwrap()
+        assert_eq(stored.revision, 0L)
+        assert_eq(
+          stored.body,
+          @utf8.encode(@effect.effect_ledger_entry_wire(entry)),
+        )
+      }
+    } else {
+      assert_true(
+        reopened.scan_after(effect_ledger_entry_table, "")
+        is Err(@sqlite.NotFound),
+      )
+      assert_true(
+        @host.decode_client_run_journal_row_with_observation_originals(
+          physical_run.body,
+        )
+        is Ok(_),
+      )
+    }
     let next = effect_row_test_claim(
       journal,
       request,

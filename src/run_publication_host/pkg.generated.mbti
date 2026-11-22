@@ -447,6 +447,8 @@ pub fn client_carrier_measurement_variable_layout(ClientCarrierMeasurementConstr
 
 pub fn client_check_environment_wrapper_construction_extent(Bool) -> @check_environment.RegistryConstructionExtent
 
+pub fn client_checkpoint_journal_companion_row_body(ClientCheckpointJournalRecord) -> Result[String, ClientCheckpointJournalIssue]
+
 pub fn client_checkpoint_journal_row_body(ClientCheckpointJournalRecord) -> Result[String, ClientCheckpointJournalIssue]
 
 pub fn client_checkpoint_resume_row_body(@checkpoint_runtime.ResumeIntentView) -> String raise @encode_core.EncodeFailure
@@ -1535,7 +1537,7 @@ pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes,
 
 pub fn client_run_journal_decode_construction(ClientRunJournalConstruction) -> (Int64, Int64)?
 
-pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?, checkpoint_companion? : Bool, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_run_journal_row_original_matches(ClientRunJournalRowOriginal, Bytes) -> Bool
 
@@ -1841,6 +1843,8 @@ pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalRe
 
 pub fn decode_client_cancellation_journal_row(ClientJournalPhysicalRow) -> Result[ClientCancellationJournalEncoding, ClientJournalDecodingIssue]
 
+pub fn[E] decode_client_checkpoint_journal_companion_row(String, @run_publication.PublicationContract, E, (String, String) -> Result[@effect_application.EffectLedgerEntry, E]) -> Result[ClientCheckpointJournalRecord, E]
+
 pub fn decode_client_checkpoint_journal_row(String, @run_publication.PublicationContract, @checkpoint_runtime.WireLimits) -> Result[ClientCheckpointJournalRecord, ClientCheckpointJournalIssue]
 
 pub fn decode_client_checkpoint_resume_row(String, @checkpoint_runtime.ResumeBinding) -> @checkpoint_runtime.ResumeIntentView?
@@ -1856,6 +1860,8 @@ pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequest
 pub fn decode_client_submitted_journal_row(Bytes, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_name_row(Bytes) -> Result[ClientSubmittedNameRow, ClientSubmittedNameIssue]
+
+pub fn decode_native_client_run_journal_row_with_checkpoint_companion(Bytes, (ClientRequestIdentity, @run_publication.PublicationContract)?, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?, Bool), ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
