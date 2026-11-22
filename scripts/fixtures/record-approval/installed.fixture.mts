@@ -7,7 +7,9 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {generateKeyPairSync} from 'node:crypto';
+import type {KeyObject} from 'node:crypto';
 import {execFile} from 'node:child_process';
+import type {TestContext} from 'node:test';
 import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
@@ -16,48 +18,103 @@ import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
 export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
 
-export function installedRecordDecision(env = process.env) {
+type Decision = 'approved' | 'rejected';
+type ExchangeOptions = NonNullable<Parameters<typeof openHttpsExchangeFixture>[1]>;
+type Rows = ReturnType<typeof recordUpdateFixtureState>['before'];
+type Snapshot = Rows & {
+  writes: number;
+  requests: readonly {method: string; pathname: string}[];
+  failures: readonly unknown[];
+};
+type Provider = {
+  routes: NonNullable<ExchangeOptions['routes']>;
+  snapshot: () => Snapshot;
+  writeRequest: {method: string; pathname: string};
+};
+type OriginalFixture = {
+  connectorId: string;
+  resource: string;
+  alias: string;
+  selection: Parameters<typeof recordUpdateFixtureState>[0];
+  provider: Provider;
+  metadata: Record<string, unknown>;
+  source: Record<string, unknown>;
+  write: unknown;
+};
+type FixtureOptions = {
+  casePath?: string;
+  decision?: Decision;
+  faults?: ExchangeOptions['faults'];
+  replyLossExpectation?: unknown;
+  authorizedResultNames?: readonly string[];
+};
+type AuthoredFixtureInput = {
+  casePath: string;
+  selection?: never;
+  provider?: never;
+  createInstallation: (seed: Parameters<typeof import('./cases.mjs')['recordUpdateFixtureSeed']>[0]) => OriginalFixture;
+};
+type FixtureInput = FixtureOptions & (OriginalFixture | AuthoredFixtureInput);
+type SourceView = {
+  source_ref: string;
+  source_view_contract_cid: string;
+  carrier_schema_contract_cid: string;
+};
+type DeclaredSource = {
+  environmentWire: string;
+  sourceReadAccesses: readonly {sourceRef: string}[];
+  realizationKey: string;
+  close: () => Promise<unknown>;
+};
+
+export function installedRecordDecision(env = process.env): Decision {
   const decision = env.ACTQL_RECORD_APPROVAL_DECISION ?? 'approved';
   assert(['approved', 'rejected'].includes(decision), 'Invalid installed record fixture decision');
-  return decision;
+  return decision as Decision;
 }
 
 const execute = promisify(execFile);
-const pem = key => key.export({format: 'pem', type: key.type === 'private' ? 'pkcs8' : 'spki'});
-const safe = error => ({name: error?.name, code: error?.code, message: error?.message});
+const pem = (key: KeyObject) => key.export({format: 'pem', type: key.type === 'private' ? 'pkcs8' : 'spki'});
+type FailureView = {name?: unknown; code?: unknown; message?: unknown} | undefined;
+const safe = (error: unknown) => ({name: (error as FailureView)?.name,
+  code: (error as FailureView)?.code, message: (error as FailureView)?.message});
 const privateFile = {mode: 0o600, flag: 'wx'};
 
 // Same existing transport/fault seam for the ordinary harness and direct TLS
 // protocol controls. This helper never classifies a public Run outcome.
-export function openRecordApprovalExchange(t, fixture) {
+export function openRecordApprovalExchange(t: Parameters<typeof openHttpsExchangeFixture>[0], fixture: {
+  provider: Pick<Provider, 'routes'>;
+  faults?: ExchangeOptions['faults'];
+}) {
   return openHttpsExchangeFixture(t, {routes: fixture.provider.routes, faults: fixture.faults ?? []});
 }
 
-export function assertRecordApprovalTarget(snapshot, expected) {
+export function assertRecordApprovalTarget(snapshot: Pick<Rows, 'target'>, expected: Pick<Rows, 'target'>) {
   const {id, name} = snapshot.target;
   assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
 }
 
-function assertRecordApprovalControl(snapshot, expected) {
+function assertRecordApprovalControl(snapshot: Pick<Rows, 'control'>, expected: Pick<Rows, 'control'>) {
   const {id, name} = snapshot.control;
   assert.deepEqual({id, name}, expected.control, 'Independent provider control state');
 }
 
-export function assertRecordApprovalSourceSchema(view, expected) {
+export function assertRecordApprovalSourceSchema(view: SourceView, expected: unknown) {
   const observed = {sourceRef: view.source_ref, sourceViewContractCid: view.source_view_contract_cid,
     carrierSchemaContractCid: view.carrier_schema_contract_cid};
   assert.deepEqual(observed, expected, 'Independent provider Source View and schema');
   return observed;
 }
 
-export async function runInstalledRecordApprovalFixture(t, input) {
+export async function runInstalledRecordApprovalFixture(t: Pick<TestContext, 'diagnostic'>, input: FixtureInput) {
   const authored = input.casePath === undefined ? undefined : await readAuthoredCase(input.casePath);
   const authoredFixture = authored?.fixture;
-  let fixture = input;
+  let fixture = input as FixtureOptions & OriginalFixture;
   if (authoredFixture !== undefined) {
-    assert.equal(typeof input.createInstallation, 'function', 'Select an original provider fixture adapter');
+    assert.equal(typeof (input as AuthoredFixtureInput).createInstallation,
+      'function', 'Select an original provider fixture adapter');
     assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
-    fixture = {...input, ...input.createInstallation(authoredFixture.seed)};
+    fixture = {...input, ...(input as AuthoredFixtureInput).createInstallation(authoredFixture.seed)};
   }
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
@@ -82,12 +139,13 @@ export async function runInstalledRecordApprovalFixture(t, input) {
   const stateRoot = join(root, 'host'), credentialRoot = join(root, 'credentials');
   await mkdir(join(root, 'home'));
   t.diagnostic(`Retained ${connectorId} approval original root: ${root}`);
-  const phases = [], cleanup = [], parentState = {};
-  let tls, declared, services, parentPending = false, parentClosed = false, failed = false, primary;
-  let fixtureSourceSchema;
+  const phases: Record<string, unknown>[] = [], cleanup: unknown[] = [], parentState = {};
+  let tls: Awaited<ReturnType<typeof openRecordApprovalExchange>> | undefined, declared: DeclaredSource | undefined,
+    services: unknown, parentPending = false, parentClosed = false, failed = false, primary: unknown;
+  let fixtureSourceSchema: ReturnType<typeof assertRecordApprovalSourceSchema> | undefined;
   let closeParent = async () => {};
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
-  const load = path => import(new URL(path, local));
+  const load = (path: string) => import(new URL(path, local) as unknown as string);
   try {
     tls = await openRecordApprovalExchange(undefined, loss === undefined ? fixture
       : {...fixture, faults: recordUpdateReplyLossFaults(provider)});
@@ -147,14 +205,14 @@ export async function runInstalledRecordApprovalFixture(t, input) {
       runtimeUrl: new URL('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', local),
       baseEnvironmentWire: await readFile(new URL('spec/local-check-environment.json', local), 'utf8'),
       resolveSecret: () => {resolutions++; return 'loopback-only-record-approval-token';}, installationServices: services});
-    const environment = JSON.parse(declared.environmentWire);
-    const view = environment.schema_snapshots.find(value => value.source_ref === declared.sourceReadAccesses[0].sourceRef);
+    const environment = JSON.parse(declared!.environmentWire) as {schema_snapshots: readonly SourceView[]};
+    const view = environment.schema_snapshots.find(value => value.source_ref === declared!.sourceReadAccesses[0].sourceRef);
     assert(view);
-    assert.equal(declared.realizationKey, 'row-source-acquired');
+    assert.equal(declared!.realizationKey, 'row-source-acquired');
     assert.equal(tls.seen().length, 0);
     assert.equal(resolutions, 0);
     if (authoredFixture?.schema !== undefined) fixtureSourceSchema = assertRecordApprovalSourceSchema(view, authoredFixture.schema);
-    await declared.close(); declared = undefined;
+    await declared!.close(); declared = undefined;
     await closeParent();
     await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{name: alias,
       sourceRef: view.source_ref, sourceViewContractCid: view.source_view_contract_cid,
@@ -178,7 +236,7 @@ export async function runInstalledRecordApprovalFixture(t, input) {
       "export const configureConnection = options => ({...options, installation: {...options.installation,\n" +
       "  resolveSourceSecret: () => 'loopback-only-record-approval-token', resolveEffectSecret: () => 'loopback-only-record-approval-token'}});\n",
       privateFile);
-    const env = {...process.env, HOME: join(root, 'home'), NODE_OPTIONS: '', NODE_PATH: ''};
+    const env: NodeJS.ProcessEnv = {...process.env, HOME: join(root, 'home'), NODE_OPTIONS: '', NODE_PATH: ''};
     for (const key of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE',
       'ACTQL_RECORD_APPROVAL_DECISION']) delete env[key];
     delete env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
@@ -194,8 +252,8 @@ export async function runInstalledRecordApprovalFixture(t, input) {
         result = await execute(process.execPath, args,
           {cwd: process.cwd(), env, encoding: 'utf8', timeout: 30000, maxBuffer: 8 * 1024 ** 2});
       } catch (error) {
-        await writeFile(join(root, phase + '.stdout'), error.stdout ?? '', privateFile);
-        await writeFile(join(root, phase + '.stderr'), error.stderr ?? '', privateFile);
+        await writeFile(join(root, phase + '.stdout'), (error as {stdout?: string}).stdout ?? '', privateFile);
+        await writeFile(join(root, phase + '.stderr'), (error as {stderr?: string}).stderr ?? '', privateFile);
         throw error;
       }
       await writeFile(join(root, phase + '.stdout'), result.stdout, privateFile);
@@ -221,7 +279,7 @@ export async function runInstalledRecordApprovalFixture(t, input) {
         assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
       }
       if (rejecting || loss !== undefined) {
-        const writeCount = snapshot => snapshot.requests.filter(request =>
+        const writeCount = (snapshot: Snapshot) => snapshot.requests.filter(request =>
           request.method === provider.writeRequest.method && request.pathname === provider.writeRequest.pathname).length;
         assert.equal(writeCount(after), writesExpected, 'Count every selected write request, including refused attempts');
       }

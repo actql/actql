@@ -1970,3 +1970,7 @@ target/
 /scripts/fixtures/salesforce-approval/workflow.d.mts
 /adapters/site-node/https-exchange-fixture.mjs
 /adapters/site-node/https-exchange-fixture.d.mts
+/scripts/fixtures/record-approval/installed.fixture.mjs
+/scripts/fixtures/record-approval/installed.fixture.d.mts
+/scripts/fixtures/record-approval/host-account.fixture.mjs
+/scripts/fixtures/record-approval/host-account.fixture.d.mts
