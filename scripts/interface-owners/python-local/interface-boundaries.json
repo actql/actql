@@ -15071,6 +15071,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
               }
             ]
           }
@@ -28719,7 +28723,7 @@
           ]
         }
       ],
-      "sha256": "310b270af89885a49d29938aafaa0080674d5fbc490b11f66529f11e6b0d4bf9",
+      "sha256": "ad4e00b23760c7639cc89363ebebdd16b0049c23d9e4a0b82d18c8559d1dea66",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29255,6 +29259,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
               }
             ]
           }
@@ -80707,6 +80715,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
               }
             ]
           }

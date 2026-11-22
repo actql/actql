@@ -4076,10 +4076,13 @@ for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
 
 Each selected incremental Saved read export begins with a complete census.
-This applies to payload input preparation, chunk production and the separate
-readback after terminal commit. Rechecking an already produced chunk starts
-its own export and census. Terminal projection and precommit validation keep
-the full checks in their write transaction. An eligible guest can then ask
+This applies to payload codec and input preparation, chunk production and
+the separate readback after terminal commit. Successful codec preparation
+runs a full census again after returning its physical clock borrow via reader
+stop.
+Rechecking an already produced chunk starts its own export and census.
+Terminal projection and precommit validation keep the full checks in their
+write transaction. An eligible guest can then ask
 the existing current operation import about optional unchanged-reader proof
 support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
 or the original unallocated-ticket refusal leaves full validation active. The

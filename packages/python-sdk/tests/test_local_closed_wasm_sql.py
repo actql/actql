@@ -22,7 +22,7 @@ import test_local_closed_invocation as closed
 
 class ClosedWasmSqlTests(unittest.TestCase):
     def fixture(self, *, effect=None, capture=True, legacy_census_supplier=False,
-                census_export='prepare_sdk_payload_input'):
+                census_export='prepare_sdk_payload_input', effect_import='test_effect'):
         fixture = closed.ClosedInvocationTests()
         self.addCleanup(fixture.doCleanups)
         core, binding, store, path, _ = fixture.fixture()
@@ -109,7 +109,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
             ('journal_query', core._journal_query, ['i32'], 'i32', False),
             ('journal_length', core._journal_length, ['i32'] * 2, 'i32', False),
             ('journal_release', core._journal_release, ['i32'], 'i32', False),
-            ('test_effect', effect or (lambda: 0), [], 'i32', False),
+            (effect_import, effect or (lambda: 0), [], 'i32', False),
             ('journal_schema', core._journal_schema, ['i32'], 'i32', False),
         ]
         imports = [wasmtime.Func(core._store,
@@ -189,7 +189,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
             return 0
 
         for export in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
-                       'observe_sdk_terminal'):
+                       'observe_sdk_terminal', 'prepare_sdk_payload_codecs'):
             with self.subTest(export=export):
                 core, binding, store, _ = self.fixture(effect=effect, census_export=export)
                 with self.assertRaises(LocalStorageError):
@@ -227,6 +227,26 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 binding.inspect(lambda _: actual.append(
                     LocalCore._call(core, 'publication_commit_export', export, effect, negotiate)))
                 self.assertEqual(actual, [expected])
+                self.assertIsNone(binding._observed_reader)
+                self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_codec_census_proof_expires_at_reader_stop(self):
+        for stop, legacy, expected in ((0, False, 11), (1, False, 10), (1, True, 0)):
+            with self.subTest(stop=stop, legacy=legacy):
+                export = 'prepare_sdk_payload_codecs'
+                stopped = []
+                def reader_stop():
+                    stopped.append(True)
+                    self.assertTrue(core._invocation_observation.effect_seen)
+                    return 0
+                core, binding, store, _ = self.fixture(
+                    effect=reader_stop, effect_import='reader_stop',
+                    census_export=export, legacy_census_supplier=legacy)
+                actual = []
+                binding.inspect(lambda _: actual.append(
+                    LocalCore._call(core, 'publication_commit_export', export, stop, 1)))
+                self.assertEqual(actual, [expected])
+                self.assertEqual(stopped, [True] if stop and not legacy else [])
                 self.assertIsNone(binding._observed_reader)
                 self.assertIsNone(store._connection._closed_invocation)
 
