@@ -8,15 +8,22 @@ pub struct PreparedModelHttpChatRequest {
 }
 
 ///|
-/// Encode one original request with the resolved physical model and Profile.
-/// The caller already funds the portable codec and the simultaneous UTF-8
-/// output. No endpoint, model ID, or request bytes are supplied by the caller.
-pub fn prepare_model_http_chat_request(
+/// A funded preflight child on one selected physical model and checked Request.
+/// The existing Chat cursor owns all temporary projection state.
+pub struct ModelHttpChatProjection {
+  priv provider : AdmittedStructuredModelProvider
+  priv cursor : OpenAIChatProjection
+}
+
+///|
+/// Enter this preparation only after the original Model Read funds the codec,
+/// its cursor and the simultaneous UTF-8 output.
+pub fn start_model_http_chat_request_projection(
   provider : AdmittedStructuredModelProvider,
   request : ModelRequest,
   installation : @environment.ModelResponseProfileInstallation,
   max_frames : Int,
-) -> Result[PreparedModelHttpChatRequest, OpenAIChatProjectionIssue] {
+) -> Result[ModelHttpChatProjection, OpenAIChatProjectionIssue] {
   let selected = provider.capability
   if selected.resolved.adapter_kind != "portable-http" ||
     selected.resolved.api_mode != "chat-completions" ||
@@ -35,23 +42,81 @@ pub fn prepare_model_http_chat_request(
     return Err(ForeignRequest)
   }
   let bounds = @environment.model_response_profile_limits(selected.profile)
-  project_http_chat_request(
+  start_openai_chat_projection(
     provider.original,
     request,
-    selected.resolved.model_id,
     bounds.request_bytes,
     bounds.parse_nodes,
     bounds.parse_depth,
     max_frames,
     bounds.parse_work,
-  ).bind(material => {
-    let body = @utf8.encode(material.0)
-    if body.length() > bounds.request_bytes {
-      Err(Limit)
-    } else {
-      Ok({ request, provider, body, })
+  ).map(cursor => { provider, cursor, })
+}
+
+///|
+/// Advance the original projection. Only its completed portable request may
+/// escape to the physical Plan. Finishing or refusing spends this child.
+pub fn advance_model_http_chat_request_projection(
+  value : ModelHttpChatProjection,
+) -> Result[PreparedModelHttpChatRequest?, OpenAIChatProjectionIssue] {
+  let cursor = value.cursor
+  match advance_openai_chat_projection(cursor) {
+    Ok(None) => Ok(None)
+    Ok(Some(_)) => {
+      guard cursor.request is Some(request) else {
+        retire_openai_chat_projection(cursor)
+        return Err(ForeignRequest)
+      }
+      let provider = value.provider
+      let model_id = provider.capability.resolved.model_id
+      finish_openai_chat_http_projection(cursor, model_id).bind(material => {
+        let body = @utf8.encode(material.0)
+        if body.length() > cursor.max_bytes {
+          Err(Limit)
+        } else {
+          Ok(Some({ request, provider, body, }))
+        }
+      })
     }
-  })
+    Err(issue) => {
+      retire_openai_chat_projection(cursor)
+      Err(issue)
+    }
+  }
+}
+
+///|
+pub fn retire_model_http_chat_request_projection(
+  value : ModelHttpChatProjection,
+) -> Unit {
+  retire_openai_chat_projection(value.cursor)
+}
+
+///|
+/// Convenience for an already funded non-driving caller. Native execution
+/// uses this same child through the original Model preflight.
+pub fn prepare_model_http_chat_request(
+  provider : AdmittedStructuredModelProvider,
+  request : ModelRequest,
+  installation : @environment.ModelResponseProfileInstallation,
+  max_frames : Int,
+) -> Result[PreparedModelHttpChatRequest, OpenAIChatProjectionIssue] {
+  let original = match
+    start_model_http_chat_request_projection(
+      provider, request, installation, max_frames,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_model_http_chat_request_projection(original) {
+      Ok(Some(value)) => return Ok(value)
+      Ok(None) => ()
+      Err(issue) => return Err(issue)
+    }
+  } nobreak {
+    Err(Limit)
+  }
 }
 
 ///|

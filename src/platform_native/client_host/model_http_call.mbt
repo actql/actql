@@ -108,7 +108,7 @@ struct NativeClientModelHttpPlan {
 /// Supply the exact preflight body to the Core Plan. The original execution
 /// funds the plan and this fixed handoff control before issuing either.
 /// Preparation creates no physical Client and retains no credential.
-pub fn prepare_native_model_http_plan(
+fn prepare_native_model_http_plan(
   request : @model.ModelRequest,
   prepared : @model.PreparedModelHttpChatRequest,
   provider : @model.AdmittedStructuredModelProvider,
@@ -136,6 +136,64 @@ pub fn prepare_native_model_http_plan(
     }
     started
   }).map(plan => (plan, handoff))
+}
+
+///|
+/// Install this exact portable projection as the Core's bounded preflight.
+/// The caller reserves the original Read's codec, handoff and Plan overlap
+/// before starting it. Only the selected installation drafts a request.
+pub fn NativeModelHttpInstallation::start_model_http_preflight(
+  self : NativeModelHttpInstallation,
+  request : @model.ModelRequest,
+  profile : @environment.ModelResponseProfileInstallation,
+  quantities : @resources.QuantityAmounts,
+  max_frames : Int,
+  retain : (NativeClientModelHttpPlan) -> Unit,
+) -> Result[@model.ModelRequestPreflight, @model.ModelExecutionIssue] {
+  let projection = match
+    @model.start_model_http_chat_request_projection(
+      self.provider,
+      request,
+      profile,
+      max_frames,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(native_model_http_projection_issue(issue))
+  }
+  Ok({
+    advance: () => {
+      match @model.advance_model_http_chat_request_projection(projection) {
+        Ok(None) => Ok(None)
+        Ok(Some(original)) =>
+          prepare_native_model_http_plan(
+            request,
+            original,
+            self.provider,
+            profile,
+            quantities,
+          ).map(pair => {
+            retain(pair.1)
+            Some(pair.0)
+          })
+        Err(issue) => Err(native_model_http_projection_issue(issue))
+      }
+    },
+    cleanup: () => {
+      @model.retire_model_http_chat_request_projection(projection)
+      true
+    },
+  })
+}
+
+///|
+fn native_model_http_projection_issue(
+  issue : @model.OpenAIChatProjectionIssue,
+) -> @model.ModelExecutionIssue {
+  match issue {
+    @model.ForeignRequest => @model.RequestIdentity
+    @model.Unsupported => @model.InvalidProvider
+    @model.Limit => @model.RequestLimit
+  }
 }
 
 ///|

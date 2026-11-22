@@ -47,6 +47,8 @@ pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, St
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
+pub fn advance_model_http_chat_request_projection(ModelHttpChatProjection) -> Result[PreparedModelHttpChatRequest?, OpenAIChatProjectionIssue]
+
 pub fn advance_model_observation_verification(ModelObservationVerification, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
@@ -403,6 +405,8 @@ pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
 
+pub fn retire_model_http_chat_request_projection(ModelHttpChatProjection) -> Unit
+
 pub fn retire_model_mock_answers(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Unit, ModelMockAnswerIssue]
 
 pub fn retire_native_decision_projection(NativeDecisionProjection) -> Unit
@@ -424,6 +428,8 @@ pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_pu
 pub fn start_model_content_byte_check(ModelContentInput, String, String, Int64?, Int64?, () -> Bool) -> Result[ModelContentByteCheck, ModelContentIssue]
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_http_chat_request_projection(AdmittedStructuredModelProvider, ModelRequest, @check_environment.ModelResponseProfileInstallation, Int) -> Result[ModelHttpChatProjection, OpenAIChatProjectionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -642,6 +648,10 @@ pub(all) struct ModelExecutionLimits {
   max_response_bytes : Int64
   value_limits : @value_admission.Limits
   ledger : @physical_resources.LedgerLimits
+}
+
+pub struct ModelHttpChatProjection {
+  // private fields
 }
 
 pub(all) enum ModelMockAnswerIssue {

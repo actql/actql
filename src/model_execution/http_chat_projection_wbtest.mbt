@@ -217,6 +217,34 @@ test "portable HTTP borrows only the paid codec result of the exact request and 
   assert_eq(endpoint, installation.endpoint)
   assert_true(physical_equal(profile, actual_profile))
   assert_eq(body, @utf8.encode(http_chat_expected_wire))
+  let partial = start_model_http_chat_request_projection(
+    admitted, request, installation, 100,
+  ).unwrap()
+  assert_true(advance_model_http_chat_request_projection(partial) is Ok(None))
+  retire_model_http_chat_request_projection(partial)
+  assert_true(
+    advance_model_http_chat_request_projection(partial) is Err(ForeignRequest),
+  )
+  let incremental = start_model_http_chat_request_projection(
+    admitted, request, installation, 100,
+  ).unwrap()
+  let mut result = None
+  for _ in 0..<20000 {
+    result = advance_model_http_chat_request_projection(incremental).unwrap()
+    if result is Some(_) {
+      break
+    }
+  }
+  let (_, _, incremental_body) = prepared_model_http_chat_material(
+    result.unwrap(),
+    request,
+    admitted,
+  ).unwrap()
+  assert_eq(incremental_body, body)
+  assert_true(
+    advance_model_http_chat_request_projection(incremental)
+    is Err(ForeignRequest),
+  )
   let foreign = prepare_model_http_chat_request(
     admitted, foreign_request, installation, 100,
   ).unwrap()
