@@ -113,7 +113,7 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-export function verifyNativeHttpPreparation(path,selected,item,{requireModelResolver = false} = {}) {
+function readVerifiedNativeHttpPreparation(path,selected,item,requireModelResolver) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
   for(const key of ['source','target'])assert.equal(body[key],selected[key]);
   const minimum=selected.target==='darwin-arm64'?'11.0':null;
@@ -158,8 +158,45 @@ export function verifyNativeHttpPreparation(path,selected,item,{requireModelReso
     assert.equal(resolver.notice.path, join(directory, 'component/bundle/CARES-LICENSE.md'));
     for (const original of [resolver.source, resolver.staticLibrary, resolver.notice]) verifyOriginal(original);
   }
-  return body.component.path;
+  return {path: body.component.path, component};
 }
+
+export function verifyNativeHttpPreparation(path, selected, item, {requireModelResolver = false} = {}) {
+  return readVerifiedNativeHttpPreparation(path, selected, item, requireModelResolver).path;
+}
+
+// Model HTTP is a separately compiled component. Keep its real producer SHA
+// and allow a successor package to use it only if its complete repository
+// producer inputs are unchanged. The physical inputs and receipts are still
+// checked by the original preparation reader.
+function verifyModelHttpProducerInputs(producerSource, packageSource) {
+  for (const source of [producerSource, packageSource]) assert.match(source, /^[0-9a-f]{40}$/u);
+  if (producerSource === packageSource) return;
+  const git = args => execFileSync('git', args, {
+    cwd: new URL('../', import.meta.url), timeout: 15000, maxBuffer: 65536,
+  });
+  git(['merge-base', '--is-ancestor', producerSource, packageSource]);
+  git(['diff', '--quiet', producerSource, packageSource, '--',
+    'scripts/native-http-component-source.json',
+    'scripts/native-model-http-resolver-source.json',
+    'scripts/prepare-native-resident-http-component.py',
+    'scripts/produce-native-http-component.py',
+    'scripts/produce-native-http-tls.py',
+    'scripts/produce-native-remote-scoped-runtime.py',
+    'scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc',
+    'src/platform_native/http_client/component_tls_lifetime.c',
+    'src/platform_native/http_client/component_tls_lifetime.h']);
+}
+
+export function verifiedNativeModelHttpLibrary(preparation, selected) {
+  const producerSource = preparation.source ?? selected.source;
+  verifyModelHttpProducerInputs(producerSource, selected.source);
+  const {component} = readVerifiedNativeHttpPreparation(
+    preparation.path, {...selected, source: producerSource}, preparation, true);
+  const {path, bytes, sha256} = component.library;
+  return {path, bytes, sha256};
+}
+
 export function preparedNativeHttpReceipt(root,selected,options) {
   const {root:canonical,record}=index(root,selected);
   assert(record.http,'Complete original HTTP preparation is required for Resident');

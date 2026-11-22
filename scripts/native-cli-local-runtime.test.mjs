@@ -105,6 +105,36 @@ test('Linux x64 shared-library headers use the same explicit closure and source 
   assert.deepEqual(admitInstalledLocalRuntime({root: f.output, metadata: f.metadata, expected: f.expected}), f.manifest);
 });
 
+test('Model HTTP members cannot share dynamic dependencies with ordinary runtime members', async t => {
+  for (const [selectedPlatform, name, system] of [
+    ['darwin-arm64', 'libcurl.4.dylib',
+      '/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration'],
+    ['linux-x64-gnu', 'libcurl.so.4', 'libz.so.1'],
+  ]) {
+    const f = await fixture(t, selectedPlatform);
+    const model = {...f.manifest.libraries[0], role: 'model-http', path: `lib/${name}`,
+      dependencies: [system]};
+    const manifest = {...f.manifest, libraries: [...f.manifest.libraries, model]};
+    assert.equal(validateLocalRuntimeManifest(manifest, f.expected), manifest);
+    for (const changed of [
+      {...model, path: 'lib/foreign.so'},
+      {...model, dependencies: [manifest.libraries[1].path.slice(4)]},
+      {...model, dependencies: ['libcares.so.2']},
+    ]) {
+      assert.throws(() => validateLocalRuntimeManifest(
+        {...manifest, libraries: [...f.manifest.libraries, changed]}, f.expected));
+    }
+    const sqlite = {...f.manifest.libraries[0], dependencies: [name]};
+    assert.throws(() => validateLocalRuntimeManifest(
+      {...manifest, libraries: [sqlite, f.manifest.libraries[1], model]}, f.expected));
+
+    const library = {...f.options.libraries[0], name, role: 'model-http'};
+    await assert.rejects(prepareNativeLocalRuntime(f.output,
+      {...f.options, libraries: [...f.options.libraries, library]}, inspectFixture),
+    /requires its original file-backed preparation receipt/u);
+  }
+});
+
 test('foreign source platform or manifest digest is refused without dependency discovery', async t => {
   const f = await fixture(t);
   for (const expected of [

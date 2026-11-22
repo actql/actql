@@ -127,6 +127,37 @@ fn runtime_member(
 }
 
 ///|
+fn native_local_model_http_system(
+  platform : String,
+  dependency : String,
+) -> Bool {
+  if platform == "darwin-arm64" {
+    match dependency {
+      "/usr/lib/libSystem.B.dylib"
+      | "/usr/lib/libz.1.dylib"
+      | "/System/Library/Frameworks/LDAP.framework/Versions/A/LDAP"
+      | "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+      | "/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices"
+      | "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration" =>
+        true
+      _ => false
+    }
+  } else {
+    match dependency {
+      "libc.so.6"
+      | "libm.so.6"
+      | "libdl.so.2"
+      | "libpthread.so.0"
+      | "librt.so.1"
+      | "ld-linux-x86-64.so.2"
+      | "libz.so.1"
+      | "libgcc_s.so.1" => true
+      _ => false
+    }
+  }
+}
+
+///|
 fn runtime_assemble(
   wire : String,
   source_sha : String,
@@ -195,7 +226,10 @@ fn runtime_assemble(
       "role", "path", "bytes", "sha256", "license", "dependencies", "abi",
     ])
     let role = runtime_text(object, "role")
-    if role != "sqlite" && role != "crypto" && role != "dependency" {
+    if role != "sqlite" &&
+      role != "crypto" &&
+      role != "dependency" &&
+      role != "model-http" {
       runtime_refuse(InvalidMember)
     }
     if role != "dependency" {
@@ -205,7 +239,18 @@ fn runtime_assemble(
       library_roles.push(role)
     }
     let entry = runtime_member(object, role, "lib", 67108864L)
-    library_names.push(entry.path.split("/").to_array()[1].to_owned())
+    if role == "model-http" {
+      let model_http_path = if platform == "darwin-arm64" {
+        "lib/libcurl.4.dylib"
+      } else {
+        "lib/libcurl.so.4"
+      }
+      if entry.path != model_http_path {
+        runtime_refuse(InvalidMember)
+      }
+    } else {
+      library_names.push(entry.path.split("/").to_array()[1].to_owned())
+    }
     let license = runtime_text(object, "license")
     if !licenses.contains(license) {
       runtime_refuse(InvalidClosure)
@@ -220,7 +265,13 @@ fn runtime_assemble(
         runtime_refuse(InvalidClosure)
       }
       declared.push(name)
-      dependencies.push(name)
+      if role == "model-http" {
+        if !native_local_model_http_system(platform, name) {
+          runtime_refuse(InvalidClosure)
+        }
+      } else {
+        dependencies.push(name)
+      }
     }
     let key = if platform == "darwin-arm64" {
       "minimumMacOS"
