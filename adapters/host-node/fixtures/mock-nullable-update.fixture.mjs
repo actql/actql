@@ -40,7 +40,8 @@ const effect = 'SELECT a.id, a.omitted_value, a.null_input, a.empty_input\n' +
   '|> RESULT updates\n' +
   '|> EFFECT UPDATE salesforce.Account ID id SET (clear_value = null_input, blank_value = empty_input);\n';
 const read = 'SELECT a.id, a.clear_value, a.blank_value, a.omitted_value, a.null_input, a.empty_input, a.protected_value\n' +
-  'FROM salesforce.accounts AS a WHERE a.id = @target OR a.id = @control ORDER BY id;\n';
+  'FROM salesforce.accounts AS a WHERE a.id = @target OR a.id = @control ORDER BY id\n' +
+  '|> RESULT main;\n';
 export const definition = {
   name: 'declared-null-empty-and-omitted',
   effect: {document: effect, format: 'aql', resultName: 'updates',
