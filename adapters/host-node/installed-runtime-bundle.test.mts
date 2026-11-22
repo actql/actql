@@ -10,15 +10,38 @@ import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile} from './installed-source.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from './installed-effect.mjs';
 
-const expected = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-function reader(bytes, {step = Infinity, readFailure, closeFailure, closePending = false} = {}) {
+import type {FileHandle} from 'node:fs/promises';
+
+type Read = [buffer: Buffer, start: number, length: number, position: number | null];
+type ReaderOptions = Readonly<{step?: number; readFailure?: unknown; closeFailure?: unknown; closePending?: boolean}>;
+type Reader = {
+  opens: number; reads: number; closes: number; buffers: Set<Buffer>; total: number;
+  releaseClose(): void;
+  openFile(path: unknown, flags: unknown): Promise<{
+    read(...args: Read): Promise<{bytesRead: number}>;
+    close(): Promise<boolean | undefined>;
+  }>;
+};
+type CleanupStatus = Readonly<{pending: boolean}>;
+type FixtureFailure = Error & Readonly<{
+  cleanupPending: boolean; errors?: readonly unknown[];
+  cleanupHandle: Readonly<{status(): CleanupStatus; retry(): Promise<CleanupStatus>}>;
+}>;
+type Role = 'source' | 'effect';
+type Profile = Readonly<{version: string}>;
+type LoadedRuntime = Readonly<{moon: unknown; runtimeBundleCid: string}>;
+type Observed = [role: Role, operation: 'load' | 'publish', runtimeBundleCid: string];
+
+
+const expected = (bytes: Buffer) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+function reader(bytes: Buffer, {step = Infinity, readFailure, closeFailure, closePending = false}: ReaderOptions = {}) {
   let offset = 0, failClose = true;
-  const observed = {opens: 0, reads: 0, closes: 0, buffers: new Set(), total: 0};
+  const observed = {opens: 0, reads: 0, closes: 0, buffers: new Set<Buffer>(), total: 0} as Reader;
   observed.releaseClose = () => {failClose = false;};
   observed.openFile = async (path, flags) => {
     assert.equal(path, '/runtime.js'); assert.equal(flags, 'r'); observed.opens++;
     return {
-      async read(buffer, start, length, position) {
+      async read(buffer: Buffer, start: number, length: number, position: number | null) {
         observed.reads++; observed.buffers.add(buffer);
         assert.equal(start, 0); assert.equal(position, null);
         assert.equal(buffer.length, 64 * 1024); assert.equal(length, buffer.length);
@@ -42,7 +65,7 @@ for (const [name, bytes, step] of [
   ['empty', Buffer.alloc(0), Infinity],
   ['binary and partial reads', Buffer.from([0, 255, 128, 13, 10, 0, 195, 169]), 1],
   ['multiple chunks', Buffer.alloc(4 * 65536 + 19, 0xA7), 32771],
-]) {
+] as const) {
   test(`runtime hash preserves ${name} without accumulating input buffers`, async () => {
     const actual = reader(bytes, {step});
     assert.equal(await installedRuntimeBundleCid('/runtime.js', actual), expected(bytes));
@@ -71,13 +94,13 @@ test('a selected real handle remains original across path replacement during a r
   const path = join(root, 'runtime.js'), replacement = join(root, 'replacement.js');
   const before = Buffer.alloc(65536 + 7, 0x41), after = Buffer.from('replacement');
   await writeFile(path, before); await writeFile(replacement, after);
-  let original, closes = 0, firstRead = true;
-  const openFile = async (name, flags) => {
+  let original: FileHandle, closes = 0, firstRead = true;
+  const openFile = async (name: string, flags: string) => {
     original = await open(name, flags);
     // The real original FD is retained. Replacement changes only the next
     // acquisition, not the source of the in-progress hash.
     return {
-      async read(...args) {
+      async read(...args: Read) {
         const result = await original.read(...args);
         if (firstRead) {
           firstRead = false;
@@ -90,7 +113,7 @@ test('a selected real handle remains original across path replacement during a r
     };
   };
   assert.equal(await installedRuntimeBundleCid(path, {openFile}), expected(before));
-  assert.equal(closes, 1); await assert.rejects(original.stat(), {code: 'EBADF'});
+  assert.equal(closes, 1); await assert.rejects(original!.stat(), {code: 'EBADF'});
   assert.equal(await installedRuntimeBundleCid(path), expected(after));
 });
 
@@ -109,9 +132,9 @@ for (const kind of ['throw', 'false']) {
     const closeFailure = new Error('original close failed');
     const actual = reader(Buffer.from('original'), kind === 'throw'
       ? {closeFailure} : {closePending: true});
-    let failure;
+    let failure!: FixtureFailure;
     await assert.rejects(installedRuntimeBundleCid('/runtime.js', actual), e => {
-      failure = e; assert.equal(e.cleanupPending, true); return true;
+      failure = e as FixtureFailure; assert.equal((e as FixtureFailure).cleanupPending, true); return true;
     });
     assert.equal(actual.opens, 1); assert.equal(actual.closes, 1);
     const reads = actual.reads;
@@ -129,11 +152,11 @@ test('frozen original read failure and close failure retain both causes and init
   const readFailure = Object.freeze(new Error('frozen original read'));
   const closeFailure = new Error('original close');
   const actual = reader(Buffer.from('original'), {step: 2, readFailure, closeFailure});
-  let failure;
+  let failure!: FixtureFailure;
   await assert.rejects(installedRuntimeBundleCid('/runtime.js', actual), e => {
-    failure = e;
-    assert.equal(e.cause, readFailure);
-    assert.deepEqual(e.errors, [readFailure, closeFailure]);
+    failure = e as FixtureFailure;
+    assert.equal((e as FixtureFailure).cause, readFailure);
+    assert.deepEqual((e as FixtureFailure).errors, [readFailure, closeFailure]);
     return true;
   });
   let childCloses = 0;
@@ -149,8 +172,8 @@ test('frozen original read failure and close failure retain both causes and init
 test('one pending runtime file does not close or retire a sibling verification', async () => {
   const a = reader(Buffer.from('a'), {closePending: true});
   const b = reader(Buffer.from('b'));
-  let failure;
-  await assert.rejects(installedRuntimeBundleCid('/runtime.js', a), e => {failure = e; return true;});
+  let failure!: FixtureFailure;
+  await assert.rejects(installedRuntimeBundleCid('/runtime.js', a), e => {failure = e as FixtureFailure; return true;});
   assert.equal(await installedRuntimeBundleCid('/runtime.js', b), expected(Buffer.from('b')));
   a.releaseClose(); await failure.cleanupHandle.retry();
   assert.equal(a.opens, 1); assert.equal(a.closes, 2); assert.equal(b.closes, 1);
@@ -160,18 +183,18 @@ test('actual Source/Effect loaders and publication bind each reread exact digest
   const root = await mkdtemp(join(tmpdir(), 'actql-runtime-loader-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const runtime = join(root, 'runtime.js');
-  const profiles = Object.fromEntries(['source', 'effect'].map(role =>
-    [role, {version: `actql-installed-runtime-${role}-fixture/0.1`}]));
-  const observed = [], originalMoon = Object.freeze({});
-  const module = role => ({
-    check: value => value, identityParts: value => [value],
-    load(profile, options) {
+  const profiles = Object.fromEntries((['source', 'effect'] as const).map(role =>
+    [role, {version: `actql-installed-runtime-${role}-fixture/0.1`}])) as Record<Role, Profile>;
+  const observed: Observed[] = [], originalMoon = Object.freeze({});
+  const module = (role: Role) => ({
+    check: (value: unknown) => value, identityParts: (value: unknown) => [value],
+    load(profile: Profile, options: LoadedRuntime) {
       assert.equal(profile.version, profiles[role].version);
       assert.equal(options.moon, originalMoon);
       observed.push([role, 'load', options.runtimeBundleCid]);
       return {environmentWire: '{}', prepareCaptured() {}, prepareRecovered() {}, close() {}};
     },
-    publish(profile, options) {
+    publish(profile: Profile, options: LoadedRuntime) {
       assert.equal(profile.version, profiles[role].version);
       assert.equal(options.moon, originalMoon);
       observed.push([role, 'publish', options.runtimeBundleCid]);
@@ -182,8 +205,9 @@ test('actual Source/Effect loaders and publication bind each reread exact digest
     effect: {profileVersion: profiles.effect.version, load: async () => module('effect')},
   }]);
   const options = {root, principalId: 'runtime-fixture', moon: originalMoon,
-    runtimeUrl: new URL(`file://${runtime}`), connectorTable};
-  for (const role of ['source', 'effect']) {
+    runtimeUrl: new URL(`file://${runtime}`), connectorTable} as unknown as
+    Parameters<typeof loadInstalledSource>[1] & Parameters<typeof loadInstalledEffect>[1];
+  for (const role of ['source', 'effect'] as const) {
     await writeFile(join(root, `${role}.json`), JSON.stringify(profiles[role]));
   }
   const calls = [
@@ -195,8 +219,8 @@ test('actual Source/Effect loaders and publication bind each reread exact digest
   for (let i = 0; i < calls.length; i++) {
     const bytes = Buffer.from(`export const generation = ${i};\r\n`);
     await writeFile(runtime, bytes);
-    const adapter = await calls[i]();
-    assert.equal(observed.at(-1)[2], expected(bytes));
+    const adapter = await calls[i]() as Readonly<{close(): unknown}> | undefined;
+    assert.equal(observed.at(-1)![2], expected(bytes));
     await adapter?.close();
   }
   assert.deepEqual(observed.map(value => value.slice(0, 2)),

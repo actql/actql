@@ -100668,15 +100668,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "path": "adapters/host-node/installed-runtime-bundle.test.mts",
                 "anchor": "each real selected runtime is reread after same-path byte replacement"
               },
               {
-                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "path": "adapters/host-node/installed-runtime-bundle.test.mts",
                 "anchor": "frozen original read failure and close failure retain both causes and initializer custody"
               },
               {
-                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "path": "adapters/host-node/installed-runtime-bundle.test.mts",
                 "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
               },
               {
