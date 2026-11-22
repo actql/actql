@@ -16,12 +16,54 @@ import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
   '../../../store-local/managed-physical-representation.mjs';
 import {closeManagedDuckDBOutput, settleFailedManagedDuckDB} from './managed-failure.mjs';
+import type {PhysicalField} from './physical-values.mjs';
+import type {LocalRetainedStore} from '../../../store-local/files.mjs';
+
+type ManagedMaterial = Parameters<typeof withManagedInputFiles>[0][number]['material'];
+type RetainedWriter = ReturnType<LocalRetainedStore['reserve']>;
+type RetainedBody = Awaited<ReturnType<RetainedWriter['sealPhysical']>>;
+type Limits = Parameters<typeof validateLimits>[0];
+type OutputStorage = Readonly<{parentDirectory: string; maxFrameBytes: number}>;
+
+type ManagedComputeRuntime = Parameters<typeof settleFailedManagedDuckDB>[0] &
+  Parameters<typeof managedPhysicalRepresentation>[5] & Readonly<{
+    managedStrategyRetentionCapacity(setup: unknown): unknown;
+    managedStrategyScratchCapacity(setup: unknown): unknown;
+    managedStrategyHostOpen(setup: unknown, transferBytes: bigint, executionBytes: bigint,
+      authorize: () => boolean, retentionReleased: () => boolean): unknown;
+    managedStrategyOutputFileCapacity(run: unknown): bigint;
+    managedStrategyInputCount(run: unknown): number;
+    managedStrategyInputAt(run: unknown, index: number): unknown;
+    managedStrategyInputFileViewSqlAt(run: unknown, index: number, maxSqlBytes: number): string | undefined;
+    managedStrategyInputParquetViewSqlAt(run: unknown, index: number, maxSqlBytes: number): string | undefined;
+    managedStrategyOccurrenceSql(run: unknown): string | undefined;
+    managedStrategySql(run: unknown, create: boolean): unknown;
+    managedStrategyParameterCount(run: unknown): number;
+    managedStrategyParameter(run: unknown, index: number): unknown;
+    managedStrategyCharge(run: unknown, bytes: bigint): unknown;
+    managedStrategyStorageOrder(run: unknown, fields: string): unknown;
+    managedStrategyOutputBegin(run: unknown, fields: string): unknown;
+    managedOutputAccept(output: unknown, rowCount: number, columns: string): unknown;
+    managedStrategyOutputAdvanceFinish(run: unknown, output: unknown, quantum: number): unknown;
+    managedStrategySelectionBegin(run: unknown, occurrences: readonly number[]): unknown;
+    managedSelectionAdvance(preparation: unknown, quantum: number): unknown;
+    managedSelectionTake(preparation: unknown): unknown;
+    managedSelectionCancel(preparation: unknown): boolean;
+    managedStrategySelectedOutputBegin(run: unknown, selection: unknown): unknown;
+    managedOutputRetain(output: unknown, bytes: bigint, available: () => boolean): unknown;
+    managedStrategyComplete(run: unknown, output: unknown): unknown;
+    managedOutputMeasurements(output: unknown): unknown;
+    managedOutputInputMeasurements(output: unknown): unknown;
+    managedStrategyComparisonUsage(run: unknown): unknown;
+    managedOutputMaterial(output: unknown): ManagedMaterial | undefined;
+    managedInputMatchesMaterial(input: unknown, material: ManagedMaterial): boolean;
+  }>;
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
-let runtime;
+let runtime: Promise<ManagedComputeRuntime> | undefined;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 
-function logicalComparisonAccounting(values) {
+function logicalComparisonAccounting(values: unknown) {
   if (values == null) return Object.freeze({
     comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
   });
@@ -38,7 +80,7 @@ function logicalComparisonAccounting(values) {
   return Object.freeze({comparisonWork, comparisonBytes, comparisonNodes});
 }
 
-function logicalMeasurementAccounting(values, prefix) {
+function logicalMeasurementAccounting(values: unknown, prefix: 'measuredGuard' | 'reusedGuard') {
   if (values == null) return Object.freeze({
     [`${prefix}Work`]: 0, [`${prefix}Bytes`]: 0, [`${prefix}Nodes`]: 0,
   });
@@ -52,7 +94,7 @@ function logicalMeasurementAccounting(values, prefix) {
     [`${prefix}Nodes`]: values[2],
   });
 }
-function fieldsFrame(fields) {
+function fieldsFrame(fields: readonly PhysicalField[]) {
   return JSON.stringify(fields.map(({name, type}) => [name, type.id,
     type.precision === undefined ? null : String(type.precision),
     type.scale === undefined ? null : String(type.scale)]));
@@ -62,15 +104,17 @@ function fieldsFrame(fields) {
 // are admitted before native work; capacity comes from the selected MoonBit
 // setup and cannot be enlarged here.
 export async function runManagedColumnStrategyHostCompute(
-  setup, inputMaterial, inputCodecContractCid, limits, outputStorage, signal,
-  siteCompletionReady = () => true,
+  setup: unknown, inputMaterial: ManagedMaterial | readonly ManagedMaterial[],
+  inputCodecContractCid: string | readonly string[], limits: Limits,
+  outputStorage: OutputStorage | undefined, signal?: AbortSignal,
+  siteCompletionReady: () => boolean = () => true,
 ) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
-  const inputMaterials = Array.isArray(inputMaterial)
-    ? inputMaterial : [inputMaterial];
-  const inputCodecContractCids = Array.isArray(inputCodecContractCid)
-    ? inputCodecContractCid : [inputCodecContractCid];
+  const inputMaterials: readonly ManagedMaterial[] = Array.isArray(inputMaterial)
+    ? inputMaterial : [inputMaterial as ManagedMaterial];
+  const inputCodecContractCids: readonly string[] = Array.isArray(inputCodecContractCid)
+    ? inputCodecContractCid : [inputCodecContractCid as string];
   if (!outputStorage || typeof outputStorage.parentDirectory !== 'string' ||
       !Number.isSafeInteger(outputStorage.maxFrameBytes) || outputStorage.maxFrameBytes < 1 ||
       inputMaterials.length === 0 ||
@@ -83,7 +127,8 @@ export async function runManagedColumnStrategyHostCompute(
   }
   const moon = await loadRuntime();
   const capacity = computePhysicalCapacity(limits);
-  let store, writer, body, output, completed, run;
+  let store: LocalRetainedStore | undefined, writer: RetainedWriter | undefined,
+    body: RetainedBody | undefined, output: unknown, completed: unknown, run: unknown;
   let inputPhysicalBytes = 0, inputNativeScanBytes = 0;
   let inputIntegrityPasses = 0, outputFrames = 0;
   let outputValueAdmissionCells = 0, outputJsMaterializedCells = 0;
@@ -118,8 +163,8 @@ export async function runManagedColumnStrategyHostCompute(
       checked(moon.managedStrategyInputAt(run, index)));
     const viewSqls = inputs.map((_, index) =>
       inputCodecContractCids[index] === managedColumnCodecContractCid
-        ? moon.managedStrategyInputFileViewSqlAt(run, index, limits.maxSqlBytes)
-        : moon.managedStrategyInputParquetViewSqlAt(run, index, limits.maxSqlBytes));
+        ? moon.managedStrategyInputFileViewSqlAt(run, index, limits.maxSqlBytes!)
+        : moon.managedStrategyInputParquetViewSqlAt(run, index, limits.maxSqlBytes!));
     if (viewSqls.some(sql => typeof sql !== 'string')) {
       throw new DuckDBTransportError('UnsupportedManagedInputRepresentation');
     }
@@ -130,19 +175,19 @@ export async function runManagedColumnStrategyHostCompute(
     // so even evidence-preserving results use the bounded sink here.
     await writer.start();
     const querySql = preservesCheckedValues
-      ? occurrenceSql : checked(moon.managedStrategySql(run, false));
+      ? occurrenceSql : checked(moon.managedStrategySql(run, false)) as string;
     const parameters = Array.from({length: moon.managedStrategyParameterCount(run)}, (_, index) =>
-      JSON.parse(checked(moon.managedStrategyParameter(run, index))));
+      JSON.parse(checked(moon.managedStrategyParameter(run, index)) as string));
     const accounting = Object.freeze({
       started() { lifecycle.sessionStarted = true; },
-      chargeTransfer(bytes) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
-      settled(confirmed) {
+      chargeTransfer(bytes: number) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
+      settled(confirmed: boolean) {
         checked(moon.managedStrategySettle(run, confirmed));
         if (confirmed) lifecycle.executionSettled = true;
       },
     });
-    const occurrences = [];
-    let storageOrder;
+    const occurrences: number[] = [];
+    let storageOrder: readonly number[] | undefined;
     const result = await withManagedInputFiles(
       inputs.map((input, index) => ({
         material: inputMaterials[index],
@@ -154,11 +199,11 @@ export async function runManagedColumnStrategyHostCompute(
         const discard = () => {};
         for (let index = 0; index < files.length; index++) {
           await session.createFileView(
-            viewSqls[index], files[index].path, discard,
+            viewSqls[index]!, files[index].path, discard,
           );
         }
         if (preservesCheckedValues) {
-          let outputFields;
+          let outputFields: readonly PhysicalField[] | undefined;
           const fields = await session.command(querySql, parameters, async chunk => {
             signal?.throwIfAborted();
             if (chunk.fields[0]?.name !== '__actql_occurrence' ||
@@ -169,7 +214,7 @@ export async function runManagedColumnStrategyHostCompute(
             if (!outputFields) {
               outputFields = values;
               storageOrder = checked(moon.managedStrategyStorageOrder(
-                run, fieldsFrame(outputFields)));
+                run, fieldsFrame(outputFields))) as readonly number[];
             }
             const valueColumns = chunk.columns.slice(1);
             for (let index = 0; index < chunk.rowCount; index++) {
@@ -184,9 +229,9 @@ export async function runManagedColumnStrategyHostCompute(
               }
               occurrences.push(value);
             }
-            const storedFields = storageOrder.map(index => outputFields[index]);
-            const storedColumns = storageOrder.map(index => valueColumns[index]);
-            await writer.appendBytes(encodeManagedColumnFrame(
+            const storedFields = storageOrder!.map(index => outputFields![index]);
+            const storedColumns = storageOrder!.map(index => valueColumns[index]);
+            await writer!.appendBytes(encodeManagedColumnFrame(
               storedFields, storedColumns, chunk.rowCount, outputRows));
             outputRows += chunk.rowCount;
             outputJsMaterializedCells += chunk.rowCount * outputFields.length;
@@ -196,7 +241,7 @@ export async function runManagedColumnStrategyHostCompute(
           if (!outputFields) {
             outputFields = fields.slice(1);
             storageOrder = checked(moon.managedStrategyStorageOrder(
-              run, fieldsFrame(outputFields)));
+              run, fieldsFrame(outputFields))) as readonly number[];
           }
           return outputFields;
         }
@@ -211,10 +256,10 @@ export async function runManagedColumnStrategyHostCompute(
           outputValueAdmissionCells += chunk.rowCount * outputFields.length;
           outputJsMaterializedCells += chunk.rowCount * outputFields.length;
           if (!storageOrder) storageOrder = checked(moon.managedStrategyStorageOrder(
-            run, fieldsFrame(outputFields)));
+            run, fieldsFrame(outputFields))) as readonly number[];
           const storedFields = storageOrder.map(index => outputFields[index]);
           const storedColumns = storageOrder.map(index => outputColumns[index]);
-          await writer.appendBytes(encodeManagedColumnFrame(
+          await writer!.appendBytes(encodeManagedColumnFrame(
             storedFields, storedColumns, chunk.rowCount, outputRows));
           outputRows += chunk.rowCount;
           outputFrames++;
@@ -260,11 +305,11 @@ export async function runManagedColumnStrategyHostCompute(
         moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
     }
     body = await writer.sealPhysical();
-    checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
+    checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body!.available()));
     completed = checked(moon.managedStrategyComplete(run, output));
-    const outputMeasurement = checked(
+    const outputMeasurement = (checked(
       moon.managedOutputMeasurements(output),
-    ).slice(1);
+    ) as readonly number[]).slice(1);
     const logicalDiagnostics = Object.freeze({
       ...logicalMeasurementAccounting(outputMeasurement, 'measuredGuard'),
       ...logicalMeasurementAccounting(
@@ -283,7 +328,7 @@ export async function runManagedColumnStrategyHostCompute(
       outputRows,
       codecContractCid,
       fieldsFrame(result.value),
-      storageOrder,
+      storageOrder!,
       moon,
     );
     registerManagedInput(material,
@@ -316,13 +361,13 @@ export async function runManagedColumnStrategyHostCompute(
         outputFrameReencodes: outputFrames,
         ...logicalDiagnostics,
       }),
-      storageUsage: () => store.status(),
+      storageUsage: () => store!.status(),
       close: async () => {
         if (closed) return;
         authorized = false;
         await closeManagedDuckDBOutput(moon, checked, {
           run, output, body, store, lifecycle,
-        });
+        } as Parameters<typeof closeManagedDuckDBOutput>[2]);
         closed = true;
       },
     });

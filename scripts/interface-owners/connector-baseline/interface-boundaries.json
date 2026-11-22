@@ -1507,7 +1507,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "InvalidManagedStorageConfiguration"
               }
             ],
@@ -1522,7 +1522,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "inputCodecContractCids.some"
               }
             ],
@@ -1838,43 +1838,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "runManagedColumnStrategyHostCompute"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "withManagedInputFiles"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "storageReleased"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "managedStrategyHostOpen"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "settleFailedManagedDuckDB"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "computePhysicalCapacity"
               }
             ],

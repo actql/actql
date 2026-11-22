@@ -1781,7 +1781,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
+                "path": "adapters/connectors/duckdb/node/managed-strategy-compute.mts",
                 "anchor": "finishManagedOutputReceipt"
               }
             ],

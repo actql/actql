@@ -1816,3 +1816,5 @@ target/
 /adapters/connectors/duckdb/node/managed-parquet-codec.d.mts
 /adapters/connectors/duckdb/node/runtime-result.mjs
 /adapters/connectors/duckdb/node/runtime-result.d.mts
+/adapters/connectors/duckdb/node/managed-strategy-compute.mjs
+/adapters/connectors/duckdb/node/managed-strategy-compute.d.mts
