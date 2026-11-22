@@ -81052,7 +81052,7 @@
                 "anchor": "The private Host may prepare configuration defaults before it registers a"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "export function prepareInstalledModelProviderDefaults("
               }
             ],
@@ -81068,12 +81068,12 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (installedDefaults.get(provider) !== view) {"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "if (installedDefaults.get(provider as object) !== view) {"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -81082,8 +81082,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "const defaultsPreparations = new WeakMap();"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "const defaultsPreparations = new WeakMap<object, DefaultsPreparation>();"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -81096,7 +81096,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
@@ -81110,7 +81110,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "spent = true;"
               },
               {

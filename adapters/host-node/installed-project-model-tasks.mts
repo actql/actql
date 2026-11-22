@@ -8,7 +8,6 @@ import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} fr
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 import {installedSourceConfigurationReader} from './installed-host-services.mjs';
 import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
-// @ts-expect-error TS7016: the installed Model defaults Owner is still authored in JavaScript.
 import {assertInstalledModelDefaultsPreparation, assertInstalledModelDefaultsAdoption} from './installed-model.mjs';
 
 type Project = NonNullable<Awaited<ReturnType<typeof loadInstalledProjectConfiguration>>>;

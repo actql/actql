@@ -85301,7 +85301,7 @@
                 "anchor": "The private Host may prepare configuration defaults before it registers a"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "export function prepareInstalledModelProviderDefaults("
               },
               {
@@ -85325,12 +85325,12 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (installedDefaults.get(provider) !== view) {"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "if (installedDefaults.get(provider as object) !== view) {"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -85343,8 +85343,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "const defaultsPreparations = new WeakMap();"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "const defaultsPreparations = new WeakMap<object, DefaultsPreparation>();"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -85361,7 +85361,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
@@ -85379,7 +85379,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "spent = true;"
               },
               {
@@ -85471,7 +85471,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85485,7 +85485,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85499,7 +85499,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85507,7 +85507,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -85517,7 +85517,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85535,7 +85535,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85543,13 +85543,13 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85567,7 +85567,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85581,7 +85581,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85595,7 +85595,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85609,7 +85609,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -85655,7 +85655,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -85675,7 +85675,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               }
             ],
@@ -85736,7 +85736,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85746,7 +85746,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85756,7 +85756,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85766,7 +85766,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85776,7 +85776,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85786,7 +85786,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85796,7 +85796,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85806,7 +85806,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85816,7 +85816,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85826,7 +85826,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainModelQuantityCapacity"
               },
               {
@@ -85851,7 +85851,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85861,7 +85861,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85871,7 +85871,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85881,7 +85881,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85891,7 +85891,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85901,7 +85901,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85911,7 +85911,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85921,7 +85921,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85931,7 +85931,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85941,7 +85941,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "retainProviderBindingOriginals"
               },
               {
@@ -85966,7 +85966,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3cc424fbe425f8b0d947e1d7683a6ec03bd130c7cbc8ef69ffb07b61fca433d2",
+      "sha256": "3977556dbb1bec8e11f804b8c63c32add6b57fd8242677270a17ba3d4d56a4ca",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -86385,7 +86385,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86395,7 +86395,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86405,7 +86405,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86415,7 +86415,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86425,7 +86425,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86435,7 +86435,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86445,7 +86445,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86455,7 +86455,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86465,7 +86465,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86475,7 +86475,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProvider"
               },
               {
@@ -86499,7 +86499,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86513,7 +86513,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86527,7 +86527,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86535,7 +86535,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -86545,7 +86545,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86563,7 +86563,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86571,13 +86571,13 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86595,7 +86595,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86609,7 +86609,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86623,7 +86623,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86637,7 +86637,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "admitInstalledModelProviderBinding"
               },
               {
@@ -86671,7 +86671,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86681,7 +86681,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86691,7 +86691,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86701,7 +86701,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86711,7 +86711,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86721,7 +86721,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86731,7 +86731,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86741,7 +86741,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86751,7 +86751,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86761,7 +86761,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "checkInstallation"
               },
               {
@@ -86785,7 +86785,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86795,7 +86795,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86805,7 +86805,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86815,7 +86815,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86825,7 +86825,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86835,7 +86835,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86845,7 +86845,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86855,7 +86855,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86865,7 +86865,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86875,7 +86875,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installedModelEnvironment"
               },
               {
@@ -86907,7 +86907,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -86925,7 +86925,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -86943,7 +86943,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -86951,7 +86951,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -86965,7 +86965,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -86987,7 +86987,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -86995,7 +86995,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               },
               {
@@ -87005,7 +87005,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -87027,7 +87027,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -87045,7 +87045,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -87063,7 +87063,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -87081,7 +87081,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "installModelProviders"
               },
               {
@@ -87130,7 +87130,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87140,7 +87140,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87150,7 +87150,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87160,7 +87160,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87170,7 +87170,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87180,7 +87180,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87190,7 +87190,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87200,7 +87200,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87210,7 +87210,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87220,7 +87220,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelDependencies"
               },
               {
@@ -87250,7 +87250,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87260,7 +87260,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87270,7 +87270,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87280,7 +87280,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87290,7 +87290,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87300,7 +87300,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87310,7 +87310,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87320,7 +87320,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87330,7 +87330,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87340,7 +87340,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "readInstalledModelExecution"
               },
               {
@@ -87377,7 +87377,7 @@
                 "anchor": "The private Host may prepare configuration defaults before it registers a"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "export function prepareInstalledModelProviderDefaults("
               },
               {
@@ -87401,12 +87401,12 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (installedDefaults.get(provider) !== view) {"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "if (installedDefaults.get(provider as object) !== view) {"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -87419,8 +87419,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "const defaultsPreparations = new WeakMap();"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "const defaultsPreparations = new WeakMap<object, DefaultsPreparation>();"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -87437,7 +87437,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
@@ -87455,7 +87455,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "spent = true;"
               },
               {
@@ -87545,7 +87545,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87555,7 +87555,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87565,7 +87565,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87575,7 +87575,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87585,7 +87585,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87595,7 +87595,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87605,7 +87605,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87615,7 +87615,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87625,7 +87625,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -87635,7 +87635,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {

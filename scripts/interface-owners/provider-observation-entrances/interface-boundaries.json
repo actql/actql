@@ -4134,7 +4134,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "snapshotTaskInstallations"
               }
             ],
@@ -4172,7 +4172,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "InstalledModelTaskProfileUnavailable"
               }
             ],

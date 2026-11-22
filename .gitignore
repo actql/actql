@@ -2206,3 +2206,5 @@ target/
 /adapters/host-node/infer-physical-observation.test.d.mts
 /adapters/host-node/installed-model-defaults.mjs
 /adapters/host-node/installed-model-defaults.d.mts
+/adapters/host-node/installed-model.mjs
+/adapters/host-node/installed-model.d.mts

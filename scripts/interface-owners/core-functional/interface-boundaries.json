@@ -28632,7 +28632,7 @@
                 "anchor": "The private Host may prepare configuration defaults before it registers a"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "export function prepareInstalledModelProviderDefaults("
               },
               {
@@ -28656,12 +28656,12 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (installedDefaults.get(provider) !== view) {"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "if (installedDefaults.get(provider as object) !== view) {"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -28674,8 +28674,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "const defaultsPreparations = new WeakMap();"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "const defaultsPreparations = new WeakMap<object, DefaultsPreparation>();"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -28692,7 +28692,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
@@ -28710,7 +28710,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "spent = true;"
               },
               {
@@ -28823,8 +28823,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -28845,8 +28845,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -28859,7 +28859,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -28867,11 +28867,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -28885,7 +28885,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// common execution owner must separately admit dependencies and authority."
               },
               {
@@ -28893,8 +28893,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -28919,11 +28919,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               },
               {
@@ -28941,8 +28941,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -28999,7 +28999,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -29007,8 +29007,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -29061,7 +29061,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "3cc424fbe425f8b0d947e1d7683a6ec03bd130c7cbc8ef69ffb07b61fca433d2",
+      "sha256": "3977556dbb1bec8e11f804b8c63c32add6b57fd8242677270a17ba3d4d56a4ca",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -29523,8 +29523,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -29545,8 +29545,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -29559,7 +29559,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -29567,11 +29567,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -29585,7 +29585,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// common execution owner must separately admit dependencies and authority."
               },
               {
@@ -29593,8 +29593,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -29619,11 +29619,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               },
               {
@@ -29641,8 +29641,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -29699,7 +29699,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -29707,8 +29707,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -29774,7 +29774,7 @@
                 "anchor": "The private Host may prepare configuration defaults before it registers a"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "export function prepareInstalledModelProviderDefaults("
               },
               {
@@ -29798,12 +29798,12 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (installedDefaults.get(provider) !== view) {"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "if (installedDefaults.get(provider as object) !== view) {"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -29816,8 +29816,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "const defaultsPreparations = new WeakMap();"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "const defaultsPreparations = new WeakMap<object, DefaultsPreparation>();"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mts",
@@ -29834,7 +29834,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
               },
               {
@@ -29852,7 +29852,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "spent = true;"
               },
               {
@@ -29954,8 +29954,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -29972,8 +29972,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -29982,7 +29982,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -29990,11 +29990,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "if (this !== retained)"
               },
               {
@@ -30004,7 +30004,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// common execution owner must separately admit dependencies and authority."
               },
               {
@@ -30012,8 +30012,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -30034,11 +30034,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "assertNewTrustedRuntime();"
               }
             ],
@@ -30052,8 +30052,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "src/run_publication_host/client_model_provider_defaults.mbt",
@@ -30098,7 +30098,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "// Static ModelTask registration shares the installed checker composition."
               },
               {
@@ -30106,8 +30106,8 @@
                 "anchor": "# Exclusive Model Provider registration"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "export function installModelProviders(moon, register, assertHostRuntime,"
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "export function installModelProviders(moon: ProviderRuntime, register?: (runtime: ProviderRuntime) => unknown,"
               },
               {
                 "path": "docs/design/model-provider-registration.md",

@@ -8,11 +8,10 @@ import {join, dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration, resolveInstalledProjectTaskPath, retireInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
-// @ts-expect-error TS7016: the installed Model provider Owner is still authored in JavaScript.
 import {installModelProviders} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
-type Runtime = Parameters<typeof loadInstalledProjectModelTasks>[0] &
+type Runtime = Parameters<typeof installModelProviders>[0] & Parameters<typeof loadInstalledProjectModelTasks>[0] &
   NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]>;
 type Providers = Parameters<typeof loadInstalledProjectModelTasks>[2];
 type Provider = NonNullable<ReturnType<Providers['get']>>;
