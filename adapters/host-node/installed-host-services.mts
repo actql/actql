@@ -12,7 +12,6 @@ import {checked} from '../host-common/runtime-result.mjs';
 // @ts-expect-error TS7016: installed-row-effect still has a JavaScript entry.
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
-// @ts-expect-error TS7016: installed-table-effect still has a JavaScript entry.
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -92,11 +91,28 @@ type HostServicesInput = Readonly<{
 }>;
 type RowFactory = (input: Readonly<Record<string, unknown>>) => Promise<NonNullable<Bound['adapter']>>;
 type TableSourceInputs = Parameters<typeof createInstalledTableSource>[0];
+type TableEffectInputs = Parameters<typeof createInstalledTableEffect>[0];
 type TableSiteInputs = Parameters<typeof installedTableReadSite>[0];
 type TableInput = Pick<TableSourceInputs, 'limits'> & Readonly<{
   targets: readonly Readonly<{resource: string; schemaWire: string; selector: Readonly<{schema_cid: string}>}>[];
 }>;
 type TableBridge = object & Readonly<{frameLimits?: Readonly<{maxBytes: number}>}>;
+type BoundConstruction = Pick<Context,
+  'prepareDeclaration' | 'prepareNativeDeclaration' | 'prepareNativeInput' | 'preparePublishedEnvironment' |
+  'prepareAuthoredDeclaration' | 'prepareBorrowedDeclaration' | 'prepareMappings' | 'prepareNativeMappings' |
+  'prepareDeclaredCommands' | 'prepareAuthoredCommands' | 'prepareDerivedDeclaredCommands' | 'prepareReadTarget' |
+  'prepareReadTargetWithMappings' | 'prepareEffectDriverConstruction'> &
+  Pick<HostServices, 'sourceReaderImplementationProfile' | 'sourceReaderImplementation' | 'openRowSite' | 'createSourceReader'> &
+  Readonly<{
+    configurationReader: ReturnType<typeof captureConfigurationReaders>;
+    prepareProviderEffect(provider: object, mappings: unknown): ReturnType<Context['prepareProviderEffect']>;
+    openSpecializedSite(options: unknown): Promise<SiteSelection>;
+    createDuckDBSource(): ReturnType<typeof createInstalledDuckDBSource>;
+    createTableSource(options: unknown): ReturnType<typeof createInstalledTableSource>;
+    createTableEffect(options: unknown): ReturnType<typeof createInstalledTableEffect>;
+    createRowSource(options: unknown): ReturnType<RowFactory>;
+    createRowEffect(options: unknown): ReturnType<RowFactory>;
+  }>;
 
 const sourceNativeThen = Promise.prototype.then;
 const installations = new WeakMap<object, HostOriginal>();
@@ -142,7 +158,7 @@ export {beginInstalledSourceInitialization, beginInstalledPublishedSourceInitial
 // domain inputs, never the initialization token or registration/retirement order.
 // Keep partial acquisitions in the existing initialization failure carrier.
 export function bindInstalledSourceConstruction(services: HostServices, context: Context,
-  checkedProfile: unknown, profileConstruction: Parameters<Physical['reserveInstalledTableConstruction']>[3]) {
+  checkedProfile: unknown, profileConstruction: Parameters<Physical['reserveInstalledTableConstruction']>[3]): BoundConstruction {
   const retained = sourceContexts.get(context), original = installations.get(services)!;
   if (retained === undefined || retained.original !== original) fail('ForeignInstalledSourceConstruction');
   if (boundConstructions.has(context)) fail('InstalledSourceConstructionAlreadyBound');
@@ -215,7 +231,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
       return adapter;
     } finally {owned.constructing = false;}
   }
-  const bound = Object.freeze({
+  const bound: BoundConstruction = Object.freeze({
     configurationReader: captureConfigurationReaders(installedSourceConfigurationReader(services), undefined,
       () => fail('InstalledConfigurationReaderUnavailable')),
     prepareDeclaration: prepare('prepareDeclaration'),
@@ -438,12 +454,14 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
           connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
-        const adapter = await createInstalledTableEffect({...input, bridge, moon: original.moon,
-          sourceInitialization: context, environment: prepared.environment as NonNullable<DuckDBOptions[2]['environment']>,
+        const adapter = await createInstalledTableEffect({
+          ...input as Pick<TableEffectInputs, 'connection' | 'bindingCid' | 'catalogCid' | 'targets' | 'ledgerRoot' | 'limits'>,
+          bridge: bridge as TableEffectInputs['bridge'], moon: original.moon as Runtime & TableEffectInputs['moon'],
+          sourceInitialization: context, environment: prepared.environment as TableEffectInputs['environment'],
           environmentWire: prepared.environment!.wire, authorization,
-          connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
-          connectorRevision: scope.installation.revision,
-          runtimeBundleCid: original.selected.get(scope.installation)});
+          connectorId: scope.connectorId!, connectorRegistration: scope.installation.registration!,
+          connectorRevision: scope.installation.revision!,
+          runtimeBundleCid: original.selected.get(scope.installation)!});
         owned.adapter = adapter;
         current();
         if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');

@@ -79,8 +79,8 @@ const materials = new WeakMap<Prepared, Material>();
 const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
 
-const ownMaterial = (prepared: Prepared) => {
-  const material = materials.get(prepared);
+const ownMaterial = (prepared: Prepared | undefined) => {
+  const material = materials.get(prepared!);
   if (material === undefined) fail('ForeignTableCommitMaterial');
   return material;
 };
@@ -167,7 +167,7 @@ function retainMaterial({control, bridge, physical, tablePreview, binding,
 // read authorization. Publication still compares the approved generation
 // atomically, so a race after this observation cannot overwrite another head.
 export async function refreshCapturedTableTargets<Preflight extends object>({prepared, preflight, signal}: Readonly<{
-  prepared: readonly Prepared[]; preflight: Preflight; signal?: AbortSignal;
+  prepared: readonly (Prepared | undefined)[]; preflight: Preflight; signal?: AbortSignal;
 }>) {
   const observedRows = [], guardVersions = [];
   for (const value of prepared) {

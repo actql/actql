@@ -103474,7 +103474,7 @@
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "96ead5312b6a2c9b9ae912f068435ad959ecb99a6b297c92ea5897d891302f9f",
+      "sha256": "d1222c54b4a12591da95cb52379aa1c8982a8b6e92028e55f4b686f4f3dfeccc",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -103985,7 +103985,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -103995,7 +103995,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104005,7 +104005,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104015,7 +104015,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104025,7 +104025,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104035,7 +104035,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104045,7 +104045,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104055,7 +104055,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104065,7 +104065,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104075,7 +104075,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "checkInstalledTableEffectLimits"
               },
               {
@@ -104097,7 +104097,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104107,7 +104107,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104117,7 +104117,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104127,7 +104127,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104137,7 +104137,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104147,7 +104147,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104157,7 +104157,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104167,7 +104167,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104177,7 +104177,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104187,7 +104187,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "cid"
               },
               {
@@ -104273,7 +104273,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104283,7 +104283,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104293,7 +104293,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104303,7 +104303,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104313,7 +104313,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104323,7 +104323,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104333,7 +104333,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104343,7 +104343,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104353,7 +104353,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104363,7 +104363,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "createInstalledTableEffect"
               },
               {
@@ -104383,7 +104383,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104393,7 +104393,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104403,7 +104403,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104413,7 +104413,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104423,7 +104423,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104433,7 +104433,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104443,7 +104443,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104453,7 +104453,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104463,7 +104463,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104473,7 +104473,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "exportLimits"
               },
               {
@@ -104493,7 +104493,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104503,7 +104503,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104513,7 +104513,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104523,7 +104523,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104533,7 +104533,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104543,7 +104543,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104553,7 +104553,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104563,7 +104563,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104573,7 +104573,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104583,7 +104583,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -104603,7 +104603,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104613,7 +104613,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104623,7 +104623,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104633,7 +104633,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104643,7 +104643,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104653,7 +104653,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104663,7 +104663,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104673,7 +104673,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104683,7 +104683,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104693,7 +104693,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "hash"
               },
               {
@@ -104713,7 +104713,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104723,7 +104723,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104733,7 +104733,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104743,7 +104743,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104753,7 +104753,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104763,7 +104763,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104773,7 +104773,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104783,7 +104783,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104793,7 +104793,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104803,7 +104803,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "positive"
               },
               {
@@ -104825,7 +104825,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104835,7 +104835,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104845,7 +104845,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104855,7 +104855,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104865,7 +104865,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104875,7 +104875,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104885,7 +104885,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104895,7 +104895,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104905,7 +104905,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104915,7 +104915,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "text"
               },
               {
@@ -104937,7 +104937,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104947,7 +104947,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104957,7 +104957,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104967,7 +104967,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104977,7 +104977,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104987,7 +104987,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -104997,7 +104997,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -105007,7 +105007,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -105017,7 +105017,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -105027,7 +105027,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "wire"
               },
               {
@@ -105049,7 +105049,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105059,7 +105059,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105069,7 +105069,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105079,7 +105079,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105089,7 +105089,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105099,7 +105099,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105109,7 +105109,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105119,7 +105119,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105129,7 +105129,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
@@ -105139,7 +105139,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-table-effect.mjs",
+                "path": "adapters/host-node/installed-table-effect.mts",
                 "anchor": "// Whole-Relation Table projections for the existing installed Effect Site."
               },
               {
