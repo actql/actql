@@ -25,6 +25,7 @@ import {createInstalledSourceMaterialAccounting} from './installed-source-materi
 import {createInstalledSourceContextCustody, captureInstalledSourceServices} from './installed-source-context-custody.mjs';
 import {createInstalledSourceContextFactory} from './installed-source-context-construction.mjs';
 import type {RowSourceMappingRuntime} from './installed-row-source-mapping.mjs';
+import type {installRowSourceAuthorization as installAuthorization} from './installed-row-source-authorization.mjs';
 
 type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
 type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
@@ -375,7 +376,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
           schema_cid: target.selector.schema_cid,
         })));
         current();
-        const authorization = await installRowSourceAuthorization({accountConfiguration,
+        const authorization = await (installRowSourceAuthorization as typeof installAuthorization)({accountConfiguration,
           root: original.root, principalId: original.principalId,
           connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
@@ -448,7 +449,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
             'then' in bridge) fail('InvalidInstalledTableBridge');
         current();
-        const authorization = await installRowSourceAuthorization({accountConfiguration,
+        const authorization = await (installRowSourceAuthorization as typeof installAuthorization)({accountConfiguration,
           root: original.root, principalId: original.principalId,
           connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;

@@ -2022,6 +2022,12 @@ target/
 /adapters/host-node/installed-source-construction-geometry.test.d.mts
 /adapters/host-node/collection-mapping.test.mjs
 /adapters/host-node/collection-mapping.test.d.mts
+/adapters/host-node/installed-row-source-authorization.mjs
+/adapters/host-node/installed-row-source-authorization.d.mts
+/adapters/host-node/typed-response-json-codec.mjs
+/adapters/host-node/typed-response-json-codec.d.mts
+/adapters/host-node/typed-response-json-codec.test.mjs
+/adapters/host-node/typed-response-json-codec.test.d.mts
 /scripts/build-connector-authoring.mjs
 /scripts/build-connector-authoring.d.mts
 /scripts/record-approval-ci-input.mjs

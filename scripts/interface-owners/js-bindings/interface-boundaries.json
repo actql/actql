@@ -98562,7 +98562,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9346ccc0d2614a4b4f54f09a390e7f1adaae094e429db2e47901deb99cd07b9d",
+      "sha256": "9911848d6e1c5fcb687ae89b201e8c30ee56dcb951177855ef401f7d66d31d21",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -99333,52 +99333,11 @@
           "async": true
         },
         {
-          "name": "encodeTypedResponseJson",
-          "parameters": [
-            "value",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "installedRowCredentialOperationSite",
           "parameters": [
             "credential"
           ],
           "async": false
-        },
-        {
-          "name": "installRowSourceAuthorization",
-          "parameters": [
-            "accountConfiguration",
-            "principalId",
-            "root",
-            "connectorRegistration",
-            "originalContext",
-            "gateOptions"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization#2",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/installRowSourceAuthorization#3",
-          "parameters": [
-            "args"
-          ],
-          "async": true
         },
         {
           "name": "loadRowSourceCredentialCustody",
@@ -100083,6 +100042,7 @@
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-row-source-authorization.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-source.mjs",
@@ -100090,6 +100050,7 @@
         "./ordinary-source-binding.mjs",
         "./original-query-preparation.mjs",
         "./source-profile-json.mjs",
+        "./typed-response-json-codec.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path",
@@ -100519,7 +100480,6 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/verifyKeyedRead",
-            "encodeTypedResponseJson",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
@@ -100575,8 +100535,8 @@
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "export function encodeTypedResponseJson(value, maxBytes)"
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "export function encodeTypedResponseJson(value: unknown, maxBytes: number)"
               }
             ],
             "identity": [
@@ -100659,7 +100619,7 @@
                 "anchor": "// Spend this original ordinal before an external current callback."
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/typed-response-json-codec.mts",
                 "anchor": "const exact = Buffer.allocUnsafeSlow(position);"
               }
             ],
@@ -100911,15 +100871,15 @@
                 "case_id": "installed_row_profile_wrong_kind"
               },
               {
-                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
                 "anchor": "identity response encoder preserves Unicode, wire references, sparse arrays and JSON values"
               },
               {
-                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
                 "anchor": "identity response encoder refuses getters and proxies without invoking them"
               },
               {
-                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
                 "anchor": "identity response encoder ignores Object and Array prototype toJSON hooks"
               },
               {
@@ -102059,12 +102019,7 @@
           }
         },
         {
-          "operations": [
-            "installRowSourceAuthorization",
-            "installRowSourceAuthorization/installRowSourceAuthorization",
-            "installRowSourceAuthorization/installRowSourceAuthorization#2",
-            "installRowSourceAuthorization/installRowSourceAuthorization#3"
-          ],
+          "operations": [],
           "exports": [
             "installRowSourceAuthorization"
           ],
@@ -103740,6 +103695,244 @@
         }
       ],
       "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
+    },
+    {
+      "module": "adapters/host-node/installed-row-source-authorization.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "installRowSourceAuthorization"
+      ],
+      "operations": [
+        {
+          "name": "installRowSourceAuthorization",
+          "parameters": [
+            "accountConfiguration",
+            "principalId",
+            "root",
+            "connectorRegistration",
+            "originalContext",
+            "gateOptions"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization#2",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRowSourceAuthorization/installRowSourceAuthorization#3",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "./installed-row-source-mapping.mjs",
+        "./local-account-config.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "a03dd7a2e34d1a3e9fa798e21cd0e4766334403e2817d98481a4d2dbef5d30e6",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installRowSourceAuthorization",
+            "installRowSourceAuthorization/installRowSourceAuthorization",
+            "installRowSourceAuthorization/installRowSourceAuthorization#2",
+            "installRowSourceAuthorization/installRowSourceAuthorization#3"
+          ],
+          "exports": [
+            "installRowSourceAuthorization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "export async function installRowSourceAuthorization("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "type Installation ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "version: 'actql-installed-row-source-context/0.1'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "const issued = new WeakSet<object>();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "own(await gate.authorize(...args))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "fail('InvalidRowSourceAuthorizationInstallation');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "Parameters<Gate['authorize']>"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "accountConstruction: gateOptions.accountConstruction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-authorization.mts",
+                "anchor": "originalContext ?? Object.freeze"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "test('shared installer retains its default context and exact original decision issuer'"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "test('shared installer keeps an explicit immutable original context and protects installation inputs'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/typed-response-json-codec.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "encodeTypedResponseJson"
+      ],
+      "operations": [
+        {
+          "name": "encodeTypedResponseJson",
+          "parameters": [
+            "value",
+            "maxBytes"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installed-row-source-mapping.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "15524d962db9a832d31d9ef2bcaf82893bf4f83ae2cf2620fe293b21886f1fbe",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encodeTypedResponseJson"
+          ],
+          "exports": [
+            "encodeTypedResponseJson"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "export function encodeTypedResponseJson(value: unknown, maxBytes: number)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "const emit = (item: unknown, depth: number): void =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "Object.getOwnPropertyDescriptor(item, String(index))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "const exact = Buffer.allocUnsafeSlow(position);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "Emit synchronously after the last current/await fence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "fail('InvalidKeyedResponseObservation');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "Emit synchronously after the last current/await fence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "const body = Buffer.allocUnsafe(maxBytes);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.mts",
+                "anchor": "no object toJSON hook or provider getter participates"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
+                "anchor": "test('identity response encoder preserves Unicode, wire references, sparse arrays and JSON values'"
+              },
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
+                "anchor": "test('identity response encoder refuses getters and proxies without invoking them'"
+              },
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mts",
+                "anchor": "test('identity response encoder ignores Object and Array prototype toJSON hooks'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/installed-row-source-environment.mjs",
