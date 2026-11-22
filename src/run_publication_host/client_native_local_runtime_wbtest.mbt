@@ -133,6 +133,48 @@ test "Darwin runtime accepts exact OS zlib and refuses aliases or foreign platfo
 }
 
 ///|
+test "Native Remote HTTP admits only its fixed member and exact OS dependencies" {
+  for
+    (platform, name, system) in [
+      (
+        "darwin-arm64", "libcurl.4.dylib", "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+      ),
+      ("linux-x64-gnu", "libcurl.so.4", "libz.so.1"),
+    ] {
+    let manifest = runtime_test_manifest(platform~)
+    guard manifest is Object(root) &&
+      root.get("libraries") is Some(Array(libraries)) else {
+      fail("missing original runtime fixture libraries")
+    }
+    let remote = runtime_test_library(manifest, 0).copy()
+    remote["role"] = Json::string("remote-http")
+    remote["path"] = Json::string("lib/" + name)
+    remote["dependencies"] = product_texts([system])
+    libraries.push(Json::object(remote))
+    let admitted = runtime_test_admit(manifest, platform~).unwrap()
+    assert_true(
+      client_native_local_runtime_members(admitted).any(item => {
+        item.role == "remote-http" && item.path == "lib/" + name
+      }),
+    )
+    for foreign in ["libcares.so.2", "crypto.bin", "@loader_path/" + name] {
+      remote["dependencies"] = product_texts([foreign])
+      assert_eq(
+        runtime_test_admit(manifest, platform~).map(_ => 1),
+        Err(InvalidClosure),
+      )
+    }
+    remote["dependencies"] = product_texts([system])
+    let sqlite = runtime_test_library(manifest, 0)
+    sqlite["dependencies"] = product_texts([name])
+    assert_eq(
+      runtime_test_admit(manifest, platform~).map(_ => 1),
+      Err(InvalidClosure),
+    )
+  }
+}
+
+///|
 test "Native runtime metadata preserves both finite formal platform closures" {
   for platform in ["darwin-arm64", "linux-x64-gnu"] {
     let value = runtime_test_manifest(platform~)

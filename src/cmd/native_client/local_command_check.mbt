@@ -90,6 +90,7 @@ fn command_preparation_cleanup_kind(
     CommandProjectMock(_) => "project-mock"
     CommandFilesystem(_) => "filesystem"
     CommandFilesystemCleanup(_) => "filesystem-cleanup"
+    CommandRemoteHttpCleanup => "remote-http-cleanup"
   }
 }
 

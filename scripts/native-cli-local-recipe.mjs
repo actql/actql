@@ -3,10 +3,11 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {constants, closeSync, fstatSync, lstatSync, openSync, readSync, mkdirSync, writeFileSync} from 'node:fs';
-import {dirname, join, resolve, parse} from 'node:path';
+import {basename, dirname, join, resolve, parse} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
 import {inspectLocalLibrary} from './native-cli-local-runtime.mjs';
+import {verifiedNativeRemoteHttpPackage} from './native-preparation-originals.mjs';
 import {LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, admitLocalLibraryBytes, validateLocalRuntimeManifest} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -48,7 +49,7 @@ const pythonWire = value => Buffer.from(JSON.stringify(sorted(value)).replace(/[
   char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`) + '\n');
 
 export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory, cryptoDirectory, outputDirectory,
-  sourceRoot = root}, execute = execFileSync) {
+  remoteHttpPreparation, sourceRoot = root}, execute = execFileSync) {
   assert(['linux-x64-gnu', 'darwin-arm64'].includes(platform), 'Select an existing Local platform');
   const linux = platform === 'linux-x64-gnu';
   const target = linux ? 'x86_64-unknown-linux-gnu' : 'aarch64-apple-darwin';
@@ -192,11 +193,31 @@ export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory,
   const contents = new Map([...defaults].map(([role, bytes]) => [`${role}.json`, bytes]));
   contents.set('sqlite.txt', sqliteNotice); contents.set('crypto.txt', combined);
   contents.set('sqlite-process-producer.json', sqliteReceipt); contents.set('crypto-producer.json', cryptoReceipt);
+  let selectedRemoteHttp;
+  const licenseNames = ['sqlite.txt', 'crypto.txt'];
+  if (remoteHttpPreparation !== undefined) {
+    const path = resolve(remoteHttpPreparation);
+    const wire = capture(path, 32 * 1024 * 1024);
+    selectedRemoteHttp = {path, ...identity(wire), source: json(wire).source};
+    const {library, dependencies, notice} = verifiedNativeRemoteHttpPackage(selectedRemoteHttp,
+      {source: sourceSha, target: linux ? 'linux-x64' : platform});
+    const bytes = capture(library.path, LOCAL_RUNTIME_MAX_BYTES, library);
+    admitLocalLibraryBytes(bytes, platform);
+    const observed = inspectLocalLibrary(library.path, platform, names, execute, 'remote-http');
+    assert.deepEqual([...observed.dependencies].sort(), [...dependencies].sort());
+    const license = 'remote-http.txt';
+    libraries.push({role: 'remote-http', name: basename(library.path), original: library,
+      license, dependencies: observed.dependencies});
+    observations.push(observed);
+    licenseNames.push(license);
+    contents.set(license, notice);
+  }
   const assets = [...defaults].map(([role, bytes]) => ({role,
     original: {path: join(outputDirectory, `${role}.json`), ...identity(bytes)}}));
-  const licenses = ['sqlite', 'crypto'].map(role => ({name: `${role}.txt`,
-    original: {path: join(outputDirectory, `${role}.txt`), ...identity(contents.get(`${role}.txt`))}}));
-  const recipe = {sourceSha, platform, libraries, assets, licenses};
+  const licenses = licenseNames.map(name => ({name,
+    original: {path: join(outputDirectory, name), ...identity(contents.get(name))}}));
+  const recipe = {sourceSha, platform, libraries, assets, licenses,
+    ...(selectedRemoteHttp === undefined ? {} : {remoteHttpPreparation: selectedRemoteHttp})};
   validateLocalRuntimeManifest({sourceSha, platform,
     libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`, ...identity(read(item.original.path, LOCAL_RUNTIME_MAX_BYTES, item.original)),
       license: `licenses/${item.license}`, dependencies: item.dependencies, abi: observations[index].abi})),
@@ -219,8 +240,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const args = process.argv.slice(2), options = {};
     const flags = {'--source': 'sourceSha', '--platform': 'platform', '--sqlite-component': 'sqliteDirectory',
-      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory'};
-    assert.equal(args.length, 10, 'Select source, platform, both original components and fresh output');
+      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory',
+      '--remote-http-preparation': 'remoteHttpPreparation'};
+    assert(args.length === 10 || args.length === 12, 'Select source, platform, both original components and fresh output');
     for (let index = 0; index < args.length; index += 2) {
       const key = flags[args[index]];
       assert(key && args[index + 1] && options[key] === undefined, 'Unknown, duplicate or incomplete recipe selection');

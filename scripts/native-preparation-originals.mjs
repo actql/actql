@@ -113,9 +113,11 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-export function verifyNativeHttpPreparation(path,selected,item) {
+function readVerifiedNativeHttpPreparation(path,selected,item) {
   const directory=realpathSync(join(path,'..')),body=json(path,item);
-  for(const key of ['source','target'])assert.equal(body[key],selected[key]);
+  for (const key of ['source', 'target']) {
+    assert.equal(body[key], selected[key], `HTTP preparation ${key} differs from the selected original`);
+  }
   const minimum=selected.target==='darwin-arm64'?'11.0':null;
   assert.equal(body.minimumMacOS,minimum);
   assert.equal(body.loaded,0);assert.equal(body.initialized,0);assert.equal(body.installed_supplier,false);
@@ -139,8 +141,69 @@ export function verifyNativeHttpPreparation(path,selected,item) {
   assert.equal(component.library.path,join(directory,'component/bundle',
     selected.target==='darwin-arm64'?'libcurl.4.dylib':'libcurl.so.4'));
   verifyOriginal(component.library);
-  return body.component.path;
+  return {path: body.component.path, component, tls};
 }
+
+export function verifyNativeHttpPreparation(path, selected, item) {
+  return readVerifiedNativeHttpPreparation(path, selected, item).path;
+}
+
+const remoteHttpProducerInputs = [
+  'scripts/native-http-component-source.json',
+  'scripts/prepare-native-resident-http-component.py',
+  'scripts/produce-native-http-component.py',
+  'scripts/produce-native-http-tls.py',
+  'scripts/produce-native-remote-scoped-runtime.py',
+  'scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc',
+  'src/platform_native/http_client/component_tls_lifetime.c',
+  'src/platform_native/http_client/component_tls_lifetime.h',
+];
+
+// The package and the separately produced component keep their own sources.
+// An ancestor preparation is usable only across the same complete producer
+// input tree. The retained outer, TLS and component receipts still rehash
+// their actual archives, tools, selected files and library at each admission.
+export function verifyRemoteHttpProducerInputs(producerSource, packageSource,
+  root = fileURLToPath(new URL('../', import.meta.url))) {
+  for (const source of [producerSource, packageSource]) assert.match(source, /^[0-9a-f]{40}$/u);
+  if (producerSource === packageSource) return;
+  const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', timeout: 15000, maxBuffer: 65536});
+  git(['merge-base', '--is-ancestor', producerSource, packageSource]);
+  const read = source => {
+    const entries = git(['ls-tree', '-r', '-z', source, '--', ...remoteHttpProducerInputs]).split('\0').filter(Boolean);
+    assert.equal(entries.length, remoteHttpProducerInputs.length, 'Incomplete Remote HTTP producer input tree');
+    return entries;
+  };
+  assert.deepEqual(read(producerSource), read(packageSource), 'Remote HTTP producer inputs changed');
+}
+
+export function verifiedNativeRemoteHttpPackage(preparation, selected) {
+  verifyRemoteHttpProducerInputs(preparation.source, selected.source);
+  const {component, tls} = readVerifiedNativeHttpPreparation(
+    preparation.path, {...selected, source: preparation.source}, preparation);
+  const recipe = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
+  assert.equal(component.recipe_sha256, checksum(recipe));
+  assert.equal(component.modelResolver, undefined, 'Remote HTTP requires the synchronous component original');
+  const {path, bytes, sha256} = component.library;
+  const {version, archive} = component.upstream;
+  const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
+    item.sha256 === archive.sha256);
+  assert.equal(curlArchives.length, 1, 'One original curl source archive required');
+  const curlArchive = curlArchives[0];
+  const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
+    input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
+  });
+  const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
+  assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
+  const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
+  assert(curlNotice.length > 0 && tlsNotice.length > 0 && tlsNotice.length <= 65536);
+  return {
+    library: {path, bytes, sha256},
+    dependencies: component.systemDependencies,
+    notice: Buffer.concat([curlNotice, Buffer.from('\n\n'), tlsNotice]),
+  };
+}
+
 export function preparedNativeHttpReceipt(root,selected) {
   const {root:canonical,record}=index(root,selected);
   assert(record.http,'Complete original HTTP preparation is required for Resident');
