@@ -5,37 +5,58 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadInventory} from
   './effect-target-read-inventory.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 
+import type {TestContext} from 'node:test';
+
+type ContinuationOptions = Parameters<typeof effectTargetReadContinuation>[0];
+type Opening = Parameters<NonNullable<ContinuationOptions['checkpoints']>['effectTargetAuthorization']>[0];
+type FixtureDecision = Readonly<{
+  action: 'dispatch' | 'waiting'; basis?: string;
+  admission?: Readonly<{enter(): void}>; checkpoint?: Readonly<{checkpointCid: string}>;
+}>;
+type FixtureGate = {
+  scopeCid: string; configurationCid: string; contextCid: string;
+  assertCurrent?: unknown;
+  authorize(): Promise<FixtureDecision>;
+  current(): Promise<FixtureDecision>;
+  resume(): Promise<FixtureDecision>;
+  close(): boolean;
+};
+type TargetState = {target: Opening['target']; live: boolean; opened?: Opening; gate: FixtureGate};
+type FixtureOptions = Readonly<{selected?: boolean; resumed?: boolean; count?: number}>;
+type ApprovalFacts = Readonly<{kind: string; assertCurrent(): void; enter(): void}>;
+
+
 // Real continuation with finite Checkpoint ports. These are owner-lifetime and
 // await-boundary controls, not compiled account, durable journal or Provider
 // acceptance. The inventory helper only constructs a valid resumed fixture;
 // no canonical identity or digest is asserted against product output.
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const accountChanged = () => Object.assign(new Error('AuthorizationCurrentAccountChanged'),
   {code: 'AuthorizationCurrentAccountChanged'});
 const closed = {code: 'EffectTargetReadOwnerClosed'};
 const changed = {code: 'AuthorizationCurrentAccountChanged'};
 const deferred = () => {
-  let resolve;
-  const promise = new Promise(done => { resolve = done; });
+  let resolve!: () => void;
+  const promise = new Promise<void>(done => { resolve = done; });
   return {promise, resolve};
 };
-const pause = value => {
+const pause = (value: FixtureDecision) => {
   const started = deferred(), released = deferred();
   return {started: started.promise, release: released.resolve,
     async run() { started.resolve(); await released.promise; return value; }};
 };
 
-function fixture({selected = true, resumed = false, count = 1} = {}) {
+function fixture({selected = true, resumed = false, count = 1}: FixtureOptions = {}) {
   const inventory = Array.from({length: count}, (_, index) => ({
     readTuple: {connection: 'fixture', resource: `resource-${index}`, operation: 'read'},
     physicalBinding: {version: 'actql-target-current-fixture/0.1', resource: `resource-${index}`},
   }));
   const bound = effectTargetReadInventory(inventory);
   const submission = {request: 'original'};
-  const calls = [];
+  const calls: string[] = [];
   let originalLive = true, claimLive = true, entries = 0, resumeChecks = 0;
   const states = bound.targets.map(target => {
-    const state = {target, live: true, opened: undefined};
+    const state = {target, live: true, opened: undefined} as TargetState;
     state.gate = {
       scopeCid: cid(String(target.index + 1)),
       configurationCid: cid('a'), contextCid: cid('b'),
@@ -64,7 +85,7 @@ function fixture({selected = true, resumed = false, count = 1} = {}) {
   const checkpoints = {
     journal: {committedApprovalAt: () => ({current: true})},
     async inspectEffectTargetApprovals() { return []; },
-    async effectTargetAuthorization(options) {
+    async effectTargetAuthorization(options: Opening) {
       const state = states[options.target.index];
       state.opened = options;
       return state.gate;
@@ -89,14 +110,16 @@ function fixture({selected = true, resumed = false, count = 1} = {}) {
     unitId: 'unit', declaredResults: [], submission, inventory,
     principalId: 'principal', resume, assertCurrent: assertOriginalCurrent,
     ...(selected ? {assertOriginalCurrent} : {})};
+  // The fixture supplies only the ports under test and mutates malformed
+  // gate controls explicitly. Leave the production input boundary strict.
   return {states, calls, checkpoints, options,
-    open: () => effectTargetReadContinuation(options),
+    open: () => effectTargetReadContinuation(options as unknown as ContinuationOptions),
     consumeClaim: () => { claimLive = false; },
     revokeOriginal: () => { originalLive = false; },
     entries: () => entries, resumeChecks: () => resumeChecks};
 }
 
-async function opened(t, options) {
+async function opened(t: TestContext, options?: FixtureOptions) {
   const f = fixture(options);
   const owner = await f.open();
   t.after(() => owner.close());
@@ -107,7 +130,7 @@ test('a current selected target owner admits preparation and preserves live toke
   const f = await opened(t);
   assert.deepEqual(await f.owner.prepare(), {status: 'ready'});
   const decision = await f.owner.authorize(f.states[0].target.readTuple);
-  const facts = checkpointApprovalFacts(decision);
+  const facts = checkpointApprovalFacts(decision) as ApprovalFacts;
   assert.equal(decision.action, 'dispatch');
   assert.equal(facts.kind, 'effect_target');
   assert.equal(facts.assertCurrent(), undefined);
@@ -121,7 +144,7 @@ test('a current selected target owner admits preparation and preserves live toke
 test('a live resumed target token and computation share one original admission entry', async t => {
   const f = await opened(t, {resumed: true});
   assert.deepEqual(await f.owner.prepare(), {status: 'ready'});
-  const facts = checkpointApprovalFacts(await f.owner.authorize(f.states[0].target.readTuple));
+  const facts = checkpointApprovalFacts(await f.owner.authorize(f.states[0].target.readTuple)) as ApprovalFacts;
   facts.enter();
   f.owner.enterComputation();
   facts.enter();
@@ -202,7 +225,7 @@ test('every opened target owner is fenced after another target authorization awa
 test('a retained target token refuses a stale original gate before any admission entry', async t => {
   const f = await opened(t, {resumed: true});
   await f.owner.prepare();
-  const facts = checkpointApprovalFacts(await f.owner.authorize(f.states[0].target.readTuple));
+  const facts = checkpointApprovalFacts(await f.owner.authorize(f.states[0].target.readTuple)) as ApprovalFacts;
   await new Promise(resolve => setImmediate(resolve));
   f.states[0].live = false;
   assert.throws(facts.assertCurrent, changed);
@@ -214,9 +237,9 @@ test('a retained target token refuses a stale original gate before any admission
 test('a successor waiting checkpoint returns after consuming the predecessor claim', async t => {
   const f = await opened(t, {resumed: true, count: 2});
   const checkpoint = Object.freeze({checkpointCid: cid('e')});
-  let checksAtHandoff;
+  let checksAtHandoff: number | undefined;
   f.states[1].gate.authorize = async () => {
-    f.states[1].opened.beforeDefer();
+    f.states[1].opened!.beforeDefer();
     f.consumeClaim();
     checksAtHandoff = f.resumeChecks();
     await Promise.resolve();

@@ -2364,3 +2364,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-target-read-inventory.d.mts
 /adapters/host-node/effect-target-read-continuation.mjs
 /adapters/host-node/effect-target-read-continuation.d.mts
+/adapters/host-node/effect-target-original-current.test.mjs
+/adapters/host-node/effect-target-original-current.test.d.mts
