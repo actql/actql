@@ -33,7 +33,8 @@ test('resident physical acquisition fixtures retain complete normative query dep
 });
 
 test('resident physical Source environments advertise their exact normative two-receipt capability', () => {
-  const expected = cid(json('spec/contracts/actql-query-two-receipt.json'));
+  const receipt = cid(json('spec/contracts/actql-query-two-receipt.json'));
+  const process = cid(json('spec/contracts/actql-query-process-evidence.json'));
   for (const [file, name] of [
     ['source_fixture_wbtest.mbt', 'resident_effect_source_environment'],
     ['effect_completion_free_wbtest.mbt', 'native_completion_free_environment'],
@@ -46,7 +47,9 @@ test('resident physical Source environments advertise their exact normative two-
     const {evidence_bundle_cid: original, ...preimage} = body;
     assert.equal(original, cid(preimage));
     for (const capability of body.connector_capabilities) {
-      assert.ok(capability.capability_contract_cids.includes(expected));
+      const expected = name === 'native_completion_free_environment'
+        ? [process, receipt].sort() : [receipt];
+      assert.deepEqual(capability.capability_contract_cids, expected);
       assert.ok(!capability.capability_contract_cids.includes(
         'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'));
     }

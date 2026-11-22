@@ -92,7 +92,13 @@ const oldProcess = 'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a
 const oldReceipt = 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a';
 const processCid = machineCid(JSON.parse(readFileSync('spec/contracts/actql-query-process-evidence.json', 'utf8')));
 const receiptCid = machineCid(JSON.parse(readFileSync('spec/contracts/actql-query-two-receipt.json', 'utf8')));
-const pins = new Map([[oldProcess, processCid], [processCid, processCid], [oldReceipt, receiptCid], [receiptCid, receiptCid]]);
+// Also accept the exact pre-Bytes identities in the same two roles.
+const previousProcess = 'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d';
+const previousReceipt = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
+const pins = new Map([
+  [oldProcess, processCid], [previousProcess, processCid], [processCid, processCid],
+  [oldReceipt, receiptCid], [previousReceipt, receiptCid], [receiptCid, receiptCid],
+]);
 const namedBindings = [{
   "owner": "src/run_publication_host/client_local_normalization_wbtest.mbt",
   "name": "local_normalization_environment_wire",
@@ -153,10 +159,13 @@ function refresh(environment, original) {
     } else assert.deepEqual(body.host_policy_profile.text_time_evaluation, policy);
   }
   for (const capability of body.connector_capabilities) {
-    capability.capability_contract_cids = capability.capability_contract_cids.map(pin => {
+    const contracts = capability.capability_contract_cids.map(pin => {
       assert(pins.has(pin), 'review unrecognized query capability instead of guessing its role');
       return pins.get(pin);
     });
+    assert.equal(new Set(contracts).size, contracts.length, 'one current identity per capability role');
+    // The admitted member requires its current CIDs in strict lexical order.
+    capability.capability_contract_cids = contracts.sort();
   }
   body.connector_capabilities.sort((a,b) => machineCid(a) < machineCid(b) ? -1 : machineCid(a) > machineCid(b) ? 1 : 0);
   const after = machineCid(body);
