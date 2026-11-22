@@ -44990,6 +44990,269 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/effect-ledger-evidence.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "fbdbc9ff480915cc17d17504318978e646dc9fc35eb972e0b0f3f4df0c9ba1b2",
+      "role": "physical-io",
+      "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
+      "exports": [
+        "prepareEffectLedgerEvidence"
+      ],
+      "operations": [
+        {
+          "name": "prepareEffectLedgerEvidence",
+          "parameters": [
+            "control",
+            "physical",
+            "scopeCid",
+            "ownedBatchEvidence",
+            "activePhysicalFlights",
+            "flightKey",
+            "maxEntries",
+            "maxEntryBytes",
+            "maxResponseBytes",
+            "maxNodes",
+            "maxDepth",
+            "maxOutcomeNodes",
+            "maxOutcomeDepth",
+            "getLedger"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/admitStoredRowOutcome/admitStoredRowOutcome",
+          "parameters": [
+            "claim",
+            "claims",
+            "batchRowIndex",
+            "preview",
+            "memberIndex",
+            "previewRowIndex",
+            "responseEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/admitStoredRowOutcome/admitStoredRowOutcome/history/history",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/append/append",
+          "parameters": [
+            "entryJson"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
+          "parameters": [
+            "claims",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "rowOwners"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/activeOwners/activeOwners",
+          "parameters": [
+            "head"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/claims/claims",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/heads/heads",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/locatorCids/locatorCids",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#2",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#3",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#4",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/terminalWires/terminalWires",
+          "parameters": [
+            "head",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareEffectLedgerEvidence/validateStored/validateStored",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareEffectLedgerEvidence",
+            "prepareEffectLedgerEvidence/admitStoredRowOutcome/admitStoredRowOutcome",
+            "prepareEffectLedgerEvidence/admitStoredRowOutcome/admitStoredRowOutcome/history/history",
+            "prepareEffectLedgerEvidence/append/append",
+            "prepareEffectLedgerEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
+            "prepareEffectLedgerEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/activeOwners/activeOwners",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/claims/claims",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/heads/heads",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/locatorCids/locatorCids",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#2",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#3",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#4",
+            "prepareEffectLedgerEvidence/memberReceiptEvidence/memberReceiptEvidence/terminalWires/terminalWires",
+            "prepareEffectLedgerEvidence/validateStored/validateStored"
+          ],
+          "exports": [
+            "prepareEffectLedgerEvidence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "export function prepareEffectLedgerEvidence("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const validateStored = (row: StoredEntry)"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const admitStoredRowOutcome = ("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "claims !== evidence.claims ||"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "outcome.responsePhysicalSha256 !== stored.responsePhysicalSha256"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "!ownedBatchEvidence.has(evidence)"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const current = validateStored(physical.current(locatorCid));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const heads = physical.currentSnapshot(locatorCids).map(row =>"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('Effect ledger rejects altered intent before CAS and preserves head'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The synchronous evidence projection creates no task; it observes the original physical-flight map."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "control.admitRowOutcomeReceiptFromResponse("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('one owned batch response fact issues distinct row Receipts'"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('saved response issues one exact terminal row Receipt before Ledger head'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./effect-ledger-frames.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/effect-ledger-frames.mjs",
       "responsibilityFacet": "primary",
       "sha256": "6a22990da7c7d758fdb943c3d5e76f6f8a1d9245290752aa1c76f7364e1bac82",
@@ -45311,7 +45574,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "90ac3b3581ce77c9c2899e5d105ca091bbd954f70e770cbe35827c76e2d43c33",
+      "sha256": "aa5e608dc26cd5f144e1a2745c2b97293c8620e6b031f166841067395962be1b",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -45341,24 +45604,9 @@
           "async": false
         },
         {
-          "name": "openEffectLedger/admitStoredRowOutcome/admitStoredRowOutcome/history/history",
+          "name": "openEffectLedger/flightKey/flightKey",
           "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/append/append",
-          "parameters": [
-            "entryJson"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/assertOwnedBatchEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
-          "parameters": [
-            "item",
-            "index"
+            "entry"
           ],
           "async": false
         },
@@ -45755,67 +46003,8 @@
           "async": false
         },
         {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/activeOwners/activeOwners",
-          "parameters": [
-            "head"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/claims/claims",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/heads/heads",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/locatorCids/locatorCids",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#2",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#3",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#4",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/terminalWires/terminalWires",
-          "parameters": [
-            "head",
-            "rowIndex"
-          ],
+          "name": "openEffectLedger/openEffectLedger",
+          "parameters": [],
           "async": false
         },
         {
@@ -45825,22 +46014,12 @@
             "wireUnits"
           ],
           "async": false
-        },
-        {
-          "name": "openEffectLedger/validateStored/validateStored",
-          "parameters": [
-            "row"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "openEffectLedger",
-            "openEffectLedger/admitStoredRowOutcome/admitStoredRowOutcome/history/history",
-            "openEffectLedger/append/append",
-            "openEffectLedger/assertOwnedBatchEvidence/assertOwnedBatchEvidence/assertOwnedBatchEvidence",
             "openEffectLedger/ledger/init:beginPhysicalFlight/init:beginPhysicalFlight",
             "openEffectLedger/ledger/init:beginPhysicalFlight/init:beginPhysicalFlight/init:beginPhysicalFlight",
             "openEffectLedger/ledger/init:beginPhysicalFlight/init:beginPhysicalFlight/init:beginPhysicalFlight#2",
@@ -45889,16 +46068,8 @@
             "openEffectLedger/ledger/init:recoveredTargetGuards/init:recoveredTargetGuards",
             "openEffectLedger/ledger/init:response/init:response",
             "openEffectLedger/ledger/ledger",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/activeOwners/activeOwners",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/claims/claims",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/heads/heads",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/locatorCids/locatorCids",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#2",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#3",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/memberReceiptEvidence#4",
-            "openEffectLedger/memberReceiptEvidence/memberReceiptEvidence/terminalWires/terminalWires",
-            "openEffectLedger/validateStored/validateStored"
+            "openEffectLedger/flightKey/flightKey",
+            "openEffectLedger/openEffectLedger"
           ],
           "exports": [
             "openEffectLedger"
@@ -45948,8 +46119,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
-                "anchor": "const memberReceiptEvidence = ({preview, memberIndex, rowOwners}) => {"
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const memberReceiptEvidence = ({preview, memberIndex, rowOwners}: MemberPartition) => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46092,8 +46263,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-ledger.mjs",
-                "anchor": "const memberReceiptEvidence = ({preview, memberIndex, rowOwners}) => {"
+                "path": "adapters/host-node/effect-ledger-evidence.mts",
+                "anchor": "const memberReceiptEvidence = ({preview, memberIndex, rowOwners}: MemberPartition) => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46302,6 +46473,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/runtime-core.mjs",
+        "./effect-ledger-evidence.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./effect-ledger-frames.mjs",
         "./sqlite-effect-ledger.mjs",
