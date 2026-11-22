@@ -2,9 +2,8 @@
 // Connector registration can supply a replacement runtime/verifier/SQL callback.
 import {runtimeField, runtimeOptionalField} from '../../../host-common/compiler-binding.generated.mjs';
 import { randomUUID } from 'node:crypto';
-import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { runNativeQuery } from './native-query.mjs';
-import { runBroadQuery } from './broad-query.mjs';
+import {createBroadHostQuery} from './broad-host-query.mjs';
 import {sourceAcquisitionFailure} from './source-acquisition.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
@@ -44,6 +43,8 @@ const {openResidentStrategyEnvironment, importResidentStrategyInput} =
 export {openResidentStrategyEnvironment, importResidentStrategyInput};
 const retainedComputations = new WeakMap();
 const ownedSourceCaptures = new WeakMap();
+const runBroadHostQuery = createBroadHostQuery(loadRuntime, ownedSourceCaptures, rows, fieldsFrame);
+export {runBroadHostQuery};
 
 // Only a completed acquisition from this adapter has issuer custody. The
 // common owner checks exact source identity and liveness without rehashing.
@@ -1200,207 +1201,6 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     matches: identity => !closed &&
       moon.nativeHostSourceCaptureIdentityMatches(
         retainedSourceCapture(), identity),
-  }));
-  return result;
-}
-
-// The broad result binds directly to an owned consumer through the existing
-// captured-input API. No caller-supplied expected producer or success proof.
-export async function runBroadHostQuery(grant, setup, limits, signal,
-  residualRuntime, ledger) {
-  if (ledger !== undefined &&
-      typeof residualRuntime?.clientBroadResidualPrepare !== 'function') {
-    throw new DuckDBTransportError('MissingBoundedResidualRuntime');
-  }
-  const moon = await loadRuntime();
-  const window = moon.broadHostTransportWindow(setup);
-  limits = sourceTransportLimits(limits, runtimeField(window, 0), runtimeField(window, 1));
-  const capacity = ledger === undefined ? undefined : Object.freeze({
-    ...computePhysicalCapacity(limits),
-    retentionBytes: checked(moon.broadHostCapacity(setup, true)),
-    receiverScratchBytes: checked(moon.broadHostCapacity(setup, false)),
-  });
-  let capturedRun;
-  let sessionStarted = false, sessionReleased = false, residualReleased = true;
-  const accounting = capacity === undefined ? undefined : Object.freeze({
-    started() {
-      checked(moon.broadHostPhysicalStart(capturedRun));
-      sessionStarted = true;
-    },
-    chargeTransfer(bytes) { checked(moon.broadHostPhysicalCharge(capturedRun, BigInt(bytes))); },
-    settled(confirmed) {
-      sessionReleased = confirmed;
-      checked(moon.broadHostPhysicalSettle(capturedRun, confirmed));
-    },
-  });
-  const complete = observation => {
-    if (capacity !== undefined) checked(moon.broadHostPhysicalComplete(capturedRun, observation));
-    return observation;
-  };
-  const captured = await runBroadQuery(grant, verify => {
-    const run = checked(capacity === undefined
-      ? moon.broadHostOpen(setup, randomUUID(), verify)
-      : moon.broadStrategyHostOpen(setup, ledger, randomUUID(), verify,
-        capacity.transferBytes, capacity.executionBytes,
-        () => sessionReleased && residualReleased));
-    capturedRun = run;
-    const attempt = moon.broadHostAttempt(run);
-    let view;
-    let residual;
-    const localMoon = residualRuntime;
-    const owns = current => {
-      if (view === undefined) view = current;
-      if (view !== current) throw new DuckDBTransportError('ForeignReadView');
-    };
-    const port = Object.freeze({
-      metadataSql: () => moon.broadHostSql(run, true),
-      metadataParameters: () => [0, 1].map(index => JSON.parse(checked(moon.broadHostParameter(run, index)))),
-      acceptMetadata(chunk, current) {
-        owns(current);
-        checked(moon.broadHostMetadata(run, rows(chunk.rowCount), fieldsFrame(chunk.fields), JSON.stringify(chunk.columns)));
-      },
-      finishMetadata(_fields, current) { owns(current); },
-      scanSql: () => moon.broadHostSql(run, false),
-      beginReceipt(fields, current) {
-        owns(current);
-        checked(moon.broadHostBegin(run, fieldsFrame(fields)));
-      },
-      acceptChunk(chunk, current) {
-        owns(current);
-        checked(moon.broadHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
-      },
-      finishReceipt(current) {
-        owns(current);
-        checked(moon.broadHostFinish(run));
-        return attempt;
-      },
-      abort() { moon.broadHostAbort(run); },
-    });
-    return Object.freeze({
-      attempt, port,
-      complete: () => complete(checked(residual === undefined ?
-        moon.broadHostComplete(run) :
-        localMoon.clientBroadResidualComplete(residual))),
-      ...(localMoon === undefined ? {} : {async completeBounded(activeSignal) {
-        residual = checked(localMoon.clientBroadResidualPrepare(
-          moon.broadHostAcquisition(run), moon.broadHostMaxNameBytes(run)));
-        residualReleased = false;
-        try {
-          for (;;) {
-            activeSignal?.throwIfAborted();
-            if (checked(localMoon.clientBroadResidualAdvance(residual, 128))) break;
-            await yieldToHost();
-          }
-          activeSignal?.throwIfAborted();
-          return complete(checked(localMoon.clientBroadResidualComplete(residual)));
-        } catch (cause) {
-          localMoon.clientBroadResidualCancel(residual);
-          try {
-            while (!localMoon.clientBroadResidualStopped(residual)) {
-              try { checked(localMoon.clientBroadResidualAdvance(residual, 128)); }
-              catch (stopError) {
-                if (!localMoon.clientBroadResidualStopped(residual)) throw stopError;
-              }
-              if (!localMoon.clientBroadResidualStopped(residual)) await yieldToHost();
-            }
-          } catch (stopError) {
-            throw new DuckDBTransportError('ResidualStopUnconfirmed', {
-              cause: new AggregateError([cause, stopError]),
-            });
-          }
-          throw cause;
-        }
-      }}),
-      stopped: () => residual === undefined ||
-        localMoon.clientBroadResidualStopped(residual),
-      bindInput: (observation, receiver, inputIndex) => checked(moon.broadHostBind(run, observation, receiver, rows(inputIndex))),
-      abort() {
-        if (residual === undefined) moon.broadHostAbort(run);
-        else localMoon.clientBroadResidualCancel(residual);
-      },
-      close() {
-        if (residual !== undefined &&
-            !checked(localMoon.clientBroadResidualCleanup(residual))) {
-          throw new DuckDBTransportError('ResidualCleanupPending');
-        }
-        residualReleased = true;
-        moon.broadHostClose(run);
-      },
-    });
-  }, limits, signal, accounting).catch(error => {
-    if (capacity !== undefined && capturedRun !== undefined && !sessionStarted) {
-      sessionReleased = true;
-      checked(moon.broadHostPhysicalSettle(capturedRun, true));
-      moon.broadHostPhysicalRefresh(capturedRun);
-    }
-    throw error;
-  });
-  let closed = false;
-  let captureReleased = false;
-  let sourceCapture;
-  const observedAt = new Date().toISOString();
-  const retainedSourceCapture = () => {
-    if (closed) throw new DuckDBTransportError('ClosedSourceCapture');
-    return sourceCapture ??= checked(moon.broadHostSourceCapture(
-      capturedRun, captured.observation));
-  };
-  const evidenceOriginal = sourceEvidenceOriginalAccess(() => {
-    if (closed) throw new DuckDBTransportError('ClosedSourceCapture');
-  }, ({context, identity, logicalInput, authorityScopeCid,
-    effectiveDataPolicyCid, signal: issuanceSignal}) => {
-    const held = retainedSourceCapture();
-    const sourceRef = moon.broadHostSourceCaptureSourceRef(held);
-    if (sourceRef === undefined) throw new DuckDBTransportError('ClosedSourceCapture');
-    return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
-      retainedSourceCapture();
-      return checked(moon.broadHostIssueSourceEvidenceOriginal(held, context, identity,
-        logicalInput, authorityScopeCid, effectiveDataPolicyCid, observedAt));
-    }, issuanceSignal);
-  });
-  const result = Object.freeze({
-    observation: captured.observation,
-    takeSourceEvidenceOriginal() {
-      if (this !== result) throw new DuckDBTransportError('UnknownSourceCapture');
-      return evidenceOriginal.take();
-    },
-    document: () => moon.broadHostDocument(captured.observation),
-    bindInput: (receiver, inputIndex) => captured.bindInput(receiver, inputIndex),
-    source: () => checked(moon.broadHostSourceCaptureSource(
-      retainedSourceCapture())),
-    ...(capacity === undefined ? {} : {
-      retainTask: (dag, task) => {
-        retainedSourceCapture();
-        checked(moon.broadHostRetainCapturedTask(capturedRun, dag,
-          rows(task), captured.observation));
-      },
-      physicalCapacity: capacity,
-    }),
-    close() {
-      if (captureReleased) return;
-      closed = true;
-      if (evidenceOriginal.pending()) throw new DuckDBTransportError('SourceEvidencePending');
-      captured.close();
-      evidenceOriginal.retire();
-      captureReleased = true;
-    },
-  });
-  ownedSourceCaptures.set(result, Object.freeze({
-    prepare: options => evidenceOriginal.prepare(options),
-    issue: ({context, identity, logicalInput, authorityScopeCid,
-      effectiveDataPolicyCid, signal: issuanceSignal}) => {
-      const held = retainedSourceCapture();
-      const sourceRef = moon.broadHostSourceCaptureSourceRef(held);
-      if (sourceRef === undefined) {
-        throw new DuckDBTransportError('ClosedSourceCapture');
-      }
-      return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
-        retainedSourceCapture();
-        return checked(moon.broadHostIssueSourceEvidence(held, context, identity,
-          logicalInput, authorityScopeCid, effectiveDataPolicyCid, observedAt));
-      }, issuanceSignal);
-    },
-    matches: identity => !closed &&
-      moon.broadHostSourceCaptureIdentityMatches(retainedSourceCapture(), identity),
   }));
   return result;
 }

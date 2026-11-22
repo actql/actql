@@ -1045,8 +1045,6 @@ test('DuckDB captured Source prepares evidence on the same original physical cap
 });
 
 test('Native and Broad original close retain pending evidence custody before physical retirement', () => {
-  const source = readFileSync(new URL('../connectors/duckdb/node/host.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const walk = (node, visit) => {
     if (!node || typeof node !== 'object') return;
     visit(node);
@@ -1055,7 +1053,10 @@ test('Native and Broad original close retain pending evidence custody before phy
       else if (value && typeof value === 'object') walk(value, visit);
     }
   };
-  for (const name of ['runHostNativeQuery', 'runBroadHostQuery']) {
+  for (const [name, file] of [['runHostNativeQuery', 'host.mjs'],
+    ['runBroadHostQuery', 'broad-host-query.mjs']]) {
+    const source = readFileSync(new URL('../connectors/duckdb/node/' + file, import.meta.url), 'utf8');
+    const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
     let original, close;
     walk(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === name) original = node;});
     assert(original, name);

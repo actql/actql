@@ -15,7 +15,7 @@
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5e8eed57666f97129e5c3e654c8cca949c1f21a18eae77a2f7d772c9beb5c913",
+      "sha256": "c4fd15df7bec95253db8bb0444d2513b9370bf28024e8f06badf0545242daeea",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -51,6 +51,13 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "fieldsFrame",
+          "parameters": [
+            "fields"
+          ],
+          "async": false
         },
         {
           "name": "fieldsFrame/fieldsFrame",
@@ -125,254 +132,6 @@
           "name": "rows",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery",
-          "parameters": [
-            "grant",
-            "setup",
-            "limits",
-            "signal",
-            "residualRuntime",
-            "ledger"
-          ],
-          "async": true
-        },
-        {
-          "name": "runBroadHostQuery/accounting/init:chargeTransfer/init:chargeTransfer",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/accounting/init:settled/init:settled",
-          "parameters": [
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/accounting/init:started/init:started",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured",
-          "parameters": [
-            "verify"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/captured#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/captured#3",
-          "parameters": [
-            "observation",
-            "receiver",
-            "inputIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/init:abort/init:abort",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/init:completeBounded/init:completeBounded",
-          "parameters": [
-            "activeSignal"
-          ],
-          "async": true
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:abort/init:abort",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
-          "parameters": [
-            "chunk",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
-          "parameters": [
-            "chunk",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
-          "parameters": [
-            "fields",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
-          "parameters": [
-            "_fields",
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
-          "parameters": [
-            "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/port",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/port/port",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/port#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/port/port#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/run/run",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured#2",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/complete/complete",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
-          "parameters": [
-            "context",
-            "identity",
-            "logicalInput",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "issuanceSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/result",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/result#2",
-          "parameters": [
-            "receiver",
-            "inputIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/result#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/result/result#4",
-          "parameters": [
-            "dag",
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/runBroadHostQuery",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/runBroadHostQuery#2",
-          "parameters": [
-            "context",
-            "identity",
-            "logicalInput",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "issuanceSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "runBroadHostQuery/runBroadHostQuery#3",
-          "parameters": [
-            "identity"
           ],
           "async": false
         },
@@ -1408,6 +1167,7 @@
         },
         {
           "operations": [
+            "fieldsFrame",
             "fieldsFrame/fieldsFrame"
           ],
           "exports": [],
@@ -2664,45 +2424,7 @@
           }
         },
         {
-          "operations": [
-            "runBroadHostQuery",
-            "runBroadHostQuery/accounting/init:chargeTransfer/init:chargeTransfer",
-            "runBroadHostQuery/accounting/init:settled/init:settled",
-            "runBroadHostQuery/accounting/init:started/init:started",
-            "runBroadHostQuery/captured/captured",
-            "runBroadHostQuery/captured/captured#2",
-            "runBroadHostQuery/captured/captured/captured",
-            "runBroadHostQuery/captured/captured/captured#2",
-            "runBroadHostQuery/captured/captured/captured#3",
-            "runBroadHostQuery/captured/captured/init:abort/init:abort",
-            "runBroadHostQuery/captured/captured/init:close/init:close",
-            "runBroadHostQuery/captured/captured/init:completeBounded/init:completeBounded",
-            "runBroadHostQuery/captured/captured/port/init:abort/init:abort",
-            "runBroadHostQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
-            "runBroadHostQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
-            "runBroadHostQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
-            "runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
-            "runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
-            "runBroadHostQuery/captured/captured/port/port",
-            "runBroadHostQuery/captured/captured/port/port#2",
-            "runBroadHostQuery/captured/captured/port/port#3",
-            "runBroadHostQuery/captured/captured/port/port/port",
-            "runBroadHostQuery/captured/captured/run/run",
-            "runBroadHostQuery/complete/complete",
-            "runBroadHostQuery/evidenceOriginal/evidenceOriginal",
-            "runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
-            "runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
-            "runBroadHostQuery/result/init:close/init:close",
-            "runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
-            "runBroadHostQuery/result/result",
-            "runBroadHostQuery/result/result#2",
-            "runBroadHostQuery/result/result#3",
-            "runBroadHostQuery/result/result#4",
-            "runBroadHostQuery/runBroadHostQuery",
-            "runBroadHostQuery/runBroadHostQuery#2",
-            "runBroadHostQuery/runBroadHostQuery#3",
-            "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery"
-          ],
+          "operations": [],
           "exports": [
             "runBroadHostQuery"
           ],
@@ -4451,7 +4173,7 @@
         "../../../store-local/moonbit-row-frames.mjs",
         "../../../store-local/process-client.mjs",
         "../../../store-local/representations.mjs",
-        "./broad-query.mjs",
+        "./broad-host-query.mjs",
         "./fixed-compute.mjs",
         "./managed-column-codec.mjs",
         "./managed-output-finish.mjs",
@@ -4465,13 +4187,436 @@
         "./source-acquisition.mjs",
         "./source-evidence-original.mjs",
         "./transport-bounds.mjs",
-        "node:crypto",
-        "node:timers/promises"
+        "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
+    },
+    {
+      "module": "adapters/connectors/duckdb/node/broad-host-query.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "a9535ceb01d7210bfb96f06568634ce8c74bf0fdc1028a30f11c5f3038fdd80c",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "createBroadHostQuery"
+      ],
+      "operations": [
+        {
+          "name": "createBroadHostQuery",
+          "parameters": [
+            "loadRuntime",
+            "ownedSourceCaptures",
+            "rows",
+            "fieldsFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery",
+          "parameters": [
+            "grant",
+            "setup",
+            "limits",
+            "signal",
+            "residualRuntime",
+            "ledger"
+          ],
+          "async": true
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/accounting/init:chargeTransfer/init:chargeTransfer",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/accounting/init:settled/init:settled",
+          "parameters": [
+            "confirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/accounting/init:started/init:started",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured",
+          "parameters": [
+            "verify"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/captured",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/captured#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/captured#3",
+          "parameters": [
+            "observation",
+            "receiver",
+            "inputIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/init:abort/init:abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/init:completeBounded/init:completeBounded",
+          "parameters": [
+            "activeSignal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:abort/init:abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
+          "parameters": [
+            "chunk",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
+          "parameters": [
+            "chunk",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
+          "parameters": [
+            "fields",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
+          "parameters": [
+            "_fields",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
+          "parameters": [
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port/port",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/captured/captured#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/complete/complete",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/result#2",
+          "parameters": [
+            "receiver",
+            "inputIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/result#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/result/result#4",
+          "parameters": [
+            "dag",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery#3",
+          "parameters": [
+            "identity"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createBroadHostQuery",
+            "createBroadHostQuery/runBroadHostQuery",
+            "createBroadHostQuery/runBroadHostQuery/accounting/init:chargeTransfer/init:chargeTransfer",
+            "createBroadHostQuery/runBroadHostQuery/accounting/init:settled/init:settled",
+            "createBroadHostQuery/runBroadHostQuery/accounting/init:started/init:started",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/captured",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/captured#2",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/captured#3",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/init:abort/init:abort",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/init:close/init:close",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/init:completeBounded/init:completeBounded",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:abort/init:abort",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port/port",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port#2",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/port/port#3",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured/run/run",
+            "createBroadHostQuery/runBroadHostQuery/captured/captured#2",
+            "createBroadHostQuery/runBroadHostQuery/complete/complete",
+            "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal",
+            "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+            "createBroadHostQuery/runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
+            "createBroadHostQuery/runBroadHostQuery/result/init:close/init:close",
+            "createBroadHostQuery/runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
+            "createBroadHostQuery/runBroadHostQuery/result/result",
+            "createBroadHostQuery/runBroadHostQuery/result/result#2",
+            "createBroadHostQuery/runBroadHostQuery/result/result#3",
+            "createBroadHostQuery/runBroadHostQuery/result/result#4",
+            "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
+            "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
+            "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery#2",
+            "createBroadHostQuery/runBroadHostQuery/runBroadHostQuery#3"
+          ],
+          "exports": [
+            "createBroadHostQuery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/duckdb-relation-execution.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "async function runBroadHostQuery("
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "const captured = await runBroadQuery(grant, verify => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "throw new DuckDBTransportError('ForeignReadView');"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "moon.broadHostSourceCaptureIdentityMatches(retainedSourceCapture(), identity)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "ownedSourceCaptures.set(result,"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "return evidenceOriginal.take();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "() => sessionReleased && residualReleased"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "residualReleased = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "throw new DuckDBTransportError('ResidualCleanupPending');"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "throw new DuckDBTransportError('ResidualStopUnconfirmed',"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "activeSignal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "while (!localMoon.clientBroadResidualStopped(residual))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "capacity.transferBytes, capacity.executionBytes"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/broad-host-query.mts",
+                "anchor": "closed = true;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+                "anchor": "test('DuckDB Broad actual resource-start attempt accounting"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('Native and Broad original close retain pending evidence custody before physical retirement"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "./broad-query.mjs",
+        "./physical-capacity.mjs",
+        "./runtime-result.mjs",
+        "./session.mjs",
+        "./source-evidence-original.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/resident-environment.mjs",

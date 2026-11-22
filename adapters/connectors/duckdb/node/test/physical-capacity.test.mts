@@ -8,7 +8,7 @@ import { provisionComputeDatabase, validateLimits } from '../session.mjs';
 import {runtimeField} from '../../../../host-common/compiler-binding.generated.mjs';
 
 type TransportLimits = Parameters<typeof computePhysicalCapacity>[0];
-type HostDeclaration = Node & {id?: {name: string}};
+type HostDeclaration = Node & {id?: {name: string}; body?: {body: HostStatement[]}};
 type HostStatement = HostDeclaration & {declaration?: HostDeclaration};
 
 const limits = { memoryBytes: 1000, maxTransportBytes: 10, maxCells: 2,
@@ -60,10 +60,13 @@ test('Source receiver window preserves tighter explicit batch bounds and refuses
 // the real Session handoff, without issuing a capture or claiming native work.
 for (const broad of [false, true]) {
   test(`${broad ? 'Broad' : 'Native'} Source uses the same selected window for quote and Session`, async () => {
-    const source = readFileSync(new URL('../host.mjs', import.meta.url), 'utf8');
+    const file = broad ? '../broad-host-query.mjs' : '../host.mjs';
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
     const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
     const name = broad ? 'runBroadHostQuery' : 'runHostNativeQuery';
-    const node = (ast.body as HostStatement[]).map(value => value.declaration ?? value).find(value => value.id?.name === name);
+    const topLevel = (ast.body as HostStatement[]).map(value => value.declaration ?? value);
+    const statements = broad ? topLevel.find(value => value.id?.name === 'createBroadHostQuery')?.body?.body : topLevel;
+    const node = statements?.find(value => value.id?.name === name);
     assert.ok(node);
     const setup = {}, ledger = {}, grant = {}, primary = new Error('StoppedAtOriginalSession');
     const supplied = {...limits, maxTransportBytes: 10000000, maxRows: 10000,

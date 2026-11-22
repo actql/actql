@@ -1,5 +1,20 @@
 import {DuckDBTransportError} from './configuration.mjs';
 
+export type SourceEvidenceOptions = Readonly<{
+  context: unknown;
+  identity: unknown;
+  logicalInput: unknown;
+  authorityScopeCid: string;
+  effectiveDataPolicyCid: string;
+  signal?: AbortSignal;
+}>;
+
+export type OwnedSourceCapture = Readonly<{
+  prepare(options: SourceEvidenceOptions): Promise<void>;
+  issue(options: SourceEvidenceOptions): Promise<string>;
+  matches(identity: unknown): boolean;
+}>;
+
 // The existing physical capture retains this original typed evidence through
 // preparation and one synchronous transfer. This is payload custody only;
 // current authorization and issuance remain with that capture's original issuer.

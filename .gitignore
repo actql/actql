@@ -1822,3 +1822,5 @@ target/
 /adapters/connectors/duckdb/node/source-evidence-original.d.mts
 /adapters/connectors/duckdb/node/resident-environment.mjs
 /adapters/connectors/duckdb/node/resident-environment.d.mts
+/adapters/connectors/duckdb/node/broad-host-query.mjs
+/adapters/connectors/duckdb/node/broad-host-query.d.mts
