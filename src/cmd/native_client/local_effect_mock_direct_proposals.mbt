@@ -296,7 +296,6 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
         }
         proposal._retained_invocation = Some(local_invocation)
         proposal._retained_artifact = Some(artifact)
-        proposal._retained_snapshot_wire = Some(rows)
         proposal._retained_dependency = Some(dependency)
       }
     }

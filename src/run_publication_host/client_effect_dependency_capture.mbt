@@ -49,6 +49,31 @@ pub fn client_effect_dependency_capture_body_at(
 }
 
 ///|
+/// Borrow the first body of this exact checked Result capture. Admission
+/// binds that Relation CID to the original Artifact and export receipt.
+pub fn client_effect_dependency_capture_relation_rows(
+  value : ClientEffectDependencyCapture,
+  artifact : ClientEffectLocalResultArtifact,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @canonical.FrozenArray[@canonical.CanonicalValue]? {
+  guard physical_equal(value.artifact, artifact) &&
+    value.bodies.get(0) is Some(relation) else {
+    return None
+  }
+  @publication.captured_effect_dependency_relation_rows(
+    relation,
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(artifact.export_receipt),
+    ),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Check the exact live Result borrow before the Native adapter reads it.
 /// Neither an equal Artifact CID nor a different Result in the same Unit
 /// substitutes for that borrow.

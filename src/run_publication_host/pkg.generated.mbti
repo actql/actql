@@ -651,6 +651,8 @@ pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physi
 
 pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact) -> Bool
 
+pub fn client_effect_dependency_capture_relation_rows(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact, Int, Int, Int) -> @canonical_json.FrozenArray[@canonical_json.CanonicalValue]?
+
 pub fn client_effect_direct_acquisition_count(PreparedClientEffectComputation, Int) -> Result[Int, ClientDirectAcquisitionOccurrenceIssue]
 
 pub fn client_effect_direct_sources_publication_invocation(ClientEffectDirectSourcesPublication) -> @run_publication.PublicationContract

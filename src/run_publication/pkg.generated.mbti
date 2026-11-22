@@ -229,6 +229,8 @@ pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInvento
 
 pub fn captured_effect_dependency_inventory_matches_roots(CapturedEffectDependencyInventory, Array[CapturedEffectDependencyBody], work? : ((Int) -> Bool)?) -> Bool
 
+pub fn captured_effect_dependency_relation_rows(CapturedEffectDependencyBody, String, Int, Int, Int) -> @canonical_json.FrozenArray[@canonical_json.CanonicalValue]?
+
 pub fn captured_effect_dependency_sources_match(Array[CapturedLocalEffectSourceEvidence], CapturedEffectDependencyInventory, Int, Int, Int) -> Bool
 
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String

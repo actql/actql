@@ -26,6 +26,29 @@ pub fn captured_effect_dependency_body_bytes(
 }
 
 ///|
+/// Borrow the bare rows of the same canonical Relation dependency. The
+/// discarded wrapper contributes two nodes and one container level. Its
+/// already-admitted UTF-8 extent bounds the bare rows' UTF-16 text budget.
+pub fn captured_effect_dependency_relation_rows(
+  body : CapturedEffectDependencyBody,
+  logical_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @json.FrozenArray[@json.CanonicalValue]? {
+  guard body.node.kind == "relation_value" &&
+    body.node.identity == logical_cid &&
+    body.wire_usage is Some((bytes, nodes, depth)) &&
+    bytes <= max_bytes &&
+    nodes - 2 <= max_nodes &&
+    depth - 1 <= max_depth &&
+    @json.object_field(body.value, "value") is Some(@json.Array(rows)) else {
+    return None
+  }
+  Some(rows)
+}
+
+///|
 /// Same admitted object width. Text length cannot supply this field count.
 pub fn captured_effect_dependency_body_field_count(
   body : CapturedEffectDependencyBody,

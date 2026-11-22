@@ -601,19 +601,20 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewPlan(issue))
       .native_effect_proposal_with_cause(report)
     held.verifiers.push(verifier)
-    let rows = @canonical.from_json(
-      native_mock_preview_json(entry._retained_snapshot_wire.unwrap()),
-      codec.nodes,
-      codec.depth,
-      max_bytes,
-      data_keys=true,
-    ) catch {
-      _ => stop("LocalOriginalEffectPreviewSnapshotUnavailable")
-    }
-    guard rows is @canonical.Array(values) else {
+    guard entry._retained_artifact is Some(artifact) &&
+      entry._retained_dependency is Some(capture) &&
+      @run_host.client_effect_dependency_capture_relation_rows(
+        capture,
+        artifact,
+        max_bytes,
+        codec.nodes,
+        codec.depth,
+      )
+      is Some(rows) else {
       stop("LocalOriginalEffectPreviewSnapshotUnavailable")
     }
-    for row_index, row in @canonical.array_values(values) {
+    for row_index in 0..<@canonical.array_count(rows) {
+      let row = @canonical.array_at(rows, row_index).unwrap()
       @strategy.check_captured_effect_plan_row(
         verifier, row, row_index, max_fields, max_work, max_bytes, max_nodes, max_depth,
       )

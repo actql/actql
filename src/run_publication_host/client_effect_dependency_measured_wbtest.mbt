@@ -310,4 +310,27 @@ test "funded Relation dependency includes the wrapper before construction" {
   assert_eq(@publication.captured_effect_dependency_body_bytes(body), 42)
   assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
   assert_eq(@publication.captured_effect_dependency_body_cid(body), cid)
+  // The admitted wrapper is two nodes and one level beyond the bare rows.
+  let borrowed = @publication.captured_effect_dependency_relation_rows(
+    body, cid, 42, 3, 2,
+  ).unwrap()
+  assert_eq(@canonical.array_count(borrowed), 1)
+  assert_true(
+    @canonical.object_field(@canonical.array_at(borrowed, 0).unwrap(), "id")
+    is Some(@canonical.String("雪")),
+  )
+  assert_true(
+    @publication.captured_effect_dependency_relation_rows(body, cid, 42, 2, 2)
+    is None,
+  )
+  assert_true(
+    @publication.captured_effect_dependency_relation_rows(body, cid, 42, 3, 1)
+    is None,
+  )
+  assert_true(
+    @publication.captured_effect_dependency_relation_rows(
+      body, "foreign", 42, 3, 2,
+    )
+    is None,
+  )
 }

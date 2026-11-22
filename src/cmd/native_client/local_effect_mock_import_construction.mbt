@@ -7,8 +7,8 @@ priv struct LocalNativeMockEffectImportConstruction {
   mut recipe : Array[@execution.ExecutionCapacity]
   mut retained : Int64
   mut workspace : Int64
-  // Borrowed only by one acquired Source snapshot. Failure leaves the active
-  // extent on the original operation until command cleanup.
+  // One live export snapshot awaiting typed Relation admission. Failure
+  // leaves the active extent on the original operation until cleanup.
   mut source_snapshot : Int64?
   // Live only inside one synchronous Source export, including on failure
   // until that same operation's cleanup. Other exports are retained below.

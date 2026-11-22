@@ -103,7 +103,6 @@ priv struct LocalNativeMockEffectProposalMember {
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut snapshot : @execution.CompletedRelationSnapshotPreparation?
-  mut _retained_snapshot_wire : String?
   mut _retained_dependency : @run_host.ClientEffectDependencyCapture?
   mut _retained_definition : @run_host.ClientEffectLocalResultDefinition?
   mut _retained_artifact : @run_host.ClientEffectLocalResultArtifact?
@@ -150,7 +149,6 @@ fn native_mock_effect_proposal_member(
     stream: None,
     receipt: None,
     snapshot: None,
-    _retained_snapshot_wire: None,
     _retained_dependency: None,
     _retained_definition: None,
     _retained_artifact: None,
@@ -833,55 +831,58 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
         .native_effect_proposal(self.original)
       current._retained_artifact = Some(artifact)
-      // Preserve the SAME finished export/receipt. This first durable row
-      // snapshot neither re-exports a Result nor reruns its identity scan.
+      // The returned row text is live through Relation admission only.
+      // Preview borrows its admitted canonical rows, not a second text/tree.
+      let snapshot_owner = held.construction.unwrap()
       if measure_proposal_rows {
         let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
             stream, receipt,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
           .native_effect_proposal(self.original)
-        if !construction
-          .unwrap()
-          .prepare_snapshot(
+        if snapshot_owner.source_snapshot is Some(_) ||
+          snapshot_owner.source_copy is Some(_) {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        snapshot_owner.source_snapshot = Some(0L)
+        if !snapshot_owner.prepare_snapshot(
             self.original,
             Int::max(1, bytes),
             Int::max(1, nodes),
             Int::max(1, depth),
-            previous_workspace_returned=true,
           ) {
           stop("LocalOriginalEffectProposalsUnavailable")
         }
       }
-      let snapshot = @execution.start_completed_relation_export_snapshot(
-          stream,
-          receipt,
-          wire.max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
-          limits.output_workspace,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      current.snapshot = Some(snapshot)
-      while !snapshot
-            .advance(256)
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original).0 {
-        ()
-      }
-      let (rows_wire, _) = snapshot
-        .finish()
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      // Only the returned immutable wire survives this synchronous writer.
-      // Drop the closed writer/workspace before yielding capture scratch.
-      snapshot.cancel()
-      current.snapshot = None
-      current._retained_snapshot_wire = Some(rows_wire)
-      current._retained_dependency = Some(
+      let dependency = {
+        let snapshot = @execution.start_completed_relation_export_snapshot(
+            stream,
+            receipt,
+            wire.max_bytes,
+            wire.max_nodes,
+            wire.max_depth,
+            limits.output_workspace,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        current.snapshot = Some(snapshot)
+        while !snapshot
+              .advance(256)
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Completed(issue)
+              })
+              .native_effect_proposal(self.original).0 {
+          ()
+        }
+        let (rows_wire, _) = snapshot
+          .finish()
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        snapshot.cancel()
+        current.snapshot = None
         @run_host.admit_client_effect_dependency_capture(
           held.materials.unwrap(),
           inputs,
@@ -894,14 +895,18 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           wire.max_nodes,
           wire.max_depth,
           before_body=Some((bytes, nodes, depth) => {
-            held.construction
-            .unwrap()
-            .prepare_canonical(self.original, bytes, nodes, depth)
+            snapshot_owner.prepare_canonical(self.original, bytes, nodes, depth)
           }),
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
-        .native_effect_proposal(self.original),
-      )
+        .native_effect_proposal(self.original)
+      }
+      current._retained_dependency = Some(dependency)
+      if measure_proposal_rows {
+        // The bare text and its writer are no longer borrowed. On failure
+        // the original command retains the temporary extent until cleanup.
+        snapshot_owner.source_snapshot = None
+      }
       @strategy.finish_captured_effect_proposal_plan(
         plan,
         current.rows.length(),
@@ -1033,7 +1038,6 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   for entry in self.members {
     entry._retained_artifact = None
     entry._retained_dependency = None
-    entry._retained_snapshot_wire = None
   }
   for result in self.unit_results {
     result.close()
