@@ -1,6 +1,6 @@
 import {hubspotApprovalProvider} from './provider.mjs';
 
-export function hubspotApprovalInstallation(selection) {
+export function hubspotApprovalInstallation(selection: Parameters<typeof hubspotApprovalProvider>[0]) {
   const provider = hubspotApprovalProvider(selection);
   return {connectorId: 'hubspot', resource: 'companies', alias: 'hubspot.companies', selection, provider,
     metadata: {version: 'actql-hubspot-read-metadata/0.1', portalId: '7',

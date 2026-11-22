@@ -2,16 +2,17 @@
 // are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
 import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
+import type {RecordApprovalSeed} from '../record-approval/cases.mjs';
 import {form} from '../../../adapters/connectors/kintone/test/kintone-update-form.fixture.mjs';
 
-export function kintoneApprovalProvider(selection) {
+export function kintoneApprovalProvider(selection: RecordApprovalSeed) {
   const {recordId, controlId} = selection;
   for (const value of [recordId, controlId]) assert.match(value, /^[1-9][0-9]*$/u);
   const revision = '9007199254740994', nextRevision = '9007199254740995';
   const state = createRecordUpdateProviderState(selection, {revision});
   const {route} = state;
   const fields = ['$id', '$revision', 'Computed', 'Subject', 'Tags'];
-  const record = value => ({$id: {type: '__ID__', value: value.id},
+  const record = (value: typeof state.target) => ({$id: {type: '__ID__', value: value.id},
     $revision: {type: '__REVISION__', value: value.revision},
     Subject: {type: 'SINGLE_LINE_TEXT', value: value.name},
     Tags: {type: 'MULTI_SELECT', value: ['red']},

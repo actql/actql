@@ -1,15 +1,21 @@
 import assert from 'node:assert/strict';
 import {maxRecordUpdateFixtureTextUnits, recordUpdateFixtureSeed} from './cases.mjs';
+import type {RecordApprovalSeed} from './cases.mjs';
+import type {Exchange} from '../../../adapters/site-node/https-exchange-fixture.mjs';
+type FailureView = {name?: unknown; code?: unknown; message?: unknown} | undefined;
 
 // Three finite fixture phases share one request history. The limit also bounds
 // failed route observations and leaves room for a single overflow witness.
 const maxRouteAttempts = 64;
 
-export function createRecordUpdateProviderState(selection, initialFields) {
+export function createRecordUpdateProviderState<Fields extends Record<string, unknown>>(
+  selection: RecordApprovalSeed, initialFields: Fields,
+) {
   const seed = recordUpdateFixtureSeed(selection);
   const originalTarget = Object.freeze({...initialFields, ...seed.target});
   const control = Object.freeze({...initialFields, ...seed.control});
-  let target, writes, requests, failures, attempts;
+  let target: typeof originalTarget, writes: number, requests: {method: string; pathname: string}[],
+    failures: {name: unknown; code: unknown; message: unknown}[], attempts: number;
   function reset() {
     target = originalTarget;
     writes = 0;
@@ -19,7 +25,7 @@ export function createRecordUpdateProviderState(selection, initialFields) {
   }
   reset();
 
-  function updateTarget(name, fields) {
+  function updateTarget(name: string, fields: Partial<Fields>) {
     assert(typeof name === 'string' && name.length <= maxRecordUpdateFixtureTextUnits, 'InvalidRecordApprovalFixtureValue');
     assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
     target = Object.freeze({...target, ...fields, id: target.id, name});
@@ -27,13 +33,13 @@ export function createRecordUpdateProviderState(selection, initialFields) {
     return target;
   }
 
-  function route(method, pathname, action) {
-    return {method, pathname, handle(exchange) {
+  function route(method: string, pathname: string, action: (exchange: Exchange) => unknown) {
+    return {method, pathname, handle(exchange: Exchange) {
       if (attempts >= maxRouteAttempts) {
         const error = new Error('RecordApprovalFixtureRequestLimit');
         if (attempts === maxRouteAttempts) {
           attempts++;
-          failures.push({name: error.name, code: error.code, message: error.message});
+          failures.push({name: error.name, code: (error as NodeJS.ErrnoException).code, message: error.message});
         }
         throw error;
       }
@@ -45,8 +51,9 @@ export function createRecordUpdateProviderState(selection, initialFields) {
         requests.push({method, pathname});
         return {body: action(exchange)};
       } catch (error) {
-        const message = typeof error?.message === 'string' ? error.message.slice(0, 512) : undefined;
-        failures.push({name: error?.name, code: error?.code, message});
+        const message = typeof (error as FailureView)?.message === 'string'
+          ? ((error as FailureView)!.message as string).slice(0, 512) : undefined;
+        failures.push({name: (error as FailureView)?.name, code: (error as FailureView)?.code, message});
         throw error;
       }
     }};

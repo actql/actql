@@ -14,6 +14,7 @@ import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
 import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
+import type {RecordApprovalSeed} from './cases.mjs';
 import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
 export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
@@ -35,7 +36,7 @@ type OriginalFixture = {
   connectorId: string;
   resource: string;
   alias: string;
-  selection: Parameters<typeof recordUpdateFixtureState>[0];
+  selection: RecordApprovalSeed;
   provider: Provider;
   metadata: Record<string, unknown>;
   source: Record<string, unknown>;
@@ -52,9 +53,10 @@ type AuthoredFixtureInput = {
   casePath: string;
   selection?: never;
   provider?: never;
-  createInstallation: (seed: Parameters<typeof import('./cases.mjs')['recordUpdateFixtureSeed']>[0]) => OriginalFixture;
+  createInstallation: (seed: RecordApprovalSeed) => OriginalFixture;
 };
-type FixtureInput = FixtureOptions & (OriginalFixture | AuthoredFixtureInput);
+type FixtureInput = FixtureOptions & (
+  (OriginalFixture & {selection: Parameters<typeof recordUpdateFixtureState>[0]}) | AuthoredFixtureInput);
 type SourceView = {
   source_ref: string;
   source_view_contract_cid: string;
@@ -119,7 +121,7 @@ export async function runInstalledRecordApprovalFixture(t: Pick<TestContext, 'di
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
   const rejecting = decision === 'rejected';
-  const expected = authoredFixture?.expected ?? recordUpdateFixtureState(selection);
+  const expected = authoredFixture?.expected ?? recordUpdateFixtureState(selection as Parameters<typeof recordUpdateFixtureState>[0]);
   if (authoredFixture !== undefined) {
     const original = provider.snapshot();
     assertRecordApprovalTarget(original, expected.before);

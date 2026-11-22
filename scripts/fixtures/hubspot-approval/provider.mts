@@ -3,17 +3,18 @@
 // These routes neither grant a write nor classify a lost response as absent.
 import assert from 'node:assert/strict';
 import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
+import type {RecordApprovalSeed} from '../record-approval/cases.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
-const sameKeys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
+const sameKeys = (value: object, names: readonly string[]) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
 
-export function hubspotApprovalProvider(selection) {
+export function hubspotApprovalProvider(selection: RecordApprovalSeed) {
   const {recordId} = selection;
   const state = createRecordUpdateProviderState(selection, {marker: '', updatedAt: '2026-11-07T00:00:00.000Z'});
   const {route} = state;
   const properties = {results: ['actql_request_id', 'name'].map(name => ({name,
     type: 'string', fieldType: 'text', calculated: false, modificationMetadata: {readOnlyValue: false}}))};
-  const record = value => ({id: value.id, archived: false, updatedAt: value.updatedAt,
+  const record = (value: typeof state.target) => ({id: value.id, archived: false, updatedAt: value.updatedAt,
     properties: {name: value.name, actql_request_id: value.marker}});
   const writeRoute = route('POST', '/crm/v3/objects/companies/batch/update', exchange => {
     const body = JSON.parse(exchange.body);

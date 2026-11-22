@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import type {CheckpointSummary, Client, Execution, RunReference, RunState} from '@actql/sdk';
 import {recordUpdateFixtureSeed} from './cases.mjs';
+import type {RecordApprovalSeed} from './cases.mjs';
 
 type Data = Record<string, unknown>;
 type Program = {
@@ -23,7 +24,7 @@ export type AuthoredRecordApprovalCase = {
   read: Program & {beforeRows: readonly Data[]; afterRows: readonly Data[]};
   review: ReviewOracle;
   fixture?: {
-    seed: Parameters<typeof recordUpdateFixtureSeed>[0];
+    seed: RecordApprovalSeed;
     expected: {before: ReturnType<typeof recordUpdateFixtureSeed>; after: ReturnType<typeof recordUpdateFixtureSeed>};
     faults?: readonly {kind: 'apply-then-lose-reply'; expected: ReplyLossExpectation}[];
     schema?: {sourceRef: string; sourceViewContractCid: string; carrierSchemaContractCid: string};

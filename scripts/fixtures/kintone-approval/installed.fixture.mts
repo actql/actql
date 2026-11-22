@@ -1,6 +1,6 @@
 import {kintoneApprovalProvider} from './provider.mjs';
 
-export function kintoneApprovalInstallation(selection) {
+export function kintoneApprovalInstallation(selection: Parameters<typeof kintoneApprovalProvider>[0]) {
   const provider = kintoneApprovalProvider(selection);
   return {connectorId: 'kintone', resource: 'inquiries', alias: 'kintone.inquiries', selection, provider,
     metadata: {version: 'actql-kintone-record-metadata/0.1', appId: '12',

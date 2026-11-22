@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import type {TestContext} from 'node:test';
 
-type Exchange = Readonly<{
+export type Exchange = Readonly<{
   method: string | undefined;
   path: string | undefined;
   pathname: string;

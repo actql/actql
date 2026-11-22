@@ -3,6 +3,7 @@
 type Selection = Readonly<{recordId: string; previousName: string; nextName: string}>;
 type Programs = Readonly<{read: string; update: string}>;
 type SeedInput = Readonly<{recordId?: unknown; previousName?: unknown; controlId?: unknown; controlName?: unknown}>;
+export type RecordApprovalSeed = Readonly<{recordId: string; previousName: string; controlId: string; controlName?: string}>;
 
 const select = (value: Selection) => {
   for (const key of ['recordId', 'previousName', 'nextName'] as const) {
