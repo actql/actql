@@ -337,6 +337,8 @@ pub fn prepared_model_call_set(ModelExecution) -> ModelPreparedCallSet?
 
 pub fn prepared_model_http_chat_material(PreparedModelHttpChatRequest, ModelRequest, AdmittedStructuredModelProvider) -> (String, @check_environment.ModelResponseProfile, Bytes)?
 
+pub fn prepared_model_http_chat_plan(PreparedModelHttpChatRequest, @check_environment.ModelResponseProfileInstallation, @physical_resources.QuantityAmounts, (ModelCallEntry) -> ModelPhysicalCall?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
 pub fn prepared_model_identities(ModelPreparedCallSet) -> (String, String, String)?
 
 pub fn prepared_model_input(ModelPreparedCallSet) -> @execution_relation.CompletedOutput?

@@ -121,7 +121,10 @@ pub fn model_physical_call(
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.physical_plans.get(entry.slot) is Some(plan) &&
-    plan.invocation is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
+    plan.invocation
+    is (Asynchronous(_)
+    | AsynchronousHttpChat(_, _)
+    | AsynchronousSavedStructured(_, _, _)) &&
     state.reservations.get(entry.slot) is Some(reservation) &&
     @resources.reservation_open(reservation) else {
     return None
@@ -193,7 +196,9 @@ fn poll_model_physical_call(
         state.physical_plans.get(entry.slot) is Some(plan) &&
         physical_equal(plan, binding.plan) &&
         plan.invocation
-        is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
+        is (Asynchronous(_)
+        | AsynchronousHttpChat(_, _)
+        | AsynchronousSavedStructured(_, _, _)) &&
         state.reservations.get(entry.slot) is Some(reservation) &&
         physical_equal(reservation, binding.reservation) &&
         @resources.reservation_open(reservation) &&

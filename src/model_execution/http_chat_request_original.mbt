@@ -90,6 +90,39 @@ pub fn prepared_model_http_chat_material(
 }
 
 ///|
+/// Bind the exact retained body to the initialized portable physical plan.
+/// The installed port registers the Call under the consumed Entry, then the
+/// owning Native Read rechecks that same Entry before any HTTP operation.
+pub fn prepared_model_http_chat_plan(
+  original : PreparedModelHttpChatRequest,
+  installation : @environment.ModelResponseProfileInstallation,
+  quantities : @resources.QuantityAmounts,
+  start : (ModelCallEntry) -> ModelPhysicalCall?,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  let capability = original.provider.capability
+  let execution = original.provider.original.execution
+  if check_structured_model_selection(
+      capability,
+      capability.resolved,
+      execution,
+      installation,
+    )
+    is Err(_) {
+    return Err(InvalidProvider)
+  }
+  prepare_structured_model_physical_plan(
+    original.request,
+    original.body.length().to_int64(),
+    quantities,
+    capability.profile,
+    installation,
+    AsynchronousHttpChat(original, start),
+    None,
+    [],
+  )
+}
+
+///|
 /// Verify the actual durable scope before late dispatch callbacks. Even two
 /// admitted selections with the same Task and Profile can name another model.
 pub fn check_prepared_model_http_chat_dispatch_current(
@@ -99,12 +132,10 @@ pub fn check_prepared_model_http_chat_dispatch_current(
 ) -> Result[Unit, ModelPhysicalDispatchReadIssue] {
   let capability = original.provider.capability
   let request = original.request
-  guard model_physical_call_dispatch_entry(
-      call,
-      request,
-      capability.profile,
-      raw,
-    )
+  guard call.original_binding is Some(binding) &&
+    binding.plan.invocation is AsynchronousHttpChat(prepared, _) &&
+    physical_equal(prepared, original) &&
+    model_physical_call_dispatch_entry(call, request, capability.profile, raw)
     is Some(entry) &&
     entry.prepared.scope is Some(scope) &&
     @publication.model_invocation_scope_provider_cid(scope) ==

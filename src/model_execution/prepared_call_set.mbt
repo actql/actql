@@ -186,14 +186,24 @@ pub fn bind_prepared_model_scope(
     slots.length() != value.owner.state.requests.length() {
     return Err(RequestIdentity)
   }
+  // Check the original provider selection before an Entry can be issued.
+  let provider_cid = @publication.model_invocation_scope_provider_cid(scope)
   for index in 0..<slots.length() {
-    // A matching connector name does not bind a selected SDK configuration.
-    // Refuse a different original approval before an Entry can be issued.
-    if value.owner.state.physical_plans.get(index) is Some(plan) &&
-      plan.invocation is AsynchronousSavedStructured(capability, _, _) &&
-      @publication.model_invocation_scope_provider_cid(scope) !=
-      @publication.run_evidence_value_identity(capability.binding) {
-      return Err(RequestIdentity)
+    if value.owner.state.physical_plans.get(index) is Some(plan) {
+      let provider_matches = match plan.invocation {
+        AsynchronousHttpChat(original, _) =>
+          provider_cid ==
+          @publication.run_evidence_value_identity(
+            original.provider.capability.binding,
+          )
+        AsynchronousSavedStructured(capability, _, _) =>
+          provider_cid ==
+          @publication.run_evidence_value_identity(capability.binding)
+        _ => true
+      }
+      if !provider_matches {
+        return Err(RequestIdentity)
+      }
     }
     guard prepared_model_call_at(value, index) is Some(call) &&
       @publication.run_evidence_value_identity(call) == slots[index] else {

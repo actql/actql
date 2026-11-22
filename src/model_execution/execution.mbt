@@ -780,7 +780,9 @@ fn advance_model(
   // the installed foreign invocation loses its response or throws.
   if state.physical_plans.get(state.progress.slot) is Some(plan) &&
     plan.invocation
-    is (Asynchronous(start) | AsynchronousSavedStructured(_, start, _)) {
+    is (Asynchronous(start)
+    | AsynchronousHttpChat(_, start)
+    | AsynchronousSavedStructured(_, start, _)) {
     guard send_gate is Some(gate) else {
       retire_model_entering(state)
       return @bounded.Failed(CallEntryRefused, 1, 1)

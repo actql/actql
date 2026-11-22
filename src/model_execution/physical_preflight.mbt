@@ -41,6 +41,10 @@ pub struct ModelPhysicalRequestPlan {
 enum ModelPhysicalInvocation {
   Synchronous(() -> Result[ModelResponse, ModelProviderFailure])
   Asynchronous((ModelCallEntry) -> ModelPhysicalCall?)
+  AsynchronousHttpChat(
+    PreparedModelHttpChatRequest,
+    (ModelCallEntry) -> ModelPhysicalCall?
+  )
   AsynchronousSavedStructured(
     StructuredModelCapability,
     (ModelCallEntry) -> ModelPhysicalCall?,
@@ -392,6 +396,12 @@ fn advance_model_physical_preflight(
         (SynchronousFixture(_), Synchronous(_)) => ()
         (AsynchronousPhysical, Asynchronous(_)) =>
           if !state.durable_calls || plan.response_profile is None {
+            return @bounded.Failed(InvalidProvider, 1, 1)
+          }
+        (AsynchronousPhysical, AsynchronousHttpChat(original, _)) =>
+          if !physical_equal(provider, original.provider.capability.provider) ||
+            !state.durable_calls ||
+            plan.response_profile is None {
             return @bounded.Failed(InvalidProvider, 1, 1)
           }
         (AsynchronousPhysical, AsynchronousSavedStructured(capability, _, _)) =>

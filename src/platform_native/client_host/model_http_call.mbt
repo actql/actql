@@ -92,6 +92,51 @@ pub fn NativeLocalJournalCapture::restore_model_http_installation_in_original_re
 }
 
 ///|
+// One already funded preflight's handoff for the original request. The
+// retained callback relinquishes this alias when Core adopts the Call; the
+// Runtime separately owns cleanup for every actual physical constructor.
+struct NativeClientModelHttpPlan {
+  request : @model.ModelRequest
+  original : @model.PreparedModelHttpChatRequest
+  mut attempted : Bool
+  mut call : NativeClientModelHttpCall?
+}
+
+///|
+/// Supply the exact preflight body to the Core Plan. The original execution
+/// funds the plan and this fixed handoff control before issuing either.
+/// Preparation creates no physical Client and retains no credential.
+pub fn prepare_native_model_http_plan(
+  request : @model.ModelRequest,
+  prepared : @model.PreparedModelHttpChatRequest,
+  provider : @model.AdmittedStructuredModelProvider,
+  installation : @environment.ModelResponseProfileInstallation,
+  quantities : @resources.QuantityAmounts,
+) -> Result[
+  (@model.ModelPhysicalRequestPlan, NativeClientModelHttpPlan),
+  @model.ModelExecutionIssue,
+] {
+  guard @model.prepared_model_http_chat_material(prepared, request, provider)
+    is Some(_) else {
+    return Err(@model.RequestIdentity)
+  }
+  let handoff : NativeClientModelHttpPlan = {
+    request,
+    original: prepared,
+    attempted: false,
+    call: None,
+  }
+  @model.prepared_model_http_chat_plan(prepared, installation, quantities, entry => {
+    guard handoff.call is Some(call) else { return None }
+    let started = call.start_for_entry(entry)
+    if started is Some(_) {
+      handoff.call = None
+    }
+    started
+  }).map(plan => (plan, handoff))
+}
+
+///|
 /// Prepare a dedicated Client on the original Runtime before any Entry.
 /// The installed caller supplies the server trust path and the retained
 /// codec output. Link the Call before acquiring the physical Client so a
@@ -102,9 +147,8 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   ca_path : String,
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
-  request : @model.ModelRequest,
+  handoff : NativeClientModelHttpPlan,
   installation : NativeModelHttpInstallation,
-  prepared : @model.PreparedModelHttpChatRequest,
   raw_registration : @host.ClientModelRawCaptureRegistration,
   expires_at : Int64,
 ) -> Result[NativeClientModelHttpCall, NativeClientModelHttpIssue] {
@@ -112,7 +156,8 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
     Ok(_) => ()
     Err(issue) => return Err(Original(issue))
   }
-  guard physical_equal(installation.capture, self) &&
+  guard !handoff.attempted &&
+    physical_equal(installation.capture, self) &&
     self.original_resources is Some(original) &&
     runtime.original_resources is Some(pair) &&
     physical_equal(pair, original.pair) &&
@@ -122,8 +167,8 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
     runtime.model_http_load is Some(Ok(loaded)) &&
     !loaded.stopping &&
     @model.prepared_model_http_chat_material(
-      prepared,
-      request,
+      handoff.original,
+      handoff.request,
       installation.provider,
     )
     is Some((endpoint, profile, wire)) else {
@@ -163,8 +208,8 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   .bind(_ => {
     let call : NativeClientModelHttpCall = {
       capture: self,
-      request,
-      prepared,
+      request: handoff.request,
+      prepared: handoff.original,
       raw_registration,
       endpoint,
       credential: installation.credential,
@@ -185,12 +230,14 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
       outcome: None,
     }
     loaded.calls = Some(call)
+    handoff.attempted = true
     match
       loaded.library.create_projected_bearer_client_with_custody(
         ca_path, maximum_body, connect_timeout_ms, operation_timeout_ms,
       ) {
       Ok(client) => {
         call.client = Some(client)
+        handoff.call = Some(call)
         Ok(call)
       }
       Err(@http.RefusedBeforeAcquisition(issue)) => Err(Http(issue))
@@ -229,7 +276,7 @@ fn NativeLocalJournalCapture::fund_model_http_material_in_original_read(
 ///|
 /// Use as the fixed transport start of this request's original physical Plan.
 /// The Core gate has consumed the Entry before this binding can succeed.
-pub fn NativeClientModelHttpCall::start_for_entry(
+fn NativeClientModelHttpCall::start_for_entry(
   self : NativeClientModelHttpCall,
   entry : @model.ModelCallEntry,
 ) -> @model.ModelPhysicalCall? {

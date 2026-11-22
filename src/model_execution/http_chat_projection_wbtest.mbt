@@ -238,5 +238,39 @@ test "portable HTTP borrows only the paid codec result of the exact request and 
     prepare_model_http_chat_request(admitted, request, other_endpoint, 100)
     is Err(ForeignRequest),
   )
+  let invocations = Ref(0)
+  let start = _ => {
+    invocations.val += 1
+    None
+  }
+  let quantities : @resources.QuantityAmounts = {
+    tokens: 32L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }
+  let plan = prepared_model_http_chat_plan(
+    original, installation, quantities, start,
+  ).unwrap()
+  assert_true(physical_equal(plan.request, request))
+  assert_eq(plan.wire_bytes, body.length().to_int64())
+  assert_true(
+    plan.invocation is AsynchronousHttpChat(retained, _) &&
+    physical_equal(retained, original) &&
+    !physical_equal(retained, foreign),
+  )
+  assert_true(
+    prepared_model_http_chat_plan(original, other_endpoint, quantities, start)
+    is Err(InvalidProvider),
+  )
+  assert_true(
+    prepared_model_http_chat_plan(
+      original,
+      installation,
+      { ..quantities, tokens: 15L, },
+      start,
+    )
+    is Err(InvalidLimits),
+  )
+  assert_eq(invocations.val, 0)
   assert_eq(calls(), 0)
 }
