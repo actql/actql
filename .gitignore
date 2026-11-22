@@ -2222,3 +2222,5 @@ target/
 /adapters/host-node/infer-effect-observation.d.mts
 /adapters/host-node/infer-effect-observation.test.mjs
 /adapters/host-node/infer-effect-observation.test.d.mts
+/adapters/host-node/infer-entry-persistence.mjs
+/adapters/host-node/infer-entry-persistence.d.mts

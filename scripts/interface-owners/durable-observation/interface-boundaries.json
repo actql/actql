@@ -2859,7 +2859,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -3005,7 +3005,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -3069,7 +3069,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -3167,7 +3167,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -3317,7 +3317,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -3415,7 +3415,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -3465,7 +3465,7 @@
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c6c1c083c7b043df7ef345af5d50460781f450f8f40687235c7268e0dae8869b",
+      "sha256": "8321e75513fb910b4b3e28aeeaf4072337dafe52add01d487356218a117ce99c",
       "exports": [
         "createNodeInferEntryPersistence"
       ],
@@ -3563,7 +3563,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               }
             ],
@@ -3605,7 +3605,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               }
             ],
@@ -3635,7 +3635,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               }
             ],
@@ -3677,7 +3677,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               }
             ],
@@ -4077,7 +4077,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -4175,7 +4175,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -4238,7 +4238,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -4344,7 +4344,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -4408,7 +4408,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -4506,7 +4506,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -4562,7 +4562,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -4660,7 +4660,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -4719,7 +4719,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -4817,7 +4817,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
@@ -5025,7 +5025,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "original.entry"
               },
               {
@@ -5123,7 +5123,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-entry-persistence.mjs",
+                "path": "adapters/host-node/infer-entry-persistence.mts",
                 "anchor": "InferEntryPersistenceUnavailable"
               },
               {
