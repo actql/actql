@@ -421,13 +421,13 @@ fn native_model_http_configuration_original_read_refusal(
     )
   }
   let provider_body = @utf8.encode(
-    "{\"configuration_contract_cid\":\"" +
+    "{\"adapter_kind\":\"portable-http\",\"api_mode\":\"chat-completions\",\"configuration_contract_cid\":\"" +
     contract_cid +
-    "\",\"credential_ref\":\"file:some-other.bearer\",\"installation_revision_cid\":\"" +
+    "\",\"credential_ref\":\"file:some-other.bearer\",\"endpoint\":\"https://models.example/v1/chat/completions\",\"installation_revision_cid\":\"" +
     revision_cid +
-    "\",\"response_profile_cid\":\"" +
+    "\",\"model_id\":\"deployed-model\",\"provider_id\":\"model-test\",\"response_profile_cid\":\"" +
     profile_cid +
-    "\"}",
+    "\",\"selector\":\"authored-alias\"}",
   )
   let root = @filesystem.open_private_root(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
@@ -479,10 +479,11 @@ fn native_model_http_configuration_original_read_refusal(
   }
   if !one_short {
     assert_true(
-      native_model_http_configuration_matches(
-        provider_body, revision_cid, contract_cid, profile_cid, "some-other.bearer",
+      native_model_http_configuration_route(
+        provider_body, "model-test", revision_cid, contract_cid, profile_cid, "some-other.bearer",
         limits,
-      ),
+      )
+      is Some(_),
     )
   }
   let refused = original

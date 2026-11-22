@@ -72,6 +72,7 @@ struct NativeModelHttpConfiguration {
   selected : NativeLocalPreparationInstallationSelection
   defaults : @host.ClientModelProviderDefaults
   provider_wire : String
+  route : @model.ResolvedStructuredModel
   response : @environment.ModelResponseProfile
 }
 
@@ -84,17 +85,17 @@ pub fn NativeModelHttpConfiguration::provider_defaults(
 }
 
 ///|
-// The original protected provider document selects these three identities.
-// Another valid adopted file cannot substitute its revision, contract or
-// response profile simply because it is present in the same configuration.
-fn native_model_http_configuration_matches(
+// The original protected provider document selects the route and its adopted
+// files. The Common capability will recheck the same canonical provider wire.
+fn native_model_http_configuration_route(
   body : Bytes,
+  provider_id : String,
   revision_cid : String,
   contract_cid : String,
   profile_cid : String,
   credential_file : String,
   limits : @environment.Limits,
-) -> Bool {
+) -> @model.ResolvedStructuredModel? {
   guard @source.parse_json_bytes_preserving(body, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
@@ -109,7 +110,7 @@ fn native_model_http_configuration_matches(
     })
     is Ok(value) &&
     @decode.open_object(value) is Ok(object) else {
-    return false
+    return None
   }
   for
     (field, expected) in [
@@ -117,13 +118,39 @@ fn native_model_http_configuration_matches(
       ("configuration_contract_cid", contract_cid),
       ("response_profile_cid", profile_cid),
       ("credential_ref", "file:" + credential_file),
+      ("provider_id", provider_id),
+      ("adapter_kind", "portable-http"),
+      ("api_mode", "chat-completions"),
     ] {
     guard @decode.lookup(object, field) is Some(original) &&
       @decode.text(original) == Ok(expected) else {
-      return false
+      return None
     }
   }
-  true
+  guard @decode.lookup(object, "selector").bind(value => {
+      @decode.text(value).to_option()
+    })
+    is Some(selector) &&
+    !selector.is_empty() &&
+    @decode.lookup(object, "model_id").bind(value => {
+      @decode.text(value).to_option()
+    })
+    is Some(model_id) &&
+    !model_id.is_empty() &&
+    @decode.lookup(object, "endpoint").bind(value => {
+      @decode.text(value).to_option()
+    })
+    is Some(endpoint) &&
+    endpoint.has_prefix("https://") else {
+    return None
+  }
+  Some({
+    selector,
+    model_id,
+    adapter_kind: "portable-http",
+    api_mode: "chat-completions",
+    endpoint,
+  })
 }
 
 ///|
@@ -203,12 +230,11 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       return Err(CustodyLost)
     }
     let bodies = limits.bodies
-    let no_retained : @execution.PreparationRepresentationUnits = {
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
+    let p = provider_file.body.length()
+    let r = revision_file.body.length()
+    let c = contract_file.body.length()
+    if p > 65536 || r == 0 || r > 65536 || c == 0 || c > 65536 {
+      return Err(ConfigurationLimit)
     }
     guard native_model_http_configuration_parse(
         provider_file.body,
@@ -219,38 +245,72 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       is Some(provider_working) else {
       return Err(ConfigurationLimit)
     }
+    // The route holder and its parser strings survive while the same body is
+    // read as canonical wire for the Common binding and selected defaults.
+    let route_bound : @execution.PreparationRepresentationUnits = {
+      record_headers: 5L,
+      reference_slots: 6L,
+      scalar_words: 0L,
+      owned_utf16_units: p.to_int64(),
+      owned_wire_bytes: 0L,
+    }
+    guard @execution.compose_preparation_representation([
+        provider_working, route_bound,
+      ])
+      is Some(route_working) else {
+      return Err(ConfigurationLimit)
+    }
     if fund_native_model_http_configuration(
-        operations, no_retained, provider_working,
+        operations,
+        {
+          ..route_bound,
+          record_headers: 0L,
+          reference_slots: 0L,
+          owned_utf16_units: 0L,
+        },
+        route_working,
       )
       is Err(issue) {
       return Err(issue)
     }
-    if !native_model_http_configuration_matches(
+    guard native_model_http_configuration_route(
         provider_file.body,
+        provider_id,
         revision_file.content_cid,
         contract_file.content_cid,
         response_profile_cid,
         selected.credential_file,
         bodies,
-      ) {
+      )
+      is Some(route) else {
       return Err(CustodyLost)
     }
-    let p = provider_file.body.length()
-    let r = revision_file.body.length()
-    let c = contract_file.body.length()
-    if p > 65536 || r == 0 || r > 65536 || c == 0 || c > 65536 {
-      return Err(ConfigurationLimit)
+    let route_retained = {
+      ..route_bound,
+      owned_utf16_units: route.selector.length().to_int64() +
+      route.model_id.length().to_int64() +
+      route.endpoint.length().to_int64(),
     }
-    // Only the Provider wire remains borrowed by subsequent capability
-    // admission. Its peer UTF8 Strings stay alongside the defaults reader.
-    if fund_native_model_http_configuration(
-        operations,
-        { ..no_retained, record_headers: 1L, owned_utf16_units: p.to_int64(), },
+    let wire_retained : @execution.PreparationRepresentationUnits = {
+      ..route_retained,
+      record_headers: route_retained.record_headers + 1L,
+      owned_utf16_units: route_retained.owned_utf16_units + p.to_int64(),
+    }
+    // The selected route stays live alongside the Provider wire and the peer
+    // UTF8 strings. Only the route and the Provider wire escape this phase.
+    guard @execution.compose_preparation_representation([
+        route_retained,
         native_model_http_utf8_configuration_working(
           provider_file.body,
           revision_file.body,
           contract_file.body,
         ),
+      ])
+      is Some(wire_working) else {
+      return Err(ConfigurationLimit)
+    }
+    if fund_native_model_http_configuration(
+        operations, wire_retained, wire_working,
       )
       is Err(issue) {
       return Err(issue)
@@ -327,6 +387,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       selected,
       defaults,
       provider_wire: wire,
+      route,
       response,
     })
   })
@@ -386,7 +447,6 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
   configuration : NativeModelHttpConfiguration,
   execution : @environment.ModelExecutionContract,
   dependencies : @environment.SingleAttemptModelDependencies,
-  resolved : @model.ResolvedStructuredModel,
   profile : @environment.ModelResponseProfileInstallation,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
   if !physical_equal(configuration.capture, self) {
@@ -407,6 +467,7 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     )
     let wire = configuration.provider_wire
     let response = configuration.response
+    let resolved = configuration.route
     let selected = configuration.selected
     guard native_model_http_capability_construction(binding, wire)
       is Some(capability_working) else {
