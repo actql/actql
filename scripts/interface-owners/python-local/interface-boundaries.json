@@ -65608,7 +65608,7 @@
           "parameters": []
         }
       ],
-      "sha256": "54adc0b3273193071d7b40fd835bbc310266e714cef151319a4191e671121a16",
+      "sha256": "a055f70f4726e6819910079a6bed457de6d49feb821e5ca94a62b8412b0ea2ab",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66692,6 +66692,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
                 "anchor": "class ReadOnlySpanTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
+                "anchor": "def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",

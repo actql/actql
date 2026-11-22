@@ -1209,15 +1209,23 @@ class LocalByteStore:
                 if (type(database) is not _SQLiteByteDatabase or original_snapshot is None
                         or self._physical is not database
                         or self._connection is not original_snapshot[0]
+                        or database._connection is not self._connection
                         or original_control_epoch is None
+                        or original_statement_epoch is None
                         or self._connection._transaction_epoch != original_control_epoch):
                     raise LocalStorageError('Original Local read-only supplier changed')
+                # A write-free reader also needs the sticky trace observation.
+                # DDL can restore the same schema_version without changing total_changes.
+                if self._connection._closed_statement_epoch != original_statement_epoch:
+                    raise LocalStorageError('Original Local read-only statements changed')
                 snapshot = database._snapshot_identity()
                 if failure is not None:
                     raise failure
                 if (view.owner is not self or self._physical is not database
                         or self._connection is not original_snapshot[0]
+                        or database._connection is not self._connection
                         or self._connection._transaction_epoch != original_control_epoch
+                        or self._connection._closed_statement_epoch != original_statement_epoch
                         or snapshot[0] is not original_snapshot[0]
                         or snapshot[1:] != original_snapshot[1:]):
                     raise LocalStorageError('Original Local read-only snapshot changed')

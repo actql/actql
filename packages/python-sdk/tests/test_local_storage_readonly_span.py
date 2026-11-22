@@ -169,6 +169,50 @@ class ReadOnlySpanTests(unittest.TestCase):
         self.assertIs(outer.exception, original)
         self.assertFalse(store._connection.in_transaction)
 
+    def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader(self):
+        for schema, when in (('main', 'before'), ('temp', 'during')):
+            with self.subTest(schema=schema, when=when):
+                store, fences = self.fixture()
+                database, connection = store._physical, store._connection
+                original_snapshot = type(database)._snapshot_identity
+                failures = []
+
+                def consume(reader):
+                    baseline = original_snapshot(database)
+                    control = connection._transaction_epoch
+                    statements = connection._closed_statement_epoch
+                    cookie = baseline[3][0 if schema == 'main' else 1]
+
+                    def mutate():
+                        connection.execute(f'CREATE TABLE {schema}.replacement (value BLOB)')
+                        connection.execute(f'PRAGMA {schema}.schema_version = {cookie}')
+                        self.assertEqual(original_snapshot(database), baseline)
+                        self.assertEqual(connection._transaction_epoch, control)
+                        self.assertGreater(connection._closed_statement_epoch, statements)
+
+                    def observe(actual):
+                        self.assertIs(actual, database)
+                        mutate()
+                        return original_snapshot(actual)
+
+                    if when == 'before':
+                        mutate()
+                        with self.assertRaises(LocalStorageError) as refused:
+                            reader.check_unchanged(reader)
+                    else:
+                        with patch.object(type(database), '_snapshot_identity', observe):
+                            with self.assertRaises(LocalStorageError) as refused:
+                                reader.check_unchanged(reader)
+                    failures.append(refused.exception)
+                    with self.assertRaises(LocalStorageError) as repeated:
+                        reader.check_unchanged(reader)
+                    self.assertIs(repeated.exception, failures[0])
+
+                with self.assertRaises(LocalStorageError) as outer:
+                    self.inspect(store, fences, consume)
+                self.assertIs(outer.exception, failures[0])
+                self.assertFalse(connection.in_transaction)
+
     def test_transaction_replacement_and_supplier_replacement_are_rejected(self):
         for mutation in ('commit', 'restart', 'raw_commit', 'raw_rollback',
                          'adapter', 'connection', 'store_connection'):
