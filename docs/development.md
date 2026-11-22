@@ -25,6 +25,25 @@ is developed in MoonBit; see the [implementation guide](design/implementation-po
 Specification checks also verify generated connector code using the pinned
 MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
 
+### Tracked JavaScript exceptions for the TypeScript cutover
+
+- The `focused-tests` job installs the pinned MoonBit toolchain before
+  `npm ci`. Its checkout bootstrap runs `scripts/setup-moonbit.mjs` and
+  imports `scripts/moonbit-installation.mjs` using Node built-ins.
+  [CI workflow](../.github/workflows/ci.yml)
+- The compiler binding generator emits the six
+  `compiler-binding.generated.mjs` copies in its target list. The copies let
+  independently installed packages use the same binding without resolving
+  another package's private files. Existing generation checks cover their
+  emitted JavaScript and declarations.
+  [Compiler binding generator](../scripts/generate-js-compiler-bindings.mts)
+- The connector generator defines the exact `strategy.generated.mjs` and
+  `installations.generated.mjs` destinations from the selected assembly.
+  These tables come from connector manifests and serve as runtime assembly
+  inputs. The generation freshness check runs the existing assembly checks.
+  [Connector generator](../scripts/connector-node-bundles.mts)
+  [Generation freshness](../scripts/interface-generation-freshness.mts)
+
 ### Checkpoint journal layout
 
 The Node Checkpoint journal uses the current private layout
