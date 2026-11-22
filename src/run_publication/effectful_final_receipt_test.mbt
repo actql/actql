@@ -427,6 +427,90 @@ fn final_test_captured(
 }
 
 ///|
+test "measured Effect capture keeps the selected codec and workspace" {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let preview = final_test_preview(chain, plan=true)
+  let source = final_test_source(chain, preview)
+  let local_source = final_test_local_source(chain, source)
+  let prepared = prepare_captured_effect_dependency_inventory(
+    [],
+    [],
+    4096,
+    32,
+    _ => true,
+  ).unwrap()
+  let geometry = prepared_captured_effect_dependency_inventory_geometry(
+    prepared,
+  )
+  let inventory = issue_prepared_captured_effect_dependency_inventory(
+    prepared,
+    _ => true,
+  ).unwrap()
+  let make = fn(workspace) {
+    prepare_original_effectful_capture_plan(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      [snapshot],
+      [source],
+      [local_source],
+      [],
+      chain.authoring,
+      chain.models,
+      preview,
+      ["WriteOne"],
+      ["{}"],
+      inventory,
+      geometry,
+      [],
+      65536,
+      4096,
+      32,
+      _ => true,
+      original_limits=Some((65536, 4096, 32, workspace)),
+    ).unwrap()
+  }
+  let refused = start_planned_captured_run(make(15)).unwrap()
+  assert_true(refused.advance(1) is Err(CaptureIssuanceEncoding))
+  let plan = make(65536)
+  let extent = capture_construction_layout_facts(plan).unwrap()
+  assert_eq(extent.4, 1)
+  let issuer = start_planned_captured_run(plan).unwrap()
+  assert_eq(captured_run_preparation_limits(issuer), Some((65536, 4096, 32)))
+  assert_true(start_planned_captured_run(plan) is None)
+  let mut done = false
+  for _ in 0..<512 {
+    if issuer.advance(64).unwrap().0 {
+      done = true
+      break
+    }
+  }
+  assert_true(done)
+  let actual = issuer.finish_retained().unwrap()
+  let original = final_test_captured(chain)
+  assert_eq(
+    publication_contract_json(actual),
+    publication_contract_json(original),
+  )
+  assert_eq(
+    publication_contract_identity(actual),
+    publication_contract_identity(original),
+  )
+}
+
+///|
 test "Result-bound source holding requires exact physical and semantic facts" {
   let chain = captured_run_test_chain()
   let artifact = final_test_source_artifact(chain)

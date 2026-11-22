@@ -236,6 +236,66 @@ test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
     1024,
     12,
   ).unwrap()
+  for refusal in [0, 1, 2] {
+    let called : Array[Int] = []
+    let mut slots = -1L
+    let mut geometry : (Int, Int, Int)? = None
+    let sources : Array[RunEvidenceValue] = []
+    let unrelated = receipt_test_journal()
+    let funded = issue_effect_free_run_receipt(
+      admission,
+      run,
+      invocation,
+      observation,
+      [definition],
+      [artifact],
+      manifest,
+      receipt_test_journal(),
+      ["program"],
+      ["c".repeat(64)],
+      sources,
+      [],
+      [],
+      65536,
+      1024,
+      12,
+      funding=Some(
+        (
+          count => {
+            slots = count
+            called.push(1)
+            refusal != 1
+          },
+          (bytes, nodes, depth) => {
+            geometry = Some((bytes, nodes, depth))
+            called.push(2)
+            sources.push(unrelated)
+            refusal != 2
+          },
+        ),
+      ),
+    )
+    assert_true(slots >= 4L)
+    assert_eq(called, if refusal == 1 { [1] } else { [1, 2] })
+    if refusal == 0 {
+      let value = funded.unwrap()
+      let (bytes, nodes, depth) = geometry.unwrap()
+      assert_eq(
+        publication_contract_wire_usage(value),
+        Some((bytes + 97, nodes + 1, depth)),
+      )
+      assert_eq(
+        publication_contract_identity(value),
+        publication_contract_identity(receipt),
+      )
+      assert_eq(
+        publication_contract_json(value),
+        publication_contract_json(receipt),
+      )
+    } else {
+      assert_true(funded is Err(ReceiptIssuanceEncoding))
+    }
+  }
   let wire = publication_contract_json(receipt)
   assert_true(wire.contains("\"version\":\"actql-run-receipt/0.1\""))
   assert_true(

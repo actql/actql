@@ -1386,6 +1386,16 @@ fn native_mock_readme_effect_recipe(
   // Raw response Bytes remain two simultaneous full original buffers.
   assert_true(control_r >= 2L * codec.response_bytes.to_int64())
   assert_true(control_e >= control_r)
+  let target_controls = native_mock_effect_target_control_capacity(
+    quantities[4],
+  ).unwrap()
+  // Only the target's input reference persists for each row on this
+  // control. One row can still use the entire old construction envelope.
+  assert_eq(@execution.execution_capacity_retained_bytes(target_controls), 8L)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(target_controls),
+    control_e + 8L,
+  )
   if @env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE") == Some("1") {
     let (imports, maximum) = native_mock_effect_import_construction(
       prepared, wire,
@@ -2570,6 +2580,48 @@ fn native_shared_file_effect_observes_and_previews(
     assert_true(physical_equal(preview._retained_observation, observation))
     assert_true(physical_equal(preview._retained_invocation, invocation))
     assert_eq(preview.proofs.length(), selectors.length())
+    let identity = @strategy.captured_effect_preview_ledger_identity(
+      preview.inputs,
+    )
+    let limits = @run_host.client_standard_effect_computation_limits().effects
+    let stage = @strategy.captured_effect_input_stage(
+      @strategy.captured_effect_input_at(proposals.inputs, 0).unwrap(),
+    )
+    let bind_original = authoring_cid => {
+      @run_host.bind_admitted_captured_client_effect_preview(
+        proposals.materials.unwrap(),
+        state.effect_capture.unwrap(),
+        proposals.inputs,
+        invocation,
+        stage,
+        identity,
+        authoring_cid,
+        preview._retained_identities,
+        limits.max_work,
+        {
+          max_work: limits.max_work,
+          max_fields: 100,
+          max_bytes: file_limits.page.max_bytes,
+          max_nodes: limits.max_admission_nodes,
+          max_depth: limits.max_admission_depth,
+        },
+      )
+    }
+    let authoring_cid = @publication.run_evidence_value_identity(
+      preview._retained_authoring,
+    )
+    assert_true(
+      bind_original(authoring_cid + "x") is Err(Identity(ForeignPreview)),
+    )
+    let rebound = bind_original(authoring_cid).native_file_route_value(
+      "bind the admitted original Preview",
+    )
+    assert_true(
+      physical_equal(
+        @strategy.captured_effect_preview_ledger_identity(rebound),
+        identity,
+      ),
+    )
     guard @json.parse(preview._retained_wire) is Object(fields) &&
       fields.get("model_derived") == Some(Json::boolean(false)) &&
       fields.get("effects") is Some(Array(effects)) else {

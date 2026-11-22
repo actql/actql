@@ -201,6 +201,82 @@ fn original_export_content_field(
 }
 
 ///|
+/// Use the completed export's original schema predicate before quoting its
+/// reference table. The caller funds each new pending-schema extent first.
+/// A structural proof that exceeds its node limit retains the table, just
+/// as the actual export does. Workspace refusal stops this preparation.
+pub fn completed_export_reference_capacity(
+  schema : @schema.Schema,
+  rows : Int,
+  max_schema_nodes : Int,
+  limits : ValueLimits,
+  reserve_pending : (Int) -> Bool,
+) -> ExecutionCapacity? {
+  let funded = Ref(true)
+  let reference_free = managed_schema_reference_free(
+    schema,
+    max_schema_nodes,
+    reserve=Some(count => {
+      funded.val = reserve_pending(count)
+      funded.val
+    }),
+  )
+  if !funded.val {
+    return None
+  }
+  if reference_free == Some(true) {
+    return execution_capacity(0L, 0L)
+  }
+  completed_export_reference_array_capacity(
+    rows,
+    @schema.field_count(schema),
+    limits,
+  )
+}
+
+///|
+// The table owns new arrays and Some records. Reference values remain
+// borrowed. Each appending cursor has first measured its Reference as a
+// value node, and every row, cell and Reference push spends a structural slot.
+fn completed_export_reference_array_capacity(
+  rows : Int,
+  columns : Int,
+  limits : ValueLimits,
+) -> ExecutionCapacity? {
+  guard rows >= 0 &&
+    columns >= 0 &&
+    checked_row_slots_add(limits.max_nodes, limits.max_nodes)
+    is Some(slot_limit) else {
+    return None
+  }
+  let slot_limit = slot_limit.to_int64()
+  let children = Int64::min(
+    slot_limit,
+    rows.to_int64() * (1L + columns.to_int64()),
+  )
+  let refs = if rows == 0 || columns == 0 {
+    0L
+  } else {
+    limits.max_nodes.to_int64()
+  }
+  let items = Int64::min(slot_limit, children + refs)
+  let cost = fn(growing) {
+    preparation_array_representation(children + 1L, items, growing).bind(arrays => {
+      preparation_representation_cost({
+        ..arrays,
+        record_headers: arrays.record_headers + 2L + refs,
+        reference_slots: arrays.reference_slots + 2L + refs,
+        scalar_words: arrays.scalar_words + 5L + refs,
+      })
+    })
+  }
+  guard cost(false) is Some(retained) && cost(true) is Some(execution) else {
+    return None
+  }
+  execution_capacity(retained, execution)
+}
+
+///|
 /// Row and column entries are bounded by admitted row/key nodes, and authority
 /// entries by admitted value nodes. Logical value work is not charged twice.
 fn prepare_completed_export_references(

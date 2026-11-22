@@ -172,6 +172,35 @@ fn native_mock_effect_serial_capture_recipe(
 }
 
 ///|
+// Warm target observations close each physical child before the next row.
+// The request operation owns the before/version input and returned request
+// wire. Only its caller reference persists on this control for every row.
+// Keep one full original constructor peak for the serial observation, even
+// on failure. The Saved application funds its own response and receipt sinks
+// after approval; no write response is retained by this warm control.
+fn native_mock_effect_target_control_capacity(
+  original : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  guard @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(slot) &&
+    @execution.checked_preparation_add_product(
+      slot,
+      @execution.execution_capacity_execution_bytes(original),
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(slot, execution)
+}
+
+///|
 // The same two member and five row occurrences as the existing file UPDATE
 // implementation. Read occurrences are physical here: this Native adapter
 // performs its own file I/O rather than borrowing a separate reader service.
@@ -343,19 +372,9 @@ fn native_mock_effect_operations(
       }
       rows.push(extent)
     }
-    // The existing Native Target holder has one additional optional input
-    // reference. It survives physical Target retirement, so its SAME checked
-    // row control owns that slot until Run retirement, not the read operation.
-    let input_slot = @execution.preparation_representation_cost({
-      record_headers: 0L,
-      reference_slots: 1L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    }).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let controls_per_row = @execution.execution_capacity(input_slot, input_slot)
-      .bind(slot => @execution.add_execution_capacity(quantities[4], slot))
-      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let controls_per_row = native_mock_effect_target_control_capacity(
+      quantities[4],
+    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     selected.push(
       @local_values.prepare_installed_effect_operation_demand_with_controls(
         prepared,
@@ -756,19 +775,29 @@ fn native_mock_effect_import_construction(
     @execution.compose_preparation_representation([
       arrays,
       {
-        record_headers: 2L +
+        // The Source snapshot phase adds one bounded optional extent and
+        // one local constructor closure. Also cover a transient emitted
+        // usage tuple and the current body's extent and depth options.
+        // The scoped Source copy adds its old and new optional counters and
+        // the synchronous bridge callback's startup flag and captured slot.
+        record_headers: 12L +
         extra_results +
         5L * units +
         5L * results +
         3L * imports +
         4L * 4096L * results,
-        reference_slots: 10L +
+        reference_slots: 27L +
         9L * extra_results +
         40L * units +
         24L * results +
         20L * imports +
         8L * 4096L * results,
-        scalar_words: 2L * documents + extra_results,
+        // A checked static dependency entry holds its three encoder
+        // dimensions until that Result's complete static list is consumed.
+        scalar_words: 2L * documents +
+        extra_results +
+        15L +
+        3L * 4096L * results,
         // All static emitted Strings precede their parse callback. Their
         // existing shared byte budget bounds their total original text.
         owned_utf16_units: results * wire.max_bytes.to_int64(),

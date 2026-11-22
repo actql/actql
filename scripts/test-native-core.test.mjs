@@ -1197,7 +1197,10 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
     for (const name of ['ordinary_wbtest.mbt', 'local_command_business_wbtest.mbt',
       'local_command_business_cleanup_wbtest.mbt', ...(effectCapture ? ['local_effect_capture_wbtest.mbt'] : [])]) {
-      writeFileSync(join(checkout, 'src/cmd/native_client', name), 'Original compiler-input fixture\n');
+      const source = name === 'local_effect_capture_wbtest.mbt'
+        ? readFileSync(new URL('../src/cmd/native_client/' + name, import.meta.url), 'utf8')
+        : 'Original compiler-input fixture\n';
+      writeFileSync(join(checkout, 'src/cmd/native_client', name), source);
     }
     mkdirSync(join(checkout, 'src/platform_native/host_bootstrap'), {recursive: true});
     for (const name of ['root_control_unavailable_wbtest.mbt', 'root_control_physical_scoped_wbtest.mbt']) {
@@ -1306,9 +1309,9 @@ if (process.argv[2] === 'generate-test-driver') {
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ? 3 :
           ['/target_io_physical_scoped_wbtest.mbt','/target_io_lineage_physical_scoped_wbtest.mbt',
-            '/run_effect_file_response_wbtest.mbt'].some(name => value.endsWith(name))
+            '/run_effect_file_response_wbtest.mbt','/local_effect_capture_wbtest.mbt']
+            .some(name => value.endsWith(name))
             ? [...require('node:fs').readFileSync(value, 'utf8').matchAll(/^test /gm)].length :
-          value.endsWith('/local_effect_capture_wbtest.mbt') ? 5 :
           value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 20 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
@@ -2456,13 +2459,25 @@ test('full Native Core requires both ordinary and selected profiles and propagat
 test('Native first-member capture uses the original scoped Request provider and requires execution', t => {
   const captureFile = 'src/cmd/native_client/local_effect_capture_wbtest.mbt';
   const captureSource = readFileSync(new URL('../' + captureFile, import.meta.url), 'utf8');
-  assert.deepEqual([...captureSource.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]), [
+  const expectedCases = [
     'Native Work capture exposes the original owner method without a supplied journal',
     'Native first member retains one original capture before input and full recipe growth',
+    'Native returned import funds next Model body on the exact original reservation',
+    'Native lookup measures beside its current tables on the original capture reservation',
+    'Native Model Result Artifact reserves measured bodies beside its original census',
+    'Native Unit Result row funding keeps its own writer beside its decoder',
+    'Native proposal projection funds both pair arrays beside the decoded row',
+    'Native proposal return drops only its old workspace before the next construction',
+    'Native proposal append reserves the returned strings and replacement slots',
     'Native completed canonical dependencies retain data without accumulating parser scratch',
     'Native serial capture retains every row and one original constructor workspace',
     'Native complete Unit inventory keeps an unconsumed Result alias',
-  ]);
+    'Native serial Source snapshots reuse the actual overlapping constructor peak',
+    'Native inventory Source binding funds the same operation before checking roots',
+    'Native Preview target parsing funds overlapping original rows before entry',
+    'Native Preview draft counts both positions of one original row value',
+  ];
+  assert.deepEqual([...captureSource.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]), expectedCases);
   for (const zero of [false, true]) {
     const f = fixture(t, {scoped: true, effectCapture: true});
     const commands = join(f.root, 'capture-commands.jsonl');
@@ -2482,7 +2497,7 @@ test('Native first-member capture uses the original scoped Request provider and 
       'the original ordinary provider-absence case remains required');
     const captures = calls.filter(call => call.args.includes(captureFile));
     assert.deepEqual(captures.map(call => call.args[call.args.indexOf('--index') + 1]),
-      zero ? ['0', '1'] : ['0', '1', '2', '3', '4']);
+      zero ? ['0', '1'] : expectedCases.map((_, index) => String(index)));
     assert.equal(new Set(captures.map(call => call.installedProcess)).size, captures.length,
       'each original case receives fresh physical backing');
     for (const call of captures) {
@@ -2497,8 +2512,8 @@ test('Native first-member capture uses the original scoped Request provider and 
     if (zero) assert.match(result.stderr + result.stdout,
       /no successfully executed test cases|expected tests=1/u);
     else {
-      assert.equal(calls.length, 15, 'both checkpoints, ordinary Core and all twelve selected cases execute');
-      assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":12,"physical":11,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 26, 'both checkpoints, ordinary Core and all 23 scoped cases execute');
+      assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":23,"physical":22,"repeatedGeometry":1/u);
     }
     f.verifyExternal();
   }

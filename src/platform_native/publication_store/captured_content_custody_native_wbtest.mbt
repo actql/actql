@@ -224,6 +224,96 @@ fn native_content_physical_case_1(library : @sqlite.Library) -> Unit raise {
 }
 
 ///|
+test "Native distinct equal Content candidates verify one sealed holding" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage("library")
+  let (store, authority, _) = native_content_store_fixture(
+    "captured-content-equal-candidates", 6L, library,
+  )
+  let bytes = b"shared"
+  let first = native_content_candidate(authority, bytes)
+  let second = native_content_candidate(authority, bytes)
+  assert_false(physical_equal(first, second))
+  assert_eq(
+    @publication.captured_content_reference_identity(first),
+    @publication.captured_content_reference_identity(second),
+  )
+  let holding = native_payload_cid("captured-content-equal-candidates-holding")
+  let original = store
+    .prepare_captured_content_custody(first, holding)
+    .captured_content_stage("first custody")
+  original.persist(bytes).captured_content_stage("first persist")
+  original.confirm(2).captured_content_stage("first confirm")
+  assert_true(
+    original.retry_cleanup().captured_content_stage("first I/O close"),
+  )
+  assert_true(original.matches_confirmed(first))
+  assert_false(original.matches_confirmed(second))
+  let next = store
+    .prepare_captured_content_custody(second, holding)
+    .captured_content_stage("second custody")
+  next.persist(bytes).captured_content_stage("second materialization")
+  assert_false(next.matches_confirmed(second))
+  assert_false(next.matches_confirmed(first))
+  assert_eq(next.generation, original.generation)
+  assert_false(next.intent_owned)
+  assert_false(next.reservation_attempted)
+  next.confirm(3).captured_content_stage("second confirm")
+  assert_true(next.matches_confirmed(second))
+  assert_true(next.retry_cleanup().captured_content_stage("second I/O close"))
+  let different = native_content_candidate(authority, b"differ")
+  let mismatch = store
+    .prepare_captured_content_custody(different, holding)
+    .captured_content_stage("mismatched custody")
+  assert_true(mismatch.persist(b"differ") is Err(RecoveryRequired))
+  assert_false(mismatch.matches_confirmed(different))
+  assert_true(
+    mismatch.retry_cleanup().captured_content_stage("mismatched I/O close"),
+  )
+  let usage = store.capacity_usage().captured_content_stage("durable holding")
+  assert_eq(usage.reserved_bytes, 6L)
+  assert_eq(usage.reserved_objects, 1L)
+  assert_true(original.matches_confirmed(first))
+  assert_true(store.close().captured_content_stage("Store close"))
+  assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}
+
+///|
+test "Native equal Content reuse preserves the original quota read failure" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage("library")
+  let (store, authority, _) = native_content_store_fixture(
+    "captured-content-missing-quota", 6L, library,
+  )
+  let bytes = b"shared"
+  let first = native_content_candidate(authority, bytes)
+  let holding = native_payload_cid("captured-content-missing-quota-holding")
+  let original = store
+    .prepare_captured_content_custody(first, holding)
+    .captured_content_stage("original custody")
+  original.persist(bytes).captured_content_stage("original persist")
+  original.confirm(2).captured_content_stage("original confirm")
+  assert_true(original.retry_cleanup().captured_content_stage("original close"))
+  // Only the fixture removes the quota record. The exact sealed record and
+  // file remain, so reuse reaches the original quota read after the collision.
+  let _ = store.database
+    .release_capacity("publication_payload", original.key, 6L, 1L)
+    .captured_content_stage("fixture removes quota")
+  let second = native_content_candidate(authority, bytes)
+  let next = store
+    .prepare_captured_content_custody(second, holding)
+    .captured_content_stage("second custody")
+  assert_true(next.persist(bytes) is Err(Database(@sqlite.NotFound)))
+  assert_false(next.intent_owned)
+  assert_false(next.reservation_attempted)
+  assert_false(next.matches_confirmed(second))
+  assert_true(next.retry_cleanup().captured_content_stage("second close"))
+  assert_true(original.matches_confirmed(first))
+  assert_true(store.close().captured_content_stage("Store close"))
+  assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}
+
+///|
 test "Native captured Content capacity refusal retires only its original pending attempt" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     fail("Missing explicit Native Content SQLite library")

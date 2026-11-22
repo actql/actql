@@ -335,6 +335,10 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
       }
+      let before = match self.read_run_before_save(record, reads) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       for
         (table, bytes) in [
           ("client_effect_response_meta", metadata),
@@ -369,7 +373,7 @@ fn NativeClientRunJournal::record_effect_file_response_with_operations(
         Ok(_) => ()
         Err(issue) => return Err(Physical(issue))
       }
-      self.save_with_operations(record, operations~).map(_ => ())
+      self.save_observed_run(record, before, operations).map(_ => ())
     },
     reads~,
   )

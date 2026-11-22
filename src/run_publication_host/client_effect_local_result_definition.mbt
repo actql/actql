@@ -215,3 +215,42 @@ pub fn client_effect_local_result_definition_construction_geometry(
     }
   }
 }
+
+///|
+/// Original bounded Definition emitter inventory. Keep both writer envelopes
+/// during issuance. The returned Definition borrows its checked owner, name
+/// and Unit CID, and owns only its fixed wrapper, final self CID and wire.
+pub fn client_effect_local_result_definition_issuer_capacity(
+  geometry : @encode.EncodingConstructionGeometry,
+) -> @execution.ExecutionCapacity? {
+  guard @encode.text_writer_construction_inventory(
+      geometry.bytes,
+      geometry.nodes,
+      geometry.depth,
+    )
+    is Some(text) &&
+    @encode.hash_writer_construction_inventory(geometry.nodes, geometry.depth)
+    is Some(hash) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 3L,
+      reference_slots: 5L,
+      scalar_words: 1L,
+      owned_utf16_units: geometry.bytes.to_int64() + 71L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: text.record_headers + hash.record_headers,
+      reference_slots: text.reference_slots + hash.reference_slots,
+      scalar_words: text.scalar_words + hash.scalar_words,
+      owned_utf16_units: text.owned_utf16_units + hash.owned_utf16_units,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}

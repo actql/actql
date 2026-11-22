@@ -255,3 +255,144 @@ test "actual Captured Mapping uses only its original typed Result row and curren
   @strategy.cancel_captured_effect_proposal_plan(plan)
   values_effect_export_test_close(captured, inputs, execution)
 }
+
+///|
+test "captured Mapping funds original changes and selector before their writers" {
+  let (captured, inputs, execution) = checked_original_update_execution()
+  let (rows, limits) = values_effect_export_test_limits()
+  let index = values_effect_export_test_index(inputs, "out")
+  let owner = execution
+    .prepare_effect_result_export(
+      captured, inputs, index, rows, 100, 10000, limits,
+    )
+    .unwrap()
+  let preparation = @strategy.captured_effect_local_result_export_preparation(
+    owner.captured_export().unwrap(),
+  )
+  while !@execution.advance_completed_result_relation_export(preparation, 64).unwrap().0 {
+    ()
+  }
+  let stream = @execution.finish_completed_result_relation_export_preparation(
+    preparation,
+  ).unwrap()
+  let (index, _, row) = @execution.next_completed_output_export_canonical_row(
+      stream, 1000, 20, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  let changes = "{\"state\":\"present\",\"value\":{\"Name\":7}}"
+  let selector = "\"one\""
+  let expected = [
+    (changes.length(), 4, 2, 0),
+    (selector.length(), 1, 0, changes.length()),
+  ]
+  let exact = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  assert_eq(@strategy.captured_effect_proposal_plan_staged_rows(exact), Some(2))
+  let seen = []
+  let fenced = Ref(true)
+  let rendered = @strategy.project_captured_effect_proposal_row(
+    exact,
+    row,
+    index,
+    10,
+    10000,
+    1000,
+    1000,
+    20,
+    before_encode=Some(fn(bytes, nodes, depth, prior_units) {
+      let call = seen.length()
+      seen.push((bytes, nodes, depth, prior_units))
+      fenced.val = fenced.val &&
+        @strategy.finish_captured_effect_proposal_plan(exact, 0)
+        is Err(@strategy.CapturedEffectProposalIssue::NotReady) &&
+        @strategy.project_captured_effect_proposal_row(
+          exact, row, index, 10, 10000, 1000, 1000, 20,
+        )
+        is Err(@strategy.CapturedEffectProposalIssue::NotReady)
+      bytes <= expected[call].0
+    }),
+  ).unwrap()
+  assert_eq(seen, expected)
+  assert_true(fenced.val)
+  assert_eq(rendered, (selector, changes))
+  @strategy.finish_captured_effect_proposal_plan(exact, 1).unwrap()
+  let short = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  let calls = Ref(0)
+  assert_true(
+    @strategy.project_captured_effect_proposal_row(
+      short,
+      row,
+      index,
+      10,
+      10000,
+      1000,
+      1000,
+      20,
+      before_encode=Some(fn(bytes, _, _, _) {
+        calls.val += 1
+        bytes <= changes.length() - 1
+      }),
+    )
+    is Err(
+      @strategy.CapturedEffectProposalIssue::Changes(@stage_results.OutputLimit)
+    ),
+  )
+  assert_eq(calls.val, 1)
+  let cancelled = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  assert_true(
+    @strategy.project_captured_effect_proposal_row(
+      cancelled,
+      row,
+      index,
+      10,
+      10000,
+      1000,
+      1000,
+      20,
+      before_encode=Some(fn(_, _, _, _) {
+        @strategy.cancel_captured_effect_proposal_plan(cancelled)
+        true
+      }),
+    )
+    is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+  )
+  let explicitly_cancelled = @strategy.prepare_captured_effect_proposal_plan(
+    inputs, 0, 10, 10000,
+  ).unwrap()
+  @strategy.cancel_captured_effect_proposal_plan(explicitly_cancelled)
+  // The original export and inputs are still live. Probe the exact index
+  // each terminal plan would otherwise consume, including after finish.
+  let (next_index, _, next_row) = @execution.next_completed_output_export_canonical_row(
+      stream, 1000, 20, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(next_index, index + 1)
+  for
+    (closed, source, ordinal) in [
+      (short, row, index),
+      (cancelled, row, index),
+      (explicitly_cancelled, row, index),
+      (exact, next_row, next_index),
+    ] {
+    assert_true(
+      @strategy.project_captured_effect_proposal_row(
+        closed, source, ordinal, 10, 10000, 1000, 1000, 20,
+      )
+      is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+    )
+    assert_true(
+      @strategy.finish_captured_effect_proposal_plan(closed, ordinal)
+      is Err(@strategy.CapturedEffectProposalIssue::NotReady),
+    )
+  }
+  @execution.cancel_completed_output_export(stream)
+  owner.close()
+  values_effect_export_test_close(captured, inputs, execution)
+}

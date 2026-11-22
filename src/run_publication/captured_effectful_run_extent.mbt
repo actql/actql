@@ -318,6 +318,7 @@ pub fn prepare_original_effectful_capture_plan(
   max_body_nodes : Int,
   max_body_depth : Int,
   work : (Int) -> Bool,
+  original_limits? : (Int, Int, Int, Int)? = None,
 ) -> CapturedRunConstructionPlan? {
   guard captured_effectful_run_construction_extent(
       receipt, snapshots, sources, local_sources, advances, authoring, models, preview,
@@ -342,6 +343,17 @@ pub fn prepare_original_effectful_capture_plan(
   for index in 0..<plan_names.length() {
     plans.push((plan_names[index], plan_wires[index]))
   }
+  // A caller moving an existing issuer to a measured plan keeps its
+  // independent codec and workspace limits. The extent remains the sizing
+  // facts of these immutable inputs, even when those limits are smaller.
+  let (bytes, nodes, depth, workspace) = original_limits.unwrap_or(
+    (
+      extent.max_wire_bytes,
+      extent.max_nodes,
+      extent.max_depth,
+      publication_evidence_workspace(extent.max_nodes),
+    ),
+  )
   Some({
     inputs: Some({
       run_definition,
@@ -359,12 +371,12 @@ pub fn prepare_original_effectful_capture_plan(
       content_generations: content_generations.copy(),
       preview: Some(preview),
       plan_values: plans,
-      max_wire_bytes: extent.max_wire_bytes,
-      max_nodes: extent.max_nodes,
-      max_depth: extent.max_depth,
+      max_wire_bytes: bytes,
+      max_nodes: nodes,
+      max_depth: depth,
       dependency_inventory: Some(dependencies),
     }),
     extent,
-    max_workspace: publication_evidence_workspace(extent.max_nodes),
+    max_workspace: workspace,
   })
 }
