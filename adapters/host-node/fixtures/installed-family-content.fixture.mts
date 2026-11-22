@@ -3,9 +3,32 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 
-const cid = value => assert.match(value, /^sha256:[0-9a-f]{64}$/u);
+interface CompleteContent {
+  $actql_ref: unknown;
+  version: unknown;
+  content_ref_cid: string;
+  media_type: unknown;
+  metadata: {
+    content_cid: unknown;
+    size_bytes: unknown;
+    media_type: unknown;
+    truncated: unknown;
+    issuer_evidence: {
+      version: unknown;
+      issuer_kind: unknown;
+      content_cid: unknown;
+      reported_media_type?: unknown;
+    };
+  };
+}
+type ExpectedContent = {bytes: Uint8Array; mediaType: string} & (
+  {issuerKind: 'content_derivation'} |
+  {issuerKind: 'connector_capture'; reportedMediaType: string}
+);
 
-export function assertInstalledFamilyCompleteContent(reference, expected) {
+const cid = (value: string) => assert.match(value, /^sha256:[0-9a-f]{64}$/u);
+
+export function assertInstalledFamilyCompleteContent(reference: CompleteContent, expected: ExpectedContent) {
   assert(expected.bytes instanceof Uint8Array, 'Supply independently authored original bytes');
   assert.equal(typeof expected.mediaType, 'string'); assert(expected.mediaType.length > 0);
   assert(['content_derivation', 'connector_capture'].includes(expected.issuerKind));
@@ -37,7 +60,8 @@ export function assertInstalledFamilyCompleteContent(reference, expected) {
   }
 }
 
-export function assertInstalledFamilySavedContent(original, recovered, expected) {
+export function assertInstalledFamilySavedContent(original: CompleteContent, recovered: CompleteContent,
+  expected: ExpectedContent) {
   // Call with the actual persisted first envelope, never one rebuilt from the
   // current response or just its digest. Equal bytes alone do not pin lifetime,
   // policy, issuer, holding, availability or original Source provenance.

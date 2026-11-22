@@ -2042,3 +2042,9 @@ target/
 /scripts/health-monitor-report.d.mts
 /scripts/operation-performance-sample-summary.mjs
 /scripts/operation-performance-sample-summary.d.mts
+/adapters/host-node/fixtures/installed-family-content.fixture.mjs
+/adapters/host-node/fixtures/installed-family-content.fixture.d.mts
+/adapters/host-node/fixtures/mock-project-terminal-public.mjs
+/adapters/host-node/fixtures/mock-project-terminal-public.d.mts
+/scripts/fixtures/external-rest/timed-installed-context.fixture.mjs
+/scripts/fixtures/external-rest/timed-installed-context.fixture.d.mts

@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import {lstat,realpath} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {join,relative,isAbsolute,sep} from 'node:path';
-export async function resolveInstalledCompletionModules(consumerRoot, {observation = false} = {}) {
+export async function resolveInstalledCompletionModules(consumerRoot: string, {observation = false} = {}) {
  assert(isAbsolute(consumerRoot));
  const modules=join(consumerRoot,'node_modules');
  assert(!(await lstat(modules)).isSymbolicLink(),'CompletionWorkspaceAliasRefused');
  assert.equal(await realpath(modules),modules,'CompletionWorkspaceAliasRefused');
  const consumer=createRequire(join(consumerRoot,'package.json'));
- const resolveNormal=async(require,name)=>{
+ const resolveNormal=async(require: NodeJS.Require,name: string)=>{
   const original=require.resolve(name),path=await realpath(original),suffix=relative(modules,path);
   assert(suffix!==''&&suffix!=='..'&&!suffix.startsWith('..'+sep)&&!isAbsolute(suffix),'CompletionWorkspaceAliasRefused');
   assert.equal(original,path,'CompletionWorkspaceAliasRefused');

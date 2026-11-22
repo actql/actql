@@ -11,13 +11,80 @@ import {assertInstalledFamilyCompleteContent} from './installed-family-content.f
 import {observeRecordApprovalDescriptors} from '../../../scripts/fixtures/record-approval/scoped-fds.fixture.mjs';
 import {resolveInstalledCompletionModules} from '../../../scripts/fixtures/external-rest/timed-installed-context.fixture.mjs';
 
+type Variant = 'terminal-infer' | 'terminal-content';
+type Phase = 'capture' | 'recover';
+type AccountScenario = 'default' | 'explicit-operator-content';
+type Content = Parameters<typeof assertInstalledFamilyCompleteContent>[0];
+type Row = Readonly<Record<string, unknown>>;
+type IssueTag = 'issueTag' | 'nestedIssueTag' | 'leafIssueTag';
+type Diagnostic = {
+  event: string;
+  available?: boolean;
+  code?: string;
+  boundary?: string;
+  primary?: Partial<Record<'phase' | 'kind', string>>;
+  sites?: string;
+  capacity?: {phase: string; dimension: string} & Record<string, unknown>;
+} & Partial<Record<IssueTag, number>>;
+type WorkObservation = {
+  complete: boolean;
+  sourceAcquisitionStarts: number;
+  modelCallStarts: number;
+  effectReplacementReturns: number;
+};
+type TerminalObservation = {
+  phase: Phase;
+  variant: Variant;
+  pid: number;
+  status: 'running' | 'passed' | 'failed';
+  complete: boolean;
+  submits: number;
+  resultReads: number;
+  originalRefBeforeWait: boolean;
+  savedFirst: boolean;
+  lookupOriginal: boolean;
+  firstClose: {attempted: boolean; returned: boolean; calls: number};
+  qualification?: string;
+  originalDiagnostics?: Diagnostic[];
+  diagnosticOverflow?: boolean;
+  submissionRecordedBeforeStart?: boolean;
+  originalInputsAbsent?: boolean;
+  recoveryOrigin?: 'started' | 'complete-capture';
+  originalRowsCompared?: boolean;
+  normalCaptureComplete?: boolean;
+  capturedPid?: number;
+  workObservation?: WorkObservation;
+  aliveScopedFD?: {before: number; after: number; pid: number};
+  code?: unknown;
+  cleanupCode?: unknown;
+};
+interface TerminalRun {
+  ref: unknown;
+  wait(): Promise<{status: string}>;
+  status(): Promise<{status: string}>;
+  result(name: string): {all(): Promise<readonly Row[]>};
+}
+interface TerminalClient {
+  newSubmission(options: {nonce: string}): unknown;
+  startSource(source: string, options: {format: 'aql' | 'json'; submissionRef: unknown}): Promise<TerminalRun>;
+  lookupSubmission(ref: unknown): Promise<{kind: string; admission: {ref: unknown}}>;
+  attach(ref: unknown): Promise<TerminalRun>;
+  close(): Promise<void>;
+}
+type DiagnosticObserver = (event: string, detail: unknown) => void;
+type Connect = (options: {mode: 'local'; profile: 'mock'; installation: {
+  directory: string;
+  observation: unknown;
+  authorization: {observe: DiagnosticObserver; siteKey?: string; accountConfiguration?: string};
+}}) => Promise<TerminalClient>;
+
 const contentBytes = Buffer.from('{"id":1}\n{"id":2}\n');
 const inferRows = [
   {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
   {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
 ];
 
-const ownDiagnosticData = (value, key) => {
+const ownDiagnosticData = (value: unknown, key: string): unknown => {
   if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) return undefined;
   const field = Object.getOwnPropertyDescriptor(value, key);
   return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
@@ -25,16 +92,16 @@ const ownDiagnosticData = (value, key) => {
 
 // Caller-owned projection of the existing optional callback. Never copy an
 // exception message, stack, input, reference, arbitrary member or secret.
-export function terminalMockFailureDiagnostic(event, detail) {
+export function terminalMockFailureDiagnostic(event: string, detail: unknown): Diagnostic | undefined {
   if (!['preparation_failed', 'content_preparation_rejected', 'dispatch_failed'].includes(event)) return undefined;
-  const record = {event}, code = ownDiagnosticData(detail, 'code');
+  const record: Diagnostic = {event}, code = ownDiagnosticData(detail, 'code');
   const available = ownDiagnosticData(detail, 'available');
   if (typeof available === 'boolean') record.available = available;
   if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code)) record.code = code;
   const boundary = ownDiagnosticData(detail, 'boundary');
-  if (['task_compilation', 'request_admission'].includes(boundary)) record.boundary = boundary;
+  if ((['task_compilation', 'request_admission'] as readonly unknown[]).includes(boundary)) record.boundary = boundary as string;
   const primary = ownDiagnosticData(detail, 'primaryDiagnostic');
-  for (const key of ['phase', 'kind']) {
+  for (const key of ['phase', 'kind'] as const) {
     const value = ownDiagnosticData(primary, key);
     if (typeof value === 'string' && value.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(value)) {
       (record.primary ??= {})[key] = value;
@@ -57,24 +124,24 @@ export function terminalMockFailureDiagnostic(event, detail) {
     const keys = ['requiredRetentionBytes', 'requiredExecutionBytes', 'availableRetentionBytes', 'availableExecutionBytes'];
     const amounts = keys.map(key => ownDiagnosticData(capacity, key));
     if (typeof phase === 'string' && /^[a-z_]{1,96}$/u.test(phase) &&
-        ['retention', 'execution'].includes(dimension) && amounts.every(value =>
+        (['retention', 'execution'] as readonly unknown[]).includes(dimension) && amounts.every(value =>
           typeof value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(value) && BigInt(value) <= 9223372036854775807n)) {
-      record.capacity = {phase, dimension, ...Object.fromEntries(keys.map((key, index) => [key, amounts[index]]))};
+      record.capacity = {phase, dimension: dimension as string, ...Object.fromEntries(keys.map((key, index) => [key, amounts[index]]))};
     }
   }
   let issue = event === 'preparation_failed' ? undefined : ownDiagnosticData(detail, 'cause');
-  for (const key of ['issueTag', 'nestedIssueTag', 'leafIssueTag']) {
+  for (const key of ['issueTag', 'nestedIssueTag', 'leafIssueTag'] as const) {
     const supplied = ownDiagnosticData(detail, key);
     const tag = supplied ?? (typeof issue === 'number' ? issue : ownDiagnosticData(issue, '$tag'));
-    if (Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535) record[key] = tag;
+    if (Number.isSafeInteger(tag) && (tag as number) >= 0 && (tag as number) <= 65535) record[key] = tag as number;
     issue = ownDiagnosticData(issue, '_0');
   }
   return record;
 }
 
-export function terminalMockScenario(variant) {
+export function terminalMockScenario(variant: Variant) {
   assert(['terminal-infer', 'terminal-content'].includes(variant));
-  if (variant === 'terminal-infer') return {path: 'terminal.aql', format: 'aql', result: 'updates',
+  if (variant === 'terminal-infer') return {path: 'terminal.aql', format: 'aql' as const, result: 'updates',
     source: `SELECT a.id AS id, a.description AS notes, u.active_users, u.trend
 FROM salesforce.accounts AS a
 JOIN snowflake.usage_30d AS u ON a.id = u.account_id
@@ -82,7 +149,7 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
 |> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
 |> SELECT id, risk
 |> RESULT updates;`, sourceStarts: 2, modelStarts: 2};
-  return {path: 'terminal.program.json', format: 'json', result: 'file', sourceStarts: 0, modelStarts: 0,
+  return {path: 'terminal.program.json', format: 'json' as const, result: 'file', sourceStarts: 0, modelStarts: 0,
     source: JSON.stringify({version: 'actql/0.1', id: 'mock-terminal-content', stages: [{id: 'main', inputs: {},
       steps: [{values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}, {id: 2}]}, as: 'seed'},
         {serialize: {format: 'jsonl', fields: ['id'], name: 'two.jsonl', preserve_order: true,
@@ -91,10 +158,10 @@ JOIN snowflake.usage_30d AS u ON a.id = u.account_id
     results: {file: {from: {stage: 'main', result: 'file'}}}})};
 }
 
-export function checkTerminalMockRows(variant, rows) {
+export function checkTerminalMockRows(variant: Variant, rows: readonly Row[]) {
   terminalMockScenario(variant);
   if (variant === 'terminal-infer') {
-    assert.deepEqual([...rows].sort((a, b) => a.id.localeCompare(b.id)), inferRows);
+    assert.deepEqual([...rows].sort((a, b) => (a.id as string).localeCompare(b.id as string)), inferRows);
     return;
   }
   assert.equal(rows.length, 1);
@@ -104,16 +171,18 @@ export function checkTerminalMockRows(variant, rows) {
   // Independent literal bytes-derived metadata, NOT an actual Store byte read.
   // No issuer/ref/grant is manufactured by this assertion.
   assert.equal(contentBytes.length, 18);
-  assertInstalledFamilyCompleteContent(content,
+  assertInstalledFamilyCompleteContent(content as Content,
     {bytes: contentBytes, mediaType: 'application/x-ndjson', issuerKind: 'content_derivation'});
 }
 
-export function checkTerminalMockSavedRows(variant, rows, originalRows) {
+export function checkTerminalMockSavedRows(variant: Variant, rows: readonly Row[], originalRows: readonly Row[]) {
   checkTerminalMockRows(variant, rows);
   assert.deepEqual(rows, originalRows, 'Saved preserves the complete original rows/envelope, not only Content bytes');
 }
 
-export function assertTerminalMockObservation(value, {variant, phase, pid, capturedPid, fromStarted = false}) {
+export function assertTerminalMockObservation(value: TerminalObservation, {variant, phase, pid, capturedPid, fromStarted = false}: {
+  variant: Variant; phase: Phase; pid: number; capturedPid?: number; fromStarted?: boolean;
+}) {
   const selected = terminalMockScenario(variant);
   assert.equal(value.variant, variant);assert.equal(value.phase, phase);
   assert.equal(value.pid, pid);assert(Number.isSafeInteger(pid) && pid > 0);
@@ -124,12 +193,12 @@ export function assertTerminalMockObservation(value, {variant, phase, pid, captu
   assert.equal(value.resultReads, 1);assert.equal(value.lookupOriginal, true);
   assert.equal(value.originalRefBeforeWait, phase === 'capture');
   assert.equal(value.savedFirst, phase === 'recover');
-  assert.equal(value.workObservation.complete, true);
-  assert.equal(value.workObservation.sourceAcquisitionStarts, phase === 'capture' ? selected.sourceStarts : 0);
-  assert.equal(value.workObservation.modelCallStarts, phase === 'capture' ? selected.modelStarts : 0);
-  assert.equal(value.workObservation.effectReplacementReturns, 0);
+  assert.equal(value.workObservation!.complete, true);
+  assert.equal(value.workObservation!.sourceAcquisitionStarts, phase === 'capture' ? selected.sourceStarts : 0);
+  assert.equal(value.workObservation!.modelCallStarts, phase === 'capture' ? selected.modelStarts : 0);
+  assert.equal(value.workObservation!.effectReplacementReturns, 0);
   if (phase === 'recover') {
-    assert(Number.isSafeInteger(capturedPid) && capturedPid > 0);assert.notEqual(pid, capturedPid);
+    assert(Number.isSafeInteger(capturedPid) && capturedPid! > 0);assert.notEqual(pid, capturedPid);
     assert.equal(value.originalInputsAbsent, true);
     if (fromStarted) {
       assert.equal(variant, 'terminal-infer');
@@ -163,7 +232,12 @@ function terminalContentOperatorAuthorization() {
 
 export async function runTerminalMockWorkflow({phase, variant, handoffPath, connect,
   fromStarted = false, accountScenario = 'default', directory = process.cwd(), createWorkObservation = workflowWorkObservation,
-  observeDescriptors = observeRecordApprovalDescriptors}) {
+  observeDescriptors = observeRecordApprovalDescriptors}: {
+  phase: Phase; variant: Variant; handoffPath: string; connect: Connect;
+  fromStarted?: boolean; accountScenario?: AccountScenario; directory?: string;
+  createWorkObservation?: () => {connection: unknown; snapshot(): WorkObservation};
+  observeDescriptors?: typeof observeRecordApprovalDescriptors;
+}) {
   assert(['capture', 'recover'].includes(phase));
   assert(['default','explicit-operator-content'].includes(accountScenario));
   if (accountScenario !== 'default') assert.equal(variant,'terminal-content');
@@ -171,7 +245,7 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
   if (fromStarted) {assert.equal(phase, 'recover');assert.equal(variant, 'terminal-infer');}
   const selected = terminalMockScenario(variant), state = resolve(directory, '.actql');
   const roots = [state, resolve(directory, 'mock')];
-  const report = {phase, variant, pid: process.pid, status: 'running', complete: false,
+  const report: TerminalObservation = {phase, variant, pid: process.pid, status: 'running', complete: false,
     submits: 0, resultReads: 0, originalRefBeforeWait: false, savedFirst: false, lookupOriginal: false,
     firstClose: {attempted: false, returned: false, calls: 0}};
   const accountLabel = accountScenario === 'default' ? {} : {accountScenario};
@@ -181,16 +255,16 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
   const recordPhase = fromStarted ? 'recover-from-started' : phase;
   if (fromStarted) Object.assign(report, {recoveryOrigin: 'started', originalRowsCompared: false,
     normalCaptureComplete: false, qualification: 'SAME started original Saved only; independent complete rows, not a successful capture handoff'});
-  const save = (path, value, exclusive = false) => writeFile(path, JSON.stringify(value) + '\n',
+  const save = (path: string, value: unknown, exclusive = false) => writeFile(path, JSON.stringify(value) + '\n',
     {mode: 0o600, ...(exclusive ? {flag: 'wx'} : {})});
-  let client, failed = false, primary, closeFailed = false, closeFailure;
+  let client: TerminalClient | undefined, failed = false, primary: unknown, closeFailed = false, closeFailure: unknown;
   const work = createWorkObservation();
   report.originalDiagnostics = [];
-  const observe = (event, detail) => {
+  const observe: DiagnosticObserver = (event, detail) => {
     const selected = terminalMockFailureDiagnostic(event, detail);
     if (selected === undefined) return;
-    if (report.originalDiagnostics.length === 2) {report.diagnosticOverflow = true;return;}
-    report.originalDiagnostics.push(selected);
+    if (report.originalDiagnostics!.length === 2) {report.diagnosticOverflow = true;return;}
+    report.originalDiagnostics!.push(selected);
   };
   try {
     await mkdir(state, {recursive: true});
@@ -214,7 +288,10 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
       assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, run.ref);report.lookupOriginal = true;
       await save(handoffPath, {variant, ref: run.ref, submissionRef, rows, pid: process.pid,...accountLabel}, true);
     } else {
-      const original = JSON.parse(await readFile(handoffPath + (fromStarted ? '.started' : ''), 'utf8'));
+      const original = JSON.parse(await readFile(handoffPath + (fromStarted ? '.started' : ''), 'utf8')) as {
+        variant: Variant; accountScenario?: AccountScenario; ref: unknown; rows: readonly Row[];
+        submissionRef: unknown; pid: number;
+      };
       assert.equal(original.variant, variant);
       assert.equal(original.accountScenario ?? 'default',accountScenario);
       await assert.rejects(access(resolve(directory, selected.path)), {code: 'ENOENT'});
@@ -262,7 +339,8 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
     }
   } catch (cause) {if (!failed) {failed = true;primary = cause;}}
   if (failed || closeFailed) {report.status = 'failed';report.complete = false;}
-  report.code = primary?.code;report.cleanupCode = closeFailure?.code;
+  report.code = (primary as {code?: unknown} | null | undefined)?.code;
+  report.cleanupCode = (closeFailure as {code?: unknown} | null | undefined)?.code;
   try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
   catch (cause) {
     if (!failed && !closeFailed) {failed = true;primary = cause;report.status = 'failed';report.complete = false;}
@@ -277,9 +355,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   // Reuse the existing installed-only public resolver BEFORE any product runs.
   const modules = await realpath(resolve('node_modules'));
   const original = await resolveInstalledCompletionModules(dirname(modules), {observation: true});
-  const {connect} = await import(pathToFileURL(original.node));
+  // Preserve Node's existing URL coercion for the selected installed module.
+  const {connect} = await import(pathToFileURL(original.node) as unknown as string);
   const [selectedPhase, variant, handoffPath, accountScenario = 'default'] = process.argv.slice(2);
   const fromStarted = selectedPhase === 'recover-from-started', phase = fromStarted ? 'recover' : selectedPhase;
-  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase, variant, handoffPath, connect, fromStarted, accountScenario})));}
-  catch (cause) {if (cause.observation) console.log(JSON.stringify(cause.observation));throw cause;}
+  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase: phase as Phase, variant: variant as Variant, handoffPath, connect, fromStarted, accountScenario: accountScenario as AccountScenario})));}
+  catch (cause) {if ((cause as {observation?: unknown}).observation) console.log(JSON.stringify((cause as {observation?: unknown}).observation));throw cause;}
 }
