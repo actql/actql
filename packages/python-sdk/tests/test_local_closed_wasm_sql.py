@@ -188,7 +188,8 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 (store.namespaced_key('probe', 'row'),))
             return 0
 
-        for export in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk'):
+        for export in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
+                       'observe_sdk_terminal'):
             with self.subTest(export=export):
                 core, binding, store, _ = self.fixture(effect=effect, census_export=export)
                 with self.assertRaises(LocalStorageError):
@@ -208,6 +209,23 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 actual = []
                 binding.inspect(lambda _: actual.append(
                     LocalCore._call(core, 'publication_commit_export', export, effect, 1)))
+                self.assertEqual(actual, [expected])
+                self.assertIsNone(binding._observed_reader)
+                self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_terminal_census_proof_stays_in_the_committed_readback(self):
+        for export, effect, legacy, negotiate, expected in (
+                ('observe_sdk_terminal', 0, False, 1, 11),
+                ('observe_sdk_terminal', 1, False, 1, 10),
+                ('observe_sdk_terminal', 0, True, 1, 0),
+                ('observe_sdk_terminal', 0, False, 0, 0),
+                ('produce_sdk_terminal_storage', 0, False, 1, 0)):
+            with self.subTest(export=export, effect=effect, legacy=legacy, negotiate=negotiate):
+                core, binding, store, _ = self.fixture(census_export=export,
+                                                      legacy_census_supplier=legacy)
+                actual = []
+                binding.inspect(lambda _: actual.append(
+                    LocalCore._call(core, 'publication_commit_export', export, effect, negotiate)))
                 self.assertEqual(actual, [expected])
                 self.assertIsNone(binding._observed_reader)
                 self.assertIsNone(store._connection._closed_invocation)

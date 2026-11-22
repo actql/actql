@@ -213,6 +213,7 @@ class _InvocationObservation:
                 and self.wasm_export[1] in (
                     'actql_publication_commit_export_prepare_sdk_payload_input',
                     'actql_publication_commit_export_produce_sdk_payload_chunk',
+                    'actql_publication_commit_export_observe_sdk_terminal',
                 )
                 and self.admitted and self.closed_import and not self.suspended and not self.effect_seen)
 

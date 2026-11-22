@@ -15044,7 +15044,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -15067,6 +15067,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
               }
             ]
           }
@@ -28715,7 +28719,7 @@
           ]
         }
       ],
-      "sha256": "169113055d4af4852480334e71abb24d414540cf063f6525bf6664a0a5d7d8e4",
+      "sha256": "310b270af89885a49d29938aafaa0080674d5fbc490b11f66529f11e6b0d4bf9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29148,7 +29152,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -29247,6 +29251,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
               }
             ]
           }
@@ -80664,7 +80672,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "Incremental Saved payload input preparation and chunk production each begin"
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -80695,6 +80703,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
               }
             ]
           }
