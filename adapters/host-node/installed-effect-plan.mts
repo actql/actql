@@ -299,7 +299,7 @@ export function prepareInstalledEffectControlConstruction(run: Run) {
   };
   // The original SQLite history reader invokes this before materializing its
   // same-transaction rows. It extends the active frame, never another owner.
-  const ledgerHistory = (count: number, wireUnits: number) => {
+  const ledgerHistory = (count: number, wireUnits: number): undefined => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking || historyWorking) fail('InstalledEffectControlConstructionPending');

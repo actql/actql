@@ -103317,7 +103317,7 @@
     {
       "module": "adapters/host-node/sqlite-effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e575bc16a5ea9611f32a636ce80ddbf208ae3a22714b184201e869c53c34ea1b",
+      "sha256": "f11c8ddf4a813dbb8fafa1ee696a2450a84c1f675f7c0df35b4c7cc9642ec891",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -103643,8 +103643,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "export function openSqliteEffectLedger(root, {"
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
+                "anchor": "export function openSqliteEffectLedger(root: string, {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -103661,8 +103661,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "export function openSqliteEffectLedger(root, {"
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
+                "anchor": "export function openSqliteEffectLedger(root: string, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103689,7 +103689,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "closeSync,"
               },
               {
@@ -103707,7 +103707,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103721,7 +103721,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103735,7 +103735,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "closeSync,"
               },
               {
@@ -103827,8 +103827,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "export function openSqliteEffectLedger(root, {"
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
+                "anchor": "export function openSqliteEffectLedger(root: string, {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -103841,8 +103841,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
-                "anchor": "export function openSqliteEffectLedger(root, {"
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
+                "anchor": "export function openSqliteEffectLedger(root: string, {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -103869,7 +103869,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "closeSync,"
               },
               {
@@ -103883,7 +103883,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103897,7 +103897,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
               },
               {
@@ -103911,7 +103911,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.mts",
                 "anchor": "closeSync,"
               },
               {

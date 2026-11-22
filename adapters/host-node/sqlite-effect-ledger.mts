@@ -14,9 +14,55 @@ import {batchResponseDigest, cid, count, fail, initializeEffectLedgerStorage,
   outcomeDigest, physicalDigest, responseDigest, sha256Hex} from './sqlite-effect-ledger-storage.mjs';
 import {prepareSqliteEffectLedgerReads} from './sqlite-effect-ledger-reads.mjs';
 
+import type {StatementSync} from 'node:sqlite';
+
+type SqliteRow = NonNullable<ReturnType<StatementSync['get']>>;
+type SqliteFailure = Readonly<{code?: unknown; errcode?: unknown}>;
+type LedgerReads = ReturnType<typeof prepareSqliteEffectLedgerReads>;
+type BatchEvidence = NonNullable<ReturnType<LedgerReads['materializeBatchResponse']>>;
+
+type LedgerOptions = Readonly<{
+  authorityScopeCid: string;
+  maxEntries?: number;
+  maxEntryBytes?: number;
+  maxResponseBytes?: number;
+  maxReadResponseBytes?: number;
+  maxStoredBytes?: number;
+  beforeHistoryRead?: (count: number, wireUnits: number) => undefined;
+}>;
+type ItemBinding = Readonly<{
+  logicalRequestScopeCid: string;
+  logicalItemLocatorCid: string;
+}>;
+type ResponseMember = Readonly<{logicalItemLocatorCid: string; dispatchEntryCid: string}>;
+type ResponseBody = Readonly<{
+  logicalRequestScopeCid: string;
+  credentialUseCid: string;
+  statusCode: number;
+  responseBytes: Uint8Array;
+}>;
+type StoredOutcome = ItemBinding & Readonly<{
+  dispatchEntryCid: string;
+  responsePhysicalSha256: string;
+  outcomeCid: string;
+  outcomeJson: string;
+  batchEvidence?: BatchEvidence;
+  singleOnly?: boolean;
+}>;
+type EntryBody = Readonly<{entryCid: string; entryJson: string}>;
+type AppendEntry = ItemBinding & EntryBody & Readonly<{expectedRevision: number}>;
+type AppendOperation = ItemBinding & Readonly<{
+  expectedRevision: number;
+  expectedEntryCid: string | null;
+  entries: readonly EntryBody[];
+}>;
+type Cursor = Readonly<{entryCid: string; generation: string; revision: number}>;
+type ScopePage = Readonly<{after?: string | null; maxItems?: number; maxWireBytes?: number}>;
+type HistoryPage = Readonly<{after?: Cursor | null; maxEntries?: number; maxWireBytes?: number}>;
+
 // Stores the exact canonical ledger-entry bytes and CAS head pointers. It
 // neither constructs CIDs nor decides Effect transitions or retry authority.
-export function openSqliteEffectLedger(root, {
+export function openSqliteEffectLedger(root: string, {
   authorityScopeCid,
   maxEntries = 100_000,
   maxEntryBytes = 1_048_576,
@@ -29,7 +75,7 @@ export function openSqliteEffectLedger(root, {
   // The existing caller grows its active control before a whole, bounded
   // original history materializes. This callback supplies no read authority.
   beforeHistoryRead,
-} = {}) {
+}: Partial<LedgerOptions> = {}) {
   if (typeof root !== 'string' || root.length === 0 ||
       !cid(authorityScopeCid) || !count(maxEntries) || maxEntries === 0 ||
       !count(maxEntryBytes) || maxEntryBytes === 0 ||
@@ -55,7 +101,7 @@ export function openSqliteEffectLedger(root, {
   const transaction = createSqliteTransaction(database, 'EffectLedger');
   let closed = false;
   let databaseClosed = false;
-  let usage;
+  let usage: ReturnType<typeof initializeEffectLedgerStorage>;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
@@ -79,7 +125,7 @@ export function openSqliteEffectLedger(root, {
     throwSqliteInitializationFailure(database, error, 'effect_ledger');
   }
   try {
-  const active = () => {
+  const active = (): undefined => {
     if (closed) fail('EffectLedgerClosed');
     transaction.assertUsable();
   };
@@ -94,7 +140,7 @@ export function openSqliteEffectLedger(root, {
     current,
     // One SQLite read transaction gives every member the same durable head
     // snapshot. A missing head remains distinct from an unknown dispatch.
-    currentSnapshot(locatorCids) {
+    currentSnapshot(locatorCids: readonly string[]) {
       active();
       if (!Array.isArray(locatorCids) || locatorCids.length > maxEntries ||
           locatorCids.some(value => !cid(value)) ||
@@ -113,7 +159,7 @@ export function openSqliteEffectLedger(root, {
       }
     },
     response,
-    dispatchForLocator(locatorCid) {
+    dispatchForLocator(locatorCid: unknown) {
       active();
       if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
       return uniqueLocatorDispatch(locatorCid,
@@ -121,7 +167,7 @@ export function openSqliteEffectLedger(root, {
     },
     responseForLocator,
     outcome,
-    outcomeForLocator(locatorCid, batchEvidence, singleOnly = false) {
+    outcomeForLocator(locatorCid: unknown, batchEvidence?: BatchEvidence, singleOnly = false) {
       active();
       if (!cid(locatorCid) || typeof singleOnly !== 'boolean') fail('InvalidEffectItemLocator');
       if (batchEvidence !== undefined &&
@@ -144,7 +190,7 @@ export function openSqliteEffectLedger(root, {
     // MoonBit issuer must bind and classify the stored response before use.
     recordOutcome({logicalRequestScopeCid, logicalItemLocatorCid,
       dispatchEntryCid, responsePhysicalSha256, outcomeCid, outcomeJson,
-      batchEvidence, singleOnly = false}) {
+      batchEvidence, singleOnly = false}: StoredOutcome) {
       active();
       if (!cid(logicalRequestScopeCid) ||
           !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
@@ -177,8 +223,8 @@ export function openSqliteEffectLedger(root, {
           : observed.batchMembers.some(member =>
             member.dispatchEntryCid === dispatchEntryCid &&
             member.logicalItemLocatorCid === logicalItemLocatorCid)) ||
-            observed.logicalRequestScopeCid !== logicalRequestScopeCid ||
-            observed.responsePhysicalSha256 !== responsePhysicalSha256) {
+            observed!.logicalRequestScopeCid !== logicalRequestScopeCid ||
+            observed!.responsePhysicalSha256 !== responsePhysicalSha256) {
           fail('EffectPhysicalResponseNotOwned');
         }
         const existing = batchEvidence === undefined
@@ -216,8 +262,8 @@ export function openSqliteEffectLedger(root, {
             logicalRequestScopeCid, responsePhysicalSha256, outcomeCid,
             outcomeJson, outcomeDigest(record));
         } catch (error) {
-          if (error.code === 'ERR_SQLITE_ERROR' &&
-              (error.errcode === 2067 || error.errcode === 1555)) {
+          if ((error as SqliteFailure).code === 'ERR_SQLITE_ERROR' &&
+              ((error as SqliteFailure).errcode === 2067 || (error as SqliteFailure).errcode === 1555)) {
             fail('EffectPhysicalOutcomeCollision');
           }
           throw error;
@@ -230,7 +276,7 @@ export function openSqliteEffectLedger(root, {
       });
     },
     recordResponse({logicalRequestScopeCid, logicalItemLocatorCid,
-      dispatchEntryCid, credentialUseCid, statusCode, responseBytes}) {
+      dispatchEntryCid, credentialUseCid, statusCode, responseBytes}: ResponseBody & ResponseMember) {
       active();
       if (!cid(logicalRequestScopeCid) ||
           !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
@@ -303,7 +349,7 @@ export function openSqliteEffectLedger(root, {
       });
     },
     recordBatchResponse({logicalRequestScopeCid, credentialUseCid,
-      statusCode, responseBytes, members}) {
+      statusCode, responseBytes, members}: ResponseBody & Readonly<{members: readonly ResponseMember[]}>) {
       active();
       if (!cid(logicalRequestScopeCid) || !cid(credentialUseCid) ||
           !count(statusCode) || statusCode < 100 || statusCode > 599 ||
@@ -314,9 +360,9 @@ export function openSqliteEffectLedger(root, {
           members.length > maxEntries) {
         fail('InvalidEffectPhysicalBatchResponse');
       }
-      const seenLocators = new Set();
-      const seenDispatches = new Set();
-      const indexed = members.map((member, position) => {
+      const seenLocators = new Set<string>();
+      const seenDispatches = new Set<string>();
+      const indexed = members.map((member: ResponseMember, position: number) => {
         if (!cid(member?.logicalItemLocatorCid) ||
             !cid(member.dispatchEntryCid) ||
             seenLocators.has(member.logicalItemLocatorCid) ||
@@ -406,7 +452,7 @@ export function openSqliteEffectLedger(root, {
       expectedRevision,
       entryCid,
       entryJson,
-    }) {
+    }: AppendEntry) {
       active();
       if (!cid(logicalRequestScopeCid) ||
           !cid(logicalItemLocatorCid) || !cid(entryCid) ||
@@ -424,9 +470,9 @@ export function openSqliteEffectLedger(root, {
           fail('EffectLedgerAuthorityMismatch');
         }
         if (revision === expectedRevision + 1 &&
-            head.entry_cid === entryCid) {
+            head!.entry_cid === entryCid) {
           const existing = current(logicalItemLocatorCid);
-          if (existing.entryJson !== entryJson) {
+          if (existing!.entryJson !== entryJson) {
             fail('EffectLedgerEntryCollision');
           }
           return Object.freeze({entry: existing, created: false});
@@ -454,8 +500,8 @@ export function openSqliteEffectLedger(root, {
           `).run(logicalItemLocatorCid, nextRevision, entryCid,
             entryJson, physicalDigest(entryJson));
         } catch (error) {
-          if (error.code === 'ERR_SQLITE_ERROR' &&
-              (error.errcode === 2067 || error.errcode === 1555)) {
+          if ((error as SqliteFailure).code === 'ERR_SQLITE_ERROR' &&
+              ((error as SqliteFailure).errcode === 2067 || (error as SqliteFailure).errcode === 1555)) {
             fail('EffectLedgerEntryCollision');
           }
           throw error;
@@ -487,13 +533,13 @@ export function openSqliteEffectLedger(root, {
     // Atomically advance every row covered by one physical request. The
     // caller has already admitted each typed transition in MoonBit; this
     // adapter only fences heads and reserves the aggregate physical storage.
-    appendBatch(operations) {
+    appendBatch(operations: readonly AppendOperation[]) {
       active();
-      if (!Array.isArray(operations) || operations.length === 0 ||
+      if (!(Array.isArray(operations) as boolean) || operations.length === 0 ||
           operations.length > maxEntries) {
         fail('InvalidEffectLedgerBatch');
       }
-      const seen = new Set();
+      const seen = new Set<string>();
       let additionalEntries = 0;
       let additionalBytes = 0;
       for (const operation of operations) {
@@ -552,7 +598,7 @@ export function openSqliteEffectLedger(root, {
               entry.entryJson, physicalDigest(entry.entryJson));
             usage.add(1, 0, entry.entryJson);
           }
-          const lastCid = operation.entries.at(-1).entryCid;
+          const lastCid = operation.entries.at(-1)!.entryCid;
           if (operation.expectedRevision === 0) {
             database.prepare(`
               INSERT INTO effect_ledger_heads (
@@ -578,7 +624,7 @@ export function openSqliteEffectLedger(root, {
     },
     // Discover a bounded set of current streams from this existing request
     // scope. Locator ordering is only an inventory order, never event order.
-    currentScopePage(scopeCid,{after=null,maxItems,maxWireBytes}={}) {
+    currentScopePage(scopeCid: unknown,{after=null,maxItems,maxWireBytes}: ScopePage={}) {
       active();
       if (!cid(scopeCid) || after !== null && !cid(after) || !count(maxItems) || maxItems < 1 ||
           maxItems > 5 || !count(maxWireBytes) || maxWireBytes < 1) fail('InvalidEffectLedgerScopePage');
@@ -597,7 +643,7 @@ export function openSqliteEffectLedger(root, {
             !count(row.revision) || row.revision < 1 || !count(row.wire_bytes) || row.wire_bytes > nativeTextBytes)) {
           fail('EffectLedgerIntegrityFailed');
         }
-        if (selected.reduce((total,row)=>total+row.wire_bytes,0) > maxWireBytes) {
+        if (selected.reduce((total,row)=>total+(row.wire_bytes as number),0) > maxWireBytes) {
           return Object.freeze({kind:'limit_exceeded'});
         }
         const entries=selected.map(row=>{
@@ -610,8 +656,8 @@ export function openSqliteEffectLedger(root, {
     },
     // Page the existing append-only chain. This is an Owner-local read
     // transaction, not a composite snapshot or authority to resend an Effect.
-    historyPage(locatorCid, {after = null, maxEntries: pageEntries,
-      maxWireBytes} = {}) {
+    historyPage(locatorCid: unknown, {after = null, maxEntries: pageEntries,
+      maxWireBytes}: HistoryPage = {}) {
       active();
       if (!cid(locatorCid) || !count(pageEntries) || pageEntries === 0 ||
           pageEntries > Math.min(maxEntries, 1000) || !count(maxWireBytes) || maxWireBytes === 0 ||
@@ -630,7 +676,7 @@ export function openSqliteEffectLedger(root, {
             !cid(head.entry_cid) || !cid(head.logical_request_scope_cid)) {
           fail('EffectLedgerIntegrityFailed');
         }
-        const metadata = revision => database.prepare(`
+        const metadata = (revision: number) => database.prepare(`
           SELECT revision, entry_cid, length(CAST(entry_json AS BLOB)) AS wire_bytes
           FROM effect_ledger_entries WHERE logical_item_locator_cid = ? AND revision = ?
         `).get(locatorCid, revision);
@@ -643,7 +689,7 @@ export function openSqliteEffectLedger(root, {
             position > head.revision)) return Object.freeze({kind:'cursor_mismatch'});
         const previous = position === 0 ? null : metadata(position);
         if (position !== 0 && !previous) fail('EffectLedgerIntegrityFailed');
-        if (previous !== null && previous.entry_cid !== after.entryCid) {
+        if (previous !== null && previous!.entry_cid !== after!.entryCid) {
           return Object.freeze({kind:'cursor_mismatch'});
         }
         // Inspect byte counts before materializing entry strings. Do not
@@ -656,24 +702,24 @@ export function openSqliteEffectLedger(root, {
         if (rows.length !== Math.min(pageEntries, head.revision - position) ||
             rows.some((row, index) => row.revision !== position + index + 1 ||
               !cid(row.entry_cid) || !count(row.wire_bytes) || row.wire_bytes > nativeTextBytes) ||
-            previous !== null && (!count(previous.wire_bytes) || previous.wire_bytes > nativeTextBytes)) {
+            previous !== null && (!count(previous!.wire_bytes) || previous!.wire_bytes > nativeTextBytes)) {
           fail('EffectLedgerIntegrityFailed');
         }
-        const bytes = rows.reduce((total, row) => total + row.wire_bytes,
-          previous?.wire_bytes ?? 0);
+        const bytes = rows.reduce((total, row) => total + (row.wire_bytes as number),
+          (previous?.wire_bytes as number | undefined) ?? 0);
         if (bytes > maxWireBytes) return Object.freeze({kind:'limit_exceeded'});
-        const load = row => {
+        const load = (row: SqliteRow) => {
           const entry = materialize(readEntry.get(locatorCid, row.revision), head.logical_request_scope_cid);
           if (entry.entryCid !== row.entry_cid) fail('EffectLedgerIntegrityFailed');
           return entry;
         };
         return Object.freeze({kind:'page', generation:first.entry_cid,
           head:Object.freeze({revision:head.revision, entryCid:head.entry_cid}),
-          previous:previous === null ? null : load(previous),
+          previous:previous === null ? null : load(previous!),
           entries:Object.freeze(rows.map(load))});
       });
     },
-    history(locatorCid, maxRevisions) {
+    history(locatorCid: unknown, maxRevisions: number) {
       active();
       if (!cid(locatorCid) || !count(maxRevisions) || maxRevisions === 0 ||
           maxRevisions > maxEntries) {
@@ -703,7 +749,7 @@ export function openSqliteEffectLedger(root, {
               ORDER BY revision ASC LIMIT ?
             )
           )
-        `).get(locatorCid, BigInt(maxEntries) + 1n);
+        `).get(locatorCid, BigInt(maxEntries) + 1n)!;
         if (!count(geometry.entries) || !count(geometry.wire_bytes) ||
             geometry.entries !== head.revision) fail('EffectLedgerIntegrityFailed');
         const wireUnits = geometry.wire_bytes / Number(nativeTextUnitBytes);
