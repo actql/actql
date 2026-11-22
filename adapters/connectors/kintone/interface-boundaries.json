@@ -9036,10 +9036,11 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "15a138edc077b23b9870ad6f513ba0e23f13378e2287e3b912ba2c09a471ac5f",
+      "sha256": "6c0d073a66417e93452f68584bc5549e99d7d39b87135fad58aa333760cda994",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
+        "kintoneDeleteDriver",
         "kintoneUpdateDriver"
       ],
       "operations": [
@@ -9051,31 +9052,14 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver",
+          "name": "kintoneDeleteDriver",
           "parameters": [
-            "moon",
-            "site",
-            "authorization",
-            "connection",
-            "origin",
-            "appId",
-            "connectorId",
-            "resource",
-            "formResource",
-            "fields",
-            "mapping",
-            "declaration",
-            "siteBindingCid",
-            "generationCid",
-            "guestSpaceId",
-            "limits",
-            "maxMembers",
-            "maxRecoveryBytes"
+            "options"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+          "name": "kintoneRecordMutationDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
           "parameters": [
             "member",
             "decision"
@@ -9083,62 +9067,42 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:describe/init:describe",
+          "name": "kintoneRecordMutationDriver/init:describe/init:describe",
           "parameters": [
             "options"
           ],
           "async": true
         },
         {
-          "name": "kintoneUpdateDriver/init:footprint/init:footprint",
+          "name": "kintoneRecordMutationDriver/init:footprint/init:footprint",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
+          "name": "kintoneRecordMutationDriver/init:observeTargets/init:observeTargets",
           "parameters": [
             "options"
           ],
           "async": true
         },
         {
-          "name": "kintoneUpdateDriver/init:observeTargets/init:observeTargets/observed/observed",
+          "name": "kintoneRecordMutationDriver/init:observeTargets/init:observeTargets/observed/observed",
           "parameters": [
             "response"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:prepareRequest/init:prepareRequest",
+          "name": "kintoneRecordMutationDriver/init:prepareRequest/init:prepareRequest",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
-          "parameters": [
-            "member",
-            "request",
-            "current",
-            "resourceOrigin",
-            "registration",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:project/init:project",
-          "parameters": [
-            "request",
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
+          "name": "kintoneRecordMutationDriver/init:recheckRequests/init:recheckRequests",
           "parameters": [
             "member",
             "entries",
@@ -9147,7 +9111,7 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+          "name": "kintoneRecordMutationDriver/init:recoveryEntry/init:recoveryEntry",
           "parameters": [
             "member",
             "current",
@@ -9156,7 +9120,7 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/kintoneUpdateDriver",
+          "name": "kintoneRecordMutationDriver/kintoneRecordMutationDriver",
           "parameters": [
             "name",
             "index"
@@ -9164,14 +9128,14 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope/decision/decision",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/decision/decision",
           "parameters": [
             "slot"
           ],
           "async": true
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope/readScope",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/readScope",
           "parameters": [
             "slot",
             "body",
@@ -9181,31 +9145,36 @@
           "async": true
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/readScope/consume/consume",
           "parameters": [
             "response"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/readScope/input/input",
           "parameters": [],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/readScope/prepareOperations/prepareOperations",
           "parameters": [],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/restore/restore",
+          "name": "kintoneRecordMutationDriver/readScope/readScope/readScope/value/value",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "kintoneRecordMutationDriver/restore/restore",
           "parameters": [
             "context"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/restore/restore/restore",
+          "name": "kintoneRecordMutationDriver/restore/restore/restore",
           "parameters": [
             "recorded",
             "members",
@@ -9217,17 +9186,64 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/restore/restore/restore/restore",
+          "name": "kintoneRecordMutationDriver/restore/restore/restore/restore",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/restore/restore/restore/restore#2",
+          "name": "kintoneRecordMutationDriver/restore/restore/restore/restore#2",
           "parameters": [
             "wire",
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneRecordMutationDriver/write/init:prepareUpdateWrite/init:prepareUpdateWrite",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "resourceOrigin",
+            "registration",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneRecordMutationDriver/write/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneRecordMutationDriver/write/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver",
+          "parameters": [
+            "options"
           ],
           "async": false
         },
@@ -9273,32 +9289,37 @@
         {
           "operations": [
             "<module>",
-            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
             "capture/capture/capture",
+            "kintoneDeleteDriver",
+            "kintoneRecordMutationDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+            "kintoneRecordMutationDriver/init:describe/init:describe",
+            "kintoneRecordMutationDriver/init:footprint/init:footprint",
+            "kintoneRecordMutationDriver/init:observeTargets/init:observeTargets",
+            "kintoneRecordMutationDriver/init:observeTargets/init:observeTargets/observed/observed",
+            "kintoneRecordMutationDriver/init:prepareRequest/init:prepareRequest",
+            "kintoneRecordMutationDriver/init:recheckRequests/init:recheckRequests",
+            "kintoneRecordMutationDriver/init:recoveryEntry/init:recoveryEntry",
+            "kintoneRecordMutationDriver/kintoneRecordMutationDriver",
+            "kintoneRecordMutationDriver/readScope/readScope/decision/decision",
+            "kintoneRecordMutationDriver/readScope/readScope/readScope",
+            "kintoneRecordMutationDriver/readScope/readScope/readScope/consume/consume",
+            "kintoneRecordMutationDriver/readScope/readScope/readScope/input/input",
+            "kintoneRecordMutationDriver/readScope/readScope/readScope/prepareOperations/prepareOperations",
+            "kintoneRecordMutationDriver/readScope/readScope/readScope/value/value",
+            "kintoneRecordMutationDriver/restore/restore",
+            "kintoneRecordMutationDriver/restore/restore/restore",
+            "kintoneRecordMutationDriver/restore/restore/restore/restore",
+            "kintoneRecordMutationDriver/write/init:prepareUpdateWrite/init:prepareUpdateWrite",
+            "kintoneRecordMutationDriver/write/init:project/init:project",
+            "kintoneRecordMutationDriver/write/init:send/init:send",
+            "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation",
             "kintoneUpdateDriver",
-            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
-            "kintoneUpdateDriver/init:describe/init:describe",
-            "kintoneUpdateDriver/init:footprint/init:footprint",
-            "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
-            "kintoneUpdateDriver/init:observeTargets/init:observeTargets/observed/observed",
-            "kintoneUpdateDriver/init:prepareRequest/init:prepareRequest",
-            "kintoneUpdateDriver/init:prepareUpdateWrite/init:prepareUpdateWrite",
-            "kintoneUpdateDriver/init:project/init:project",
-            "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
-            "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
-            "kintoneUpdateDriver/kintoneUpdateDriver",
-            "kintoneUpdateDriver/readScope/readScope/decision/decision",
-            "kintoneUpdateDriver/readScope/readScope/readScope",
-            "kintoneUpdateDriver/readScope/readScope/readScope/consume/consume",
-            "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
-            "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
-            "kintoneUpdateDriver/restore/restore",
-            "kintoneUpdateDriver/restore/restore/restore",
-            "kintoneUpdateDriver/restore/restore/restore/restore"
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "KINTONE_UPDATE_TARGET_VERSION",
             "KintoneUpdateObservationFailure",
+            "kintoneDeleteDriver",
             "kintoneUpdateDriver"
           ],
           "attributes": {
@@ -9312,6 +9333,10 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "UPDATE inputs and outputs:"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The row driver shares the Form and current target checks."
               }
             ],
             "identity": [
@@ -9360,13 +9385,17 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "UPDATE verification:"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
+                "anchor": "kintone DELETE driver keeps the original reads and issues one conditional write under its exact grant"
               }
             ]
           }
         },
         {
           "operations": [
-            "kintoneUpdateDriver/restore/restore/restore/restore#2",
+            "kintoneRecordMutationDriver/restore/restore/restore/restore#2",
             "sameRecord/sameRecord/sameRecord",
             "sameRecord/sameRecord/sameRecord/sameRecord"
           ],

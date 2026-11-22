@@ -330,6 +330,13 @@ before data and conditional DELETE body from that one record and its revision.
 - The compiled-runtime controls verify exact selector, revision and before
   data, changed input refusal and same-tag reconstruction from Saved data.
 
+The row driver shares the Form and current target checks. It constructs the
+target operations inside the original credential child. After the Host
+admits a DELETE write, the driver sends the original conditional body once
+through that scoped credential, using the existing POST method override.
+Recovery requires the approved absent state, exact target and original claim
+CID before returning reconstructed request data to the Host.
+
 ### Original key lookup physical boundary
 
 - Responsibility: `kintone-key-lookup.mjs` borrows the existing Account,
