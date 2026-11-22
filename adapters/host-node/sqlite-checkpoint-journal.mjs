@@ -548,7 +548,7 @@ export function openSqliteCheckpointJournal(root, {
   };
   modelCalls = createModelResumeState(database, {
     verifier: modelResumeVerifier, transaction, alive, now, iso, fault,
-    admissionLocked, confirmEntryGrant,
+    admissionLocked, confirmEntryGrant, fenced,
     checkpoint: reference => statements.checkpoint.get(reference),
     run: runId => statements.run.get(runId),
   });
@@ -1852,15 +1852,17 @@ export function openSqliteCheckpointJournal(root, {
       if (!Number.isSafeInteger(leaseMs) || leaseMs <= 0) fail('InvalidLease');
       const at = now();
       return transaction.run(() => {
-        const intent = statements.intentById.get(claim?.intentId ?? '');
-        if (intent === undefined) fail('ResumeClaimStale');
-        const fence = core(runtime.resumeFenceDecide(intentView(intent),
-          claim.claimant, claim.generation, at), 'ResumeClaimStale');
-        if (fence.action !== 'current') fail('ResumeClaimStale');
+        const intent = fenced(claim, at);
         changed(statements.renewIntent.run(at + leaseMs, intent.intent_id,
           claim.generation, claim.claimant), 'ResumeClaimStale');
         return Object.freeze({...claim, leaseExpiresMs: at + leaseMs});
       });
+    },
+
+    // The same original lease fence, observed without updating its row.
+    assertResumeClaimCurrent(claim) {
+      alive();
+      transaction.run(() => { fenced(claim, now()); });
     },
 
     // Committed resume state of one Checkpoint, read from journal rows only:
@@ -2287,7 +2289,7 @@ export function openSqliteCheckpointJournal(root, {
 
   // Only the current, unexpired claimant may complete an intent.
   function fenced(claim, at) {
-    const intent = statements.intentById.get(claim.intentId);
+    const intent = statements.intentById.get(claim?.intentId ?? '');
     if (intent === undefined) fail('ResumeClaimStale');
     const fence = core(runtime.resumeFenceDecide(intentView(intent),
       claim.claimant, claim.generation, at), 'ResumeClaimStale');
