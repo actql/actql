@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "d0e0dd21c38dd3c6c0cf0dc891c62a6f632d5fe1f91480b2716ceb283fa49b17",
+      "sha256": "9eb62522f8f7ad7d8165bcc7f8703329ab920306e656874ad439ce33ccfd00c5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -135052,6 +135052,13 @@
           "async": false
         },
         {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
           "name": "finishInstalledSourceInitialization",
           "parameters": [
             "context",
@@ -135065,13 +135072,6 @@
           "name": "freezeSourceProjection",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectInstalledTableConstruction",
-          "parameters": [
-            "profile"
           ],
           "async": false
         },
@@ -135264,11 +135264,6 @@
           "async": false
         },
         {
-          "name": "installedTableReaderConstruction/facts/facts",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "isInstalledSourceInitializationRetired",
           "parameters": [
             "services"
@@ -135363,8 +135358,17 @@
           "async": true
         },
         {
-          "name": "reserveInstalledTableConstruction/facts/facts",
-          "parameters": [],
+          "name": "reserveSource",
+          "parameters": [
+            "original",
+            "material",
+            "nodes",
+            "text",
+            "wire",
+            "workspace",
+            "retained",
+            "pendingProvider"
+          ],
           "async": false
         },
         {
@@ -135412,6 +135416,16 @@
           "name": "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
           "parameters": [
             "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceCall",
+          "parameters": [
+            "original",
+            "material",
+            "name",
+            "args"
           ],
           "async": false
         },
@@ -135474,6 +135488,7 @@
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-construction-geometry.mjs",
+        "./installed-source-physical-construction.mjs",
         "./installed-table-effect.mjs",
         "./installed-table-source.mjs",
         "./source-profile-json.mjs",
@@ -135506,16 +135521,13 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
-            "inspectInstalledTableConstruction",
             "installedSourceConfigurationReader/profileConstruction/profileConstruction/init:inspect/init:inspect",
             "installedSourceConfigurationReader/profileConstruction/profileConstruction/invoke/invoke/invoke",
             "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction",
             "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
             "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
             "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
-            "installedTableReaderConstruction/facts/facts",
             "readInstalledSourceAcquisitionContract",
-            "reserveInstalledTableConstruction/facts/facts",
             "retainCompletedSourceJson/retainCompletedSourceJson",
             "retainInstalledHostServiceInstallation"
           ],
@@ -136188,7 +136200,10 @@
             "sourceIo/io/init:finish/init:finish",
             "sourceIo/io/init:uncertain/init:uncertain",
             "sourceProjectionMethods/sourceProjectionMethods",
-            "withInstalledSourceLoading"
+            "withInstalledSourceLoading",
+            "fail/fail",
+            "reserveSource",
+            "sourceCall"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -137185,6 +137200,201 @@
         }
       ],
       "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
+    },
+    {
+      "module": "adapters/host-node/installed-source-physical-construction.mjs",
+      "sha256": "7a8ea4cbb450926c482593f054437b9379c25f3787e8e317e52d27363174058d",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "createInstalledSourcePhysicalConstruction"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledSourcePhysicalConstruction",
+          "parameters": [
+            "fail",
+            "sourceCall",
+            "reserveSource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/inspectInstalledTableConstruction",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/installedTableReaderConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile",
+            "construction",
+            "bridge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/installedTableReaderConstruction/facts/facts",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/reserveInstalledDuckDBConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/reserveInstalledTableConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePhysicalConstruction/reserveInstalledTableConstruction/facts/facts",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledSourcePhysicalConstruction",
+            "createInstalledSourcePhysicalConstruction/inspectInstalledTableConstruction",
+            "createInstalledSourcePhysicalConstruction/installedTableReaderConstruction",
+            "createInstalledSourcePhysicalConstruction/installedTableReaderConstruction/facts/facts",
+            "createInstalledSourcePhysicalConstruction/reserveInstalledDuckDBConstruction",
+            "createInstalledSourcePhysicalConstruction/reserveInstalledTableConstruction",
+            "createInstalledSourcePhysicalConstruction/reserveInstalledTableConstruction/facts/facts"
+          ],
+          "exports": [
+            "createInstalledSourcePhysicalConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "export function createInstalledSourcePhysicalConstruction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "function inspectInstalledTableConstruction"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "function installedTableReaderConstruction"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "function reserveInstalledDuckDBConstruction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "Reflect.apply(field!.value as InspectSelector, bridge"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "createInstalledSourcePhysicalConstruction({fail, sourceCall, reserveSource})"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "material.inputs.push(profile, environment);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "nodeTypes.isAsyncFunction(field.value)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "construction!.inspect(() => inspectInstalledTableConstruction(profile))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "fail('InvalidInstalledSourceProfileConstruction')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "fail('InstalledTableSourceConstructionUnavailable')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These synchronous construction inspections and reservations keep their Host current and cleanup owners at the calling boundary."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "serializerText += syntax * (depth + 1n);"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "reserveSource(original, material, allNodes, allText, allWire);"
+              },
+              {
+                "path": "adapters/host-node/installed-source-physical-construction.mts",
+                "anchor": "reserveSource(original, material, nodes, text, wire);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "const readerProfileCapacity = installedTableReaderConstruction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "Local table129 target inventory uses the same real initial constructor before any Python read"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "builtin bound Source reserves original construction before"
+              }
+            ]
+          }
+        }
+      ],
+      "rationale": "The original standard Host service owns the retained construction inventory, first-reader inspection and DuckDB construction peak for its existing installation. This helper keeps the same reservation ports and Source material."
     },
     {
       "module": "src/physical_resources/ledger_accounting.generated.mbt",

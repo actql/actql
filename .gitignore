@@ -1201,6 +1201,8 @@ target/
 /adapters/host-node/installed-source-inventory.d.mts
 /adapters/host-node/installed-source.mjs
 /adapters/host-node/installed-source.d.mts
+/adapters/host-node/installed-source-physical-construction.mjs
+/adapters/host-node/installed-source-physical-construction.d.mts
 /adapters/host-node/installed-source-publication-original.test.mjs
 /adapters/host-node/installed-source-publication-original.test.d.mts
 /adapters/local-node/managed-row-cause-diagnostic.test.mjs
