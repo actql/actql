@@ -5821,6 +5821,370 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-members.mjs",
+      "sha256": "352823bfbe7c1c1660354ca01a58a48137e7a2009ed9aa15d5f8d704e832ac96",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectMembers",
+        "createInstalledRowEffectRequests"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectMembers",
+          "parameters": [
+            "moon",
+            "limits",
+            "owners",
+            "singular",
+            "routes",
+            "installedEffectKinds",
+            "retainMember",
+            "ownerOf",
+            "assertPrepared",
+            "installedRowEffectUnit",
+            "recipeOf",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/membersOf/membersOf",
+          "parameters": [
+            "prepared",
+            "unit",
+            "maxMembers"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/membersOf/membersOf/members/members",
+          "parameters": [
+            "effectId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/membersOf/membersOf/membersOf",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/membersOf/membersOf/membersOf#2",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/permissionsOf/permissionsOf",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/permissionsOf/permissionsOf/rule/rule",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/prepareManagedPlan/prepareManagedPlan",
+          "parameters": [
+            "facts",
+            "inputs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers",
+          "parameters": [
+            "bound",
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/resolveMember/resolveMember/command/command",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/resolveMember/resolveMember/mapping/mapping",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/scopes/scopes",
+          "parameters": [
+            "members"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/scopes/scopes/scopes",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/selectOwner/selectOwner",
+          "parameters": [
+            "descriptor"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectMembers/selectOwner/selectOwner/route/route",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRequests",
+          "parameters": [
+            "ownerOf",
+            "cidPattern",
+            "targeted",
+            "sameEffectValue",
+            "sameValue",
+            "resourceFields",
+            "commandContentRow",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRequests/entryOf/entryOf",
+          "parameters": [
+            "member",
+            "request",
+            "requestCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRequests/requestEntry/requestEntry",
+          "parameters": [
+            "member",
+            "row",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRequests/requestsOf/requestsOf",
+          "parameters": [
+            "member",
+            "rows",
+            "current",
+            "contentOf",
+            "createRows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRequests/requestsOf/requestsOf/requestsOf",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectMembers",
+            "createInstalledRowEffectMembers/membersOf/membersOf",
+            "createInstalledRowEffectMembers/membersOf/membersOf/members/members",
+            "createInstalledRowEffectMembers/membersOf/membersOf/membersOf",
+            "createInstalledRowEffectMembers/membersOf/membersOf/membersOf#2",
+            "createInstalledRowEffectMembers/permissionsOf/permissionsOf",
+            "createInstalledRowEffectMembers/permissionsOf/permissionsOf/rule/rule",
+            "createInstalledRowEffectMembers/prepareManagedPlan/prepareManagedPlan",
+            "createInstalledRowEffectMembers/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers",
+            "createInstalledRowEffectMembers/resolveMember/resolveMember/command/command",
+            "createInstalledRowEffectMembers/resolveMember/resolveMember/mapping/mapping",
+            "createInstalledRowEffectMembers/scopes/scopes",
+            "createInstalledRowEffectMembers/scopes/scopes/scopes",
+            "createInstalledRowEffectMembers/selectOwner/selectOwner",
+            "createInstalledRowEffectMembers/selectOwner/selectOwner/route/route"
+          ],
+          "exports": [
+            "createInstalledRowEffectMembers"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const resolveMember"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const descriptor = checked(moon.clientProgramEffectMemberDescriptor"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const selectOwner"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "return retainMember(owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const {installed, installedCommands} = owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "members.sort((a, b) => a.memberIndex - b.memberIndex)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "reject('InstalledEffectProgramMismatch')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Member and Plan selection is synchronous and retains the original Stage for subsequent work."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const maxMembers = owners.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "runtimeField(descriptor, 2) === 'command'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "composed UPDATE retains checked Source preparation"
+              },
+              {
+                "path": "adapters/host-node/installed-content-command-plan.test.mjs",
+                "anchor": "checked Content COMMAND physical factory retains its original contract and requires recovery hooks"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectRequests",
+            "createInstalledRowEffectRequests/entryOf/entryOf",
+            "createInstalledRowEffectRequests/requestEntry/requestEntry",
+            "createInstalledRowEffectRequests/requestsOf/requestsOf",
+            "createInstalledRowEffectRequests/requestsOf/requestsOf/requestsOf"
+          ],
+          "exports": [
+            "createInstalledRowEffectRequests"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const requestsOf"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const entryOf"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const requestEntry"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "request, requestCid, value: facts.value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "const {owned} = ownerOf(member)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "owned.prepareRequest({member"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous projection constructs original request entries before physical dispatch."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "...resourceFields(member)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-members.mts",
+                "anchor": "commandContentRow(contentOf, index)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "non-create request preparation retains its original context without a create occurrence field"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "selected original constructor occurrence reaches the actual row loop before provider work"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-owner-projection.mjs",
       "sha256": "3672eae01386fad5ee285b86742c25bd86680e355ee0a21963264d97c29fbff3",
       "responsibilityFacet": "primary",
@@ -7625,7 +7989,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "9fbb5037c9e5ec05283077c66df1d33619db4d4302add4e69f03b41b1847fb76",
+      "sha256": "3870dc12eb5174d684bd96dece0b6eb39b760d293510ec3ddea054f55ca950ad",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -7708,6 +8072,14 @@
         {
           "name": "commandContentBorrower/init:release/init:release",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentRow",
+          "parameters": [
+            "port",
+            "row"
+          ],
           "async": false
         },
         {
@@ -8359,29 +8731,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/membersOf/membersOf/members/members",
-          "parameters": [
-            "effectId"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/membersOf/membersOf/membersOf",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/membersOf/membersOf/membersOf#2",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
           "parameters": [
             "readTarget"
@@ -8422,13 +8771,6 @@
           "name": "createRowEffectStage/ownerOf/ownerOf",
           "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
-          "parameters": [
-            "item"
           ],
           "async": false
         },
@@ -8633,22 +8975,6 @@
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
-          "parameters": [
-            "facts",
-            "inputs"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers",
-          "parameters": [
-            "bound",
-            "owner"
-          ],
           "async": false
         },
         {
@@ -8998,33 +9324,10 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/requestEntry/requestEntry",
+          "name": "createRowEffectStage/retainMember/retainMember",
           "parameters": [
-            "member",
-            "row",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/requestsOf/requestsOf/requestsOf",
-          "parameters": [
-            "row",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/resolveMember/resolveMember/command/command",
-          "parameters": [
-            "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/resolveMember/resolveMember/mapping/mapping",
-          "parameters": [
-            "candidate"
+            "owner",
+            "member"
           ],
           "async": false
         },
@@ -9039,27 +9342,6 @@
           "name": "createRowEffectStage/scopeKey/scopeKey",
           "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/scopes/scopes",
-          "parameters": [
-            "members"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/scopes/scopes/scopes",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectOwner/selectOwner/route/route",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -9169,6 +9451,30 @@
           "async": false
         },
         {
+          "name": "sameEffectValue/sameEffectValue",
+          "parameters": [
+            "kind",
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameValue/sameValue",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "targeted/targeted",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -9246,15 +9552,11 @@
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/membersOf/membersOf/members/members",
-            "createRowEffectStage/membersOf/membersOf/membersOf",
-            "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
-            "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
@@ -9300,15 +9602,8 @@
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
-            "createRowEffectStage/requestEntry/requestEntry",
-            "createRowEffectStage/requestsOf/requestsOf/requestsOf",
-            "createRowEffectStage/resolveMember/resolveMember/command/command",
-            "createRowEffectStage/resolveMember/resolveMember/mapping/mapping",
             "createRowEffectStage/routeOf/routeOf",
             "createRowEffectStage/scopeKey/scopeKey",
-            "createRowEffectStage/scopes/scopes",
-            "createRowEffectStage/scopes/scopes/scopes",
-            "createRowEffectStage/selectOwner/selectOwner/route/route",
             "guarded/guarded",
             "optionalFunction/optionalFunction",
             "prepareInstalledCreateRows/createRows/createRows",
@@ -9318,7 +9613,12 @@
             "retainInstalledRowEffectAdapter",
             "cid/cid",
             "createRowEffectStage",
-            "createRowEffectStage/ownerOf/ownerOf"
+            "createRowEffectStage/ownerOf/ownerOf",
+            "commandContentRow",
+            "createRowEffectStage/retainMember/retainMember",
+            "sameEffectValue/sameEffectValue",
+            "sameValue/sameValue",
+            "targeted/targeted"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -9901,9 +10201,7 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
-            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers"
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation"
           ],
           "exports": [],
           "attributes": {
@@ -14060,6 +14358,7 @@
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-effect-construction.mjs",
         "./installed-row-effect-driver.mjs",
+        "./installed-row-effect-members.mjs",
         "./installed-row-effect-owner-projection.mjs",
         "./installed-row-effect-plan-capture.mjs",
         "./installed-row-effect-run-controls.mjs",

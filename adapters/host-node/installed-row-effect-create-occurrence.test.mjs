@@ -8,6 +8,7 @@ import {createInstalledRowEffectDriverControls} from './installed-row-effect-dri
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
+import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
@@ -207,11 +208,12 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
   const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
     `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
       expression('parseExactJson',{fail}));
-  const entryOf=expression('entryOf',{ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/,targeted:()=>false,fail});
-  const requestEntry=expression('requestEntry',{entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),targeted:()=>false,fail});
   const resourceFields=value=>{assert.strictEqual(value,member);return {runOriginal};};
   const commandContentRow=()=>undefined;
-  const requestsOf=expression('requestsOf',{ownerOf,requestEntry,resourceFields,commandContentRow});
+  const {entryOf,requestEntry,requestsOf}=createInstalledRowEffectRequests({
+    ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>false,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields,commandContentRow,fail,
+  });
   const ports={...readPorts(ownerOf, resourceFields),controlConstruction:controlFrame ? (receiver, method, args) => {
     assert.equal(projecting, false);projecting = true;
     try {return Reflect.apply(method, receiver, args);} finally {projecting = false;}
@@ -275,7 +277,11 @@ test('create cold request preparation receives same admitted Preview identities 
   const owned={prepareRequest(context){assert.strictEqual(context.createRowIdentity,identities[seen.length]);seen.push(context);
     return {request:{value:context.value},requestCid:claims[seen.length-1].canonicalRequestCid};},requestFacts:request=>({value:request.value,target:undefined})};
   const ownerOf=()=>({owned});
-  const entryOf=expression('entryOf',{ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/,targeted:()=>false,fail});
+  const {entryOf}=createInstalledRowEffectRequests({
+    ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>false,
+    sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields:()=>({}),
+    commandContentRow:()=>assert.fail('No Content lookup in the recovered CREATE fixture'),fail,
+  });
   const recover=expression('recoveredEntries',{singular:{owned},members:[member],ownerOf,resourceFields:()=>({runOriginal:{}}),
     orderedSourceIndexes:()=>[0,1,2],entryOf,sameEffectValue:(_kind,a,b)=>same(a,b),approvedValue:(_kind,change)=>change.after.value,targeted:()=>false,fail});
   const result=recover({members:[member],body:{effects:[{changes}]},durable:{},recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
@@ -285,12 +291,21 @@ test('create cold request preparation receives same admitted Preview identities 
 test('non-create request preparation retains its original context without a create occurrence field',()=>{
   for(const kind of ['update','delete','upsert','command']){
     const selected=Object.freeze({kind}),current=Object.freeze({}),runOriginal=Object.freeze({}),seen=[];
-    const rows=[{value:{n:1},selector:'first'},{value:{n:2},selector:'second'}];
-    const owned={prepareRequest(context){seen.push(context);return context.value;}};
-    const requestsOf=expression('requestsOf',{ownerOf:value=>{assert.strictEqual(value,selected);return {owned};},
-      resourceFields:()=>({runOriginal}),commandContentRow:()=>assert.fail('No Content lookup without original borrower'),
-      requestEntry:(member,row,prepared)=>{assert.strictEqual(member,selected);assert.strictEqual(row.value,prepared);return prepared;}});
-    assert.deepEqual(requestsOf(selected,rows,current,undefined,undefined),rows.map(row=>row.value));
+    const rows=['first','second'].map((selector,index)=>({value:kind==='delete'?undefined:{n:index+1},selector}));
+    const requestCid=cid('a');
+    const owned={prepareRequest(context){seen.push(context);
+      return {request:{value:context.value,target:context.selector},requestCid};},
+    requestFacts:request=>request};
+    const {requestsOf}=createInstalledRowEffectRequests({
+      ownerOf:value=>{assert.strictEqual(value,selected);return {owned};},
+      cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>true,sameEffectValue:(_kind,a,b)=>a===b,
+      sameValue:(a,b)=>a===b,resourceFields:()=>({runOriginal}),
+      commandContentRow:()=>assert.fail('No Content lookup without original borrower'),fail,
+    });
+    const entries=requestsOf(selected,rows,current,undefined,undefined);
+    assert.deepEqual(entries,rows.map(({value,selector})=>({
+      request:{value,target:selector},requestCid,value,target:selector,
+    })));
     seen.forEach((context,index)=>{assert.deepEqual(context,{member:selected,value:rows[index].value,selector:rows[index].selector,current,runOriginal});assert.equal(Object.hasOwn(context,'createRowIdentity'),false);});
   }
 });

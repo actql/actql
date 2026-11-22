@@ -11,6 +11,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './installed-row-effect-standard-write.mjs';
+import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
@@ -639,12 +640,16 @@ test('standard cold recovery uses saved original requests without calling the pr
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
   const targeted = kind => ['update', 'upsert', 'delete'].includes(kind);
-  const ports = {singular: owner, ownerOf, resourceFields: () => ({}), fail,
+  const {entryOf} = createInstalledRowEffectRequests({
+    ownerOf, cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted, sameValue,
+    sameEffectValue: (_kind,left,right) => sameValue(left,right), resourceFields: () => ({}),
+    commandContentRow: () => assert.fail('No Content lookup in the recovered CREATE fixture'), fail,
+  });
+  const ports = {singular: owner, ownerOf, entryOf, resourceFields: () => ({}), fail,
     sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
   const recoveredEntries = Function(...Object.keys(ports), `
     const approvedValue = ${selected('approvedValue')};
     const sameEffectValue = ${selected('sameEffectValue')};
-    const entryOf = ${selected('entryOf')};
     const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
     const validateRecoveredEntries = ${selected('validateRecoveredEntries')};
     return ${selected('recoveredEntries')};`)(...Object.values(ports));

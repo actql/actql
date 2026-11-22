@@ -95,12 +95,13 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
+import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
 import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
@@ -485,130 +486,22 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     owners, ownerOf, fail, selectionChanged,
     requireSynchronousEffectResource, validateOwnerSelections, assertUpdateTargetSelectionMembersCurrent,
   });
-  const selectOwner = descriptor => {
-    if (singular !== undefined) return singular;
-    const route = routes.find(value => value.descriptor.effectId === runtimeField(descriptor, 1));
-    const expected = route?.descriptor;
-    if (expected === undefined || expected.kind !== runtimeField(descriptor, 2) ||
-        expected.target !== runtimeField(descriptor, 3) || expected.mappingRef !== runtimeField(descriptor, 4) ||
-        expected.mappingCid !== runtimeField(descriptor, 5)) fail('InstalledEffectProgramMismatch');
-    return route.owner;
-  };
+  const {selectOwner, scopes, permissionsOf, membersOf, prepareManagedPlan} = createInstalledRowEffectMembers({
+    moon, limits, owners, singular, routes, installedEffectKinds, retainMember, ownerOf,
+    assertPrepared, installedRowEffectUnit, recipeOf, fail,
+  });
   const effect = runtimeCore(moon).effectApplicationControl;
   const openLedger = (identity, controlConstruction) => openInstalledEffectLedger(
     moon, ledgerRoot, identity, controlEntryBytes, controlResponseBytes, controlConstruction);
-  const scopes = members => Object.freeze(members.map(member =>
-    Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
-  const permissionsOf = member => {
-    if (member.kind === 'command') return [...member.command.permissions];
-    const rule = member.mapping.rules.find(item =>
-      item.effect_kind === member.kind);
-    if (!Array.isArray(rule?.permissions)) {
-      fail('InstalledRowEffectMappingNotInstalled');
-    }
-    return [...rule.permissions];
-  };
-
-  // One member of the Effect Unit: its Program descriptor, the installed
-  // Mapping the Program resolved and the kind that Mapping was checked for.
-  // Refused before any I/O when the Mapping is not installed or its kind is
-  // not one this driver writes.
-  const resolveMember = (prepared, {stageIndex, effectId}) => {
-    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-      prepared, stageIndex, effectId, limits.planWork));
-    const owner = selectOwner(descriptor);
-    const {installed, installedCommands} = owner;
-    if (runtimeField(descriptor, 2) === 'command') {
-      const command = installedCommands.find(candidate =>
-        candidate.commandCid === runtimeField(descriptor, 5) &&
-        candidate.commandRef === runtimeField(descriptor, 4) && candidate.target === runtimeField(descriptor, 3));
-      if (command === undefined || !installedEffectKinds(owner).includes('command') ||
-          runtimeField(descriptor, 6) === undefined) fail('InstalledRowEffectCommandNotInstalled');
-      return retainMember(owner, {stageIndex, effectId: runtimeField(descriptor, 1),
-        memberIndex: runtimeField(descriptor, 0), kind: 'command', command,
-        resource: command.resource});
-    }
-    const mapping = installed.find(candidate =>
-      candidate.mappingCid === runtimeField(descriptor, 5) &&
-      candidate.mappingRef === runtimeField(descriptor, 4));
-    if (mapping === undefined || !installedEffectKinds(owner).includes(runtimeField(descriptor, 2)) ||
-        runtimeField(descriptor, 6) === undefined) {
-      fail('InstalledRowEffectMappingNotInstalled');
-    }
-    const member = retainMember(owner, {stageIndex, effectId: runtimeField(descriptor, 1),
-      memberIndex: runtimeField(descriptor, 0), kind: runtimeField(descriptor, 2), mapping,
-      resource: mapping.resource});
-    permissionsOf(member);
-    return member;
-  };
-  const membersOf = (prepared, unit, maxMembers = limits.maxMembers) => {
-    const effectIds = unit.effectIds;
-    if (effectIds.length > maxMembers ||
-        new Set(effectIds).size !== effectIds.length) {
-      fail('InstalledRowEffectUnitUnsupported');
-    }
-    const members = effectIds.map(effectId => resolveMember(prepared,
-      {stageIndex: unit.stageIndex, effectId}));
-    members.sort((a, b) => a.memberIndex - b.memberIndex);
-    if (members.some((member, index) => member.memberIndex !== index)) {
-      fail('InstalledRowEffectUnitUnsupported');
-    }
-    return Object.freeze(members);
-  };
-  const prepareManagedPlan = (facts, inputs) => {
-    assertPrepared({moon, prepared: facts?.prepared, compilation: facts?.compilation});
-    const unit = installedRowEffectUnit(moon, facts.compilation);
-    // The original Request Effect construction borrow funds wrappers for the
-    // checked inventory before this entry. Explicit installer policy still
-    // narrows it; the member count grants no row work or physical sends.
-    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
-      ? bound : Math.min(bound, owner.configuredMaxMembers), unit.effectIds.length);
-    const members = membersOf(facts.prepared, unit, maxMembers);
-    return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
-      recipeFor: recipeOf});
-  };
-
   const memberDispatch = (runInvocationCid, member) => cid({
     version: ownerOf(member).profile.dispatch, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
   const recoveryCid = (member, dispatch) => cid({version: ownerOf(member).profile.recovery,
     dispatch_request_cid: dispatch});
 
-  // One row's request with the facts the common owner holds it to: the
-  // value it writes and, for an update, the target it selects.
-  const entryOf = (member, request, requestCid) => {
-    const {owned} = ownerOf(member);
-    const facts = owned.requestFacts(request);
-    if (!request || !cidPattern.test(requestCid ?? '') ||
-        facts === null || typeof facts !== 'object' ||
-        (member.kind === 'delete' ? facts.value !== undefined :
-          facts.value === null || typeof facts.value !== 'object') ||
-        targeted(member.kind) === (facts.target === undefined)) {
-      fail('InvalidInstalledRowEffectRequest');
-    }
-    return Object.freeze({request, requestCid, value: facts.value,
-      target: facts.target});
-  };
-
-  // The exact request of every row of a member, from its mapped values and
-  // selectors. A request that writes another value, or selects another
-  // target, than the Program's row is refused.
-  const requestEntry = (member, row, prepared) => {
-    const entry = entryOf(member, prepared?.request, prepared?.requestCid);
-    if (!sameEffectValue(member.kind, entry.value, row.value) ||
-        (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
-      fail('ForeignInstalledRowEffectRequest');
-    }
-    return entry;
-  };
-  const requestsOf = (member, rows, current, contentOf, createRows) => Object.freeze(rows.map((row, index) => {
-    const {owned} = ownerOf(member);
-    return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current, ...resourceFields(member),
-      ...(member.kind === 'create' ? {createRowIdentity: createRows[index].identity,
-        ...(row.proposalWire === undefined ? {} : {proposalWire: row.proposalWire})} : {}),
-      ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
-  }));
+  const {entryOf, requestEntry, requestsOf} = createInstalledRowEffectRequests({
+    ownerOf, cidPattern, targeted, sameEffectValue, sameValue, resourceFields, commandContentRow, fail,
+  });
 
   // The common sealed capability of an installation whose driver issues
   // none: its runtime, connection and Mapping, and the exact requests.
