@@ -66,17 +66,20 @@ Runtime builds, tarballs and reviewed generated artifacts follow
 
 ## Pull request CI use
 
-A Ready pull request starts the full hosted checks on every push. A Draft
-starts only the preparation checks. A full run that a later push supersedes
-has already occupied the shared Linux and macOS runners.
+Hosted CI selects a verification profile from the pull request's changes.
+Each push to a Ready pull request runs the required checks for that profile.
+Draft runs preparation and any selected targeted acceptance, such as Python
+package checks. Additional checks can fail after marking the pull request
+Ready. A later push can supersede a full run after it has already used
+shared Linux and macOS runners.
 
 - Open a pull request as Draft. Mark it Ready when the change is complete and
-  the focused local checks and the Draft checks pass.
-- When a Ready run fails, convert the pull request to Draft before pushing a
-  fix; the conversion cancels the full run. Mark it Ready again after the fix
-  passes the same local and Draft checks.
-- While Ready, push only review responses and the integration of current main,
-  batched into one push.
+  the applicable local and Draft checks pass.
+- When Ready CI needs a fix, convert the pull request to Draft before pushing
+  it. The conversion cancels the in-progress CI run for that pull request.
+  Mark it Ready again after the applicable local and Draft checks pass.
+- Batch related fixes, review responses and necessary updates from main.
+  While Ready, push only updates needed for integration.
 - Do not push an empty commit or merge main only to start a run.
 
 ## Maintainable regression tests
