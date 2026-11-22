@@ -117,22 +117,49 @@ test('constructor pins a distinct complete execution contract and exact shared d
   assert.equal(cid(historical.constructor_registry.body),
     'sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041');
   assert.equal(historical.constructor_registry.cid, cid(historical.constructor_registry.body));
-  const current = read('portability/corpus/signed64-identities.json');
-  assert.deepEqual(body, current.graphExecution.body);
-  assert.equal(canonical(body), current.graphExecution.canonicalPreimage);
-  assert.equal(cid(body), current.graphExecution.cid);
-  // This complete signed64 fixture is a retained original, not the current registry.
-  assert.equal(canonical(current.selectedRegistry.body), current.selectedRegistry.canonicalPreimage);
-  assert.equal(cid(current.selectedRegistry.body), current.selectedRegistry.cid);
-  assert.equal(current.selectedRegistry.cid, 'sha256:6030e6f28f5c30c4ad9cb3b159b67bf8ab6ad15cd92cc528418ea3345558ba12');
+  const signed64 = read('portability/corpus/signed64-identities.json');
+  assert.equal(canonical(signed64.graphExecution.body), signed64.graphExecution.canonicalPreimage);
+  assert.equal(cid(signed64.graphExecution.body), signed64.graphExecution.cid);
+  const originalGrammar = JSON.parse(signed64.canonicalGrammar.canonicalPreimage);
+  assert.equal(canonical(originalGrammar), signed64.canonicalGrammar.canonicalPreimage);
+  assert.equal(cid(originalGrammar), signed64.canonicalGrammar.cid);
+  assert.equal(signed64.graphExecution.body.dependencies.canonical_value_contract.cid,
+    signed64.canonicalGrammar.cid);
+
+  // The current protocol adds one Bytes arm. All original arms and the
+  // containing Graph definition must still agree with the retained preimages.
+  const grammar = protocol.schemas.canonical_value_contract;
+  const beforeBytes = structuredClone(grammar);
+  const arms = beforeBytes.$defs.value_contract.oneOf;
+  const bytesIndex = arms.findIndex(arm => arm.properties?.type?.const === 'bytes');
+  assert(bytesIndex >= 0);
+  const [bytes] = arms.splice(bytesIndex, 1);
+  assert.deepEqual(bytes, {
+    type: 'object', required: ['type', 'nullable'], additionalProperties: false,
+    properties: {type: {const: 'bytes'}, nullable: {type: 'boolean'}},
+  });
+  assert.deepEqual(beforeBytes, originalGrammar);
+  const expected = structuredClone(signed64.graphExecution.body);
+  expected.dependencies.canonical_value_contract.cid = cid(grammar);
+  expected.params_schema.$defs.value_contract.oneOf.splice(bytesIndex, 0, bytes);
+  assert.deepEqual(body, expected);
+  assert.equal(cid(expected), 'sha256:1c871512fceef5e68415511a2fe40a62df2c287fb31360edca749b3f13921113');
+
+  assert.equal(canonical(signed64.selectedRegistry.body), signed64.selectedRegistry.canonicalPreimage);
+  assert.equal(cid(signed64.selectedRegistry.body), signed64.selectedRegistry.cid);
+  assert.equal(signed64.selectedRegistry.cid, 'sha256:6030e6f28f5c30c4ad9cb3b159b67bf8ab6ad15cd92cc528418ea3345558ba12');
   const retained = structuredClone(registry);
   retained['REL.derive'].execution_extensions.ordered_bindings.cid =
-    current.selectedRegistry.body['REL.derive'].execution_extensions.ordered_bindings.cid;
+    signed64.selectedRegistry.body['REL.derive'].execution_extensions.ordered_bindings.cid;
   retained['ACTQL.expression_fragment/0.1'].execution_contract.cid =
-    current.selectedRegistry.body['ACTQL.expression_fragment/0.1'].execution_contract.cid;
+    signed64.selectedRegistry.body['ACTQL.expression_fragment/0.1'].execution_contract.cid;
   retained['TEA.calendar.series'].execution_contract.cid =
-    current.selectedRegistry.body['TEA.calendar.series'].execution_contract.cid;
-  assert.deepEqual(retained, current.selectedRegistry.body);
+    signed64.selectedRegistry.body['TEA.calendar.series'].execution_contract.cid;
+  assert.equal(registry['REL.values'].execution_contract.cid, cid(aoa.execution_contracts['REL.values']));
+  for (const migrated of [operation, 'REL.values']) {
+    retained[migrated].execution_contract.cid = signed64.selectedRegistry.body[migrated].execution_contract.cid;
+  }
+  assert.deepEqual(retained, signed64.selectedRegistry.body);
   assert.equal(cid(registry), aoa.pipeline_registry_cid);
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
@@ -143,7 +170,7 @@ test('constructor pins a distinct complete execution contract and exact shared d
   assert.equal(cid(historical.constructor_value_grammar.body),
     'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
   assert.equal(historical.constructor_value_grammar.cid, cid(historical.constructor_value_grammar.body));
-  assert.equal(body.dependencies.canonical_value_contract.cid, current.canonicalGrammar.cid);
+  assert.equal(body.dependencies.canonical_value_contract.cid, cid(grammar));
   assert.equal(registry[operation].execution_contract.pointer, pointer);
   assert.equal(registry[operation].execution_contract.cid, cid(body));
 });
