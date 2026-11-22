@@ -498,6 +498,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
   installation : LocalRunInstallation,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
+    self.original.journal is Some(journal) &&
+    physical_equal(journal, self.capture) &&
+    self.original.journal_read_open &&
+    !business.active &&
     business.request_parent is Some(parent) &&
     business.request_input is Some(input) &&
     business.request_body is Some(body) &&
@@ -518,20 +522,27 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     project.mock_declarations is Some(mock) else {
     stop("LocalOriginalEffectPlanUnavailable")
   }
+  // Borrow the immutable protocol bodies while the original Journal Read is
+  // entered. Request entry suspends that Read, so only the borrowed DATA may
+  // cross into the Request. Common still selects the route from the Program.
+  let query_contracts = if first._retained_models.is_empty() {
+    guard self.original.runtime is Some(runtime) else {
+      stop("PackagedLocalRuntimeChanged")
+    }
+    match runtime.query_contract_assets() {
+      Ok(contracts) => contracts
+      Err(issue) => {
+        self.original.retain_primary(CommandRuntime(issue))
+        stop("PackagedLocalRuntimeChanged")
+      }
+    }
+  } else {
+    None
+  }
   self.original.with_business_request(self.capture, () => {
     let capture_recipes = []
     let plan = if first._retained_models.is_empty() {
       let file_limits = local_project_mock_file_limits()
-      guard self.original.runtime is Some(runtime) else {
-        stop("PackagedLocalRuntimeChanged")
-      }
-      let query_contracts = match runtime.query_contract_assets() {
-        Ok(contracts) => contracts
-        Err(issue) => {
-          self.original.retain_primary(CommandRuntime(issue))
-          stop("PackagedLocalRuntimeChanged")
-        }
-      }
       native_mock_effect_source_plan(
         prepared,
         first,
