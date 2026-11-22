@@ -34,8 +34,11 @@ not the spelling of the key. The catalog describes:
 - `data`: explicit `resource`, `items_path`, `key_path` and `primary_identity`.
   No `rows`, `files`, `contents` or primary-key convention is inferred.
 - `writes`: explicit resource, primary identity, writable fields, `permission`,
-  `observe_permission`, `approval` and aliases. These are Mapping declarations,
-  not current authorization or approval.
+  `observe_permission`, `approval` and aliases. An optional
+  `write_null_fields` list selects the nullable writable fields that accept an
+  explicit SQL `NULL`. Other fields retain the default NULL rejection. An
+  omitted assignment leaves its field unchanged. These Mapping declarations
+  do not grant current authorization or approval.
 - `file_bindings`: explicit logical listing/content resources, physical data
   resource and identity/name/version/media-type/UTF-8 field roles.
 

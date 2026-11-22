@@ -24,6 +24,44 @@ fn local_project_mock_write_names(value : Json?) -> Array[String]? {
 }
 
 ///|
+fn local_project_mock_write_null_fields_valid(
+  value : Json?,
+  writable : Array[String],
+) -> Bool {
+  match value {
+    None => true
+    Some(Array(fields)) => {
+      if fields.length() > writable.length() {
+        return false
+      }
+      for index, field in fields {
+        guard field is String(name) && writable.contains(name) else {
+          return false
+        }
+        for previous in 0..<index {
+          if fields[previous] == field {
+            return false
+          }
+        }
+      }
+      true
+    }
+    _ => false
+  }
+}
+
+///|
+fn local_project_mock_write_null_selected(value : Json?, name : String) -> Bool {
+  guard value is Some(Array(fields)) else { return false }
+  for field in fields {
+    if field is String(selected) && selected == name {
+      return true
+    }
+  }
+  false
+}
+
+///|
 // Mechanical adaptation to the EXISTING closed UPDATE constructor. Common
 // checks the complete original Relation and every sibling write specification.
 fn local_project_mock_write_declarations(
@@ -46,7 +84,10 @@ fn local_project_mock_write_declarations(
   let originals : Array[(String, Array[String], Array[String], String)] = []
   for write in writes {
     guard write is Object(body) &&
-      body.length() == 7 &&
+      (
+        body.length() == 7 ||
+        (body.length() == 8 && body.get("write_null_fields") is Some(_))
+      ) &&
       local_project_mock_file_text(write, "resource") is Some(resource) &&
       local_project_mock_file_text(write, "primary_identity") is Some(identity) &&
       local_project_mock_file_text(write, "permission") is Some(permission) &&
@@ -54,6 +95,10 @@ fn local_project_mock_write_declarations(
       local_project_mock_file_text(write, "approval") == Some("required") &&
       local_project_mock_write_names(body.get("writable_fields")) is Some(names) &&
       !names.is_empty() &&
+      local_project_mock_write_null_fields_valid(
+        body.get("write_null_fields"),
+        names,
+      ) &&
       local_project_mock_write_names(body.get("aliases")) is Some(aliases) &&
       !aliases.is_empty() &&
       !originals.any(original => original.0 == resource) else {
@@ -86,7 +131,11 @@ fn local_project_mock_write_declarations(
     Err(_) => return Err(InvalidSpecification)
   }
   let result : Array[LocalProjectMockWriteDeclaration] = []
-  for (resource, names, aliases, observe) in originals {
+  for index, (resource, names, aliases, observe) in originals {
+    let null_fields = match writes[index] {
+      Object(body) => body.get("write_null_fields")
+      _ => None
+    }
     let mapping = match
       @row_host.prepare_row_update_mapping(
         declaration,
@@ -95,7 +144,13 @@ fn local_project_mock_write_declarations(
         names.map(name => {
           target: name,
           field: name,
-          null_behavior: "reject",
+          null_behavior: if local_project_mock_write_null_selected(
+              null_fields, name,
+            ) {
+            "write_null"
+          } else {
+            "reject"
+          },
         }),
       ) {
       Ok(value) => value

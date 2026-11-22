@@ -846,6 +846,46 @@ test "Native Project Mock original UPDATE Mapping and selected metadata preserve
 }
 
 ///|
+test "Native Mock Mapping carries only an explicit nullable write field" {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  let source = original.sources[0]
+  let (_, wire) = original._retained_catalog.at(0).unwrap()
+  guard @json.parse(wire) is Object(entry) &&
+    entry.get("writes") is Some(Array(writes)) &&
+    writes[0] is Object(write) else {
+    fail("original Opportunity write declaration")
+  }
+  let declaration = source._retained_declaration
+  let legacy = source._retained_writes[0].mapping
+  write["write_null_fields"] = Json::array([Json::string("NextStep")])
+  let mapped = local_project_mock_write_declarations(
+      Json::object(entry),
+      declaration,
+    ).unwrap()[0].mapping
+  assert_true(mapped.mapping_cid != legacy.mapping_cid)
+  assert_true(
+    mapped.body.contains(
+      "\"NextStep\":{\"field\":\"NextStep\",\"null_behavior\":\"write_null\"}",
+    ),
+  )
+  assert_true(
+    mapped.body.contains(
+      "\"StageName\":{\"field\":\"StageName\",\"null_behavior\":\"reject\"}",
+    ),
+  )
+  for
+    fields in [["NextStep", "NextStep"], ["id"], ["StageName"], ["undeclared"]] {
+    write["write_null_fields"] = Json::array(fields.map(Json::string))
+    assert_true(
+      local_project_mock_write_declarations(Json::object(entry), declaration)
+      is Err(_),
+    )
+  }
+}
+
+///|
 fn native_project_mock_file_references_in_original_read() -> Unit raise {
   let project = native_project_mock_model_fixture("deal-review-missing")
   defer project.retire()

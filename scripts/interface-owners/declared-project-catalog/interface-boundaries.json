@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "bd6acde2cec64b5d006568d13c01273d4647b6ddc463e90de6b0974076b1d093",
+      "sha256": "216e922380099a31d526b4d9547ac1e8d60d578f90d7da4ca583612c06ee7f66",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -126,20 +126,6 @@
         },
         {
           "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
-          "parameters": [
-            "spec"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
           "parameters": [
             "spec"
           ],
@@ -402,6 +388,15 @@
           "async": false
         },
         {
+          "name": "projectDeclaredCatalog/selected/selected/selected#4",
+          "parameters": [
+            "name",
+            "index",
+            "fields"
+          ],
+          "async": false
+        },
+        {
           "name": "projectDeclaredCatalog/selected/selected#2",
           "parameters": [],
           "async": false
@@ -501,6 +496,20 @@
           "async": false
         },
         {
+          "name": "updateSources/updateSources/updateSources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateWriteFacts/updateWriteFacts",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
           "name": "wire/wire",
           "parameters": [
             "value"
@@ -512,6 +521,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
+        "../host-node/installed-row-source.mjs",
         "../host-node/source-profile-json.mjs",
         "./declared-file-installation.mjs",
         "node:crypto",
@@ -540,14 +550,13 @@
             "projectDeclaredCatalog/facts/facts/facts",
             "projectDeclaredCatalog/facts/facts/facts#2",
             "projectDeclaredCatalog/facts/facts/listing/listing",
+            "projectDeclaredCatalog/fileMethods/fileMethods",
             "projectDeclaredCatalog/finalInput/finalInput",
             "projectDeclaredCatalog/finalInput/finalInput#2",
             "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
             "projectDeclaredCatalog/mappingInput/mappingInput",
             "projectDeclaredCatalog/mappingInput/mappingInput#2",
             "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
-            "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
-            "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
             "projectDeclaredCatalog/methods/methods",
             "projectDeclaredCatalog/original/init:capacity/init:capacity",
             "projectDeclaredCatalog/overrideCount/overrideCount",
@@ -558,6 +567,7 @@
             "projectDeclaredCatalog/parsed/parsed#2",
             "projectDeclaredCatalog/projectDeclaredCatalog",
             "projectDeclaredCatalog/projectDeclaredCatalog#10",
+            "projectDeclaredCatalog/projectDeclaredCatalog#11",
             "projectDeclaredCatalog/projectDeclaredCatalog#2",
             "projectDeclaredCatalog/projectDeclaredCatalog#3",
             "projectDeclaredCatalog/projectDeclaredCatalog#4",
@@ -566,6 +576,11 @@
             "projectDeclaredCatalog/projectDeclaredCatalog#7",
             "projectDeclaredCatalog/projectDeclaredCatalog#8",
             "projectDeclaredCatalog/projectDeclaredCatalog#9",
+            "projectDeclaredCatalog/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/projection/init:capacity/init:capacity#2",
+            "projectDeclaredCatalog/projection/init:project/init:project",
+            "projectDeclaredCatalog/projection/projection",
+            "projectDeclaredCatalog/projection/projection/projection",
             "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
             "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput",
@@ -581,20 +596,16 @@
             "projectDeclaredCatalog/selected/selected/selected",
             "projectDeclaredCatalog/selected/selected/selected#2",
             "projectDeclaredCatalog/selected/selected/selected#3",
+            "projectDeclaredCatalog/selected/selected/selected#4",
             "projectDeclaredCatalog/source/source",
             "projectDeclaredCatalog/source/source#2",
             "projectDeclaredCatalog/source/source/source",
             "projectDeclaredCatalog/source/source/source/source",
             "projectDeclaredCatalog/source/source/writes/writes",
             "text/text",
-            "wire/wire",
-            "projectDeclaredCatalog/fileMethods/fileMethods",
-            "projectDeclaredCatalog/projectDeclaredCatalog#11",
-            "projectDeclaredCatalog/projection/init:capacity/init:capacity",
-            "projectDeclaredCatalog/projection/init:capacity/init:capacity#2",
-            "projectDeclaredCatalog/projection/init:project/init:project",
-            "projectDeclaredCatalog/projection/projection",
-            "projectDeclaredCatalog/projection/projection/projection"
+            "updateSources/updateSources/updateSources",
+            "updateWriteFacts/updateWriteFacts",
+            "wire/wire"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -751,6 +762,10 @@
               {
                 "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
                 "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "test('installed Mock mapping retains only the declared nullable write policy'"
               }
             ]
           }
