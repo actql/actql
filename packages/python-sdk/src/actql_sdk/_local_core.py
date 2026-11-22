@@ -957,7 +957,7 @@ class LocalCore:
                     phase.before_export(export_name, export)
                 binding = getattr(self, '_host_current_binding', None)
                 if binding is not None:
-                    span = binding._new_invocation_observation()
+                    span = binding._new_invocation_observation(export_name)
                     if span is not None:
                         self._invocation_observation = span
                         receipt = getattr(self, '_closed_wasm_exports', None)

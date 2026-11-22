@@ -4118,7 +4118,12 @@ Saved terminal projection may reuse the first census within its write-free
 proposal invocation. The original Store closes this phase before consuming the
 CAS proposal. The same transaction and reader keep their cumulative copy and
 query budgets, and precommit validation runs its full checks on the staged
-rows. An eligible guest can ask the existing current operation import about
+rows. After all three terminal CAS writes succeed, that Store can capture
+a fresh closed observation for the same terminal export before COMMIT.
+Only its own complete census can be reused within that invocation. No
+proposal proof survives the writes. The first complete check, actual
+terminal rows, current fences, and separate committed readback still run.
+An eligible guest can ask the existing current operation import about
 optional unchanged-reader proof
 support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
 or the original unallocated-ticket refusal leaves full validation active. The

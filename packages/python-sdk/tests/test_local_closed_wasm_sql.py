@@ -279,15 +279,62 @@ class ClosedWasmSqlTests(unittest.TestCase):
     def test_saved_terminal_proposal_closes_proof_before_writing(self):
         self._check_proposal_read('produce_sdk_terminal_storage')
 
+    def test_saved_terminal_precommit_proves_only_its_fresh_same_reader(self):
+        self._check_proposal_read('produce_sdk_terminal_storage', terminal_precommit=True)
+
+    def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back(self):
+        def effect():
+            sqlite3.Connection.execute(store._connection,
+                "UPDATE core_bytes SET payload=X'72657669736564' WHERE key=?",
+                (store.namespaced_key('probe', 'row'),))
+            return 0
+
+        export = 'produce_sdk_terminal_storage'
+        core, binding, store, _ = self.fixture(census_export=export, effect=effect)
+        originals = self.terminal_original(store)
+        writes = [
+            ByteWrite(store.namespaced_key('terminal', str(ordinal)), None, b'staged')
+            for ordinal in range(3)
+        ]
+        entered = []
+
+        def inspect(reader, take):
+            def produce(_):
+                self.assertEqual(LocalCore._call(
+                    core, 'publication_commit_export', export, 0, 1), 11)
+                take()
+            binding.inspect_reader(reader, produce)
+
+        def before_commit():
+            entered.append(store._connection.total_changes)
+            LocalCore._call(core, 'publication_commit_export', export, 1, 1)
+
+        with binding.fenced() as fences:
+            changes = store._connection.total_changes
+            with self.assertRaises(LocalStorageError):
+                store.compare_exchange_projected_inspected(
+                    3, lambda ordinal, consume: consume(writes[ordinal]),
+                    originals, fences, inspect=inspect, current=binding._current_observer,
+                    before_commit=before_commit, _sdk_delivery_prewrite=True,
+                    _sdk_terminal_precommit=True)
+        self.assertEqual(entered, [changes + 3])
+        self.assertEqual(store._connection.total_changes, changes + 4)
+        self.assertFalse(store._connection.in_transaction)
+        self.assertIsNone(store._connection._closed_invocation)
+        self.assertEqual(store.read(store.namespaced_key('probe', 'row')), StoredBytes(0, b'payload'))
+        self.assertTrue(all(store.read(write.key) is None for write in writes))
+
     def test_saved_first_delivery_proof_closes_before_writing(self):
         self._check_proposal_read('produce_sdk_read_delivery_storage')
 
     def test_saved_evidence_proposal_closes_proof_before_writing(self):
         self._check_proposal_read('produce_sdk_read_evidence_decision', insert_only=True)
 
-    def _check_proposal_read(self, export, *, insert_only=False):
-        cases = [(True, 0, False, False, [11, 0]), (False, 0, False, False, [0, 0]),
-                 (True, 1, False, False, [10, 0]), (True, 0, True, False, [0, 0])]
+    def _check_proposal_read(self, export, *, insert_only=False, terminal_precommit=False):
+        cases = [(True, 0, False, False, [11, 11 if terminal_precommit else 0]),
+                 (False, 0, False, False, [0, 0]),
+                 (True, 1, False, False, [10, 10 if terminal_precommit else 0]),
+                 (True, 0, True, False, [0, 0])]
         if insert_only:
             cases.append((True, 0, False, True, [11, 0]))
         for enabled, effect, legacy, retained, expected in cases:
@@ -295,24 +342,29 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 core, binding, store, _ = self.fixture(
                     census_export=export, legacy_census_supplier=legacy)
                 originals = self.terminal_original(store)
-                observed, readers, epochs = [], [], []
+                observed, readers, epochs, changes_at_export = [], [], [], []
                 key = store.namespaced_key('probe', 'inserted')
                 write = ByteWrite(key, None, b'new-original')
+                writes = [write]
+                if terminal_precommit:
+                    writes.extend(ByteWrite(store.namespaced_key('probe', f'terminal{ordinal}'),
+                                            None, b'new-original') for ordinal in (1, 2))
                 if retained:
                     self.assertEqual(store.compare_exchange(key, None, write.payload), 0)
                 def observe():
                     readers.append(binding._observed_reader)
                     epochs.append(store._connection._outer_transaction_epoch)
+                    changes_at_export.append(store._connection.total_changes)
                     observed.append(LocalCore._call(core, 'publication_commit_export', export, effect, 1))
                 def inspect(reader, take):
                     def prepare(_):
                         observe()
                         take()
                     binding.inspect_reader(reader, prepare)
-                def stage(_, consume):
+                def stage(ordinal, consume):
                     if insert_only:
                         observe()
-                    consume(write)
+                    consume(writes[ordinal])
                 def before_commit():
                     rows = []
                     binding._observed_reader.read('probe', 'inserted', rows.append)
@@ -322,16 +374,20 @@ class ClosedWasmSqlTests(unittest.TestCase):
                     changes = store._connection.total_changes
                     project = (store.store_publication_projected_inspected if insert_only
                                else store.compare_exchange_projected_inspected)
+                    options = {'_sdk_terminal_precommit': enabled} if terminal_precommit else {}
                     self.assertEqual(project(
-                        1, stage, originals, fences, inspect=inspect,
+                        len(writes), stage, originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
-                        _sdk_delivery_prewrite=enabled), (0,))
+                        _sdk_delivery_prewrite=enabled, **options), (0,) * len(writes))
                 self.assertTrue(all(reader is readers[0] for reader in readers))
                 self.assertEqual(epochs, [epochs[0]] * len(observed))
                 if insert_only:
                     expected = [expected[0], *expected]
                 self.assertEqual(observed, expected)
-                self.assertEqual(store._connection.total_changes, changes + (not retained))
+                if terminal_precommit:
+                    self.assertEqual(changes_at_export, [changes, changes + 3])
+                    self.assertIsNone(readers[0]._terminal_precommit() if enabled else None)
+                self.assertEqual(store._connection.total_changes, changes + (0 if retained else len(writes)))
                 self.assertEqual(store.read(key), StoredBytes(0, write.payload))
                 self.assertIsNone(store._connection._closed_invocation)
 
