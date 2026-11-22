@@ -438,7 +438,7 @@ test('current regex imports bind both literal aliases and complete pattern and r
   const lowering = 'src/lowering_relation';
   const path = relation + '/moon.pkg';
   const entry = currentPackageConfigurations[path];
-  const shaRevision = '077d8ba85e6aadc71fec9bce130ce461303042ac';
+  const shaRevision = '31411703b2bc9af39aba83db2eb7c0174472eb46';
   const shaReview = gitTree(root, shaRevision);
   const packages = {
     regex_pattern: {alias: 'regex', members: [
