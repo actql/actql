@@ -60462,7 +60462,7 @@
           ]
         }
       ],
-      "sha256": "ab11497dadeea78325ea0b4526208d9bbb577528ff20ad8398a1d2bd4c5522f4",
+      "sha256": "63eefcd51cee732787e7c345c236de74420929d903cbe00b5fa554b8a58e480f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60642,6 +60642,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_saved_material_compatibility.py",
+                "anchor": "def test_bound_saved_precommit_reobserves_file_and_still_runs_full_final_validation("
               }
             ]
           }

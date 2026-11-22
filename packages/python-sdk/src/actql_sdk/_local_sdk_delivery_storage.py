@@ -272,9 +272,9 @@ class OriginalSDKDeliveryStore:
                                 original: tuple[_Output, OriginalReaderFacts] | None) -> None:
         """Observe the same admitted facts; the bound Core port checks current.
 
-        Only prepare-input, chunk and terminal-observation callers use this
-        route. They independently run the original SDK Source/Sealed-record
-        checks before/after their action. SQL writes, live/unbound projections
+        The original SDK Source and Sealed-record checks still run in each
+        caller. Terminal precommit uses this observation only before its
+        complete Core and Reader-fact checks. Writes, live/unbound projections
         and generic callbacks retain complete fact validation.
         """
         observation = self._observation
@@ -438,6 +438,8 @@ class OriginalSDKDeliveryStore:
             self._core._owned(self._workspace)
             if request.ticket in self._terminal_attempted:
                 raise LocalStorageError('Original terminal write requires lookup; replay is unavailable')
+            original = self._payload_binding_originals.get(request.ticket)
+            fact = self._bound_payload_fact(request, first, original)
             self._terminal_attempted.add(request.ticket)
             self._active = True
             writes: tuple[ByteWrite, ...] = ()
@@ -453,7 +455,10 @@ class OriginalSDKDeliveryStore:
                     def before_commit() -> None:
                         if output is None:
                             raise ValueError('Lost original SDK terminal output loan')
-                        observation._before_lookup()
+                        if fact is None:
+                            observation._before_lookup()
+                        else:
+                            self._observe_bound_material(request, first, fact, original)
                         self._core.produce_publication_sdk_terminal_storage(
                             output, first, clock, observation._projection._configuration)
                         observation._validate_facts()
@@ -486,6 +491,10 @@ class OriginalSDKDeliveryStore:
                         _terminal_prewrite=observation._projection._saved)
                 if generations is None:
                     raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
+            except BaseException:
+                if fact is not None:
+                    fact._original_material = None
+                raise
             finally:
                 writes = ()
                 self._active = False

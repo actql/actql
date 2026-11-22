@@ -3971,15 +3971,19 @@ same-owner immutable material. A failed enclosing current/physical observation
 discards that material, retaining only the same cleanup loans. Successful binding
 is recorded only after the whole original Store/current frame returns.
 
-Only the existing bound Saved SDK byte callers consume that successful material.
+Only the existing bound Saved SDK callers consume that successful material.
 Their public Source, Sealed record, selected binding, access and finish-current
 checks remain mandatory, as do fresh descriptor observations and the complete
-public Host current, Journal and transfer paths. Missing, changed, unbound or
-live material takes complete validation; write/CAS/precommit paths keep their
-full checks. This supplies no active custody transport or lifetime optimization,
-capacity, permission, current-row proof or physical acknowledgment. ABI78 and
-its full public Core validators remain unchanged; no private combined-export,
-ABI82 behavior or runtime timing equivalence is implied.
+public Host current, Journal and transfer paths. After staging the original
+terminal CAS, the precommit caller may reobserve that exact sealed physical
+material before entering Core. Core still validates the complete staged
+terminal graph, and the Host still performs both full Reader-fact validators
+after Core returns and before COMMIT. Missing, changed, unbound or live material
+takes complete validation at entry. Failure discards the bound material
+observation and retains the same cleanup loans. This supplies no active custody
+transport or lifetime optimization, capacity, permission, current-row proof
+or physical acknowledgment. The full public ABI78 Core validators remain
+available as independent exports.
 
 ### Accepted preparation failure
 

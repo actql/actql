@@ -3,6 +3,7 @@
 No installed guest/runtime, permission, publication or ordinary speed acceptance.
 """
 from contextlib import contextmanager
+import json
 import os
 import unittest
 from unittest.mock import patch
@@ -12,7 +13,7 @@ from actql_sdk._local_core import LocalCoreError, _Output
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
-from actql_sdk._local_storage import ByteFence, CapacityReservation
+from actql_sdk._local_storage import ByteFence, CapacityReservation, LocalStorageError, StoredBytes
 from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI
 import test_local_host_binding as host_fixture
@@ -46,7 +47,8 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                 if ((family == 'publication_commit_export' and name in (
                         'validate_payload_binding', 'validate_reader_facts',
                         'bind_sdk_payload_record', 'prepare_sdk_payload_input', 'sdk_payload_ordinal',
-                        'produce_sdk_payload_chunk', 'observe_sdk_terminal'))
+                        'produce_sdk_payload_chunk', 'produce_sdk_terminal_storage',
+                        'observe_sdk_terminal'))
                         or (family == 'payload_record' and name == 'validate_snapshot')):
                     frame = core._journal_callbacks(binding._current.ticket).reader
                     self.assertIs(frame.owner, store)
@@ -62,7 +64,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                         state['on_bind']()
                         return state['bind']
                     if name in ('prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
-                                'observe_sdk_terminal'):
+                                'produce_sdk_terminal_storage', 'observe_sdk_terminal'):
                         state['on_port']()
                         return state['port']
                     return 0
@@ -242,6 +244,48 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertEqual(calls[before:], [])
             self.assertIsNone(fact._original_material)
             self.assertIs(holder.original_first_output(request), first)
+
+    def test_bound_saved_precommit_reobserves_file_and_still_runs_full_final_validation(self):
+        with self.fixture() as (holder, _, fact, store, core, request, first, clock,
+                                _, state, calls, _, _, _):
+            holder.bind_original_payload(request, clock, fact)
+            original = fact.pending_input
+            receipt, record, head = ('sha256:' + digit * 64 for digit in '567')
+            head_key = store.namespaced_key('delivery_record_head', head)
+            self.assertEqual(store.compare_exchange(head_key, None, b'streaming'), 0)
+            raw = json.dumps([
+                dict(table='publication_contract', key=receipt, revision=None, body='receipt'),
+                dict(table='publication_contract', key=record, revision=None, body='terminal'),
+                dict(table='delivery_record_head', key=head, revision=0, body='terminal'),
+            ]).encode()
+            initial = store._connection.total_changes
+
+            def refuse_after_staged_observation():
+                if calls.count('produce_sdk_terminal_storage') == 2:
+                    self.assertTrue(store._connection.in_transaction)
+                    self.assertEqual(store._connection.total_changes, initial + 3)
+                    state['snapshot'] = -32
+
+            state['on_port'] = refuse_after_staged_observation
+            with patch.object(core, 'read_publication_commit_material', return_value=raw), \
+                    patch.object(fact, 'observe_original_material',
+                                 wraps=fact.observe_original_material) as file_current:
+                with self.assertRaises(LocalCoreError) as failed:
+                    holder.persist_original_terminal(request, clock)
+                self.assertEqual(failed.exception.operation, 'validate_payload_snapshot')
+                self.assertEqual(failed.exception.code, -32)
+                file_current.assert_called_once_with()
+            self.assertEqual(calls[-3:], ['produce_sdk_terminal_storage',
+                                        'validate_payload_binding', 'validate_snapshot'])
+            self.assertIsNone(fact._original_material)
+            self.assertIs(fact.pending_input, original)
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertFalse(store._connection.in_transaction)
+            self.assertEqual(store.read(head_key), StoredBytes(0, b'streaming'))
+            self.assertIsNone(store.read(store.namespaced_key('publication_contract', receipt)))
+            with self.assertRaises(LocalStorageError):
+                holder.persist_original_terminal(request, clock)
+            self.assertEqual(calls.count('produce_sdk_terminal_storage'), 2)
 
 
 if __name__ == '__main__':
