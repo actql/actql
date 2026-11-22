@@ -9,11 +9,13 @@ import {stringify} from 'yaml';
 import {parseCommands, inventory, compareActions, formatReport} from './verification-actions.mjs';
 
 const script = fileURLToPath(new URL('./verification-actions.mjs', import.meta.url));
-const job = (run, extra = {}) => ({'runs-on': 'ubuntu-24.04', steps: [{name: 'Check', run}], ...extra});
-const build = (jobs, scripts = {}, extra = {}) => inventory({
+type FixtureStep = {run?: string; name?: string; uses?: string; with?: Record<string, string>; if?: string};
+type InventoryInputs = Parameters<typeof inventory>[0];
+const job = (run: string, extra: Record<string, unknown> = {}): {'runs-on': string; steps: FixtureStep[]} => ({'runs-on': 'ubuntu-24.04', steps: [{name: 'Check', run}], ...extra});
+const build = (jobs: Record<string, unknown>, scripts: Record<string, string> = {}, extra: Partial<InventoryInputs> = {}) => inventory({
   workflowText: stringify(JSON.parse(JSON.stringify({name: 'Fixture', jobs}))), packageText: JSON.stringify({scripts}, null, 2), ...extra,
 });
-const pair = report => compareActions(report.actions[0], report.actions[1]);
+const pair = (report: ReturnType<typeof inventory>) => compareActions(report.actions[0], report.actions[1]);
 
 test('literal quoting and whitespace normalize argv without executing shell', () => {
   assert.deepEqual(parseCommands(" node 'scripts/check.mjs'  --case \"a b\" &&\nnode check.mjs\n").commands,
@@ -99,7 +101,7 @@ test('empty blocks and comments do not invent verification', () => {
 test('literal matrices expand separately, while dynamic/include matrices stay unknown', () => {
   const report = build({core: job('moon check --target "${{ matrix.target }}"',
     {strategy: {matrix: {target: ['js', 'wasm']}}})});
-  assert.deepEqual(report.actions.map(item => item.invocation.target), ['js', 'wasm']);
+  assert.deepEqual(report.actions.map(item => item.invocation!.target), ['js', 'wasm']);
   assert.equal(pair(report).equivalence, 'different');
   const fixedCommand = build({core: job('node --test fixed.test.mjs',
     {strategy: {matrix: {target: ['js', 'wasm']}}})});
@@ -124,7 +126,7 @@ test('npm expansion includes pre/post hooks and preserves exact source chains an
     'precheck:one': 'node prepare.mjs', 'check:one': 'node check.mjs && node audit.mjs',
     'postcheck:one': 'node cleanup.mjs',
   });
-  assert.deepEqual(report.actions.slice(0, 4).map(item => item.invocation.argv[1]),
+  assert.deepEqual(report.actions.slice(0, 4).map(item => item.invocation!.argv[1]),
     ['prepare.mjs', 'check.mjs', 'audit.mjs', 'cleanup.mjs']);
   assert.equal(report.actions[1].source[0].path, '.github/workflows/ci.yml');
   assert.equal(report.actions[1].source[1].definition, 'scripts.check:one');
@@ -208,7 +210,7 @@ test('nested npm lifecycle state includes pre, main, post and caller effects in 
     'precheck:one': 'node mutate.mjs', 'check:one': 'npm run check:inner',
     'postcheck:one': 'node restore.mjs', 'check:inner': 'node check.mjs',
   });
-  assert.deepEqual(report.actions.slice(0, 4).map(item => item.invocation.argv[1]),
+  assert.deepEqual(report.actions.slice(0, 4).map(item => item.invocation!.argv[1]),
     ['mutate.mjs', 'check.mjs', 'restore.mjs', 'after.mjs']);
   assert.deepEqual(report.actions[1].state.priorCommands.map(item => item.occurrence), ['action-1']);
   assert.deepEqual(report.actions[3].state.priorCommands.map(item => item.occurrence),
@@ -245,7 +247,7 @@ test('literal environment names that match object prototypes are retained and co
   assert.deepEqual(report.actions.map(action => action.environment.constructor), ['first', 'second']);
   assert.deepEqual(report.actions.map(action => action.environment.toString), ['left', 'right']);
   for (const action of report.actions) {
-    assert.equal(Object.getPrototypeOf(action.invocation.env), null);
+    assert.equal(Object.getPrototypeOf(action.invocation!.env), null);
     assert.equal(Object.getPrototypeOf(action.environment), Object.prototype);
     assert(Object.hasOwn(action.environment, '__proto__'));
     assert.deepEqual(JSON.parse(JSON.stringify(action.environment)), action.environment);

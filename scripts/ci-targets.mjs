@@ -44,7 +44,7 @@ export const maintenanceFiles = Object.freeze([
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',
   // The parser implementation also selects original Native compiler commands
   // and scoped profiles, so only its reporting tests remain maintenance-only.
-  'scripts/verification-actions.test.mjs',
+  'scripts/verification-actions.test.mts',
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
   // Reviewed callback-only units. Their implementation helpers are also used
   // by packed/public consumers and deliberately remain full-coverage inputs.
@@ -161,7 +161,7 @@ function darwinWorkloadInput(path) {
     || /^src\/.+\/moon\.pkg$/u.test(path)
     || /^adapters\/(?:host-node\/native\/|connectors\/duckdb\/node\/)/u.test(path)
     || /^packages\/python-local-runtime\/native\/(?:crypto|sqlite)-component\//u.test(path)
-    || /^scripts\/(?:ci-native-background-groups\.|local-checks(?:-guard|-policy|-hook)?\.|verification-actions\.mjs$|(?:prepare-|produce-|test-)?native-)/u.test(path);
+    || /^scripts\/(?:ci-native-background-groups\.|local-checks(?:-guard|-policy|-hook)?\.|verification-actions\.m[jt]s$|(?:prepare-|produce-|test-)?native-)/u.test(path);
 }
 
 // The shared workflow also changes when unrelated job routing is edited. Check

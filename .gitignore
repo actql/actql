@@ -2028,3 +2028,7 @@ target/
 /scripts/packed-model-controls.d.mts
 /scripts/packed-account-controls.mjs
 /scripts/packed-account-controls.d.mts
+/scripts/verification-actions.mjs
+/scripts/verification-actions.d.mts
+/scripts/verification-actions.test.mjs
+/scripts/verification-actions.test.d.mts

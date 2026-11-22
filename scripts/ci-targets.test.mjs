@@ -1168,7 +1168,7 @@ test('actual evaluation Source Git changes reject additions deletions renames an
 });
 
 test('Native command parsing remains a full execution input when its implementation changes alone', () => {
-  const path = 'scripts/verification-actions.mjs';
+  const path = 'scripts/verification-actions.mts';
   for (const caller of ['native-core-test-selection.mjs', 'native-core-scoped-profile.mjs']) {
     const source = readFileSync(new URL(caller, import.meta.url), 'utf8');
     assert(source.includes("import {parseCommands} from './verification-actions.mjs'"), caller);
@@ -1182,7 +1182,7 @@ test('Native command parsing remains a full execution input when its implementat
   for (const job of ['core', 'native', 'native-macos', 'host', 'client', 'pipeline-evidence', 'pipeline-validation'])
     assert.equal(gateJobRequired(selection, job), true, job);
   assert.throws(() => verifyGate(plan(selection), {...results(selection), core: {result: 'skipped'}}, context));
-  assert.equal(maintenanceSelection(['scripts/verification-actions.test.mjs']).profile, 'maintenance');
+  assert.equal(maintenanceSelection(['scripts/verification-actions.test.mts']).profile, 'maintenance');
 });
 
 test('maintenance inventory is nonempty unique and every existing reviewed modification qualifies', () => {
@@ -1202,7 +1202,7 @@ test('maintenance inventory is nonempty unique and every existing reviewed modif
     'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
     'scripts/ci-review.config.json', 'scripts/new-reporter.mjs',
     'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs',
-    'scripts/verification-actions.mjs']) {
+    'scripts/verification-actions.mjs', 'scripts/verification-actions.mts']) {
     assert.equal(maintenanceSelection([path]).profile, 'full', path);
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }

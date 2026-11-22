@@ -6,10 +6,14 @@ import {parseDocument, LineCounter} from 'yaml';
 
 const usage = 'Usage: node scripts/verification-actions.mjs [--root DIR] ' +
   '[--workflow PATH] [--json]';
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const canonical = value => JSON.stringify(value, (_key, item) => object(item)
+type Mapping = Record<string, unknown>;
+type CommandLink = 'start' | '&&' | 'newline';
+type Command = {argv: string[]; after: CommandLink; line: number};
+
+const object = (value: unknown): value is Mapping => value !== null && typeof value === 'object' && !Array.isArray(value);
+const canonical = (value: unknown) => JSON.stringify(value, (_key, item) => object(item)
   ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
-const same = (a, b) => canonical(a) === canonical(b);
+const same = (a: unknown, b: unknown) => canonical(a) === canonical(b);
 const unknownDependencies = [
   'Transitive inputs and generated files are not enumerated',
   'Resolved compiler/runtime bytes and inherited environment are not observed',
@@ -20,12 +24,13 @@ const unknownDependencies = [
 // Deliberately small shell grammar: literal words, quotes, whitespace, && and
 // newlines. Never expand variables, globs, substitutions, pipelines or loops.
 // Refuse the whole block, not a potentially unconditional fragment of a loop.
-export function parseCommands(source) {
+export function parseCommands(source: unknown): {commands: Command[]; reason: string | null} {
   if (typeof source !== 'string') return {commands: [], reason: 'Non-string command'};
-  const commands = [];
-  let words = [], word = '', started = false, quote = null, operator = 'start', line = 1, start = 1;
+  const commands: Command[] = [];
+  let words: string[] = [], word = '', started = false, quote: string | null = null,
+    operator: CommandLink = 'start', line = 1, start = 1;
   const pushWord = () => { if (started) words.push(word); word = ''; started = false; };
-  const pushCommand = next => {
+  const pushCommand = (next: CommandLink) => {
     pushWord();
     if (words.length) commands.push({argv: words, after: operator, line: start});
     else if (next === '&&') throw new Error('Empty && operand');
@@ -64,7 +69,7 @@ export function parseCommands(source) {
     }
     if (quote) throw new Error('Unclosed shell quote');
     pushWord();
-    if (!words.length && operator === '&&') throw new Error('Trailing &&');
+    if (!words.length && (operator as CommandLink) === '&&') throw new Error('Trailing &&');
     if (words.length) commands.push({argv: words, after: operator, line: start});
     const reserved = new Set(['if', 'then', 'else', 'fi', 'for', 'while', 'until', 'do', 'done',
       'case', 'esac', 'function', 'select', 'export', 'cd', 'source', '.', 'eval', 'exec', 'set']);
@@ -72,17 +77,18 @@ export function parseCommands(source) {
       if (reserved.has(command.argv[0])) throw new Error('Unsupported stateful shell command');
     }
     return {commands, reason: null};
-  } catch (error) { return {commands: [], reason: error.message}; }
+  } catch (error) { return {commands: [], reason: (error as Error).message}; }
 }
 
-function invocation(argv) {
-  const env = Object.create(null);
+function invocation(argv: string[]) {
+  const env: Record<string, string> = Object.create(null);
   while (/^[A-Za-z_][A-Za-z_0-9]*=/u.test(argv[0] ?? '')) {
-    const assignment = argv.shift(), equal = assignment.indexOf('=');
+    const assignment = argv.shift()!, equal = assignment.indexOf('=');
     env[assignment.slice(0, equal)] = assignment.slice(equal + 1);
   }
   const [executable, operation] = argv;
-  let subject = null, kind = null;
+  let subject: string | null | undefined = null;
+  let kind: 'node-test' | 'node-script' | 'moon' | 'npm-script' | null = null;
   if (executable === 'node' && operation === '--test') {
     kind = 'node-test'; subject = argv.slice(2).find(value => !value.startsWith('-'));
   } else if (executable === 'node' && /\.(?:mjs|cjs|js)$/u.test(operation ?? '')) {
@@ -103,21 +109,21 @@ function invocation(argv) {
     reason: kind ? null : 'Unrecognized invocation (not executed or expanded)'};
 }
 
-function sourceLocation(path, counter, node, suffix = '') {
-  const at = counter.linePos(node?.range?.[0] ?? 0);
+function sourceLocation(path: string, counter: LineCounter, node: unknown, suffix = '') {
+  const at = counter.linePos((node as {range?: readonly number[]} | null | undefined)?.range?.[0] ?? 0);
   return {path, line: at.line, column: at.col, ...(suffix ? {definition: suffix} : {})};
 }
 
-function parseYaml(text, path) {
+function parseYaml(text: string, path: string) {
   const counter = new LineCounter();
   const document = parseDocument(text, {lineCounter: counter, uniqueKeys: true});
   if (document.errors.length) throw new Error(`Invalid YAML: ${path}`);
-  const value = document.toJS({maxAliasCount: 0});
+  const value: unknown = document.toJS({maxAliasCount: 0});
   if (!object(value)) throw new Error(`Expected mapping: ${path}`);
   return {document, counter, value};
 }
 
-function matrixCases(job) {
+function matrixCases(job: {strategy?: {matrix?: unknown}}) {
   if (!job.strategy?.matrix) return [{values: {}, reason: null}];
   const matrix = job.strategy.matrix;
   if (!object(matrix) || Object.keys(matrix).some(key => ['include', 'exclude'].includes(key)) ||
@@ -126,8 +132,8 @@ function matrixCases(job) {
           !/^[-A-Za-z0-9_.:/]+$/u.test(String(value))))) {
     return [{values: {}, reason: 'Dynamic or unsupported matrix; no expansion claimed'}];
   }
-  let cases = [{}];
-  for (const [key, values] of Object.entries(matrix)) {
+  let cases: Record<string, string>[] = [{}];
+  for (const [key, values] of Object.entries(matrix as Record<string, readonly (string | number | boolean)[]>)) {
     if (cases.length * values.length > 64) return [{values: {}, reason: 'Matrix exceeds 64 cases'}];
     cases = cases.flatMap(item => values.map(value => ({...item, [key]: String(value)})));
   }
@@ -136,21 +142,68 @@ function matrixCases(job) {
 
 // Matrix replacement is limited to safe literal tokens even inside quotes.
 // Remaining expressions become opaque in parseCommands.
-const substitute = (text, values) => String(text).replace(/\$\{\{\s*matrix\.([A-Za-z_][\w-]*)\s*\}\}/gu,
+const substitute = (text: unknown, values: Record<string, string>) => String(text).replace(/\$\{\{\s*matrix\.([A-Za-z_][\w-]*)\s*\}\}/gu,
   (match, key) => /^[A-Za-z0-9_.:/-]+$/u.test(values[key] ?? '') ? values[key] : match);
 
-export function compareActions(left, right) {
-  const result = {left: left.id, right: right.id, invocationEquality: 'unknown',
+type SourceLocation = ReturnType<typeof sourceLocation> & {commandLineOffset?: number};
+type PriorCommand = {occurrence?: never; source: SourceLocation; run: unknown}
+  | {occurrence: string};
+type WorkflowDefaults = {run?: Mapping};
+
+type ActionContext = {
+  origin: 'workflow' | 'local-definition';
+  job: string;
+  matrix: Record<string, string>;
+  step: number | null;
+  purpose: unknown;
+  condition: Mapping;
+  workingDirectory: unknown;
+  shell: unknown;
+  compiler: {
+    requestedExecutable: string | null;
+    runner: unknown;
+    setup: {uses: unknown; with: unknown; if: unknown}[];
+    pinDeclaration: string | null;
+  };
+  environment: Record<string, string>;
+  state: {
+    priorStepCount?: number;
+    priorEffects: 'unknown';
+    inheritedEnvironment: 'unknown';
+    priorCommands: PriorCommand[];
+  };
+  unresolved: string[];
+};
+type Action = ActionContext & {
+  id: string;
+  source: SourceLocation[];
+  invocation: ReturnType<typeof invocation> | null;
+  declaration?: string;
+  inputIdentity: 'unavailable';
+  faultState: 'unknown';
+};
+type Comparison = {
+  left: string;
+  right: string;
+  invocationEquality: 'unknown' | 'proven' | 'different';
+  equivalence: 'unknown' | 'different' | 'suspected';
+  eligibleForReuse: false;
+  differences: string[];
+  reasons: string[];
+};
+
+export function compareActions(left: Action, right: Action) {
+  const result: Comparison = {left: left.id, right: right.id, invocationEquality: 'unknown',
     equivalence: 'unknown', eligibleForReuse: false, differences: [], reasons: []};
   if (!left.invocation?.kind || !right.invocation?.kind || left.unresolved.length || right.unresolved.length) {
     result.reasons.push('Unrecognized or dynamic declaration prevents comparison');
     return result;
   }
   result.invocationEquality = same(left.invocation.argv, right.invocation.argv) ? 'proven' : 'different';
-  for (const key of ['argv', 'target', 'selectors', 'flags']) {
+  for (const key of ['argv', 'target', 'selectors', 'flags'] as const) {
     if (!same(left.invocation[key], right.invocation[key])) result.differences.push(key);
   }
-  for (const key of ['environment', 'compiler', 'workingDirectory', 'shell', 'matrix']) {
+  for (const key of ['environment', 'compiler', 'workingDirectory', 'shell', 'matrix'] as const) {
     if (!same(left[key], right[key])) result.differences.push(key);
   }
   if (result.differences.length) {
@@ -169,23 +222,33 @@ export function compareActions(left, right) {
 
 // Pure report builder: all sources are explicit strings; no filesystem, shell,
 // imports of inspected code, network, environment collection or action key.
+type InventoryInputs = {
+  workflowText: string;
+  packageText: string;
+  localRunnerText?: string;
+  toolchainText?: string;
+  workflowPath?: string;
+};
+
 export function inventory({workflowText, packageText, localRunnerText = '',
-  toolchainText = '', workflowPath = '.github/workflows/ci.yml'}) {
+  toolchainText = '', workflowPath = '.github/workflows/ci.yml'}: InventoryInputs) {
   const {document, counter, value: workflow} = parseYaml(workflowText, workflowPath);
   if (!object(workflow.jobs)) throw new Error('Workflow jobs must be a mapping');
-  const manifest = JSON.parse(packageText);
+  const manifest = JSON.parse(packageText) as {scripts?: Mapping | null};
   if (!object(manifest.scripts ?? {})) throw new Error('Package scripts must be a mapping');
   const scripts = manifest.scripts ?? {};
   const packageDocument = parseYaml(packageText, 'package.json');
-  const actions = [], omissions = [];
+  const actions: Action[] = [];
+  const omissions: {source: SourceLocation; job: string; matrix?: Record<string, string>;
+    reason: string; uses: unknown}[] = [];
   let sequence = 0;
-  const packageSource = name => sourceLocation('package.json', packageDocument.counter,
+  const packageSource = (name: string) => sourceLocation('package.json', packageDocument.counter,
     packageDocument.document.getIn(['scripts', name], true), `scripts.${name}`);
-  const emit = (run, context, sources, stack = []) => {
-    const trace = [];
+  const emit = (run: string, context: ActionContext, sources: SourceLocation[], stack: string[] = []): PriorCommand[] => {
+    const trace: PriorCommand[] = [];
     const history = [...context.state.priorCommands];
     const currentContext = () => ({...context, state: {...context.state, priorCommands: [...history]}});
-    const record = action => {
+    const record = (action: Action) => {
       if (actions.length >= 5000) throw new Error('Action inventory exceeds 5000 occurrences');
       actions.push(action);
       const event = {occurrence: action.id};
@@ -204,7 +267,7 @@ export function inventory({workflowText, packageText, localRunnerText = '',
       const source = sources.map((item, index) => index === sources.length - 1
         ? {...item, commandLineOffset: command.line - 1} : item);
       if (current.kind === 'npm-script') {
-        const name = current.subject;
+        const name = current.subject!;
         if (stack.includes(name) || stack.length >= 20 || typeof scripts[name] !== 'string') {
           record({...currentContext(), id: `action-${++sequence}`, source, invocation: current,
             environment, unresolved: [...context.unresolved, 'Missing, recursive or non-string npm script'],
@@ -239,7 +302,8 @@ export function inventory({workflowText, packageText, localRunnerText = '',
       continue;
     }
     for (const matrix of matrixCases(job)) {
-      const setup = [], priorCommands = [];
+      const setup: ActionContext['compiler']['setup'] = [];
+      const priorCommands: PriorCommand[] = [];
       for (const [index, step] of job.steps.entries()) {
         if (!object(step)) throw new Error('Step must be a mapping');
         const node = document.getIn(['jobs', jobName, 'steps', index], true);
@@ -250,11 +314,12 @@ export function inventory({workflowText, packageText, localRunnerText = '',
             reason: 'Action implementation and state effects are opaque', uses: step.uses});
         }
         if (step.run === undefined) continue;
-        const getDefault = key => step[key] ?? job.defaults?.run?.[key] ?? workflow.defaults?.run?.[key] ?? null;
+        const getDefault = (key: string) => step[key] ?? (job.defaults as WorkflowDefaults | undefined)?.run?.[key]
+          ?? (workflow.defaults as WorkflowDefaults | undefined)?.run?.[key] ?? null;
         const shell = getDefault('shell');
-        const unsupportedShell = shell !== null && !['bash', 'sh'].includes(shell);
-        const env = {...workflow.env, ...job.env, ...step.env};
-        const context = {origin: 'workflow', job: jobName, matrix: matrix.values, step: index,
+        const unsupportedShell = shell !== null && !(['bash', 'sh'] as readonly unknown[]).includes(shell);
+        const env = {...workflow.env as Mapping, ...job.env as Mapping, ...step.env as Mapping};
+        const context: ActionContext = {origin: 'workflow', job: jobName, matrix: matrix.values, step: index,
           purpose: step.name ?? null, condition: {job: job.if ?? null, step: step.if ?? null,
             continueOnError: step['continue-on-error'] ?? false, needs: job.needs ?? []},
           workingDirectory: getDefault('working-directory') ?? '<checkout>', shell: shell ?? '<runner-default>',
@@ -284,14 +349,14 @@ export function inventory({workflowText, packageText, localRunnerText = '',
   for (const action of actions) {
     action.compiler = {...action.compiler, requestedExecutable: action.invocation?.argv[0] ?? null};
   }
-  const groups = new Map();
+  const groups = new Map<string, Action[]>();
   for (const action of actions) {
     if (!action.invocation?.kind) continue;
     const anchor = canonical([action.invocation.kind, action.invocation.subject]);
     const group = groups.get(anchor) ?? [];
     group.push(action); groups.set(anchor, group);
   }
-  const comparisons = [];
+  const comparisons: Comparison[] = [];
   for (const group of groups.values()) {
     for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
       if (comparisons.length >= 20000) throw new Error('Comparison inventory exceeds 20000 pairs');
@@ -314,7 +379,7 @@ export function inventory({workflowText, packageText, localRunnerText = '',
       different: comparisons.filter(item => item.equivalence === 'different').length}};
 }
 
-function readText(path) {
+function readText(path: string) {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = fstatSync(fd);
@@ -331,10 +396,10 @@ function readText(path) {
   } finally { closeSync(fd); }
 }
 
-const terminalSafe = value => String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028-\u202e\u2066-\u2069]/gu,
-  character => '\\u' + character.codePointAt(0).toString(16).padStart(4, '0'));
+const terminalSafe = (value: unknown) => String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028-\u202e\u2066-\u2069]/gu,
+  character => '\\u' + character.codePointAt(0)!.toString(16).padStart(4, '0'));
 
-export function formatReport(report) {
+export function formatReport(report: ReturnType<typeof inventory>) {
   const lines = ['Verification scheduling candidates (read only)',
     `${report.summary.occurrences} declared occurrences; ${report.summary.opaqueOccurrences} opaque`,
     `${report.summary.suspected} suspected pairs; ${report.summary.unknown} unknown; ${report.summary.different} different`,
@@ -342,19 +407,19 @@ export function formatReport(report) {
     'Local definitions are alternative entrypoints, not observed additional CI executions.'];
   const byId = new Map(report.actions.map(action => [action.id, action]));
   for (const pair of report.comparisons.filter(item => item.invocationEquality === 'proven')) {
-    const label = id => {
-      const action = byId.get(id), location = action.source[0];
+    const label = (id: string) => {
+      const action = byId.get(id)!, location = action.source[0];
       return `${terminalSafe(action.job)} (${terminalSafe(location.path)}:${location.line ?? '?'})`;
     };
     lines.push(`${pair.equivalence}: ${label(pair.left)} <> ${label(pair.right)}`,
-      `  ${byId.get(pair.left).invocation.argv.map(terminalSafe).join(' ')}`,
+      `  ${byId.get(pair.left)!.invocation!.argv.map(terminalSafe).join(' ')}`,
       `  ${pair.reasons[0]}${pair.differences.length ? ': ' + pair.differences.join(', ') : ''}`);
   }
   lines.push('Use --json for all occurrences, source chains, opaque blocks and near-match differences.');
   return lines.join('\n') + '\n';
 }
 
-export function main(args) {
+export function main(args: string[]) {
   if (args.length === 1 && args[0] === '--help') { console.log(usage); return; }
   const options = {root: fileURLToPath(new URL('../', import.meta.url)), workflow: '.github/workflows/ci.yml', json: false};
   const seen = new Set();
@@ -366,7 +431,7 @@ export function main(args) {
     else {
       const value = args[++i];
       if (!value || value.startsWith('--')) throw new Error(usage);
-      options[flag.slice(2)] = value;
+      options[flag.slice(2) as 'root' | 'workflow'] = value;
     }
   }
   const root = resolve(options.root), workflowPath = resolve(root, options.workflow);
@@ -378,5 +443,5 @@ export function main(args) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try { main(process.argv.slice(2)); }
-  catch (error) { console.error(terminalSafe(error.message)); process.exitCode = 1; }
+  catch (error) { console.error(terminalSafe((error as Error).message)); process.exitCode = 1; }
 }
