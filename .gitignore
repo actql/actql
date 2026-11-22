@@ -2296,3 +2296,5 @@ target/
 /adapters/host-node/infer-evaluation-evidence.d.mts
 /adapters/host-node/infer-operation.mjs
 /adapters/host-node/infer-operation.d.mts
+/adapters/host-node/installed-row-source-read-authority.mjs
+/adapters/host-node/installed-row-source-read-authority.d.mts

@@ -3624,7 +3624,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
                 "anchor": "const currentRead = async"
               },
               {
@@ -15349,12 +15349,220 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-row-source-read-authority.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "createInstalledRowSourceReadAuthority"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceReadAuthority",
+          "parameters": [
+            "preparations",
+            "installationBinding",
+            "immutableTargets",
+            "currentPhysicalTargetGeneration",
+            "moon",
+            "declaration",
+            "site",
+            "physicalTarget",
+            "directReadIdentity",
+            "valueCid",
+            "cid",
+            "cidPattern"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceReadAuthority/currentRead/currentRead",
+          "parameters": [
+            "prepared",
+            "access",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceReadAuthority/decideRead/decideRead",
+          "parameters": [
+            "prepared",
+            "access",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding",
+          "parameters": [
+            "prepared",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
+          "parameters": [
+            "field",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/checkpoint-approval.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-source-mapping.mjs",
+        "./ordinary-source-binding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "8c4ea97e969ae3a06b23b2d8d768618fb2067b43c247739bf667053bf1d32f62",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceReadAuthority",
+            "createInstalledRowSourceReadAuthority/currentRead/currentRead",
+            "createInstalledRowSourceReadAuthority/decideRead/decideRead",
+            "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding",
+            "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+            "createInstalledRowSourceReadAuthority/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2"
+          ],
+          "exports": [
+            "createInstalledRowSourceReadAuthority"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "export function createInstalledRowSourceReadAuthority("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "const currentRead = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "function ordinaryRecoveryBinding(prepared: Prepared, expected?: PriorPreparation)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "access.authorization.authorize('acquisition', prepared.readTuple"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "const owner = preparations.get(prepared);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "prepared.physicalBinding !== owner.physicalBindingOriginal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "return installationBinding;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "directReadIdentity.subject(prepared)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "const decision = await decideRead(prepared, access, signal);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "currentPhysicalTargetGeneration() === undefined"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "fail('InstalledKeyedReadApprovalMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "fail('InstalledSourceReadApprovalMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "const currentRead = async (prepared: Prepared, access: SourceAccess, signal?: AbortSignal)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "physicalBinding: prepared.physicalBinding})), signal});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "owner.physicalBindingOriginal!.fields.length"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "moon.clientProgramWholeSourceTarget(owner.acquisition)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-read-authority.mts",
+                "anchor": "checked(moon.clientProgramRowSourceTarget(declaration, owner.requirement)) as Target"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
+                "anchor": "fresh exact Core target and connection are checked again after authorization awaits"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "retained keyed read checks its original preparation and current authority without source I/O"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c5d9fde86cc6e3b0204205ed08bc9f7c0aed5f5a0f2f0c4fe9f07646a32ea11b",
+      "sha256": "41b56790d466ddae4b8dd68e9cc9118251ca13022d0aec96de26d4feea5247c1",
       "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "createInstalledRowSource",
           "parameters": [
@@ -15620,13 +15828,9 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/currentRead/currentRead",
-          "parameters": [
-            "prepared",
-            "access",
-            "signal"
-          ],
-          "async": true
+          "name": "createInstalledRowSource/currentPhysicalTargetGeneration",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createInstalledRowSource/describePreparedSource/describePreparedSource",
@@ -15949,29 +16153,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/ordinaryRecoveryBinding",
-          "parameters": [
-            "prepared",
-            "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
-          "parameters": [
-            "field",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/prepare",
           "parameters": [
             "preparedProgram",
@@ -16132,7 +16313,6 @@
       "imports": [
         "../host-common/acquisition-outcome.mjs",
         "../host-common/authorization-gate.mjs",
-        "../host-common/checkpoint-approval.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
@@ -16144,9 +16324,9 @@
         "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
+        "./installed-row-source-read-authority.mjs",
         "./installed-row-source-targets.mjs",
         "./local-account-config.mjs",
-        "./ordinary-source-binding.mjs",
         "./original-query-preparation.mjs",
         "./typed-response-json-codec.mjs",
         "node:crypto",
@@ -16182,7 +16362,6 @@
             "createInstalledRowSource/createInstalledRowSource#7",
             "createInstalledRowSource/createInstalledRowSource#8",
             "createInstalledRowSource/createInstalledRowSource#9",
-            "createInstalledRowSource/currentRead/currentRead",
             "createInstalledRowSource/describePreparedSource/describePreparedSource",
             "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
             "createInstalledRowSource/keyedRecoveryBinding",
@@ -16220,9 +16399,6 @@
             "createInstalledRowSource/openKeyedLookup/recovery/recovery",
             "createInstalledRowSource/openKeyedLookup/stop/stop",
             "createInstalledRowSource/operationBindings/operationBindings",
-            "createInstalledRowSource/ordinaryRecoveryBinding",
-            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
-            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
@@ -16233,7 +16409,9 @@
             "createInstalledRowSource/verifyKeyedRead",
             "text/text",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+            "cid/cid",
+            "createInstalledRowSource/currentPhysicalTargetGeneration"
           ],
           "exports": [
             "createInstalledRowSource",

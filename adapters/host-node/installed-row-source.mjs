@@ -11,7 +11,6 @@ import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
 import {performance} from 'node:perf_hooks';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
-import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {fileURLToPath} from 'node:url';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -21,7 +20,6 @@ import {acquisitionFailure, acquisitionOutcome, AcquisitionOpenError} from
 import {startInstalledRowRun} from './installed-row-run.mjs';
 import {rowListingCallbacks} from './installed-row-listing.mjs';
 import {authorizationRuntimeCode} from '../host-common/authorization-gate.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {canonicalJson, contentCid} from
   './local-account-config.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
@@ -33,6 +31,7 @@ import {installRowSourceAuthorization} from './installed-row-source-authorizatio
 import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
 import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
 import {createInstalledRowSourceCredentialSite} from './installed-row-source-credential-site.mjs';
+import {createInstalledRowSourceReadAuthority} from './installed-row-source-read-authority.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -386,39 +385,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
   };
   const installationBinding = Object.freeze({connectorId, connectorRegistration,
     connectorRevision, bindingCid});
-  function ordinaryRecoveryBinding(prepared, expected) {
-    const owner = preparations.get(prepared);
-    if (owner === undefined || !validInstallationBinding(installationBinding) ||
-        expected !== undefined && (owner.checkedOwner !== expected.checkedOwner ||
-          owner.requestIdentity !== expected.requestIdentity ||
-          ['stage', 'input', 'task', 'computeTask'].some(name =>
-            owner.occurrence?.[name] !== expected.occurrence?.[name]))) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    if (immutableTargets === undefined
-      ? valueCid(prepared.physicalBinding) !== owner.physicalBindingCid
-      : physicalTargetGeneration === undefined || owner.physicalTargetGeneration !== physicalTargetGeneration ||
-        prepared.physicalBinding !== owner.physicalBindingOriginal) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    const [resource, ...fields] = owner.wholeInput
-      ? moon.clientProgramWholeSourceTarget(owner.acquisition)
-      : checked(moon.clientProgramRowSourceTarget(declaration, owner.requirement));
-    if (resource !== owner.resource || prepared.readTuple.connection !== site.connection ||
-        prepared.readTuple.resource !== resource || prepared.readTuple.operation !== 'read') {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    // The same immutable target was fully constructed and hashed at prepare.
-    // Still obtain the exact Core target and compare all ordered field names;
-    // this is not an Account decision or a substitute for its current checks.
-    if (immutableTargets === undefined
-      ? valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid
-      : fields.length !== owner.physicalBindingOriginal.fields.length ||
-        fields.some((field, index) => field !== owner.physicalBindingOriginal.fields[index])) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    return installationBinding;
-  }
+  const {ordinaryRecoveryBinding, decideRead, currentRead} = createInstalledRowSourceReadAuthority({
+    preparations, installationBinding, immutableTargets,
+    currentPhysicalTargetGeneration: function currentPhysicalTargetGeneration() { return physicalTargetGeneration; },
+    moon, declaration, site, physicalTarget, directReadIdentity, valueCid, cid, cidPattern});
   // Preserve an original installation's exact immutable access metadata;
   // this is neither a wire object nor an authorization decision. Defaults
   // keep the ordinary singleton Source projection unchanged.
@@ -434,58 +404,6 @@ export async function createInstalledRowSource({moon, declaration, commands,
   const sourceAccess = originalSourceAccess ?? Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
-  // Read disclosure and held-Run authority are per declared view. The
-  // acquisition access stays installation-scoped; its checked preparation
-  // supplies the one exact view and read tuple before provider I/O.
-  const ordinarySubject = prepared => {
-    const subject = directReadIdentity === undefined
-      ? cid({version: 'actql-row-source-acquisition-read/0.1',
-        ...(prepared.checkedSource.sourceInput === undefined
-          ? {requirementCid: prepared.checkedSource.requirementCid}
-          : {sourceInput: prepared.checkedSource.sourceInput}), physicalBinding: prepared.physicalBinding})
-      : directReadIdentity.subject(prepared);
-    if (typeof subject !== 'string' || !cidPattern.test(subject)) {
-      fail('InvalidInstalledSourceReadIdentity');
-    }
-    return subject;
-  };
-  const decideRead = (prepared, access, signal) =>
-    access.authorization.authorize('acquisition', prepared.readTuple, {
-      subjectCid: prepared.readSubjectCid ?? (prepared.checkedSource.selectionCid === undefined
-        ? ordinarySubject(prepared)
-        : valueCid({version: 'actql-keyed-source-selection-read/0.1',
-          selectionCid: prepared.checkedSource.selectionCid, physicalBinding: prepared.physicalBinding})), signal});
-  const currentRead = async (prepared, access, signal) => {
-    if (prepared.checkedSource?.selectionCid === undefined) ordinaryRecoveryBinding(prepared);
-    const decision = await decideRead(prepared, access, signal);
-    if (prepared.checkedSource?.selectionCid === undefined) ordinaryRecoveryBinding(prepared);
-    if (decision?.action !== 'dispatch') {
-      throw Object.assign(new Error('ExecutionAuthorizationDenied'),
-        {code: 'ExecutionAuthorizationDenied', decision});
-    }
-    if (prepared.checkedSource?.selectionCid !== undefined &&
-        decision.basis === 'resumed_approval') {
-      const facts = checkpointApprovalFacts(decision);
-      if (facts === undefined || facts.checkedSource?.selectionCid !== prepared.checkedSource.selectionCid ||
-          valueCid(facts.checkedSource) !== valueCid(prepared.checkedSource) ||
-          valueCid(facts.physicalBinding) !== valueCid(prepared.physicalBinding) ||
-          valueCid(facts.readTuple) !== valueCid(prepared.readTuple)) {
-        fail('InstalledKeyedReadApprovalMismatch');
-      }
-    }
-    if (prepared.checkedSource?.selectionCid === undefined && decision.basis === 'resumed_approval') {
-      const facts = checkpointApprovalFacts(decision);
-      if (facts === undefined || valueCid(facts.checkedSource) !== valueCid(prepared.checkedSource) ||
-          valueCid(facts.readTuple) !== valueCid(prepared.readTuple) ||
-          valueCid(facts.physicalBinding) !== valueCid(prepared.physicalBinding) ||
-          (facts.installationBinding !== undefined &&
-            valueCid(facts.installationBinding) !== valueCid(installationBinding))) {
-        fail('InstalledSourceReadApprovalMismatch');
-      }
-    }
-    return decision;
-  };
-
   // A declared keyed response port is selected before observing any left
   // rows. It is not a fabricated Direct requirement or an individual GET.
   async function prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity,
