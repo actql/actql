@@ -130,6 +130,68 @@ test "cursor request composition keeps the original request on both funded axes"
 }
 
 ///|
+test "codec identity reader funds complete map growth on the same original backing" {
+  let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
+  let request = installed_source_construction_capacity(
+    38L, 8232L, 0L, 72L, 49212L, 0L,
+  ).unwrap()
+  let plain = installed_json_cursor_source_reader_capacity_with_request(
+    limits,
+    2,
+    3,
+    Some(request),
+  ).unwrap()
+  let selected = installed_json_identity_cursor_source_reader_capacity_with_request(
+    limits,
+    2,
+    3,
+    Some(request),
+  ).unwrap()
+  let retention = @execution.execution_capacity_retained_bytes(selected)
+  let execution = @execution.execution_capacity_execution_bytes(selected)
+  // Three IDs: map19H/51R/60W plus three retained String headers and the
+  // new record fields and capture2H/8R/1W, minus the replaced entries6R/3W.
+  // Existing UTF16 and request amounts stay.
+  // The identity call adds2H/8R/2W to the concurrent execution inventory.
+  assert_eq(
+    retention - @execution.execution_capacity_retained_bytes(plain),
+    1272L,
+  )
+  assert_eq(
+    execution - @execution.execution_capacity_execution_bytes(plain),
+    1384L,
+  )
+  for (r_short, e_short) in [(0L, 0L), (1L, 0L), (0L, 1L)] {
+    let ledger = @resources.create_ledger({
+      planning_work: 0,
+      attempts: 1,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: retention - r_short,
+      execution_bytes: execution - e_short,
+    }).unwrap()
+    let result = @resources.reserve_attempt(ledger, 0L, retention, execution)
+    if r_short == 1L {
+      assert_true(result is Err(@resources.RetentionLimit))
+    } else if e_short == 1L {
+      assert_true(result is Err(@resources.ExecutionLimit))
+    } else {
+      @resources.settle_reservation(ledger, result.unwrap()).unwrap()
+    }
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+  assert_true(
+    installed_json_identity_cursor_source_reader_capacity_with_request(
+      limits,
+      2,
+      3,
+      None,
+    )
+    is None,
+  )
+}
+
+///|
 test "JSON Source reader inventory uses shared tariff and separate retained workspace" {
   // Independent authored inventory vector; no returned quote supplies any
   // expected amount, Ledger limit, admission or physical cleanup receipt.

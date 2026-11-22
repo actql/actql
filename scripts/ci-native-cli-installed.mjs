@@ -213,7 +213,7 @@ export async function runNativeCliInstalledCi(output) {
   await mkdir(destination);
   const artifact = join(destination, 'artifact'), release = join(destination, 'release');
   await buildNativeCliArtifact(artifact, {packageVersion: nativeCliTestCohort.packageVersion,
-    compileSeconds: 1200});
+    compileSeconds: 1440});
   await prepareNativeCliRelease(release, [artifact], nativeCliTestCohort);
   await acceptInstalledNativeCli(release);
 }

@@ -99,6 +99,36 @@ test('declarative cursor request uses the same original quantity and cache ident
   assert.deepEqual(old.counts(),[0,0]);
 });
 
+test('codec identity progress selects its funded reader and cannot reuse the plain cursor mode', () => {
+  const request = {}, capacity = {};
+  let calls = 0;
+  const f = fixture({
+    clientProgramInstalledJsonIdentityCursorSourceReaderCapacityWithRequest(limits, columns, secret, original) {
+      assert.equal(this, f.moon);
+      assert.deepEqual(limits, values.slice(0, 16));
+      assert.equal(columns, 3);
+      assert.equal(secret, 65536);
+      assert.equal(original, request);
+      calls++;
+      return capacity;
+    },
+    clientProgramInstalledJsonCursorSourceReaderCapacityWithRequest() {
+      assert.fail('No plain cursor quote for codec identity progress');
+    },
+  });
+  retainInstalledHostServiceInstallation(f.services, f.installation, 'sha256:' + 'a'.repeat(64));
+  const limits = f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const input = {installation: f.installation, limits, columnCount: 3, cursorProgress: 'codec-identities'};
+  assert.throws(() => f.services.sourceReaderImplementation(input), {code: 'InvalidInstalledSourceReaderSelection'});
+  const withRequest = {...input, requestConstruction: Object.freeze({capacity: request, maxRequestBytes: 512})};
+  const selected = f.services.sourceReaderImplementation(withRequest);
+  assert.equal(selected.capacity, capacity);
+  assert.equal(f.services.sourceReaderImplementation({...withRequest}), selected);
+  assert.throws(() => f.services.sourceReaderImplementation({...withRequest, cursorProgress: true}),
+    {code: 'InstalledSourceReaderSelectionChanged'});
+  assert.equal(calls, 1);
+});
+
 test('public Source service keeps original installation policy and typed capacity before any Site', () => {
   const f = fixture();
   assert.throws(() => f.services.sourceReaderImplementationProfile({installation: f.installation,

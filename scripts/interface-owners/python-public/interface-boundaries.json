@@ -10333,7 +10333,7 @@
           ]
         }
       ],
-      "sha256": "b0f50927a24d685b59c80c322744c3bc9517163688c0b6ccd988f33735869ab0",
+      "sha256": "0ba560f486028524c3d7edae8b82651690695b76963333a1989b92b8c5feed19",
       "responsibilityFacet": "primary",
       "role": "public-wire-codec",
       "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
