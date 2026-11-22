@@ -389,10 +389,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       bind_workspace,
     )
     .native_effect_proposal(self.original)
+  let geometry = @publication.prepared_captured_effect_dependency_inventory_geometry(
+    prepared,
+  )
   let envelope = @local_values.installed_effect_dependency_envelope_capacity(
-    @publication.prepared_captured_effect_dependency_inventory_geometry(
-      prepared,
-    ),
+    geometry,
     bodies.length(),
     key_units,
   )
@@ -415,6 +416,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
     .native_effect_proposal(self.original),
   )
+  if proposals.measured_model_capture {
+    preview._retained_dependency_geometry = Some(geometry)
+  }
 }
 
 ///|

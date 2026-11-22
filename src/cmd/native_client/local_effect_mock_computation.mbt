@@ -130,17 +130,10 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   // A measured Model proposal already completed and retained the same
   // exports for its members and other Unit Results. Reuse those pins and
   // receipts under the original public limits instead of copying rows again.
+  let measured_capture = proposals.measured_model_capture
   let reuse_original_exports = proposals._retained_combined_source_unit
     is Some(_) ||
-    (
-      proposals.imports is Some(_) &&
-      proposals.members
-      .get(0)
-      .bind(entry => {
-        @strategy.captured_effect_proposal_plan_staged_rows(entry.plan)
-      })
-      is Some(_)
-    )
+    measured_capture
   let bridge = proposals.bridge_limits
   let row = bridge.row
   for
@@ -336,8 +329,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
       .native_effect_proposal_with_cause(report),
     )
   }
-  let manifest_funding = if reuse_original_exports &&
-    proposals.acquired is Some(_) {
+  let manifest_funding = if measured_capture {
     let mut inventory = 0L
     let before_inventory = fn(count) {
       let capacity = native_mock_effect_public_manifest_inventory(
@@ -399,8 +391,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
   .map_err(issue => LocalNativeMockEffectProposalIssue::PublicBindings(issue))
   .native_effect_proposal_with_cause(report)
   |> ignore
-  let receipt_funding = if reuse_original_exports &&
-    proposals.acquired is Some(_) {
+  let receipt_funding = if measured_capture {
     let mut inventory = 0L
     let before_inventory = fn(slots) {
       let capacity = native_mock_effect_receipt_inventory(slots, max_depth)
@@ -471,7 +462,29 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     )
     return
   }
-  let issuer = @run_host.prepare_client_effect_captured_run(
+  let issuer = if measured_capture {
+    guard preview._retained_dependency_geometry is Some(geometry) else {
+      report(CapturedSource(CaptureIssuanceEncoding))
+      stop("LocalOriginalEffectComputationUnavailable")
+    }
+    native_mock_effect_measured_capture(
+      construction,
+      materials,
+      proposals.inputs,
+      preview,
+      held,
+      inventory,
+      geometry,
+      wire.max_columns,
+      policy.effects.max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      limits.max_result_workspace_entries,
+      report,
+    )
+  } else {
+    @run_host.prepare_client_effect_captured_run(
       materials,
       proposals.inputs,
       preview.inputs,
@@ -496,6 +509,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::PublicCapture(issue))
     .native_effect_proposal_with_cause(report)
+  }
   held.issuer = Some(issuer)
   while !issuer
         .advance(64)
@@ -511,6 +525,129 @@ fn LocalNativeMockEffectPlan::build_mock_effect_computation(
     .map_err(issue => LocalNativeMockEffectProposalIssue::CapturedSource(issue))
     .native_effect_proposal_with_cause(report),
   )
+}
+
+///|
+// Retain the checked Model computation's typed inputs and private plan on
+// its original capture operation. No installed direct-Source publication
+// binding or second dependency owner is needed for this path.
+fn native_mock_effect_measured_capture(
+  construction : LocalNativeMockEffectImportConstruction,
+  materials : @run_host.ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  preview : LocalNativeMockEffectPreview,
+  held : LocalNativeMockEffectComputation,
+  inventory : @publication.CapturedEffectDependencyInventory,
+  geometry : @encode.EncodingConstructionGeometry,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> @publication.CapturedRunIssuancePreparation raise ClientStop {
+  let identity = @strategy.captured_effect_preview_ledger_identity(
+    preview.inputs,
+  )
+  let members = @publication.effect_preview_member_count(identity)
+  let slots = held.definitions.length().to_int64() +
+    held.artifacts.length().to_int64() +
+    held.snapshots.length().to_int64() +
+    preview._retained_captured_sources.length().to_int64() +
+    preview._retained_local_sources.length().to_int64() +
+    preview._retained_models.length().to_int64() +
+    2L * members.to_int64()
+  let fixed = if slots <= 2147483647L {
+    @local_values.installed_effect_dependency_fixed_capacity(
+      slots.to_int(),
+      0,
+      max_depth,
+    )
+  } else {
+    None
+  }
+  construction
+  .prepare_body_result(fixed)
+  .native_effect_proposal_with_cause(report)
+  let names : Array[String] = []
+  let wires : Array[String] = []
+  @run_host.visit_client_effect_captured_plan_wires(
+    materials,
+    inputs,
+    preview.inputs,
+    preview.proofs,
+    preview._retained_invocation,
+    max_fields,
+    max_work,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    (name, wire) => {
+      names.push(name)
+      wires.push(wire)
+    },
+    before_wire=Some((bytes, nodes, depth) => {
+      construction
+      .prepare_body_result(
+        native_mock_effect_plan_wire_capacity(bytes, nodes, depth),
+      )
+      .retain_mock_effect_proposal_issue(report)
+    }),
+  )
+  .map_err(issue => LocalNativeMockEffectProposalIssue::PublicCapture(issue))
+  .native_effect_proposal_with_cause(report)
+  let plan = @publication.prepare_original_effectful_capture_plan(
+    materials.run_definition,
+    preview._retained_invocation,
+    held.definitions,
+    held.artifacts,
+    held._retained_manifest.unwrap(),
+    held._retained_receipt.unwrap(),
+    held.snapshots,
+    preview._retained_captured_sources,
+    preview._retained_local_sources,
+    [],
+    preview._retained_authoring,
+    preview._retained_models,
+    identity,
+    names,
+    wires,
+    inventory,
+    geometry,
+    [],
+    max_bytes,
+    max_nodes,
+    max_depth,
+    _ => true,
+    original_limits=Some((max_bytes, max_nodes, max_depth, max_workspace)),
+  ).unwrap_or_else(() => {
+    report(CapturedSource(CaptureIssuanceEncoding))
+    stop("LocalOriginalEffectComputationUnavailable")
+  })
+  defer @publication.cancel_capture_construction_plan(plan)
+  construction
+  .prepare_body_result(
+    @local_values.installed_effect_capture_constructor_capacity(
+      plan,
+      @publication.captured_effect_dependency_inventory_count(inventory),
+      preview._retained_captured_sources.length(),
+      preview._retained_local_sources.length(),
+      0,
+      members,
+      0,
+      wires,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      _ => true,
+    ),
+  )
+  .native_effect_proposal_with_cause(report)
+  @publication.start_planned_captured_run(plan).unwrap_or_else(() => {
+    report(CapturedSource(CaptureIssuanceEncoding))
+    stop("LocalOriginalEffectComputationUnavailable")
+  })
 }
 
 ///|

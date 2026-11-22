@@ -143,7 +143,7 @@ fn retain_installed_effect_dependency_index(
 // Initial numeric quote BEFORE the Work view, depth vectors or body selection
 // arrays exist. Actual entries/Units and existing JSON depth are quantities,
 // never permissions, row credit or max_nodes-per-body precharges.
-fn installed_effect_dependency_fixed_capacity(
+pub fn installed_effect_dependency_fixed_capacity(
   entries : Int,
   units : Int,
   depth : Int,

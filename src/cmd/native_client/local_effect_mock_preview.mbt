@@ -20,6 +20,7 @@ priv struct LocalNativeMockEffectPreview {
     @publication.CapturedLocalEffectSourceEvidence,
   ]
   mut _retained_dependency_inventory : @publication.CapturedEffectDependencyInventory?
+  mut _retained_dependency_geometry : @encode.EncodingConstructionGeometry?
 }
 
 ///|
@@ -255,14 +256,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let run_cid = @publication.publication_contract_identity(
     materials.run_definition,
   )
-  let measured_preview = !state.first._retained_models.is_empty() &&
-    proposals.imports is Some(_) &&
-    proposals.members
-    .get(0)
-    .bind(entry => {
-      @strategy.captured_effect_proposal_plan_staged_rows(entry.plan)
-    })
-    is Some(_)
+  let measured_preview = proposals.measured_model_capture
   let (
     draft,
     draft_bytes,
@@ -698,6 +692,20 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBinding(issue))
     .native_effect_proposal_with_cause(report)
+  if measured_preview {
+    // Keep the eventual geometry reference on this same Preview record.
+    construction
+    .prepare_body_result(
+      @execution.preparation_representation_cost({
+        record_headers: 1L,
+        reference_slots: 2L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).bind(bytes => @execution.execution_capacity(bytes, bytes)),
+    )
+    .native_effect_proposal_with_cause(report)
+  }
   let held : LocalNativeMockEffectPreview = {
     _retained_observation: observation,
     _retained_invocation: invocation,
@@ -714,6 +722,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     _retained_captured_sources: [],
     _retained_local_sources: [],
     _retained_dependency_inventory: None,
+    _retained_dependency_geometry: None,
   }
   // Retain before the verifier or the enclosing original-current callback
   // can fail. Its borrowed pins remain owned by the same proposals record.

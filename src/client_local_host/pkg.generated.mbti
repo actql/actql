@@ -603,6 +603,8 @@ pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientIn
 
 pub fn installed_duckdb_capture_capacity_accepts(ClientInstalledCaptureCapacity, @host.CaptureConfiguration) -> Bool
 
+pub fn installed_effect_capture_constructor_capacity(@run_publication.CapturedRunConstructionPlan, Int, Int, Int, Int, Int, Int, Array[String], Int, Int, Int, (Int) -> Bool) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_effect_capture_field_projection_workspace(Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_effect_capture_prepared_available(ClientInstalledEffectCaptureRecovery) -> Bool
@@ -618,6 +620,8 @@ pub fn installed_effect_contract_response_construction_capacity(Int, Int, Int) -
 pub fn installed_effect_control_wire_bound(Int, Int) -> Result[Int, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_dependency_envelope_capacity(@encode_core.EncodingConstructionGeometry, Int, Int64) -> @execution_relation.ExecutionCapacity?
+
+pub fn installed_effect_dependency_fixed_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_effect_dependency_graph_capacity(Int, Int, Int, Int64) -> @execution_relation.ExecutionCapacity?
 

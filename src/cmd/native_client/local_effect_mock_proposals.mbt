@@ -83,6 +83,7 @@ priv struct LocalNativeMockEffectProposals {
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
   mut _retained_combined_source_unit : @run_host.ClientEffectCombinedSourceUnit?
   mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
+  mut measured_model_capture : Bool
   mut _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
   ]
@@ -127,6 +128,7 @@ fn native_mock_effect_proposals(
     acquired: None,
     _retained_combined_source_unit: None,
     _retained_local_manifest: None,
+    measured_model_capture: false,
     _retained_lookup_dependencies: [],
     _retained_direct_evidence: [],
     source_imports: [],
@@ -219,8 +221,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's borrowed references and its
-    // six empty Array headers stay inside the existing fixed4096 call frame.
+    // The initial Host frame holds this record's borrowed references, its
+    // measured-capture flag and six empty Arrays within the fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held = native_mock_effect_proposals(inputs, bridge_limits)
     state.proposals = Some(held)
@@ -233,7 +235,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
     .native_effect_proposal(self.original)
-    let mut measure_unit_manifest = false
     for entry in 0..<@strategy.captured_effect_inputs_count(inputs) {
       let plan = @strategy.prepare_captured_effect_proposal_plan(
           inputs,
@@ -349,7 +350,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         self.prepare_mock_effect_source_imports(state, held)
         let construction = held.construction.unwrap()
         let measured = staged_rows is Some(_) && held.imports is Some(_)
-        measure_unit_manifest = measured
+        held.measured_model_capture = measured
         if measured {
           construction
           .yield_source_import_workspace()
@@ -920,9 +921,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       state,
       held,
       max_capture_bytes,
-      measure_results=measure_unit_manifest,
+      measure_results=held.measured_model_capture,
     )
-    let manifest_funding = if measure_unit_manifest {
+    let manifest_funding = if held.measured_model_capture {
       let construction = held.construction.unwrap()
       // The caller's temporary collection coexists with the original
       // issuer's private copy. Reserve it before collecting the borrows.
