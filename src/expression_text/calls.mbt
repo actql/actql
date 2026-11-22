@@ -58,6 +58,7 @@ fn Parser::call(
     "byte_length"
     | "octet_length"
     | "farm_fingerprint"
+    | "sha256"
     | "unicode"
     | "chr"
     | "reverse"

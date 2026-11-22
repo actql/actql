@@ -28,6 +28,7 @@ priv enum TypedAdmissionFrame {
   TypedJson(JsonAdmission, @decode.Cursor)
   TypedReference(ReferenceAdmission, @decode.Cursor)
   TypedTextEnumeration(@decode.Cursor, String, @contract.TextLimits, Int, Int)
+  TypedBinary(@decode.Cursor, String, Int)
   TypedArrayAppend(ArrayBuilder)
   TypedObjectAppend(ObjectBuilder, Int)
 }
@@ -154,6 +155,14 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
   let root = admission.root.unwrap()
   guard admission.frames.pop() is Some(frame) else { fail(root, WrongType) }
   match frame {
+    TypedBinary(source, wire, offset) =>
+      if offset == wire.length() {
+        admission.value = Some(Binary({ wire, }))
+      } else if binary_quad_valid(wire, offset) {
+        admission.frames.push(TypedBinary(source, wire, offset + 4))
+      } else {
+        fail(source, InvalidBytes)
+      }
     TypedTextEnumeration(source, text, bounds, entry, offset) =>
       match text_membership_step(text, bounds, entry, offset) {
         TextMember => admission.value = Some(Text(text))
@@ -270,6 +279,18 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
           }
           admission.value = None
           admission.frames.push(TypedReference(reference, cursor))
+        }
+        @contract.Bytes => {
+          let wire = decoded(@decode.text(cursor))
+          if wire.length() % 4 != 0 {
+            fail(cursor, InvalidBytes)
+          }
+          if wire.length() > budget.text {
+            fail(cursor, BudgetExceeded)
+          }
+          budget.text -= wire.length()
+          admission.value = None
+          admission.frames.push(TypedBinary(cursor, wire, 0))
         }
         @contract.Text(bounds) => {
           let value = read_scalar(
@@ -513,7 +534,9 @@ pub fn cancel_typed_admission(admission : TypedAdmission) -> Unit {
       TypedVectorNext(_, builder, _) => cancel_vector_value(builder) |> ignore
       TypedJson(json, _) => cancel_json_admission(json)
       TypedReference(reference, _) => cancel_reference_admission(reference)
-      ReadTyped(_, _, _, _) | TypedTextEnumeration(_, _, _, _, _) => ()
+      ReadTyped(_, _, _, _)
+      | TypedTextEnumeration(_, _, _, _, _)
+      | TypedBinary(_, _, _) => ()
     }
   }
   admission.frames.clear()

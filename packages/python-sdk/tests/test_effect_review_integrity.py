@@ -92,6 +92,23 @@ class EffectReviewIntegrityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(raw)['displayed_rows'][0]['intended_changes']['value']['data'],
                          {'e\u0301': 1, 'é': 2, 'line\r\n': 'raw\r\n'})
 
+    async def test_public_effect_integrity_measures_canonical_wide_number_bytes(self):
+        body = effect_body()
+        data = body['displayed_rows'][0]['intended_changes']['value']
+        for amount in (9007199254740991, 9007199254740992, 9007199254740994):
+            with self.subTest(amount=amount):
+                data['data'] = {'amount': amount}
+                raw, cid = seal(body)
+                review = await self.exchange(raw, cid)
+                self.assertEqual(review['bytes'], raw)
+                self.assertEqual(review['artifact_cid'], cid)
+
+        data['data'] = {'amount': 9007199254740993}
+        raw, cid = seal(body)
+        with self.assertRaises(ClientError) as failure:
+            await self.exchange(raw, cid)
+        self.assertEqual(failure.exception.code, 'ReviewIntegrityFailed')
+
     async def test_effect_integrity_refuses_normalized_data_key_substitution(self):
         body = effect_body()
         body['displayed_rows'][0]['intended_changes']['value']['data'] = {'e\u0301\r\n': 1}

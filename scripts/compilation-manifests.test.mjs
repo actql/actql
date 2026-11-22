@@ -437,6 +437,20 @@ test('signed-source-zero note preserves productions and the complete original id
   assert.deepEqual({...currentDependency, cid: retainedDependency.cid}, retainedDependency);
   const retainedEnvironment = structuredClone(currentEnvironment);
   retainedEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = retainedDependency.cid;
+  // The current Bytes domain adds the same leaf to each embedded Value
+  // schema. Reverse only that addition to compare the original environment.
+  const retainedValues = retainedEnvironment.value_contract_bodies;
+  const bytes = retainedValues.bytes.grammar;
+  const canonical = read('spec/contracts/actql-protocol-schemas.json').schemas.canonical_value_contract;
+  assert.equal(retainedValues.schema.cid, machineCid(canonical));
+  for (const schema of [canonical, retainedValues.command_input_presence.schema,
+    retainedEnvironment.carrier_contract_bodies.schema]) {
+    const alternatives = schema.$defs.value_contract.oneOf;
+    assert.deepEqual(alternatives.pop(), bytes);
+    assert.ok(alternatives.every(leaf => leaf.properties?.type?.const !== 'bytes'));
+  }
+  retainedValues.schema.cid = machineCid(canonical);
+  delete retainedValues.bytes;
   assert.deepEqual(next[environmentPath], retainedEnvironment);
   for (const [name, previousVectors] of Object.entries(before.stage_vectors)) {
     const currentVectors = after.stage_vectors[name];

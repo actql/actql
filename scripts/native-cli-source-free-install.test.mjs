@@ -35,6 +35,26 @@ test('Native requirements construction stays inside the original business scope 
   assert.throws(() => verify(source.replace('Err(issue) => local_stop_runtime_requirements(issue)', 'Err(issue) => stop("LocalBusinessProgramUnavailable")')));
 });
 
+test('Native Mock borrows installed Query contracts before suspending the original Journal Read', async () => {
+  const source = await readFile(new URL('../src/cmd/native_client/local_effect_mock_plan.mbt', import.meta.url), 'utf8');
+  const preparation = source.split('///|').find(value =>
+    value.includes('fn LocalCommandBusinessPreparation::prepare_mock_effect_plan('));
+  assert(preparation);
+  const entry = 'self.original.with_business_request(self.capture, () => {';
+  const getter = 'runtime.query_contract_assets()';
+  const verify = method => {
+    const [read, request, extra] = method.split(entry);
+    assert(request && extra === undefined);
+    assert.equal(read.split(getter).length, 2);
+    assert(!request.includes(getter));
+    assert(read.includes('self.original.retain_primary(CommandRuntime(issue))'));
+    assert(request.includes('query_contracts~,'));
+  };
+  verify(preparation);
+  assert.throws(() => verify(preparation.replace(getter, 'None').replace(entry, entry + getter)),
+    {code: 'ERR_ASSERTION'});
+});
+
 // Independent counter DATA checks, not Native execution or a second protocol
 // fixture. The shared diagnostic parser owns stream/schema validation.
 const sourceFreeCounterRows = (operation = 'run') => [

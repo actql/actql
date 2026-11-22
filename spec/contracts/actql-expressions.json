@@ -23,9 +23,9 @@
     }
   },
   "profile_id": "actql-text-time/0.1",
-  "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
+  "inherited_text_time_profile_cid": "sha256:71d09bd1bfdf5da93ba04629cb21a50e6c6e075bb9c1a7e100c8bdea8e867ae6",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "7171a41b02e62763eff42f6896ad9c13c75617aed1ebbe95d98915b8cb2c9cc7",
+  "grammar_sha256": "a0ab33c71da1647032fcc751e2bbb4d15e3c5f5a3a03fc3d49697a2bfe3c4fd8",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6405,6 +6405,18 @@
                   "$ref": "#/$defs/expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256"
+              ],
+              "properties": {
+                "sha256": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
             }
           ]
         },
@@ -7307,6 +7319,22 @@
               "properties": {
                 "type": {
                   "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -13481,6 +13509,22 @@
                   "$ref": "#/$defs/expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sha256"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
             }
           ]
         },
@@ -14418,6 +14462,22 @@
               "properties": {
                 "type": {
                   "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -16655,6 +16715,22 @@
                             "type": "boolean"
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "nullable"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "const": "bytes"
+                          },
+                          "nullable": {
+                            "type": "boolean"
+                          }
+                        }
                       }
                     ]
                   }
@@ -17690,6 +17766,22 @@
                             "type": "boolean"
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "nullable"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "const": "bytes"
+                          },
+                          "nullable": {
+                            "type": "boolean"
+                          }
+                        }
                       }
                     ]
                   }
@@ -18634,6 +18726,22 @@
               "properties": {
                 "type": {
                   "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -25906,6 +26014,18 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256"
+              ],
+              "properties": {
+                "sha256": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -32063,6 +32183,22 @@
               "properties": {
                 "op": {
                   "const": "array_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sha256"
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
@@ -33192,6 +33328,22 @@
                   "type": "boolean"
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         },
@@ -40459,6 +40611,18 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256"
+              ],
+              "properties": {
+                "sha256": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -46616,6 +46780,22 @@
               "properties": {
                 "op": {
                   "const": "array_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sha256"
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
@@ -47949,6 +48129,12 @@
       "value": "A NULL array returns NULL. A present array returns its exact number of entries, including NULL entries and duplicates. An empty array returns zero.",
       "evaluation": "Evaluate the operand once under the existing demand, limits and cancellation. Propagate its failure. Count the admitted array entries without copying or evaluating elements again.",
       "identity": "The source form is {array_length: operand}; the machine form is {op: array_length, body: operand_node}. SQL ARRAY_LENGTH selects this same operation."
+    },
+    "sha256": {
+      "signature": "One original String or BYTES operand. Return BYTES with the operand nullability. Untyped NULL takes the String operand contract.",
+      "identity": "Closed source {sha256:expression} and machine {op:sha256,body:expression_node}, retaining the sole checked operand.",
+      "value": "NULL returns NULL. Hash the original UTF-8 of a String or the original octets of BYTES using SHA-256. Return the 32 digest octets without normalization, conversion to Text or host-dependent hashing.",
+      "evaluation": "The existing evaluator retains the original operand, admits fixed working storage, meters UTF-8 scalar or octet progress, and preserves lazy demand, failure and cancellation. No input-sized copy is made."
     }
   },
   "regex_ast_contract": {

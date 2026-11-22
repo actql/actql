@@ -166,6 +166,7 @@ fn installed_source_reader_retained_inventory(
   track_row_identity? : Bool = true,
   received? : (Int64, Int)? = None,
   cursor_progress? : Bool = false,
+  codec_identities? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
@@ -195,6 +196,7 @@ fn installed_source_reader_retained_inventory(
     0L
   }
   let cursor_set_entries = if cursor_progress { 0L } else { cursors }
+  let identity_set_entries = if codec_identities { 0L } else { ids }
   let (total, originals) = match received {
     None => (total, pages + 1L)
     Some((bytes, count)) => {
@@ -253,9 +255,12 @@ fn installed_source_reader_retained_inventory(
     reference_slots: fixed.reference_slots +
     2L * fields +
     9L * originals +
-    2L * ids +
+    2L * identity_set_entries +
     2L * cursor_set_entries,
-    scalar_words: fixed.scalar_words + 3L * originals + ids + cursor_set_entries,
+    scalar_words: fixed.scalar_words +
+    3L * originals +
+    identity_set_entries +
+    cursor_set_entries,
     owned_utf16_units: text,
     owned_wire_bytes: raw,
   }
@@ -263,7 +268,29 @@ fn installed_source_reader_retained_inventory(
     guard installed_source_cursor_progress_inventory(pages) is Some(progress) else {
       return None
     }
-    @execution.compose_preparation_representation([retained, progress])
+    if codec_identities {
+      guard @shape.map_construction_extent(1L, ids) is Some(map) else {
+        return None
+      }
+      // The codec's bounded progress record replaces the fixed identity Set
+      // header. Add its map reference and row ceiling, complete Map growth,
+      // and one extra captured method at each of the two provider boundaries
+      // (two function headers, seven closure and provider-table references).
+      // Map extent covers links, not key bodies. One String header per ID
+      // outlives the parsed page. id_text already covers its UTF16 units.
+      let identity_progress : @execution.PreparationRepresentationUnits = {
+        record_headers: map.record_headers + 2L + ids,
+        reference_slots: map.reference_slots + 8L,
+        scalar_words: map.scalar_words + 1L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }
+      @execution.compose_preparation_representation([
+        retained, progress, identity_progress,
+      ])
+    } else {
+      @execution.compose_preparation_representation([retained, progress])
+    }
   } else {
     Some(retained)
   }
@@ -358,12 +385,14 @@ fn installed_json_source_reader_capacity_with_decoder(
   response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
   sequential_preserving? : Bool = false,
   cursor_progress? : Bool = false,
+  codec_identities? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   guard installed_source_reader_retained_inventory(
       limits,
       columns,
       secret_bytes,
       cursor_progress~,
+      codec_identities~,
     )
     is Some(retained) else {
     return None
@@ -426,6 +455,23 @@ fn installed_json_source_reader_capacity_with_decoder(
       {
         record_headers: 1L,
         reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+  } else {
+    Some(controls)
+  }
+  guard controls is Some(controls) else { return None }
+  let controls = if codec_identities {
+    // One synchronous checked identity Result and the extra captured-method
+    // entry/call controls can coexist with the retained cursor and page.
+    @execution.compose_preparation_representation([
+      controls,
+      {
+        record_headers: 2L,
+        reference_slots: 8L,
         scalar_words: 2L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -725,6 +771,31 @@ pub fn installed_json_cursor_source_reader_capacity_with_request(
 ) -> @execution.ExecutionCapacity? {
   guard request is Some(request) &&
     installed_json_cursor_source_reader_capacity(limits, columns, secret_bytes)
+    is Some(reader) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, request)
+}
+
+///|
+/// Quote the actual portable cursor reader with provider codec-owned typed
+/// identity progress. The same original request and reader remain charged
+/// on both axes. This selects construction DATA, never a read grant.
+pub fn installed_json_identity_cursor_source_reader_capacity_with_request(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  request : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  guard request is Some(request) &&
+    installed_json_source_reader_capacity_with_decoder(
+      limits,
+      columns,
+      secret_bytes,
+      installed_source_response_workspace,
+      cursor_progress=true,
+      codec_identities=true,
+    )
     is Some(reader) else {
     return None
   }

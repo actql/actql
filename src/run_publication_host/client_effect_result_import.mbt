@@ -60,6 +60,7 @@ pub fn issue_client_effect_result_import_observation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue] {
   let consumer = @strategy.captured_effect_result_import_consumer(captured)
   let producer = @strategy.captured_effect_result_import_producer(captured)
@@ -115,6 +116,39 @@ pub fn issue_client_effect_result_import_observation(
     return Err(ForeignInterface)
   }
   let artifact_cid = client_effect_local_result_artifact_cid(artifact)
+  if before_body is Some(back) {
+    let writer = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let geometry = try {
+      emit_client_effect_result_import(
+        writer,
+        definition,
+        interface.input_name,
+        interface.cid,
+        manifest.cid,
+        artifact_cid,
+        Some(definition),
+      )
+      @encode.finish_construction_measurement(writer)
+    } catch {
+      _ => {
+        @encode.cancel_writer(writer)
+        return Err(Encoding)
+      }
+    }
+    if !back("result_import_observation", geometry) {
+      return Err(Encoding)
+    }
+    if !@strategy.captured_effect_result_import_matches(
+        captured, inputs, consumer, producer,
+      ) ||
+      !client_effect_local_artifact_matches_inputs(artifact, inputs) {
+      return Err(ForeignInput)
+    }
+  }
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -175,6 +209,29 @@ pub fn issue_imported_client_effect_local_invocation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
+  issue_imported_client_effect_local_invocation_body(
+    owner,
+    inputs,
+    unit,
+    observations,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    None,
+  )
+}
+
+///|
+fn issue_imported_client_effect_local_invocation_body(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  unit : Int,
+  observations : Array[ClientEffectResultImportObservation],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  before_body : ((String, @encode.EncodingConstructionGeometry) -> Bool)?,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
     return Err(ForeignCapturedInput)
@@ -237,6 +294,7 @@ pub fn issue_imported_client_effect_local_invocation(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   )
 }
 

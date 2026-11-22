@@ -12,6 +12,7 @@ import {
   "actql/actql/source_span" @span,
   "actql/actql/bounded_tuple_sort" @sort,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
   "actql/actql/source_value" @source,
 }
 

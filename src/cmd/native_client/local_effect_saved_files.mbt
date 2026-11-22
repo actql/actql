@@ -267,7 +267,7 @@ fn LocalCommandPreparationOriginal::prepare_saved_effect_response_construction(
     physical_equal(work, actual) &&
     @row_file.native_relation_file_target_update_construction(
       row._retained_row_binding.provider,
-      row._retained_installation.write.mapping.write_fields.length(),
+      row._retained_installation.write.writable_fields.length(),
       bytes,
       row.changes_wire,
     )
@@ -487,7 +487,7 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
       let child = match
         @row_file.prepare_native_relation_file_target_update_io(
           provider,
-          row._retained_installation.write.mapping.write_fields,
+          row._retained_installation.write.writable_fields,
           row.identity,
           (row.version, row.changes_wire, staging),
           bytes => {

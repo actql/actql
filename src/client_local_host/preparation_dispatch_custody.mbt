@@ -640,6 +640,10 @@ pub fn prepare_installed_effect_combined_source_result_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  imported? : (
+    @publication_host.ClientEffectImportedEvidence,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[
   @publication_host.ClientEffectLocalResultArtifact,
   ClientEffectUnitPreparationIssue,
@@ -659,6 +663,15 @@ pub fn prepare_installed_effect_combined_source_result_artifact(
     effect_unit_publication_body(owner, plan, request) is Ok(_) else {
     return Err(Run(ForeignOriginal))
   }
+  let observation = @publication_host.client_effect_direct_sources_publication_observation(
+    publication,
+  )
+  if imported is Some((evidence, retention)) &&
+    !@publication_host.client_effect_imported_matches_direct_source_unit(
+      evidence, combined, retention, invocation, observation,
+    ) {
+    return Err(Run(ForeignOriginal))
+  }
   if !@strategy.captured_effect_local_result_export_matches_receipt(
       inputs, exported, receipt,
     ) {
@@ -672,7 +685,7 @@ pub fn prepare_installed_effect_combined_source_result_artifact(
   let (_, _, parts) = @publication_host.client_effect_combined_source_unit_catalog_subject(
     combined,
   )
-  guard parts >= 2 &&
+  guard parts >= 1 &&
     parts <=
     @publication_host.client_direct_acquisition_occurrence_count(occurrences) else {
     return Err(Run(ForeignOriginal))
@@ -691,9 +704,28 @@ pub fn prepare_installed_effect_combined_source_result_artifact(
   let required = match
     measure_installed_effect_direct_publication(owner, plan, request, control, () => {
       let shapes = match
-        @publication_host.client_effect_source_unit_artifact_construction_geometry(
-          combined, name, receipt, admission, max_bytes, max_nodes, max_depth,
-        ) {
+        (match imported {
+          None =>
+            @publication_host.client_effect_source_unit_artifact_construction_geometry(
+              combined, name, receipt, admission, max_bytes, max_nodes, max_depth,
+            )
+          Some((evidence, retention)) =>
+            @publication_host.client_effect_imported_result_artifact_construction_geometry(
+              plan.prepared,
+              inputs,
+              evidence,
+              name,
+              receipt,
+              retention,
+              admission,
+              definition,
+              invocation,
+              observation,
+              max_bytes,
+              max_nodes,
+              max_depth,
+            )
+        }) {
         Err(issue) => return Err(Artifact(issue))
         Ok(value) => value
       }
@@ -726,23 +758,41 @@ pub fn prepare_installed_effect_combined_source_result_artifact(
     Err(_) => return Err(Artifact(ForeignDefinition))
     Ok(value) => value
   }
-  let artifact = @publication_host.issue_combined_source_client_effect_local_result_artifact(
-    plan.prepared,
-    inputs,
-    exported,
-    combined,
-    local_definition,
-    receipt,
-    admission,
-    definition,
-    invocation,
-    @publication_host.client_effect_direct_sources_publication_observation(
-      publication,
-    ),
-    max_bytes,
-    max_nodes,
-    max_depth,
-  )
+  let artifact = match imported {
+    None =>
+      @publication_host.issue_combined_source_client_effect_local_result_artifact(
+        plan.prepared,
+        inputs,
+        exported,
+        combined,
+        local_definition,
+        receipt,
+        admission,
+        definition,
+        invocation,
+        observation,
+        max_bytes,
+        max_nodes,
+        max_depth,
+      )
+    Some((evidence, retention)) =>
+      @publication_host.issue_imported_client_effect_local_result_artifact(
+        plan.prepared,
+        inputs,
+        exported,
+        evidence,
+        local_definition,
+        receipt,
+        retention,
+        admission,
+        definition,
+        invocation,
+        observation,
+        max_bytes,
+        max_nodes,
+        max_depth,
+      )
+  }
   guard effect_unit_publication_body(owner, plan, request) is Ok(_) &&
     owner.publication_invocation is Some(current) &&
     physical_equal(current, invocation) else {

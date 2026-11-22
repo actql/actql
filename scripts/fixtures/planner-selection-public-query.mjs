@@ -10,8 +10,8 @@ import {resolve} from 'node:path';
 import {canonical, observeTwoSourceProvider,
   readTwoSourceJournal} from './two-source-public-query.mjs';
 
-const nativeEvidence = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
-const broadEvidence = 'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d';
+const nativeEvidence = 'sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807';
+const broadEvidence = 'sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf';
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 
@@ -26,8 +26,8 @@ const expectedColumns = [{name: 'id', contract: {type: 'number', nullable: false
 // Independently reconstructed from the complete authored identity preimages,
 // then checked against the pure owner; never derived from an executed Result.
 export const plannerSelectionRequirementCids = Object.freeze({
-  normal: 'sha256:2c62176cc33c516b468a316fb134ba34417f83df4fcb4c70975cbdcd0008e212',
-  unsupportedPredicate: 'sha256:ce756fa510ac1a38fd8f6fe0f8da4bf355556764c311cdfe422cf8c38d068886',
+  normal: 'sha256:63c079c5bdcb3558112af46aa818897a2a47684ab7457ecc7b54f4cff18acabb',
+  unsupportedPredicate: 'sha256:784f57a8ae59a49dff63899fa25cde0c583cfb6dfbdc313b95fe17a6faf453f4',
 });
 const requirementCidFor = item => item.filter === undefined
   ? plannerSelectionRequirementCids.normal : plannerSelectionRequirementCids.unsupportedPredicate;

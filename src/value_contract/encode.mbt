@@ -170,6 +170,7 @@ fn type_name(shape : Shape) -> String {
     ResourceRef(..) => "resource_ref"
     ContentRef(..) => "content_ref"
     Signed64 => "int64"
+    Bytes => "bytes"
   }
 }
 

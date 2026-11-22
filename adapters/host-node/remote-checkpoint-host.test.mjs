@@ -46,6 +46,7 @@ import {issueCompletedEffectfulComputationEvidence,
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {exercisePublicQueryInput} from '../../scripts/fixtures/public-query-input.mjs';
 import {loadTwoSourceFixtures, installTwoSourceFixtures, observeTwoSourceProvider}
   from '../../scripts/fixtures/two-source-public-query.mjs';
@@ -98,8 +99,10 @@ async function installedReadFixture(directory, outcome = 'allow') {
   // This installed adapter supports the bounded broad-receipt realization
   // as well as native two-receipt acquisition. Do not infer that capability
   // from a native-only saved declaration.
+  const processEvidence = await readFile(new URL(
+    '../../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8');
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
+    machineCid(JSON.parse(processEvidence)));
   environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');

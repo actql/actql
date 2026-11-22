@@ -118002,7 +118002,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "51864ca4585832dd6a30955451ce74454685e8b12e4e42618665c1434ee02559",
+      "sha256": "a5d5b077c831f7c5af1d3e8f7e1f67ec2362d04aff33ee794977d11aed40e224",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -127057,7 +127057,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "d0e0dd21c38dd3c6c0cf0dc891c62a6f632d5fe1f91480b2716ceb283fa49b17",
+      "sha256": "1e5b1d245bd64ae21e1a3b21629178372caa963d4515862a14222237f5d9fc87",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",

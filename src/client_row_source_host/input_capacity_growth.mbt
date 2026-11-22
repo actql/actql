@@ -355,6 +355,8 @@ fn count_row_input_values(
               | @admitted.Date(text)
               | @admitted.Timestamp(text) =>
                 (0L, text.length().to_int64() * 3L, None)
+              @admitted.Binary(value) =>
+                (1L, @admitted.bytes_wire_text(value).length().to_int64(), None)
               @admitted.Decimal(value) =>
                 (0L, value.coefficient.length().to_int64() * 3L, None)
               @admitted.Reference(value) =>

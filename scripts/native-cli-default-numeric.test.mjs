@@ -195,7 +195,7 @@ test('default numeric oracle requires runnable checking and same Saved after ori
   const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
     'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
-    'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original',
+    'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original', 'sha256-original',
     'to-json-string-original', 'json-value-original', 'json-value-prefix', 'regexp-contains-original',
     'array-length-original', 'unix-seconds-original', 'comma-join-original'];
   assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
@@ -232,6 +232,9 @@ test('default numeric oracle requires runnable checking and same Saved after ori
     [{x: '1'}, {x: '2'}, {x: '3'}]);
   assert.deepEqual(observed.find(entry => entry.name === 'farm-fingerprint-original').rows,
     [{result: '-5528939962900187677'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'sha256-original').rows,
+    [{x: 'ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=', missing: null,
+      twice: 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='}]);
   assert.deepEqual(observed.find(entry => entry.name === 'to-json-string-original').rows,
     [{result: '1'}]);
   assert.deepEqual(observed.find(entry => entry.name === 'json-value-original').rows, [{result: null}]);
