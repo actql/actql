@@ -10,6 +10,7 @@ import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
+import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -921,10 +922,10 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
       events.push(`select-${memberIndex}`); return inputExtents[memberIndex];
     }} : {})}, memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
   const facts = {members, body: {}, durable: {connectorRecovery: []}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
-  const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
+  const actual = createInstalledRowEffectRecoveryBacking({moon: runtime, recipeOf: () => recipe, fail,
     ownerOf: member => owners[member.memberIndex], sameValue: same,
     validateRecoveredEntries(input, entries) {assert.strictEqual(input.body, facts.body);assert.strictEqual(entries, original.entries);events.push('recheck');},
-    retainInstalledRowCaptureChild, prepareInstalledEffectRequestChild,
+    prepareInstalledEffectRequestChild,
     recoveredEntries(input) {
       assert.strictEqual(input.body, facts.body);assert.strictEqual(input.members, members);
       assert.deepEqual([...active], [0, 1]);constructions++;events.push('rebuild');

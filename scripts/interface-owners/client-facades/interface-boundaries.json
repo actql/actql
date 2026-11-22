@@ -1013,8 +1013,8 @@
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/connector-layout.md",

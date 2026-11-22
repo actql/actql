@@ -8742,6 +8742,336 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-recovery-backing.mjs",
+      "sha256": "4b7817be9fec976fe5c6de0d2294817ba844bb8a0e7492812674a627c690eef2",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectRecoveredMembers",
+        "createInstalledRowEffectRecoveryBacking"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectRecoveredMembers",
+          "parameters": [
+            "singular",
+            "selectOwner",
+            "sameValue",
+            "installationFacts",
+            "selectionChanged",
+            "installedEffectKinds",
+            "retainMember",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers",
+          "parameters": [
+            "body",
+            "provider",
+            "selected",
+            "maxMembers"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking",
+          "parameters": [
+            "moon",
+            "recipeOf",
+            "ownerOf",
+            "sameValue",
+            "prepareInstalledEffectRequestChild",
+            "recoveredEntries",
+            "validateRecoveredEntries",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [
+            "managedEffect",
+            "requestChildren",
+            "retireRequestAliases",
+            "assertCurrent",
+            "signal",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
+          "parameters": [
+            "grow"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
+          "parameters": [
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectRecoveredMembers",
+            "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers",
+            "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers",
+            "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
+            "createInstalledRowEffectRecoveredMembers/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping"
+          ],
+          "exports": [
+            "createInstalledRowEffectRecoveredMembers"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "const recoveredMembers = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "body.effects.length !== provider.members.length"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "sameValue(saved?.installation, installationFacts(owner))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "return retainMember(owner,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "selectOwner(runtimeTupleFromFields("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('InstalledRowEffectMappingNotInstalled')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Saved member selection is synchronous and occurs before provider work."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "body.effects.length > maxMembers"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "member.effect_kind === 'command'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "recovery validates each original occurrence and installation before opening the Ledger"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectRecoveryBacking",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
+            "createInstalledRowEffectRecoveryBacking/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
+          ],
+          "exports": [
+            "createInstalledRowEffectRecoveryBacking"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "const prepareRecoveredEntries = "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "return input.result!;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "input!.body !== facts.body"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "managedEffect.recoveredRequestInput = input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "input.borrowers++"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "input.failed = true;input.failure = cause;throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "signal?.throwIfAborted();assertCurrent?.();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "input.children.push(original)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "borrowed!.borrowers--"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "cold observed member refusal keeps the original failed prefix"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "recovered Effect stored-response projection holds its original Ledger"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-run-controls.mjs",
       "sha256": "cd256bbdfa7b321e0561dd0aa9bff327b9339e02079b61e39c8895865af64140",
       "responsibilityFacet": "primary",
@@ -9864,7 +10194,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "45c2c526b4e580702699e449ab23a22b6904953f36a1be2b688ee500fea662d0",
+      "sha256": "fcbbc3244a4c1a0814680332f92f8f1bfc045ea661c0e474fc4136c4bed1a920",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10796,84 +11126,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
-          "parameters": [
-            "metadata"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
-          "parameters": [
-            "grow"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
-          "parameters": [
-            "memberIndex",
-            "metadata"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/recipeOf/recipeOf",
           "parameters": [
             "member"
@@ -10884,28 +11136,6 @@
           "name": "createRowEffectStage/recipes/recipes",
           "parameters": [
             "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
-          "parameters": [
-            "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
-          "parameters": [
-            "candidate"
           ],
           "async": false
         },
@@ -11130,12 +11360,8 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes",
-            "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
-            "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
-            "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
             "guarded/guarded",
             "optionalFunction/optionalFunction",
             "prepareInstalledCreateRows/createRows/createRows",
@@ -11264,8 +11490,8 @@
                 "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -12338,8 +12564,8 @@
                 "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -13329,8 +13555,8 @@
                 "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -14000,8 +14226,8 @@
                 "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -14647,8 +14873,8 @@
                 "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('ForeignInstalledRowEffectRequest')"
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -15409,20 +15635,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -15883,6 +16096,7 @@
         "./installed-row-effect-physical-read.mjs",
         "./installed-row-effect-plan-capture.mjs",
         "./installed-row-effect-preview.mjs",
+        "./installed-row-effect-recovery-backing.mjs",
         "./installed-row-effect-run-controls.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",

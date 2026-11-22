@@ -2336,6 +2336,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-preview.d.mts
 /adapters/host-node/installed-row-effect-claims.mjs
 /adapters/host-node/installed-row-effect-claims.d.mts
+/adapters/host-node/installed-row-effect-recovery-backing.mjs
+/adapters/host-node/installed-row-effect-recovery-backing.d.mts
 /adapters/host-node/installed-effect-definition-data.test.mjs
 /adapters/host-node/installed-effect-definition-data.test.d.mts
 /adapters/host-node/installed-effect-owned-operation.mjs

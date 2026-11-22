@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -529,13 +530,12 @@ const recoveryRowNodes = [];
 (function walk(node) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries'].includes(node.id.name)) recoveryRowNodes.push(node);
+      node.type === 'VariableDeclarator' && node.id.name === 'physicalRoute') recoveryRowNodes.push(node);
   for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
   else if (child && typeof child === 'object') walk(child);
 })(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
-const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
 const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
@@ -674,8 +674,7 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     validateRecoveredEntries(facts, entries) {
       assert.strictEqual(facts.body, body); assert.strictEqual(entries, originalEntries.entries);
     }};
-  ports.prepareRecoveredEntries = new Function(...Object.keys(entryPorts), 'return (' +
-    recoveryRowSource.slice(recoveryEntriesNode.start, recoveryEntriesNode.end) + ');')(...Object.values(entryPorts));
+  ports.prepareRecoveredEntries = createInstalledRowEffectRecoveryBacking(entryPorts);
   const prepare = new Function(...Object.keys(ports), 'return ' +
     recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
   const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope,

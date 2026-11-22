@@ -49,7 +49,7 @@ type RecoveredRows<Member> = Readonly<{
 type DurableRecovery = Readonly<{connectorRecovery?: readonly Readonly<{
   memberIndex: number; kind: string; wire: string; observationCid: string;
 }>[]}>;
-type RecoveryInput<Member> = RecoveredRows<Member> & Readonly<{
+export type RecoveryInput<Member> = RecoveredRows<Member> & Readonly<{
   durable: DurableRecovery;
   maxRows?: number;
   previewWire: string;
