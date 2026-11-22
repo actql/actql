@@ -80499,7 +80499,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "12607eb3a51198df8d26042dd2a73bbe29f07af306f950e6c000544c2bc95fa0",
+      "sha256": "743227b7afb0c1075a89e7efdaaaaa7bb55526e9a4dd8837f2e62efaa9720868",
       "exports": [],
       "operations": [
         {
