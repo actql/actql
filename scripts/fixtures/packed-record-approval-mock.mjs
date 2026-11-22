@@ -23,11 +23,14 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
   const removePrograms = process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1';
   const input = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
+  const supportsAuthored = connector !== 'salesforce' && variant === undefined && !removePrograms;
   let authored;
   if (input !== undefined) {
-    assert(isAbsolute(input) && connector !== 'salesforce' && variant === undefined && !removePrograms,
-      'Select one supported authored mock case');
-    authored = await readAuthoredCase(input);
+    assert(isAbsolute(input) && supportsAuthored, 'Select one supported authored mock case');
+  }
+  if (supportsAuthored) {
+    const caseFile = input ?? fileURLToPath(new URL(`./${connector}-approval/case.json`, import.meta.url));
+    authored = await readAuthoredCase(caseFile);
     assert(authored.fixture !== undefined, 'An authored mock case requires a seed and state oracle');
   }
   const parent = join(process.cwd(), connector + '-mock-original-roots');

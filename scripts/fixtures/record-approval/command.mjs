@@ -12,25 +12,47 @@ const text = value => typeof value === 'string' && value.trim().length > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const maxAuthoredCaseBytes = 1024 * 1024;
 
-export async function readAuthoredCase(path) {
-  const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
+async function readCaseText(path, maxBytes, flags) {
+  const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK | flags);
   try {
     const info = await file.stat();
-    if (!info.isFile() || info.size > maxAuthoredCaseBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
+    if (!info.isFile() || info.size > maxBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
     const chunks = [];
     let size = 0;
-    for await (const bytes of file.createReadStream({start: 0, end: maxAuthoredCaseBytes, autoClose: false})) {
+    for await (const bytes of file.createReadStream({start: 0, end: maxBytes, autoClose: false})) {
       size += bytes.length;
-      if (size > maxAuthoredCaseBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
+      if (size > maxBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
       chunks.push(bytes);
     }
-    try {
-      const wire = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(Buffer.concat(chunks, size));
-      return admitAuthoredRecordApprovalCase(JSON.parse(wire));
-    } catch {
-      throw new TypeError('InvalidRecordApprovalAuthoredCase');
-    }
+    return Buffer.concat(chunks, size);
   } finally {await file.close();}
+}
+
+export async function readAuthoredCase(path) {
+  const bytes = await readCaseText(path, maxAuthoredCaseBytes, 0);
+  const decode = bytes => new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes);
+  try {
+    const value = JSON.parse(decode(bytes));
+    let remaining = maxAuthoredCaseBytes - bytes.length;
+    for (const kind of ['effect', 'read']) {
+      if (!object(value?.[kind]) || !Object.hasOwn(value[kind], 'documentPath')) continue;
+      const {documentPath, ...fields} = value[kind];
+      if (Object.hasOwn(fields, 'document') || typeof documentPath !== 'string' ||
+          !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/u.test(documentPath)) {
+        throw new TypeError('InvalidRecordApprovalDocumentPath');
+      }
+      const program = await readCaseText(resolve(dirname(path), documentPath), remaining, constants.O_NOFOLLOW);
+      remaining -= program.length;
+      value[kind] = {...fields, document: decode(program)};
+    }
+    const admitted = admitAuthoredRecordApprovalCase(value);
+    if (Buffer.byteLength(JSON.stringify(admitted)) > maxAuthoredCaseBytes) {
+      throw new TypeError('InvalidRecordApprovalCaseFile');
+    }
+    return admitted;
+  } catch {
+    throw new TypeError('InvalidRecordApprovalAuthoredCase');
+  }
 }
 
 export async function runRecordApprovalCommand({argv, programDirectory, connect,

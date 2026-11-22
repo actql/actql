@@ -69,8 +69,10 @@ file of at most 1 MiB with these fields.
 | `read` | The same document, format, Result name, and parameter fields, with independent `beforeRows` and `afterRows`. |
 | `review` | The exact expected `target`, `identity`, `before`, and `changes` from the one-row UPDATE Review. |
 
-Use `aql`, `sql`, `json`, or `yaml` for `format` and provide the document text
-for that format. Keep connection, operator and signing settings in the separate
+Use `aql`, `sql`, `json`, or `yaml` for `format`. Provide `document` as text or
+replace it with `documentPath`, the name of a regular UTF-8 file alongside the
+case. The total input and the resulting case each fit within 1 MiB. Keep
+connection, operator and signing settings in the separate
 configuration. All three phases read the authored case. The original receipt
 binds both documents, their parameters and the oracle before approval or Saved
 recovery. Keep the case available for each phase.
@@ -103,6 +105,10 @@ packed fixture. The Mock uses the same authored Program, parameters, seed,
 Review, and expected states. It constructs the existing Mock catalog for the
 selected connector. The installed HTTP adapter checks the provider schema and
 applies the HTTP fault schedule in its own run.
+
+The standard HubSpot and kintone packed fixtures use their respective
+`case.json` for both HTTP and Mock. Each references that adapter's existing
+`update.aql` and `read.aql` files.
 
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit

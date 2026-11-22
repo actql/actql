@@ -3,7 +3,7 @@
 // Neither establishes actual Host authentication, Run/Unknown or ordinary acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink, symlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
@@ -12,11 +12,11 @@ import {openRecordApprovalExchange, installedRecordReplyLossExpectation,
   runInstalledRecordApprovalFixture} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
   sharedRecordUpdateSelections, recordUpdateFixtureState, recordUpdateReplyLossFaults} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectation} from './fixtures/record-approval/workflow.mjs';
-import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
+import {readAuthoredCase, runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
 import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed.fixture.mjs';
@@ -276,6 +276,42 @@ test('authored schema pins compare each original provider schema reference indep
     assert.throws(() => assertRecordApprovalSourceSchema(view, {...expected, ...altered}),
       /Independent provider Source View and schema/u);
   }
+});
+
+test('the standard HubSpot and kintone case files keep the original Programs and independent oracles', async () => {
+  for (const [connector, build] of [['hubspot', hubspotUpdateCase], ['kintone', kintoneUpdateCase]]) {
+    const directory = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
+    const authored = await readAuthoredCase(fileURLToPath(new URL('case.json', directory)));
+    const selected = sharedRecordUpdateSelections[connector];
+    const update = await readFile(new URL('update.aql', directory), 'utf8');
+    const read = await readFile(new URL('read.aql', directory), 'utf8');
+    const {fixture, ...original} = authored;
+    assert.deepEqual(original, build({update, read}, selected));
+    assert.deepEqual(fixture.expected, recordUpdateFixtureState(selected));
+    const {id: recordId, name: previousName} = fixture.expected.before.target;
+    const {id: controlId, name: controlName} = fixture.expected.before.control;
+    assert.deepEqual(fixture.seed, {recordId, previousName, controlId, controlName});
+  }
+});
+
+test('authored Program references are bounded sibling files with one document source', async t => {
+  const value = await definition('hubspot'), f = await commandFixture(t, 'hubspot');
+  const path = join(f.root, 'case.json');
+  const {document, ...declaration} = value.effect;
+  const programPath = join(f.root, 'effect.aql');
+  await writeFile(programPath, document);
+  await symlink(programPath, join(f.root, 'alias.aql'));
+  for (const effect of [{...declaration, document, documentPath: 'effect.aql'},
+    {...declaration, documentPath: '../effect.aql'}, {...declaration, documentPath: 'alias.aql'}]) {
+    await writeFile(path, JSON.stringify({...value, effect}));
+    await assert.rejects(readAuthoredCase(path), {message: 'InvalidRecordApprovalAuthoredCase'});
+  }
+  const {document: readDocument, ...readDeclaration} = value.read;
+  await writeFile(path, JSON.stringify({...value, effect: {...declaration, documentPath: 'effect.aql'},
+    read: {...readDeclaration, documentPath: 'read.aql'}}));
+  await writeFile(programPath, document.padEnd(512 * 1024, ' '));
+  await writeFile(join(f.root, 'read.aql'), readDocument.padEnd(512 * 1024, ' '));
+  await assert.rejects(readAuthoredCase(path), {message: 'InvalidRecordApprovalAuthoredCase'});
 });
 
 test('authored provider seed differs from the independent expected control before any request', async t => {

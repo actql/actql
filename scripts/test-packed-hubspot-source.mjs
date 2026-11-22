@@ -148,12 +148,14 @@ const software = join(consumer, 'node_modules'), softwareAlias = join(applicatio
 const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
   ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
     .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
+  ...(!wholeMock && !threeSourceMock && !binarySourceMock && ['hubspot', 'kintone'].includes(mockConnector)
+    ? [`scripts/fixtures/${mockConnector}-approval/case.json`] : []),
   ...(binarySourceMock ? ['scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs'] : []),
   ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
     'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name),
   'adapters/host-node/fixtures/work-observation.fixture.mjs']
   : approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
-  ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql']
+  ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql', 'case.json']
     .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
   ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
     'installed.fixture.mjs', 'installed-child.mjs', 'provider-state.mjs']
