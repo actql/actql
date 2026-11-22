@@ -286,6 +286,7 @@ fn native_mock_readme_request_issue(
     ReadOnlyEffect => "ReadOnlyEffect"
     RequestBranchUnavailable => "RequestBranchUnavailable"
     RequestNormalization(_) => "RequestNormalization"
+    RequestAuthoring(_) => "RequestAuthoring"
   }
 }
 
