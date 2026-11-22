@@ -344,6 +344,34 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
     policy_bodies.length().to_int64() +
     2L * direct.identities.length().to_int64() +
     @run_host.client_effect_combined_source_unit_dependency_body_count(combined)
+  let (_, source_stage, _) = @run_host.client_effect_combined_source_unit_catalog_subject(
+    combined,
+  )
+  if proposals.imports is Some(_) {
+    guard proposals._retained_direct_source_manifest is Some(_) &&
+      proposals.import_observations.length() == 1 else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    // Producer Manifest, import observation, scope and one derived Relation.
+    entries += 4L
+    for entry in proposals.unit_results {
+      guard @strategy.captured_effect_local_result_at(
+          proposals.inputs,
+          entry.index,
+        )
+        is Some(result) else {
+        stop("LocalOriginalEffectDependencyInventoryUnavailable")
+      }
+      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+        guard entry._retained_dependency is Some(capture) else {
+          stop("LocalOriginalEffectDependencyInventoryUnavailable")
+        }
+        entries += @run_host.client_effect_dependency_capture_body_count(
+          capture,
+        ).to_int64()
+      }
+    }
+  }
   for index, entry in proposals.members {
     guard entry._retained_artifact is Some(artifact) &&
       entry._retained_dependency is Some(capture) &&
@@ -452,6 +480,48 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
       combined,
     ) {
     append(kind, cid, wire)
+  }
+  if proposals.imports is Some(imported) {
+    let source_manifest = proposals._retained_direct_source_manifest.unwrap()
+    kinds.push("local_manifest")
+    identities.push(
+      Some(@run_host.client_effect_local_manifest_cid(source_manifest)),
+    )
+    wires.push(@run_host.client_effect_local_manifest_json(source_manifest))
+    for observed in proposals.import_observations {
+      append(
+        "result_import_observation",
+        @run_host.client_effect_result_import_observation_cid(observed),
+        @run_host.client_effect_result_import_observation_json(observed),
+      )
+    }
+    kinds.push("acquisition_scope")
+    identities.push(None)
+    wires.push(@run_host.client_effect_imported_scope_json(imported))
+    for wire in @run_host.client_effect_imported_relation_bodies(imported) {
+      kinds.push("acquisition_relation")
+      identities.push(None)
+      wires.push(wire)
+    }
+    for entry in proposals.unit_results {
+      guard @strategy.captured_effect_local_result_at(
+          proposals.inputs,
+          entry.index,
+        )
+        is Some(result) else {
+        stop("LocalOriginalEffectDependencyInventoryUnavailable")
+      }
+      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+        guard entry.artifact is Some(artifact) &&
+          entry._retained_dependency is Some(capture) else {
+          stop("LocalOriginalEffectDependencyInventoryUnavailable")
+        }
+        originals.push(artifact)
+        for body in @run_host.client_effect_dependency_capture_bodies(capture) {
+          retain(body)
+        }
+      }
+    }
   }
   for entry in proposals.members {
     let artifact = entry._retained_artifact.unwrap()

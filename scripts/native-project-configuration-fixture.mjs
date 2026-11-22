@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {files as nullableMockFiles} from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -164,6 +165,11 @@ export function nativeProjectConfigurationFixture(namespace) {
       write(path, sharedProject.programFile, sharedFile[sharedProject.programFile]);
       write(path, 'mock/data.json', sharedFile['mock/data.json']);
     }
+  }
+  const nullable = directory('nullable-mock');
+  for (const [file, contents] of Object.entries(nullableMockFiles)) {
+    mkdirSync(dirname(join(nullable, file)), {recursive: true, mode: 0o700});
+    write(nullable, file, contents);
   }
   // Independent oracle for the SAME public File-facts consumer. The missing
   // payload case still supplies only its original locator/catalogue metadata.

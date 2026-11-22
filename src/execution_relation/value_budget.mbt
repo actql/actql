@@ -156,6 +156,10 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
             if !charge_text(b, s) {
               return false
             }
+          @admitted.Binary(bytes) =>
+            if !charge_text(b, @admitted.bytes_wire_text(bytes)) {
+              return false
+            }
           @admitted.Decimal(d) =>
             if !charge_text(b, d.coefficient) {
               return false
@@ -419,6 +423,12 @@ fn advance_stepped_measure_result(
         | @admitted.Date(text)
         | @admitted.Timestamp(text) =>
           step_stepped_measure_text_start(cursor, text, budget)
+        @admitted.Binary(bytes) =>
+          step_stepped_measure_text_start(
+            cursor,
+            @admitted.bytes_wire_text(bytes),
+            budget,
+          )
         @admitted.Decimal(decimal) =>
           step_stepped_measure_text_start(cursor, decimal.coefficient, budget)
         @admitted.Array(items) => {

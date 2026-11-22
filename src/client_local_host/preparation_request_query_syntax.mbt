@@ -35,8 +35,8 @@ fn request_query_syntax_data_bytes(
   guard @execution.preparation_representation_cost({
       record_headers: 4L * units,
       reference_slots: 12L * units,
-      // The Tokens owner retains the prior parser facts and one ROLLUP item count.
-      scalar_words: 20L * units + 10L,
+      // The Tokens owner includes the ROLLUP and scalar-projection counts.
+      scalar_words: 20L * units + 11L,
       owned_utf16_units: 4L * units,
       owned_wire_bytes: 4L * units,
     })

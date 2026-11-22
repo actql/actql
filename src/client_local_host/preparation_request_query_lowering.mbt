@@ -101,10 +101,11 @@ fn request_query_lowering_data_bytes(
     is Some(base) else {
     return None
   }
-  request_rollup_construction_bytes(
+  request_query_extra_construction_bytes(
     base,
     units,
-    @query_syntax.rollup_item_count(parsed).to_int64(),
+    @query_syntax.rollup_item_count(parsed).to_int64() +
+    @query_syntax.scalar_projection_count(parsed).to_int64(),
   )
 }
 
@@ -128,21 +129,20 @@ fn request_query_namespace_scope_fields_bytes(tokens : Int64) -> Int64? {
 }
 
 ///|
-// The original Group and its checked inputs remain in the base envelope. Each
-// authored item adds one Group and Append, reusing the original expression
-// Nodes but repeating their references, canonical bodies and annotation
-// occurrences. One document+catalog lane per extra prefix covers this
-// multiplicity. The fixed part covers the two step bodies, temporary vectors,
-// generated aliases and each omitted-key aggregate's fixed nodes and names.
-fn request_rollup_construction_bytes(
+// A ROLLUP item adds Group/Append and an authored scalar adds a singleton
+// Group, cardinality assertion and projection. For each occurrence, one lane
+// over the original document and catalog covers their extra step nodes,
+// references, serialized annotations, generated names and retained overlap.
+// The existing input/output terms remain in the base envelope.
+fn request_query_extra_construction_bytes(
   base : Int64,
   units : Int64,
-  prefixes : Int64,
+  occurrences : Int64,
 ) -> Int64? {
-  if prefixes == 0L {
+  if occurrences == 0L {
     return Some(base)
   }
-  guard prefixes > 0L && units > 0L && units <= 9223372036854775807L / 64L else {
+  guard occurrences > 0L && units > 0L && units <= 9223372036854775807L / 64L else {
     return None
   }
   guard @execution.preparation_representation_cost({
@@ -155,7 +155,7 @@ fn request_rollup_construction_bytes(
     is Some(prefix) else {
     return None
   }
-  @execution.checked_preparation_add_product(base, prefix, prefixes)
+  @execution.checked_preparation_add_product(base, prefix, occurrences)
 }
 
 ///|

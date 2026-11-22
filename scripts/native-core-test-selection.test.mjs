@@ -1092,7 +1092,35 @@ test('Native initial CID and signing counters select every original case in runt
     assert.deepEqual(nativeCoreScopedTestEnvironment({source: ordinary, index: 0}), {});
     assert.deepEqual(nativeCoreScopedTestEnvironment({source: cid + '.foreign', index: 0}), {});
   }
-  const mock = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
-  assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
-  for (const index of [0, 12, 14]) assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index}), {});
+});
+
+test('Native Mock Account Read counters follow its compiler name when case indices move', t => {
+  const source = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  const name = 'Native Mock Account opens its original consuming Journal Read before Model dispatch';
+  const root = fixture(t);
+  mkdirSync(join(root, dirname(source)), {recursive: true});
+  writeFileSync(join(root, source), 'test {}\n');
+  const command = ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
+    '--output-metadata', '_build/info.json', source, '--target', 'native',
+    '--pkg-name', 'fixture/native_client', '--driver-kind', 'whitebox'].join(' ');
+  for (const index of [13, 14]) {
+    const execute = (_tool, args) => {
+      if (args[0] === 'test') return command;
+      assert.equal(args[0], 'generate-test-driver');
+      const output = resolve(root, args[args.indexOf('--output-metadata') + 1]);
+      mkdirSync(dirname(output), {recursive: true});
+      writeFileSync(output, JSON.stringify({tests: {[basename(source)]: [
+        {index, name, attrs: [], line_number: 4},
+        {index: 27 - index, name: 'Native nullable Mapping control', attrs: [], line_number: 8},
+      ]}}));
+      return '';
+    };
+    const selected = nativeCoreTestSelection(root, ['--release'], {execute, partitionProfiles: true});
+    const {tests} = selected.profiles.scoped;
+    assert.equal(tests.length, 2);
+    for (const test of tests) {
+      assert.deepEqual(nativeCoreScopedTestEnvironment(test), test.index === index ? {ACTQL_NATIVE_TIMINGS: '1'} : {});
+    }
+  }
+  assert.deepEqual(nativeCoreScopedTestEnvironment({source: source + '.foreign', name, index: 13}), {});
 });

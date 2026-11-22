@@ -119,7 +119,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_model_whole_source(
     state.sources.get(index) is Some(capture) &&
     state.captured_inputs.get(index) is Some(input) &&
     @row_host.row_captured_input_source(input) is Some(source) &&
-    state.input_originals.get(index) is Some((original, acquisition)) &&
+    state.input_originals.get(index)
+    is Some(WholeEffectInput(original, acquisition)) &&
     held.scan is None else {
     stop("LocalOriginalModelSourceIdentityUnavailable")
   }

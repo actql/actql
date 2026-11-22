@@ -181,7 +181,13 @@ fn decode(
             } else {
               ["enum"]
             }
-          "number" | "boolean" | "timestamp" | "date" | "json" | "int64" => []
+          "number"
+          | "boolean"
+          | "timestamp"
+          | "date"
+          | "json"
+          | "int64"
+          | "bytes" => []
           "decimal" => ["precision", "scale"]
           "array" => ["items", "max_items"]
           "object" =>
@@ -216,6 +222,7 @@ fn decode(
             })
           "number" => Number
           "int64" => Signed64
+          "bytes" => Bytes
           "boolean" => Boolean
           "timestamp" => Timestamp
           "date" => Date

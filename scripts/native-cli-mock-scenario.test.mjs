@@ -9,12 +9,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, requireNativeMockWork, runNativeCliMockScenario,
-  runNativeSharedFileMockScenario}
+  runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
   from './native-cli-mock-scenario.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
 import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import * as nullable from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 test('Native shared-file fixture requests three ordered rows with independent complete oracles', () => {
   const {files, programFile, before, after, changes, rows} = threeWriteMockProject();
@@ -99,6 +100,102 @@ function observation(pid, events = []) {
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
 }
 const observedCid = digit => 'sha256:' + digit.repeat(64);
+
+test('Native nullable Mock harness checks original preview, exact Read bindings and separate Saved reads', async t => {
+  for (const fault of [undefined, 'null-preview', 'eligible-field-cleared']) {
+    const root = await mkdtemp(join(tmpdir(), 'actql-nullable-mock-unit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const decisions = [], projects = new Set();
+    let count = 0;
+    const execute = runNativeNullableMockScenarios({root, launcherTimings: 'optional', async run(args, cwd) {
+      const [command, file] = args;
+      const approve = cwd.endsWith('-approve'), key = approve ? 'approval' : 'rejection';
+      const checkpoint = key + '-checkpoint', runId = key + '-run';
+      const cid = observedCid(approve ? 'a' : 'b');
+      const target = join(cwd, 'mock/data.json');
+      const state = (status, selected = runId) => JSON.stringify({version: 'actql-run-state/0.1',
+        run_id: selected, status, ...(status === 'waiting_checkpoint'
+          ? {checkpoint: {checkpoint_id: checkpoint, checkpoint_cid: cid}} : {})});
+      const events = [];
+      let stdout = '';
+      if (command === '--mode') {
+        projects.add(cwd);
+        assert.deepEqual(args.slice(-2), ['adopt', '--initialize-signing']);
+        assert.equal(await readFile(target, 'utf8'), nullable.before);
+        const catalog = JSON.parse(await readFile(join(cwd, 'mock/catalog.json'), 'utf8'));
+        const [write] = catalog.connections.salesforce.writes;
+        assert(write.writable_fields.includes('omitted_value'));
+        assert(!write.writable_fields.includes('protected_value'));
+        assert.deepEqual(write.update_fields, ['clear_value', 'blank_value']);
+        assert(!write.write_null_fields.includes('omitted_value'));
+        assert(!Object.hasOwn(nullable.definition.review.changes, 'omitted_value'));
+      } else if (command === 'run') {
+        assert.equal(await readFile(join(cwd, file), 'utf8'), nullable.files[file]);
+        const kind = file === 'nullable-update.aql' ? 'effect' : 'read';
+        assert.deepEqual(args.slice(2, 6), ['--parameter-declarations-file',
+          kind + '-declarations.json', '--params', kind + '-parameters.json']);
+        const parameters = JSON.parse(await readFile(join(cwd, args[5]), 'utf8'));
+        assert.deepEqual(parameters, nullable.definition[kind].parameters);
+        if (kind === 'effect') {
+          assert.deepEqual(args.slice(6), ['--stop-before', 'commit', '--json']);
+          stdout = state('waiting_checkpoint');
+        } else stdout = state('succeeded', decisions.includes(key) ? 'after-read' : 'before-read');
+      } else if (command === 'status' && !args.includes('--json')) {
+        assert.equal(file, runId);
+        const value = {...nullable.definition.review.changes};
+        if (fault === 'null-preview') value.clear_value = '';
+        stdout = [`Run: "${runId}"`, 'State: "waiting_checkpoint"', `Checkpoint: "${checkpoint}"`,
+          `  Original CID: "${cid}"`, 'Stored Effect Preview (read-only; not approval):',
+          '  Effect: "update"  Target: "connector://salesforce/Account"', '  Items: 1',
+          '  Preview strength: "full_diff"', '  Changes:', '    Row: "a1"',
+          '      Before: ' + JSON.stringify({state: 'present', value: nullable.definition.review.before}),
+          '      After: ' + JSON.stringify({state: 'present', value})].join('\n') + '\n';
+      } else if (command === 'approve' || command === 'reject') {
+        assert.equal(file, checkpoint);
+        assert.equal(command, approve ? 'approve' : 'reject');
+        await assert.rejects(stat(join(cwd, 'nullable-update.aql')), {code: 'ENOENT'});
+        assert.equal(await readFile(target, 'utf8'), nullable.before);
+        assert(!decisions.includes(key));
+        decisions.push(key);
+        if (approve) {
+          const bytes = fault === 'eligible-field-cleared'
+            ? nullable.after.replace('"omitted_value": "retain eligible value"', '"omitted_value": null')
+            : nullable.after;
+          await writeFile(target, bytes);
+          for (const tag of [5, 6, 7, 8, 9, 10, 11]) events.push({tag,
+            ordinal: tag === 6 || tag === 7 ? -1 : 0,
+            identity: tag === 6 || tag === 7 ? '' : observedCid((tag === 8 ? 5 : tag).toString(16))});
+        }
+      } else if (command === 'result') {
+        const isOriginalResult = file === runId;
+        assert.equal(args[3], isOriginalResult ? 'updates' : 'main');
+        if (isOriginalResult) assert(approve && decisions.includes(key));
+        else assert(['before-read', 'after-read'].includes(file));
+        const rows = isOriginalResult ? nullable.expectedRows : file === 'before-read' ? nullable.beforeRows : nullable.afterRows;
+        stdout = rows.map(row => JSON.stringify(row)).join('\n') + '\n';
+      } else {
+        assert.deepEqual(args, ['status', runId, '--json']);
+        assert(decisions.includes(key));
+        stdout = state(approve ? 'succeeded' : 'cancelled');
+      }
+      return {code: 0, signal: null, stdout, stderr: observation(200 + ++count, events)};
+    }});
+    if (fault === 'null-preview') {
+      await assert.rejects(execute, /exact intended after fields/u);
+      assert.deepEqual(decisions, []);
+    } else if (fault === 'eligible-field-cleared') {
+      await assert.rejects(execute, /Only the explicit NULL and empty Text fields may change/u);
+      assert.deepEqual(decisions, ['approval']);
+    } else {
+      const outcomes = await execute;
+      assert.deepEqual(decisions, ['approval', 'rejection']);
+      assert.equal(projects.size, 2);
+      assert.deepEqual(outcomes.map(({decision, lockPathAbsent, commands}) =>
+        [decision, lockPathAbsent, commands.filter(x => x.workflowPhase === 'saved-result').length]),
+      [['approve', true, 1], ['reject', true, 0]]);
+    }
+  }
+});
 
 test('installed Native shared-file selection preserves its own original Run and checks the returned writer lock first', async t => {
   assert.deepEqual(nativeMockInstallOptions(['--shared-file-mock'], 'darwin'), {sharedFileMock: true});

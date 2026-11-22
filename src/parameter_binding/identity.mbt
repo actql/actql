@@ -119,9 +119,11 @@ fn emit_bound_value(
           }
           pending.push(ObjectRest(entries, fields, 0, escaped, false))
         }
-        // Ordinary Parameter declarations exclude opaque JSON, vector and Ref.
-        @value.Vector(_) | @value.Reference(_) | @value.JsonData(_) =>
-          abort("invalid bound Parameter domain")
+        // Only the selected Parameter declaration domains may reach identity.
+        @value.Vector(_)
+        | @value.Reference(_)
+        | @value.JsonData(_)
+        | @value.Binary(_) => abort("invalid bound Parameter domain")
       }
     } else {
       match pending.pop().unwrap() {

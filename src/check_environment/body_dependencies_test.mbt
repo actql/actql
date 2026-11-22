@@ -28,7 +28,7 @@ test "body dependencies require admitted grammar and preserve exact envelope own
         assert_eq(
           body_dependency_at(dependencies, 0),
           Some(
-            "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
+            "sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1",
           ),
         )
         for index in [-2147483648, -1, 1, 2147483647] {

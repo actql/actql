@@ -202,6 +202,8 @@ pub fn advance_complete_equality(
             if a != b {
               return equality_result(value, false, work)
             }
+          (Binary(a), Binary(b)) =>
+            equality_queue_text_comparison(value, a.wire, b.wire)
           (Text(a), Text(b))
           | (Date(a), Date(b))
           | (Timestamp(a), Timestamp(b)) =>

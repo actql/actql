@@ -27,10 +27,22 @@ pub fn issue_client_effect_imported_evidence(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectImportedEvidence, ClientEffectImportedEvidenceIssue] {
+  // Construction callbacks may re-enter their caller. Keep the originally
+  // validated observation sequence identical through issuance and retention.
+  let original_observations = if before_body is Some(_) {
+    if observations.length() > max_nodes {
+      return Err(Invocation(IncompleteResultImports))
+    }
+    observations.copy()
+  } else {
+    observations
+  }
   let invocation = match
-    issue_imported_client_effect_local_invocation(
-      owner, inputs, unit, observations, max_bytes, max_nodes, max_depth,
+    issue_imported_client_effect_local_invocation_body(
+      owner, inputs, unit, original_observations, max_bytes, max_nodes, max_depth,
+      before_body,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
@@ -40,7 +52,7 @@ pub fn issue_client_effect_imported_evidence(
   // not a union of access permissions or a caller-supplied source list.
   let scopes : Array[@publication.PublicationContract] = []
   let relations : Array[@publication.PublicationContract] = []
-  for observation in observations {
+  for observation in original_observations {
     let artifact = observation.artifact
     guard artifact.scope is Some(input_scope) else { return Err(MissingScope) }
     scopes.push(input_scope)
@@ -53,6 +65,7 @@ pub fn issue_client_effect_imported_evidence(
         max_bytes,
         max_nodes,
         max_depth,
+        before_body~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Relation(issue))
@@ -68,7 +81,11 @@ pub fn issue_client_effect_imported_evidence(
   }
   let scope = match
     @publication.issue_combined_acquisition_scope(
-      scopes, max_bytes, max_nodes, max_depth,
+      scopes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
@@ -79,14 +96,23 @@ pub fn issue_client_effect_imported_evidence(
       @publication.publication_contract_identity(b),
     )
   })
-  Ok({
+  let original = {
     owner,
     inputs,
     invocation,
-    observations: observations.copy(),
+    observations: if before_body is Some(_) {
+      original_observations
+    } else {
+      observations.copy()
+    },
     relations,
     scope,
-  })
+  }
+  if before_body is Some(_) &&
+    !client_effect_imported_evidence_matches_owner(original, owner, inputs) {
+    return Err(Invocation(ForeignResultImport))
+  }
+  Ok(original)
 }
 
 ///|
@@ -210,4 +236,76 @@ fn client_effect_imported_evidence_matches_owner(
       @strategy.captured_effect_result_import_producer(observed.captured),
     )
   })
+}
+
+///|
+/// Measure the original consumer Artifact, including its derived input
+/// Relations. Publication admission and each exact original are rechecked
+/// again at the actual Artifact site after the managed reservation.
+pub fn client_effect_imported_result_artifact_construction_geometry(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  imported : ClientEffectImportedEvidence,
+  result_name : String,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectLocalResultArtifactIssue,
+] {
+  if !client_effect_imported_evidence_matches_owner(imported, owner, inputs) {
+    return Err(ForeignOwner)
+  }
+  let (_, policy, _) = match
+    @publication.resolve_run_local_result_evidence_refs(
+      admission, run_definition, invocation, observation, retention,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Context(issue))
+  }
+  measure_client_effect_unit_result_artifact(
+    owner,
+    imported.invocation,
+    imported.relations,
+    imported.scope,
+    retention,
+    policy,
+    result_name,
+    receipt,
+    admission,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// The Native one-Source route imports the exact retained producer once.
+/// Neither another manifest from the same Program nor a second capture of
+/// equal rows can lend that producer's execution, scope or retention.
+pub fn client_effect_imported_matches_direct_source_unit(
+  imported : ClientEffectImportedEvidence,
+  source : ClientEffectCombinedSourceUnit,
+  retention : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Bool {
+  source.final_context is Some((original_invocation, original_observation)) &&
+  physical_equal(invocation, original_invocation) &&
+  physical_equal(observation, original_observation) &&
+  source.contributions.length() == 1 &&
+  imported.observations.length() == 1 &&
+  physical_equal(source.original.owner, imported.owner) &&
+  physical_equal(
+    source.invocation,
+    imported.observations[0].artifact.invocation,
+  ) &&
+  physical_equal(source.retention, retention)
 }

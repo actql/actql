@@ -151,7 +151,7 @@
     "schema": {
       "file": "spec/contracts/actql-protocol-schemas.json",
       "pointer": "/schemas/canonical_value_contract",
-      "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+      "cid": "sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1"
     },
     "admission": "all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion",
     "ownership": "retain_exact_registry_envelope_and_environment_not_only_bare_body_cid",
@@ -1134,6 +1134,22 @@
                     "type": "boolean"
                   }
                 }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "nullable"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "const": "bytes"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  }
+                }
               }
             ]
           }
@@ -1198,6 +1214,32 @@
       "provider": "exact_constraint_support_or_unavailable_no_schema_erasure",
       "authority": "type_or_value_admission_is_not_permission_currentness_funding_or_reference_issuance",
       "compatibility": "legacy_Number_Decimal_Text_bodies_value_bytes_and_numeric_literal_meaning_unchanged"
+    },
+    "bytes": {
+      "grammar": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "bytes"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "wire": {
+        "type": "string",
+        "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])"
+      },
+      "domain": "exact_octets_including_empty_nullable_governed_separately",
+      "identity": "same_octets_and_distinct_typed_bytes_domain",
+      "admission": "standard_alphabet_final_padding_zero_unused_bits_encoded_extent_within_existing_value_budget",
+      "assignment": "same_leaf_and_existing_nullability_recursive_structure_no_implicit_conversion"
     }
   },
   "carrier_contract_bodies": {
@@ -2422,6 +2464,22 @@
                   "type": "boolean"
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "bytes"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         },
@@ -2553,7 +2611,7 @@
       "expression_contract": {
         "path": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:6cd16dcf9c63afc1b6a882fe960b87e19156d7cdb0b2c48fc3133c66fb98291e"
+        "cid": "sha256:a069a6f15af6839329f64987bc41308ede21a8fee9a8c23dbfb6e4b6d082260f"
       }
     }
   },

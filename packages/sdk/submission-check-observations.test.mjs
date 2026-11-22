@@ -125,7 +125,7 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     const requirement = {code: 'parameter_value_required', facts: {
       parameter: 'x', expected_type: 'number', admission: {
         kind: 'parameter_declaration',
-        contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
+        contract_schema_cid: 'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1',
         contract: {nullable: false, type: 'number'},
         constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'}},
       location: {kind: 'structured', document_id: 'parameter_declarations',
@@ -196,7 +196,7 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
       assert.equal(validCheckOutcome(checked), false);
       const current = structuredClone(checked);
       current.report.requirements[0].facts.admission.contract_schema_cid =
-        'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1';
+        'sha256:0d5ed4927156362554b6ac4fe442158f28063afad953c27755c0f5b5e4c3c7c1';
       assert.equal(validCheckOutcome(current), true, 'Only the reviewed admission pin differs');
       currentPinVerified = true;
     }});

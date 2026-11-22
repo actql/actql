@@ -286,6 +286,9 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
         stop("LocalOriginalSourceClockUnavailable")
       })
       for index, original in state.input_originals {
+        guard original is WholeEffectInput(source_acquisition, row_acquisition) else {
+          stop("LocalOriginalLookupSourceEvidenceUnavailable")
+        }
         let captured = state.sources[index]
           .capture()
           .unwrap_or_else(() => stop("LocalOriginalSourceCaptureUnavailable"))
@@ -293,8 +296,8 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
           @run_host.prepare_client_keyed_native_whole_source_evidence(
             lookup,
             index,
-            original.0,
-            original.1,
+            source_acquisition,
+            row_acquisition,
             captured,
             first.request,
             installation.retention,

@@ -59,7 +59,7 @@ test('acquisition fixture retains its independently pinned identity', () => {
   const {evidence_bundle_cid: expected, ...body} = sourceEnvironment;
   assert.equal(machineCid(body), expected);
   assert.equal(expected,
-    'sha256:19b12bb2e1a64301bca6709ba8b2336d04fca3293983f9aae7ff653619a6e9cf');
+    'sha256:568fd3a3c1f9fcca36ebe0e5471efa2dc09c6d07ef75f7d54833f82426aa1447');
 });
 
 const accountConfiguration = (outcome, operation, accountId) =>

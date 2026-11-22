@@ -8,6 +8,7 @@ pub(all) enum Primitive {
   TimestampType
   JsonType
   Signed64Type
+  BytesType
 } derive(Eq, Debug)
 
 ///|
@@ -26,6 +27,7 @@ pub fn primitive(kind : Primitive, nullable~ : Bool) -> Contract {
     TimestampType => Timestamp
     JsonType => Json
     Signed64Type => Signed64
+    BytesType => Bytes
   }
   { shape, nullable, }
 }

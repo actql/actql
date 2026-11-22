@@ -323,6 +323,7 @@ priv struct ExpressionParser {
   mut work : Int
   mut embedded_nodes : Int
   stop_before_star : Bool
+  stop_before_membership_subquery : Bool
   primary : ((Int, ExpressionLimits) -> Result[
     (NamePart, Int, Int, Int)?,
     Diagnostic,
@@ -1004,6 +1005,19 @@ fn ExpressionParser::expression(
           frames.push(Tail(result, minimum, depth))
           continue
         }
+        if depth == 1 &&
+          minimum == 1 &&
+          self.stop_before_membership_subquery &&
+          membership_subquery_head(self.source, self.offset) {
+          if comparison(self.nodes[left].kind) {
+            raise ExpressionAbort(
+              "Comparison requires parentheses",
+              token.start,
+            )
+          }
+          result = left
+          continue
+        }
         let mut negated = false
         if minimum <= 4 && keyword(token, "NOT") {
           ignore(self.advance())
@@ -1466,9 +1480,17 @@ fn parse_fragment(
   offset : Int,
   limits : ExpressionLimits,
   stop_before_star? : Bool = false,
+  stop_before_membership_subquery? : Bool = false,
 ) -> Result[(Expression, Int), Diagnostic] {
   match
-    parse_fragment_resolved(source, offset, limits, None, stop_before_star~) {
+    parse_fragment_resolved(
+      source,
+      offset,
+      limits,
+      None,
+      stop_before_star~,
+      stop_before_membership_subquery~,
+    ) {
     Ok((expression, next, _)) => Ok((expression, next))
     Err(error) => Err(error)
   }
@@ -1484,6 +1506,7 @@ fn parse_fragment_resolved(
     Diagnostic,
   ])?,
   stop_before_star? : Bool = false,
+  stop_before_membership_subquery? : Bool = false,
 ) -> Result[(Expression, Int, Int), Diagnostic] {
   let parser : ExpressionParser = {
     source,
@@ -1494,6 +1517,7 @@ fn parse_fragment_resolved(
     work: 0,
     embedded_nodes: 0,
     stop_before_star,
+    stop_before_membership_subquery,
     primary,
   }
   try {

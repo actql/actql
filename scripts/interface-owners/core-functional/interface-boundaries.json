@@ -86936,7 +86936,7 @@
     },
     {
       "module": "src/sourceview_resolution/query_acquisition.mbt",
-      "sha256": "4bc2ea58c858c530d10007afb486a8256b49dd2a9a3294398f53ea09887c6fe7",
+      "sha256": "c1aa5e67bb83d57de79acfc0dee8036b176306a0ced07ab411b2100e0db101c1",
       "exports": [],
       "operations": [
         {
@@ -88188,7 +88188,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
+      "sha256": "07640e6fa0c8271e158e6cfa0faf47fbbf56d23d65d33a9a3bafbcc3bbc5f746",
       "exports": [],
       "operations": [
         {
@@ -88245,7 +88245,7 @@
         },
         {
           "name": "prepare_installed_effect_combined_source_result_artifact",
-          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , imported ? : ( @ publication_host . ClientEffectImportedEvidence , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "prepare_installed_effect_combined_source_unit",
@@ -101986,7 +101986,7 @@
     },
     {
       "module": "src/execution_relation/value_budget.mbt",
-      "sha256": "09f3765af25a79a338841411e9afc6ffd5f7927df7c99977b1e0c2a5b0998898",
+      "sha256": "f86fe721485da8dc2f0ec42e94fd7a2e3d45ee78ac5b91f301b7dd1919b78353",
       "exports": [],
       "operations": [
         {

@@ -513,6 +513,16 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       let original_row = original
         .ordered_row_original(member_index, row_ordinal)
         .unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
+      let selected_fields = installation.write.mapping.write_fields
+      guard @canonical.object_field(original_row, "intended_changes")
+        is Some(intended) &&
+        @canonical.object_field(intended, "value") is Some(changes) &&
+        @canonical.object_field_count(changes) == Some(selected_fields.length()) &&
+        selected_fields.all(name => {
+          @canonical.object_field(changes, name) is Some(_)
+        }) else {
+        stop("LocalOriginalEffectRequestUnavailable")
+      }
       let target_value = @canonical.object_field(
         original_row, "target_row_identity",
       ).unwrap_or_else(() => stop("LocalOriginalEffectRowUnavailable"))
@@ -553,7 +563,7 @@ fn LocalCommandPreparationOriginal::saved_effect_file_constructor_capacity(
       })
       let (physical, raw) = @row_file.native_relation_file_target_update_construction(
         row_binding.provider,
-        installation.write.mapping.write_fields.length(),
+        installation.write.writable_fields.length(),
         0,
         changes_wire,
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))

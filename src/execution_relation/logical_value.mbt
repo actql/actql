@@ -174,6 +174,13 @@ fn advance_logical_measure_impl(
             if !logical_measure_text(cursor, s) {
               return Err(LogicalWorkLimit)
             }
+          @admitted.Binary(bytes) =>
+            if !logical_measure_charge(
+                cursor,
+                @admitted.bytes_wire_text(bytes).length().to_int64(),
+              ) {
+              return Err(LogicalWorkLimit)
+            }
           @admitted.Decimal(d) => {
             let sign = if d.coefficient.has_prefix("-") { 1L } else { 0L }
             let digits = d.coefficient.length().to_int64() - sign

@@ -160,7 +160,7 @@ export function sourceEnvironment(original, hostProfile) {
   for (const capability of source.connector_capabilities) {
     capability.source_contract_cid = view.contract_cid;
     capability.source_view_contract_cid = view.contract_cid;
-    capability.capability_contract_cids.push('sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
+    capability.capability_contract_cids.push('sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf');
     capability.capability_contract_cids.sort();
   }
   for (const snapshot of source.schema_snapshots) {

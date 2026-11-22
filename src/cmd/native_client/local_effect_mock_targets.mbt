@@ -235,12 +235,12 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         let child = match
           @row_file.prepare_native_relation_file_target_io(
             binding.provider,
-            installation.write.mapping.write_fields,
+            installation.write.writable_fields,
             identity,
             before_response=Some(bytes => {
               let capacity = @row_file.native_relation_file_target_read_io_capacity(
                 binding.provider,
-                installation.write.mapping.write_fields.length(),
+                installation.write.writable_fields.length(),
                 response_bytes=Some(bytes),
               )
               guard capacity is Some(capacity) &&
@@ -358,7 +358,11 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         guard changes is Object(fields) &&
           fields.length() == 2 &&
           fields.get("state") == Some(Json::string("present")) &&
-          fields.get("value") is Some(Object(value)) else {
+          fields.get("value") is Some(Object(value)) &&
+          value.length() == installation.write.mapping.write_fields.length() &&
+          installation.write.mapping.write_fields.all(name => {
+            value.contains(name)
+          }) else {
           stop("LocalOriginalEffectChangesUnavailable")
         }
         let value = Json::object(value)
