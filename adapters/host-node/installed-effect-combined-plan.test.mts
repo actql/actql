@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {prepareInstalledEffectManagedPlan} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';
+
+type Runtime = Parameters<typeof prepareInstalledEffectManagedPlan>[0]['moon'];
 
 // The actual Host selector forwards original Content/Model/provider handles.
 // Core ports are explicit here; the companion Core test checks real ownership.
@@ -17,7 +19,7 @@ for (const model of [false, true]) {
       ...(model ? {modelDemand, modelComponents: Object.freeze([component])} : {})});
     const demand = {}, extent = {}, plan = {};
     let calls = 0;
-    const construct = function (...args) {
+    const construct = function (this: Runtime, ...args: unknown[]) {
       assert.strictEqual(this, moon);
       const expected = [prepared, identity, sources.declarations, sources.providers,
         'query', 'evidence', sources.transferBytes, sources.executionBytes,
@@ -30,7 +32,7 @@ for (const model of [false, true]) {
       calls++;
       return {$tag: 1, _0: plan};
     };
-    const moon = {
+    const moon: Runtime = {
       clientProgramEffectAcquisitionCount: value => {assert.strictEqual(value, prepared); return 1;},
       clientProgramInstalledEffectOperationDemandPrepare(value, stage, id, members, rows) {
         assert.strictEqual(value, prepared); assert.equal(stage, 0); assert.equal(id, 'save');

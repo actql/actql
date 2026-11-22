@@ -21179,7 +21179,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "d1222c54b4a12591da95cb52379aa1c8982a8b6e92028e55f4b686f4f3dfeccc",
+      "sha256": "daf212ee5ee1e023c95892eb074783c632394c59998307e38ab81f0c68d36370",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",
@@ -21837,6 +21837,7 @@
         "../host-common/runtime-result.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
+        "./installed-effect-managed-plan.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
@@ -22732,6 +22733,233 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-effect-managed-plan.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "exports": [
+        "prepareInstalledEffectManagedPlan"
+      ],
+      "operations": [
+        {
+          "name": "prepareInstalledEffectManagedPlan",
+          "parameters": [
+            "moon",
+            "facts",
+            "inputs",
+            "unit",
+            "members",
+            "recipeFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/demands/demands",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/demands/demands/demands",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/demands/demands/demands#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-recipe.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "f8b65c2dab536cdc9e6029bc2d5ff4a28944148d1d2020120782c7821dae78e3",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareInstalledEffectManagedPlan",
+            "prepareInstalledEffectManagedPlan/demands/demands",
+            "prepareInstalledEffectManagedPlan/demands/demands/demands",
+            "prepareInstalledEffectManagedPlan/demands/demands/demands#2",
+            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
+            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2"
+          ],
+          "exports": [
+            "prepareInstalledEffectManagedPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-combined-plan.test.mts",
+                "anchor": "Content Effect Plan retains the original Source"
+              },
+              {
+                "path": "adapters/host-node/table-managed-demand.test.mts",
+                "anchor": "Table managed demand keeps one whole-Relation dispatch"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-effect-plan.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -23243,53 +23471,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectManagedPlan",
-          "parameters": [
-            "moon",
-            "facts",
-            "inputs",
-            "unit",
-            "members",
-            "recipeFor"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectManagedPlan/demands/demands",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectManagedPlan/demands/demands/demands",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectManagedPlan/demands/demands/demands#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectOwnedRequestChild",
           "parameters": [
             "constructChild",
@@ -23457,12 +23638,13 @@
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
         "./effect-ledger-implementation-bounds.mjs",
+        "./installed-effect-managed-plan.mjs",
         "./installed-effect-recipe.mjs",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "61dcb1739f0c1aaffe5d9efa4586edf25f4aacf8339b65f5900792ea2013c48b",
+      "sha256": "a807fa9c9254d9fac9b1c7dc7a7272829fe1c9cc9079c62e43a57ca236717c95",
       "contracts": [
         {
           "operations": [
@@ -23502,12 +23684,6 @@
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
-            "prepareInstalledEffectManagedPlan",
-            "prepareInstalledEffectManagedPlan/demands/demands",
-            "prepareInstalledEffectManagedPlan/demands/demands/demands",
-            "prepareInstalledEffectManagedPlan/demands/demands/demands#2",
-            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
-            "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
             "prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",

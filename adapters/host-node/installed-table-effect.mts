@@ -18,9 +18,9 @@ import {issueCompletedEffectfulComputationEvidence,
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 // @ts-expect-error TS7016: the installed Row Effect still has a JavaScript entry.
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
-import {prepareInstalledPhysicalWritePlanRecipe, prepareInstalledEffectManagedPlan}
-  // @ts-expect-error TS7016: the installed Effect Plan still has a JavaScript entry.
-  from './installed-effect-plan.mjs';
+// @ts-expect-error TS7016: the physical Effect recipe composer still has a JavaScript entry.
+import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';
 import {preparePinnedEffectSourceSet, preparePinnedEffectSourceHoldings,
   retainPinnedEffectDependencyPayloads}
   // @ts-expect-error TS7016: the Effect source export owner still has a JavaScript entry.
@@ -83,7 +83,8 @@ type Ledger = DispatchOwner['ledger'] & ReconcileOptions['ledger'] & Apply['ledg
   recoverClaimFacts(facts: Readonly<{preview: unknown; scope: unknown; programId: string;
     nodeId: string; maxRows: number; maxWork: number}>): Readonly<{members: readonly Member[]}>;
 }>;
-type Runtime = PreviewOptions['moon'] & Apply['moon'] & Readonly<{
+type PlanBuilder = Parameters<typeof prepareInstalledEffectManagedPlan>[0];
+type Runtime = PreviewOptions['moon'] & Apply['moon'] & PlanBuilder['moon'] & Readonly<{
   clientProgramEffectCompilationPlanWire(compilation: unknown): string;
   clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
   clientProgramEffectInputExportLimits(...limits: number[]): unknown;
@@ -304,7 +305,8 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
   const scopesOf = (targets: readonly InstalledTarget[]) => Object.freeze(targets.map(target =>
     Object.freeze({connection, resource: target.resource})));
   let managedRecipe: ManagedRecipe | undefined;
-  const prepareManagedPlan = (facts: Pick<CapturedFacts, 'prepared' | 'identity' | 'compilation'>, inputs: unknown): unknown => {
+  const prepareManagedPlan = (facts: PlanBuilder['facts'] & Pick<CapturedFacts, 'compilation'>,
+    inputs: PlanBuilder['inputs']): unknown => {
     const unit: Unit = installedRowEffectUnit(moon, facts?.compilation);
     if (unit.effectIds.length === 0 || unit.effectIds.length > limits.maxMembers) {
       fail('InstalledTableUnitUnsupported');
