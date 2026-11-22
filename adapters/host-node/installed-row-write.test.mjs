@@ -12,6 +12,7 @@ import {localContractLimits} from './local-values-plan.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
@@ -1364,10 +1365,12 @@ for(const rangeCommand of [true,'clear']){
 
 
 test('Command construction requires SAME driver definition provider and immutable metadata before Plan construction',()=>{
-  const names=new Set(['captureManagedPlanDefinition','captureManagedDriverConstruction']);
-  const bodies=rowTree.body.filter(node=>node.type==='FunctionDeclaration'&&names.has(node.id.name)).map(node=>rowSource.slice(node.start,node.end)).join('\n');
-  const capture=Function('nodeTypes','text','fail',bodies+'\nreturn (definition,driver,provider,construction)=>captureManagedDriverConstruction(construction,captureManagedPlanDefinition(definition,driver),driver,provider);')(
-    nodeTypes,value=>typeof value==='string'&&value.length>0,code=>{throw Object.assign(new Error(code),{code});});
+  const {captureManagedPlanDefinition,captureManagedDriverConstruction}=createInstalledRowEffectPlanCapture({
+    fail(code){throw Object.assign(new Error(code),{code});},
+    text:value=>typeof value==='string'&&value.length>0,
+  });
+  const capture=(definition,driver,provider,construction)=>captureManagedDriverConstruction(
+    construction,captureManagedPlanDefinition(definition,driver),driver,provider);
   const definition=Object.freeze({kind:'command',memberOperations:Object.freeze([]),rowOperations:Object.freeze([Object.freeze({role:'write',operation:'sheets:update'})])});
   const construction=Object.freeze({write:Object.freeze({operation:'sheets:update',maxRequestBytes:300000,maxResponseBytes:1000000}),check:undefined,metadataTextUnits:117});
   const provider=Object.freeze({}),driver=Object.freeze({kinds:Object.freeze(['command']),managedPlanDefinition:definition,managedPlanConstruction:construction,managedPlanProvider:provider});

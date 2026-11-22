@@ -87586,9 +87586,197 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "e8d085cbbbf5834ce36c971155304509706422bf40938983a306d6ae6b1384ca",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowEffectPlanCapture"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectPlanCapture",
+          "parameters": [
+            "fail",
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction",
+          "parameters": [
+            "construction",
+            "definition",
+            "driver",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction/captureManagedDriverConstruction",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction/own/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition",
+          "parameters": [
+            "definition",
+            "driver"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition/array/array",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition/fields/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectPlanCapture",
+            "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction",
+            "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction/captureManagedDriverConstruction",
+            "createInstalledRowEffectPlanCapture/captureManagedDriverConstruction/own/own/own",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition/array/array",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanDefinition/fields/fields/fields"
+          ],
+          "exports": [
+            "createInstalledRowEffectPlanCapture"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "fail('InvalidInstalledEffectPlanDefinition')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous frozen operation-name DATA capture neither starts work nor owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-plan-capture.mts",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mts",
+                "anchor": "managedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "Command construction requires SAME driver definition provider and immutable metadata before Plan construction"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "02a17135229e6ab80e6908261ffeccbe964b96334a1ba623f9156006d93074df",
+      "sha256": "b56f5b39ae6974633c9be35d9a4ff312c4bc11b2dcd777f1472bbea7d0b1cff5",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -87626,35 +87814,6 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedDriverConstruction/captureManagedDriverConstruction",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedDriverConstruction/own/own/own",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanDefinition/array/array",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanDefinition/fields/fields/fields",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -89530,6 +89689,14 @@
           "async": false
         },
         {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "guarded/guarded",
           "parameters": [
             "kind"
@@ -89673,6 +89840,13 @@
           "parameters": [
             "original",
             "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -90370,14 +90544,12 @@
         },
         {
           "operations": [
-            "captureManagedDriverConstruction/captureManagedDriverConstruction",
-            "captureManagedDriverConstruction/own/own/own",
-            "captureManagedPlanDefinition/array/array",
-            "captureManagedPlanDefinition/fields/fields/fields",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
             "prepareInstalledTargetPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
-            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+            "prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+            "fail/fail",
+            "text/text"
           ],
           "exports": [
             "prepareInstalledTargetPlanRecipes"
@@ -90386,7 +90558,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -90396,27 +90568,27 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -90426,21 +90598,21 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "fail('InvalidInstalledEffectPlanDefinition')"
+                "anchor": "fail('InvalidInstalledEffectPlanRecipe')"
               },
               {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
               }
             ],
             "cancellation": {
@@ -90453,31 +90625,27 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "function captureManagedPlanDefinition"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
-                "anchor": "managedPlanDefinition"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
+                "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
                 "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "installed target recipes retain two exact Mappings and reject inconsistent operation originals"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
               }
             ]
           }
@@ -96730,6 +96898,7 @@
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
+        "./installed-row-effect-plan-capture.mjs",
         "./installed-row-source.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
