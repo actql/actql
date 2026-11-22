@@ -114,6 +114,49 @@ test "Native Model HTTP keeps the resolved route from the adopted provider" {
 }
 
 ///|
+test "Native Model HTTP policy requires bounded transport and explicit evidence locators" {
+  let wire =
+    #|{"ca_path":"/etc/ssl/fixture.pem","connect_timeout_ms":500,"operation_timeout_ms":1250,"credential_expires_at_ms":1798761600000,"max_projection_frames":100,"attempt_tokens":500,"attempt_cost_units":0,"input_classification":"internal","provider_region":"fixture","provider_retention":false,"provider_training_use":false,"retention_contract_file":"retention.json","metadata_retention_file":"metadata.json","clock_contract_file":"clock.json","data_policy_file":"data.json","available_until":"2027-01-01T00:00:00.000Z","delete_by":"2027-01-02T00:00:00.000Z","extension_ceiling_at":"2027-01-02T00:00:00.000Z","metadata_delete_by":"2027-01-03T00:00:00.000Z"}
+  let limits : @environment.Limits = {
+    max_bytes: 8192,
+    max_nodes: 128,
+    max_depth: 8,
+    max_members: 64,
+  }
+  let selected = native_model_http_run_policy_selection(
+    @utf8.encode(wire),
+    limits,
+  ).unwrap()
+  assert_eq(selected.transport.connect_timeout_ms, 500)
+  assert_eq(selected.transport.operation_timeout_ms, 1250)
+  assert_eq(selected.transport.credential_expires_at, 1798761600000L)
+  assert_eq(
+    selected.transport.observation.classification,
+    @environment.Internal,
+  )
+  assert_eq(selected.transport.attempt_tokens, 500L)
+  assert_eq(selected.retention, "retention.json")
+  assert_eq(selected.data, "data.json")
+  for
+    (old, new) in [
+      ("\"/etc/ssl/fixture.pem\"", "\"relative.pem\""),
+      ("\"operation_timeout_ms\":1250", "\"operation_timeout_ms\":499"),
+      ("\"attempt_tokens\":500", "\"attempt_tokens\":0"),
+      ("\"internal\"", "\"unknown\""),
+      ("\"clock_contract_file\":\"clock.json\",", ""),
+      ("\"data_policy_file\"", "\"unexpected_file\""),
+    ] {
+    assert_true(
+      native_model_http_run_policy_selection(
+        @utf8.encode(wire.replace(old~, new~)),
+        limits,
+      )
+      is None,
+    )
+  }
+}
+
+///|
 test "Native Model HTTP execution bundle preserves original wires and rejects a replaced shape" {
   let wire =
     #|{"contract_cid":"original-cid","contract":"{\"c\":1}","prompt":"{\"p\":\"日本語\"}","retry_policy":"{\"r\":[]}","backoff":"{\"b\":[]}"}

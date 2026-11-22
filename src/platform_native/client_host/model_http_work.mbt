@@ -18,24 +18,9 @@ pub(all) struct NativeClientModelHttpRawOriginals {
 }
 
 ///|
-/// Bounded operations on the installed transport. An instance alone cannot
-/// issue a Call or replace the original source egress admission.
-pub(all) struct NativeClientModelHttpRunConfiguration {
-  egress : @host.ClientInferEgressAdmission
-  quantities : @model.ModelQuantityCapacity
-  store : @publication_store.Store
-  raw : NativeClientModelHttpRawOriginals
-  ca_path : String
-  connect_timeout_ms : Int
-  operation_timeout_ms : Int
-  credential_expires_at : Int64
-  max_projection_frames : Int
-}
-
-///|
 priv struct NativeClientModelHttpWork {
   installation : NativeModelHttpInstallation
-  configuration : NativeClientModelHttpRunConfiguration
+  store : @publication_store.Store
   plans : Array[NativeClientModelHttpPlan?]
   mut registration : @host.ClientModelRawCaptureRegistration?
 }
@@ -51,7 +36,7 @@ pub fn prepare_native_client_model_http_work(
   definition : @publication.PublicationContract,
   graph : @host.ClientInferPlanGraph,
   installation : NativeModelHttpInstallation,
-  configuration : NativeClientModelHttpRunConfiguration,
+  store : @publication_store.Store,
   limits : @infer.Limits,
   principal : String,
   namespace_id : String,
@@ -59,16 +44,14 @@ pub fn prepare_native_client_model_http_work(
   prepare : (@execution.PreparationRepresentationUnits) -> Bool,
 ) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
   let execution = @host.client_infer_plan_graph_execution_contract(graph)
+  let policy = installation.run_policy
   guard physical_equal(installation.capture, capture) &&
     installation.originals_for(execution) is Some((provider, _, _)) &&
     limits.model.max_items > 0 &&
-    configuration.max_projection_frames > 0 &&
-    configuration.credential_expires_at > 0L &&
-    configuration.connect_timeout_ms > 0 &&
-    configuration.operation_timeout_ms >= configuration.connect_timeout_ms &&
-    !configuration.ca_path.is_empty() &&
-    configuration.ca_path.length() <= 4096 &&
-    !configuration.ca_path.contains("\u{0}") else {
+    @host.client_compiled_run_infer_observation_policy(compiled)
+    is Some(data_cid) &&
+    @publication.captured_effect_dependency_body_cid(policy.raw.data) ==
+    data_cid else {
     return Err(ForeignOriginal)
   }
   guard @execution.preparation_array_representation(
@@ -91,7 +74,7 @@ pub fn prepare_native_client_model_http_work(
   }
   let role = PortableHttp({
     installation,
-    configuration,
+    store,
     plans: Array::make(limits.model.max_items, None),
     registration: None,
   })
@@ -106,7 +89,8 @@ fn NativeClientModelHttpWork::bind_preflight(
   self : Self,
   active : @infer.Execution,
 ) -> Result[Unit, NativeClientMockModelIssue] {
-  @infer.bind_quantity_capacity(active, self.configuration.quantities)
+  let policy = self.installation.run_policy
+  @infer.bind_quantity_capacity(active, policy.quantities)
   .bind(_ => {
     @infer.bind_physical_preflight(active, request => {
       let slot = request.slot
@@ -115,8 +99,8 @@ fn NativeClientModelHttpWork::bind_preflight(
       }
       self.installation.start_model_http_preflight(
         request,
-        self.configuration.quantities.per_attempt,
-        self.configuration.max_projection_frames,
+        policy.quantities.per_attempt,
+        policy.max_projection_frames,
         plan => self.plans[slot] = Some(plan),
       )
     })
@@ -136,11 +120,11 @@ fn NativeClientModelHttpWork::raw_registration(
   if self.registration is Some(value) {
     return Ok(value)
   }
-  let store = match self.configuration.store.custody_location() {
+  let store = match self.store.custody_location() {
     Ok((authority, _, _)) => authority
     Err(issue) => return Err(Store(issue))
   }
-  let raw = self.configuration.raw
+  let raw = self.installation.run_policy.raw
   let response = self.installation.response
   let profile = self.installation.profile
   let policy = match
@@ -219,15 +203,15 @@ fn NativeClientMockModelWork::prepare_http_entry_in_original_read(
       work
       .raw_registration(self, scope, dispatch, account, at)
       .bind(registration => {
-        let configuration = work.configuration
+        let policy = work.installation.run_policy
         self.capture
         .prepare_model_http_call_in_original_read(
-          configuration.ca_path,
-          configuration.connect_timeout_ms,
-          configuration.operation_timeout_ms,
+          policy.ca_path,
+          policy.connect_timeout_ms,
+          policy.operation_timeout_ms,
           plan,
           registration,
-          configuration.credential_expires_at,
+          policy.credential_expires_at,
         )
         .map_err(issue => Transport(issue))
         .map(_ => work.plans[slot] = None)

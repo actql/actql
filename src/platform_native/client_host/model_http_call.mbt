@@ -52,6 +52,7 @@ struct NativeModelHttpInstallation {
   response : @environment.ModelResponseProfile
   profile : @environment.ModelResponseProfileInstallation
   credential : @filesystem.PrivateFileProjection
+  run_policy : NativeModelHttpRunPolicy
 }
 
 ///|
@@ -93,6 +94,7 @@ struct NativeModelHttpConfiguration {
   route : @model.ResolvedStructuredModel
   response : @environment.ModelResponseProfile
   execution_file : String?
+  policy_file : String?
 }
 
 ///|
@@ -221,6 +223,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
   response_profile_cid : String,
   limits : @environment.ModelTaskLimits,
   execution_file? : String? = None,
+  policy_file? : String? = None,
 ) -> Result[NativeModelHttpConfiguration, NativeClientModelHttpIssue] {
   self
   .with_current_adoption_material_in_original_read((host, _, operations) => {
@@ -267,15 +270,20 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       selected.credential_file != host.session.source_name else {
       return Err(CustodyLost)
     }
-    if execution_file is Some(name) &&
-      (
-        name == file.name ||
-        name == provider_file.name ||
-        name == revision_file.name ||
-        name == contract_file.name ||
-        name == response_file.name ||
-        !settings.any(candidate => candidate.name == name)
-      ) {
+    for selection in [execution_file, policy_file] {
+      if selection is Some(name) &&
+        (
+          name == file.name ||
+          name == provider_file.name ||
+          name == revision_file.name ||
+          name == contract_file.name ||
+          name == response_file.name ||
+          !settings.any(candidate => candidate.name == name)
+        ) {
+        return Err(CustodyLost)
+      }
+    }
+    if policy_file is Some(_) && policy_file == execution_file {
       return Err(CustodyLost)
     }
     let bodies = limits.bodies
@@ -439,6 +447,7 @@ pub fn NativeLocalJournalCapture::read_model_http_configuration_in_original_read
       route,
       response,
       execution_file,
+      policy_file,
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
@@ -653,6 +662,8 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
   prepared : NativeModelHttpExecution,
+  occurrence : @host.ClientInferOccurrence,
+  limits : @environment.Limits,
   diagnostic_ceiling : Int,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
   let configuration = prepared.configuration
@@ -702,7 +713,7 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
         {
           ..profile_layout,
           record_headers: profile_layout.record_headers + 12L,
-          reference_slots: profile_layout.reference_slots + 44L,
+          reference_slots: profile_layout.reference_slots + 45L,
           scalar_words: profile_layout.scalar_words + 10L,
         },
         capability_working,
@@ -743,6 +754,13 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
       reference == "file:" + selected.credential_file else {
       return Err(CustodyLost)
     }
+    let run_policy = match
+      read_native_model_http_run_policy(
+        configuration, occurrence, execution, limits, operations,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     host.journal
     .transaction_with_reads(
       () => {
@@ -769,6 +787,7 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
       response,
       profile,
       credential,
+      run_policy,
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))

@@ -432,7 +432,7 @@ pub fn NativeClientMockModelWork::open(
         )
       PortableHttp(work) => {
         mock_model_require(work.bind_preflight(active))
-        work.configuration.egress
+        work.installation.run_policy.egress
       }
     }
     mock_model_require(
@@ -930,7 +930,7 @@ pub fn NativeClientMockModelWork::prepare_http_raw_in_original_read(
   store : @publication_store.Store,
 ) -> Result[NativeClientModelRawCapture, NativeClientMockModelIssue] {
   guard self.provider_role is PortableHttp(configured) &&
-    physical_equal(configured.configuration.store, store) else {
+    physical_equal(configured.store, store) else {
     return Err(ForeignOriginal)
   }
   self.with_observed_http_step(call, () => {

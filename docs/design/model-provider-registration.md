@@ -291,6 +291,18 @@ The installed builder is `actql/native-portable-chat`, with
 The adopted Provider supplies the HTTPS endpoint. The installation validates
 the response profile against these facts before acquiring the HTTP library.
 
+The Native installation selects a separate `run_policy_file` from the same
+adopted configuration. It supplies the CA path, connect and whole-operation
+timeouts, credential expiry, a request projection frame limit, attempt
+quantities and Provider egress observations. The policy also selects adopted
+retention, metadata, clock and data bodies and supplies the four raw-capture
+retention timestamps.
+The whole-operation timeout is reserved as attempt duration. Attempt quantities
+must fit the checked Model execution contract. The Work borrows the installed
+policy and the command's actual Store, and checks the raw-capture data policy
+identity against the compiled Run. The original Account and Entry guards still
+decide whether a call can proceed.
+
 The original Entry, final send gate, raw-response custody, response decoder,
 attempt settlement and cleanup owners remain authoritative. The same registered
 Provider cannot silently switch invocation kind during preflight. In particular,

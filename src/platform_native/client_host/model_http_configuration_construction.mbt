@@ -135,8 +135,8 @@ fn native_model_http_profile_construction(
   // observation references and their projected strings escape this phase.
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 48L,
-    // Includes the borrowed execution-file selection on the configuration.
-    reference_slots: 73L,
+    // Includes the borrowed execution and policy locators on the configuration.
+    reference_slots: 74L,
     scalar_words: 48L,
     owned_utf16_units: body.length().to_int64(),
     owned_wire_bytes: 0L,

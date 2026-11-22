@@ -28,6 +28,7 @@ priv struct LocalModelHttpInstallationSettings {
   provider_id : String
   response_profile_cid : String
   execution_file : String?
+  policy_file : String?
 }
 
 ///|
@@ -53,13 +54,13 @@ fn local_model_http_installation_settings(
 ) -> LocalModelHttpInstallationSettings raise ClientStop {
   let child = @decode.indexed_child_construction_extent()
   let retained = local_host_metadata_price(
-    local_host_metadata_units(4L, 10L, 1L, 0L),
+    local_host_metadata_units(4L, 11L, 1L, 0L),
   )
   let execution = local_host_metadata_price(
     local_host_metadata_units(
-      20L + 7L * child.record_headers,
-      45L + 7L * child.reference_slots,
-      12L + 7L * child.scalar_words,
+      20L + 8L * child.record_headers,
+      45L + 8L * child.reference_slots,
+      12L + 8L * child.scalar_words,
       0L,
     ),
   )
@@ -68,7 +69,7 @@ fn local_model_http_installation_settings(
     cursor,
     [
       "provider_id", "credential_installation", "installation_revision", "configuration_contract",
-      "response_profile", "response_profile_cid", "execution_file",
+      "response_profile", "response_profile_cid", "execution_file", "run_policy_file",
     ],
     3,
     "InvalidLocalModelHttpInstallation",
@@ -103,20 +104,23 @@ fn local_model_http_installation_settings(
       stop("LocalModelHttpOriginalNotSelected")
     }
   }
-  let execution_file = match @decode.lookup(fields, "execution_file") {
-    None => None
-    Some(value) => {
-      guard @decode.text(value) is Ok(name) &&
-        !name.is_empty() &&
-        name.length() <= 4096 else {
-        stop("InvalidLocalHostConfiguration")
+  let selected_file = fn(key : String) -> String? raise ClientStop {
+    match @decode.lookup(fields, key) {
+      None => None
+      Some(_) => {
+        let name = local_settings_text(fields, key)
+        if !installation_files.contains(name) ||
+          configuration_files.contains(name) {
+          stop("LocalModelHttpOriginalNotSelected")
+        }
+        Some(name)
       }
-      if !installation_files.contains(name) ||
-        configuration_files.contains(name) {
-        stop("LocalModelHttpOriginalNotSelected")
-      }
-      Some(name)
     }
+  }
+  let execution_file = selected_file("execution_file")
+  let policy_file = selected_file("run_policy_file")
+  if policy_file is Some(_) && policy_file == execution_file {
+    stop("LocalModelHttpOriginalNotSelected")
   }
   {
     files: {
@@ -128,6 +132,7 @@ fn local_model_http_installation_settings(
     provider_id,
     response_profile_cid,
     execution_file,
+    policy_file,
   }
 }
 

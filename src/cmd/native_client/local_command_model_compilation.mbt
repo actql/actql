@@ -68,6 +68,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
       installation.response_profile_cid,
       limits,
       execution_file=installation.execution_file,
+      policy_file=installation.policy_file,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -91,6 +92,8 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
       capture.admit_model_http_installation_in_original_read(
         runtime.physical,
         execution,
+        occurrence,
+        limits.bodies,
         self.profile.diagnostic_ceiling,
       ) {
       Ok(value) => value
