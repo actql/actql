@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_commit_projection import OriginalCommitProjection
-from actql_sdk._local_core import LocalCoreError, _Output
+from actql_sdk._local_core import LocalCoreError, _ClosedWasmExports, _Output
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
@@ -225,6 +225,54 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertIs(holder.original_first_output(request), first)
             self.assertEqual(store._connection.total_changes, changes)
             self.assertFalse(store._connection.in_transaction)
+
+    def test_sealed_pair_only_falls_back_when_the_capability_query_is_unsupported(self):
+        for capability, code, refused in (
+                (-2, None, None), (1, 0, None), (1, -32, 'validate_saved_payload_binding'),
+                (1, -1056, 'validate_payload_snapshot'), (-41, None, 'saved_reader_facts_capability')):
+            with self.subTest(capability=capability, code=code):
+                with self.fixture() as (holder, observation, fact, _, core, request, _first,
+                                        clock, *unused):
+                    holder.bind_original_payload(request, clock, fact)
+                    loan = fact.pending_input
+                    previous = core._call
+                    inspected = []
+                    def invoke(family, operation, *args):
+                        if (family, operation) not in (
+                                ('publication_commit_export', 'validate_payload_binding'),
+                                ('payload_record', 'validate_snapshot')):
+                            return previous(family, operation, *args)
+                        inspected.append((family, operation, args))
+                        if args == (0, 0, 0, -(2**31), 0):
+                            return capability
+                        if args[-2] == -(2**30):
+                            return code
+                        return 0
+                    def validate(_):
+                        with (patch.object(core, '_call', side_effect=invoke),
+                              patch.object(core, '_ordinary_host', True, create=True),
+                              patch.object(core, '_closed_wasm_exports',
+                                           object.__new__(_ClosedWasmExports), create=True)):
+                            fact._projection.validate_reader_facts(fact._record, loan, 0, 0)
+                    if refused is None:
+                        observation._binding.inspect(validate)
+                    else:
+                        with self.assertRaises(LocalCoreError) as failure:
+                            observation._binding.inspect(validate)
+                        self.assertEqual(failure.exception.operation, refused)
+                        self.assertEqual(failure.exception.code, -41 if code is None else -32)
+                    first, *remaining = inspected
+                    self.assertEqual(first, ('publication_commit_export', 'validate_payload_binding',
+                                             (0, 0, 0, -(2**31), 0)))
+                    if capability == -2:
+                        self.assertEqual([entry[1] for entry in remaining],
+                                         ['validate_payload_binding', 'validate_snapshot'])
+                    elif capability == 1:
+                        self.assertEqual(remaining, [('publication_commit_export', 'validate_payload_binding',
+                            (fact._projection._publication.handle, fact._record.handle, 31,
+                             -(2**30), loan.handle))])
+                    else:
+                        self.assertEqual(remaining, [])
 
     def test_bound_material_keeps_original_full_file_current_refusal(self):
         with self.fixture() as (holder, _, fact, _, _, request, first, clock,

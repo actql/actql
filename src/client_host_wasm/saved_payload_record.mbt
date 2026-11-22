@@ -109,12 +109,18 @@ fn saved_payload_record_current(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Bool {
   if record.pending {
     return false
   }
   record.pending = true
-  let result = observe_saved_payload_record(value, record, configuration)
+  let result = observe_saved_payload_record(
+    value,
+    record,
+    configuration,
+    same_reader_census~,
+  )
   record.pending = false
   result is Ok(_) && !record.closing
 }

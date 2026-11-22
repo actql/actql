@@ -4584,7 +4584,7 @@
           ]
         }
       ],
-      "sha256": "aff0960395de58c0f7add0a442ea7fa1d08a31866869f13943d6da91cec714d5",
+      "sha256": "92dc12afff901c1cc009fb7538981afa8df3ccf9467eb3d8e5dbed945944aacf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -5923,6 +5923,19 @@
             "value",
             "operation",
             "*arguments"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_try_saved_reader_facts",
+          "parameters": [
+            "self",
+            "original",
+            "record",
+            "observation",
+            "configuration",
+            "result",
+            "binding"
           ]
         },
         {
@@ -8323,7 +8336,7 @@
           ]
         }
       ],
-      "sha256": "87bee365161c8dea7f96ccb097d44f3b8224e71a8e7973ff16194ac6bb67b47c",
+      "sha256": "771b7fc3932e5380872d2cb19c54a262d9a51797f817ef5f9164752d45142267",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14416,6 +14429,7 @@
             "LocalCore/reserve_saved_payload_record",
             "LocalCore/reserve_saved_result_export",
             "LocalCore/validate_saved_payload_binding",
+            "LocalCore/_try_saved_reader_facts",
             "LocalCore/validate_submission_lookup",
             "LocalCore/advance_and_read_saved_result"
           ],
@@ -28723,7 +28737,7 @@
           ]
         }
       ],
-      "sha256": "c14940ae22a2fcf9795e3ee6a5c357573809a5bda7639ae8984feb4073e3bf99",
+      "sha256": "a78d96936412fb5579278d7c0c980a5fde84343a4aacf0490a708d115d2581dd",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

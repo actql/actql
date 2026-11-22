@@ -3747,6 +3747,42 @@ class LocalCore:
                 'publication_commit_export', 'validate_payload_binding', original.handle,
                 record.handle, current_configuration, result, binding_index))
 
+    def _try_saved_reader_facts(self, original: _Output, record: _Output, observation: _Input,
+                                configuration: int, result: int, binding: int) -> bool:
+        """Select the compatible private call only on the original closed reader."""
+        from ._local_host_binding import OriginalHostBinding
+        host = getattr(self, '_host_current_binding', None)
+        if (type(host) is not OriginalHostBinding
+                or type(getattr(self, '_closed_wasm_exports', None)) is not _ClosedWasmExports
+                or not self._ordinary_host or self._closing
+                or any(type(value) is not int or not 0 <= value < 8 for value in (result, binding))):
+            return False
+        reader = host._observed_reader
+        if (reader is None or reader._invocation_candidate is None or reader.check_unchanged is None
+                or (reader._projected_prewrite is not None and not reader._projected_prewrite())):
+            return False
+        try:
+            self._owned_output(original, 'submission_lookup')
+            self._owned_output(record, 'payload_record')
+            self._owned_input(observation)
+        except ValueError:
+            # Use the standalone validators' existing order for an invalid loan.
+            return False
+        entry = ('publication_commit_export', 'validate_payload_binding')
+        supported = self._call(*entry, 0, 0, 0, -(2**31), 0)
+        if supported == -2:
+            return False
+        if supported != 1:
+            raise LocalCoreError('saved_reader_facts_capability', supported)
+        selector = -(2**30) - (8 * result + binding)
+        code = self._call(*entry, original.handle, record.handle, configuration,
+                          selector, observation.handle)
+        snapshot_code = code + 1024
+        if snapshot_code in (-2, -5, -31, -32):
+            self._check('validate_payload_snapshot', snapshot_code)
+        self._check('validate_saved_payload_binding', code)
+        return True
+
     def begin_saved_read_cleanup(self, original: _Output) -> None:
         """Retire interrupted synchronous call latches, never physical duties.
 

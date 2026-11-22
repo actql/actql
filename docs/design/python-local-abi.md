@@ -3976,10 +3976,25 @@ their Store workspaces; every Reader, descriptor, input and parent still follows
 its original child-first acknowledgment path. A live or reentrant invocation
 cannot enter this cleanup path, and normal work never resumes from it.
 
-The sealed Reader-facts path composes the two existing public Core validators:
-original payload binding first, then the complete physical snapshot validator.
-It does not implement either rule in Python or require a combined guest export.
-Only success of both calls and the final original physical observation retains
+The sealed Reader-facts path runs the original payload binding first, then the
+physical snapshot validator. The original ABI signatures and standalone
+validations are unchanged. A closed standard Wasmtime reader can select a
+compatible private mode of `validate_payload_binding`. It first uses the exact
+zero-handle query with Result set to the minimum signed 32-bit value. The guest
+answers 1 for support. The original validation returns -2 for this query before
+reading any Store row. Only that query can select the standalone fallback.
+
+In this mode Result selects the two original 0–7 coordinates as
+`-1073741824 - (8 * result + binding)`. The last argument is the same sealed
+snapshot input handle. Core performs both validations in their original order,
+and their refusals retain their original roles. After a complete first census,
+the second validation can reuse it only under the existing uninterrupted
+closed-reader proof. All point reads and fences, and the snapshot's original
+physical generation comparison, still run. Older suppliers, an interrupted
+proof and the staged-write phase use full validation. Nothing from the pair
+survives the invocation.
+
+Only success of both judgments and the final original physical observation retains
 same-owner immutable material. A failed enclosing current/physical observation
 discards that material, retaining only the same cleanup loans. Successful binding
 is recorded only after the whole original Store/current frame returns.
