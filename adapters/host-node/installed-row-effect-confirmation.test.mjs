@@ -4,17 +4,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import * as providerMoon from '../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import * as provider from '../connectors/github/site/github-comment-create.mjs';
-import {canonicalJson} from './local-account-config.mjs';
-import {localContractLimits} from './local-values-plan.mjs';
 import {captureInstalledStandardCreateLimits, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 
 function parsed(source) {
   const nodes = [];
@@ -69,33 +66,40 @@ const capture = source.fn('captureResponseConfirmation', {nodeTypes, text, fail}
 function fixture(options = {}) {
   const events = [], readCalls = [];
   let current = true, grantCount = 0, decision = {action: options.action ?? 'dispatch'};
-  const grant = Object.freeze({original: 'read authorization',
-    scope: Object.freeze({resourceOrigin: 'https://api.github.test'})});
-  const writeAuthorization = Object.freeze({original: 'write authorization',
-    scope: Object.freeze({resourceOrigin: 'https://api.github.test'})});
-  const credential = {}, callResource = () => assert.fail('No transport engine in this component');
+  const readOperation = 'github:graphql:read';
+  const writeOperation = provider.GITHUB_COMMENT_CREATE_OPERATION;
+  const grant = Object.freeze({useId: 'read authorization', grant: Object.freeze({}),
+    scope: Object.freeze({operation: readOperation, resourceOrigin: 'https://api.github.test'})});
+  const writeAuthorization = Object.freeze({useId: 'write authorization', grant: Object.freeze({}),
+    scope: Object.freeze({operation: writeOperation, resourceOrigin: 'https://api.github.test'})});
+  const credentialOriginal = Object.freeze({});
+  const credential = Object.freeze({credentialOriginal});
   const write = originalWrite();
   if (options.body) write.confirmation.body = options.body(write.confirmation.body);
   if (options.project) write.confirmation.project = options.project;
-  const derive = source.fn('deriveInstalledRowWrite', {nodeTypes, createHash, canonicalJson, localContractLimits,
-    ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames,
-    async invokeScopedCredentialOperation(facts) {
-      if (facts.operation === provider.GITHUB_COMMENT_CREATE_OPERATION && options.mutation) {
-        assert.strictEqual(facts.authorization, writeAuthorization);
-        assert.strictEqual(facts.credential, credential); assert.strictEqual(facts.callResource, callResource);
-        assert.equal(facts.body, originalRequest.body); events.push('write');
-        return options.mutation(facts);
-      }
-      assert.strictEqual(facts.authorization, grant); assert.strictEqual(facts.credential, credential);
-      assert.strictEqual(facts.callResource, callResource); assert.equal(facts.operation, 'github:graphql:read');
-      assert.equal(facts.method, 'POST'); assert.equal(facts.path, '/graphql');
-      const body = JSON.parse(facts.body);
-      assert.match(body.query, /^query ActqlConfirmComment/u); assert.deepEqual(body.variables, {id: 'IC_original'});
-      readCalls.push(facts); events.push('read');
-      if (options.read) return options.read(facts, originalRequest);
-      return {accepted: true, useCid: tag, statusCode: 200, body: readReply(originalRequest), headers: []};
-    }});
-  const {driver, construction} = derive(write, 'github');
+  async function callResource(facts) {
+    assert.strictEqual(facts.credentialOriginal, credentialOriginal);
+    const operation = facts.scope.operation;
+    const request = facts.operations.get(operation);
+    assert.equal(facts.operations.size, 1);
+    assert.equal(facts.returnRejectedResponse, true);
+    if (operation === writeOperation && options.mutation) {
+      assert.strictEqual(facts.grant, writeAuthorization.grant);
+      assert.equal(facts.useId, writeAuthorization.useId);
+      assert.equal(request.body, originalRequest.body); events.push('write');
+      return options.mutation(facts);
+    }
+    assert.strictEqual(facts.grant, grant.grant);
+    assert.equal(facts.useId, grant.useId);
+    assert.equal(operation, readOperation);
+    assert.equal(request.method, 'POST'); assert.equal(request.path, '/graphql');
+    const body = JSON.parse(request.body);
+    assert.match(body.query, /^query ActqlConfirmComment/u); assert.deepEqual(body.variables, {id: 'IC_original'});
+    readCalls.push(facts); events.push('read');
+    if (options.read) return options.read(facts, originalRequest);
+    return {accepted: true, useCid: tag, statusCode: 200, body: readReply(originalRequest), headers: []};
+  }
+  const {driver, construction} = deriveInstalledRowWrite(write, 'github');
   const logical = driver.prepareRequest({member, value});
   const originalRequest = driver.finalizeRequest({request: logical.request, requestTag: tag}).request;
   const plan = recipe(), responseConfirmation = capture(driver, plan);

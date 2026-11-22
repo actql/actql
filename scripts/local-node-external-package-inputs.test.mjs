@@ -20,11 +20,8 @@ import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
-import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../adapters/host-common/http-exchange.mjs';
+import {ownHttpRequest} from '../adapters/host-common/http-exchange.mjs';
 import {receive} from '../adapters/site-node/https-credential-response.mjs';
-import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
-import {localContractLimits} from '../adapters/host-node/local-values-plan.mjs';
-import {invokeScopedCredentialOperation} from '../adapters/host-common/owned-invocation-context.mjs';
 import {prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan}
   from '../adapters/host-node/installed-effect-plan.mjs';
 
@@ -244,15 +241,8 @@ async function externalFixtureLoader(role, ports) {
 // Source component only: actual standard driver/composer/Plan functions with
 // explicit typed Core ports. No Resource, Common ABI or ordinary acceptance.
 async function assertExternalStandardPlan(options, profile) {
-  const {parse} = await import('acorn');
-  const source = readFileSync(join(repository, 'adapters/host-node/installed-row-effect.mjs'), 'utf8');
-  const tree = parse(source, {ecmaVersion:'latest',sourceType:'module'});
-  const node = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
-  const derive = Function('createHash','nodeTypes','canonicalJson','ownHttpRequest','ownRequestHeaders',
-    'ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits',
-    `return (${source.slice(node.start,node.end)});`)(createHash,nodeTypes,canonicalJson,
-      ownHttpRequest,ownRequestHeaders,ownResponseHeaderNames,invokeScopedCredentialOperation,localContractLimits);
-  const standard = derive(options.write, 'external_effect');
+  const {deriveInstalledRowWrite} = await import('../adapters/host-node/installed-row-effect-standard-write.mjs');
+  const standard = deriveInstalledRowWrite(options.write, 'external_effect');
   const quantities = Array.from({length:5},()=>Object.freeze({}));
   const capture = Object.freeze({}), request = Object.freeze({}), write = Object.freeze({});
   const originalPlan = Object.freeze({}), demand = Object.freeze({});

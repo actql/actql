@@ -5,13 +5,12 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parse} from 'acorn';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {generateKeyPairSync} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
-import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './installed-row-effect-standard-write.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
@@ -31,11 +30,6 @@ import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
 // The constructor test below separately imports and exercises its real caller.
 const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
-const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
-assert.ok(derivedNode);
-const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'canonicalJson', 'ownHttpRequest', 'ownRequestHeaders',
-  'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, canonicalJson, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 // Actual private member constructor and existing exact-JSON decoder. The
