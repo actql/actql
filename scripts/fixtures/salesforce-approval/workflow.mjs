@@ -5,5 +5,5 @@ import {runRecordUpdateApprovalPhase} from '../record-approval/workflow.mjs';
 import {salesforceUpdateCase} from '../record-approval/cases.mjs';
 export function runSalesforceApprovalPhase({programs, selection, ...phase}) {
   return runRecordUpdateApprovalPhase({...phase,
-    createDefinition: () => salesforceUpdateCase(programs, selection)});
+    createDefinition: phase.definition === undefined ? () => salesforceUpdateCase(programs, selection) : undefined});
 }

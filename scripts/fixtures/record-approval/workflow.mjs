@@ -3,10 +3,61 @@
 // it cannot supply a claim, current decision, credential or replacement Run.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {recordUpdateFixtureSeed} from './cases.mjs';
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const text = value => typeof value === 'string' && value.length > 0;
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const closed = (value, keys) => object(value) && Object.keys(value).length === keys.length &&
+  keys.every(key => Object.hasOwn(value, key));
+
+export function admitAuthoredRecordApprovalCase(value) {
+  const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
+  const rows = value => Array.isArray(value) && value.every(object);
+  assert(object(value));
+  const fixture = Object.hasOwn(value, 'fixture');
+  assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
+  const {effect, read, review} = value;
+  assert(object(effect));
+  const additional = Object.hasOwn(effect, 'additionalResults');
+  assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
+  assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
+  assert(closed(review, ['target', 'identity', 'before', 'changes']));
+  assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
+  assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
+  assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
+  assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  if (fixture) {
+    assert(object(value.fixture));
+    const {seed, expected, schema} = value.fixture;
+    const scheduled = Object.hasOwn(value.fixture, 'faults');
+    const pinnedSchema = Object.hasOwn(value.fixture, 'schema');
+    assert(closed(value.fixture, ['seed', 'expected', ...(scheduled ? ['faults'] : []), ...(pinnedSchema ? ['schema'] : [])]));
+    if (pinnedSchema) {
+      assert(closed(schema, ['sourceRef', 'sourceViewContractCid', 'carrierSchemaContractCid']));
+      assert(text(schema.sourceRef) && schema.sourceRef.startsWith('connector://') &&
+        [schema.sourceViewContractCid, schema.carrierSchemaContractCid].every(value => typeof value === 'string' && cid.test(value)));
+    }
+    assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
+    recordUpdateFixtureSeed(seed);
+    assert(closed(expected, ['before', 'after']));
+    for (const state of [expected.before, expected.after]) {
+      assert(closed(state, ['target', 'control']));
+      assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
+        text(row.id) && typeof row.name === 'string'));
+    }
+    if (scheduled) {
+      const {faults} = value.fixture;
+      assert(Array.isArray(faults) && faults.length <= 1);
+      for (const fault of faults) {
+        assert(closed(fault, ['kind', 'expected']) && fault.kind === 'apply-then-lose-reply');
+        assert(recordApprovalReplyLossExpectation(fault.expected) !== undefined);
+      }
+    }
+  }
+  return retainCase(value);
+}
 
 // Trusted fixture expectation, never a Program option or a permission decision.
 // Each selected provider capability supplies its own two independent outcomes.
@@ -57,7 +108,8 @@ function binding(value) {
   const {document: effect, ...effectInput} = value.effect;
   const {document: read, ...readInput} = value.read;
   return {caseName: value.name, effectSha256: sha256(effect), readSha256: sha256(read),
-    effect: effectInput, read: readInput, review: value.review};
+    effect: effectInput, read: readInput, review: value.review,
+    ...(value.fixture === undefined ? {} : {fixture: value.fixture})};
 }
 
 function checkReview(review, summary, ref, expected) {
