@@ -2400,3 +2400,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-control-refusal.test.d.mts
 /adapters/host-node/effect-ledger.test.mjs
 /adapters/host-node/effect-ledger.test.d.mts
+/adapters/host-node/sqlite-effect-ledger.test.mjs
+/adapters/host-node/sqlite-effect-ledger.test.d.mts

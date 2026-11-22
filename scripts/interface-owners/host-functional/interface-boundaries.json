@@ -46581,7 +46581,7 @@
                 "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
               }
             ],
@@ -46590,7 +46590,7 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
               },
               {
@@ -46618,7 +46618,7 @@
                 "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
               },
               {
@@ -103222,7 +103222,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('response metadata tampering fails physical integrity checks'"
               }
             ],
@@ -103237,21 +103237,21 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect response fixed metadata preserves exact UTF8 and UTF16 original values'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('external batch mutation invalidates a verified response fact'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect selected single response and outcome refuse batch presence before any member array materializes'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('typed outcome custody binds one stored response across restart'"
               }
             ]
@@ -103431,11 +103431,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect usage read failure retains the database cleanup owner'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect capacity failure keeps its cause through failed close retry'"
               }
             ],
@@ -103444,11 +103444,11 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect quota mutations do not reaggregate the whole durable history'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect transactional usage reobserves externally changed UTF8 bytes before a new quota decision'"
               }
             ],
@@ -103458,21 +103458,21 @@
                 "anchor": "// SQLite data_version changes on another connection"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority'"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect transactional usage rolls back the external-change stamp with a failed insert'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('response metadata tampering fails physical integrity checks'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('typed outcome custody binds one stored response across restart'"
               }
             ]
@@ -103961,7 +103961,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('append-only Effect facts survive restart and exact retry', async t => {"
               },
               {
@@ -103969,23 +103969,23 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect open metadata accepts original UTF8 and UTF16 exact schema and authority'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('standard Ledger snapshot retains exact selected UTF8 and UTF16 heads and missing-head distinction'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect whole history funds actual count and wire backing before native materialization in the same transaction'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect whole history preserves funding refusal and non-Unit failure before allocation and permits healthy recovery'"
               },
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('Effect selected single response and outcome refuse batch presence before any member array materializes'"
               }
             ]
@@ -104129,7 +104129,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mts",
                 "anchor": "test('append-only Effect facts survive restart and exact retry', async t => {"
               },
               {
