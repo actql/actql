@@ -7,10 +7,10 @@ import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
 import {sourceAcquisitionFailure} from './source-acquisition.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
-import { DuckDBTransportError, provisionComputeDatabase, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
+import { DuckDBTransportError, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
 import { computePhysicalCapacity, sourceTransportLimits } from './physical-capacity.mjs';
 import {boundedTransport} from './transport-bounds.mjs';
-import {createImportBatch} from './import-batch.mjs';
+import {residentStrategyEnvironment} from './resident-environment.mjs';
 import { checked } from './runtime-result.mjs';
 import {sourceEvidenceOriginalAccess} from './source-evidence-original.mjs';
 import {finishManagedOutputReceipt} from './managed-output-finish.mjs';
@@ -22,7 +22,7 @@ import { importRetainedRows } from '../../../store-local/import.mjs';
 import {createMoonBitRetainedRowFrames} from
   '../../../store-local/moonbit-row-frames.mjs';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
-  retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
+  retainedInputSupportsFile,
   withRetainedInputFile, retainedInputFilePath} from '../../../store-local/representations.mjs';
 import {registerManagedInput} from '../../../store-local/managed-representations.mjs';
 import {managedPhysicalRepresentation} from
@@ -39,6 +39,9 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/connectors/duckd
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 const residentEnvironments = new WeakMap();
+const {openResidentStrategyEnvironment, importResidentStrategyInput} =
+  residentStrategyEnvironment(loadRuntime, residentEnvironments, rows);
+export {openResidentStrategyEnvironment, importResidentStrategyInput};
 const retainedComputations = new WeakMap();
 const ownedSourceCaptures = new WeakMap();
 
@@ -125,256 +128,6 @@ export async function importRetainedComputeInput(output, input, limits, signal) 
   return importRetainedRows(output,
     (accept, readSignal) => consumeRetainedComputeInput(output, input, accept, readSignal),
     limits, signal);
-}
-
-// Supply a run-owned local environment only after MoonBit has reserved the
-// selected capacity. No existing file or source connection can be attached.
-export async function openResidentStrategyEnvironment(graph, task, limits) {
-  const moon = await loadRuntime();
-  limits = validateLimits(limits);
-  const capacity = computePhysicalCapacity(limits);
-  const env = checked(moon.residentBegin(graph, task, capacity.databaseBytes));
-  let database;
-  let started = false;
-  let released = false;
-  const cleanupStatus = () => Object.freeze({ pending: !released });
-  const cleanup = async () => {
-    if (!released) {
-      checked(moon.residentClose(graph, env, false));
-      if (database) await database.close();
-      else if (!started) {
-        // No provider work was sent. An absent returned handle alone is not
-        // sufficient: started-but-unknown provision must keep its reservation.
-        checked(moon.residentClose(graph, env, true));
-        released = true;
-      }
-    }
-    return cleanupStatus();
-  };
-  const cleanupHandle = Object.freeze({ status: cleanupStatus, retry: cleanup });
-  try {
-    database = await provisionComputeDatabase(limits, Object.freeze({
-      started() { started = true; },
-      settled(confirmed) {
-        if (released) return;
-        checked(moon.residentClose(graph, env, confirmed));
-        if (confirmed) released = true;
-      },
-    }));
-    checked(moon.residentConfirm(graph, env, BigInt(database.memoryBytes)));
-  } catch (error) {
-    try { await cleanup(); }
-    catch (cleanupError) { error.cleanupErrors = Object.freeze([cleanupError]); }
-    if (!released) {
-      error.cleanupPending = true;
-      error.cleanupHandle = cleanupHandle;
-    }
-    throw error;
-  }
-  const handle = Object.freeze({
-    status: () => Object.freeze({ ...database.status(), pending: !released }),
-    table(producer) { return checked(moon.residentTableAt(graph, env, producer)); },
-    hasTable(producer) { return moon.residentHasTable(graph, env, producer); },
-    async close() {
-      if (released) return;
-      try {
-        await cleanup();
-        if (!released) throw new DuckDBTransportError('CleanupInProgress');
-      } catch (error) {
-        error.cleanupPending = !released;
-        if (!released) error.cleanupHandle = cleanupHandle;
-        throw error;
-      }
-      residentEnvironments.delete(handle);
-    },
-  });
-  residentEnvironments.set(handle, { graph, env, database, limits });
-  return handle;
-}
-
-export async function importResidentStrategyInput(environment, producer, tableBytes, limits, mappingLimits, signal) {
-  const owned = residentEnvironments.get(environment);
-  if (!owned || !owned.database.status().live) throw new DuckDBTransportError('SessionClosed');
-  const moon = await loadRuntime();
-  limits = validateLimits(limits);
-  if (limits.memoryBytes !== owned.database.memoryBytes || limits.threads !== owned.database.threads) {
-    throw new DuckDBTransportError('EnvironmentMismatch');
-  }
-  const capacity = computePhysicalCapacity(limits);
-  const table = checked(moon.residentTablePrepare(owned.graph, owned.env, producer,
-    BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
-  let count, columns, transfer, batchRows = 1;
-  const compileBatch = requested => {
-    let compilerTuple1 = checked(moon.residentImportBatch(table, requested,
-      limits.maxParameters, limits.maxSqlBytes));
-    const rows = runtimeField(compilerTuple1, 0), sql = runtimeField(compilerTuple1, 1);
-    compilerTuple1 = undefined;
-    return {rows, sql};
-  };
-  try {
-    count = rows(checked(moon.residentImportCount(table, false)));
-    columns = rows(checked(moon.residentImportCount(table, true)));
-    if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
-        columns === 0 || count > Math.floor(limits.maxCells / columns)) {
-      throw new DuckDBTransportError('InvalidImportLimits');
-    }
-    if (boundedTransport(limits) && count > 1) {
-      batchRows = compileBatch(Math.min(count, limits.maxChunkRows,
-        Math.floor(limits.maxParameters / columns))).rows;
-    }
-    transfer = checked(moon.residentTransferBegin(owned.graph, table,
-      capacity.transferBytes, capacity.scratchBytes));
-  } catch (error) {
-    // Synchronous preparation only: no import attempt or native work exists.
-    checked(moon.residentTableCancel(owned.graph, table));
-    throw error;
-  }
-  let started = false;
-  let storageReadBytes = 0, storageReadUnconfirmed = false;
-  let nativeScalarStaging = false;
-  try {
-    const result = await owned.database.run(limits, async session => {
-      const discard = () => {};
-      await session.command(checked(moon.residentImportSql(table, false)), [], discard);
-      const sql = checked(moon.residentImportSql(table, true));
-      const material = checked(moon.residentImportMaterial(table));
-      const body = material == null ? undefined : retainedStorageBody(material);
-      const scalarNames = material != null && boundedTransport(limits) && limits.threads === 1
-        ? runtimeOptionalField(moon.residentImportScalarNames(table), 0) : undefined;
-      const scalarStaging = scalarNames?.length === columns &&
-        moon.residentImportCanonicalCopyMatches(table, body.cid, body.bytes, count);
-      nativeScalarStaging = scalarStaging;
-      const appender = material != null && limits.threads === 1
-        ? await session.openResidentAppender(checked(moon.residentImportTableName(table)), columns)
-        : undefined;
-      const batch = !appender && batchRows > 1 ? createImportBatch(columns, batchRows, limits,
-        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
-      let appendedSinceFlush = 0;
-      const append = parameters => {
-        if (!appender) return batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
-        appender.append(parameters);
-        if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
-          appender.flush();
-          appendedSinceFlush = 0;
-          return yieldToHost().then(() => signal?.throwIfAborted());
-        }
-      };
-      if (material != null) {
-        const {wire, maxFrameBytes} = retainedStorageContract(material);
-        if (maxFrameBytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
-          throw new DuckDBTransportError('RetainedFrameLimit');
-        }
-        const decode = {max_bytes: maxFrameBytes,
-          max_nodes: Math.min(wire.max_nodes, maxFrameBytes),
-          max_depth: Math.min(64, wire.max_depth), max_text_bytes: maxFrameBytes};
-        const stream = scalarStaging ? undefined : checked(moon.residentImportStreamBegin(table, count,
-          {max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes, max_work: wire.max_order_work},
-          wire, maxFrameBytes));
-        const scalarTypes = scalarStaging && appender?.types;
-        if (scalarStaging && (!scalarTypes || scalarTypes.length !== columns ||
-            scalarTypes.some(type => !['DOUBLE', 'BOOLEAN', 'VARCHAR'].includes(type.id)))) {
-          throw new DuckDBTransportError('InvalidScalarImportType');
-        }
-        const frameLimits = {maxBytes: wire.max_bytes, maxRows: count,
-          maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth};
-        // Scalar staging takes every row framed from one bounded Store chunk at
-        // once: one standard JSON parse of those exact row texts, then one flush
-        // and cancellation point per chunk. The appender's own row/byte batch
-        // bound still limits buffered data; the typed copy check below and the
-        // MoonBit receipt comparison remain the acceptance boundary.
-        const frames = scalarStaging
-          ? createMoonBitRetainedRowFrames(moon, frameLimits, rowTexts => {
-            const sources = JSON.parse(`[${rowTexts.join(',')}]`);
-            if (sources.length !== rowTexts.length) {
-              throw new DuckDBTransportError('InvalidScalarImportRow');
-            }
-            for (const source of sources) {
-              if (source === null || Array.isArray(source) || typeof source !== 'object' ||
-                  Object.keys(source).length !== columns) {
-                throw new DuckDBTransportError('InvalidScalarImportRow');
-              }
-              appender.appendScalars(scalarNames.map(name => {
-                if (!Object.hasOwn(source, name)) {
-                  throw new DuckDBTransportError('InvalidScalarImportRow');
-                }
-                return source[name];
-              }));
-            }
-            appender.flush();
-            return yieldToHost().then(() => signal?.throwIfAborted());
-          }, {batch: true})
-          : createMoonBitRetainedRowFrames(moon, frameLimits, row => {
-            const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
-            return append(parameters);
-          });
-        try {
-          storageReadUnconfirmed = true;
-          const verified = await body.consume(async chunk => {
-            checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(chunk.byteLength)));
-            storageReadBytes += chunk.byteLength;
-            await frames.feed(chunk, signal);
-          }, signal);
-          storageReadUnconfirmed = false;
-          const framed = frames.finish();
-          signal?.throwIfAborted();
-          await batch?.finish();
-          appender?.finish();
-          if (scalarStaging) {
-            if ((verified !== undefined &&
-                  (verified.cid !== body.cid || verified.bytes !== body.bytes)) ||
-                framed.bytes !== body.bytes || storageReadBytes !== body.bytes ||
-                !moon.residentImportCanonicalCopyMatches(table,
-                  body.cid, body.bytes, framed.rows)) {
-              throw new DuckDBTransportError('RetainedCopyMismatch');
-            }
-          } else checked(moon.residentImportStreamFinish(stream));
-        } finally {
-          frames.cancel();
-          if (stream) moon.residentImportStreamCancel(stream);
-        }
-        return;
-      }
-      for (let row = 0; row < count; row++) {
-        signal?.throwIfAborted();
-        const parameters = [];
-        for (let column = 0; column < columns; column++) {
-          parameters.push(JSON.parse(checked(moon.residentImportParameter(table, row, column,
-            limits.maxTransportBytes, mappingLimits.maxEntries))));
-        }
-        // The shared environment outlives this import, but the reusable INSERT
-        // belongs only to its task connection and is explicitly destroyed at
-        // settlement. Reuse does not bypass per-row transfer/parameter checks.
-        await append(parameters);
-      }
-      await batch?.finish();
-    }, signal, Object.freeze({
-      started() { started = true; },
-      chargeTransfer(bytes) { checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(bytes))); },
-      settled(confirmed) {
-        checked(moon.residentTransferSettle(owned.graph, transfer, confirmed && !storageReadUnconfirmed));
-      },
-    }));
-    checked(moon.residentTransferComplete(owned.graph, transfer));
-    return Object.freeze({ table, importedRows: count, importedCells: count * columns, batchRows,
-      nativeScalarStaging,
-      usage: Object.freeze({...result.usage, storageReadBytes,
-        transportBytes: result.usage.transportBytes + storageReadBytes}) });
-  } catch (error) {
-    checked(moon.residentTransferAbort(owned.graph, transfer));
-    if (!started) checked(moon.residentTransferSettle(owned.graph, transfer, true));
-    if (storageReadUnconfirmed) {
-      const failure = new DuckDBTransportError('ResidentStorageReadUnconfirmed', {cause: error});
-      failure.cleanupPending = true;
-      // No file-close acknowledgement is available after a failed Store read.
-      // Do not retry the import or claim that closing the DB closed this file.
-      failure.cleanupHandle = Object.freeze({
-        status: () => ({pending: true}),
-        async retry() { await error?.cleanupHandle?.retry(); return {pending: true}; },
-      });
-      throw failure;
-    }
-    throw error;
-  }
 }
 
 export async function runResidentStrategyHostCompute(setup, environment, tables, limits, mappingLimits, signal,

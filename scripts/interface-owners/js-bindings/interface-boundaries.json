@@ -15,7 +15,7 @@
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a17f457c8e22da232d0695149e408155c65424acaf0c4507abfa69863dcfb50a",
+      "sha256": "5e8eed57666f97129e5c3e654c8cca949c1f21a18eae77a2f7d772c9beb5c913",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61,126 +61,6 @@
           "async": false
         },
         {
-          "name": "importResidentStrategyInput",
-          "parameters": [
-            "environment",
-            "producer",
-            "tableBytes",
-            "limits",
-            "mappingLimits",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "importResidentStrategyInput/compileBatch/compileBatch",
-          "parameters": [
-            "requested"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/importResidentStrategyInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "importResidentStrategyInput/result/init:chargeTransfer/init:chargeTransfer",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/init:settled/init:settled",
-          "parameters": [
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/init:started/init:started",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result",
-          "parameters": [
-            "session"
-          ],
-          "async": true
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/append/append",
-          "parameters": [
-            "parameters"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/append/append/append",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/batch/batch",
-          "parameters": [
-            "sql",
-            "parameters"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/discard/discard",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/frames/frames",
-          "parameters": [
-            "rowTexts"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/frames/frames/frames",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/frames/frames/frames#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/frames/frames#2",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/result",
-          "parameters": [
-            "type"
-          ],
-          "async": false
-        },
-        {
-          "name": "importResidentStrategyInput/result/result/verified/verified",
-          "parameters": [
-            "chunk"
-          ],
-          "async": true
-        },
-        {
           "name": "importRetainedComputeInput",
           "parameters": [
             "output",
@@ -207,6 +87,11 @@
           "async": true
         },
         {
+          "name": "loadRuntime/loadRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "logicalComparisonAccounting/logicalComparisonAccounting",
           "parameters": [
             "value"
@@ -226,61 +111,6 @@
             "capture",
             "identity"
           ],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment",
-          "parameters": [
-            "graph",
-            "task",
-            "limits"
-          ],
-          "async": true
-        },
-        {
-          "name": "openResidentStrategyEnvironment/cleanup/cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openResidentStrategyEnvironment/cleanupStatus/cleanupStatus",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment/handle/handle",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment/handle/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openResidentStrategyEnvironment/handle/init:hasTable/init:hasTable",
-          "parameters": [
-            "producer"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment/handle/init:table/init:table",
-          "parameters": [
-            "producer"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment/init:settled/init:settled",
-          "parameters": [
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResidentStrategyEnvironment/init:started/init:started",
-          "parameters": [],
           "async": false
         },
         {
@@ -1689,26 +1519,7 @@
           }
         },
         {
-          "operations": [
-            "importResidentStrategyInput",
-            "importResidentStrategyInput/compileBatch/compileBatch",
-            "importResidentStrategyInput/importResidentStrategyInput",
-            "importResidentStrategyInput/init:retry/init:retry",
-            "importResidentStrategyInput/result/init:chargeTransfer/init:chargeTransfer",
-            "importResidentStrategyInput/result/init:settled/init:settled",
-            "importResidentStrategyInput/result/init:started/init:started",
-            "importResidentStrategyInput/result/result",
-            "importResidentStrategyInput/result/result/append/append",
-            "importResidentStrategyInput/result/result/append/append/append",
-            "importResidentStrategyInput/result/result/batch/batch",
-            "importResidentStrategyInput/result/result/discard/discard",
-            "importResidentStrategyInput/result/result/frames/frames",
-            "importResidentStrategyInput/result/result/frames/frames#2",
-            "importResidentStrategyInput/result/result/frames/frames/frames",
-            "importResidentStrategyInput/result/result/frames/frames/frames#2",
-            "importResidentStrategyInput/result/result/result",
-            "importResidentStrategyInput/result/result/verified/verified"
-          ],
+          "operations": [],
           "exports": [
             "importResidentStrategyInput"
           ],
@@ -2519,17 +2330,7 @@
           }
         },
         {
-          "operations": [
-            "openResidentStrategyEnvironment",
-            "openResidentStrategyEnvironment/cleanup/cleanup",
-            "openResidentStrategyEnvironment/cleanupStatus/cleanupStatus",
-            "openResidentStrategyEnvironment/handle/handle",
-            "openResidentStrategyEnvironment/handle/init:close/init:close",
-            "openResidentStrategyEnvironment/handle/init:hasTable/init:hasTable",
-            "openResidentStrategyEnvironment/handle/init:table/init:table",
-            "openResidentStrategyEnvironment/init:settled/init:settled",
-            "openResidentStrategyEnvironment/init:started/init:started"
-          ],
+          "operations": [],
           "exports": [
             "openResidentStrategyEnvironment"
           ],
@@ -4525,7 +4326,8 @@
         },
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "loadRuntime/loadRuntime"
           ],
           "exports": [],
           "attributes": {
@@ -4577,6 +4379,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "anchor": "const loadRuntime = () => runtime ??= import(runtimeUrl.href);"
               }
             ],
             "failure": [
@@ -4647,12 +4453,12 @@
         "../../../store-local/representations.mjs",
         "./broad-query.mjs",
         "./fixed-compute.mjs",
-        "./import-batch.mjs",
         "./managed-column-codec.mjs",
         "./managed-output-finish.mjs",
         "./managed-strategy-compute.mjs",
         "./native-query.mjs",
         "./physical-capacity.mjs",
+        "./resident-environment.mjs",
         "./retained-configuration.mjs",
         "./runtime-result.mjs",
         "./session.mjs",
@@ -4666,6 +4472,347 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
+    },
+    {
+      "module": "adapters/connectors/duckdb/node/resident-environment.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "f6903c262ca3ceb74da9ecf031822bdd7ae8a2c4037bd610832cd5562b54e11c",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "residentStrategyEnvironment"
+      ],
+      "operations": [
+        {
+          "name": "residentStrategyEnvironment",
+          "parameters": [
+            "loadRuntime",
+            "residentEnvironments",
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput",
+          "parameters": [
+            "environment",
+            "producer",
+            "tableBytes",
+            "limits",
+            "mappingLimits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/compileBatch/compileBatch",
+          "parameters": [
+            "requested"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/importResidentStrategyInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/init:chargeTransfer/init:chargeTransfer",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/init:settled/init:settled",
+          "parameters": [
+            "confirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/init:started/init:started",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result",
+          "parameters": [
+            "session"
+          ],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/append/append",
+          "parameters": [
+            "parameters"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/append/append/append",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/batch/batch",
+          "parameters": [
+            "sql",
+            "parameters"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/discard/discard",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames",
+          "parameters": [
+            "rowTexts"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames/frames",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames/frames#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/result",
+          "parameters": [
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/importResidentStrategyInput/result/result/verified/verified",
+          "parameters": [
+            "chunk"
+          ],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment",
+          "parameters": [
+            "graph",
+            "task",
+            "limits"
+          ],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/cleanupStatus/cleanupStatus",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/handle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:hasTable/init:hasTable",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:table/init:table",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/init:settled/init:settled",
+          "parameters": [
+            "confirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "residentStrategyEnvironment/openResidentStrategyEnvironment/init:started/init:started",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "residentStrategyEnvironment",
+            "residentStrategyEnvironment/importResidentStrategyInput",
+            "residentStrategyEnvironment/importResidentStrategyInput/compileBatch/compileBatch",
+            "residentStrategyEnvironment/importResidentStrategyInput/importResidentStrategyInput",
+            "residentStrategyEnvironment/importResidentStrategyInput/init:retry/init:retry",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/init:chargeTransfer/init:chargeTransfer",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/init:settled/init:settled",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/init:started/init:started",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/append/append",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/append/append/append",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/batch/batch",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/discard/discard",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames/frames",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames/frames#2",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/frames/frames#2",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/result",
+            "residentStrategyEnvironment/importResidentStrategyInput/result/result/verified/verified",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/cleanup/cleanup",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/cleanupStatus/cleanupStatus",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/handle",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:close/init:close",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:hasTable/init:hasTable",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/handle/init:table/init:table",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/init:settled/init:settled",
+            "residentStrategyEnvironment/openResidentStrategyEnvironment/init:started/init:started"
+          ],
+          "exports": [
+            "residentStrategyEnvironment"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/duckdb-resident-execution.md",
+                "anchor": "## Scope and authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "async function openResidentStrategyEnvironment("
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "async function importResidentStrategyInput("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "residentEnvironments.set(handle, { graph, env, database, limits });"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "const owned = residentEnvironments.get(environment);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "if (database) await database.close();"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "const result = await owned.database.run(limits"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "checked(moon.residentConfirm(graph, env, BigInt(database.memoryBytes)));"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "checked(moon.residentTransferComplete(owned.graph, transfer));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "throw new DuckDBTransportError('SessionClosed');"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "new DuckDBTransportError('ResidentStorageReadUnconfirmed'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "confirmed && !storageReadUnconfirmed"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "capacity.databaseBytes"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/resident-environment.mts",
+                "anchor": "capacity.transferBytes, capacity.scratchBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/duckdb-resident-execution.md",
+                "anchor": "## Scope and authority"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/duckdb/node/test/resident-data-profile.test.mjs",
+                "anchor": "test('explicit data profiles select resident reuse with independent retained output"
+              },
+              {
+                "path": "adapters/connectors/duckdb/node/test/typed-resident-join.test.mjs",
+                "anchor": "test('typed composite join and count preserve fixed capture across Local fresh and resident DAGs"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/moonbit-row-frames.mjs",
+        "../../../store-local/representations.mjs",
+        "./import-batch.mjs",
+        "./physical-capacity.mjs",
+        "./runtime-result.mjs",
+        "./session.mjs",
+        "./transport-bounds.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/source-evidence-original.mjs",
