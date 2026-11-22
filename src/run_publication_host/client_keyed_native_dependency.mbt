@@ -196,7 +196,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     kind : String,
     cid : String,
     wire : String,
-    wire_extent : (Int, Int)?,
+    wire_usage : (Int, Int, Int)?,
     scope : NativeLookupAppendScope,
   ) -> Unit raise NativeLookupDependencyStop {
     require_native_lookup_dependency(fund_key(kind, cid))
@@ -228,7 +228,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         max_depth,
         funding,
         original_current,
-        wire_extent~,
+        wire_extent=wire_usage.map(usage => (usage.0, usage.1)),
+        wire_depth=wire_usage.map(usage => usage.2),
       ),
     )
     let canonical = @publication.captured_effect_dependency_body_json(body)
@@ -265,14 +266,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   ) -> Unit raise NativeLookupDependencyStop {
     // The SAME sealed original owns these encoder facts and the wire below.
     // Preserve full body/CID admission; unknown wires keep the byte-node bound.
-    let extent = @publication.publication_contract_wire_usage(value).map(usage => {
-      (usage.0, usage.1)
-    })
     append_measured(
       kind,
       @publication.publication_contract_identity(value),
       @publication.publication_contract_json(value),
-      extent,
+      @publication.publication_contract_wire_usage(value),
       if serial_member {
         ReturnedWire
       } else {
@@ -284,14 +282,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     kind : String,
     value : @publication.RunEvidenceValue,
   ) -> Unit raise NativeLookupDependencyStop {
-    let extent = @publication.run_evidence_value_wire_usage(value).map(usage => {
-      (usage.0, usage.1)
-    })
     append_measured(
       kind,
       @publication.run_evidence_value_identity(value),
       @publication.run_evidence_value_json(value),
-      extent,
+      @publication.run_evidence_value_wire_usage(value),
       StandaloneWire,
     )
   }
@@ -369,14 +364,20 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         raise NativeLookupDependencyStop(ForeignInput)
       }
     }
-    let (wire, bytes, nodes, _) = try {
+    let (wire, bytes, nodes, depth) = try {
       let writer = @encode.writer(remaining, max_nodes, max_depth)
       produce(writer)
       @encode.finish_text_usage(writer)
     } catch {
       _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
     }
-    append_measured(kind, cid, wire, Some((bytes, nodes)), StandaloneWire)
+    append_measured(
+      kind,
+      cid,
+      wire,
+      Some((bytes, nodes, depth)),
+      StandaloneWire,
+    )
   }
   fn carrier(
     original : @carrier.Carrier,

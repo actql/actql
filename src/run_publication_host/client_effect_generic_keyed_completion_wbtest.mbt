@@ -623,7 +623,7 @@ fn run_original_source_completion(
       )
     }
     let transport = lookup.native_transport.unwrap()
-    let (bytes, nodes, _) = @publication.publication_contract_wire_usage(
+    let (bytes, nodes, depth) = @publication.publication_contract_wire_usage(
       transport,
     ).unwrap()
     // Independent tree counting checks the original encoder receipt. The
@@ -646,7 +646,7 @@ fn run_original_source_completion(
         .length()
     }
     assert_true(exact_references > 0)
-    let quotes : Array[(Int, Int)] = []
+    let quotes : Array[(Int, Int, Int)] = []
     let emissions : Array[(Int, Int)] = []
     let tables : Array[(Int, Int64, Int64)] = []
     let measurements : Array[(Int, Int)] = []
@@ -663,8 +663,8 @@ fn run_original_source_completion(
       100000,
       100,
       physical_source=lookup.native_sources.unwrap().physical_source,
-      before_body=Some((b, n, _) => {
-        quotes.push((b, n))
+      before_body=Some((b, n, d) => {
+        quotes.push((b, n, d))
         true
       }),
       before_emit=Some((b, n, _, _) => {
@@ -689,7 +689,7 @@ fn run_original_source_completion(
     assert_true(measurements.contains((5, 2)))
     assert_true(measurements.contains((6, 1)))
     assert_true(measurements.all(quote => quote.0 <= 7))
-    assert_true(quotes.contains((bytes, nodes)))
+    assert_true(quotes.contains((bytes, nodes, depth)))
     assert_eq(
       collected.map(@publication.captured_effect_dependency_body_cid),
       bodies.map(@publication.captured_effect_dependency_body_cid),
