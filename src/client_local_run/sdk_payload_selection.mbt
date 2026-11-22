@@ -94,7 +94,12 @@ pub fn LocalSDKPayloadEncoding::stored_payload_ordinals(
     return Err(ChangedOriginal)
   }
   stored_sdk_payload_coordinates(
-    owner, view, result_name, max_results, max_contracts,
+    owner,
+    view,
+    result_name,
+    max_results,
+    max_contracts,
+    selected_binding_cid=Some(selected.read.durable_result_binding_cid),
   )
 }
 
@@ -108,6 +113,7 @@ fn stored_sdk_payload_coordinates(
   result_name : String,
   max_results : Int,
   max_contracts : Int,
+  selected_binding_cid? : String? = None,
 ) -> Result[(Int, Int), LocalSDKPayloadSelectionIssue] {
   if max_results < 1 ||
     max_results > 16 ||
@@ -119,10 +125,16 @@ fn stored_sdk_payload_coordinates(
     Ok(count) if count <= max_contracts => ()
     _ => return Err(InvalidLimit)
   }
-  let selected = match
-    owner.observed_result_read_materials(view, result_name, max_results) {
-    Ok(value) => value
-    Err(issue) => return Err(Stored(issue))
+  // The stored payload caller just selected this Result from the same view,
+  // name, and bound. No physical callback separates these two projections.
+  let binding_cid = match selected_binding_cid {
+    Some(cid) => cid
+    None =>
+      match
+        owner.observed_result_read_materials(view, result_name, max_results) {
+        Ok(value) => value.read.durable_result_binding_cid
+        Err(issue) => return Err(Stored(issue))
+      }
   }
   let manifest = match owner.view_contract(view, 2) {
     Ok(value) => value
@@ -142,7 +154,7 @@ fn stored_sdk_payload_coordinates(
   for i = 0; i < max_results; i = i + 1 {
     match owner.view_binding(view, i) {
       Ok(binding) if @publication.publication_contract_identity(binding) ==
-        selected.read.durable_result_binding_cid => {
+        binding_cid => {
         guard result is Some(ordinal) else { return Err(MissingOriginal) }
         return Ok((ordinal, i))
       }
