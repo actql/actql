@@ -227,9 +227,13 @@ fn native_model_compilation_storage(
       // publication constructor's original execution vector are funded above.
       // The task driver and physical cleanup callbacks coexist with one
       // synchronous Read-side action and its returned result.
-      record_headers: 23L + 11L * count.to_int64(),
-      reference_slots: 52L + 24L * count.to_int64(),
-      scalar_words: 15L + 6L * count.to_int64(),
+      // The publication handoff also retains its selected leader, the
+      // Result Context builder's Read callback (compiled, definition,
+      // publisher, installation, policy and inputs), and its scope return
+      // result alongside the same issued pair and arrays.
+      record_headers: 28L + 11L * count.to_int64(),
+      reference_slots: 70L + 24L * count.to_int64(),
+      scalar_words: 16L + 6L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },

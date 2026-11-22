@@ -34,6 +34,7 @@ struct NativeClientMockModelWork {
   mut publication_retained : Int64
   mut publication_execution : Int64
   mut observation : @infer.ObservationIssuance?
+  mut publication_inputs : (Array[String], Array[@publication.RunEvidenceValue])?
   mut local_scan : @execution.CompletedRelationIdentityScan?
   mut local_receipt : @execution.CompletedRelationExportReceipt?
   mut local_observation : @infer.LocalModelObservation?
@@ -160,6 +161,7 @@ fn prepare_native_client_model_work(
     publication_retained: 0L,
     publication_execution: 0L,
     observation: None,
+    publication_inputs: None,
     local_scan: None,
     local_receipt: None,
     local_observation: None,
@@ -1149,7 +1151,7 @@ pub fn native_client_mock_model_work_construction() -> @execution.PreparationRep
   {
     // Include the selected provider arm and explicit pre-entry refusal bit.
     record_headers: 13L,
-    reference_slots: 56L,
+    reference_slots: 57L,
     scalar_words: 20L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

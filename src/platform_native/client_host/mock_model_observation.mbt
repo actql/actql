@@ -243,6 +243,7 @@ fn NativeClientMockModelWork::close_observation(
   // projection's export/uses before the complete issuer and its same-parent
   // reservation. Cancellation is not Model/Store/physical cleanup evidence.
   self.local_observation = None
+  self.publication_inputs = None
   if self.local_scan is Some(scan) {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
     self.local_scan = None

@@ -915,7 +915,7 @@ test "complete original observation keeps compiler order when the second Model o
   ).unwrap()
   assert_eq(@resources.ledger_usage(ledger), before)
   issuance_finish(issued)
-  let (observation, _) = observation_issuance_value(issued).unwrap()
+  let (observation, invocation) = observation_issuance_value(issued).unwrap()
   assert_eq(@publication.model_observation_slot_count(observation), Some(2))
   let before_projection = @resources.ledger_usage(ledger)
   assert_true(
@@ -935,6 +935,32 @@ test "complete original observation keeps compiler order when the second Model o
     let (inputs, evidence) = original_source_free_model_publication_inputs(
       issued, compiled, definition,
     ).unwrap()
+    let template = @publication_host.client_compiled_run_template(compiled)
+    let policy = invocation_fixture_policy_cid()
+    assert_true(
+      @publication.source_free_model_invocation_matches(
+        template, observation, invocation, inputs, policy,
+      ),
+    )
+    assert_not_eq(inputs[0], inputs[1])
+    assert_false(
+      @publication.source_free_model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        [inputs[1], inputs[0]],
+        policy,
+      ),
+    )
+    assert_false(
+      @publication.source_free_model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        inputs,
+        "sha256:" + "9".repeat(64),
+      ),
+    )
     for index, owner in ordered {
       assert_eq(
         inputs[index],

@@ -197,11 +197,82 @@ pub fn NativeClientValuesWork::install_publication_service(
 }
 
 ///|
+/// Adopt only the actual capture issuer for this Native Values Work. The
+/// first Model remains responsible for the paired evidence and its funding.
+pub fn NativeClientValuesWork::bind_model_publication(
+  self : Self,
+  leader : NativeClientMockModelWork,
+) -> Result[Array[String], NativeClientValuesPublicationIssue] {
+  guard self.managed is Some(owner) &&
+    self.publication_invocation is None &&
+    leader.publication_inputs is None &&
+    leader.provider_role is PortableHttp(_) &&
+    physical_equal(leader.request, self.start.request) &&
+    physical_equal(leader.compiled, self.compiled) &&
+    physical_equal(leader.definition, self.definition) &&
+    leader.observation is Some(issued) else {
+    return Err(BindingMismatch)
+  }
+  let policy = match local_values_publication_policy(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard leader.observation_original() is Some((observation, invocation) as pair) &&
+    @infer.original_source_free_model_publication_inputs(
+      issued,
+      self.compiled,
+      self.definition,
+    )
+    is Some((inputs, _) as material) else {
+    return Err(BindingMismatch)
+  }
+  match
+    @local.bind_program_model_publication_invocation(
+      owner,
+      self.prepared,
+      self.compiled,
+      self.definition,
+      self.run,
+      observation,
+      invocation,
+      inputs,
+      policy,
+    ) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  leader.publication_inputs = Some(material)
+  self.publication_invocation = Some(pair)
+  self
+  .require_current()
+  .map_err(issue => NativeClientValuesPublicationIssue::Work(issue))
+  .map(_ => inputs)
+}
+
+///|
+/// End semantic borrows after publication cleanup and before returning the
+/// leader's Model reservation. Missing commit confirmation stays pending.
+pub fn NativeClientValuesWork::retire_model_publication(self : Self) -> Bool {
+  guard @host.client_compiled_run_has_infers(self.compiled) &&
+    self.publication_invocation is Some((_, invocation)) else {
+    return true
+  }
+  guard self.managed is Some(owner) &&
+    @local.retire_program_model_publication_invocation(owner, invocation) else {
+    return false
+  }
+  self.publication = None
+  self.publication_invocation = None
+  true
+}
+
+///|
 fn local_values_publication_context_matches(
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   request : @host.ClientRequestIdentity,
   policy_cid : String,
+  inputs : Array[String]?,
   results : Array[@native_publication.NativeCapturedResultPublicationContext],
   intent : @native_publication.NativeRunPublicationIntent,
 ) -> Bool {
@@ -217,7 +288,10 @@ fn local_values_publication_context_matches(
     @publication.publication_contract_identity(
       @host.client_compiled_run_plan(compiled),
     ) &&
-    result.input_relation_cids.is_empty() &&
+    (match inputs {
+      None => result.input_relation_cids.is_empty()
+      Some(original) => result.input_relation_cids == original
+    }) &&
     result.effective_data_policy_cid == policy_cid
   })
 }
@@ -241,6 +315,7 @@ pub fn NativeClientValuesWork::prepare_local_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  model_leader? : NativeClientMockModelWork? = None,
 ) -> Result[
   @native_publication.NativePreparedCapturedRunPublication,
   NativeClientValuesPublicationIssue,
@@ -249,11 +324,34 @@ pub fn NativeClientValuesWork::prepare_local_publication(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let (input_cids, model_evidence) = match model_leader {
+    None => {
+      guard !@host.client_compiled_run_has_infers(self.compiled) else {
+        return Err(BindingMismatch)
+      }
+      (None, [])
+    }
+    Some(leader) => {
+      guard self.publication_invocation is Some((observation, invocation)) &&
+        physical_equal(leader.request, self.start.request) &&
+        physical_equal(leader.compiled, self.compiled) &&
+        physical_equal(leader.definition, self.definition) &&
+        leader.observation_original()
+        is Some((expected_observation, expected_invocation)) &&
+        physical_equal(observation, expected_observation) &&
+        physical_equal(invocation, expected_invocation) &&
+        leader.publication_inputs is Some((inputs, evidence)) else {
+        return Err(BindingMismatch)
+      }
+      (Some(inputs), evidence)
+    }
+  }
   if !local_values_publication_context_matches(
       self.compiled,
       self.definition,
       self.start.request,
       policy_cid,
+      input_cids,
       results,
       intent,
     ) {
@@ -310,7 +408,7 @@ pub fn NativeClientValuesWork::prepare_local_publication(
       binding_names: [],
       binding_digests: [],
       source_evidence: [],
-      model_evidence: [],
+      model_evidence,
       barrier_attempt_receipt_cids: [],
       source_advances: [],
       authoring,
