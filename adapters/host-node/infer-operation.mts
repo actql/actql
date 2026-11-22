@@ -180,6 +180,9 @@ type Runtime = Readonly<{
     observeIssue: (value: unknown) => void, retainCompleted: (value: unknown) => boolean,
     allowCleanup: (value: unknown) => boolean, inputPrefix: unknown): unknown;
   clientProgramInferCallScopeIssueKind(issue: unknown): string | undefined;
+  clientProgramComposedInferLocalProviderWithIo(occurrence: unknown, open: (value: unknown) => unknown,
+    observeIssue: (value: unknown) => void, retainCompleted: (value: unknown) => boolean,
+    allowCleanup: (value: unknown) => boolean, inputPrefix: unknown): unknown;
   clientProgramInferOccurrenceCoordinates(occurrence: unknown): unknown;
   clientProgramModelRequestInputFrameGeometry(request: unknown, maxBytes: number): unknown;
   clientProgramEffectModelEvidenceCopyCapacity(bundleBytes: number, bundleNodes: number, bundleDepth: number,
@@ -221,6 +224,9 @@ type OriginalReadGroup = {
 type OriginalReadMember = {
   group: OriginalReadGroup; control: OriginalReadControl; compiled: unknown; runDefinition: unknown;
   graph: unknown; scope: unknown; read?: unknown; closed?: boolean; scopeFinished?: boolean;
+  runtimeBorrow?: unknown;
+  selection: Readonly<{finishTrustedRuntimeScope(scope: unknown, borrow: unknown, compiled: unknown,
+    definition: unknown, graph: unknown): boolean}>;
 };
 type OriginalControl = Readonly<{
   checkClientCompiledRunOwner(compiled: unknown, program: unknown): void;
@@ -343,6 +349,7 @@ type OperationOptions = Readonly<{
   ioNotification?: unknown; originalPreparation?: OriginalPreparation; restoredPreparation?: OriginalPreparation;
   rawCaptureBinder?: RawBinder; serializedInput?: SerializedInput; restoredReferenceIssuer?: unknown;
   assertRuntimeCurrent?: () => void; bindComputeSuffix?: (active: unknown) => unknown;
+  managedIo?: boolean;
 }>;
 
 const activeOperations = new WeakMap<object, unknown>();
@@ -405,15 +412,24 @@ export function finishNodeInferOriginalReadScopes(model: OriginalReadGroup) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
     }
   };
+  function finishMember(index: number) {
+    const member = members[index], borrow = member.runtimeBorrow;
+    if (borrow === undefined) return Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    if (member.selection.finishTrustedRuntimeScope(scopes[index], borrow, compiled, definition, graph[index]) !== true) return false;
+    current();
+    if (member.runtimeBorrow !== borrow) throw new TypeError('InvalidInstalledRequestModelPreparation');
+    member.runtimeBorrow = undefined;
+    return true;
+  }
   current();
   // The last actual Scope can close the group. Earlier pending members must not
   // prevent reaching it. A second closed observation is callback-free in Core.
   for (let index = 0; index < members.length; index++) {
-    Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    finishMember(index);
     current();
   }
   for (let index = 0; index < members.length; index++) {
-    const closed = Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    const closed = finishMember(index);
     current();
     if (closed !== true) return false;
   }
@@ -552,7 +568,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
   ioNotification, originalPreparation, restoredPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
-  assertRuntimeCurrent, bindComputeSuffix}: OperationOptions) {
+  assertRuntimeCurrent, bindComputeSuffix, managedIo = false}: OperationOptions) {
   const restoringOriginal = restoredPreparation !== undefined;
   if (restoringOriginal) {
     if (originalPreparation !== undefined || restoredInput?.savedScope === undefined ||
@@ -761,8 +777,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : 'startCheckedClientRestoredGeneratedInferExecution'] !== 'function')) {
     throw new TypeError('InvalidSerializedInferInput');
   }
-  if (ioNotification !== undefined && (provider === undefined ||
-      composedInput !== undefined && !originalComposedRun && !restoringOriginal)) {
+  if (typeof managedIo !== 'boolean' || managedIo && (ioNotification === undefined ||
+      composedInput === undefined || originalComposedRun || restoringOriginal ||
+      originalPreparation?.nodeInstallation === undefined || typeof assertRuntimeCurrent !== 'function') ||
+      ioNotification !== undefined && (provider === undefined ||
+        composedInput !== undefined && !originalComposedRun && !restoringOriginal && !managedIo)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
@@ -1098,6 +1117,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       cleanupSettlement = callback;
     },
     cleanupPending: () => !reclaimed,
+    ...(managedIo ? {async waitForIo() {
+      if (closing || reclaimed || io === undefined) throw new Error('InferIoNotificationUnavailable');
+      signal?.throwIfAborted();
+      assertRuntimeCurrent!();
+      // A notification emitted by the just-completed Common poll remains
+      // pending on this original wake port until this one wait claims it.
+      const ticket = io.arm();
+      try { await ticket.promise; }
+      finally { ticket.dispose(); }
+      signal?.throwIfAborted();
+      assertRuntimeCurrent!();
+    }} : {}),
     cleanupProgress: () => moon.clientProgramInferCleanupProgress?.(active),
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
@@ -1839,6 +1870,7 @@ type ComposedSelected = Readonly<{
   occurrence?: unknown; graph: unknown; computePrefix?: unknown; computeSuffix?: unknown;
   provider: unknown; quantityCapacity?: QuantityCapacity; physicalPreflight?: PhysicalPreflight;
   egressAdmission?: unknown; account?: unknown; observeAccount?: unknown; entryPersistence?: string;
+  originalReadInstallation?: unknown;
 }>;
 type GeneratedInput = Readonly<{generation(): unknown; recovery?(): unknown}>;
 type ComposedPreparation = Partial<OriginalPreparation> & Readonly<{
@@ -1858,7 +1890,7 @@ type ComposedContext = Readonly<{
 }>;
 type ComposedOptions = ComposedContext & Readonly<{moon: Runtime; deferred?: boolean;
   deferredGeneratedInput?: boolean; inputPrefix?: unknown; bindComputeSuffix?: (active: unknown) => unknown;
-  prepareInputSegments?: () => unknown}>;
+  prepareInputSegments?: () => unknown; managedIo?: boolean}>;
 type ComposedProvider = (occurrence: unknown, open: (input: unknown) => unknown, observeIssue: (issue: unknown) => void,
   retainCompleted: (active: unknown) => boolean, allowCleanup: (active: unknown) => boolean, inputPrefix?: unknown) => unknown;
 type ComposedComponent = Readonly<{
@@ -1876,9 +1908,13 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
   deferredGeneratedInput = false, capturedInput,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}: ComposedOptions) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments,
+  managedIo = false}: ComposedOptions) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
+      typeof managedIo !== 'boolean' || managedIo && (!deferred || deferredGeneratedInput ||
+        selected.originalReadInstallation === undefined || selected.entryPersistence !== 'async' ||
+        typeof selected.physicalPreflight !== 'function') ||
       deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
@@ -1921,7 +1957,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let computeSuffix = selected.computeSuffix;
   const generated = generatedInput !== undefined || deferredGeneratedInput;
   const selectProvider: ComposedProvider = generated
-    ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
+    ? moon.clientProgramGeneratedInferLocalProvider
+    : managedIo ? moon.clientProgramComposedInferLocalProviderWithIo
+      : moon.clientProgramComposedInferLocalProvider;
   const openOriginal = (inputs: unknown, ioNotification?: unknown) => {
       try {
         if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
@@ -1981,8 +2019,17 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: !generated && bindComputeSuffix === undefined
             ? computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
-          physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,
+          physicalPreflight: managedIo ? (request, notification, retainRawBinder) => {
+            try { return selected.physicalPreflight!(request, notification, retainRawBinder); }
+            catch (cause) {
+              // Keep the original refusal and let Common unwind its own
+              // advance and retained startup through the typed None path.
+              recordFailure(cause);
+              return undefined;
+            }
+          } : selected.physicalPreflight,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          ioNotification: managedIo ? createInferIoNotification() : ioNotification, managedIo,
           ...(restoredInput === undefined ? {originalPreparation: preparation as OriginalPreparation | undefined}
             : {restoredPreparation: preparation as OriginalPreparation | undefined}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation!(value); }});

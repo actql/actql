@@ -83,6 +83,7 @@ priv struct LocalNativeMockEffectProposals {
   mut acquired : @run_host.ClientEffectModelAcquiredEvidence?
   mut _retained_combined_source_unit : @run_host.ClientEffectCombinedSourceUnit?
   mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
+  mut _retained_direct_source_manifest : @run_host.ClientEffectLocalManifest?
   _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
   ]
@@ -128,6 +129,7 @@ fn native_mock_effect_proposals(
     acquired: None,
     _retained_combined_source_unit: None,
     _retained_local_manifest: None,
+    _retained_direct_source_manifest: None,
     _retained_lookup_dependencies: [],
     _retained_direct_evidence: [],
     source_imports: [],
@@ -650,6 +652,7 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   }
   self.source_imports.clear()
   self._retained_local_manifest = None
+  self._retained_direct_source_manifest = None
   // Direct Effect members borrow their Result owners' retained evidence.
   for entry in self.members {
     entry._retained_artifact = None

@@ -27,7 +27,7 @@ type OutputFaultEvent =
 export type LocalOutputFault = (...event: OutputFaultEvent) => unknown;
 type LocalFaultInjection = (...event: OutputFaultEvent |
   [kind: 'local_compute_advanced', facts: Readonly<{task: number | undefined; progress: string; work: string}>]) => unknown;
-type PauseBoundary = Readonly<{task: number | undefined; status: 'waiting' | 'settling'; slot?: number; signal: AbortSignal | undefined}>;
+type PauseBoundary = Readonly<{task: number | undefined; status: 'waiting' | 'settling' | 'await_io'; slot?: number; signal: AbortSignal | undefined}>;
 type PauseHandler = (boundary: PauseBoundary) => unknown;
 type BeforePrepare = (task: number, physicalSource: unknown) => unknown;
 type InstalledConfiguration = Readonly<{

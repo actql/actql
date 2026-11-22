@@ -10,6 +10,7 @@ fn[I, P] request_model_scope_construction_quote(
   max_holdings : Int,
   max_delegations : Int,
   model_count? : Int = 1,
+  retain_model_limits? : Bool = false,
 ) -> Result[(Int64, Int64), ClientInstalledManagedRunIssue] {
   let selected = match
     @resources.preparation_inventory_initial_control_slots(
@@ -24,17 +25,35 @@ fn[I, P] request_model_scope_construction_quote(
   let scope = if model_count == 1 {
     @publication_host.client_model_read_scope_construction_inventory()
   } else {
+    // Pure group binding projects the original per-Graph Model limits as a
+    // third array. Each read origin retains its own optional limits reference.
+    let arrays = if retain_model_limits { 3L } else { 2L }
+    let options = if retain_model_limits {
+      model_count.to_int64() + 1L
+    } else {
+      0L
+    }
     guard @publication_host.client_model_read_scopes_construction_inventory(
         model_count,
       )
       is Some(group) &&
       @execution.preparation_array_representation(
-        2L,
-        2L * model_count.to_int64(),
+        arrays,
+        arrays * model_count.to_int64(),
         true,
       )
       is Some(partitions) &&
-      @execution.compose_preparation_representation([group, partitions])
+      @execution.compose_preparation_representation([
+        group,
+        partitions,
+        {
+          record_headers: options,
+          reference_slots: options,
+          scalar_words: options,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+      ])
       is Some(units) else {
       return Err(InsufficientCapacity)
     }

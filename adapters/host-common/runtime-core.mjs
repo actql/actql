@@ -2466,6 +2466,28 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
         token(definition), occurrences, graphs, selected]));
     },
+    prepareCheckedClientRequestNodeModelsSourceFreePlan(parent, input, original, request, compiled, definition,
+      occurrences, graphs, selected, memberAt) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestNodeModelsSourceFreePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Node Model group Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrences, graphs, selected, (index, check) => {
+          // Common checks the original at this index after reserving the Plan
+          // projection. The Host borrows the selected installation in place.
+          const member = memberAt(index), installation = member.originalReadInstallation;
+          const quantities = member.selection.quantityCapacity.limits;
+          const node = installation.nodeInstallation, census = installation.bootstrap;
+          return check(node.layout, node.installation, node.runtimeArtifactCid, node.layoutArtifactCid,
+            node.probability, installation.modelRetainedBytes, installation.modelExecutionBytes,
+            census.maxReservations, census.maxHoldings, census.maxDelegations,
+            census.bootstrapRetainedBytes, census.bootstrapExecutionBytes,
+            quantities.tokens, quantities.costUnits, quantities.durationMs);
+        }]));
+    },
     prepareCheckedClientRequestModelsCapturePlan(parent, input, original, request, compiled, definition,
       occurrences, graphs, selected) {
       const value = compiledRunTokens.get(compiled);

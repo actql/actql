@@ -33,6 +33,9 @@ const numericKernelExternal = Object.freeze({
 });
 function reviewedExternal(owner: string, path: string) {
   if (Object.hasOwn(pureExternal, path)) return pureExternal[path as keyof typeof pureExternal];
+  if (owner === 'value_admission' && path === 'moonbitlang/core/encoding/base64') {
+    return 'Pinned in-memory RFC 4648 encoder for the canonical Bytes value.';
+  }
   if (owner === 'scalar_numeric_kernel' && Object.hasOwn(numericKernelExternal, path)) {
     return numericKernelExternal[path as keyof typeof numericKernelExternal];
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody,signed64Body} from './protocol-value-contracts.mjs';
+import {valueBodyContract,generateValueKinds,commandInputPresenceBody,commandInputPresenceSchemas,textEnumerationBody,signed64Body,byteValuesBody} from './protocol-value-contracts.mjs';
 const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'));
 test('all eight legacy value roles use the checked grammar, never the carrier grammar',()=>{
   const body=valueBodyContract(protocol);
@@ -106,8 +106,13 @@ test('original Text enum vectors and the Values dependency retain independently 
   const previous=vectors.valuesExecution;
   verifyIdentity(previous.body,previous.cid,previous.canonicalPreimage);
   const expected=JSON.parse(readFileSync('portability/corpus/signed64-identities.json','utf8')).valuesExecution;
-  verifyIdentity(aoa.execution_contracts['REL.values'],expected.cid,expected.canonicalPreimage);
-  assert.deepEqual(aoa.execution_contracts['REL.values'],expected.body);
+  verifyIdentity(expected.body,expected.cid,expected.canonicalPreimage);
+  const current = structuredClone(expected.body);
+  const bytes = byteValuesBody(protocol);
+  current.params_schema.$defs.value_contract.oneOf.push(bytes.grammar);
+  current.semantics.byte_values = bytes.wire.pattern;
+  current.dependencies.canonical_value_contract.cid = valueBodyContract(protocol).schema.cid;
+  assert.deepEqual(aoa.execution_contracts['REL.values'],current);
   assert.equal(expected.body.semantics.text_enumeration,previous.body.semantics.text_enumeration);
   assert.deepEqual(expected.body.params_schema.$defs.value_contract.oneOf.slice(0,-1),
     previous.body.params_schema.$defs.value_contract.oneOf);
@@ -129,7 +134,12 @@ test('signed64 has one closed distinct initial contract without Decimal or Numbe
       branches=>branches.at(-1).properties.minimum={const:0},
       branches=>branches.at(-1).properties.nullable={const:false},
     ]){
-      const changed=structuredClone(protocol);mutate(changed.schemas[name].$defs.value_contract.oneOf);
+      const changed=structuredClone(protocol);
+      const definition=changed.schemas[name].$defs.value_contract;
+      const signed64=definition.oneOf.filter(branch=>branch.properties.type.const==='int64');
+      assert.equal(signed64.length,1);
+      mutate(signed64);
+      definition.oneOf=definition.oneOf.filter(branch=>branch.properties.type.const!=='int64').concat(signed64);
       assert.throws(()=>signed64Body(changed));
     }
   }
@@ -149,4 +159,16 @@ test('generated structural type validation preserves signed64 schema without cla
   }
   for(const input of [{type:'int64'},{type:'Int64',nullable:false},{type:'int64',nullable:null}])
     assert.equal(generated.check(input),false);
+});
+
+test('BYTES wire admits only canonical padded Base64 with zero unused bits', () => {
+  const body = byteValuesBody(protocol);
+  assert.deepEqual(valueBodyContract(protocol).bytes, body);
+  const validWire = new RegExp(body.wire.pattern, 'u');
+  for (const accepted of ['', 'Zg==', 'Zm8=', 'AP+A', '/w==', 'AP8=']) {
+    assert.equal(validWire.test(accepted), true, accepted);
+  }
+  for (const refused of ['Zh==', 'Zm9=', 'Zg', 'Zg=', 'Zg===', 'Zg==Zg==', '_w==', 'Zg==\n']) {
+    assert.equal(validWire.test(refused), false, refused);
+  }
 });

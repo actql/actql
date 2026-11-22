@@ -3,4 +3,4 @@
 export {createInstalledOpenAIChatRegistration,
   createInstalledUndiciOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
 export {createOpenAIChatProvider, createProjectOpenAIChatProvider} from './_internal/normal-openai-chat.mjs';
-export {createRegisteredSdkProvider} from './_internal/normal-openai-chat.mjs';
+export {createRegisteredSdkProvider, createRegisteredSdkProviders} from './_internal/normal-openai-chat.mjs';

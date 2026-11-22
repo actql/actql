@@ -3,23 +3,23 @@
   "connector_capabilities": [
     {
       "capability_contract_cids": [
-        "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d",
-        "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
-      ],
-      "read_mode": "snapshot",
-      "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
-      "source_ref": "connector://crm/right/r#v",
-      "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246"
-    },
-    {
-      "capability_contract_cids": [
-        "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d",
-        "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
+        "sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807",
+        "sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf"
       ],
       "read_mode": "snapshot",
       "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
       "source_ref": "connector://crm/main/r#v",
       "source_view_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3"
+    },
+    {
+      "capability_contract_cids": [
+        "sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807",
+        "sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf"
+      ],
+      "read_mode": "snapshot",
+      "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
+      "source_ref": "connector://crm/right/r#v",
+      "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246"
     }
   ],
   "connector_catalogs": [
@@ -522,5 +522,5 @@
     }
   ],
   "version": "actql-check-environment/0.1",
-  "evidence_bundle_cid": "sha256:c9cf17f3e181c97a69e3419d4543e98c9a04af6da9490b359511a673a64c49a7"
+  "evidence_bundle_cid": "sha256:e1dc91d1c0f04c71dbe7ee5627e6928eb3cfc501592ed903fdd75287709c9117"
 }

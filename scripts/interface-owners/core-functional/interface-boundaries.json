@@ -10315,7 +10315,9 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
@@ -10697,6 +10699,10 @@
               {
                 "path": "adapters/host-node/request-model-plan.test.mjs",
                 "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph"
               }
             ]
           }
@@ -18958,6 +18964,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected",
+            "memberAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "index",
+            "check"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
           "parameters": [
             "parent",
@@ -20990,7 +21020,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6230c19c3cfb6499ce47384f1afb5ad0eb0dbc76a1c3e59ea5aefb6ed931fef2"
+      "sha256": "441ec62ddcbd112d02b12465d3e6b5943cff36272b8f6c140a74afed83f4e8c4"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
@@ -22103,6 +22133,7 @@
             "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
+            "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
@@ -22137,6 +22168,7 @@
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:installSettlementCleanup/init:installSettlementCleanup",
+            "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
             "openNodeInferOperation/operation/init:originalCurrentStateMatchCurrent/init:originalCurrentStateMatchCurrent",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition/current/current",
@@ -23622,7 +23654,8 @@
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent",
-            "prepareInputSegments"
+            "prepareInputSegments",
+            "managedIo"
           ],
           "async": false
         },
@@ -23678,6 +23711,15 @@
         {
           "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder"
+          ],
           "async": false
         },
         {
@@ -23742,7 +23784,8 @@
             "serializedInput",
             "restoredReferenceIssuer",
             "assertRuntimeCurrent",
-            "bindComputeSuffix"
+            "bindComputeSuffix",
+            "managedIo"
           ],
           "async": false
         },
@@ -24123,6 +24166,11 @@
             "limits"
           ],
           "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "openNodeInferOperation/operation/operation",
@@ -24753,11 +24801,11 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a3c717f85dd0045f1508a1306143b66a04ece1d1311ed57bb38fc4f1ede36a5f"
+      "sha256": "0916edef8dd3161b53bfc12d074decd0609ca5cc5258c1b2e503f9eb39e9ce5d"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "056e752938421ec678451114b205ed09f11f775e9b0ce740bb4cf8dd831769f9",
+      "sha256": "95800b9c2139a1a1f233b89ba47f46619111b0247690d5cebe250dd920cf75de",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -26278,7 +26326,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
+      "sha256": "39af3cdfa363a26a5dc03d435d8bfffe2f1d1842e5f46293c0c8247bdf6a75af",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -27320,7 +27368,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+                "anchor": "model.originalReadInstallation !== installation || model.managed !== managed"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -27370,7 +27418,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+                "anchor": "readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -27487,7 +27535,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
+      "sha256": "b87e602f58315a71c21f51ed5733abc1e00fdff7795c73e1b79e7ffab9ff31d1",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -30214,7 +30262,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
+      "sha256": "2cb7c400d12b916d5e603024708789c6a3062819ca5e59092f568503d11775fb",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -45057,7 +45105,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "e94244e7cb105f7438f10e02da33c8e6f70cd9f394c772007d33b7653749cafd",
+      "sha256": "f20f90632d02e32c18f3a92610b3f4522459cc4b8cec6f3f5cd6a373bbf8df37",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -45070,6 +45118,10 @@
         {
           "name": "installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_json_source_reader_capacity",
@@ -45574,7 +45626,8 @@
           "operations": [
             "installed_json_cursor_source_reader_capacity",
             "installed_source_cursor_progress_inventory",
-            "installed_json_cursor_source_reader_capacity_with_request"
+            "installed_json_cursor_source_reader_capacity_with_request",
+            "installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -45644,6 +45697,14 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
               }
             ]
           }
@@ -51336,7 +51397,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "f3fe003a7452d0709dfe9d2ac4f2877163a52d6c7b92f04075c9a15876fecbab"
+      "sha256": "f29cd37e1d919f6f8455cab5c4eb479657e33dcc3e207a57f957691b36157caa"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -51627,7 +51688,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "4aa1dfdc5d31bcf730d7fb8338e4ea7a2d7df33ae0fd5a9b01c2879302d40519"
+      "sha256": "370792cdfe2d1ef09542a0ddcf132aa043f20db91014143251635eb4ac3ca728"
     },
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
@@ -55184,7 +55245,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "dbd69108e00bebbabff5fb71dd5302266d142eb283d64dbb357513890326d5ed",
+      "sha256": "4b20567b6456c45430c35a1ad55f5eaaf788b63aece600e368dee1c83a2971d8",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -55533,7 +55594,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "558977eda281a2dfc26675d2ddd051c4ded09b782368d2d43978827bd886fc6a",
+      "sha256": "5500556cc241724df21264d89d0e8bc6bcb500715f0e637188ad345036f82d6c",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -57401,7 +57462,7 @@
     },
     {
       "module": "src/client_row_source_host/capture_residual.mbt",
-      "sha256": "a8f80639cedb0a3e158a65ba49b179c1521124d6f4b915a23f45f56901d9eeed",
+      "sha256": "576b1ceb8f3a0ad6810d7cb08f3ba633e521c0fa288150cfe2ae06f3874af56d",
       "exports": [],
       "operations": [
         {
@@ -61878,7 +61939,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "54b49b6443167cd7e2139ba35f08688367c37da34463ac999a493f9fdb4f6906",
+      "sha256": "3639a5b19607e3ff4b81ac7533331032b8ef4538021b3e64f0247eac282def15",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -63229,7 +63290,9 @@
             "client_program_prepared_request_model_input_suffix",
             "client_program_request_model_direct_source_coordinates",
             "client_request_models_plan_projection",
-            "installed_effect_model_plan_from_original_sources"
+            "installed_effect_model_plan_from_original_sources",
+            "check_client_node_group_model_demand",
+            "client_program_prepare_request_node_models_source_free_plan"
           ],
           "exports": [],
           "attributes": {
@@ -63795,6 +63858,10 @@
       "exports": [],
       "operations": [
         {
+          "name": "check_client_node_group_model_demand",
+          "declaration": "check_client_node_group_model_demand ( graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained : Int64 , model_execution : Int64 , reservations : Int , holdings : Int , delegations : Int , bootstrap_retained : Int64 , bootstrap_execution : Int64 , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ ClientNodeGroupModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_content_model_managed_plan_prepare",
           "declaration": "client_program_installed_effect_content_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -63887,6 +63954,10 @@
           "declaration": "client_program_prepare_request_node_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_node_models_source_free_plan",
+          "declaration": "client_program_prepare_request_node_models_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , project : ProjectClientNodeGroupModelDemand , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepared_request_model_input_prefix",
           "declaration": "client_program_prepared_request_model_input_prefix ( original : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -63900,14 +63971,14 @@
         },
         {
           "name": "client_request_models_plan_projection",
-          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ( Int64 , Int64 ) ? , Array [ @ resources . QuantityAmounts ] ? , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , project ? : ProjectClientNodeGroupModelDemand ?"
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "a1430d564ea81fd02c47e6ce4eea1d66ff4244a1c743f69ee0ef52f01c861327"
+      "sha256": "83aa5be81e37514177390026965a9d9a7d7518ca3be0e42d17dfb5a659deb482"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
@@ -66006,7 +66077,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "4bcd171b7688ab1ffe97417a43d5e3ba7b82b38be95e7532b0165749dc3ee802",
+      "sha256": "7a1d1e64a27f24dfaa2556c984e2893a577dd9f6c9851a75c64ad78d9af893af",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -66019,6 +66090,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -66657,7 +66732,8 @@
         {
           "operations": [
             "client_program_installed_json_cursor_source_reader_capacity",
-            "client_program_installed_json_cursor_source_reader_capacity_with_request"
+            "client_program_installed_json_cursor_source_reader_capacity_with_request",
+            "client_program_installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -66727,6 +66803,18 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "REST actual Common codec identity capacity retains the same request"
               }
             ]
           }
@@ -67782,7 +67870,8 @@
             "client_program_adopt_request_effect_models_preparation",
             "client_program_installed_effect_models_demand_prepare",
             "client_program_prepare_request_effect_models_read_scopes",
-            "client_program_prepare_request_effect_models_read_scopes_with_quantities"
+            "client_program_prepare_request_effect_models_read_scopes_with_quantities",
+            "client_program_prepare_request_models_read_scopes_with_planned_quantities"
           ],
           "exports": [],
           "attributes": {
@@ -70883,6 +70972,10 @@
           "declaration": "client_program_prepare_request_models_read_scopes ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_models_read_scopes_with_planned_quantities",
+          "declaration": "client_program_prepare_request_models_read_scopes_with_planned_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_models_read_scopes_with_quantities",
           "declaration": "client_program_prepare_request_models_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -71187,7 +71280,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "3f9627229b5f97ebdc18b829a22e3ed2a0cde95323caadd8325e7e5dc10ab1d0"
+      "sha256": "d728e42bb9a466ce9f63b1b210d84527475b895bbef7dda908881cf4c63cd443"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -74796,7 +74889,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "57a9f8e8e0ba5cdfab2b578aba0fca3f5acc5b2bfd32dd7f9d6df6cdf09c2df8",
+      "sha256": "5c79243cd2034bc8cdc0e2538a014e7f181874511380c4c2fc99bfa327973efe",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -89206,7 +89299,7 @@
     },
     {
       "module": "src/sourceview_resolution/query_acquisition.mbt",
-      "sha256": "4bc2ea58c858c530d10007afb486a8256b49dd2a9a3294398f53ea09887c6fe7",
+      "sha256": "c1aa5e67bb83d57de79acfc0dee8036b176306a0ced07ab411b2100e0db101c1",
       "exports": [],
       "operations": [
         {
@@ -90458,7 +90551,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
+      "sha256": "07640e6fa0c8271e158e6cfa0faf47fbbf56d23d65d33a9a3bafbcc3bbc5f746",
       "exports": [],
       "operations": [
         {
@@ -90515,7 +90608,7 @@
         },
         {
           "name": "prepare_installed_effect_combined_source_result_artifact",
-          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , imported ? : ( @ publication_host . ClientEffectImportedEvidence , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "prepare_installed_effect_combined_source_unit",
@@ -98397,7 +98490,7 @@
     },
     {
       "module": "src/client_local_host/installed_physical_write_recipe.mbt",
-      "sha256": "ad4ccd8890724ff4a506a2baccfae7b15fdb9496c74e160d77aea869b4d06896",
+      "sha256": "20689653a7d5828af76f55b5fa4bd91b0db2632ecbb7f7984b5e9d1eb3f48e3b",
       "exports": [],
       "operations": [
         {
@@ -98853,7 +98946,7 @@
       "operations": [
         {
           "name": "bind_client_model_read_scopes",
-          "declaration": "bind_client_model_read_scopes ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plans : Array [ ClientInferPlanGraph ] , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , ) - > Result [ Array [ ClientModelReadScope ] , ClientModelReadPreparationIssue ]"
+          "declaration": "bind_client_model_read_scopes ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plans : Array [ ClientInferPlanGraph ] , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , model_limits ? : Array [ @ resources . LedgerLimits ] ?"
         },
         {
           "name": "client_model_read_scopes_construction_inventory",
@@ -99033,7 +99126,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "0ea63fbea7542778f713d81cec680225fc42545ede5dab1b6773a82bd2955610"
+      "sha256": "7d87e3d4648f4f1d76fe2440fb1371ac52a61c923124585000c7c0ada4776cfd"
     },
     {
       "module": "src/client_local_host/preparation_request_models_plan.mbt",
@@ -99048,7 +99141,7 @@
         },
         {
           "name": "[I]prepare_request_models_plan_owned",
-          "declaration": "[ I ] prepare_request_models_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap : ( Int64 , Int64 ) ? , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] prepare_request_models_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap : ( Int64 , Int64 ) ? , node_quantities : Array [ @ resources . QuantityAmounts ] ? , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]prepare_request_models_read_scopes",
@@ -99060,19 +99153,31 @@
         },
         {
           "name": "[I]reserve_request_models_plan_projection",
-          "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , node_physical ? : Bool"
         },
         {
           "name": "bind_request_multiple_model_read_scopes",
           "declaration": "bind_request_multiple_model_read_scopes ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ publication_host . ClientModelReadPreparationIssue , ]"
         },
         {
+          "name": "node_quantities_length_matches",
+          "declaration": "node_quantities_length_matches ( quantities : Array [ @ resources . QuantityAmounts ] ? , count : Int , ) - > Bool"
+        },
+        {
           "name": "request_model_group_quantity_limits",
           "declaration": "request_model_group_quantity_limits ( first_graph : @ publication_host . ClientInferPlanGraph , models : Array [ ClientInstalledModelReadPartition ] ? , installed : @ resources . QuantityAmounts , graphs ? : Array [ @ publication_host . ClientInferPlanGraph ] ?"
         },
         {
+          "name": "request_model_plan_has_node_quantities",
+          "declaration": "request_model_plan_has_node_quantities ( plan : ClientInstalledManagedModelPlan , ) - > Bool"
+        },
+        {
           "name": "request_model_plan_quantity_limits",
-          "declaration": "request_model_plan_quantity_limits ( plan : ClientInstalledManagedModelPlan , installed : @ resources . QuantityAmounts , ) - > @ resources . QuantityAmounts ?"
+          "declaration": "request_model_plan_quantity_limits ( plan : ClientInstalledManagedModelPlan , installed : @ resources . QuantityAmounts ? , ) - > Result [ @ resources . QuantityAmounts ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "request_planned_node_quantities",
+          "declaration": "request_planned_node_quantities ( models : Array [ ClientInstalledModelReadPartition ] , ) - > @ resources . QuantityAmounts ?"
         }
       ],
       "contracts": [
@@ -99086,7 +99191,10 @@
             "[I]reserve_request_models_plan_projection",
             "bind_request_multiple_model_read_scopes",
             "request_model_plan_quantity_limits",
-            "request_model_group_quantity_limits"
+            "request_model_group_quantity_limits",
+            "node_quantities_length_matches",
+            "request_model_plan_has_node_quantities",
+            "request_planned_node_quantities"
           ],
           "exports": [],
           "attributes": {
@@ -99458,7 +99566,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "c04ecc086e371eb28380590f09db908fd91d722c09587ac13cf5dea2150ea717"
+      "sha256": "5597da971a73fd7db50eb9628acc579779be0627ded5335422579dde8dc5bee5"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",
@@ -104256,7 +104364,7 @@
     },
     {
       "module": "src/execution_relation/value_budget.mbt",
-      "sha256": "09f3765af25a79a338841411e9afc6ffd5f7927df7c99977b1e0c2a5b0998898",
+      "sha256": "f86fe721485da8dc2f0ec42e94fd7a2e3d45ee78ac5b91f301b7dd1919b78353",
       "exports": [],
       "operations": [
         {
@@ -110243,7 +110351,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
-      "sha256": "b59144da5be23edaf36461a57f8eeca5fc169bb3218a764258072ea232b2d1bc",
+      "sha256": "d3573f05561a3d33eaa5f1df251c2f5a8313e082bb4deb0b6760d8a62e4b6512",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -110256,6 +110364,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -110894,7 +111006,8 @@
         {
           "operations": [
             "client_program_installed_json_cursor_source_reader_capacity",
-            "client_program_installed_json_cursor_source_reader_capacity_with_request"
+            "client_program_installed_json_cursor_source_reader_capacity_with_request",
+            "client_program_installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -110964,6 +111077,18 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "REST actual Common codec identity capacity retains the same request"
               }
             ]
           }

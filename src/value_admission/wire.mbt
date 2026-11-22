@@ -92,7 +92,8 @@ pub fn start_scalar_text(
     | JsonData(_)
     | Vector(_)
     | Reference(_)
-    | Signed64(_) => return None
+    | Signed64(_)
+    | Binary(_) => return None
   }
   if text.length() > max_utf8_bytes {
     return None
@@ -248,7 +249,7 @@ pub fn advance_wire_emit(
         Boolean(v) => @encode.bool_value(output, v)
         Number(v) => @encode.number_value(output, v)
         Signed64(v) => @encode.string_value(output, v.to_string())
-        Text(v) | Date(v) | Timestamp(v) =>
+        Text(v) | Date(v) | Timestamp(v) | Binary({ wire: v, }) =>
           if v.length() <= 64 {
             @encode.string_value(output, v)
           } else {

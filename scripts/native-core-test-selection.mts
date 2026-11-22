@@ -20,7 +20,7 @@ type CompilerCase = [driver: string, file: string, test: CompilerTest];
 type CompilerRecord = {entry: CompilerCase; source: string; directory: string; benchmark: boolean};
 type Profile = {args: string[] | null; cases: number};
 type OrdinaryPartition = {args: string[]; cases: number; drivers?: string[]};
-type ScopedCase = {source: string; index: number};
+type ScopedCase = {source: string; index: number; name?: string};
 type NativeProfiles = {
   ordinary: Profile & {partitions?: OrdinaryPartition[]};
   http: Profile;
@@ -143,6 +143,11 @@ const nativeJournalMetadataOriginalReadTestFile =
 const nativeAccountConstructionOriginalReadTestFile =
   'src/platform_native/client_host/local_account_construction_original_read_wbtest.mbt';
 
+const nativeMockPhysicalTestFile =
+  'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+const nativeMockAccountReadTestName =
+  'Native Mock Account opens its original consuming Journal Read before Model dispatch';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source: string) {
@@ -168,10 +173,10 @@ export function nativeCoreScopedAllocationProfile(source: string) {
 
 // Observe counters only in these existing case-owned processes. Ordinary Core
 // still exercises disabled observation and keeps its original allocation profile.
-export function nativeCoreScopedTestEnvironment({source, index}: ScopedCase) {
+export function nativeCoreScopedTestEnvironment({source, name}: Pick<ScopedCase, 'source' | 'name'>) {
   return source === 'src/platform_native/client_host/local_initial_configuration_cid_wbtest.mbt' ||
     source === 'src/platform_native/client_host/local_initial_host_signing_original_wbtest.mbt' ||
-    source === 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt' && index === 13
+    source === nativeMockPhysicalTestFile && name === nativeMockAccountReadTestName
     ? {ACTQL_NATIVE_TIMINGS: '1'} : {};
 }
 
@@ -182,7 +187,7 @@ export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
   nativeJournalMetadataOriginalReadTestFile,
   nativeAccountConstructionOriginalReadTestFile,
-  'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
+  nativeMockPhysicalTestFile,
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   // Its first-member control uses that same real Request/Arena facility.
   'src/cmd/native_client/local_effect_capture_wbtest.mbt',
@@ -389,11 +394,12 @@ function partitionProfiles(args: readonly string[], records: readonly CompilerRe
     scopedFiles.has(record.source) || selectedGeometryFiles.has(record.source));
   const selectedPaths = [...new Set(selectedRecords.map(record => record.source))];
   const tests = selectedRecords.filter(record => !record.benchmark).map(record => {
-    const index = record.entry[2].index;
+    const {index, name} = record.entry[2];
     assert(Number.isSafeInteger(index) && index >= 0, 'Original compiler case index required');
-    return {source: record.source, index};
+    return {source: record.source, index,
+      ...(record.source === nativeMockPhysicalTestFile && name === nativeMockAccountReadTestName ? {name} : {})};
   });
-  assert.equal(new Set(tests.map(value => JSON.stringify(value))).size, tests.length,
+  assert.equal(new Set(tests.map(({source, index}) => JSON.stringify([source, index]))).size, tests.length,
     'Selected physical case must retain a unique original file/index');
   // Empty PATH would run the whole project, never an empty profile.
   return {

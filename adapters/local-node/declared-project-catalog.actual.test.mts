@@ -245,6 +245,47 @@ test('actual Common rejects unknown writable columns and invalid declared schema
   }
 });
 
+test('actual catalog admits explicit NULL only for selected nullable writable fields', async t => {
+  const f = await fixture(t);
+  const original = writableTarget(await f.load()).mapping;
+  assert.deepEqual(original.row_mapping.Risk_Reason__c, {field: 'Risk_Reason__c', null_behavior: 'reject'});
+  const catalog = JSON.parse(f.catalogWire);
+  const write = catalog.connections.salesforce.writes[0];
+  write.write_null_fields = ['Risk_Reason__c'];
+  const mapping = writableTarget(await f.load({catalog})).mapping;
+  assert.notEqual(mapping.mapping_contract_cid, original.mapping_contract_cid);
+  assert.deepEqual(mapping.row_mapping, {...original.row_mapping,
+    Risk_Reason__c: {field: 'Risk_Reason__c', null_behavior: 'write_null'}});
+  assert.deepEqual(mapping.permission_rules, original.permission_rules);
+  assert.equal(mapping.target_schema_identity, original.target_schema_identity);
+  write.write_null_fields = [];
+  assert.deepEqual(writableTarget(await f.load({catalog})).mapping, original);
+
+  for (const fields of [null, 'Risk_Reason__c', [false], ['id'], ['missing'], ['Risk_Reason__c', 'Risk_Reason__c']]) {
+    await f.rejects(input => {input.connections.salesforce.writes[0].write_null_fields = fields;});
+  }
+  await f.rejects(input => {input.connections.salesforce.writes[0].write_null_fields = ['Churn_Risk__c'];},
+    {code: 'RowSourceMappingInvalidNullBehavior'});
+
+  delete write.write_null_fields;
+  write.update_fields = ['Churn_Risk__c'];
+  const subset = writableTarget(await f.load({catalog}));
+  assert.deepEqual(subset.spec.writable_fields, write.writable_fields);
+  assert.deepEqual(subset.mapping.writable_fields, ['Churn_Risk__c']);
+  assert.deepEqual(subset.mapping.permission_rules, original.permission_rules.map((rule: RecordInput) =>
+    ({...rule, write_fields: ['Churn_Risk__c']})));
+  assert.deepEqual(subset.mapping.row_mapping, {Churn_Risk__c: original.row_mapping.Churn_Risk__c});
+  write.write_null_fields = ['Risk_Reason__c'];
+  assert.deepEqual(writableTarget(await f.load({catalog})).mapping, subset.mapping);
+  write.update_fields = ['Risk_Reason__c'];
+  const clear = writableTarget(await f.load({catalog})).mapping;
+  assert.deepEqual(clear.writable_fields, ['Risk_Reason__c']);
+  assert.deepEqual(clear.row_mapping, {Risk_Reason__c: {field: 'Risk_Reason__c', null_behavior: 'write_null'}});
+  for (const fields of [null, [], ['id'], ['missing'], ['Churn_Risk__c', 'Churn_Risk__c']]) {
+    await f.rejects(input => {input.connections.salesforce.writes[0].update_fields = fields;});
+  }
+});
+
 test('actual file bindings reject unknown physical columns types and overridden capability facts', async t => {
   const f = await fixture(t, 'deal-review-mock');
   for (const field of ['identity_field', 'name_field', 'version_field', 'media_type_field', 'content_utf8_field', 'path_field']) {

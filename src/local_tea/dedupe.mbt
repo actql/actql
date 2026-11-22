@@ -228,7 +228,8 @@ fn event_value_supported(value : @value.CheckedValue) -> Bool {
     @value.Array(_)
     | @value.Object(_)
     | @value.Vector(_)
-    | @value.JsonData(_) => false
+    | @value.JsonData(_)
+    | @value.Binary(_) => false
   }
 }
 

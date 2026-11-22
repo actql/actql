@@ -261,6 +261,11 @@ pub(all) enum QueryBindingOrigin {
   // Authored name and original UTF-8 byte range, before physical scope binding.
   AuthoredWith(NamePart, Int, Int)
   RelationalContinuation
+  // The SELECT owns an independently parsed single-column producer. Its
+  // optional output name belongs to the enclosing projection, not the child.
+  ScalarSubquery(NamePart?)
+  // The enclosing projection observes row presence independently of width.
+  ExistsSubquery(NamePart?)
 } derive(Eq, Debug)
 
 ///|
@@ -1016,6 +1021,7 @@ fn QueryParser::path(self : QueryParser) -> Array[NamePart] raise QueryAbort {
 fn QueryParser::expression(
   self : QueryParser,
   stop_before_star? : Bool = false,
+  stop_before_membership_subquery? : Bool = false,
 ) -> Expression raise QueryAbort {
   let remaining = self.limits.max_work - self.work
   let expression_limits = {
@@ -1029,6 +1035,7 @@ fn QueryParser::expression(
       self.index,
       expression_limits,
       stop_before_star~,
+      stop_before_membership_subquery~,
     ) {
     Ok((expression, next)) => {
       self.spend(expression.work)
@@ -2671,6 +2678,156 @@ fn QueryParser::initial_from(
 }
 
 ///|
+fn subquery_head(source : Tokens, index : Int) -> Bool {
+  source.tokens
+  .get(index)
+  .map(token => token.value == Symbol(40))
+  .unwrap_or(false) &&
+  source.tokens
+  .get(index + 1)
+  .map(token => keyword(token, "SELECT") || keyword(token, "WITH"))
+  .unwrap_or(false)
+}
+
+///|
+fn membership_subquery_head(source : Tokens, index : Int) -> Bool {
+  source.tokens.get(index).map(token => keyword(token, "IN")).unwrap_or(false) &&
+  subquery_head(source, index + 1)
+}
+
+///|
+// This decorrelation is restricted to an original two-sided qualified equality
+// whose inner key is the original row projection. With no row operator between
+// that predicate and projection, a semi join may test exactly the same pairs.
+fn QueryParser::exists_correlation(
+  self : QueryParser,
+  query : Query,
+) -> (Expression, NamePart)? raise QueryAbort {
+  guard !query.relation.is_empty() &&
+    query.primary is None &&
+    query.graph is None &&
+    query.file_listing is None &&
+    query.joins.is_empty() &&
+    query.sets.is_empty() &&
+    query.final_operations.is_empty() &&
+    query.operations is [Where(predicate), Select([projection], false)] &&
+    projection.expression is Some(selected) &&
+    predicate.nodes[predicate.root].kind is Binary("=", a, b) &&
+    predicate.nodes[a].kind is Reference([a_range, a_field]) &&
+    predicate.nodes[b].kind is Reference([b_range, b_field]) &&
+    selected.nodes[selected.root].kind
+    is Reference([selected_range, selected_field]) &&
+    projection_public_name(projection) is Some(output) else {
+    return None
+  }
+  let range = query.source_alias.unwrap_or(query.relation.last().unwrap())
+  let a_is_inner = self.binding_name_matches(a_range, range)
+  let b_is_inner = self.binding_name_matches(b_range, range)
+  if a_is_inner == b_is_inner ||
+    !self.binding_name_matches(selected_range, range) {
+    return None
+  }
+  let field = if a_is_inner { a_field } else { b_field }
+  if !self.binding_name_matches(selected_field, field) ||
+    !self.binding_name_matches(output, field) {
+    return None
+  }
+  Some((predicate, range))
+}
+
+///|
+fn QueryParser::mark_subquery_output(
+  self : QueryParser,
+  bound : Query,
+  origin : QueryBindingOrigin,
+) -> Unit {
+  let index = bound.bindings.length() - 1
+  let original = bound.bindings[index]
+  bound.bindings[index] = { ..original, origin, }
+  self.source.scalar_projections += 1
+}
+
+///|
+fn QueryParser::append_where_subquery(
+  self : QueryParser,
+  selected : Query,
+  kind : String,
+  predicate : Expression?,
+  inner_alias : NamePart?,
+  bindings : Array[QueryBinding],
+  joins : Array[JoinPart],
+) -> Unit {
+  bindings.append(selected.bindings)
+  joins.push({
+    kind,
+    relation: selected.relation,
+    source_alias: inner_alias,
+    file_listing: None,
+    on: predicate,
+    using_columns: [],
+    pre_join_filter: None,
+    max_output_rows: None,
+  })
+  self.namespace_replace_factor(joins.length(), joins.length() + 1)
+  // Membership owns one private left key. Uncorrelated presence owns one on
+  // each input. The qualified correlation reuses existing checked columns.
+  let added_fields = if kind == "semi" {
+    1
+  } else if predicate is None {
+    2
+  } else {
+    0
+  }
+  self.source.namespace_added_fields = namespace_count_add(
+    self.source.namespace_added_fields,
+    added_fields,
+  )
+}
+
+///|
+fn QueryParser::scalar_projection_term(
+  self : QueryParser,
+  record_anonymous_output : Bool,
+  exists~ : Bool,
+) -> Query raise QueryAbort {
+  let inner = self.parenthesized()
+  let name = self.optional_output_alias()
+  if record_anonymous_output && name is None {
+    self.source.anonymous_output_demands += 1
+  }
+  let bound = self.bind_query(inner)
+  let origin = if exists { ExistsSubquery(name) } else { ScalarSubquery(name) }
+  self.mark_subquery_output(bound, origin)
+  bound
+}
+
+///|
+/// Count scalar projections selected by the parser on this original document.
+pub fn scalar_projection_count(query : Query) -> Int {
+  query.source.scalar_projections
+}
+
+///|
+/// An unkeyed MIN/MAX already supplies one nullable cell, even on empty
+/// input. Inspect the original operations without copying their children.
+pub fn is_single_extremum_projection(query : Query) -> Bool {
+  if !query.sets.is_empty() || !query.final_operations.is_empty() {
+    return false
+  }
+  let count = query.operations.length()
+  guard count == 2 || (count == 3 && query.operations[0] is Where(_)) else {
+    return false
+  }
+  guard query.operations[count - 2] is Group(keys, _, SqlSelect) &&
+    keys.is_empty() &&
+    query.operations[count - 1] is Select([projection], _) &&
+    projection.aggregate is Some(aggregate) else {
+    return false
+  }
+  aggregate.function_name == "MIN" || aggregate.function_name == "MAX"
+}
+
+///|
 fn QueryParser::sql_term(
   self : QueryParser,
   record_anonymous_output~ : Bool,
@@ -2681,6 +2838,13 @@ fn QueryParser::sql_term(
     self.keyword("DISTINCT")
   } else if self.has("ALL") {
     self.keyword("ALL")
+  }
+  if self.has("EXISTS") && subquery_head(self.source, self.index + 1) {
+    self.keyword("EXISTS")
+    return self.scalar_projection_term(record_anonymous_output, exists=true)
+  }
+  if subquery_head(self.source, self.index) {
+    return self.scalar_projection_term(record_anonymous_output, exists=false)
   }
   let select_windows : Array[Projection] = []
   let (projections, embedded) = self.projections(
@@ -2717,7 +2881,62 @@ fn QueryParser::sql_term(
   if self.has("WHERE") {
     self.keyword("WHERE")
     self.node()
-    operations.push(Where(self.expression()))
+    if self.has("EXISTS") && subquery_head(self.source, self.index + 1) {
+      if relation.is_empty() || !operations.is_empty() {
+        raise QueryAbort(
+          "EXISTS filter requires a FROM relation",
+          self.peek().start,
+        )
+      }
+      self.keyword("EXISTS")
+      let inner = self.parenthesized()
+      if self.exists_correlation(inner) is Some((condition, inner_range)) {
+        let selected = self.bind_query({
+          ..inner,
+          operations: [inner.operations[1]],
+        })
+        self.append_where_subquery(
+          selected,
+          "exists",
+          Some(condition),
+          Some(inner_range),
+          bindings,
+          joins,
+        )
+      } else {
+        let selected = self.bind_query(inner)
+        self.append_where_subquery(
+          selected,
+          "exists",
+          None,
+          None,
+          bindings,
+          joins,
+        )
+      }
+    } else {
+      let predicate = self.expression(stop_before_membership_subquery=true)
+      if membership_subquery_head(self.source, self.index) {
+        if relation.is_empty() || !operations.is_empty() {
+          raise QueryAbort(
+            "Membership subquery requires a FROM relation",
+            self.peek().start,
+          )
+        }
+        self.keyword("IN")
+        let selected = self.bind_query(self.parenthesized())
+        self.append_where_subquery(
+          selected,
+          "semi",
+          Some(predicate),
+          None,
+          bindings,
+          joins,
+        )
+      } else {
+        operations.push(Where(predicate))
+      }
+    }
   }
   let grouped = self.has("GROUP") ||
     projections.any(projection => {

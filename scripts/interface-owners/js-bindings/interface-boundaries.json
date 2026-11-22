@@ -27050,7 +27050,9 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
@@ -27432,6 +27434,10 @@
               {
                 "path": "adapters/host-node/request-model-plan.test.mjs",
                 "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph"
               }
             ]
           }
@@ -35029,6 +35035,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected",
+            "memberAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "index",
+            "check"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
           "parameters": [
             "parent",
@@ -37061,7 +37091,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6230c19c3cfb6499ce47384f1afb5ad0eb0dbc76a1c3e59ea5aefb6ed931fef2"
+      "sha256": "441ec62ddcbd112d02b12465d3e6b5943cff36272b8f6c140a74afed83f4e8c4"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",
@@ -65595,7 +65625,10 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
             "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
-            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2",
+            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+            "prepareRequestMockModelPlan/planArguments/planArguments",
+            "prepareRequestMockModelPlan/planArguments/planArguments#2"
           ],
           "exports": [],
           "attributes": {
@@ -71973,6 +72006,27 @@
           "async": false
         },
         {
+          "name": "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/planArguments/planArguments",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/planArguments/planArguments#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
           "parameters": [
             "member",
@@ -71983,7 +72037,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
           "parameters": [
-            "member"
+            "index"
           ],
           "async": false
         },
@@ -72057,7 +72111,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
@@ -72080,7 +72134,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -72108,17 +72162,17 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
           "parameters": [
-            "index",
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "source"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
-            "member"
+            "index",
+            "_capacity",
+            "prefix",
+            "bindSuffix"
           ],
           "async": false
         },
@@ -72557,7 +72611,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "cf4a8e518cefcd3c0836d6500061e72d35fe73b4727ed07198be4d457c86bc07"
+      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -75003,6 +75057,7 @@
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
+            "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
@@ -75369,6 +75424,7 @@
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:installSettlementCleanup/init:installSettlementCleanup",
+            "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
             "openNodeInferOperation/operation/init:originalCurrentStateMatchCurrent/init:originalCurrentStateMatchCurrent",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition/current/current",
@@ -77459,7 +77515,8 @@
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent",
-            "prepareInputSegments"
+            "prepareInputSegments",
+            "managedIo"
           ],
           "async": false
         },
@@ -77515,6 +77572,15 @@
         {
           "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder"
+          ],
           "async": false
         },
         {
@@ -77579,7 +77645,8 @@
             "serializedInput",
             "restoredReferenceIssuer",
             "assertRuntimeCurrent",
-            "bindComputeSuffix"
+            "bindComputeSuffix",
+            "managedIo"
           ],
           "async": false
         },
@@ -77960,6 +78027,11 @@
             "limits"
           ],
           "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "openNodeInferOperation/operation/operation",
@@ -78590,7 +78662,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a3c717f85dd0045f1508a1306143b66a04ece1d1311ed57bb38fc4f1ede36a5f"
+      "sha256": "0916edef8dd3161b53bfc12d074decd0609ca5cc5258c1b2e503f9eb39e9ce5d"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -79819,7 +79891,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "056e752938421ec678451114b205ed09f11f775e9b0ce740bb4cf8dd831769f9",
+      "sha256": "95800b9c2139a1a1f233b89ba47f46619111b0247690d5cebe250dd920cf75de",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -81312,7 +81384,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
+      "sha256": "39af3cdfa363a26a5dc03d435d8bfffe2f1d1842e5f46293c0c8247bdf6a75af",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -82345,7 +82417,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+                "anchor": "model.originalReadInstallation !== installation || model.managed !== managed"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -82395,7 +82467,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+                "anchor": "readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -83175,7 +83247,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
+      "sha256": "b87e602f58315a71c21f51ed5733abc1e00fdff7795c73e1b79e7ffab9ff31d1",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -113582,7 +113654,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
+      "sha256": "2cb7c400d12b916d5e603024708789c6a3062819ca5e59092f568503d11775fb",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

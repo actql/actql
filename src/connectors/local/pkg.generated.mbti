@@ -162,6 +162,8 @@ pub fn managed_provider((@execution_relation.GeneratedSequence) -> Bool, (@execu
 
 pub fn managed_provider_accepts(ManagedProvider, @execution_relation.GeneratedSequence) -> Bool
 
+pub fn managed_provider_await_io(Int64, Int64) -> ManagedProviderPoll
+
 pub fn managed_provider_bounded_relation_capacity(ManagedProvider, @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn managed_provider_capacity(ManagedProvider, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
@@ -284,6 +286,7 @@ pub(all) struct LocalImportLimits {
 pub(all) struct LocalMaterializingAdvance {
   complete : Bool
   waiting : Bool
+  await_io : Bool
   settlement : Int?
   progress : Int64
   work : Int64
@@ -319,6 +322,7 @@ pub enum ManagedProviderInput {
 
 pub enum ManagedProviderPoll {
   Continue(progress~ : Int64, work~ : Int64)
+  AwaitIo(progress~ : Int64, work~ : Int64)
   Waiting(progress~ : Int64, work~ : Int64)
   Settling(Int, progress~ : Int64, work~ : Int64)
   Complete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)

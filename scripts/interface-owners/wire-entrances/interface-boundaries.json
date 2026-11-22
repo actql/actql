@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "26ef5f64dd26c6fc243e83b861dbd2591cd37ce3571d099cc9d692ed24652ff1",
+      "sha256": "0fcd0689984688266ec6009d1adfbe5a9ea2d785567fae932443baa587b0ed0d",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -18066,7 +18066,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire-python.mjs",
-      "sha256": "2dade042d85742bdb31ed36f434847108bf6b731607d935be6593513138cda26",
+      "sha256": "dc43c5d0c2c6b57fb895a3c716bbe84157280d39a462e7b879f4f56c4da715bb",
       "exports": [
         "checkpointAnswerPythonSource"
       ],

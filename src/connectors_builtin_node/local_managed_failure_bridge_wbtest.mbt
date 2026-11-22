@@ -127,6 +127,7 @@ test "original row failure bridge returns the actual compiler closed cause and s
   ] = Ok({
     complete: false,
     waiting: false,
+    await_io: false,
     settlement: None,
     progress: 1L,
     work: 1L,
@@ -166,6 +167,7 @@ test "managed advance bridge retains only the typed failed-result work cause" {
       Ok({
         complete: false,
         waiting: false,
+        await_io: false,
         settlement: None,
         progress: 1L,
         work: 1L,
@@ -196,6 +198,7 @@ test "managed resource bridge retains the original failed-result dimension" {
       Ok({
         complete: false,
         waiting: false,
+        await_io: false,
         settlement: None,
         progress: 1L,
         work: 1L,
@@ -234,6 +237,7 @@ test "managed advance Capture bridge keeps the SAME Result typed step and allowa
       Ok({
         complete: false,
         waiting: false,
+        await_io: false,
         settlement: None,
         progress: 1L,
         work: 1L,

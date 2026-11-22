@@ -1,9 +1,12 @@
 ///|
-test "SQL SHA256 retains its current named lowering refusal" {
+test "SQL SHA256 reaches lowering and still refuses an invalid argument count" {
   let context = bind_query_context([], "fixture.environment").unwrap()
   assert_true(
-    lower("SELECT SHA256('a') AS result", Sql, Some(context))
-    is Err(QueryLowering(Expression({ issue: UnsupportedFunction, .. }))),
+    lower("SELECT SHA256('a') AS result", Sql, Some(context)) is Ok(_),
+  )
+  assert_true(
+    lower("SELECT SHA256('a', 'b') AS result", Sql, Some(context))
+    is Err(QueryLowering(Expression({ issue: InvalidArguments, .. }))),
   )
 }
 

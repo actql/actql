@@ -32,9 +32,7 @@ priv struct LocalNativeMockEffectPlan {
   source_failures : Array[@row_file.NativeRelationFileFailure]
   source_reads : Array[@local_values.ClientInstalledSourceRead]
   captured_inputs : Array[@row_host.RowCapturedInput]
-  input_originals : Array[
-    (@sourceviews.SourceAcquisition, @row_host.RowInputAcquisition),
-  ]
+  input_originals : Array[LocalNativeMockEffectSourceOriginal]
 }
 
 ///|
@@ -223,7 +221,7 @@ fn native_mock_effect_operations(
     }
     let physical = @row_file.native_relation_file_target_io_capacity(
       binding.provider,
-      installation.write.mapping.write_fields.length(),
+      installation.write.writable_fields.length(),
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     // The operation consumes this original completed-row writer, this
     // installation's private review record, and Native Journal codecs. The
@@ -277,12 +275,12 @@ fn native_mock_effect_operations(
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let read_initial = @row_file.native_relation_file_target_read_io_capacity(
       binding.provider,
-      installation.write.mapping.write_fields.length(),
+      installation.write.writable_fields.length(),
       response_bytes=Some(0),
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let read_maximum = @row_file.native_relation_file_target_read_io_capacity(
       binding.provider,
-      installation.write.mapping.write_fields.length(),
+      installation.write.writable_fields.length(),
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let read_maximum = native_mock_effect_capacity_envelope(
       physical, read_maximum,
@@ -441,6 +439,8 @@ fn native_mock_effect_source_plan(
   record_bytes : Int,
   capture_recipes : Array[Array[@execution.ExecutionCapacity]],
   model? : @local_values.ClientInstalledEffectModelDemand? = None,
+  query_contracts? : (String, String)? = None,
+  report? : (@local_values.ClientInstalledManagedRunIssue) -> Unit = _ => (),
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local_compute.ManagedProvider,
   ],
@@ -450,38 +450,45 @@ fn native_mock_effect_source_plan(
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
-  // Whole-input occurrences have no Query contract input. If a different
-  // checked Program selects Query, Core refuses these absent contracts;
-  // this path never retries a refused Query as a whole input.
-  @local_values.prepare_installed_effect_managed_source_plan(
-    prepared,
-    first.request,
-    sources.map(value => value._retained_input),
-    "",
-    "",
-    sources.map(value => {
-      match value._retained_reader {
-        Rows(row) => row.limits.page.max_bytes.to_int64()
-        Files(_, _) =>
-          local_project_mock_file_limits().page.max_bytes.to_int64()
-      }
-    }),
-    sources.map(value => {
-      match value._retained_reader {
-        Rows(row) => row.limits.page.max_bytes.to_int64()
-        Files(_, _) =>
-          local_project_mock_file_limits().page.max_bytes.to_int64()
-      }
-    }),
-    contracts,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-    operations,
-    model~,
-    runtime_admission=true,
-    provider_factory~,
-  ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
+  // The checked occurrence chooses the route. Only the direct Source path
+  // supplies the installed Runtime's Query protocol, and Whole inputs ignore it.
+  let (query, evidence) = query_contracts.unwrap_or(("", ""))
+  match
+    @local_values.prepare_installed_effect_managed_source_plan(
+      prepared,
+      first.request,
+      sources.map(value => value._retained_input),
+      query,
+      evidence,
+      sources.map(value => {
+        match value._retained_reader {
+          Rows(row) => row.limits.page.max_bytes.to_int64()
+          Files(_, _) =>
+            local_project_mock_file_limits().page.max_bytes.to_int64()
+        }
+      }),
+      sources.map(value => {
+        match value._retained_reader {
+          Rows(row) => row.limits.page.max_bytes.to_int64()
+          Files(_, _) =>
+            local_project_mock_file_limits().page.max_bytes.to_int64()
+        }
+      }),
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+      operations,
+      model~,
+      runtime_admission=true,
+      provider_factory~,
+    ) {
+    Ok(plan) => plan
+    Err(issue) => {
+      report(issue)
+      stop("LocalOriginalEffectPlanUnavailable")
+    }
+  }
 }
 
 ///|
@@ -491,6 +498,10 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
   installation : LocalRunInstallation,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
+    self.original.journal is Some(journal) &&
+    physical_equal(journal, self.capture) &&
+    self.original.journal_read_open &&
+    !business.active &&
     business.request_parent is Some(parent) &&
     business.request_input is Some(input) &&
     business.request_body is Some(body) &&
@@ -511,6 +522,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     project.mock_declarations is Some(mock) else {
     stop("LocalOriginalEffectPlanUnavailable")
   }
+  // Borrow the immutable protocol bodies while the original Journal Read is
+  // entered. Request entry suspends that Read, so only the borrowed DATA may
+  // cross into the Request. Common still selects the route from the Program.
+  let query_contracts = if first._retained_models.is_empty() {
+    guard self.original.runtime is Some(runtime) else {
+      stop("PackagedLocalRuntimeChanged")
+    }
+    match runtime.query_contract_assets() {
+      Ok(contracts) => contracts
+      Err(issue) => {
+        self.original.retain_primary(CommandRuntime(issue))
+        stop("PackagedLocalRuntimeChanged")
+      }
+    }
+  } else {
+    None
+  }
   self.original.with_business_request(self.capture, () => {
     let capture_recipes = []
     let plan = if first._retained_models.is_empty() {
@@ -529,6 +557,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
         },
         native_mock_effect_record_bytes(installation),
         capture_recipes,
+        query_contracts~,
+        report=issue => {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Managed(issue)),
+          )
+        },
         provider_factory=native_request_provider_factory,
       )
     } else {
@@ -664,6 +698,17 @@ fn native_mock_effect_import_construction(
       stop("LocalOriginalEffectCapacityUnavailable")
     })
     results = @results.count(declarations).to_int64()
+    // The Source-only Query route can import a prior completed Source Unit.
+    // Size the full producer Manifest and all its Results beside the Effect
+    // Unit. The actual import proof still has to select that same producer.
+    if imports == 1L &&
+      units == 1L &&
+      @run_host.client_direct_acquisition_occurrence_at(direct, 0)
+      is Some((source_stage, _, _)) &&
+      source_stage != unit &&
+      @stage_results.stage_at(stages, source_stage) is Some(producer) {
+      results += @results.count(producer).to_int64()
+    }
   } else {
     for index in 0..<units.to_int() {
       let (stage, _, _) = @run_host.client_direct_acquisition_occurrence_at(

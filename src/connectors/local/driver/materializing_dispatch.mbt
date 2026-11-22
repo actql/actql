@@ -464,6 +464,7 @@ pub fn[C, E] start_local_dispatch(
               Ok({
                 complete: value.complete,
                 waiting: value.waiting,
+                await_io: value.await_io,
                 settlement: value.settlement,
                 progress: value.progress,
                 work: value.work,

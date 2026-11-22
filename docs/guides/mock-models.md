@@ -33,9 +33,15 @@ not the spelling of the key. The catalog describes:
 - `query_aliases`: explicit `{name, resource}` pairs, optionally with a `request` JSON object. The object supplies literal request data to the existing Source request checker. Omitted fields stay omitted: no defaults or implicit `null` values are inserted. Request data does not introduce parameter, binding, permission, or provider authority.
 - `data`: explicit `resource`, `items_path`, `key_path` and `primary_identity`.
   No `rows`, `files`, `contents` or primary-key convention is inferred.
-- `writes`: explicit resource, primary identity, writable fields, `permission`,
-  `observe_permission`, `approval` and aliases. These are Mapping declarations,
-  not current authorization or approval.
+- `writes`: explicit resource, primary identity, `writable_fields`, `permission`,
+  `observe_permission`, `approval` and aliases. The optional `update_fields`
+  list is a nonempty, duplicate-free subset of `writable_fields`. It declares
+  the exact field set for this UPDATE Mapping. It defaults to all
+  `writable_fields`. The optional `write_null_fields` list selects nullable
+  writable fields that accept an explicit SQL `NULL` when they are part of the
+  UPDATE. The other selected fields retain the default NULL rejection, and
+  fields outside the UPDATE remain unchanged. These Mapping declarations do
+  not grant current authorization or approval.
 - `file_bindings`: explicit logical listing/content resources, physical data
   resource and identity/name/version/media-type/UTF-8 field roles.
 

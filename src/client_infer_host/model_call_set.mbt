@@ -116,8 +116,8 @@ pub fn bind_model_dispatch(
 
 ///|
 /// Private physical-port preparation, not an installed Host capability.
-/// The current Local managed profile has no I/O suspension contract and must
-/// refuse this binding before it begins a save or dispatches a provider.
+/// A synchronous Local component cannot suspend while an entry save is
+/// pending. Only the Local component bound to the Host wake can do so.
 pub fn bind_model_entry_persistence(
   active : Execution,
   prepared : @model.ModelPreparedCallSet,
@@ -127,7 +127,7 @@ pub fn bind_model_entry_persistence(
   guard !active.reclaimed &&
     !active.cancelled &&
     !active.advancing &&
-    !active.local_component_bound &&
+    !(active.local_component_binding is Synchronous) &&
     active.run_binding is Some(run) &&
     active.model is Some(model) &&
     @model.prepared_model_matches(prepared, model) &&

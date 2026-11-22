@@ -560,6 +560,7 @@ pub fn execute_local_materializing_attempt(
 pub(all) struct LocalMaterializingAdvance {
   complete : Bool
   waiting : Bool
+  await_io : Bool
   settlement : Int?
   progress : Int64
   work : Int64
@@ -681,6 +682,7 @@ pub fn advance_local_materializing_attempt(
         Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: None,
           progress,
           work,
@@ -691,7 +693,28 @@ pub fn advance_local_materializing_attempt(
       }
     Ok(Waiting(progress~, work~)) =>
       if bounded(progress, work, true) {
-        Ok({ complete: false, waiting: true, settlement: None, progress, work, })
+        Ok({
+          complete: false,
+          waiting: true,
+          await_io: false,
+          settlement: None,
+          progress,
+          work,
+        })
+      } else {
+        close_local_materializing_attempt(attempt)
+        Err(Candidate(InvalidLimits))
+      }
+    Ok(AwaitIo(progress~, work~)) =>
+      if bounded(progress, work, true) {
+        Ok({
+          complete: false,
+          waiting: false,
+          await_io: true,
+          settlement: None,
+          progress,
+          work,
+        })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))
@@ -701,6 +724,7 @@ pub fn advance_local_materializing_attempt(
         Ok({
           complete: false,
           waiting: false,
+          await_io: false,
           settlement: Some(slot),
           progress,
           work,
@@ -724,7 +748,14 @@ pub fn advance_local_materializing_attempt(
           return Err(Candidate(ForeignPreparation))
         }
         attempt.output = Some(anchored)
-        Ok({ complete: true, waiting: false, settlement: None, progress, work, })
+        Ok({
+          complete: true,
+          waiting: false,
+          await_io: false,
+          settlement: None,
+          progress,
+          work,
+        })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))

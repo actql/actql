@@ -109,6 +109,7 @@ pub fn check_values_recursive_resources(
             Text(_)
             | Number
             | Signed64
+            | Bytes
             | Boolean
             | Timestamp
             | Date

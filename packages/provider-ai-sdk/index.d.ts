@@ -91,6 +91,11 @@ export type RegisteredSdkProviderOptions = Pick<OpenAIChatProviderOptions,
 export declare function createRegisteredSdkProvider(
   options: RegisteredSdkProviderOptions,
 ): ConfiguredModelProviderRegistration;
+/** Configure the selected registered Providers together before preparing the
+ * project's Tasks. Supply a frozen list of distinct frozen Provider options. */
+export declare function createRegisteredSdkProviders(
+  options: readonly RegisteredSdkProviderOptions[],
+): ConfiguredModelProviderRegistration;
 /** Original canonical bytes and claimed identity, admitted by Common only. */
 export type OriginalBody = Readonly<{wire: string; cid: Sha256Cid}>;
 /** Closed generation installation DATA. It is not a physical support grant. */

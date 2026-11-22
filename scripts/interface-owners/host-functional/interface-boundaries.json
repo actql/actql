@@ -119766,7 +119766,8 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities"
           ],
           "exports": [],
           "attributes": {
@@ -122543,6 +122544,13 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -123740,7 +123748,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ffc40a1c5f06470b219dca2fd2b596a0bed1551198e7fda87e08490a01a47111"
+      "sha256": "2d6f28b3c53bca427be9d220fd551fe4e6701af319a227d3a96ce1be51811070"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -125648,7 +125656,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "51864ca4585832dd6a30955451ce74454685e8b12e4e42618665c1434ee02559",
+      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -134703,7 +134711,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "fc7d2493e4d6d866577a21632c2b37eceee7b199a3d1bd808e8b9c441de57953",
+      "sha256": "059757a2bcb879b03d600d72e2ba306d6c5cee434db86cf09b704585ea874cd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

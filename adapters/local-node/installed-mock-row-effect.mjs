@@ -238,8 +238,11 @@ export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOper
     0n, 0n, 0n, value.nodes, value.text, value.wire));
   const decode = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(
     capacity(zero), targetLimits.maxFileBytes, targetLimits.maxNodes, targetLimits.maxDepth));
-  const requestConstruction = checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(
-    capacity(workspace), [decode]));
+  // The guarded request child drops the parser and document when the original
+  // file read closes. Keep the complete simultaneous peak, while the row's
+  // immutable request uses the separate retained request envelope.
+  const requestConstruction = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(
+    capacity(workspace), targetLimits.maxFileBytes, targetLimits.maxNodes, targetLimits.maxDepth));
   // Projection owns checked values, admitted wrappers and row/cell indexes;
   // the file decoder is separate. Replacement Bytes coexist with original
   // file backing. Write additionally copies replacement Bytes into its Buffer.
@@ -277,7 +280,8 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   const maximum = targetLimits.maxFileBytes, work = targetLimits.maxWork;
   const catalogue = original.catalogue, profile = targets[0].write;
   const changes = (value, target) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
-    Object.keys(value).length > 0 && Object.keys(value).every(name => target.write.writable_fields.includes(name));
+    Object.keys(value).length > 0 &&
+    Object.keys(value).every(name => (target.write.update_fields ?? target.write.writable_fields).includes(name));
   const requests = new WeakMap(), descriptions = new WeakMap(), grants = new WeakMap();
   const codec = createMockFileRowCodec({bundle, original, call});
   const {admit, observe} = codec;

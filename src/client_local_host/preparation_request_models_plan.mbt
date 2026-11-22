@@ -4,6 +4,8 @@
 // This is neither a Scope, physical holding, retry grant nor cleanup owner.
 priv struct ClientInstalledModelReadPartition {
   graph : @publication_host.ClientInferPlanGraph
+  model_limits : @resources.LedgerLimits
+  node_quantities : @resources.QuantityAmounts?
   retained_bytes : Int64
   execution_bytes : Int64
 }
@@ -29,6 +31,7 @@ pub fn[I] prepare_request_models_source_free_plan(
   max_holdings : Int,
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
+  node_quantities? : Array[@resources.QuantityAmounts]? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   prepare_request_models_plan_owned(
     owner,
@@ -47,6 +50,7 @@ pub fn[I] prepare_request_models_source_free_plan(
     max_holdings,
     max_delegations,
     bootstrap,
+    node_quantities,
   )
 }
 
@@ -86,6 +90,7 @@ pub fn[I] prepare_request_models_capture_plan(
     max_holdings,
     max_delegations,
     bootstrap,
+    None,
   )
 }
 
@@ -107,6 +112,7 @@ fn[I] prepare_request_models_plan_owned(
   max_holdings : Int,
   max_delegations : Int,
   bootstrap : (Int64, Int64)?,
+  node_quantities : Array[@resources.QuantityAmounts]?,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   let (module_prepared, compilation, compute_limits, query_time) = match
     (source_free, captured) {
@@ -171,6 +177,7 @@ fn[I] prepare_request_models_plan_owned(
     graphs.length() == model_limits.length() &&
     graphs.length() == read_retained_bytes.length() &&
     graphs.length() == read_execution_bytes.length() &&
+    node_quantities_length_matches(node_quantities, graphs.length()) &&
     max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 else {
@@ -191,13 +198,34 @@ fn[I] prepare_request_models_plan_owned(
     return Err(ForeignOriginal)
   }
   let count = graphs.length()
+  // This Plan owns the Member Option wrappers and the one checked aggregate
+  // quantity record with its Result/Option controls through Scope admission.
+  let quantity_records = if node_quantities is Some(_) {
+    count.to_int64() + 5L
+  } else {
+    0L
+  }
+  let quantity_fields = if node_quantities is Some(_) {
+    count.to_int64() + 8L
+  } else {
+    0L
+  }
   guard @execution.preparation_array_representation(1L, count.to_int64(), true)
     is Some(array) &&
     @execution.preparation_representation_cost({
       ..array,
-      record_headers: array.record_headers + count.to_int64() + 1L,
-      reference_slots: array.reference_slots + count.to_int64() + 1L,
-      scalar_words: array.scalar_words + 2L * count.to_int64() + 1L,
+      record_headers: array.record_headers +
+      count.to_int64() +
+      1L +
+      quantity_records,
+      reference_slots: array.reference_slots +
+      3L * count.to_int64() +
+      1L +
+      quantity_fields,
+      scalar_words: array.scalar_words +
+      2L * count.to_int64() +
+      1L +
+      quantity_fields,
     })
     is Some(bytes) else {
     return Err(InsufficientCapacity)
@@ -250,7 +278,8 @@ fn[I] prepare_request_models_plan_owned(
     occurrences.length() == count &&
     model_limits.length() == count &&
     read_retained_bytes.length() == count &&
-    read_execution_bytes.length() == count else {
+    read_execution_bytes.length() == count &&
+    node_quantities_length_matches(node_quantities, count) else {
     return Err(ForeignOriginal)
   }
   let mut models : @resources.LedgerLimits = {
@@ -356,6 +385,11 @@ fn[I] prepare_request_models_plan_owned(
   for index, graph in retained_graphs {
     partitions.push({
       graph,
+      model_limits: model_limits[index],
+      node_quantities: match node_quantities {
+        Some(quantities) => Some(quantities[index])
+        None => None
+      },
       retained_bytes: read_retained_bytes[index],
       execution_bytes: read_execution_bytes[index],
     })
@@ -383,11 +417,112 @@ fn[I] prepare_request_models_plan_owned(
 }
 
 ///|
+fn node_quantities_length_matches(
+  quantities : Array[@resources.QuantityAmounts]?,
+  count : Int,
+) -> Bool {
+  match quantities {
+    None => true
+    Some(values) => values.length() == count
+  }
+}
+
+///|
+fn request_model_plan_has_node_quantities(
+  plan : ClientInstalledManagedModelPlan,
+) -> Bool {
+  plan.models is Some(models) &&
+  !models.is_empty() &&
+  models[0].node_quantities is Some(_)
+}
+
+///|
+// Each installation's cap is intersected with its own execution contract
+// before summing. A larger budget on one Provider cannot cover another's cap.
+fn request_planned_node_quantities(
+  models : Array[ClientInstalledModelReadPartition],
+) -> @resources.QuantityAmounts? {
+  let mut tokens = 0L
+  let mut cost = 0L
+  let mut duration = 0L
+  for partition in models {
+    guard partition.node_quantities is Some(installed) &&
+      installed.tokens >= 0L &&
+      installed.cost_units >= 0L &&
+      installed.duration_ms >= 0L else {
+      return None
+    }
+    let execution = @publication_host.client_infer_plan_graph_execution_contract(
+      partition.graph,
+    )
+    guard @execution.checked_preparation_add_product(
+        tokens,
+        Int64::min(
+          installed.tokens,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalTokenReservation,
+          ),
+        ),
+        1L,
+      )
+      is Some(t) &&
+      @execution.checked_preparation_add_product(
+        cost,
+        Int64::min(
+          installed.cost_units,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalCostUnits,
+          ),
+        ),
+        1L,
+      )
+      is Some(c) &&
+      @execution.checked_preparation_add_product(
+        duration,
+        Int64::min(
+          installed.duration_ms,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalDurationMs,
+          ),
+        ),
+        1L,
+      )
+      is Some(d) else {
+      return None
+    }
+    tokens = t
+    cost = c
+    duration = d
+  }
+  Some({ tokens, cost_units: cost, duration_ms: duration, })
+}
+
+///|
 fn request_model_plan_quantity_limits(
   plan : ClientInstalledManagedModelPlan,
-  installed : @resources.QuantityAmounts,
-) -> @resources.QuantityAmounts? {
-  request_model_group_quantity_limits(plan.graph, plan.models, installed)
+  installed : @resources.QuantityAmounts?,
+) -> Result[@resources.QuantityAmounts?, ClientInstalledManagedRunIssue] {
+  if request_model_plan_has_node_quantities(plan) {
+    if installed is Some(_) {
+      return Err(ForeignOriginal)
+    }
+    guard request_planned_node_quantities(plan.models.unwrap()) is Some(total) else {
+      return Err(InsufficientCapacity)
+    }
+    return Ok(Some(total))
+  }
+  match installed {
+    None => Ok(None)
+    Some(installed) =>
+      match
+        request_model_group_quantity_limits(plan.graph, plan.models, installed) {
+        None => Err(InsufficientCapacity)
+        Some(value) => Ok(Some(value))
+      }
+  }
 }
 
 ///|
@@ -499,9 +634,11 @@ fn bind_request_multiple_model_read_scopes(
   }
   let retained : Array[Int64] = []
   let execution : Array[Int64] = []
+  let limits : Array[@resources.LedgerLimits] = []
   for selected in models {
     retained.push(selected.retained_bytes)
     execution.push(selected.execution_bytes)
+    limits.push(selected.model_limits)
   }
   @publication_host.bind_client_model_read_scopes(
     plan.compiled,
@@ -511,6 +648,7 @@ fn bind_request_multiple_model_read_scopes(
     identity,
     retained,
     execution,
+    model_limits=Some(limits),
   )
 }
 
@@ -520,11 +658,16 @@ pub fn[I] prepare_request_models_read_scopes(
   input : I,
   plan : ClientInstalledManagedModelPlan,
   quantity_limits? : @resources.QuantityAmounts? = None,
+  require_planned_quantities? : Bool = false,
 ) -> Result[
   Array[@publication_host.ClientModelReadScope],
   ClientInstalledManagedRunIssue,
 ] {
-  if plan.models is None {
+  if plan.models is None ||
+    (
+      require_planned_quantities &&
+      !request_model_plan_has_node_quantities(plan)
+    ) {
     return Err(ForeignOriginal)
   }
   prepare_request_model_read_scopes_owned(
@@ -541,7 +684,9 @@ pub fn[I] reserve_request_models_plan_projection(
   owner : ClientRequestPreparation[I],
   input : I,
   count : Int,
+  node_physical? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let array_count = if node_physical { 4L } else { 3L }
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
@@ -551,10 +696,32 @@ pub fn[I] reserve_request_models_plan_projection(
     count > 1 &&
     count == graphs.length() &&
     owner.program_model is None &&
-    @execution.preparation_array_representation(3L, 3L * count.to_int64(), true)
-    is Some(arrays) &&
-    @execution.preparation_representation_cost(arrays) is Some(bytes) else {
+    @execution.preparation_array_representation(
+      array_count,
+      array_count * count.to_int64(),
+      true,
+    )
+    is Some(arrays) else {
     return Err(ForeignOriginal)
+  }
+  let n = if node_physical { count.to_int64() } else { 0L }
+  // Node projects a checked demand, changed LedgerLimits, quantity record, Result/Option
+  // and the synchronous per-member projector closure. The original
+  // Request backs these alongside the native projection arrays.
+  guard @execution.preparation_representation_cost({
+      ..arrays,
+      record_headers: arrays.record_headers +
+      9L * n +
+      (if node_physical { 1L } else { 0L }),
+      reference_slots: arrays.reference_slots +
+      28L * n +
+      (if node_physical { 1L } else { 0L }),
+      scalar_words: arrays.scalar_words +
+      27L * n +
+      (if node_physical { 1L } else { 0L }),
+    })
+    is Some(bytes) else {
+    return Err(InsufficientCapacity)
   }
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {

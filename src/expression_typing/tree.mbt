@@ -194,6 +194,7 @@ fn flatten(
       | "unix_seconds"
       | "byte_length"
       | "farm_fingerprint"
+      | "sha256"
       | "unicode"
       | "chr"
       | "reverse"

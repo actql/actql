@@ -414,7 +414,7 @@ test "metered Cross Join task preserves exact duplicate rows on its original Sou
     #|{"version":"actql/0.1","id":"funded-cross-chain","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"from":"r","cross_join":{"with":"r","select":{"id":"left.id"}},"as":"pairs"},{"from":"pairs","select":["id"],"as":"selected"},{"from":"selected","select":["id"],"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"compute","result":"rows"}}}}
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    "sha256:40c45acbf81bdf192d79b7e8f65a5731ba6065b1d4b8cc7b4cab89ab4ac85c60",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

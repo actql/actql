@@ -24,10 +24,10 @@ test('example ships exact adopted contract bodies, not test-generated execution 
     graph: aoa.execution_contracts['BRIDGE.rows.to_graph'],
   };
   const expected = {
-    registry: 'sha256:f4f66d1ce9e86d1cf3326f86a4909a27eed1c83f6e0a7603d7bd3b5f819873cc',
-    values: 'sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae',
-    fragment: 'sha256:0e118d8833c7c8f3d211d273d6f839591f459db0aaa8b0d770e562de2488111b',
-    graph: 'sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84',
+    registry: 'sha256:52e62094b1162213605e27199aa9a0e4832ee7771bcc1be66124f2fefb0a01e7',
+    values: 'sha256:acdc65097f478d6b14126eb2d2e1bdd8df5893de923b3f9db7412b73b4a318fe',
+    fragment: 'sha256:5041f5fb5d612d2db5a86b9aa4d6a47e5644b524db88cdebbc27923957b77736',
+    graph: 'sha256:1c871512fceef5e68415511a2fe40a62df2c287fb31360edca749b3f13921113',
   };
   for (const [key, identity] of Object.entries(expected)) {
     assert.equal(cid(authoritative[key as keyof typeof authoritative]), identity);

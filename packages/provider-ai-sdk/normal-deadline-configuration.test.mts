@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAIChatProvider, createRegisteredSdkProvider} from './_internal/normal-openai-chat.mjs';
+import {createOpenAIChatProvider, createRegisteredSdkProvider, createRegisteredSdkProviders} from './_internal/normal-openai-chat.mjs';
 import type {OriginalReadRecipeData, PhysicalTransportTimeouts} from './index.d.ts';
 
 type Registration = ReturnType<typeof createOpenAIChatProvider>;
@@ -53,6 +53,48 @@ test('registered configuration cannot take route or credential values from calle
     runtimeIdentity: () => 'runtime', artifactIdentity: () => 'layout'} as unknown as Context),
   {code: 'RegisteredSdkCredentialMismatch'});
   assert.equal(selections, 1);
+});
+
+test('one registered batch prepares the original Tasks once with distinct binding originals', async () => {
+  const {generation, budget, observeEgress} = options();
+  const ids = ['first', 'second'];
+  const configs = Object.freeze(ids.map(providerId => Object.freeze({providerId, generation, budget, observeEgress,
+    transportTimeouts: settings, dataHandlingContractWire: '{}'})));
+  const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity: () => [100n, 300n],
+    clientProgramInstalledNodeModelDeadlineCapacity: () => [456n, 456n]};
+  const sdkSelections: string[] = [], originals: object[] = [];
+  const fixture = {...context([]), runtimeIdentity: () => 'runtime', artifactIdentity: () => 'layout',
+    async prepareRegisteredSdk(id: string) {
+      sdkSelections.push(id);
+      return {adapterArtifactCid: 'adapter-' + id, sdkArtifactCid: 'sdk-' + id, lockArtifactCid: 'lock-' + id,
+        credential: {profile: {reference: 'FIXTURE_' + id}},
+        route: {selector: 'selector-' + id, modelId: 'model-' + id, apiMode: 'mode-' + id,
+          endpoint: 'https://' + id + '.invalid/generate'}};
+    },
+    async prepareBindingOriginals(project: () => readonly [string, string, string]) {
+      const wires = project().map(wire => JSON.parse(wire));
+      const id = ids[originals.length];
+      assert.equal(wires[0].provider_id, id);
+      assert.equal(wires[0].sdk_entry_artifact_cid, 'sdk-' + id);
+      assert.equal(wires[2].model_id, 'model-' + id);
+      assert.equal(wires[2].api_mode, 'mode-' + id);
+      assert.equal(wires[2].credential_reference, 'FIXTURE_' + id);
+      const original = Object.freeze({wires});
+      originals.push(original);
+      return original;
+    },
+    async prepareTasks(bindings: readonly {providerId: string; bindingOriginals: unknown}[]) {
+      assert.deepEqual(bindings.map(binding => binding.providerId), ids);
+      for (const [index, binding] of bindings.entries()) assert.equal(binding.bindingOriginals, originals[index]);
+      throw stop;
+    }};
+  const register = createRegisteredSdkProviders(configs);
+  await assert.rejects(register(moon as unknown as Runtime, fixture as unknown as Context), error => error === stop);
+  await assert.rejects(register(moon as unknown as Runtime, fixture as unknown as Context), {code: 'OpenAIProviderConfigurationReused'});
+  await assert.rejects(createRegisteredSdkProviders(Object.freeze([configs[0], configs[0]]))(moon as unknown as Runtime, fixture as unknown as Context),
+    {code: 'InvalidRegisteredSdkProviderConfigurations'});
+  assert.deepEqual(sdkSelections, ids);
+  assert.equal(originals.length, 2);
 });
 
 test('normal deadline adds only the actual Common R/E quote and preserves unselected profile', async () => {

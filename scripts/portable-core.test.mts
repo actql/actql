@@ -65,6 +65,16 @@ test('portable numeric primitive imports are reviewed only for their actual Owne
   }
 });
 
+test('portable Base64 import belongs only to canonical Bytes admission', t => {
+  const f = fixture(t);
+  const path = 'moonbitlang/core/encoding/base64';
+  f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/value_admission" }');
+  f.put('value_admission', 'moon.pkg', manifest + `import { "${path}" }`);
+  assert.ok(f.check().external[path]);
+  f.put('root', 'moon.pkg', manifest + `import { "${path}" }`);
+  assert.throws(f.check, /UnreviewedExternal: root/);
+});
+
 test('numeric Owner review retains unreviewed math, I/O and source-code refusal', t => {
   const f = fixture(t);
   f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/scalar_numeric_kernel" }');

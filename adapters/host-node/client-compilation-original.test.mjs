@@ -352,3 +352,65 @@ test('actual Request Node Model Plan binding forwards original layout and physic
   delete moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
   assert.throws(invoke, /Installed Node Model Plan unavailable/); assert.equal(calls, 2);
 });
+
+test('actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph', async () => {
+  const {runtimeCore} = await import('../host-common/runtime-core.mjs');
+  const parent = {}, input = {}, prepared = {}, module = {}, request = {};
+  const artifact = {}, native = {}, definitionToken = {}, plan = {};
+  const graphs = Object.freeze([{}, {}]), occurrences = Object.freeze([{}, {}]), bounds = Object.freeze([{}, {}]);
+  const installations = graphs.map((_, index) => Object.freeze({
+    nodeInstallation: Object.freeze({layout: {}, installation: {}, probability: {},
+      runtimeArtifactCid: 'runtime-' + index, layoutArtifactCid: 'layout-' + index}),
+    modelRetainedBytes: 123n + BigInt(index), modelExecutionBytes: 456n,
+    bootstrap: Object.freeze({maxReservations: 7, maxHoldings: 8, maxDelegations: 9,
+      bootstrapRetainedBytes: 23n, bootstrapExecutionBytes: 31n}),
+  }));
+  const quantities = [{tokens: 19n, costUnits: 2n, durationMs: 131n},
+    {tokens: 23n, costUnits: 3n, durationMs: 159n}];
+  const calls = [], ok = value => ({$tag: 1, _0: value});
+  let rejectSecond;
+  const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture',
+    clientProgramIssueTaskCompiledRun(p, value) {assert.equal(p, prepared); assert.equal(value, artifact); return ok(native);},
+    clientProgramBindCompiledInferResultPolicy: value => ok(value),
+    clientProgramIssueCompiledRunDefinition: value => {assert.equal(value, native); return ok(definitionToken);},
+    strategyRunEvidenceName: () => 'evidence', strategyRunEvidenceIdentity: () => 'identity', strategyRunEvidenceJson: () => '{}',
+    strategyPublicationContractName: () => 'run_definition', strategyPublicationContractIdentityField: () => 'run_id',
+    strategyPublicationContractIdentity: () => 'definition', strategyPublicationContractJson: () => '{}',
+    clientProgramPrepareRequestNodeModelsSourceFreePlan(...args) {
+      assert.equal(this, moon);
+      assert.deepEqual(args.slice(0, 9), [parent, input, module, request, native, definitionToken, occurrences, graphs, bounds]);
+      const project = args[9];
+      for (const [index, original] of installations.entries()) {
+        const {nodeInstallation: node} = original;
+        const result = project(index, (...fields) => {
+          assert.deepEqual(fields, [node.layout, node.installation, node.runtimeArtifactCid, node.layoutArtifactCid,
+            node.probability, original.modelRetainedBytes, 456n, 7, 8, 9, 23n, 31n,
+            quantities[index].tokens, quantities[index].costUnits, quantities[index].durationMs]);
+          calls.push('check' + index);
+          return index === 1 && rejectSecond !== undefined ? {$tag: 0, _0: rejectSecond} : ok({});
+        });
+        if (result.$tag === 0) return result;
+      }
+      return ok(plan);
+    },
+    clientProgramPrepareRequestModelsSourceFreePlan() {assert.fail('Grouped physical Plans do not fall back');},
+  };
+  for (const name of ['Template', 'Plan', 'Prepared', 'Authorization', 'Admission']) moon['clientProgramCompiledRun' + name] = () => ({});
+  const control = runtimeCore(moon).publicationControl;
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer',
+    {resultDataPolicy: {kind: 'data_policy', cid: 'policy', wire: '{}'}}, graphs, artifact);
+  const definition = control.defineCheckedClientCompiledRun(compiled, {});
+  const invoke = (c = compiled, d = definition) => control.prepareCheckedClientRequestNodeModelsSourceFreePlan(
+    parent, input, module, request, c, d, occurrences, graphs, bounds, index => {
+      calls.push('borrow' + index);
+      return {originalReadInstallation: installations[index],
+        selection: {quantityCapacity: {limits: quantities[index]}}};
+    });
+  assert.equal(invoke(), plan);
+  assert.throws(() => invoke({...compiled}), /Foreign Client compiled Infer preparation/);
+  assert.throws(() => invoke(compiled, {...definition}), /Foreign publication contract/);
+  assert.deepEqual(calls, ['borrow0', 'check0', 'borrow1', 'check1']);
+  rejectSecond = {original: 'second physical layout refusal'};
+  assert.throws(invoke, cause => cause.cause === rejectSecond);
+  assert.deepEqual(calls.slice(4), ['borrow0', 'check0', 'borrow1', 'check1']);
+});

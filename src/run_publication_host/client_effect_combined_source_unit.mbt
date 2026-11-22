@@ -121,13 +121,14 @@ pub fn client_effect_combined_source_unit_construction_geometry(
   Array[(String, @encode.EncodingConstructionGeometry)],
   ClientEffectAcquiredEvidenceIssue,
 ] {
-  client_effect_source_unit_construction_geometry(
+  measure_client_effect_source_unit(
     client_effect_direct_source_unit_inputs(value),
     unit,
     retention,
     max_bytes,
     max_nodes,
     max_depth,
+    allow_single_query=true,
   )
 }
 
@@ -257,15 +258,21 @@ fn prepare_client_effect_source_unit_body(
       relations.push(relation)
     }
   }
-  if contributions.length() < 2 {
-    return Err(Invocation(MissingCapturedInput))
-  }
-  let scope = match
-    @publication.issue_combined_acquisition_scope(
-      scopes, max_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Relation(issue))
+  let scope = if contributions.length() == 1 &&
+    final_context is Some(_) &&
+    source.originals[contributions[0].slot] is QuerySourceOriginal(_) {
+    contributions[0].scope
+  } else {
+    if contributions.length() < 2 {
+      return Err(Invocation(MissingCapturedInput))
+    }
+    match
+      @publication.issue_combined_acquisition_scope(
+        scopes, max_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Relation(issue))
+    }
   }
   relations.sort_by(fn(a, b) {
     @canonical_value.compare_utf16(
@@ -551,6 +558,7 @@ fn build_combined_source_client_effect_result_artifact(
   ClientEffectLocalResultArtifactIssue,
 ] {
   let source = combined.original.source
+  let result = @strategy.captured_effect_local_result_export_result(exported)
   if !physical_equal(combined.original.owner, owner) ||
     !(match custody {
       EffectInputs(inputs) =>
@@ -561,11 +569,6 @@ fn build_combined_source_client_effect_result_artifact(
           owner.graph,
         )
     }) ||
-    !@strategy.captured_effect_local_result_export_matches_computed_unit(
-      exported,
-      owner.graph,
-      combined.invocation.unit,
-    ) ||
     !combined.contributions.all(part => {
       @query.captured_source_available(source.captures[part.slot]) &&
       (match custody {
@@ -596,7 +599,29 @@ fn build_combined_source_client_effect_result_artifact(
     }) {
     return Err(ForeignExport)
   }
-  let result = @strategy.captured_effect_local_result_export_result(exported)
+  let captured_query_result = match custody {
+    EffectInputs(inputs) if combined.final_context is Some(_) &&
+      combined.contributions.length() == 1 => {
+      let slot = combined.contributions[0].slot
+      @strategy.captured_effect_local_result_stage(result) ==
+      combined.invocation.unit &&
+      source.originals[slot] is QuerySourceOriginal(_) &&
+      @strategy.captured_effect_local_result_matches_source(
+        inputs,
+        result,
+        source.identities[slot],
+      )
+    }
+    _ => false
+  }
+  if !captured_query_result &&
+    !@strategy.captured_effect_local_result_export_matches_computed_unit(
+      exported,
+      owner.graph,
+      combined.invocation.unit,
+    ) {
+    return Err(ForeignOwner)
+  }
   let borrow = @strategy.captured_effect_local_result_borrow(result)
   if !client_effect_local_result_definition_matches(
       definition,
@@ -784,6 +809,30 @@ pub fn client_effect_source_unit_construction_geometry(
   Array[(String, @encode.EncodingConstructionGeometry)],
   ClientEffectAcquiredEvidenceIssue,
 ] {
+  measure_client_effect_source_unit(
+    value,
+    unit,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    allow_single_query=false,
+  )
+}
+
+///|
+fn measure_client_effect_source_unit(
+  value : ClientEffectSourceUnitInputs,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  allow_single_query~ : Bool,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectAcquiredEvidenceIssue,
+] {
   let (definition, values, contracts) = match
     client_effect_source_unit_definition(value, unit) {
     Ok(value) => value
@@ -795,6 +844,7 @@ pub fn client_effect_source_unit_construction_geometry(
   let inputs = []
   let rows = []
   let observations = []
+  let mut contains_whole = false
   for slot, coordinate in source.occurrences.coordinates {
     if coordinate.0 != unit {
       continue
@@ -802,6 +852,7 @@ pub fn client_effect_source_unit_construction_geometry(
     match source.originals[slot] {
       QuerySourceOriginal(_) => () // SAME admitted Query document is borrowed.
       WholeSourceOriginal(acquisition) => {
+        contains_whole = true
         let geometry = match
           @acquisition.parameterized_request_canonical_geometry(
             @acquisition.source_acquisition_request(acquisition),
@@ -824,12 +875,20 @@ pub fn client_effect_source_unit_construction_geometry(
       @publication.run_evidence_value_identity(source.sources[slot]),
     )
   }
-  if sources.length() < 2 {
+  let singleton = allow_single_query && sources.length() == 1 && !contains_whole
+  if sources.length() < 2 && !singleton {
     return Err(Invocation(MissingCapturedInput))
   }
   let metadata = match
     @publication.source_unit_metadata_construction_geometry(
-      sources, inputs, rows, retention, max_bytes, max_nodes, max_depth,
+      sources,
+      inputs,
+      rows,
+      retention,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      include_union=!singleton,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
@@ -974,10 +1033,44 @@ pub fn client_effect_source_unit_artifact_construction_geometry(
   Array[(String, @encode.EncodingConstructionGeometry)],
   ClientEffectLocalResultArtifactIssue,
 ] {
+  measure_client_effect_unit_result_artifact(
+    combined.original.owner,
+    combined.invocation,
+    combined.relations,
+    combined.scope,
+    combined.retention,
+    combined.original.source.data_policy_cid,
+    result_name,
+    receipt,
+    admission,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn measure_client_effect_unit_result_artifact(
+  owner : PreparedClientEffectComputation,
+  invocation : ClientEffectLocalInvocation,
+  relations : Array[@publication.PublicationContract],
+  scope : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  data_policy : String,
+  result_name : String,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectLocalResultArtifactIssue,
+] {
   let definition = match
     client_effect_local_result_definition_construction_geometry(
-      combined.original.owner,
-      combined.invocation.unit,
+      owner,
+      invocation.unit,
       result_name,
       max_bytes,
       max_nodes,
@@ -988,21 +1081,21 @@ pub fn client_effect_source_unit_artifact_construction_geometry(
   }
   let shapes = match
     @publication.local_result_metadata_construction_geometry(
-      combined.invocation.unit_definition_cid,
-      combined.invocation.cid,
+      invocation.unit_definition_cid,
+      invocation.cid,
       @execution.logical_relation_cid(
         @execution.completed_relation_export_identity(receipt),
       ),
       @execution.relation_schema_cid(
         @execution.completed_relation_export_schema_identity(receipt),
       ),
-      combined.invocation.unit_definition_cid,
-      combined.relations.map(@publication.publication_contract_identity),
-      @publication.publication_contract_identity(combined.scope),
-      combined.original.source.data_policy_cid,
+      invocation.unit_definition_cid,
+      relations.map(@publication.publication_contract_identity),
+      @publication.publication_contract_identity(scope),
+      data_policy,
       "actql-common-host",
       @publication.run_publication_execution_context(admission),
-      @publication.publication_contract_identity(combined.retention),
+      @publication.publication_contract_identity(retention),
       @execution.completed_relation_export_measurement(receipt).row_count,
       max_bytes,
       max_nodes,

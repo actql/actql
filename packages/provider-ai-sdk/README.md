@@ -37,6 +37,13 @@ initialization seals the module inventory. Later Hosts can reuse those same
 modules. Selecting an unheld module fails before Provider registration.
 Each Host authorizes its own Provider registrations and credential use.
 
+To configure more than one registered Provider for a Host, pass a frozen list
+of distinct Provider options to `createRegisteredSdkProviders`. Include every
+corresponding registration in the first Host's `modelSdkRegistrations`. A Task
+can select its Provider ID and model alias with `model.provider` and `model.name`
+in the Task declaration. Each Provider uses its own admitted configuration,
+response profile and credential reference.
+
 The pinned Anthropic Messages adapter selects `claude-sonnet-4-6` with
 `structuredOutputMode: 'outputFormat'`. Its serial text profile sends
 temperature, requires neutral `topP: 1`, and refuses a seed. Put only the

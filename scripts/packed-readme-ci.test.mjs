@@ -1330,15 +1330,19 @@ test('required Native counter stays case-scoped and nonzero through the original
   assert.equal(selected.argument.arguments[0].type, 'Identifier');
   assert.equal(selected.argument.arguments[0].name, 'test');
   const environment = nativeCoreScopedTestEnvironment;
-  assert.deepEqual(environment({source: file, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
-  for (const test of [{source: file, index: 12}, {source: file, index: 14},
-    {source: 'src/platform_native/client_host/another.mbt', index: 13}]) {
+  const selectedTest = {source: file, index: 31,
+    name: 'Native Mock Account opens its original consuming Journal Read before Model dispatch'};
+  assert.deepEqual(environment(selectedTest), {ACTQL_NATIVE_TIMINGS: '1'});
+  for (const test of [{source: file, index: selectedTest.index},
+    {...selectedTest, name: 'An unrelated scoped Native case'},
+    {...selectedTest, source: 'src/platform_native/client_host/another.mbt'}]) {
     assert.deepEqual(environment(test), {});
   }
   const command = source.slice(node.start, node.end);
   assert(command.includes("runFocusedTests('moon'"));
   assert(command.includes('expectedTests: 1'));
-  const originalArgs = ['--target', 'native', '--release', file, '--index', '13', '--target-dir', '/original/target'];
+  const originalArgs = ['--target', 'native', '--release', file, '--index', String(selectedTest.index),
+    '--target-dir', '/original/target'];
   const inline = node.arguments[1].elements[2];
   const childCode = runInNewContext(source.slice(inline.start, inline.end), {
     JSON, scopedArgs: originalArgs, timeout: 1234, scopedScratch: {path: '/original/evidence'},

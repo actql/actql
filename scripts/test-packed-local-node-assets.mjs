@@ -80,7 +80,7 @@ sourceEnvironment.schema_snapshots = [{...sourceSelector,
   data_classification: 'unknown'}];
 sourceEnvironment.connector_capabilities = [{...sourceSelector,
   capability_contract_cids: [
-    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929'],
+    'sha256:359725157c8d5d9b883eaf58bdf1772c6864b5c6a1845470d6e183bc8aaf2807'],
 }];
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
