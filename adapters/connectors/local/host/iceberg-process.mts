@@ -25,7 +25,7 @@ type StorageControl = {
   localEffectTableStorageMapping(artifact: unknown, limits: unknown): unknown;
   admitLocalTableStorageMapping(mappingWire: string, limits: unknown): unknown;
 };
-type CommitProjection = {control: Pick<StorageControl, 'localTableCommitResponse'> | null | undefined;
+type CommitProjection = {control: Partial<Pick<StorageControl, 'localTableCommitResponse'>> | null | undefined;
   responseWire: string; statusCode: number; limits: unknown};
 type StorageIssue = {control: Pick<StorageControl, 'localEffectTableStorageMapping'>; artifact: unknown; limits: unknown};
 type StorageAdmission = {control: Pick<StorageControl, 'admitLocalTableStorageMapping'>; mappingWire: string; limits: unknown};
