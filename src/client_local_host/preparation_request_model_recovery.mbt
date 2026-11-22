@@ -334,6 +334,7 @@ pub fn[I] prepare_request_model_recovery_read_scopes(
           graphs[0],
           owner.ledger,
           identity,
+          model_limits=Some(model_limits),
         )
         .map(scope => [scope])
         .map_err(issue => ModelRead(issue))

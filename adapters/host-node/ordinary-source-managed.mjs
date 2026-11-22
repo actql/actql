@@ -15,6 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
+import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 
@@ -822,10 +823,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           };
           const currentMember = () => {assertOriginal(); assertMemberIdentity();};
           const publicationCapacity = () => {currentMember(); return Reflect.apply(publication, model, []);};
+          // Startup retains the same physical adapter grant as a fresh
+          // installed read. The native allowance stays in the Model Scope for
+          // its original attempts, evidence and output.
+          const startup = physical === undefined ? memberBudget : inferOriginalReadStartupCapacity(physical);
           const fields = {selection, control, compiled, runDefinition: definition, scope,
             publicationCapacity, assertRuntimeCurrent: currentMember,
             readRetainedBytes: memberBudget.readRetainedBytes, readExecutionBytes: memberBudget.readExecutionBytes,
-            modelRetainedBytes: memberBudget.modelRetainedBytes, modelExecutionBytes: memberBudget.modelExecutionBytes,
+            modelRetainedBytes: startup.modelRetainedBytes, modelExecutionBytes: startup.modelExecutionBytes,
             ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation, metadataInstallation: physical})};
           const prepareRead = () => {
             currentMember();

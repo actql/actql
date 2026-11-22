@@ -341,8 +341,34 @@ test "cold Model Scope binds the original recovery Request census and ledger wit
     ]),
   )
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
-  @publication_host.stop_client_model_read(read).unwrap()
-  @publication_host.settle_client_model_read(read, true).unwrap()
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read,
+    f.compiled,
+    f.definition,
+    f.graph,
+    7L,
+    5L,
+  ).unwrap()
+  @publication_host.enter_client_model_read_consumer(
+    consumer,
+    f.compiled,
+    f.definition,
+    f.graph,
+    7L,
+    5L,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_model_read_consumer_model_limits(
+      consumer,
+      f.compiled,
+      f.definition,
+      f.graph,
+    ).unwrap()
+    is Some(limits) &&
+    physical_equal(limits, effect_model_plan_limits),
+  )
+  @publication_host.stop_client_model_read_consumer(consumer).unwrap()
+  @publication_host.settle_client_model_read_consumer(consumer, true).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
       scope,

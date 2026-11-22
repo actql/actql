@@ -115598,6 +115598,7 @@
         "./client-program-preparation.mjs",
         "./client-request-journal.mjs",
         "./infer-operation.mjs",
+        "./infer-original-installation.mjs",
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
@@ -115609,7 +115610,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2b00e1e52d108e49f53fa7d75fc43ff1c24ec3fe907fbf59cb811014a74fdc5b"
+      "sha256": "bb5a6725790cce4393a218dc3ea9955d91828d295ac7fa877325938b0b9ce95a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
