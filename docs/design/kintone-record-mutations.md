@@ -833,3 +833,16 @@ cleanup, and must fund the retained values, lookup and before projection
 before construction. Neither branch can retry or change the selected request.
 The focused proposal control checks exact request bodies in both branches
 and refuses a foreign lookup, key replacement and missing required fields.
+
+The native proposal quote reuses the existing checked-value construction
+inventory shared with UPDATE. It adds the selected lookup request, its
+retained encoded body and selected field backing. Escaping, UTF-8 validation,
+Array growth, temporary field controls and the open writer are workspace.
+The original Form, selector and field text remain borrowed. The body extent
+uses the original selected field names and the admitted key and writer limits.
+
+The existing preparation owner composes these quantities before the proposal.
+The quote prices this constructor only. Physical ingress, lookup response
+admission, request finalization, cancellation and cleanup retain their existing
+owners. Exact and one-byte-short lookup controls exercise the original writer
+and demonstrate that the extra quote follows the bounded output.

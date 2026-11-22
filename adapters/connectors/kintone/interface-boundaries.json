@@ -9140,9 +9140,13 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "2523a5ff74598dc3dc43abe5d84a0e7697b4888f1d0b439307ec66cf0bb26755",
+      "sha256": "2128901421fd2fa1172524313478be037abfab2c7339a3912fea6446264f9d97",
       "exports": [],
       "operations": [
+        {
+          "name": "record_mutation_proposal_values_inventory",
+          "declaration": "record_mutation_proposal_values_inventory ( original : RecordDeclaration , field_count : Int , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
         {
           "name": "record_update_finalization_construction_capacity",
           "declaration": "record_update_finalization_construction_capacity ( mapping : RecordUpdateMapping , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
@@ -9207,7 +9211,8 @@
             "record_update_target_construction_capacity",
             "record_update_target_construction_inventory",
             "update_construction_capacity",
-            "update_construction_empty"
+            "update_construction_empty",
+            "record_mutation_proposal_values_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -9269,6 +9274,91 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Quantities verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_key_upsert_construction.mbt",
+      "sha256": "07a27d12dc248baad55d387f1e938a020fd10a097f42da139b0057ef7dbbaf3e",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone proposal and Common execution preparation inventories",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_key_upsert_proposal_construction_capacity",
+          "declaration": "record_key_upsert_proposal_construction_capacity ( mapping : RecordKeyUpsertMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , lookup : @ catalog . RecordLookupLimits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_key_upsert_proposal_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The native proposal quote reuses the existing checked-value construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "retained encoded body and selected field backing."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The original Form, selector and field text remain borrowed."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The existing preparation owner composes these quantities before the proposal."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "temporary field controls and the open writer are workspace."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Exact and one-byte-short lookup controls exercise the original writer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "admission, request finalization, cancellation and cleanup retain their existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The body extent"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Physical ingress, lookup response"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "demonstrate that the extra quote follows the bounded output."
               }
             ]
           }

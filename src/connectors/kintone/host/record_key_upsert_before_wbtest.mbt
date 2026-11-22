@@ -449,3 +449,97 @@ test "mapped UPSERT proposal binds both outcomes to its exact original lookup an
     )
   }
 }
+
+///|
+test "UPSERT lookup proposal quote adds retained body and bounded writer work on the same values" {
+  let original = key_before_declaration(key_before_catalog(memo_required=true))
+  let mapping = prepare_record_key_upsert_mapping(
+    original,
+    "customers",
+    "customer_code",
+    [{ target: "memo", field: "next", null_behavior: "reject", }],
+    delete_declaration_limits(),
+  ).unwrap()
+  let input = b"{\"memo\":\"next\"}"
+  let key = "ord\\\"東京"
+  let lookup = key_before_lookup_limits()
+  let write = key_before_write_limits()
+  let mutation = create_construction_request()
+  let proposal = prepare_record_key_upsert_proposal(
+    mapping,
+    key,
+    input,
+    input.length(),
+    write,
+    lookup,
+  ).unwrap()
+  let body = @catalog.record_lookup_request_body(
+    record_key_upsert_proposal_lookup(proposal),
+  )
+  let bound = @utf8.encode(body).length()
+  assert_true(bound > 1)
+  let exact = { ..lookup, max_request_bytes: bound, }
+  assert_true(
+    prepare_record_key_upsert_proposal(
+      mapping,
+      key,
+      input,
+      input.length(),
+      write,
+      exact,
+    )
+    is Ok(_),
+  )
+  let short = { ..exact, max_request_bytes: bound - 1, }
+  assert_true(
+    prepare_record_key_upsert_proposal(
+      mapping,
+      key,
+      input,
+      input.length(),
+      write,
+      short,
+    )
+    is Err(Lookup(BudgetExceeded)),
+  )
+  let quote = record_key_upsert_proposal_construction_capacity(
+    mapping,
+    input.length(),
+    write,
+    mutation,
+    exact,
+  ).unwrap()
+  let tiny = record_key_upsert_proposal_construction_capacity(
+    mapping,
+    input.length(),
+    write,
+    mutation,
+    short,
+  ).unwrap()
+  let base = update_construction_capacity(
+    record_mutation_proposal_values_inventory(
+      original,
+      1,
+      input.length(),
+      write,
+      mutation,
+    ).unwrap(),
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(quote)
+  let work = @execution.execution_capacity_execution_bytes(quote)
+  assert_true(retained > @execution.execution_capacity_retained_bytes(base))
+  assert_true(work > @execution.execution_capacity_execution_bytes(base))
+  assert_true(work > retained)
+  assert_true(@execution.execution_capacity_retained_bytes(tiny) < retained)
+  assert_true(@execution.execution_capacity_execution_bytes(tiny) < work)
+  assert_true(
+    record_key_upsert_proposal_construction_capacity(
+      mapping,
+      input.length(),
+      write,
+      mutation,
+      { ..exact, max_columns: 1, },
+    )
+    is None,
+  )
+}

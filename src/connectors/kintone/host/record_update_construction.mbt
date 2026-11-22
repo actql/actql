@@ -46,12 +46,27 @@ pub fn record_update_proposal_construction_inventory(
   if !record_update_mapping_is_original(mapping) {
     return None
   }
+  record_mutation_proposal_values_inventory(
+    mapping.original,
+    mapping.written_fields.length(),
+    max_input_bytes,
+    write,
+    request,
+  )
+}
+
+///|
+// The admitted write values and their synchronous parser have the same
+// construction geometry before either UPDATE or keyed UPSERT looks up a row.
+fn record_mutation_proposal_values_inventory(
+  original : RecordDeclaration,
+  field_count : Int,
+  max_input_bytes : Int,
+  write : @catalog.RecordWriteLimits,
+  request : @catalog.RecordMutationLimits,
+) -> RecordUpdateConstructionInventory? {
   guard record_write_admission_construction_inventory(
-      mapping.original,
-      mapping.written_fields.length(),
-      max_input_bytes,
-      write,
-      request,
+      original, field_count, max_input_bytes, write, request,
     )
     is Some(native) &&
     record_read_decoded_construction(
@@ -61,7 +76,7 @@ pub fn record_update_proposal_construction_inventory(
       false,
     )
     is Some(parser) &&
-    record_write_value_construction_extents(mapping.original, write)
+    record_write_value_construction_extents(original, write)
     is Some((values, _)) else {
     return None
   }

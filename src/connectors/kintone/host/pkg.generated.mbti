@@ -166,6 +166,8 @@ pub fn record_key_upsert_before_wire(RecordKeyUpsertBefore) -> String?
 
 pub fn record_key_upsert_mapping(RecordKeyUpsertMapping) -> @client_row_source_host.RowMapping
 
+pub fn record_key_upsert_proposal_construction_capacity(RecordKeyUpsertMapping, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, @catalog.RecordLookupLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_key_upsert_proposal_lookup(RecordKeyUpsertProposal) -> @catalog.RecordLookupRequest
 
 pub fn record_page_next_cursor(RecordRead, String?, Int) -> Result[String?, RecordReadIssue]
