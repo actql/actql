@@ -9,13 +9,13 @@ type Ports = Readonly<{
   projectInferEvidence?: unknown;
   preparePrivatePublicationHolding?: unknown;
 }>;
-type GroupFactory = (options: unknown) => unknown;
+type GroupModule = typeof import('../acquired-effect-model-group.mjs');
 let sequence = 0;
 
 // The selected module instance uses the real group and publication code. A
 // fixture can supply only the original dependency ports that it observes.
-export async function loadAcquiredEffectModelGroup(ports: Ports): Promise<GroupFactory> {
-  const target = new URL('../acquired-effect-computation.mjs', import.meta.url);
+export async function loadAcquiredEffectModelGroup(ports: Ports): Promise<GroupModule['acquiredEffectModelGroup']> {
+  const target = new URL('../acquired-effect-model-group.mjs', import.meta.url);
   target.searchParams.set('model-group', String(++sequence));
   const publication = new URL('../acquired-effect-model-publication.mjs', import.meta.url);
   publication.search = target.search;
@@ -36,7 +36,8 @@ ${constants}`;
   };
   bind(originalImports, target, './infer-capture-custody.mjs', ['openNodeInferCaptureCustody']);
   bind(originalImports, target, './local-values-plan.mjs',
-    ['prepareAcquiredEffectSourceUnits', 'acquiredInferEffectPublicationPlan', 'localContractLimits']);
+    ['prepareAcquiredEffectSourceUnits', 'acquiredInferEffectPublicationPlan']);
+  bind(originalImports, target, './local-publication-limits.mjs', ['localContractLimits']);
   bind(typedImports, publication, './infer-operation.mjs', ['startCompleteInferObservation']);
   bind(typedImports, publication, './infer-evaluation-evidence.mjs', ['projectInferEvidence']);
   bind(typedImports, publication, '../host-common/private-publication-holding.mjs', ['preparePrivatePublicationHolding']);
@@ -50,7 +51,7 @@ ${constants}`;
     return url === undefined ? next(specifier, context) : {url, shortCircuit: true};
   }});
   try {
-    const loaded = await import(target.href);
+    const loaded = await import(target.href) as GroupModule;
     return loaded.acquiredEffectModelGroup;
   } finally {
     hook.deregister();

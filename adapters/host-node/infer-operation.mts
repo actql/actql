@@ -1878,7 +1878,7 @@ type ComposedPreparation = Partial<OriginalPreparation> & Readonly<{
   restoreRead?: (restored?: RestoredInput) => OriginalPreparation;
 }>;
 type CapturedInput = Readonly<{recovery?: unknown; binding?: unknown}>;
-type PrepareOriginalResults = (inputs: unknown) => readonly Readonly<{index: number; artifact: unknown; manifest: unknown}>[];
+type PrepareOriginalResults = (inputs: unknown) => readonly Readonly<{index: number; artifact: unknown; manifest: unknown}>[] | undefined;
 type PrepareSourceContext = () => Readonly<{sources: unknown; capturedInput?: CapturedInput}>;
 type ComposedContext = Readonly<{
   selected: ComposedSelected; sources?: unknown; control?: BindControl & ContentControl; plan?: RunPlan;

@@ -15,6 +15,7 @@ import {acquisitionEndHandoff, acquisitionFailure} from
   '../host-common/acquisition-outcome.mjs';
 import {openAcquiredEffectComputation} from './fixtures/acquired-effect-computation.fixture.mjs';
 import {openAcquiredEffectComputation as openEffectComputation} from './acquired-effect-computation.mjs';
+import {selectRestoredKeyedSource} from './acquired-effect-model-group.mjs';
 
 
 test('source-free composed Model admission retains custody without opening an installed Source', async () => {
@@ -1033,19 +1034,15 @@ test('restored Model waiting keeps its same custody without pinning or construct
 });
 
 test('restored keyed publication uses the actual saved Source leaves and refuses changed direct evidence', () => {
-  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const fn = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'selectRestoredKeyedSource');
-  const select = new Function('return (' + source.slice(fn.start, fn.end) + ');')();
   const left = {source: {identity: 'left-evidence'}, logicalRelationCid: 'left'},
     right = {source: {identity: 'right-evidence'}, logicalRelationCid: 'right'},
     keyed = {source: {identity: 'keyed-evidence'}, logicalRelationCid: 'keyed'};
   const moon = {clientProgramCapturedSourceLogicalCid: value => value};
   const direct = [left, right].map(value => ({captured: {identity: value.logicalRelationCid}, sourceEvidence: value.source}));
-  assert.strictEqual(select(moon, [keyed, right, left], direct), keyed);
-  assert.throws(() => select(moon, [keyed, right, left], [{...direct[0], sourceEvidence: right.source}, direct[1]]),
+  assert.strictEqual(selectRestoredKeyedSource(moon, [keyed, right, left], direct), keyed);
+  assert.throws(() => selectRestoredKeyedSource(moon, [keyed, right, left], [{...direct[0], sourceEvidence: right.source}, direct[1]]),
     {message: 'RestoredModelSourceOriginalsUnavailable'});
-  assert.throws(() => select(moon, [keyed, keyed, left], direct), {message: 'RestoredModelSourceOriginalsUnavailable'});
+  assert.throws(() => selectRestoredKeyedSource(moon, [keyed, keyed, left], direct), {message: 'RestoredModelSourceOriginalsUnavailable'});
 });
 
 
