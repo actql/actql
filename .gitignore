@@ -1205,6 +1205,10 @@ target/
 /adapters/host-node/installed-source-physical-construction.d.mts
 /adapters/host-node/installed-source-material-accounting.mjs
 /adapters/host-node/installed-source-material-accounting.d.mts
+/adapters/host-node/installed-source-context-custody.mjs
+/adapters/host-node/installed-source-context-custody.d.mts
+/adapters/host-node/installed-source-service-capture.test.mjs
+/adapters/host-node/installed-source-service-capture.test.d.mts
 /adapters/host-node/installed-model-task-construction.test.mjs
 /adapters/host-node/installed-model-task-construction.test.d.mts
 /adapters/host-node/installed-source-publication-original.test.mjs

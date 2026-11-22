@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {captureInstalledSourceServices} from './installed-host-services.mjs';
+import {captureInstalledSourceServices} from './installed-source-context-custody.mjs';
 
 const names = ['sourceReaderImplementationProfile', 'sourceReaderImplementation', 'openRowSite', 'createSourceReader'];
 
 test('Source service snapshot captures four original methods and receiver before metadata await', async () => {
-  const receiver = {}, calls = [], results = names.map(() => ({}));
-  for (const [index, name] of names.entries()) receiver[name] = function(...args) {
+  const receiver: Record<string, (...args: unknown[]) => unknown> = {}, calls: unknown[][] = [], results = names.map(() => ({}));
+  for (const [index, name] of names.entries()) receiver[name] = function(...args: unknown[]) {
     assert.equal(this, receiver); calls.push([name, ...args]); return results[index];
   };
   const unavailable = () => {assert.fail('healthy service');};
@@ -32,7 +32,7 @@ test('Source service snapshot rejects missing inherited accessor and proxy metho
   const revoked = Proxy.revocable(healthy, {}); revoked.revoke();
   for (const input of [undefined, null, {}, Object.create(healthy), accessor,
     {...healthy, openRowSite: 1}, new Proxy(healthy, {ownKeys() {traps++; return [];},
-      getOwnPropertyDescriptor() {traps++;}}), revoked.proxy]) {
+      getOwnPropertyDescriptor(): undefined {traps++;}}), revoked.proxy]) {
     assert.throws(() => captureInstalledSourceServices(input, unavailable), error => error === original);
   }
   const service = captureInstalledSourceServices(healthy, unavailable);
@@ -46,16 +46,16 @@ test('Source service snapshot rejects missing inherited accessor and proxy metho
 
 test('Source service invoker preserves exact Promise failure and cleanup carrier without wrapping', async () => {
   const original = Object.freeze({code: 'OriginalPending', cleanupPending: true, cleanupHandle: {}});
-  let reject;
+  let reject!: (reason: unknown) => void;
   const pending = new Promise((_resolve, fail) => {reject = fail;});
-  const receiver = Object.fromEntries(names.map(name => [name, function() {
+  const receiver = Object.fromEntries(names.map(name => [name, function(this: unknown) {
     assert.equal(this, receiver); return pending;
   }]));
   receiver.createSourceReader = function() {assert.equal(this, receiver); throw original;};
   const service = captureInstalledSourceServices(receiver, () => assert.fail('healthy service'));
   const returned = service('openRowSite', {});
   assert.equal(returned, pending);
-  const observed = assert.rejects(returned, error => error === original);
+  const observed = assert.rejects(returned as typeof pending, error => error === original);
   reject(original); await observed;
   assert.throws(() => service('createSourceReader', {}), error => error === original);
 });

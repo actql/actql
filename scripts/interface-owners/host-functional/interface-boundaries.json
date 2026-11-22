@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "736fd832c7712265e8723186985fb6d3ad235a521a5a731a34fcbe9f3f84925b",
+      "sha256": "127d7f18bb7ce57123e4f4071d385255597d8c46376c7c48847b49ecf523d23e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -134238,48 +134238,6 @@
         "withInstalledSourceLoading"
       ],
       "operations": [
-        {
-          "name": "assertInstalledSourceConstruction",
-          "parameters": [
-            "context",
-            "declaration",
-            "declared",
-            "environment",
-            "providerReader",
-            "mappings",
-            "commands"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledPublishedSourceInitialization",
-          "parameters": [
-            "services",
-            "installation",
-            "sourceRef",
-            "wire",
-            "baseEnvironmentWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization",
-          "parameters": [
-            "services",
-            "installation",
-            "connectorId",
-            "baseEnvironmentWire",
-            "role"
-          ],
-          "async": false
-        },
         {
           "name": "bindInstalledSourceConstruction",
           "parameters": [
@@ -134430,35 +134388,11 @@
           "async": false
         },
         {
-          "name": "captureInstalledSourceServices",
-          "parameters": [
-            "receiver",
-            "unavailable"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureInstalledSourceServices/invokeInstalledSourceService",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "closeInstalledAccountConstruction",
           "parameters": [
             "services"
           ],
           "async": true
-        },
-        {
-          "name": "closeInstalledSourceConstruction",
-          "parameters": [
-            "context",
-            "source"
-          ],
-          "async": false
         },
         {
           "name": "createInstalledHostServices",
@@ -134616,6 +134550,19 @@
           "parameters": [
             "name",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext",
+          "parameters": [
+            "original",
+            "material",
+            "installation",
+            "connectorId",
+            "baseEnvironmentWire",
+            "role",
+            "services"
           ],
           "async": false
         },
@@ -135029,16 +134976,6 @@
           "async": false
         },
         {
-          "name": "finishInstalledSourceInitialization",
-          "parameters": [
-            "context",
-            "adapter",
-            "cause",
-            "failed"
-          ],
-          "async": false
-        },
-        {
           "name": "installedAccountConstruction",
           "parameters": [
             "services"
@@ -135048,52 +134985,6 @@
         {
           "name": "installedAccountConstruction/installedAccountConstruction",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledSourceAcquisitionContracts",
-          "parameters": [
-            "context",
-            "query",
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledSourceAcquisitionContract",
-          "parameters": [
-            "context",
-            "path"
-          ],
-          "async": true
-        },
-        {
-          "name": "retainBoundInstalledSourceFailure",
-          "parameters": [
-            "context",
-            "cause",
-            "adapter"
-          ],
-          "async": true
-        },
-        {
-          "name": "retainInstalledHostServiceInstallation",
-          "parameters": [
-            "services",
-            "installation",
-            "runtimeBundleCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainInstalledSourceConstruction",
-          "parameters": [
-            "context",
-            "source",
-            "declaration",
-            "declared",
-            "environment"
-          ],
           "async": false
         }
       ],
@@ -135110,6 +135001,7 @@
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-construction-geometry.mjs",
+        "./installed-source-context-custody.mjs",
         "./installed-source-material-accounting.mjs",
         "./installed-source-physical-construction.mjs",
         "./installed-table-effect.mjs",
@@ -135143,9 +135035,7 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
-            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
-            "readInstalledSourceAcquisitionContract",
-            "retainInstalledHostServiceInstallation"
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value"
           ],
           "exports": [
             "createInstalledHostServices",
@@ -135530,17 +135420,14 @@
           }
         },
         {
-          "operations": [
-            "captureInstalledSourceServices",
-            "captureInstalledSourceServices/invokeInstalledSourceService"
-          ],
+          "operations": [],
           "exports": [
             "captureInstalledSourceServices"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-custody.mts",
                 "anchor": "export function captureInstalledSourceServices"
               },
               {
@@ -135550,21 +135437,21 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-custody.mts",
                 "anchor": "return Reflect.apply(methods[name], receiver, args)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-custody.mts",
                 "anchor": "methods[name] = field.value"
               }
             ],
@@ -135574,37 +135461,37 @@
                 "anchor": "## Capturing the installed Source service"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "Object.getOwnPropertyDescriptor(receiver, name)"
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "Object.getOwnPropertyDescriptor(receiver as object, name)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "const refuse = () =>"
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "const refuse: () => never = () =>"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               },
               {
@@ -135618,31 +135505,31 @@
                 "anchor": "## Capturing the installed Source service"
               },
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-custody.mts",
                 "anchor": "Object.create(null)"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-host-services.mjs",
+                "path": "adapters/host-node/installed-source-context-custody.mts",
                 "anchor": "typeof name !== 'string' || !Object.hasOwn(methods, name)"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
               },
               {
-                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
                 "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               }
             ]
@@ -135718,10 +135605,6 @@
         },
         {
           "operations": [
-            "assertInstalledSourceConstruction",
-            "beginInstalledPublishedSourceInitialization",
-            "beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
-            "beginInstalledSourceInitialization",
             "bindInstalledSourceConstruction",
             "bindInstalledSourceConstruction/bound/bound",
             "bindInstalledSourceConstruction/bound/bound#2",
@@ -135742,7 +135625,6 @@
             "bindInstalledSourceConstruction/current/current",
             "bindInstalledSourceConstruction/domain/domain/domain",
             "bindInstalledSourceConstruction/prepare/prepare/prepare",
-            "closeInstalledSourceConstruction",
             "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
@@ -135779,11 +135661,8 @@
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#6",
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
             "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
-            "finishInstalledSourceInitialization",
-            "prepareInstalledSourceAcquisitionContracts",
-            "retainBoundInstalledSourceFailure",
-            "retainInstalledSourceConstruction",
-            "fail/fail"
+            "fail/fail",
+            "createInstalledSourceContext"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -136768,6 +136647,293 @@
         }
       ],
       "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
+    },
+    {
+      "module": "adapters/host-node/installed-source-context-custody.mjs",
+      "sha256": "fd2ef5e454a6b67d8704306ccb29bee6eedc4b29b426a64ee3e6c05ca81276bf",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "captureInstalledSourceServices",
+        "createInstalledSourceContextCustody"
+      ],
+      "operations": [
+        {
+          "name": "captureInstalledSourceServices",
+          "parameters": [
+            "receiver",
+            "unavailable"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledSourceServices/invokeInstalledSourceService",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody",
+          "parameters": [
+            "reject",
+            "installations",
+            "sourceContexts",
+            "boundConstructions",
+            "sourceMaterial",
+            "createInstalledSourceContext",
+            "retainInstalledHostInitializationFailure",
+            "reserveSource",
+            "reconcileSource",
+            "requireSynchronousSourceConstruction",
+            "retainSourceFailure",
+            "resolveInstalledRowEffectConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/assertInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "declaration",
+            "declared",
+            "environment",
+            "providerReader",
+            "mappings",
+            "commands"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/beginInstalledPublishedSourceInitialization",
+          "parameters": [
+            "services",
+            "installation",
+            "sourceRef",
+            "wire",
+            "baseEnvironmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/beginInstalledSourceInitialization",
+          "parameters": [
+            "services",
+            "installation",
+            "connectorId",
+            "baseEnvironmentWire",
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/closeInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/finishInstalledSourceInitialization",
+          "parameters": [
+            "context",
+            "adapter",
+            "cause",
+            "failed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/prepareInstalledSourceAcquisitionContracts",
+          "parameters": [
+            "context",
+            "query",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/readInstalledSourceAcquisitionContract",
+          "parameters": [
+            "context",
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceContextCustody/requireSourceConstructor",
+          "parameters": [
+            "services",
+            "installation",
+            "fields",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/retainBoundInstalledSourceFailure",
+          "parameters": [
+            "context",
+            "cause",
+            "adapter"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledSourceContextCustody/retainInstalledHostServiceInstallation",
+          "parameters": [
+            "services",
+            "installation",
+            "runtimeBundleCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextCustody/retainInstalledSourceConstruction",
+          "parameters": [
+            "context",
+            "source",
+            "declaration",
+            "declared",
+            "environment"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureInstalledSourceServices",
+            "captureInstalledSourceServices/invokeInstalledSourceService",
+            "createInstalledSourceContextCustody",
+            "createInstalledSourceContextCustody/assertInstalledSourceConstruction",
+            "createInstalledSourceContextCustody/beginInstalledPublishedSourceInitialization",
+            "createInstalledSourceContextCustody/beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
+            "createInstalledSourceContextCustody/beginInstalledSourceInitialization",
+            "createInstalledSourceContextCustody/closeInstalledSourceConstruction",
+            "createInstalledSourceContextCustody/finishInstalledSourceInitialization",
+            "createInstalledSourceContextCustody/prepareInstalledSourceAcquisitionContracts",
+            "createInstalledSourceContextCustody/readInstalledSourceAcquisitionContract",
+            "createInstalledSourceContextCustody/requireSourceConstructor",
+            "createInstalledSourceContextCustody/retainBoundInstalledSourceFailure",
+            "createInstalledSourceContextCustody/retainInstalledHostServiceInstallation",
+            "createInstalledSourceContextCustody/retainInstalledSourceConstruction"
+          ],
+          "exports": [
+            "captureInstalledSourceServices",
+            "createInstalledSourceContextCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "export function createInstalledSourceContextCustody"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "createInstalledSourceContextCustody({fail, installations, sourceContexts, boundConstructions, sourceMaterial,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "function assertInstalledSourceConstruction"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "function readInstalledSourceAcquisitionContract"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "selected?.original !== original"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "prepared?.declaration !== declaration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "const acquired = owned.adapter ?? registered;"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "retained.scope.source = source;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "retained.scope.active = false; retained.material.constructors--;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "fail('ForeignInstalledSourceConstruction')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "function retainBoundInstalledSourceFailure"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The registered Source owner retains construction failure and physical child cleanup at the existing initialization boundary."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "function prepareInstalledSourceAcquisitionContracts"
+              },
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "material.providers.push(quantity);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-source-context-custody.mts",
+                "anchor": "export function captureInstalledSourceServices"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mts",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "builtin published Source selects only"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Source protocol text uses the SAME original file reader before native contract construction"
+              }
+            ]
+          }
+        }
+      ],
+      "rationale": "The existing installed Host uses the same private registries to bind Source contexts, acquired children, protocol inputs and original service receivers."
     },
     {
       "module": "adapters/host-node/installed-source-material-accounting.mjs",
