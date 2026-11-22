@@ -182,8 +182,9 @@ async function numericFixture(t, fault) {
         await assert.rejects(access(join(cwd, name)), {code: 'ENOENT'});
     }
     const rows = fault === 'live' || (cold && fault === 'saved') ||
-      (fault === 'old-saved' && hosts.get(cwd) === 14) ? [{total: 4}] : entry.rows;
-    return {stdout: rows.map(value => JSON.stringify(value)).join('\n')+'\n'};
+      (fault === 'old-saved' && hosts.get(cwd) === nativeDefaultNumericQueries.length + 1) ? [{total: 4}] : entry.rows;
+    const returned = cold && entry.unordered ? rows.toReversed() : rows;
+    return {stdout: returned.map(value => JSON.stringify(value)).join('\n')+'\n'};
   };
   return {project, cli, calls, runs, saved, hosts};
 }
@@ -191,23 +192,26 @@ async function numericFixture(t, fault) {
 test('default numeric oracle requires runnable checking and same Saved after original input removal', async t => {
   const fixture = await numericFixture(t);
   const observed = await observeNativeDefaultNumericQueries(fixture);
-  assert.equal(observed.length, 13); assert.equal(fixture.runs.size, 13);
-  assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], 14);
   const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
     'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
-    'window-row-number', 'window-typed-null'];
+    'window-row-number', 'window-typed-null', 'date-literal', 'timestamp-literal',
+    'generate-array-signed64', 'generate-array-unnest', 'farm-fingerprint-original',
+    'to-json-string-original', 'json-value-original', 'json-value-prefix', 'regexp-contains-original',
+    'array-length-original', 'unix-seconds-original', 'comma-join-original'];
+  assert.equal(observed.length, names.length); assert.equal(fixture.runs.size, names.length);
+  assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], names.length + 1);
   assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
   assert.deepEqual(fixture.saved, [...names, ...names]);
   assert(observed.every(entry => entry.savedAfterLaterSubmissions));
   assert.deepEqual(observed[0].rows, [{total: 3}]);
   assert.deepEqual(observed[1].rows, [{total: 1.5}]);
   assert.deepEqual(observed[2].rows, [{total: '4.00'}]);
-  assert.deepEqual(observed.slice(10).map(({name, rows}) => ({name, rows})), [
+  assert.deepEqual(observed.filter(({name}) => name.startsWith('window-')).map(({name, rows}) => ({name, rows})), [
     {name: 'window-sum', rows: [{id: 1, total: 3}, {id: 2, total: 8}]},
     {name: 'window-row-number', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
     {name: 'window-typed-null', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
   ]);
-  for (const entry of nativeDefaultNumericQueries.slice(10)) {
+  for (const entry of nativeDefaultNumericQueries.filter(({name}) => name.startsWith('window-'))) {
     assert.match(entry.sql, / OVER \(ORDER BY id/u);
     assert.match(entry.sql, /ORDER BY id$/u);
   }
@@ -219,6 +223,29 @@ test('default numeric oracle requires runnable checking and same Saved after ori
     /ROW_NUMBER\(\) OVER \(ORDER BY id\)/u);
   assert.match(nativeDefaultNumericQueries.find(entry => entry.name === 'window-typed-null').sql,
     /CAST\(NULL AS NUMBER\)/u);
+  assert.deepEqual(observed.find(entry => entry.name === 'date-literal').rows, [{x: '2026-01-02'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'timestamp-literal').rows,
+    [{x: '2026-01-02T03:04:05.000Z'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'generate-array-signed64').rows,
+    [{x: ['1', '2', '3']}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'generate-array-unnest').rows,
+    [{x: '1'}, {x: '2'}, {x: '3'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'farm-fingerprint-original').rows,
+    [{result: '-5528939962900187677'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'to-json-string-original').rows,
+    [{result: '1'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'json-value-original').rows, [{result: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'regexp-contains-original').rows, [{result: true}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'json-value-prefix').rows, [{result: '9007199254740993'}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'array-length-original').rows,
+    [{entries: '3', empty_count: '0', null_entry_count: '1', missing_count: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'unix-seconds-original').rows,
+    [{before_epoch: '-1', present_seconds: '1230219000', missing_seconds: null}]);
+  assert.deepEqual(observed.find(entry => entry.name === 'comma-join-original').rows, [
+    {a_n: 1, b_n: 1}, {a_n: 1, b_n: 2}, {a_n: 1, b_n: 3},
+    {a_n: 2, b_n: 1}, {a_n: 2, b_n: 2}, {a_n: 2, b_n: 3},
+    {a_n: 3, b_n: 1}, {a_n: 3, b_n: 2}, {a_n: 3, b_n: 3},
+  ]);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {
@@ -242,7 +269,7 @@ test('default numeric oracle refuses changed Saved rows without reprepare or ree
 test('same-project numeric oracle refuses an old Saved changed by later submissions', async t => {
   const fixture = await numericFixture(t, 'old-saved');
   await assert.rejects(observeNativeDefaultNumericQueries(fixture), {code: 'ERR_ASSERTION'});
-  assert.equal(fixture.hosts.size, 1); assert.equal(fixture.runs.size, 13);
+  assert.equal(fixture.hosts.size, 1); assert.equal(fixture.runs.size, nativeDefaultNumericQueries.length);
   assert.equal(fixture.calls.filter(args => args[0] === 'init').length, 1);
 });
 

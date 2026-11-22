@@ -77,18 +77,25 @@ test "ranking analytic arguments retain the invalid-input cause and authored ran
 }
 
 ///|
-test "valid analytic default arguments retain the unsupported-profile boundary" {
+test "quoted and unquoted QUALIFY navigation retain their exact default operand" {
   for name in ["LAG", "`LAG`", "LEAD", "`LEAD`"] {
     let source = "SELECT x FROM t QUALIFY " +
       name +
       "(x, 1, 2) OVER (ORDER BY y) IS NOT NULL"
+    let program = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
     assert_true(
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        join_order_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedAnalytic),
+      semantic(program).contains("\"default\":{\"literal\":2}"),
+      msg=source,
     )
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+      NeedsInputs(_) => fail(source)
+    }
   }
 }

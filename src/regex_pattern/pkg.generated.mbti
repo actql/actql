@@ -2,6 +2,7 @@
 package "actql/actql/regex_pattern"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -9,11 +10,15 @@ import {
 // Values
 pub fn capture_count(Pattern) -> Int
 
+pub fn capture_span(Match, Int) -> Span?
+
 pub fn cid(Pattern) -> String
 
 pub fn emit(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_preimage(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn match_span(Match) -> Span
 
 pub fn node_at(Pattern, Int) -> Node?
 
@@ -24,6 +29,8 @@ pub fn nullable(Pattern) -> Bool
 pub fn parse(String, Limits) -> Result[Pattern, Issue]
 
 pub fn root(Pattern) -> Int
+
+pub fn start_search(Pattern, String, SearchOptions, reserve~ : (@decode_shape.CollectionConstructionExtent) -> Bool) -> Result[Search, SearchIssue]
 
 pub fn usage(Pattern) -> (Int, Int, Int)
 
@@ -56,6 +63,8 @@ pub(all) struct Limits {
   max_ast_nodes : Int
 } derive(Eq, @debug.Debug)
 
+type Match
+
 pub(all) enum Node {
   Literal(Int)
   ClassEscape(String)
@@ -69,6 +78,36 @@ pub(all) enum Node {
 } derive(Eq, @debug.Debug)
 
 type Pattern
+
+type Search
+pub fn Search::advance(Self) -> SearchPoll
+pub fn Search::cancel(Self) -> Unit
+
+pub(all) enum SearchIssue {
+  InvalidSearchOptions
+  MalformedInput(Int)
+  SearchWorkspaceLimit
+  SearchCancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SearchOptions {
+  from : Int
+  multiline : Bool
+  dot_all : Bool
+  max_entries : Int
+} derive(Eq, @debug.Debug)
+
+pub enum SearchPoll {
+  SearchContinue
+  SearchComplete(Match?)
+  SearchFailed(SearchIssue)
+  SearchTerminal
+}
+
+pub(all) struct Span {
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

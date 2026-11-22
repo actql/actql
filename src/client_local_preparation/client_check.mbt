@@ -506,7 +506,8 @@ fn check_source_findings(
         UnsupportedImplementation =>
           findings.push(Limit("implementation_limit"))
         CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
-        UnclassifiedFailure => findings.push(Limit("check_unclassified"))
+        UnclassifiedFailure =>
+          findings.push(Limit(check_unclassified_limit_code(diagnostic)))
         InvalidConfiguration => return Failed("check_context_invalid")
       }
     }
@@ -966,10 +967,29 @@ fn check_binding_preparation_findings(
     MissingInput => check_missing_input_findings(findings, diagnostic, scope)
     UnsupportedImplementation => findings.push(Limit("implementation_limit"))
     CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
-    UnclassifiedFailure => findings.push(Limit("check_unclassified"))
+    UnclassifiedFailure =>
+      findings.push(Limit(check_unclassified_limit_code(diagnostic)))
     InvalidConfiguration => return Some("check_context_invalid")
   }
   None
+}
+
+///|
+/// Project only original typed text-time ceilings after normal disclosure.
+/// A ceiling leaves the check open without exposing values, policy sizes or
+/// private origins, and without attributing the failure to invalid input.
+fn check_unclassified_limit_code(
+  diagnostic : @checked.CheckDiagnostic,
+) -> String {
+  match @checked.diagnostic_cause(diagnostic) {
+    Source(Checks(TextBounds(Bounds(_, InputCeiling)))) =>
+      "text_time_input_ceiling"
+    Source(Checks(TextBounds(Bounds(_, OutputCeiling)))) =>
+      "text_time_output_ceiling"
+    Source(Checks(TextBounds(Bounds(_, ReplacementCeiling)))) =>
+      "text_time_replacement_ceiling"
+    _ => "check_unclassified"
+  }
 }
 
 ///|

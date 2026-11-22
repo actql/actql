@@ -2480,6 +2480,16 @@ are not admitted in 0.1. Their forms are
 inputs and `date_add` results use canonical UTC ISO-8601 strings; `date_diff`
 returns a finite numeric count in the authored fixed unit.
 
+<!-- requirement-block: scalar-expressions.unix-seconds -->
+`unix_seconds` MUST evaluate its original Timestamp operand once, preserving
+any operand failure, enclosing lazy demand, resource limits and cancellation.
+A NULL operand returns NULL. A present Timestamp returns exact `int64` seconds
+since `1970-01-01T00:00:00.000Z`, flooring any fractional seconds, including
+before the epoch. The result is nullable exactly when the operand is nullable.
+The closed source form is `{unix_seconds: operand}` and the machine form is
+`{op: unix_seconds, body: operand_node}`. It uses the existing canonical
+Timestamp Value domain and introduces no clock, cast or timezone rules.
+
 <!-- requirement-block: scalar-expressions.exact-number-date-add-duration -->
 For Timestamp `date_add`, the Common temporal owner MUST first evaluate the
 original Number amount under ordinary binary64 rounding laws, then interpret
@@ -2503,6 +2513,172 @@ Common owners.
 The decoded DATE_ADD/DATE_DIFF unit remains a `{literal: ms|s|m|h|d}`.
 This structured short-unit contract is distinct from the SQL fixed-interval
 spelling below; it does not reinterpret DATE_ADD Number operands.
+
+### Exact Timestamp differences
+
+<!-- requirement-block: scalar-expressions.exact-timestamp-diff -->
+`{timestamp_diff: [end, start, {literal: unit}]}` and the corresponding
+`{op: timestamp_diff, body: [...]}` node MUST consume two original Timestamp
+operands followed by a static unit from `us|ms|s|m|h|d`. After ordinary eager
+child evaluation, return NULL if either Timestamp is NULL. Otherwise
+subtract the original instants and truncate the quotient toward zero in the
+specified fixed unit, returning an exact signed64 value. A day is exactly
+24 hours. No Number conversion, timezone or calendar-boundary adjustment
+is applied. Retain enclosing lazy demand, child failure, cancellation and
+workspace under the existing temporal expression owner. The earlier
+`date_diff` Number result and its selected units remain unchanged.
+
+### Gregorian Date construction
+
+<!-- requirement-block: scalar-expressions.exact-date-constructor -->
+The ordered `make_date` operation MUST construct a Date from three original
+signed64 arguments in year, month, day order. After ordinary eager operand
+evaluation, an operand NULL yields a Date NULL. Otherwise require a valid
+proleptic Gregorian date in years 0001 through 9999 and emit the canonical
+Date Value. Out-of-range coordinates fail under existing InvalidOperand
+semantics. Preserve original child failures, enclosing lazy demand, work,
+workspace and cancellation under the existing expression owner.
+
+### Ordered array concatenation
+
+<!-- requirement-block: scalar-expressions.array-concatenation -->
+`{array_concat: [array, ...]}` and its corresponding machine operation MUST
+evaluate one or more original Array operands from left to right. A whole
+operand NULL yields a NULL array after eager demand. Otherwise concatenate
+the original admitted elements in operand and element order, retaining
+duplicates and nullable items with the common item type. Sum known item
+ceilings when the total is representable. Resource admission covers
+the complete backing and overlapping original operands before copying.
+Child failures, enclosing lazy demand and cancellation keep their existing
+meaning and a partial result remains private.
+
+### String array joining
+
+<!-- requirement-block: scalar-expressions.array-to-string -->
+The Common `array_to_string` expression MUST evaluate a String array and its
+String delimiter, then its optional String replacement, in original operand
+order. A supplied whole operand NULL gives a NULL result. Otherwise retain
+the original element order, replacing NULL elements with the optional value or
+omitting them when no replacement was supplied. Place the original delimiter
+only between emitted elements. Empty output is an empty String. The source
+and machine bodies retain the original two or three operands. Both passes
+retain the original operands and admit the complete result before constructing
+the immutable String. Preserve original scalar content, child failure, lazy
+demand and cancellation.
+
+### FarmHash fingerprints
+
+<!-- requirement-block: scalar-expressions.farm-fingerprint -->
+The Common `farm_fingerprint` expression MUST evaluate one original String
+operand. NULL returns NULL. For a non-NULL String, apply the stable Google
+FarmHash Fingerprint64 function to the original UTF-8 bytes and interpret
+the result bits as a signed INT64. No normalization or host-dependent
+hashing participates. Use the existing expression frame to reserve fixed
+working storage, meter scalar progress and hold the original operand
+through evaluation. Preserve enclosing demand, failure and cancellation.
+
+### JSON scalar selection
+
+<!-- requirement-block: scalar-expressions.json-value -->
+The Common `json_value` expression MUST evaluate its original String or
+admitted Json input followed by the optional String path. The default
+path is `$`. Linear paths select dot members, double-quoted member
+names and bracket indexes. Malformed path syntax fails evaluation.
+A NULL operand, missing selection, selected JSON null, array or object
+gives SQL NULL. A selected String is unescaped, Boolean uses its JSON
+spelling and numeric String input retains the selected number lexeme.
+An admitted Json number uses its existing finite Number representation.
+
+A String is read only as far as required to identify the selected
+scalar. Unread suffix bytes do not affect a successful selection.
+Malformed JSON before selection yields SQL NULL. Preserve first matching
+scalar occurrence, original scalar and path spelling, demanded argument
+failures, scoped work and cancellation. The selected text is measured
+before materialization, under the original text output limits.
+
+### JSON text serialization
+
+<!-- requirement-block: scalar-expressions.to-json-string -->
+The Common `to_json_string` expression MUST evaluate one original Value
+and an optional Boolean pretty flag, in original order. A NULL flag
+returns SQL NULL after both operands succeed. A NULL input Value
+serializes as the four-character String `null`. A true flag uses a
+two-space indent for non-empty arrays and objects. Otherwise use compact
+JSON. Arrays retain their element order. Objects emit their admitted
+fields in Common order. Opaque references do not provide a JSON value.
+
+Emit String, Date and Timestamp as escaped JSON strings. Preserve the
+Common ISO spellings and the original Unicode scalars. A finite Number
+is a JSON number. INT64 and integral Decimal within the inclusive
+range −2^53 to 2^53 are JSON numbers. Other INT64 and Decimal values
+serialize their exact decimal digits as JSON strings. Emit the payload
+of an admitted Json value without its Common wire wrapper. Measure the
+complete output, including the outer String's escaped wire extent,
+while retaining the original operand roots. Preserve demand, all
+demanded child failures, scoped work and cancellation.
+
+### String templates
+
+<!-- requirement-block: scalar-expressions.format-strings -->
+The Common `format_strings` expression MUST evaluate an original String
+template and zero or more String operands in order, preserving the original
+argument list in both expression forms. After all demanded children succeed,
+a NULL template returns NULL. A non-NULL template interprets `%s` as one
+String operand and `%%` as a literal percent with no operand. Field width
+pads with spaces, on the right when `-` is present. Precision limits the
+operand to the indicated number of Unicode scalars. Non-applicable flags are
+ignored. Refuse malformed templates, unsupported directives and argument
+count mismatches. Where the template and count are valid, a NULL operand
+returns NULL. Admit the complete UTF-16 and wire extent before materializing
+an immutable result, retaining the original child roots and the existing
+work, value and cancellation checks.
+
+### Date day arithmetic and month boundaries
+
+<!-- requirement-block: scalar-expressions.date-calendar-boundaries -->
+The ordered Date calendar forms MUST evaluate their original operands eagerly
+from left to right before strict NULL propagation. Retain original operand
+failures, enclosing lazy demand and the existing work, workspace and
+cancellation boundaries. The forms are:
+
+- `{date_interval_add: [date, amount, {literal: d}]}` adds an exact signed64
+  day count to the admitted Gregorian Date. An out-of-range result fails
+  with ArithmeticFailure.
+- `{date_boundary_diff: [end, start, {literal: d}]}` counts signed calendar-day
+  boundaries from the original start Date to the end Date. The result is
+  signed64.
+- `{date_boundary_trunc: [date, {literal: month}]}` returns the first day
+  of the containing Gregorian month as a Date.
+
+Each machine body uses the same operation name and operand order. These
+forms use the existing four-digit Date Value range. They preserve the
+separate three-argument Number-duration addition, quoted-unit difference
+and unit-first fixed-duration truncation contracts.
+
+### Numeric UTC Timestamp parts
+
+<!-- requirement-block: scalar-expressions.utc-timestamp-extract -->
+The ordered `extract_timestamp` operation MUST extract a numeric UTC part
+from a Timestamp operand and a mandatory literal part. The admitted parts
+are `year|quarter|month|day|dayofweek|dayofyear|hour|minute|second|millisecond|microsecond`.
+The result is exact signed64 and is NULL when the original Timestamp is NULL.
+Quarter, month, day and day-of-year are one-based; Sunday is day-of-week 1.
+Subsecond parts drop smaller digits without rounding. The original value
+uses the shared canonical Gregorian UTC admission, including negative epoch
+instants. Preserve child failure, enclosing lazy demand, control and resource
+accounting under the existing expression owner.
+
+### Fixed UTC Timestamp truncation
+
+<!-- requirement-block: scalar-expressions.exact-timestamp-trunc -->
+`{timestamp_trunc: [value, {literal: unit}]}` and the corresponding machine
+node MUST take a Timestamp and a static unit from `us|ms|s|m|h|d`. Return the
+start of the containing UTC bucket as Timestamp, preserving NULL. For
+subsecond units, discard only the fractional digits below the selected unit.
+An instant just before the epoch belongs to the preceding bucket. Preserve
+the original operand, enclosing lazy demand, failures and bounded expression
+evaluation. The existing unit-first `date_trunc` and its Date behavior retain
+their own contracts and bytes.
 
 ### Exact fixed SQL intervals
 
@@ -2605,6 +2781,7 @@ The conversion/boundary truth table is normative:
 | `nullif(a,b)` | evaluate a then b once each; null if equality is true, otherwise return the evaluated a |
 | `in`, `not_in` | the ordered [membership rules](#membership-semantics), including an empty or null array as the empty set, override strict null propagation |
 | `date_diff` | fixed-unit quotient truncated toward zero |
+| `unix_seconds(value)` | One Timestamp operand. Exact `int64` whole Unix seconds. |
 
 Strict scalar functions propagate a null input unless the row above states
 another rule. Conditional selection follows the table; constructors follow
@@ -2665,6 +2842,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | Functions | Input → result | Null/failure rule beyond the common rule | Profile |
 | --- | --- | --- | --- |
 | `len` | S → N | Unicode scalar count | RelA |
+| `array_length` | Array(T) → int64 | Exact entry count including NULL and duplicates. NULL input returns NULL. | RelA |
+| `unix_seconds` | Timestamp → int64 | Floor to whole Unix seconds, including before the epoch. Preserves nullability. | RelA |
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
@@ -3389,6 +3568,11 @@ negative zero; this is not the full GoogleSQL JSON integer domain. The complete
 input is bounded, including discarded duplicates, with depth at most 500 and
 the caller's tighter value/expression ceilings.
 
+A structured `{date_literal: "YYYY-MM-DD"}` is a non-null Date expression.
+It accepts canonical Gregorian dates in years 0001 through 9999. Its machine
+node `{op: "date_literal", body: "YYYY-MM-DD"}` preserves the Date domain
+when the same spelling also occurs as a Text literal.
+
 <!-- requirement-block: common-expression-contract.typed-json-wire -->
 Non-SQL-NULL JSON values MUST retain their common JSON domain in canonical
 typed-cell wire as the closed `{"$json":payload}` envelope. SQL NULL remains
@@ -3750,6 +3934,14 @@ Receiver then index are evaluated once, eagerly; invalid/null indexes fail
 even if the receiver is null. Negative or fractional literal indexes are
 evaluation-time domain failures, not static signature constraints.
 
+<!-- requirement-block: typed-access.array-length-count -->
+`array_length` MUST evaluate one Array operand exactly once, preserve its
+failures and the enclosing expression's demand, and return the exact
+signed 64-bit count of entries, including NULL and duplicate entries. An
+empty array counts zero. A NULL array yields NULL. The checker supplies int64
+item context to an otherwise unresolved empty or all-NULL constructor in
+this operand. An untyped NULL operand takes a nullable Array contract.
+
 <!-- requirement-block: typed-access.outcomes -->
 | Condition | Outcome |
 | --- | --- |
@@ -3878,6 +4070,14 @@ explicit `quantize` resolves different precision/scale choices.
 operation with non-null Timestamp result, preserving the closed authored
 `{current_timestamp: []}` and machine `{op: "current_timestamp", body: []}`
 forms without replacing the operation by a literal or hidden Parameter.
+
+<!-- requirement-block: scalar-expressions.query-date-signature -->
+`CURRENT_DATE()` and the bare SQL keyword spelling `CURRENT_DATE` MUST select
+the zero-argument `current_date` operation with non-null Date result. The
+closed authored `{current_date: []}` and machine `{op: "current_date", body: []}`
+forms project the UTC date of the same original invocation value as
+`current_timestamp`. Static checking retains the dependency. Evaluation,
+absence and recovery use the same original query-time rules below.
 
 <!-- requirement-block: scalar-expressions.query-time-original -->
 For an ordinary single-query-invocation Run, every demanded occurrence, row,
@@ -4192,7 +4392,7 @@ U+000A line boundaries) and `s` (dot also matches U+000A), each at most once,
 in either order. Omitted flags and the empty string both select neither flag.
 
 <!-- requirement-block: text-time.regex-static-capture text-time.regex-static-replacement -->
-The `regex_extract` capture argument MUST be a nonnegative integer literal or
+An explicit `regex_extract` capture argument MUST be a nonnegative integer literal or
 an invocation parameter of number type. The `regex_replace` replacement argument
 MUST be a string literal or an invocation parameter of string type. Neither
 argument admits a row field or a computed expression, including a constant
@@ -4201,16 +4401,23 @@ capture/replacement consistency with the admitted pattern before evaluation;
 declaration-only type checking does not discharge that obligation.
 
 The profile requires positive limits for input codepoints, pattern bytes, output bytes,
-and replacements. `regex_extract` requires an explicit capture index and
-returns null for no match; `regex_replace` applies a bounded left-to-right
-global replacement. Its closed replacement grammar uses `$$` for a literal
+and replacements. The expression-text call `regex_extract` retains its
+explicit capture index. In a structured body with no capture field, including
+the body produced by SQL `REGEXP_EXTRACT`, Check uses the original admitted
+pattern to select index zero for no groups or index one for one group.
+A pattern with multiple groups is invalid in this form. An explicit null
+capture is not an omitted field. The capture selection keeps the same pattern,
+parameter and Host envelope obligations. `regex_extract` returns null for
+no match or a nonparticipating capture, and empty String for a participating
+empty capture. `regex_replace` applies a bounded left-to-right
+global replacement. Its default replacement grammar uses `$$` for a literal
 dollar and `$1..$99` for captures; references to absent captures are rejected
 at Check, while an unmatched admitted capture expands to the empty string. The
 portable output ceiling accounts for every literal and repeated capture
 expansion. A limit breach fails atomically.
 
 <!-- requirement-block: text-time.replacement-tokenization -->
-Regex replacement tokenization MUST consume `$$` as one literal dollar, or a
+Default regex replacement tokenization MUST consume `$$` as one literal dollar, or a
 dollar followed by one ASCII digit `1..9` and, when present, one further ASCII
 digit `0..9` as a capture reference. Further digits are literal text: `$100`
 denotes capture 10 followed by literal `0`, not capture 100. Other dollar
@@ -4221,6 +4428,18 @@ capture parts retain their order and repetition. An empty replacement has an
 empty parts array. Its literal UTF-8 byte total, capture reference count and
 maximum capture index (zero with no references) describe these parts, not the
 source spelling or a deduplicated set of captures.
+
+The structured `regex_replace` body may carry the literal
+`dialect: "googlesql"`, as emitted by SQL `REGEXP_REPLACE`. Its checked
+replacement AST uses `actql-sql-regex-replacement-ast/0.1` and consumes one
+backslash and one ASCII digit as a capture (zero is the whole match).
+Two consecutive backslashes emit one backslash. Other escapes are invalid.
+Dollar signs and other literal scalars retain their exact value. Referenced
+groups must exist before any row is evaluated. An empty match immediately
+at the end of the previous match is skipped, and after any empty match the
+search advances one original Unicode scalar without dropping it from output.
+The original Common pattern, argument order, and envelope checks apply to
+both dialects. The default body and AST retain their existing bytes and laws.
 
 The operation/input matrix is closed: `split_part`,
 `utf8_truncate`, `parse_timestamp`, `regex_match`,
@@ -4684,7 +4903,7 @@ static type checking alone.
 ```
 
 <!-- requirement-block: group.every-aggregate-must-have-an-output-name group.every-function-except-row-count-count-must-name-an-input-expression group.every-array-agg-must-declare-the-same-non-empty-order-by-the-compiler -->
-Supported aggregate functions are `count`, `count_if`, `sum`, `avg`, `min`,
+Supported aggregate functions are `count`, `count_if`, `any_value`, `sum`, `avg`, `min`,
 `max`, `array_agg`, and the [ordered and statistical aggregates](#additional-aggregates).
 Every aggregate MUST have an output name. Every
 function except row-count `count` MUST name an input expression or field.
@@ -4698,8 +4917,9 @@ aggregates evaluate in canonical output-name order; each consumes rows in its
 specified input order. Every `array_agg` MUST declare its own non-empty
 `order_by`; these orders may differ between aggregates. The compiler applies
 each after its own filter, without imposing one aggregate's order or demand
-on another. Group
-results are canonically ordered by the group keys in ascending AoA order,
+on another. `any_value` returns one original non-null contributor of the declared
+argument type, or NULL if none qualifies. Its result is nullable and no authored
+row order is required. Group results are canonically ordered by the group keys in ascending AoA order,
 including reference identity order ([Opaque reference values](#opaque-references)).
 The key tuple is compared lexicographically in authored `by` order, with
 NULLS FIRST independently at every component: two null components compare
@@ -5786,23 +6006,34 @@ argument contracts are retained with nullable root output.
 
 The body contains required `partition_by`, `order_by`, `functions`, and optional
 `frame`. `partition_by` is a possibly empty list of equality-key fields;
-`order_by` is a nonempty authored OrderKey list. `functions` is a nonempty map
+`order_by` is the authored OrderKey list. It may be empty for an omitted
+frame with only order-independent aggregates. `functions` is a nonempty map
 of fresh output names to closed calls. Partition NULLs group together. Results
 retain original input-row order, fields, multiplicity and candidate keys;
-window ordering determines calculations, not a new publication order. Ranking
-functions return non-null safe-integer numbers; navigation/value functions
-retain their argument domain and bounds with nullable output. Frame aggregates
+window ordering determines calculations, not a new publication order.
+`row_number`, `rank` and `dense_rank` return non-null safe-integer numbers.
+`percent_rank` returns a non-null Number and `ntile` returns a non-null INT64.
+Navigation/value functions retain their argument domain and bounds with nullable
+output. Frame aggregates
 have their ordinary result contracts and empty-input behavior.
 
-Calls are `{fn: row_number|rank|dense_rank}`, `{fn: lag|lead, expr, offset?}`,
+Calls are `{fn: row_number|rank|dense_rank|percent_rank}`,
+`{fn: ntile, buckets}`, `{fn: lag|lead, expr, offset?, default?}`,
 `{fn: first_value|last_value, expr}`, or a [group aggregate](#group) call without
 an aggregate-local `order_by`. Offsets are nonnegative safe integers, default 1;
-out-of-partition navigation yields typed NULL and does not fabricate a row.
+out-of-partition navigation uses the call's checked `default` expression when
+present, and otherwise yields typed NULL. The default has no row scope and
+uses the original invocation's parameters. Its value domain matches `expr`;
+the returned contract owns the bounds of both. Navigation uses the referenced
+value, including NULL, whenever that reference exists. A default never
+fabricates a row or adds a frame member.
 `first_value` and `last_value` respect NULL elements. Rank/navigation calls
 reject `filter` and `distinct`. Aggregate calls retain their own filter/null/
 distinct laws. Result types follow the function, including nullable navigation.
-First_value and last_value are frame functions, not navigation functions;
-they require frame and reject filter/distinct. Only lag/lead are navigation
+First_value and last_value are frame functions and reject filter/distinct.
+With ordered input and an omitted frame, they use the partition prefix from
+its first row through the last authored peer of the current row. The
+completed position order selects the endpoints inside that prefix. Only lag/lead are navigation
 calls. Aggregate frame functions retain their explicitly admitted modifiers.
 
 `frame` is `{start, end}`. A boundary is `unbounded_preceding`, `current_row`,
@@ -5812,18 +6043,30 @@ admitted. Start cannot be unbounded_following, end cannot be
 unbounded_preceding, and start cannot follow end in logical offset order.
 Intersect the logical inclusive interval with the partition; do not clamp an
 out-of-partition start to an existing row. Empty frames use aggregate empty-set
-laws and yield NULL for first/last value. Frame is required for frame functions,
-absent for calls consisting solely of ranking/navigation. It does not affect
+laws and yield NULL for first/last value. When an aggregate has no explicit
+frame, its members are the partition prefix through the current authored peer
+group if ordered, or the entire partition if unordered. Array, string and
+first/last aggregates require an order. An explicit ROWS frame also requires
+an order. Frame is absent for calls consisting solely of ranking/navigation.
+It does not affect
 lag, lead or ranking. A bounded partition may use unbounded frame boundaries.
 
 <!-- requirement-block: analytic.peers -->
 Checking MUST separate authored peer order from physical position completion.
 `rank` is one plus the number of preceding rows with different authored order
 values; `dense_rank` is one plus the preceding distinct peer-group count.
+`percent_rank` is (`rank` - 1) divided by (partition row count - 1), or zero
+for a single-row partition. It uses the same authored peers as `rank`.
+`ntile` consumes a positive safe-integer bucket count, literal or bound
+parameter, and assigns one-based buckets in completed position order. Bucket
+sizes differ by at most one, with the larger buckets first. If there are more
+buckets than rows, only the first buckets receive rows.
 `row_number` starts at 1 in completed order. Missing candidate-key fields or a
 retained total witness complete position order without splitting peer groups.
 Reference keys are eligible for internal completion, not authored value order.
 Without an adequate position witness, position-sensitive functions fail check.
+An order-independent aggregate in an omitted frame uses complete peer groups
+or partitions without needing a position witness.
 Position completion is journaled under Deterministic completion, recording the
 authored peer order, the added identity terms or reused total witness, and the
 supporting evidence. It does not change peer groups or publication order.
@@ -11212,14 +11455,15 @@ AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
   filter?: Expression, distinct?: Boolean, order_by?: [OrderKey, ...],
   max_items?: PositiveIntegerValue, max_bytes?: PositiveIntegerValue,
   delimiter?: String, fraction?: FractionValue}
-AggregateFunction := count | count_if | sum | avg | min | max | array_agg |
+AggregateFunction := count | count_if | any_value | sum | avg | min | max | array_agg |
   string_agg | first | last | percentile_disc | percentile_cont |
   var_pop | var_samp | stddev_pop | stddev_samp
-AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
+AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...] | [],
   functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
-AnalyticCall := {fn: row_number | rank | dense_rank}
-  | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue}
-  | {fn: first_value | last_value, expr: Expression} | AggregateCall
+AnalyticCall := {fn: row_number | rank | dense_rank | percent_rank}
+  | {fn: ntile, buckets: PositiveIntegerValue}
+  | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue, default?: Expression}
+  | {fn: first_value | last_value, expr: Expression} | AggregateCall excluding any_value
 RowsFrame := {start: FrameBoundary, end: FrameBoundary}
 FrameBoundary := unbounded_preceding | current_row | unbounded_following
   | {preceding: PositiveIntegerValue} | {following: PositiveIntegerValue}
@@ -11579,22 +11823,23 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:4db1f2b0c46798f6f4d0500e2ca7b48a8d5ec9dbe4f6cf8a05fb0a50f5ff22cd
+../../spec/contracts/actql-aoa.json# sha256:7924a22bf2e96ec0aa936663e02047c2f3c10e5e48965c075a1821148846cac3
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1
-../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:8e83c5ec9efaad835157dd477af858cbba98d1ca5384bc3edd3bb124b65bf275
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/sql_regex_replacement_ast sha256:4c426201d2f520451534c3875afcc3527c170e2291275eeeedc58f127009a148
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:27bfceb93fa403e89cbe868c1217daa6aaccedb1a55c99d256f2c60c920a3cf1
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:d667e22d987602d3eb918a82fbbd0ba1afb5e69a2a4fb71ab3b4268102f08068
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:e4571cf78276f48cceb67e03a7344062ceb9a65a0dbad4cf9456f813735e9f3e
+../../spec/contracts/actql-expressions.json# sha256:6cd16dcf9c63afc1b6a882fe960b87e19156d7cdb0b2c48fc3133c66fb98291e
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:90dafb680321a4e683f6922bd75dd3ac3ad6e884891c6d1aafb55e6690052284
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:38fb94645563a627cf15a1fa24ce194829ef56507221d95ee9fecaf1299e213c
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:00274988e734dc6773c0d87ec2cc5cba740c2d45a2b1077bde86c2e0a2ae4a6c
-../../spec/contracts/actql-expressions.json#/laws sha256:f23a8ae3a222a8ebc5d6fd4bdd329142568c499212f9aec893dec5b9bea9c8a3
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:8a82e569941a8151bda36f6d5a7e80883562b56e19ea35d2a2dce19f03a2854d
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:bd97888f32a0f37763679f4a73ba04a6748c9e48554bd26b51d6f8dc4f13388a
+../../spec/contracts/actql-expressions.json#/laws sha256:216d6a4f9e91f2e7575c2f60f0dad474319e0b1170bf9ba9003596cb40ca3ffd
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6be8f6f4ded0788739c331053546f129cd35a8e831862f163fb22ab4ba594d2f
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b54f888c59be0834929e292eb34d52322de851aae24355a02b664c6163caab17
 ```
 
 <!-- stage-contract-pins:start -->

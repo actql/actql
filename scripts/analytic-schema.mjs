@@ -7,16 +7,26 @@ import {aggregateSchema,fieldPattern,orderKeys,parameter,positive} from './aggre
 import {machineCid} from './actql-spec-family.mjs';
 
 const call = (names, properties = {}, required = []) => ({type:'object',additionalProperties:false,required:['fn',...required],properties:{fn:{enum:names},...properties}});
-const rankings = call(['row_number','rank','dense_rank']);
-const navigation = call(['lag','lead'],{expr:{$ref:'#/$defs/value_expression'},offset:{oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]}},['expr']);
+const rankings = call(['row_number','rank','dense_rank','percent_rank']);
+const ntile = call(['ntile'],{buckets:positive},['buckets']);
+const navigation = call(['lag','lead'],{expr:{$ref:'#/$defs/value_expression'},offset:{oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]},default:{$ref:'#/$defs/value_expression'}},['expr']);
 const values = call(['first_value','last_value'],{expr:{$ref:'#/$defs/value_expression'}},['expr']);
+const aggregates = aggregateSchema(true).oneOf;
+const unorderedAggregates = aggregates.filter(value =>
+  !['array_agg','string_agg','first','last'].includes(value.properties.fn.const));
 const boundary = {oneOf:[{enum:['unbounded_preceding','current_row','unbounded_following']},...['preceding','following'].map(k=>({type:'object',additionalProperties:false,required:[k],properties:{[k]:positive}}))]};
 export const analyticSchema = {type:'object',additionalProperties:false,required:['partition_by','order_by','functions'],properties:{
   partition_by:{type:'array',items:{type:'string',minLength:1}},
-  order_by:orderKeys,
-  functions:{type:'object',minProperties:1,propertyNames:{pattern:fieldPattern},additionalProperties:{oneOf:[rankings,navigation,values,...aggregateSchema(true).oneOf]}},
+  order_by:{...orderKeys,minItems:0},
+  functions:{type:'object',minProperties:1,propertyNames:{pattern:fieldPattern},additionalProperties:{oneOf:[rankings,ntile,navigation,values,...aggregates]}},
   frame:{type:'object',additionalProperties:false,required:['start','end'],properties:{start:{allOf:[boundary,{not:{const:'unbounded_following'}}]},end:{allOf:[boundary,{not:{const:'unbounded_preceding'}}]}}},
-},allOf:[{if:{properties:{functions:{additionalProperties:{oneOf:[rankings,navigation]}}}},then:{not:{required:['frame']}},else:{required:['frame']}}]};
+},allOf:[
+  {if:{properties:{functions:{additionalProperties:{oneOf:[rankings,ntile,navigation]}}}},
+    then:{not:{required:['frame']}}},
+  {if:{properties:{order_by:{maxItems:0}}},
+    then:{not:{required:['frame']},
+      properties:{functions:{additionalProperties:{oneOf:unorderedAggregates}}}}},
+]};
 
 export function checkAnalyticSchemas(registry) {
   for(const p of parameterPrograms(registry)) assert.deepEqual(p.properties.steps.items.properties.analytic,analyticSchema);

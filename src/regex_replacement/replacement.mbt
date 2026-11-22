@@ -29,7 +29,14 @@ pub struct Stats {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum Syntax {
+  Actql
+  GoogleSql
+} derive(Eq)
+
+///|
 struct Replacement {
+  syntax : Syntax
   parts : Array[Part]
   stats : Stats
   cid : String
@@ -43,6 +50,7 @@ fn emit_parts(
   parts : Array[Part],
   stats : Stats,
   cid : String?,
+  syntax : Syntax,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
@@ -78,14 +86,24 @@ fn emit_parts(
   }
   @encode.end_array(writer)
   @encode.key(writer, "version")
-  @encode.string_value(writer, "actql-regex-replacement-ast/0.1")
+  @encode.string_value(
+    writer,
+    match syntax {
+      Actql => "actql-regex-replacement-ast/0.1"
+      GoogleSql => "actql-sql-regex-replacement-ast/0.1"
+    },
+  )
   @encode.end_object(writer)
 }
 
 ///|
 /// Parse canonical replacement text, not Host replacement syntax. Capture
 /// existence must be checked against the associated admitted regex separately.
-pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
+pub fn parse(
+  text : String,
+  limits : Limits,
+  syntax? : Syntax = Actql,
+) -> Result[Replacement, Issue] {
   if limits.max_input_bytes < 0 ||
     limits.max_parts < 0 ||
     limits.max_ast_bytes < 0 ||
@@ -98,12 +116,16 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
     Err(@scalar.MalformedUtf16(offset)) => return Err(InvalidUnicode(offset))
     Err(_) => return Err(BudgetExceeded)
   }
-  match @canonical.normalize_nfc_lf(text) {
-    Ok(value) if value == text => ()
-    Ok(_) => return Err(NonCanonicalText)
-    Err(@canonical.UnpairedSurrogate(offset)) =>
-      return Err(InvalidUnicode(offset))
+  if syntax == Actql {
+    match @canonical.normalize_nfc_lf(text) {
+      Ok(value) if value == text => ()
+      Ok(_) => return Err(NonCanonicalText)
+      Err(@canonical.UnpairedSurrogate(offset)) =>
+        return Err(InvalidUnicode(offset))
+    }
   }
+  let escape = if syntax == GoogleSql { 0x5c } else { 0x24 }
+  let first_capture = if syntax == GoogleSql { 0x30 } else { 0x31 }
   let parts : Array[Part] = []
   let mut literal = StringBuilder()
   let mut has_literal = false
@@ -113,7 +135,7 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
   let mut offset = 0
   while offset < text.length() {
     let unit = text[offset].to_int()
-    if unit != 0x24 {
+    if unit != escape {
       // UTF-16 has already been validated without replacement above.
       let cp = if unit >= 0xD800 && unit <= 0xDBFF {
         let low = text[offset + 1].to_int()
@@ -127,8 +149,8 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
       has_literal = true
       continue
     }
-    if offset + 1 < text.length() && text[offset + 1].to_int() == 0x24 {
-      literal.write_char('$')
+    if offset + 1 < text.length() && text[offset + 1].to_int() == escape {
+      literal.write_char(escape.unsafe_to_char())
       has_literal = true
       literal_bytes -= 1
       offset += 2
@@ -138,12 +160,12 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
       return Err(InvalidReplacement(offset))
     }
     let first = text[offset + 1].to_int()
-    if first < 0x31 || first > 0x39 {
+    if first < first_capture || first > 0x39 {
       return Err(InvalidReplacement(offset))
     }
     let mut capture = first - 0x30
     let mut consumed = 2
-    if text.length() - offset > 2 {
+    if syntax == Actql && text.length() - offset > 2 {
       let second = text[offset + 2].to_int()
       if second >= 0x30 && second <= 0x39 {
         capture = capture * 10 + second - 0x30
@@ -187,16 +209,17 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
       limits.max_ast_nodes,
       3,
     )
-    emit_parts(parts, stats, None, hash)
+    emit_parts(parts, stats, None, syntax, hash)
     let cid = "sha256:" + @encode.finish_hash(hash)
     let measure = @encode.measuring_writer(
       limits.max_ast_bytes,
       limits.max_ast_nodes,
       3,
     )
-    emit_parts(parts, stats, Some(cid), measure)
+    emit_parts(parts, stats, Some(cid), syntax, measure)
     let ast_bytes = @encode.finish_measurement(measure)
     Ok({
+      syntax,
       parts,
       stats,
       cid,
@@ -207,6 +230,11 @@ pub fn parse(text : String, limits : Limits) -> Result[Replacement, Issue] {
   } catch {
     _ => Err(BudgetExceeded)
   }
+}
+
+///|
+pub fn syntax(v : Replacement) -> Syntax {
+  v.syntax
 }
 
 ///|
@@ -240,7 +268,7 @@ pub fn emit(
   v : Replacement,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_parts(v.parts, v.stats, Some(v.cid), writer)
+  emit_parts(v.parts, v.stats, Some(v.cid), v.syntax, writer)
 }
 
 ///|
@@ -248,5 +276,5 @@ pub fn emit_preimage(
   v : Replacement,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_parts(v.parts, v.stats, None, writer)
+  emit_parts(v.parts, v.stats, None, v.syntax, writer)
 }
