@@ -1,6 +1,4 @@
-// Test-only signatures of the generated conformance fixture and standard Host call.
-import type {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
-import type {prepareDuckDBStrategyConfiguration} from '../configuration.mjs';
+// Test-only signatures of the generated conformance fixture and ledger usage.
 
 export type ContractWires = readonly [string, string, string];
 export type JoinFixtureRuntime = Readonly<{
@@ -21,6 +19,3 @@ export type CapturedUsage = Readonly<{
   reservedExecutionBytes: bigint;
   transferredBytes: bigint;
 }>;
-export type RunCapturedStrategy = (setup: unknown, configuration: Readonly<{
-  duckdb: ReturnType<typeof prepareDuckDBStrategyConfiguration>;
-}>) => ReturnType<typeof runInstalledStrategy>;

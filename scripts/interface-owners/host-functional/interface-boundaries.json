@@ -50579,7 +50579,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "export class CapturedRunPublicationError extends Error {"
               },
               {
@@ -50597,7 +50597,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "export class CapturedRunPublicationError extends Error {"
               },
               {
@@ -50615,7 +50615,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';"
               },
               {
@@ -50633,7 +50633,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "cleanup: {retainPreflightCleanup, preparationHolder} = {},"
               },
               {
@@ -50655,7 +50655,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "const moon = await loadRuntime();"
               },
               {
@@ -50673,7 +50673,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "settleRefusedEffectRun as settleRefusedRun} from"
               },
               {
@@ -50695,7 +50695,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);"
               },
               {
@@ -50713,7 +50713,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "// account configuration: protected boundaries deny, covered in-process"
               },
               {
@@ -50731,7 +50731,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "// Standard composition entry. Callers cannot replace the runtime, installed"
               },
               {
@@ -50787,7 +50787,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "export class CapturedRunPublicationError extends Error {"
               },
               {
@@ -50801,7 +50801,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "export class CapturedRunPublicationError extends Error {"
               },
               {
@@ -50815,7 +50815,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';"
               },
               {
@@ -50829,7 +50829,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "cleanup: {retainPreflightCleanup, preparationHolder} = {},"
               },
               {
@@ -50847,7 +50847,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "const moon = await loadRuntime();"
               },
               {
@@ -50861,7 +50861,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "settleRefusedEffectRun as settleRefusedRun} from"
               },
               {
@@ -50879,7 +50879,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);"
               },
               {
@@ -50893,7 +50893,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "// account configuration: protected boundaries deny, covered in-process"
               },
               {
@@ -50907,7 +50907,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/entry.mjs",
+                "path": "adapters/host-node/entry.mts",
                 "anchor": "// Standard composition entry. Callers cannot replace the runtime, installed"
               },
               {
@@ -86725,8 +86725,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86739,8 +86739,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -86753,7 +86753,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
+                "path": "adapters/host-node/managed-identity-policy.mts",
                 "anchor": "// Caller-added managed identity requirements. They may strengthen checked and"
               },
               {
@@ -86767,8 +86767,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86781,8 +86781,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86795,7 +86795,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
+                "path": "adapters/host-node/managed-identity-policy.mts",
                 "anchor": "throw new TypeError('Invalid managed identity policy');"
               },
               {
@@ -86809,8 +86809,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86823,8 +86823,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -86837,8 +86837,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86851,7 +86851,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/managed-identity-policy.test.mjs",
+                "path": "adapters/host-node/managed-identity-policy.test.mts",
                 "anchor": "test('managed identity policy is opaque immutable caller strengthening', () => {"
               },
               {
@@ -86869,8 +86869,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86883,8 +86883,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -86897,7 +86897,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
+                "path": "adapters/host-node/managed-identity-policy.mts",
                 "anchor": "// Caller-added managed identity requirements. They may strengthen checked and"
               },
               {
@@ -86911,8 +86911,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86925,8 +86925,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86939,7 +86939,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
+                "path": "adapters/host-node/managed-identity-policy.mts",
                 "anchor": "throw new TypeError('Invalid managed identity policy');"
               },
               {
@@ -86953,8 +86953,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -86967,8 +86967,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
@@ -86981,8 +86981,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-identity-policy.mjs",
-                "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
+                "path": "adapters/host-node/managed-identity-policy.mts",
+                "anchor": "export function prepareManagedIdentityPolicy(options: unknown = {}) {"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -86995,7 +86995,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/managed-identity-policy.test.mjs",
+                "path": "adapters/host-node/managed-identity-policy.test.mts",
                 "anchor": "test('managed identity policy is opaque immutable caller strengthening', () => {"
               },
               {

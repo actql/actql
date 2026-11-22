@@ -8,13 +8,12 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
-// @ts-expect-error The standard Host entry still has an authored JavaScript implementation.
 import { runCapturedStrategy } from '../../../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
-import type {CapturedUsage, ContractWires, JoinFixtureRuntime, RunCapturedStrategy} from './captured-join-fixture.mjs';
+import type {CapturedUsage, ContractWires, JoinFixtureRuntime} from './captured-join-fixture.mjs';
 
 type ScalarCase = readonly [name: string, sqlType: string, field: Parameters<typeof typedCatalog>[1],
   highSql: string, lowSql: string, high: string | number | boolean, low: string | number | boolean];
@@ -97,7 +96,7 @@ test('typed composite join and count preserve fixed capture across Local fresh a
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f) : moon.strategyFixtureDispatch(f);
           if (placement !== 'resident') assert.equal(moon.strategyFixtureReplan(f, placement === 'local' ? 20n : 1n), true);
-          execution = await (runCapturedStrategy as RunCapturedStrategy)(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
+          execution = await runCapturedStrategy(dispatch as Parameters<typeof runCapturedStrategy>[0], {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}: ${execution.failure}`);
           assert.deepEqual(execution.completed.map(item => item.realization), Array(4).fill(placement === 'resident' ? 'duckdb-resident' : placement));
           assert.equal(moon.strategyFixtureCid(f, 3), hash([high, high, low, high, high].map(amount => ({ amount }))), `${name} join order`);

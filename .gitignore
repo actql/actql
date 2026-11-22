@@ -1914,3 +1914,9 @@ target/
 /adapters/connectors/duckdb/node/test/typed-resident-join.test.d.mts
 /adapters/connectors/duckdb/node/test/acquisition-authorization.test.mjs
 /adapters/connectors/duckdb/node/test/acquisition-authorization.test.d.mts
+/adapters/host-node/entry.mjs
+/adapters/host-node/entry.d.mts
+/adapters/host-node/managed-identity-policy.mjs
+/adapters/host-node/managed-identity-policy.d.mts
+/adapters/host-node/managed-identity-policy.test.mjs
+/adapters/host-node/managed-identity-policy.test.d.mts

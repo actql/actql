@@ -202,7 +202,7 @@ type Authorization = Readonly<{
 type CompletionEvent = Readonly<{task: number; output: unknown; readRetained?: RetainedRead}>;
 type TaskStartEvent = Readonly<{
   task: number;
-  registrationKey?: string;
+  registrationKey: string | undefined;
   managed: boolean;
   executionSite: SiteDescription;
   explanation: unknown;
