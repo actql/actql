@@ -24,6 +24,26 @@ test "Native Model HTTP keeps the resolved route from the adopted provider" {
   assert_eq(route.selector, "authored-alias")
   assert_eq(route.model_id, "deployed-model")
   assert_eq(route.endpoint, "https://models.example/v1/chat/completions")
+  let manifest = "a".repeat(64)
+  let installed = native_model_http_installation_profile(
+    manifest,
+    route.endpoint,
+  )
+  assert_eq(installed.endpoint, "https://models.example/v1/chat/completions")
+  assert_eq(installed.build_artifact_cid, "sha256:" + manifest)
+  assert_eq(installed.validator_artifact_cid, "sha256:" + manifest)
+  assert_true(installed.sdk is None)
+  assert_eq(installed.http_method, "POST")
+  assert_false(installed.streaming)
+  assert_eq(installed.completion_basis, "generation_finish")
+  let replaced = native_model_http_installation_profile(
+    "b".repeat(64),
+    route.endpoint,
+  )
+  assert_true(replaced.build_artifact_cid != installed.build_artifact_cid)
+  assert_true(
+    replaced.validator_artifact_cid != installed.validator_artifact_cid,
+  )
   let next = native_model_http_configuration_route(
     @utf8.encode(wire.replace(old="deployed-model", new="another-model!")),
     "models/http",

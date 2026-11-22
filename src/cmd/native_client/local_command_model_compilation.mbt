@@ -5,7 +5,7 @@ priv struct LocalCommandModelCompilation {
   program : @run_host.PreparedClientProgram
   compilation : @run_host.ClientTaskCompilation
   _graphs : Array[@run_host.ClientInferPlanGraph]
-  _executions : Array[@local_host.NativeModelHttpExecution]
+  _installations : Array[@local_host.NativeModelHttpInstallation]
 }
 
 ///|
@@ -14,7 +14,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
   capture : @local_host.NativeLocalJournalCapture,
   prepared : @run_host.PreparedClientProgram,
   installation : LocalModelHttpInstallationSettings,
-  contracts : @local_values.ClientInstalledSequenceContracts,
+  runtime : LocalPackagedRuntime,
 ) -> LocalCommandModelCompilation? raise ClientStop {
   let count = @run_host.prepared_client_composed_infer_count(prepared).unwrap_or_else(() => {
       stop("LocalOriginalModelUnavailable")
@@ -31,7 +31,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
     physical_equal(original, prepared) else {
     stop("LocalBusinessOriginalUnavailable")
   }
-  let (occurrences, graphs, executions) = self.with_business_request(capture, () => {
+  let (occurrences, graphs, providers) = self.with_business_request(capture, () => {
     // Ordinary intake held the checked Program for normalization and authoring.
     // Switch to the SAME Request's funded Model Plan input before constructing
     // any occurrence/Graph inventory. Cleanup owns whichever borrow is live.
@@ -59,6 +59,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
     }
     (occurrences, Array(capacity=count), Array(capacity=count))
   })
+  let contracts = runtime.installed_contracts
   let limits = local_project_mock_task_limits()
   let configuration = match
     capture.read_model_http_configuration_in_original_read(
@@ -86,6 +87,18 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
         stop("LocalModelHttpExecutionRefused")
       }
     }
+    let installed = match
+      capture.admit_model_http_installation_in_original_read(
+        runtime.physical,
+        execution,
+        self.profile.diagnostic_ceiling,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.retain_primary(CommandBusinessModelHttp(issue))
+        stop("LocalModelHttpInstallationRefused")
+      }
+    }
     self.with_business_request(capture, () => {
       match
         @local_values.prepare_request_model_graph(
@@ -99,7 +112,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
         ) {
         Ok(graph) => {
           graphs.push(graph)
-          executions.push(execution)
+          providers.push(installed)
         }
         Err(issue) => {
           self.retain_primary(CommandBusinessModelGraph(issue))
@@ -134,7 +147,7 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
           program: prepared,
           compilation,
           _graphs: graphs,
-          _executions: executions,
+          _installations: providers,
         })
       Err(issue) => {
         self.retain_primary(CommandBusinessModelGraph(issue))

@@ -146,12 +146,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       @local_host.native_client_submitted_preparation(preparation),
     ) {
     (Some(installation), Computation(prepared)) =>
-      self.prepare_model_compilation(
-        capture,
-        prepared,
-        installation,
-        runtime.installed_contracts,
-      )
+      self.prepare_model_compilation(capture, prepared, installation, runtime)
     _ => None
   }
   let (requirements, file_source) = match

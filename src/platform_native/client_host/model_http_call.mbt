@@ -619,6 +619,32 @@ pub fn NativeLocalJournalCapture::prepare_model_http_execution_in_original_read(
 }
 
 ///|
+// The Native runtime manifest identifies the compiled Common source and the
+// exact packaged HTTP component together. Both portable codec stages are in
+// that same installed build. The adopted Provider supplies the endpoint.
+fn native_model_http_installation_profile(
+  manifest_sha256 : String,
+  endpoint : String,
+) -> @environment.ModelResponseProfileInstallation {
+  let artifact = "sha256:" + manifest_sha256
+  {
+    builder_id: "actql/native-portable-chat",
+    builder_revision: "1",
+    codec_id: "actql/openai-chat-envelope",
+    codec_revision: "1",
+    build_artifact_cid: artifact,
+    sdk: None,
+    endpoint,
+    http_method: "POST",
+    streaming: false,
+    validator_id: "actql/openai-chat-envelope",
+    validator_revision: "1",
+    validator_artifact_cid: artifact,
+    completion_basis: "generation_finish",
+  }
+}
+
+///|
 /// Join the exact admitted configuration and checked execution to the
 /// command's Runtime. Load the selected library only after successful Model
 /// admission and restore its original private file projection without opening
@@ -627,7 +653,6 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
   prepared : NativeModelHttpExecution,
-  profile : @environment.ModelResponseProfileInstallation,
   diagnostic_ceiling : Int,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
   let configuration = prepared.configuration
@@ -637,6 +662,9 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
   }
   if self.require_model_http_runtime_in_original_read(runtime) is Err(issue) {
     return Err(issue)
+  }
+  guard runtime.selection is Some((_, _, _, manifest_sha256)) else {
+    return Err(ForeignOriginal)
   }
   self
   .with_current_adoption_material_in_original_read((host, _, operations) => {
@@ -652,27 +680,48 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     let response = configuration.response
     let resolved = configuration.route
     let selected = configuration.selected
+    let profile_layout : @execution.PreparationRepresentationUnits = {
+      record_headers: 2L,
+      reference_slots: 12L,
+      scalar_words: 1L,
+      owned_utf16_units: 71L,
+      owned_wire_bytes: 0L,
+    }
     guard native_model_http_capability_construction(binding, wire)
+      is Some(capability_peak) &&
+      @execution.compose_preparation_representation([
+        capability_peak, profile_layout,
+      ])
       is Some(capability_working) else {
       return Err(ConfigurationLimit)
     }
     // Installed physical Provider, capability, admitted provider and private
-    // projection holders coexist. Configuration and Profile are borrowed.
+    // projection holders coexist with the installed profile and its digest.
     if fund_native_model_http_configuration(
         operations,
         {
-          record_headers: 12L,
-          reference_slots: 44L,
-          scalar_words: 10L,
-          owned_utf16_units: 0L,
-          owned_wire_bytes: 0L,
+          ..profile_layout,
+          record_headers: profile_layout.record_headers + 12L,
+          reference_slots: profile_layout.reference_slots + 44L,
+          scalar_words: profile_layout.scalar_words + 10L,
         },
         capability_working,
       )
       is Err(issue) {
       return Err(issue)
     }
-    guard @model.install_async_model_provider(connection) is Ok(implementation) &&
+    let profile = native_model_http_installation_profile(
+      manifest_sha256,
+      resolved.endpoint,
+    )
+    guard @environment.check_model_response_profile_binding(
+        response,
+        task,
+        profile,
+        None,
+      )
+      is Ok(_) &&
+      @model.install_async_model_provider(connection) is Ok(implementation) &&
       @model.register_structured_model_capability(
         implementation, binding, wire, resolved, response, true, true,
       )

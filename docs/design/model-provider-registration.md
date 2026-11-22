@@ -283,6 +283,14 @@ installation binding, durable Entry requirement and finite request/response
 limits before adopting the original async physical plan. Registration does not
 prove current authorization, raw-capture permission or resource funding.
 
+The Native HTTP installation derives its response-profile build and validator
+identities from the SHA-256 of the admitted Native runtime manifest. The
+manifest binds the compiled source and the packaged `model-http` component.
+The installed builder is `actql/native-portable-chat`, with
+`actql/openai-chat-envelope` as its codec and validator, all at revision `1`.
+The adopted Provider supplies the HTTPS endpoint. The installation validates
+the response profile against these facts before acquiring the HTTP library.
+
 The original Entry, final send gate, raw-response custody, response decoder,
 attempt settlement and cleanup owners remain authoritative. The same registered
 Provider cannot silently switch invocation kind during preflight. In particular,
