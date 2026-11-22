@@ -52,6 +52,11 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   const manifest = JSON.parse(readFileSync(new URL('../packages/provider-ai-sdk/package.json', import.meta.url)));
   assert.equal(manifest.dependencies.undici, '7.30.0');
   assert.equal(manifest.dependencies['@ai-sdk/provider-utils'], '5.0.58');
+  // The older support library is also a direct pin so npm preserves the same
+  // shared physical placement for OpenAI and the root Provider utilities.
+  assert.equal(manifest.dependencies['@ai-sdk/provider'], '4.0.26');
+  assert.equal(lock.packages[''].dependencies['@ai-sdk/provider'], '4.0.26');
+  assert.equal(lock.packages['node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider'].version, '4.0.39');
   assert.equal(lock.packages[''].dependencies['@ai-sdk/provider-utils'], '5.0.58');
   assert.equal(lock.packages['node_modules/@ai-sdk/provider-utils'].version, '5.0.58');
   assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});
