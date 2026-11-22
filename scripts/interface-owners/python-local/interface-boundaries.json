@@ -5518,6 +5518,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_saved_census_read",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_schema",
           "parameters": [
             "self",
@@ -8315,7 +8323,7 @@
           ]
         }
       ],
-      "sha256": "867504d63696521cecb2e923c8b9afe2476e715b30b8b0fa095559352a6548a1",
+      "sha256": "806168f79f5dd9db1d4ddc44aead603b6e1f4376afb8ea0c6b0377d7ecd272f5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14940,7 +14948,8 @@
         },
         {
           "operations": [
-            "LocalCore/_journal_current_operation"
+            "LocalCore/_journal_current_operation",
+            "LocalCore/_journal_saved_census_read"
           ],
           "exports": [],
           "attributes": {
@@ -15032,6 +15041,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Incremental Saved payload input preparation begins every Core export"
               }
             ],
             "verification": [
@@ -15042,6 +15055,14 @@
               {
                 "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
                 "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
               }
             ]
           }
@@ -28600,6 +28621,13 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation/supports_saved_census_read",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalPublisherPort",
           "parameters": []
         },
@@ -28683,7 +28711,7 @@
           ]
         }
       ],
-      "sha256": "2095b6786a098d00ecdae94cd6e9b6dcdbbb6bdbc8e25d5339f66db8190c67d1",
+      "sha256": "6fbaa953673dd9f919ac51f0061f288a7a1352db21126f25332d57b75c101d07",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28854,7 +28882,8 @@
             "_OriginalPublisherPort/_require_original",
             "_OriginalPublisherPort/_require_reservation",
             "_OriginalPublisherPort/authorize",
-            "_OriginalPublisherPort/current"
+            "_OriginalPublisherPort/current",
+            "_InvocationObservation/supports_saved_census_read"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -29112,6 +29141,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Incremental Saved payload input preparation begins every Core export"
               }
             ],
             "verification": [
@@ -29198,6 +29231,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
               }
             ]
           }
@@ -79755,7 +79796,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "9eb664c36a5bab82e0275ea2fb3a4039eb1a98965fffccfb9ceff22436ad67e0",
+      "sha256": "c6406f5272ad8536b58a089c238cb1cdadaeecab45258e55862f91bb0a811a46",
       "exports": [],
       "operations": [
         {
@@ -79797,6 +79838,10 @@
         {
           "name": "journal_row_header",
           "declaration": "journal_row_header ( header : Bytes ) - > Result [ ( Int , Int , Int64 ) , Int ]"
+        },
+        {
+          "name": "journal_schema_without_saved_census",
+          "declaration": "journal_schema_without_saved_census ( observed : Int ) - > Int"
         },
         {
           "name": "physical_journal_copy_row",
@@ -79857,7 +79902,8 @@
             "[T]journal_close_payload",
             "begin_journal_observation_close",
             "prepare_journal_observation_close",
-            "settle_journal_observation_close_capacity"
+            "settle_journal_observation_close_capacity",
+            "journal_schema_without_saved_census"
           ],
           "exports": [],
           "attributes": {
@@ -79953,6 +79999,10 @@
               {
                 "path": "src/client_host_wasm/version.mbt",
                 "anchor": "pub fn host_abi_version()"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Incremental Saved payload input preparation begins every Core export"
               }
             ],
             "verification": [
@@ -79963,6 +80013,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_owned_store.py",
                 "anchor": "def test_catalog_observation_uses_existing_query_budget_and_rejects_boolean_permission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
               }
             ]
           }
@@ -80077,7 +80135,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_lookup.mbt",
-      "sha256": "48f27f922986c0ec62e6c673e56a77bea5deae3416318c933c0c934d7c65391c",
+      "sha256": "3a3cf3e96be12cc6687b9acb4a4caf949dff46606bcdc5feac910c5f25fdd659",
       "exports": [],
       "operations": [
         {
@@ -80426,7 +80484,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "36ea6c5afafadd779f28fe674915962c6ae370f95143543cc271fc18b10d530f",
+      "sha256": "355b111bb0bfca636502eeb2ce49c67a68b72c3701345669f1a575f3f6d289ee",
       "exports": [],
       "operations": [
         {
@@ -80459,7 +80517,7 @@
         },
         {
           "name": "rebind_saved_result_originals",
-          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , ) - > Result [ Unit , Int ]"
+          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , census_ticket ? : Int"
         },
         {
           "name": "reobserve_saved_result_read",
@@ -80475,7 +80533,7 @@
         },
         {
           "name": "validate_saved_result_read",
-          "declaration": "validate_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+          "declaration": "validate_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , same_reader_census ? : Bool"
         }
       ],
       "role": "physical-io",
@@ -80588,6 +80646,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Incremental Saved payload input preparation begins every Core export"
               }
             ],
             "verification": [
@@ -80606,6 +80668,14 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"saved continuation refuses a changed supported schema with identical originals\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
               }
             ]
           }

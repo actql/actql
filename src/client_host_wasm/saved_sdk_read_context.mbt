@@ -30,6 +30,7 @@ fn saved_sdk_read_context(
   record : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   guard run == record.publication &&
     saved_result_export_parent(value, record.publication)
@@ -51,41 +52,12 @@ fn saved_sdk_read_context(
     connection != current.tuple.connection {
     return Err(-32)
   }
-  let check_current = () => {
-    if value.closing || value.runtime_closing || record.closing {
-      return Err(-5)
-    }
-    match saved_result_export_parent(value, record.publication) {
-      Some((actual, original)) if physical_equal(actual, parent) &&
-        physical_equal(original, saved) => ()
-      _ => return Err(-32)
-    }
-    match validate_saved_result_read(value, parent, current) {
-      Err(code) => return Err(code)
-      Ok(_) => ()
-    }
-    match
-      @local_run.validate_local_sdk_read_source_current(
-        source,
-        current.account,
-        result_name,
-      ) {
-      Err(Preflight(_)) => return Err(-35)
-      Err(_) => return Err(-32)
-      Ok(_) => ()
-    }
-    // This is the actual same Host/Store current port, not the saved Allow.
-    match run_configuration_current(value, current) {
-      Err(code) => Err(code)
-      Ok(_) =>
-        if record.closing || parent.output_closed {
-          Err(-5)
-        } else {
-          Ok(())
-        }
-    }
-  }
-  match check_current() {
+  // Every export begins with the full census. Subsequent checks may use it
+  // only while the physical Owner proves that the same reader is unchanged.
+  match
+    check_saved_sdk_read_context(
+      value, record, parent, saved, current, source, false,
+    ) {
     Err(code) => Err(code)
     Ok(_) =>
       Ok({
@@ -97,7 +69,56 @@ fn saved_sdk_read_context(
         view,
         result_name,
         format,
-        check_current,
+        check_current: () => {
+          check_saved_sdk_read_context(
+            value, record, parent, saved, current, source, same_reader_census,
+          )
+        },
       })
+  }
+}
+
+///|
+fn check_saved_sdk_read_context(
+  value : Instance,
+  record : StoredPublicationCommitExport,
+  parent : StoredSubmissionProjection,
+  saved : StoredSavedResultRead,
+  current : StoredRunConfiguration,
+  source : @local_run.LocalSDKReadSource,
+  same_reader_census : Bool,
+) -> Result[Unit, Int] {
+  if value.closing || value.runtime_closing || record.closing {
+    return Err(-5)
+  }
+  match saved_result_export_parent(value, record.publication) {
+    Some((actual, original)) if physical_equal(actual, parent) &&
+      physical_equal(original, saved) => ()
+    _ => return Err(-32)
+  }
+  match
+    validate_saved_result_read(value, parent, current, same_reader_census~) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  match
+    @local_run.validate_local_sdk_read_source_current(
+      source,
+      current.account,
+      saved.result_name,
+    ) {
+    Err(Preflight(_)) => return Err(-35)
+    Err(_) => return Err(-32)
+    Ok(_) => ()
+  }
+  // This is the actual same Host/Store current port, not the saved Allow.
+  match run_configuration_current(value, current) {
+    Err(code) => Err(code)
+    Ok(_) =>
+      if record.closing || parent.output_closed {
+        Err(-5)
+      } else {
+        Ok(())
+      }
   }
 }

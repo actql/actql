@@ -1021,7 +1021,8 @@ class LocalCore:
                             'journal_query_header', 'journal_copy_row'):
                     index = 1 if name in ('journal_query_copy', 'journal_copy',
                                           'journal_query_header', 'journal_copy_row') else 0
-                    journal = self._journal_callbacks(args[index])
+                    ticket = abs(args[index]) if name == 'journal_current_operation' else args[index]
+                    journal = self._journal_callbacks(ticket)
                     pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
                             and journal.current is span.binding._current_observer)
                 elif name in ('publisher_current', 'publisher_begin', 'publisher_copy', 'publisher_finish'):
@@ -1617,8 +1618,19 @@ class LocalCore:
         return -41 if callbacks is None else callbacks.check_current()
 
     def _journal_schema(self, ticket: int) -> int:
+        from ._local_host_binding import _InvocationObservation
         callbacks = self._journal_callbacks(ticket)
-        return -41 if callbacks is None else callbacks.schema()
+        if callbacks is None:
+            return -41
+        schema = callbacks.schema()
+        span = getattr(self, '_invocation_observation', None)
+        # Only the original closed Saved input export advertises the optional
+        # query. Existing suppliers return 0 or 1 and take the full census.
+        if (schema in (0, 1) and type(span) is _InvocationObservation
+                and span.supports_saved_census_read() and span.current.ticket == ticket
+                and callbacks.reader is span.reader):
+            return schema + 2
+        return schema
 
     def _journal_current_operation(self, ticket: int) -> int:
         """Original current observation plus this Host operation's DATA.
@@ -1630,6 +1642,8 @@ class LocalCore:
         Zero selects complete original observation for raw/cleanup callers.
         It is not an Allow, permission cache, reader handle or continuation.
         """
+        if ticket < 0:
+            return self._journal_saved_census_read(-ticket)
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
@@ -1666,6 +1680,26 @@ class LocalCore:
                 or operation != self._host_operation_sequence):
             return -41
         return operation
+
+    def _journal_saved_census_read(self, ticket: int) -> int:
+        """Return whether this export still owns its uninterrupted original reader."""
+        from ._local_host_binding import _InvocationObservation
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        span = getattr(self, '_invocation_observation', None)
+        if type(span) is not _InvocationObservation or not span.supports_saved_census_read():
+            return 0
+        if (span.current.ticket != ticket
+                or callbacks.reader is not span.reader or callbacks.current is not span.binding._current_observer):
+            raise span._fail(ValueError('Foreign Saved census reader'))
+        span.check()
+        unchanged = span.reader.check_unchanged
+        if unchanged is None:
+            raise span._fail(ValueError('Original Saved census reader is unavailable'))
+        unchanged(span.reader)
+        span._guard_originals()
+        return 1
 
     def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
         callbacks = self._journal_callbacks(ticket)

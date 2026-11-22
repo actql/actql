@@ -139,7 +139,7 @@ class _InvocationObservation:
                  'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
                  'admitted', 'disabled', 'checking_physical', 'platform', 'publisher',
                  'publisher_buffer', 'publisher_received', 'wasm_export', 'closed_import',
-                 'statement_epoch')
+                 'statement_epoch', 'effect_seen')
 
     def __init__(self, binding: 'OriginalHostBinding', reader: _NamespaceReader,
                  connection: _TrackedSQLiteConnection) -> None:
@@ -159,6 +159,7 @@ class _InvocationObservation:
         self.wasm_export: tuple[Any, str, Any, Any] | None = None
         self.closed_import = False
         self.statement_epoch = connection._closed_statement_epoch
+        self.effect_seen = False
         self.failure: BaseException | None = None
         self.suspended = False
         self.active = True
@@ -206,6 +207,11 @@ class _InvocationObservation:
             return False
         self._guard_sql()
         return True
+
+    def supports_saved_census_read(self) -> bool:
+        return (self.wasm_export is not None
+                and self.wasm_export[1] == 'actql_publication_commit_export_prepare_sdk_payload_input'
+                and self.admitted and self.closed_import and not self.suspended and not self.effect_seen)
 
     def _guard_originals(self) -> None:
         try:
@@ -356,6 +362,7 @@ class _InvocationObservation:
         try:
             if self.failure is not None:
                 raise self.failure
+            self.effect_seen = True
             if self.admitted:
                 self.check(physical=True)
             self.suspended = True

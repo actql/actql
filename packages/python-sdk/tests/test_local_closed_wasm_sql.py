@@ -21,7 +21,7 @@ import test_local_closed_invocation as closed
 
 
 class ClosedWasmSqlTests(unittest.TestCase):
-    def fixture(self, *, effect=None, capture=True):
+    def fixture(self, *, effect=None, capture=True, legacy_census_supplier=False):
         fixture = closed.ClosedInvocationTests()
         self.addCleanup(fixture.doCleanups)
         core, binding, store, path, _ = fixture.fixture()
@@ -51,6 +51,22 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 i32.const {ticket} call $current i64.const 1 i64.eq
                 if else unreachable end
                 i32.const {ticket} call $schema)
+            (func (export "actql_publication_commit_export_prepare_sdk_payload_input")
+                    (param i64) (param $effect i32) (result i32)
+                (local $before i32)
+                i32.const {ticket} call $current i64.const 1 i64.eq
+                if else unreachable end
+                i32.const 0 call $one i32.eqz if else unreachable end
+                i32.const {ticket} call $release drop
+                i32.const {ticket} call $schema i32.const 2 i32.ge_s
+                if (result i32)
+                    i32.const {-ticket} call $current i32.wrap_i64 local.set $before
+                    local.get $effect if call $effect drop end
+                    local.get $before i32.const 10 i32.mul
+                    i32.const {-ticket} call $current i32.wrap_i64 i32.add
+                else
+                    i32.const 0
+                end)
             (func (export "actql_probe_run")
                     (param i64) (param $count i32) (param $rows i32) (param $effect i32) (result i32)
                 (local $index i32)
@@ -70,15 +86,24 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 end
                 local.get $effect if call $effect drop end
                 i32.const 7))''')
+        def legacy_current(ticket):
+            self.assertGreater(ticket, 0, 'The original supplier cannot answer negative tickets')
+            return core._journal_current_operation(ticket)
+
+        def legacy_schema(ticket):
+            return core._journal_callbacks(ticket).schema()
+
         definitions = [
-            ('journal_current_operation', core._journal_current_operation, ['i32'], 'i64', False),
+            ('journal_current_operation', legacy_current if legacy_census_supplier
+             else core._journal_current_operation, ['i32'], 'i64', False),
             ('journal_begin', core._journal_begin, ['i32'] * 4, 'i32', False),
             ('journal_query_copy', core._journal_query_copy, ['i32'] * 4, 'i32', True),
             ('journal_query', core._journal_query, ['i32'], 'i32', False),
             ('journal_length', core._journal_length, ['i32'] * 2, 'i32', False),
             ('journal_release', core._journal_release, ['i32'], 'i32', False),
             ('test_effect', effect or (lambda: 0), [], 'i32', False),
-            ('journal_schema', core._journal_schema, ['i32'], 'i32', False),
+            ('journal_schema', legacy_schema if legacy_census_supplier else core._journal_schema,
+             ['i32'], 'i32', False),
         ]
         imports = [wasmtime.Func(core._store,
             wasmtime.FuncType([getattr(wasmtime.ValType, item)() for item in params],
@@ -134,6 +159,33 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self.assertEqual(len(observed), 2)
         self.assertEqual(returned, observed)
         self.assertTrue(all(result in (0, 1) for result in returned))
+        self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_census_proof_stays_inside_the_original_closed_export(self):
+        for capture, effect, legacy, expected in (
+                (True, 0, False, 11), (True, 1, False, 10), (False, 0, False, 0), (True, 0, True, 0)):
+            with self.subTest(capture=capture, effect=effect, legacy=legacy):
+                core, binding, store, _ = self.fixture(capture=capture, legacy_census_supplier=legacy)
+                actual = []
+                binding.inspect(lambda _: actual.append(
+                    LocalCore._call(core, 'publication_commit_export', 'prepare_sdk_payload_input', effect)))
+                self.assertEqual(actual, [expected])
+                self.assertIsNone(binding._observed_reader)
+                self.assertIsNone(store._connection._closed_invocation)
+
+    def test_saved_census_proof_cannot_hide_a_same_size_mutation(self):
+        def effect():
+            sqlite3.Connection.execute(store._connection,
+                "UPDATE core_bytes SET payload=X'72657669736564' WHERE key=?",
+                (store.namespaced_key('probe', 'row'),))
+            return 0
+
+        core, binding, store, _ = self.fixture(effect=effect)
+        with self.assertRaises(LocalStorageError):
+            binding.inspect(lambda _: LocalCore._call(
+                core, 'publication_commit_export', 'prepare_sdk_payload_input', 1))
+        self.assertTrue(core._closing)
+        self.assertIsNone(binding._observed_reader)
         self.assertIsNone(store._connection._closed_invocation)
 
     def test_journal_metadata_assignments_still_poison_closed_epoch(self):

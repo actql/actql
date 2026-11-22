@@ -4075,6 +4075,21 @@ standalone codec and ordinal methods retain their original independent frames
 for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
 
+Incremental Saved payload input preparation begins every Core export with the
+complete cancellation census. Its exact closed Wasmtime reader can advertise
+unchanged-reader proof support through the existing schema query. Values 2
+and 3 advertise support for physical schema 0 and 1 respectively. The
+optional negative-ticket current query returns 1 for the same unchanged read,
+0 when proof is unavailable, or the original refusal. A supplier that returns
+schema 0 or 1 receives no additional query and keeps full validation.
+
+Subsequent checks can skip only the census already accepted inside this
+export. Selected physical rows, current, schema, policy, binding, and receipt
+checks still run. The proof expires at any effect import or export return.
+Nothing crosses a SQLite reader, chunk, operation, or await. The optimization
+adds no retained census rows. An advertised query requires a matching Host
+and module. A physical error keeps its original failure and cleanup.
+
 
 ### Original Source carrier during Run restoration
 

@@ -19,9 +19,16 @@ fn original_sdk_read_context(
   record : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   if value.publications.get(record.publication) is None {
-    return saved_sdk_read_context(value, record, run, current_configuration)
+    return saved_sdk_read_context(
+      value,
+      record,
+      run,
+      current_configuration,
+      same_reader_census~,
+    )
   }
   guard value.publications.get(record.publication) is Some(parent) &&
     value.runs.get(run) is Some(original_run) &&

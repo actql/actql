@@ -77,7 +77,9 @@ fn observe_submission_lookup(
   let physical_schema = if record.kind == INCREMENTAL_SAVED_RESULT_KIND {
     admitted_schema
   } else {
-    physical_journal_schema(current.physical)
+    journal_schema_without_saved_census(
+      physical_journal_schema(current.physical),
+    )
   }
   if physical_schema != 0 && physical_schema != 1 {
     return Err(-41)
