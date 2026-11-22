@@ -46541,15 +46541,46 @@
     },
     {
       "module": "adapters/host-node/host-journal-native-image.cjs",
-      "sha256": "83a0655c8f0c6c080c594d5686c9b8491958c05cf03f6463e53dcbb80bff4881",
+      "sha256": "45f92210e5fd793992b80ed60f8351e95197d0f0a10dfe36e897c13b843988a1",
       "exports": [
-        "commonjs:loadHostJournalDirectoryNative"
+        "commonjs:loadHostJournalDirectoryNative",
+        "commonjs:loadOrdinaryLocalFilesNative"
       ],
       "operations": [
         {
           "name": "currentBindings/currentBindings",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "name",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/observeCleanup/observeCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadDirectoryNative/status/status/status",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -46564,32 +46595,19 @@
           "async": false
         },
         {
-          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+          "name": "loadOrdinaryLocalFilesNative",
           "parameters": [
-            "name",
-            "operation"
+            "packageRoot",
+            "images",
+            "limits",
+            "assertRuntimeCurrent"
           ],
           "async": false
         },
         {
-          "name": "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadHostJournalDirectoryNative/status/status/status",
+          "name": "loadOrdinaryLocalFilesNative/matching/matching",
           "parameters": [
-            "value"
+            "image"
           ],
           "async": false
         },
@@ -46618,16 +46636,19 @@
         {
           "operations": [
             "currentBindings/currentBindings",
+            "loadDirectoryNative/init:assertCurrent/init:assertCurrent",
+            "loadDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
+            "loadDirectoryNative/observeCleanup/observeCleanup",
+            "loadDirectoryNative/status/status",
+            "loadDirectoryNative/status/status/status",
             "loadHostJournalDirectoryNative",
-            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent",
-            "loadHostJournalDirectoryNative/init:assertCurrent/init:assertCurrent/init:assertCurrent",
-            "loadHostJournalDirectoryNative/observeCleanup/observeCleanup",
-            "loadHostJournalDirectoryNative/status/status",
-            "loadHostJournalDirectoryNative/status/status/status",
+            "loadOrdinaryLocalFilesNative",
+            "loadOrdinaryLocalFilesNative/matching/matching",
             "operations/operations"
           ],
           "exports": [
-            "commonjs:loadHostJournalDirectoryNative"
+            "commonjs:loadHostJournalDirectoryNative",
+            "commonjs:loadOrdinaryLocalFilesNative"
           ],
           "attributes": {
             "responsibility": [
@@ -55351,10 +55372,11 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "66e1251fa6df51010ab6b8d378bff183d46f3953cc3236f85058c5de8a543e36",
+      "sha256": "1110458b42ca1c80924ff1f17a82f525dea8f66e191ec38f700c91f94c24653d",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
+        "commonjs:ordinaryLocalFilesNative",
         "commonjs:ordinaryModelSdkInstallation",
         "commonjs:prepareOrdinaryModelSdkInstallation",
         "commonjs:readVerifiedSdkImage"
@@ -55443,6 +55465,11 @@
           "async": false
         },
         {
+          "name": "ordinaryLocalFilesNative",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "ordinaryModelSdkInstallation",
           "parameters": [
             "source"
@@ -55476,12 +55503,15 @@
         }
       ],
       "imports": [
+        "./host-journal-native-image.cjs",
+        "./host-journal-service-recipe.cjs",
         "./initial-control-image-loader.cjs",
         "./initial-control-image-source.cjs",
         "./initial-control-package-original.cjs",
         "./initial-control-phase-envelope.cjs",
         "node:fs",
         "node:module",
+        "node:os",
         "node:path",
         "node:util",
         "node:v8"
@@ -55505,6 +55535,7 @@
             "capturePackageCustody/readSdkImage/group/group",
             "capturePackageCustody/readSdkImage/image/image",
             "concrete/concrete/concrete",
+            "ordinaryLocalFilesNative",
             "ordinaryModelSdkInstallation",
             "prepareOrdinaryModelSdkInstallation",
             "prepareOrdinaryModelSdkInstallation/data/data/data",
@@ -55513,6 +55544,7 @@
           "exports": [
             "commonjs:captureInitialControlPackageCustody",
             "commonjs:captureOrdinaryInitialControlPackageCustody",
+            "commonjs:ordinaryLocalFilesNative",
             "commonjs:ordinaryModelSdkInstallation",
             "commonjs:prepareOrdinaryModelSdkInstallation",
             "commonjs:readVerifiedSdkImage"
@@ -133450,7 +133482,18 @@
         }
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
-      "sha256": "ad0183807b617627f9942145233dffdcbf4e9ea3c61b721f25d32aef2361acf6"
+      "sha256": "d21b730621205c1445b64a3fccc7034604aa4b0789460b5332781041bddc34cb",
+      "imports": [
+        "../../_build/native/directory-darwin-arm64.node",
+        "../../_build/native/directory-darwin-x64.node",
+        "../../_build/native/local-files-linux-x64.node",
+        "../../packages/local-node/_build/native/directory-darwin-arm64.node",
+        "../../packages/local-node/_build/native/directory-darwin-x64.node",
+        "../../packages/local-node/_build/native/local-files-linux-x64.node",
+        "./initial-control-package-custody.cjs",
+        "node:fs",
+        "node:module"
+      ]
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
@@ -137784,8 +137827,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5525,
-    "exports": 1199,
+    "operations": 5528,
+    "exports": 1201,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

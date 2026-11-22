@@ -11,6 +11,7 @@ const {existsSync, realpathSync} = require('node:fs');
 const {captureInitialControlImageSource} = require('./initial-control-image-source.cjs');
 const {installInitialControlImageLoader, installOrdinaryInitialControlImageLoader} = require('./initial-control-image-loader.cjs');
 const {getHeapStatistics} = require('node:v8');
+const {tmpdir} = require('node:os');
 const {types: nodeTypes} = require('node:util');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
@@ -310,7 +311,7 @@ function readVerifiedSdkImage(custody, packageName, path, cid, kind) {
 
 const sdkPackage = '@actql/provider-ai-sdk';
 const ordinarySdkPreparations = new WeakMap();
-let ordinarySdkImages, sdkImageFailure, sdkImageStarting = false;
+let ordinarySdkImages, ordinaryNativeOriginal, sdkImageFailure, sdkImageStarting = false;
 
 function prepareOrdinaryModelSdkInstallation(source) {
   if (source === undefined) return undefined;
@@ -363,8 +364,15 @@ function prepareOrdinaryModelSdkInstallation(source) {
         openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
         eager: false, libraries: Object.freeze({...process.versions})});
       inspectOrdinaryInitialControlPhaseEnvelope(imageInventory, envelope, runtime);
-      ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(
-        imageInventory, join(__dirname, '../..'), process.argv[1]);
+      const root = join(__dirname, '../..');
+      const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
+      const {loadOrdinaryLocalFilesNative} = require('./host-journal-native-image.cjs');
+      const {directoryLimits} = declareHostJournalServiceRecipe(envelope);
+      const nativeOriginal = freeze({root, images: own(imageInventory, 'nativeImages'),
+        load: loadOrdinaryLocalFilesNative,
+        limits: freeze({maxImageBytes: directoryLimits.maxImageBytes, temporaryDirectory: tmpdir()})});
+      ordinarySdkImages = captureOrdinaryInitialControlPackageCustody(imageInventory, root, process.argv[1]);
+      ordinaryNativeOriginal = nativeOriginal;
     }
     const read = (packageName, selected, kind) =>
       readVerifiedSdkImage(ordinarySdkImages, packageName, selected.path, selected.cid, kind);
@@ -395,6 +403,15 @@ function ordinaryModelSdkInstallation(source) {
   return selected;
 }
 
+function ordinaryLocalFilesNative() {
+  if (ordinaryNativeOriginal === undefined) return undefined;
+  const {root, images, limits, load} = ordinaryNativeOriginal;
+  // The Store's ordinary acquisition borrows the native owner's exact module.
+  // A binary never enters the JavaScript Source resolver or its cache seal.
+  return load(root, images, limits, ordinarySdkImages.assertCurrent).operations;
+}
+
 module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody,
-  readVerifiedSdkImage, prepareOrdinaryModelSdkInstallation, ordinaryModelSdkInstallation};
+  readVerifiedSdkImage, prepareOrdinaryModelSdkInstallation, ordinaryModelSdkInstallation,
+  ordinaryLocalFilesNative};
 freeze(module.exports);

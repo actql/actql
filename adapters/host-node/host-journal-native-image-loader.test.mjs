@@ -15,13 +15,14 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('private native image entry exposes one frozen operation without loading a native image', () => {
+test('private native image entry exposes frozen selectors without loading a native image', () => {
   const child = spawnSync(process.execPath, ['--input-type=commonjs', '-e', `
     const assert = require('node:assert/strict');
     const original = Object.getOwnPropertyDescriptor(process, 'dlopen');
     const entry = require(process.argv[1]);
-    assert.deepEqual(Object.keys(entry), ['loadHostJournalDirectoryNative']);
+    assert.deepEqual(Object.keys(entry), ['loadHostJournalDirectoryNative', 'loadOrdinaryLocalFilesNative']);
     assert.equal(typeof entry.loadHostJournalDirectoryNative, 'function');
+    assert.equal(typeof entry.loadOrdinaryLocalFilesNative, 'function');
     assert.equal(Object.isFrozen(entry), true);
     assert.deepEqual(Object.getOwnPropertyDescriptor(process, 'dlopen'), original);
   `, fileURLToPath(new URL('./host-journal-native-image.cjs', import.meta.url))],
