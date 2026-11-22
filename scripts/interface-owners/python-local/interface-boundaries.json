@@ -62772,7 +62772,7 @@
           ]
         }
       ],
-      "sha256": "5175d0bc2f201181a697caaa37bc299b4c623bf901a9b2e54bb76f92e1b5e3b9",
+      "sha256": "74e2f328959934c44b7178d38c4ed22fb7ba28c6a3694637da27c14e7486433b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -63001,6 +63001,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Synchronous cleanup and other-thread quanta"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "When Saved payload preparation traps, the response can still hold"
               }
             ],
             "failure": [
@@ -63091,6 +63095,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_trapped_saved_input_retires_original_before_returning_payload_loans("
               }
             ]
           }
@@ -78700,6 +78708,13 @@
         },
         {
           "async": false,
+          "name": "OriginalSavedResultRead/_begin_terminal_cleanup",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSavedResultRead/_current",
           "parameters": [
             "self",
@@ -78867,7 +78882,7 @@
           ]
         }
       ],
-      "sha256": "6bd630156e0262b6c4ce44f32c025408834faa0c0447cc3d33faba7c04d0fe64",
+      "sha256": "5074670509943de1fc0df7f31214a71698d4b37c768d090b57295217cea71a9d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -78897,7 +78912,8 @@
             "OriginalSavedResultRead/_prepare_payload/take_capacity",
             "OriginalSavedResultRead/_prepare_payload/take_row",
             "OriginalSavedResultRead/_prepare_turn",
-            "OriginalSavedResultRead/prepare_incremental"
+            "OriginalSavedResultRead/prepare_incremental",
+            "OriginalSavedResultRead/_begin_terminal_cleanup"
           ],
           "exports": [
             "ByteFence",
@@ -78998,6 +79014,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "When Saved payload preparation traps, the response can still hold"
               }
             ],
             "failure": [
@@ -79104,6 +79124,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_incremental_saved_hash_yields_after_one_real_chunk_and_rechecks_row(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_trapped_saved_input_retires_original_before_returning_payload_loans("
               }
             ]
           }

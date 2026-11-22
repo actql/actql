@@ -4095,6 +4095,13 @@ Nothing crosses a SQLite reader, chunk, operation, or await. The optimization
 adds no retained census rows. Existing current and cleanup ownership remain
 with the original invocation.
 
+When Saved payload preparation traps, the response can still hold the
+original first output and clock borrow. After the trapped invocation is
+quiescent, the response enters the existing terminal Saved retirement on
+that same parent before closing those children. Retirement permits the
+actual child close and stop calls to run. Their refusal still retains the
+original loans, and the read failure stays primary.
+
 
 ### Original Source carrier during Run restoration
 
