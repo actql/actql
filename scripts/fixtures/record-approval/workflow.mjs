@@ -7,6 +7,26 @@ import {createHash} from 'node:crypto';
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const text = value => typeof value === 'string' && value.length > 0;
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const closed = (value, keys) => object(value) && Object.keys(value).length === keys.length &&
+  keys.every(key => Object.hasOwn(value, key));
+
+export function admitAuthoredRecordApprovalCase(value) {
+  const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
+  const rows = value => Array.isArray(value) && value.every(object);
+  assert(closed(value, ['name', 'effect', 'read', 'review']));
+  const {effect, read, review} = value;
+  assert(object(effect));
+  const additional = Object.hasOwn(effect, 'additionalResults');
+  assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
+  assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
+  assert(closed(review, ['target', 'identity', 'before', 'changes']));
+  assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
+  assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
+  assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
+  assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  return retainCase(value);
+}
 
 // Trusted fixture expectation, never a Program option or a permission decision.
 // Each selected provider capability supplies its own two independent outcomes.

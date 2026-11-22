@@ -18,7 +18,7 @@ const observation = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR === connect
 let originalRef;
 const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUpdateApprovalPhase({...selected,
   replyLossExpectation,
-  createDefinition: () => createDefinition(programs, selection),
+  createDefinition: selected.definition === undefined ? () => createDefinition(programs, selection) : undefined,
   async load(name) {
     const value = await load(name);
     if (name === 'captured') originalRef = value.ref;

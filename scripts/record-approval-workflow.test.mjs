@@ -194,6 +194,75 @@ test('record wrapper cannot pass lost diagnostics after successful workflow and 
   assert.equal(sdk.events.filter(value => value === 'close').length, 1);
 });
 
+test('shared command reopens the same externally authored Program, parameters and independent oracle', async t => {
+  const value = await definition('kintone');
+  value.name = 'alternate-original-case';
+  value.effect.document += '\n-- Author update';
+  value.read.document += '\n-- Author read';
+  value.effect.parameters.next_name = 'Selected alternate value';
+  value.effect.expectedRows[0].next_name = 'Selected alternate value';
+  value.read.afterRows[0].Subject = 'Selected alternate value';
+  value.review.changes.Subject = 'Selected alternate value';
+  const f = await commandFixture(t, 'kintone', {casePath: 'case.json', connect: {mode: 'local'}});
+  const path = join(f.root, 'case.json'), original = JSON.stringify(value);
+  await writeFile(path, original);
+  f.options.programDirectory = pathToFileURL(join(f.root, 'absent') + '/');
+  f.options.createDefinition = () => assert.fail('Authored input must not construct a default case');
+  await runRecordApprovalCommand(f.options);
+  assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
+  assert.deepEqual(f.events, []);
+
+  const sdk = publicDouble(value);
+  const start = sdk.client.startSource.bind(sdk.client);
+  sdk.client.startSource = (document, options) => {
+    const program = document === value.effect.document ? value.effect : value.read;
+    assert.equal(options.format, program.format);
+    assert.deepEqual(options.parameterDeclarations, program.parameterDeclarations);
+    return start(document, options);
+  };
+  sdk.client.approve = checkpointId => {
+    assert.equal(checkpointId, 'checkpoint');
+    return sdk.approve(sdk.client, {ref: sdk.effect.ref});
+  };
+  f.options.connect = async () => sdk.client;
+  f.options.runPhase = runKintoneApprovalPhase;
+  f.options.argv[0] = 'capture';
+  await runRecordApprovalCommand(f.options);
+  assert.equal(JSON.parse(await readFile(f.options.argv[2] + '.captured.json', 'utf8')).binding.caseName, value.name);
+  f.options.argv[0] = 'approve';
+  const changed = structuredClone(value);
+  changed.effect.expectedRows[0].next_name = 'Wrong independent oracle';
+  await writeFile(path, JSON.stringify(changed));
+  let cursor = sdk.events.length;
+  await assert.rejects(runRecordApprovalCommand(f.options), /Reopen the same Program/u);
+  assert.deepEqual(sdk.events.slice(cursor), ['close']);
+  await writeFile(path, original);
+  await runRecordApprovalCommand(f.options);
+  cursor = sdk.events.length;
+  f.options.argv[0] = 'recover';
+  await runRecordApprovalCommand(f.options);
+  const recovered = sdk.events.slice(cursor);
+  assert.deepEqual(recovered, ['attach', 'effect:result', 'effect:rows', 'effect:status', 'close']);
+  assert.equal(sdk.events.filter(event => event === 'approve').length, 1);
+});
+
+test('shared command refuses incompatible authored case inputs before connecting', async t => {
+  const value = await definition('hubspot'), config = {casePath: 'case.json', connect: {mode: 'local'}};
+  const f = await commandFixture(t, 'hubspot', config), path = join(f.root, 'case.json');
+  for (const wire of [JSON.stringify({...value, connect: {mode: 'remote'}}),
+    JSON.stringify({...value, effect: {...value.effect, parameters: []}}),
+    JSON.stringify({...value, read: {...value.read, afterRows: ['Invalid row']}}), Buffer.from([0xc0, 0xaf])]) {
+    await writeFile(path, wire);
+    await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalAuthoredCase'});
+  }
+  await writeFile(path, 'x'.repeat(1024 * 1024 + 1));
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalCaseFile'});
+  await writeFile(f.path, JSON.stringify({...config, selection}));
+  await assert.rejects(runRecordApprovalCommand(f.options), {message: 'InvalidRecordApprovalCaseSelection'});
+  assert.deepEqual(f.events, []);
+  assert.deepEqual(f.log, []);
+});
+
 for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} fixture preserves original reference, explicit approval and Saved-first order`, async () => {
     const value = await definition(connector), f = publicDouble(value);
@@ -407,7 +476,7 @@ for (const [connector, runPhase] of [
       const shared = join(root, 'record-approval');
       await mkdir(entry);
       await mkdir(shared);
-      for (const name of ['command.mjs', 'cases.mjs']) {
+      for (const name of ['command.mjs', 'cases.mjs', 'workflow.mjs']) {
         await copyFile(new URL('./fixtures/record-approval/' + name, import.meta.url), join(shared, name));
       }
       for (const name of ['run.mjs', 'update.aql', 'read.aql']) {

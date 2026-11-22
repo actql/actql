@@ -1,12 +1,36 @@
 // Shared public consumer entry; the existing workflow owns every connected
 // Client, original Run, approval and cleanup. No provider credentials are read.
-import {readFile, writeFile} from 'node:fs/promises';
+import {open, readFile, writeFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createPrivateKey, sign} from 'node:crypto';
+import {admitAuthoredRecordApprovalCase} from './workflow.mjs';
 
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const maxAuthoredCaseBytes = 1024 * 1024;
+
+async function readAuthoredCase(path) {
+  const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
+  try {
+    const info = await file.stat();
+    if (!info.isFile() || info.size > maxAuthoredCaseBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
+    const chunks = [];
+    let size = 0;
+    for await (const bytes of file.createReadStream({start: 0, end: maxAuthoredCaseBytes, autoClose: false})) {
+      size += bytes.length;
+      if (size > maxAuthoredCaseBytes) throw new TypeError('InvalidRecordApprovalCaseFile');
+      chunks.push(bytes);
+    }
+    try {
+      const wire = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(Buffer.concat(chunks, size));
+      return admitAuthoredRecordApprovalCase(JSON.parse(wire));
+    } catch {
+      throw new TypeError('InvalidRecordApprovalAuthoredCase');
+    }
+  } finally {await file.close();}
+}
 
 export async function runRecordApprovalCommand({argv, programDirectory, connect,
   runPhase, createDefinition, retainProgramInputs = false, log = value => console.log(JSON.stringify(value))}) {
@@ -37,8 +61,13 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
       !['keyId', 'reviewerId', 'privateKeyPath'].every(name => text(signer[name])))) {
     throw new TypeError('InvalidRecordApprovalSigner');
   }
-  let programs;
-  if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
+  let definition, programs;
+  if (Object.hasOwn(configuration, 'casePath')) {
+    if (!text(configuration.casePath) || Object.hasOwn(configuration, 'selection') || retainProgramInputs) {
+      throw new TypeError('InvalidRecordApprovalCaseSelection');
+    }
+    definition = await readAuthoredCase(resolve(dirname(path), configuration.casePath));
+  } else if (retainProgramInputs && ['approve', 'reject', 'recover'].includes(phase)) {
     try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}
     catch (cause) {
       if (cause?.code === 'ENOENT') throw cause;
@@ -52,7 +81,7 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     read: await readFile(new URL('read.aql', programDirectory), 'utf8')};
   // Use the connector's existing independent case contract before connecting.
   // This is configuration readiness, not Program/Host/provider admission.
-  createDefinition(programs, configuration.selection);
+  if (definition === undefined) createDefinition(programs, configuration.selection);
   if (phase === 'check') {
     log({phase, status: 'ready', connected: false});
     return;
@@ -87,7 +116,8 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
     if (!object(connection)) throw new TypeError('InvalidRecordApprovalConnection');
   }
   const client = await connect(connection);
-  await runPhase({phase, client, programs, selection: configuration.selection,
+  await runPhase({phase, client,
+    ...(definition === undefined ? {programs, selection: configuration.selection} : {definition}),
     ...(decision === 'approved' ? {approve: resolveDecision} : {decision, reject: resolveDecision}),
     load: async name => JSON.parse(await readFile(receiptPrefix + '.' + name + '.json', 'utf8')),
     save: (name, value) => writeFile(receiptPrefix + '.' + name + '.json',

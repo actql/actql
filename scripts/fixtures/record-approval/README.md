@@ -58,6 +58,23 @@ The three launchers share `record-approval/command.mjs`. `check` does not load a
 operator module or signing key, inspect the remote account, admit the Program,
 or prove that the installation/state/receipt prefix is fresh.
 
+To supply your own case, replace `selection` with `"casePath": "case.json"`.
+The path is resolved relative to the configuration file. Write a UTF-8 JSON
+file of at most 1 MiB with these fields.
+
+| Field | Value |
+| --- | --- |
+| `name` | The authored case name. |
+| `effect` | `document`, `format`, `resultName`, `parameterDeclarations`, `parameters`, and `expectedRows`. Optionally supply `additionalResults` keyed by Result name. |
+| `read` | The same document, format, Result name, and parameter fields, with independent `beforeRows` and `afterRows`. |
+| `review` | The exact expected `target`, `identity`, `before`, and `changes` from the one-row UPDATE Review. |
+
+Use `aql`, `sql`, `json`, or `yaml` for `format` and provide the document text
+for that format. Keep connection, operator and signing settings in the separate
+configuration. All three phases read the authored case. The original receipt
+binds both documents, their parameters and the oracle before approval or Saved
+recovery. Keep the case available for each phase.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.
