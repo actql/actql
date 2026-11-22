@@ -32,9 +32,7 @@ priv struct LocalNativeMockEffectPlan {
   source_failures : Array[@row_file.NativeRelationFileFailure]
   source_reads : Array[@local_values.ClientInstalledSourceRead]
   captured_inputs : Array[@row_host.RowCapturedInput]
-  input_originals : Array[
-    (@sourceviews.SourceAcquisition, @row_host.RowInputAcquisition),
-  ]
+  input_originals : Array[LocalNativeMockEffectSourceOriginal]
 }
 
 ///|
@@ -441,6 +439,8 @@ fn native_mock_effect_source_plan(
   record_bytes : Int,
   capture_recipes : Array[Array[@execution.ExecutionCapacity]],
   model? : @local_values.ClientInstalledEffectModelDemand? = None,
+  query_contracts? : (String, String)? = None,
+  report? : (@local_values.ClientInstalledManagedRunIssue) -> Unit = _ => (),
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local_compute.ManagedProvider,
   ],
@@ -450,38 +450,45 @@ fn native_mock_effect_source_plan(
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
-  // Whole-input occurrences have no Query contract input. If a different
-  // checked Program selects Query, Core refuses these absent contracts;
-  // this path never retries a refused Query as a whole input.
-  @local_values.prepare_installed_effect_managed_source_plan(
-    prepared,
-    first.request,
-    sources.map(value => value._retained_input),
-    "",
-    "",
-    sources.map(value => {
-      match value._retained_reader {
-        Rows(row) => row.limits.page.max_bytes.to_int64()
-        Files(_, _) =>
-          local_project_mock_file_limits().page.max_bytes.to_int64()
-      }
-    }),
-    sources.map(value => {
-      match value._retained_reader {
-        Rows(row) => row.limits.page.max_bytes.to_int64()
-        Files(_, _) =>
-          local_project_mock_file_limits().page.max_bytes.to_int64()
-      }
-    }),
-    contracts,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-    operations,
-    model~,
-    runtime_admission=true,
-    provider_factory~,
-  ).unwrap_or_else(() => stop("LocalOriginalEffectPlanUnavailable"))
+  // The checked occurrence chooses the route. Only the direct Source path
+  // supplies the installed Runtime's Query protocol, and Whole inputs ignore it.
+  let (query, evidence) = query_contracts.unwrap_or(("", ""))
+  match
+    @local_values.prepare_installed_effect_managed_source_plan(
+      prepared,
+      first.request,
+      sources.map(value => value._retained_input),
+      query,
+      evidence,
+      sources.map(value => {
+        match value._retained_reader {
+          Rows(row) => row.limits.page.max_bytes.to_int64()
+          Files(_, _) =>
+            local_project_mock_file_limits().page.max_bytes.to_int64()
+        }
+      }),
+      sources.map(value => {
+        match value._retained_reader {
+          Rows(row) => row.limits.page.max_bytes.to_int64()
+          Files(_, _) =>
+            local_project_mock_file_limits().page.max_bytes.to_int64()
+        }
+      }),
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+      operations,
+      model~,
+      runtime_admission=true,
+      provider_factory~,
+    ) {
+    Ok(plan) => plan
+    Err(issue) => {
+      report(issue)
+      stop("LocalOriginalEffectPlanUnavailable")
+    }
+  }
 }
 
 ///|
@@ -515,6 +522,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     let capture_recipes = []
     let plan = if first._retained_models.is_empty() {
       let file_limits = local_project_mock_file_limits()
+      guard self.original.runtime is Some(runtime) else {
+        stop("PackagedLocalRuntimeChanged")
+      }
+      let query_contracts = runtime
+        .query_contract_assets()
+        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
       native_mock_effect_source_plan(
         prepared,
         first,
@@ -529,6 +542,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
         },
         native_mock_effect_record_bytes(installation),
         capture_recipes,
+        query_contracts~,
+        report=issue => {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Managed(issue)),
+          )
+        },
         provider_factory=native_request_provider_factory,
       )
     } else {

@@ -271,6 +271,15 @@ priv enum LocalNativeMockEffectSourceIssue {
 }
 
 ///|
+priv enum LocalNativeMockEffectSourceOriginal {
+  WholeEffectInput(
+    @sourceviews.SourceAcquisition,
+    @row_host.RowInputAcquisition
+  )
+  QueryEffectInput(@row_host.RowAcquisition)
+}
+
+///|
 // Hold the original managed Read and both physical outcomes before advancing
 // or returning to the Journal. The caller checks authority outside this scope.
 fn LocalNativeMockEffectPlan::prepare_mock_effect_source_capture(
@@ -283,48 +292,79 @@ fn LocalNativeMockEffectPlan::prepare_mock_effect_source_capture(
   @row_file.NativeRelationFileCapture,
   LocalNativeMockEffectSourceIssue,
 ] {
-  guard self.first._retained_sources.get(index) is Some(selected) &&
+  guard self.first._retained_sources.get(index) is Some(selected) else {
+    return Err(Route)
+  }
+  let declaration = selected._retained_source._retained_declaration
+  let prepared = match
     @local_values.installed_effect_managed_source_input_kind(
       run,
       self._retained_prepared,
       self.first.request,
       index,
-    )
-    is Ok("whole-input") else {
-    return Err(Route)
-  }
-  let declaration = selected._retained_source._retained_declaration
-  let (read, original, acquisition, capacity) = match
-    @local_values.begin_installed_effect_managed_whole_source_read(
-      run,
-      self._retained_prepared,
-      self.first.request,
-      declaration,
-      index,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(Read(issue))
-  }
-  self.source_reads.push(read)
-  self.input_originals.push((original, acquisition))
-  let prepared = match selected._retained_reader {
-    Rows(binding) =>
-      @row_file.prepare_native_managed_relation_file_input_capture(
+    Ok("whole-input") => {
+      let (read, original, acquisition, capacity) = match
+        @local_values.begin_installed_effect_managed_whole_source_read(
+          run,
+          self._retained_prepared,
+          self.first.request,
+          declaration,
+          index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Read(issue))
+      }
+      self.source_reads.push(read)
+      self.input_originals.push(WholeEffectInput(original, acquisition))
+      match selected._retained_reader {
+        Rows(binding) =>
+          @row_file.prepare_native_managed_relation_file_input_capture(
+            arena,
+            execution,
+            declaration,
+            read,
+            capacity,
+            binding.provider.capacity(),
+            "native-mock-records",
+            binding._retained_selection,
+            binding.limits,
+            prepared_provider=Some(binding.provider),
+          )
+        Files(_, listing) =>
+          @row_file.prepare_native_managed_relation_file_listing_capture(
+            arena, execution, read, capacity, listing, "native-mock-files",
+          )
+      }
+    }
+    Ok("query") => {
+      guard self.first._retained_models.is_empty() &&
+        selected._retained_reader is Rows(binding) else {
+        return Err(Route)
+      }
+      let (read, _, acquisition, _) = match
+        @local_values.begin_installed_effect_managed_source_read(
+          run, declaration, index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Read(issue))
+      }
+      self.source_reads.push(read)
+      self.input_originals.push(QueryEffectInput(acquisition))
+      @row_file.prepare_native_managed_relation_file_query_capture(
         arena,
         execution,
         declaration,
         read,
-        capacity,
+        acquisition,
         binding.provider.capacity(),
         "native-mock-records",
         binding._retained_selection,
         binding.limits,
         prepared_provider=Some(binding.provider),
       )
-    Files(_, listing) =>
-      @row_file.prepare_native_managed_relation_file_listing_capture(
-        arena, execution, read, capacity, listing, "native-mock-files",
-      )
+    }
+    _ => return Err(Route)
   }
   match prepared {
     Err(issue) => {

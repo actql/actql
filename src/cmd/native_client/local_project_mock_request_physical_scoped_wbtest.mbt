@@ -1316,7 +1316,7 @@ fn native_model_graph_test_cause(
         if response != facts.carrier_schema_contract_cid {
           return "NativeModelGraphProfileResponseSchema"
         }
-        guard @test_planning.keyed_source_evidence_members(
+        guard @planning.keyed_source_evidence_members(
             @run_host.client_keyed_acquisition_facts(keyed),
           )
           is Ok(members) &&
