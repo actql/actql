@@ -13684,11 +13684,690 @@
       "rationale": "The existing one-shot preparation slot retains the same Query or WholeInput response borrow. The private fourth constructor argument exposes that original after cleanup binding; capacity growth precedes decoding without a second RowRun or acquisition."
     },
     {
+      "module": "adapters/host-node/installed-row-source-credential-custody.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "createInstalledRowSourceCredentialCustody"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowSourceCredentialCustody",
+          "parameters": [
+            "operationSites",
+            "retainCredentialOperationSite",
+            "runtimeCore",
+            "text",
+            "cidPattern"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+          "parameters": [
+            "openCredentialJournal",
+            "options",
+            "caPath",
+            "prepareResolver",
+            "invalidCode"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [
+            "profile",
+            "principalId",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "privateKey",
+            "resolveSecret",
+            "ca",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal",
+            "credentialFacts",
+            "runAcquisitionLimits",
+            "closedCode",
+            "grantCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/authorizationPurpose",
+          "parameters": [
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild",
+          "parameters": [
+            "parent",
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindRunAcquisition",
+          "parameters": [
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/checkGrantRequest",
+          "parameters": [
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses",
+            "taskAttempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/close/close",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/custody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/custody#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
+          "parameters": [
+            "site",
+            "originalBind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition",
+          "parameters": [
+            "request",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/readChildCredential",
+          "parameters": [
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/readResourceChildCredential",
+          "parameters": [
+            "parent",
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+          "parameters": [
+            "childAuthorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/sign",
+          "parameters": [
+            "operation",
+            "runInvocationCid",
+            "taskAttempt",
+            "dispatchRequestCid",
+            "maxUses",
+            "issuerPurpose"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/signInstallationMetadata",
+          "parameters": [
+            "metadataControl",
+            "scope",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/owned-invocation-context.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "../site-node/remote-credential-signature.mjs",
+        "../site-node/sqlite-credential-journal.mjs",
+        "./installed-row-source-credential-options.mjs",
+        "./installed-row-source-mapping.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "6e30719d4181d90c95f057a0c5f40c5f308c8ee4e33104546ba056147f67348c",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowSourceCredentialCustody",
+            "createInstalledRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+            "createInstalledRowSourceCredentialCustody/loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/authorizationPurpose",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindRunAcquisition",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/checkGrantRequest",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/close",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/close/close",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/custody",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/custody#2",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/readChildCredential",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/sign",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/signInstallationMetadata"
+          ],
+          "exports": [
+            "createInstalledRowSourceCredentialCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "export function createInstalledRowSourceCredentialCustody({"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function openRowSourceCredentialCustody({"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "const journal = openCredentialJournal(journalRoot, {credentialAuthorities});"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "return {loadRowSourceCredentialCustody, openRowSourceCredentialCustody};"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "issuedRunAuthorizations?.set(authorization, {state: 'unused', issuerPurpose});"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "runAcquisitions.set(acquisition, original);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "Retain the opening child before invoking a current callback"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "runBindings!.add(original);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "await Reflect.apply(originalObserve, undefined, []);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "const acknowledged = Reflect.apply(runJournalClose!, journal, []);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "issued.state = 'failed';"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "if (runJournalFailure !== undefined) throw runJournalFailure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "original.closed = closeHttpsCredentialBinding(original.binding!) === 'closed';"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "if (pending) fail('RowSourceCredentialAcquisitionCleanupPending');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "runBindingAttempts >= acquisitionLimits.maxBindings"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "maxSecretBytes: acquisitionLimits.maxSecretBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild("
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function signInstallationMetadata("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody retains the Journal while its original resolver is pending"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer sign two exact metadata scopes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+            "createInstalledRowSourceCredentialCustody/openRowSourceCredentialCustody/readResourceChildCredential"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function readResourceChildCredential(parent: Acquisition, acquisition: Acquisition, authorization: OriginalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "5a5dd54071c6edb786dac1cc2237a6a51eedb0d69937b58d733983e955e1b9d6",
+      "sha256": "2694d577e757dd5a054a43601537d67dcbbce460a0e901345712655919bef4d2",
       "operations": [
         {
           "name": "createInstalledRowSource",
@@ -14452,22 +15131,6 @@
           "async": false
         },
         {
-          "name": "loadRowSourceCredentialCustody",
-          "parameters": [
-            "openCredentialJournal",
-            "options",
-            "caPath",
-            "prepareResolver",
-            "invalidCode"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openInstalledRowSite",
           "parameters": [
             "root",
@@ -14510,280 +15173,6 @@
           "name": "openInstalledRowSite/openInstalledRowSite",
           "parameters": [
             "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody",
-          "parameters": [
-            "profile",
-            "principalId",
-            "connectorRegistration",
-            "connectorRevision",
-            "runtimeBundleCid",
-            "commonMoon",
-            "privateKey",
-            "resolveSecret",
-            "ca",
-            "now",
-            "grantLifetimeMs",
-            "openCredentialJournal",
-            "credentialFacts",
-            "runAcquisitionLimits",
-            "closedCode",
-            "grantCode"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/authorizationPurpose",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/bindReadResourceChild",
-          "parameters": [
-            "parent",
-            "authorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialCustody/bindRunAcquisition",
-          "parameters": [
-            "authorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialCustody/checkGrantRequest",
-          "parameters": [
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses",
-            "taskAttempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/close/close",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/custody/custody",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/custody/custody#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
-          "parameters": [
-            "site",
-            "originalBind"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition",
-          "parameters": [
-            "request",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/readChildCredential",
-          "parameters": [
-            "acquisition",
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/readResourceChildCredential",
-          "parameters": [
-            "parent",
-            "acquisition",
-            "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
-          "parameters": [
-            "childAuthorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "taskAttempt",
-            "dispatchRequestCid",
-            "maxUses",
-            "issuerPurpose"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
-          "parameters": [
-            "metadataControl",
-            "scope",
-            "expiresUnixMilliseconds",
-            "maxUses"
           ],
           "async": false
         },
@@ -15071,6 +15460,17 @@
           "async": false
         },
         {
+          "name": "retainCredentialOperationSite",
+          "parameters": [
+            "site",
+            "custody",
+            "identity",
+            "enabled",
+            "originalBind"
+          ],
+          "async": false
+        },
+        {
           "name": "retainCredentialOperationSite/retainCredentialOperationSite",
           "parameters": [
             "authorization",
@@ -15123,7 +15523,6 @@
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
-        "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
@@ -15131,6 +15530,7 @@
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-row-source-authorization.mjs",
+        "./installed-row-source-credential-custody.mjs",
         "./installed-row-source-credential-options.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
@@ -15224,28 +15624,6 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/verifyKeyedRead",
-            "openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/bindRunAcquisition",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
-            "openRowSourceCredentialCustody/checkGrantRequest",
-            "openRowSourceCredentialCustody/close",
-            "openRowSourceCredentialCustody/close/close",
-            "openRowSourceCredentialCustody/custody/custody",
-            "openRowSourceCredentialCustody/custody/custody#2",
-            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
-            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
-            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-            "openRowSourceCredentialCustody/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-            "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/callResource/callResource",
             "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
@@ -15304,8 +15682,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15346,16 +15724,16 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindRunAcquisition(authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindRunAcquisition(authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15408,8 +15786,8 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "issuedRunAuthorizations.has(authorization)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "issuedRunAuthorizations!.has(authorization)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15424,8 +15802,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15486,7 +15864,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "Retain the opening child before invoking a current callback"
               },
               {
@@ -15502,8 +15880,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15560,7 +15938,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "issued.state = 'opening'"
               },
               {
@@ -15584,8 +15962,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15634,7 +16012,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "issued.state = 'failed'"
               },
               {
@@ -15646,8 +16024,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15688,7 +16066,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "const observeCurrent = async () =>"
               },
               {
@@ -15696,8 +16074,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15770,8 +16148,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -15836,8 +16214,8 @@
                 "anchor": "## Native Salesforce original Reader protocol"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -16281,20 +16659,13 @@
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
             "createInstalledRowSource/sourceBody/sourceBody",
-            "openRowSourceCredentialCustody/readChildCredential",
-            "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
-            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
-            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:close/init:close",
-            "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition/childAcquisition/init:retire/init:retire",
-            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource",
-            "openRowSourceCredentialCustody/retainRunBinding/init:callResource/init:callResource/init:callResource",
-            "openRowSourceCredentialCustody/retainRunBinding/init:referenceCurrent/init:referenceCurrent",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:callResource/init:callResource",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:authorizationPurpose/init:authorizationPurpose",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
+            "retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite#3"
           ],
           "exports": [],
@@ -16531,8 +16902,8 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindRunAcquisition(authorization, callbacks)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "function bindRunAcquisition(authorization: OriginalAuthorization, callbacks: unknown)"
               }
             ],
             "identity": [
@@ -16577,8 +16948,8 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "issuedRunAuthorizations.has(authorization)"
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
+                "anchor": "issuedRunAuthorizations!.has(authorization)"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -16631,7 +17002,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "Retain the opening child before invoking a current callback"
               },
               {
@@ -16685,7 +17056,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "issued.state = 'opening'"
               },
               {
@@ -16739,7 +17110,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "issued.state = 'failed'"
               },
               {
@@ -16781,7 +17152,7 @@
                 "anchor": "## Original credential acquisition retirement"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts",
                 "anchor": "const observeCurrent = async () =>"
               }
             ],
@@ -17482,7 +17853,6 @@
             "openInstalledRowSite/init:close/init:close",
             "openInstalledRowSite/init:resolveSecret/init:resolveSecret",
             "openInstalledRowSite/openInstalledRowSite",
-            "openRowSourceCredentialCustody/authorizationPurpose",
             "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
             "retainCredentialOperationSite/retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite#2"
@@ -17623,10 +17993,7 @@
           }
         },
         {
-          "operations": [
-            "loadRowSourceCredentialCustody",
-            "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody"
-          ],
+          "operations": [],
           "exports": [
             "loadRowSourceCredentialCustody"
           ],
@@ -18087,10 +18454,6 @@
         },
         {
           "operations": [
-            "openRowSourceCredentialCustody/installationMetadataJournal",
-            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
-            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
-            "openRowSourceCredentialCustody/signInstallationMetadata",
             "prepareInstallationMetadataSite/account/account",
             "prepareInstallationMetadataSite/accountMethods/accountMethods",
             "prepareInstallationMetadataSite/current/current",
@@ -18246,205 +18609,6 @@
           }
         },
         {
-          "operations": [
-            "openRowSourceCredentialCustody/bindReadResourceChild",
-            "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
-            "openRowSourceCredentialCustody/readResourceChildCredential"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "if (supplied !== undefined) return supplied;"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "bindReadResourceChild: bindResourceChild,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
-                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
-              },
-              {
-                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
-                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
-              },
-              {
-                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
-                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
-              },
-              {
-                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
-                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
-                "anchor": "original Form current failure and callback replacement cannot send another request"
-              },
-              {
-                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
-                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [
             "rowSourceMapping"
@@ -18452,8 +18616,8 @@
           "attributes": {
             "responsibility": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "// Spend this original ordinal before an external current callback.",
@@ -18466,8 +18630,8 @@
             ],
             "inputsOutputs": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
@@ -18480,8 +18644,8 @@
             ],
             "identity": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
@@ -18494,8 +18658,8 @@
             ],
             "ownership": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "// Spend this original ordinal before an external current callback.",
@@ -18508,8 +18672,8 @@
             ],
             "synchronization": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "// Spend this original ordinal before an external current callback.",
@@ -18522,8 +18686,8 @@
             ],
             "failure": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "// A failed or reentrant call cannot reuse it to issue another child.",
@@ -18536,8 +18700,8 @@
             ],
             "cancellation": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "await currentRead(prepared, access, signal);",
@@ -18550,8 +18714,8 @@
             ],
             "resources": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
@@ -18564,8 +18728,8 @@
             ],
             "extension": [
               {
-                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
-                "path": "adapters/host-node/installed-row-source.mjs"
+                "anchor": "function bindReadResourceChild(parent: Acquisition, authorization: OriginalAuthorization, callbacks: unknown)",
+                "path": "adapters/host-node/installed-row-source-credential-custody.mts"
               },
               {
                 "anchor": "// A failed or reentrant call cannot reuse it to issue another child.",
