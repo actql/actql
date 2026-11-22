@@ -58,13 +58,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     if bodies.length() >= limits.max_entries {
       refuse(EntryLimit)
     }
-    let bytes = @utf8.encode(wire).length()
+    let bytes = @publication.captured_effect_dependency_body_bytes(body)
     if bytes > remaining {
       refuse(ByteLimit)
     }
     remaining -= bytes
     bodies.push(body)
     seen[key] = wire
+  }
+  let retain_capture = fn(
+    capture : @run_host.ClientEffectDependencyCapture,
+  ) -> Unit raise ClientStop {
+    let count = @run_host.client_effect_dependency_capture_body_count(capture)
+    for index in 0..<count {
+      retain(
+        @run_host.client_effect_dependency_capture_body_at(capture, index).unwrap(),
+      )
+    }
   }
   let append = fn(
     kind : String,
@@ -103,9 +113,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       )
     }
     for capture in source.captures {
-      for body in @run_host.client_effect_dependency_capture_bodies(capture) {
-        retain(body)
-      }
+      retain_capture(capture)
     }
   }
   for observed in proposals.import_observations {
@@ -213,9 +221,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       ) else {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
     }
-    for body in @run_host.client_effect_dependency_capture_bodies(capture) {
-      retain(body)
-    }
+    retain_capture(capture)
     let original_artifact = @run_host.client_effect_local_result_artifact_contract(
       artifact,
     )
@@ -246,22 +252,198 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       .native_effect_proposal(self.original)
     roots.push(root)
   }
-  let inventory = @publication.issue_captured_effect_dependency_inventory(
-      bodies, roots, limits, max_nodes, max_depth,
+  // The original capture holds the live collector. Keep that backing
+  // alongside the graph census, copied root/body arrays and measured writer.
+  let mut references = roots.length().to_int64()
+  let mut key_units = 0L
+  for body in bodies {
+    let (count, units) = @publication.captured_effect_dependency_body_index_geometry(
+      body,
+    )
+    references += count.to_int64()
+    key_units += units
+  }
+  if references > limits.max_references.to_int64() {
+    refuse(ReferenceLimit)
+  }
+  let graph = @local_values.installed_effect_dependency_graph_capacity(
+    bodies.length(),
+    roots.length(),
+    references.to_int(),
+    key_units,
+  )
+  let held_roots = @execution.preparation_array_representation(
+    1L,
+    roots.length().to_int64(),
+    false,
+  ).bind(@execution.preparation_representation_cost)
+  // The preparation's body copy, record, limits and measured geometry
+  // stay live until the returned inventory takes the root copy.
+  let held_bodies = @execution.preparation_array_representation(
+    1L,
+    bodies.length().to_int64(),
+    false,
+  ).bind(view => {
+    @execution.preparation_representation_cost({
+      ..view,
+      record_headers: view.record_headers + 3L,
+      reference_slots: view.reference_slots + 4L,
+      scalar_words: view.scalar_words + 13L,
+    })
+  })
+  let depth = max_depth.to_int64()
+  // Each open canonical container owns a cursor and parent variant.
+  // The growing parent array coexists with the Writer's own frame array.
+  // The fixed margin covers the geometry sink/state, returned nine-word
+  // geometry, prepared limits/result and the synchronous work carrier.
+  let census_stack = @shape.collection_construction_extent({
+    records: 12L + 2L * depth,
+    record_references: 16L + 2L * depth,
+    record_words: 20L + 2L * depth,
+    reference_arrays: 1L,
+    reference_items: depth,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }).bind(stack => {
+    @execution.preparation_representation_cost({
+      record_headers: stack.record_headers,
+      reference_slots: stack.reference_slots,
+      scalar_words: stack.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+  })
+  let prepare_capacity = match (graph, held_roots, held_bodies, census_stack) {
+    (Some(graph), Some(roots), Some(bodies), Some(stack)) =>
+      @execution.checked_preparation_add_product(roots, bodies, 1L)
+      .bind(held => {
+        @execution.checked_preparation_add_product(held, measuring, 1L)
+      })
+      .bind(frame => {
+        @execution.checked_preparation_add_product(frame, stack, 1L)
+      })
+      .bind(frame => {
+        // The graph validator has returned before the census starts.
+        @execution.execution_capacity(
+          roots,
+          Int64::max(
+            @execution.execution_capacity_execution_bytes(graph),
+            frame,
+          ),
+        )
+      })
+    _ => None
+  }
+  construction
+  .prepare_body_result(prepare_capacity)
+  .native_effect_proposal(self.original)
+  let prepared = @publication.prepare_captured_effect_dependency_inventory(
+      bodies,
+      roots,
+      max_nodes,
+      max_depth,
+      _ => true,
+      bounded_limits=Some(limits),
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
     .native_effect_proposal(self.original)
-  preview._retained_dependency_inventory = Some(
-    @publication.admit_captured_effect_source_dependencies(
+  // The original prepared vectors and a growing filtered root array can
+  // coexist with the comparison Writer, or with another graph validation
+  // after the comparison has returned. No emitted inventory exists yet.
+  let selected_roots = @execution.preparation_array_representation(
+    1L,
+    roots.length().to_int64(),
+    true,
+  ).bind(@execution.preparation_representation_cost)
+  let bind_workspace = match
+    (graph, held_bodies, selected_roots, held_roots, census_stack) {
+    (Some(graph), Some(bodies), Some(roots), Some(copy), Some(stack)) =>
+      @execution.checked_preparation_add_product(measuring, stack, 1L)
+      .bind(compare => {
+        @execution.checked_preparation_add_product(
+          Int64::max(
+            @execution.execution_capacity_execution_bytes(graph),
+            compare,
+          ),
+          bodies,
+          1L,
+        )
+      })
+      .bind(frame => {
+        @execution.checked_preparation_add_product(frame, roots, 1L)
+      })
+      // A filtered result returns a fixed-size copy. Until it has returned,
+      // keep the original root vector, growing selection and final copy paid.
+      .bind(frame => @execution.checked_preparation_add_product(frame, copy, 1L))
+    _ => None
+  }
+  let prepared = construction
+    .bind_dependency_inventory_sources(
+      prepared,
       preview._retained_local_sources,
-      @publication.captured_effect_dependency_inventory_json(inventory),
       max_bytes,
       max_nodes,
       max_depth,
+      bind_workspace,
     )
+    .native_effect_proposal(self.original)
+  let geometry = @publication.prepared_captured_effect_dependency_inventory_geometry(
+    prepared,
+  )
+  let envelope = @local_values.installed_effect_dependency_envelope_capacity(
+    geometry,
+    bodies.length(),
+    key_units,
+  )
+  // The prepared body vector is still borrowed by the issuer. Its root
+  // vector was charged above and is the same array returned by issuance.
+  let issue_capacity = match (envelope, held_bodies) {
+    (Some(envelope), Some(view)) =>
+      @execution.execution_capacity(0L, view).bind(view => {
+        @execution.add_execution_capacity(envelope, view)
+      })
+    _ => None
+  }
+  construction
+  .prepare_body_result(issue_capacity)
+  .native_effect_proposal(self.original)
+  preview._retained_dependency_inventory = Some(
+    @publication.issue_prepared_captured_effect_dependency_inventory(prepared, _ => {
+      true
+    })
     .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
     .native_effect_proposal(self.original),
   )
+  if proposals.measured_model_capture {
+    preview._retained_dependency_geometry = Some(geometry)
+  }
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::bind_dependency_inventory_sources(
+  self : Self,
+  prepared : @publication.PreparedCapturedEffectDependencyInventory,
+  sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  workspace : Int64?,
+) -> Result[
+  @publication.PreparedCapturedEffectDependencyInventory,
+  LocalNativeMockEffectProposalIssue,
+] {
+  match
+    self.prepare_body_result(
+      workspace.bind(bytes => @execution.execution_capacity(0L, bytes)),
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      @publication.bind_aligned_prepared_effect_dependency_sources(
+        prepared, sources, max_bytes, max_nodes, max_depth,
+      ).map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
+  }
 }
 
 ///|

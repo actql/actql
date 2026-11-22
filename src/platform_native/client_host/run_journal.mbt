@@ -101,6 +101,7 @@ struct NativeClientRunRecord {
   observation_original : NativeClientStoredRunObservation?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
+  checkpoint_companion : Bool
 }
 
 ///|
@@ -127,6 +128,10 @@ pub fn native_client_run_record_revision(
 ///|
 fn run_record_body(
   record : NativeClientRunRecord,
+  before_companion_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     @host.ClientJournalEncodingIssue,
@@ -134,11 +139,26 @@ fn run_record_body(
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   native_timing_count(45)
   let checkpoint = match record.checkpoint {
-    Some(value) =>
-      match checkpoint_record_body(value) {
+    Some(value) => {
+      let encoded = if record.checkpoint_companion {
+        match
+          prepare_native_effect_checkpoint_companion_body(
+            value, before_companion_construction,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        @host.client_checkpoint_journal_companion_row_body(value).map_err(_ => {
+          NativeClientCheckpointIssue::InvalidMaterial
+        })
+      } else {
+        checkpoint_record_body(value)
+      }
+      match encoded {
         Ok(body) => Some(body)
         Err(_) => return Err(Encoding)
       }
+    }
     None => None
   }
   @host.client_run_journal_row_body(
@@ -156,6 +176,7 @@ fn run_record_body(
     },
     local_run_policy_originals=record.local_run_policy_originals,
     run_observation_originals=record.run_observation_originals,
+    checkpoint_companion=record.checkpoint_companion,
     before_construction~,
   ).map_err(issue => {
     match issue {
@@ -168,6 +189,7 @@ fn run_record_body(
 ///|
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
+  companion_read? : (@sqlite.Database, NativeClientJournalReadAccess?)? = None,
   before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
     Unit,
     @host.ClientJournalDecodingIssue,
@@ -180,6 +202,7 @@ fn read_run_record(
   read_run_record_in_mode(
     row,
     ValidatePublication,
+    companion_read~,
     before_construction~,
     before_metadata_construction~,
   )
@@ -209,6 +232,7 @@ fn read_run_record_in_mode(
   journal? : NativeClientRunJournal? = None,
   identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
   observation? : NativeClientStoredRunObservation? = None,
+  companion_read? : (@sqlite.Database, NativeClientJournalReadAccess?)? = None,
   before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
     Unit,
     @host.ClientJournalDecodingIssue,
@@ -219,22 +243,17 @@ fn read_run_record_in_mode(
   ])? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(25)
-  let decoded = match identity {
-    None =>
-      @host.decode_client_run_journal_row_with_observation_originals(
-        row.body,
-        before_construction~,
-      )
-    Some((request, definition)) =>
-      @host.decode_client_run_journal_row_with_retained_identity(
-        row.body,
-        request,
-        definition,
-        before_construction~,
-      )
-  }
-  let (decoded, local_run_policy_originals, run_observation_originals) = match
-    decoded {
+  let decoded = @host.decode_native_client_run_journal_row_with_checkpoint_companion(
+    row.body,
+    identity,
+    before_construction~,
+  )
+  let (
+    decoded,
+    local_run_policy_originals,
+    run_observation_originals,
+    checkpoint_companion,
+  ) = match decoded {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -269,6 +288,34 @@ fn read_run_record_in_mode(
   }
   let checkpoint = match decoded.checkpoint {
     None => None
+    Some(wire) if checkpoint_companion => {
+      guard companion_read is Some((database, reads)) else {
+        return Err(CustodyLost)
+      }
+      match
+        prepare_native_effect_checkpoint_companion_read(
+          wire,
+          run_metadata_construction(database, reads),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let scope = @host.client_request_scope_cid(request)
+      match
+        @host.decode_client_checkpoint_journal_companion_row(
+          wire,
+          definition,
+          NativeClientRunJournalIssue::CustodyLost,
+          (checkpoint, entry) => {
+            read_native_client_effect_ledger_entry(
+              database, scope, checkpoint, entry, reads,
+            )
+          },
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+    }
     Some(wire) =>
       match read_checkpoint_record(wire, definition) {
         Ok(value) => Some(value)
@@ -311,6 +358,7 @@ fn read_run_record_in_mode(
     observation_original,
     revision: row.revision,
     checkpoint,
+    checkpoint_companion,
   }
   if record.checkpoint is Some(_) && !physical_start_claimed {
     return Err(CustodyLost)
@@ -379,7 +427,7 @@ fn initialize_native_client_run_journal_rows(
       "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
       "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
       "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
-      "client_cancel_originals", "client_task_run_materials",
+      "client_cancel_originals", "client_task_run_materials", effect_ledger_entry_table,
     ] {
     match
       scan_client_journal_value(
@@ -445,7 +493,8 @@ fn run_journal_custody(
     NativeClientRunJournalIssue,
   ])? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  @host.inspect_client_run_journal_inventory(
+  let mut expected_entries = 0L
+  let inventory = @host.inspect_client_run_journal_inventory(
     max_records,
     (table_name, cursor) => {
       client_journal_scan(database, table_name, cursor, reads~)
@@ -455,6 +504,7 @@ fn run_journal_custody(
       let record = match
         read_run_record(
           { body: row.body, revision: row.revision, },
+          companion_read=Some((database, reads)),
           before_construction=run_decode_construction(database, reads),
           before_metadata_construction=run_metadata_construction(
             database, reads,
@@ -469,6 +519,9 @@ fn run_journal_custody(
       match confirm_effect_ledger_custody(database, record, reads~) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
+      }
+      if record.checkpoint_companion && record.checkpoint is Some(checkpoint) {
+        expected_entries += checkpoint.effect_ledger.length().to_int64()
       }
       if observe is Some(visit) {
         match visit(row.key, record) {
@@ -486,6 +539,13 @@ fn run_journal_custody(
     () => cancellation_custody(database, max_records, reads~).map(_ => ()),
     CustodyLost,
   )
+  match inventory {
+    Err(issue) => Err(issue)
+    Ok(value) =>
+      confirm_native_effect_ledger_entry_inventory(
+        database, reads, expected_entries,
+      ).map(_ => value)
+  }
 }
 
 ///|
@@ -774,6 +834,7 @@ fn NativeClientRunJournal::admit_retained_record(
       journal=Some(self),
       identity~,
       observation~,
+      companion_read=Some((self.database, reads)),
       before_construction=run_decode_construction(self.database, reads),
       before_metadata_construction=run_metadata_construction(
         self.database,
@@ -1119,6 +1180,7 @@ fn NativeClientRunJournal::bind_run_locked(
     observation_original,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
   let body = match
     run_record_body(
@@ -1228,12 +1290,23 @@ fn NativeClientRunJournal::save_with_operations(
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  native_timing_count(20)
+  let reads = operations.map(value => value.reads)
+  match self.read_run_before_save(record, reads) {
+    Ok(before) => self.save_observed_run(record, before, operations)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn NativeClientRunJournal::read_run_before_save(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if !self.transaction_active {
     return Err(CustodyLost)
   }
-  let reads = operations.map(value => value.reads)
-  let before = match
+  match
     read_client_journal_value(
       self.database,
       "client_runs",
@@ -1241,18 +1314,35 @@ fn NativeClientRunJournal::save_with_operations(
       reads,
     ) {
     Ok(current) if current.revision == record.revision =>
-      match
-        self.admit_retained_record(
-          @host.client_request_scope_cid(record.request),
-          current,
-          reads~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-    Ok(_) => return Err(Physical(@sqlite.Collision))
-    Err(issue) => return Err(Physical(issue))
+      self.admit_retained_record(
+        @host.client_request_scope_cid(record.request),
+        current,
+        reads~,
+      )
+    Ok(_) => Err(Physical(@sqlite.Collision))
+    Err(issue) => Err(Physical(issue))
   }
+}
+
+///|
+// Effect mutations observe the physical Run before changing its witness in
+// this same transaction. The witness write invalidates the shared operation
+// facts, but it does not change the Run just read. The original Run CAS still
+// checks the revision, and the next witness is independently validated below.
+fn NativeClientRunJournal::save_observed_run(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+  before : NativeClientRunRecord,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(20)
+  if !self.transaction_active ||
+    record.revision != before.revision ||
+    !(@host.client_request_identity_relation(record.request, before.request)
+    is SameRequest) {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
   if record.task_materials_cid != before.task_materials_cid {
     return Err(CustodyLost)
   }
@@ -1264,9 +1354,24 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  let checkpoint_companion = match
+    persist_native_client_effect_ledger_entries(
+      self.database,
+      before,
+      record,
+      operations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let record = { ..record, checkpoint_companion, }
   let body = match
     run_record_body(
       record,
+      before_companion_construction=run_metadata_construction(
+        self.database,
+        reads,
+      ),
       before_construction=submitted_encode_construction(
         self.database,
         operations,

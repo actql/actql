@@ -2374,9 +2374,7 @@ fn native_mock_readme_content_join_adopt(
     store.close().native_content_join_stage("Content Store first close"),
   )
   assert_true(library.close_checked() is Err(@local_sqlite.Physical(_)))
-  assert_true(
-    @run_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
-  )
+  assert_true(finish_native_keyed_lookup_cleanup(lookup).unwrap())
   if left_identity is Some(_) {
     assert_true(@run_host.client_keyed_native_left_identity(lookup) is None)
   }

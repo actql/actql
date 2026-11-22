@@ -192,6 +192,7 @@ fn journal_metadata_original_row(ordinal : Int) -> (String, Bytes) {
     observation_original: None,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
   (@host.client_request_scope_cid(request), run_record_body(record).unwrap())
 }

@@ -119,7 +119,7 @@ test "typed deep then shallow inventory owns retained backing and retires stale 
       shallow_seen = true
       let expected = wire_emit_construction_inventory(
         cursor.pending.capacity().to_int64(),
-        None,
+        0,
       ).unwrap()
       assert_eq(
         wire_emit_next_construction_inventory(cursor).unwrap(),

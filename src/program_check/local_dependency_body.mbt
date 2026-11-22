@@ -93,6 +93,52 @@ pub fn checked_local_dependency_bodies(
   Array[(String, CheckedLocalDependencyBody)],
   LocalDependencyBodyIssue,
 ] {
+  collect_checked_local_dependency_bodies(
+    program,
+    unit_index,
+    max_entries,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    (role, body, _, _, _) => (role, body),
+  )
+}
+
+///|
+/// Return checked bodies with the byte, node and depth usage of their
+/// original encoder. The dimensions are only data for funding a later parse.
+pub fn checked_local_dependency_bodies_with_wire_usage(
+  program : CheckedProgram,
+  unit_index : Int,
+  max_entries : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, CheckedLocalDependencyBody, Int, Int, Int)],
+  LocalDependencyBodyIssue,
+] {
+  collect_checked_local_dependency_bodies(
+    program,
+    unit_index,
+    max_entries,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    (role, body, bytes, nodes, depth) => (role, body, bytes, nodes, depth),
+  )
+}
+
+///|
+fn[T] collect_checked_local_dependency_bodies(
+  program : CheckedProgram,
+  unit_index : Int,
+  max_entries : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  project : (String, CheckedLocalDependencyBody, Int, Int, Int) -> T,
+) -> Result[Array[T], LocalDependencyBodyIssue] {
   guard program.units.get(unit_index) is Some(unit) else {
     return Err(MissingUnit)
   }
@@ -122,18 +168,24 @@ pub fn checked_local_dependency_bodies(
   for index in 0..<gates {
     selected.push(("gate_requirement", IncomingGate(index)))
   }
-  let bodies : Array[(String, CheckedLocalDependencyBody)] = []
+  let bodies : Array[T] = []
   let mut remaining = max_bytes
   for (role, kind) in selected {
-    let body = match
-      checked_local_dependency_body(
-        program, unit_index, kind, remaining, max_nodes, max_depth,
+    let (body, bytes, nodes, depth) = match
+      issue_checked_local_dependency_body_with_wire_usage(
+        program,
+        unit_index,
+        kind,
+        remaining,
+        max_nodes,
+        max_depth,
+        (body, bytes, nodes, depth) => (body, bytes, nodes, depth),
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    remaining -= @utf8.encode(body.wire).length()
-    bodies.push((role, body))
+    remaining -= bytes
+    bodies.push(project(role, body, bytes, nodes, depth))
   }
   Ok(bodies)
 }
@@ -147,6 +199,27 @@ pub fn checked_local_dependency_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue] {
+  issue_checked_local_dependency_body_with_wire_usage(
+    program,
+    unit_index,
+    kind,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    (body, _, _, _) => body,
+  )
+}
+
+///|
+fn[T] issue_checked_local_dependency_body_with_wire_usage(
+  program : CheckedProgram,
+  unit_index : Int,
+  kind : LocalDependencyBodyKind,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  project : (CheckedLocalDependencyBody, Int, Int, Int) -> T,
+) -> Result[T, LocalDependencyBodyIssue] {
   guard program.units.get(unit_index) is Some(_) else {
     return Err(MissingUnit)
   }
@@ -158,10 +231,17 @@ pub fn checked_local_dependency_body(
     Ok(cid) => cid
     Err(issue) => return Err(issue)
   }
-  let wire = @encode.finish(writer) catch {
+  let (wire, bytes, nodes, depth) = @encode.finish_text_usage(writer) catch {
     issue => return Err(Encoding(issue))
   }
-  Ok({ owner: program, unit: unit_index, kind, cid, wire, })
+  Ok(
+    project(
+      { owner: program, unit: unit_index, kind, cid, wire, },
+      bytes,
+      nodes,
+      depth,
+    ),
+  )
 }
 
 ///|

@@ -143,7 +143,7 @@ fn retain_installed_effect_dependency_index(
 // Initial numeric quote BEFORE the Work view, depth vectors or body selection
 // arrays exist. Actual entries/Units and existing JSON depth are quantities,
 // never permissions, row credit or max_nodes-per-body precharges.
-fn installed_effect_dependency_fixed_capacity(
+pub fn installed_effect_dependency_fixed_capacity(
   entries : Int,
   units : Int,
   depth : Int,
@@ -535,7 +535,7 @@ fn installed_effect_dependency_shared_body_capacity() -> @execution.ExecutionCap
 // Actual body/root/reference geometry before complete closure indexes and
 // encoder ordering vectors. Fixed vocabulary remains borrowed; semantic keys
 // and every reference edge are retained DATA, not physical-owner sharing.
-fn installed_effect_dependency_graph_capacity(
+pub fn installed_effect_dependency_graph_capacity(
   entries : Int,
   roots : Int,
   references : Int,
@@ -591,7 +591,7 @@ fn installed_effect_dependency_graph_capacity(
 // issue_prepared_captured_effect_dependency_inventory emits the SAME admitted
 // CanonicalValue bodies. No Source parser, normalization, new value tree or
 // wire buffer is constructed here. Existing body/index holdings stay charged.
-fn installed_effect_dependency_envelope_capacity(
+pub fn installed_effect_dependency_envelope_capacity(
   geometry : @encode.EncodingConstructionGeometry,
   entries : Int,
   key_units : Int64,

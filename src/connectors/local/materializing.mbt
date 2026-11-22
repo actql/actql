@@ -85,6 +85,15 @@ pub fn local_default_import_limits(
 }
 
 ///|
+fn local_import_prefix_capacity(
+  rows : Int64,
+  nodes : Int64,
+  text : Int64,
+) -> Int64 {
+  64L * (rows + nodes) + 8L * text
+}
+
+///|
 /// Conservative allocation units, not RSS: 64 bytes per admitted/decoded/wire
 /// node and row/column slot; 8 bytes per text/wire/frame byte. Imported storage
 /// is retained with the result because a Local result can share input buffers.
@@ -118,10 +127,13 @@ pub fn local_import_retention_capacity(limits : LocalImportLimits) -> Int64? {
     }
   }
   Some(
+    local_import_prefix_capacity(
+      limits.max_rows.to_int64(),
+      v.max_nodes.to_int64(),
+      v.max_text_bytes.to_int64(),
+    ) +
     64L *
     (
-      limits.max_rows.to_int64() +
-      v.max_nodes.to_int64() +
       w.max_nodes.to_int64() +
       w.max_columns.to_int64() +
       r.max_nodes.to_int64() +
@@ -130,7 +142,6 @@ pub fn local_import_retention_capacity(limits : LocalImportLimits) -> Int64? {
     ) +
     8L *
     (
-      v.max_text_bytes.to_int64() +
       w.max_bytes.to_int64() +
       limits.max_batch_bytes.to_int64() +
       r.max_bytes.to_int64() +

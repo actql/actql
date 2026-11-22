@@ -383,6 +383,20 @@ pub fn derive_effect_preview_row_identities(
     Ok(value) => value
     Err(issue) => return Err(PreviewShape(issue))
   }
+  derive_effect_preview_row_identities_original(
+    preview, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// The caller has admitted this exact immutable Preview shape. Authoring can
+// derive row identities beside the template without retaining a second tree.
+fn derive_effect_preview_row_identities_original(
+  preview : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[Array[String]], EffectPreviewIdentityIssue] {
   let members = match @json.object_field(preview, "effects") {
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(InvalidMember)
@@ -422,51 +436,55 @@ fn emit_authored_effect_preview(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[String, EffectPreviewIdentityIssue] {
+  reuse_row_order? : Bool = false,
+) -> Result[(String, Int, Int, Int), EffectPreviewIdentityIssue] {
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
+  defer @encode.cancel_writer(writer)
   try {
-    @encode.begin_object(writer)
+    @encode.begin_ordered_object(writer)
     for (name, child) in @json.object_fields(preview).unwrap() {
-      @encode.key(writer, name)
+      @encode.ordered_key(writer, name)
       if name == "effect_preview_cid" && preview_cid is Some(cid) {
         @encode.string_value(writer, cid)
       } else if name == "effects" {
         let members = match child {
-          @json.Array(items) => @json.array_values(items)
+          @json.Array(items) => items
           _ => return Err(InvalidMember)
         }
-        if members.length() != rows.length() ||
+        let member_count = @json.array_count(members)
+        if member_count != rows.length() ||
           member_cids
-          .map(values => values.length() != members.length())
+          .map(values => values.length() != member_count)
           .unwrap_or(false) ||
           key_cids
-          .map(values => values.length() != members.length())
+          .map(values => values.length() != member_count)
           .unwrap_or(false) {
           return Err(InvalidMember)
         }
         @encode.begin_array(writer)
-        for member_index in 0..<members.length() {
-          let effect = members[member_index]
+        for member_index in 0..<member_count {
+          let effect = @json.array_at(members, member_index).unwrap()
           let changes = match @json.object_field(effect, "changes") {
-            Some(@json.Array(items)) => @json.array_values(items)
+            Some(@json.Array(items)) => items
             _ => return Err(InvalidMember)
           }
-          if changes.length() != rows[member_index].length() ||
+          let row_count = @json.array_count(changes)
+          if row_count != rows[member_index].length() ||
             key_cids
-            .map(values => values[member_index].length() != changes.length())
+            .map(values => values[member_index].length() != row_count)
             .unwrap_or(false) {
             return Err(InvalidMember)
           }
-          @encode.begin_object(writer)
+          @encode.begin_ordered_object(writer)
           for
             (member_name, member_child) in @json.object_fields(effect).unwrap() {
-            @encode.key(writer, member_name)
+            @encode.ordered_key(writer, member_name)
             if member_name == "effect_member_preview_cid" &&
               member_cids is Some(cids) {
               @encode.string_value(writer, cids[member_index])
-            } else if member_name == "row_order" {
+            } else if member_name == "row_order" && !reuse_row_order {
               // Changes retain source/Plan enumeration. Dispatch order is a
               // separate canonical inventory of the same original rows.
               let kind = @json.object_field(effect, "effect_kind")
@@ -474,7 +492,8 @@ fn emit_authored_effect_preview(
                 kind is Some(@json.String("upsert")) ||
                 kind is Some(@json.String("delete")) {
                 let targets : Array[String] = []
-                for change in changes {
+                for index in 0..<row_count {
+                  let change = @json.array_at(changes, index).unwrap()
                   guard @json.object_field(change, "target_row_identity")
                     is Some(target) else {
                     return Err(InvalidMember)
@@ -487,11 +506,7 @@ fn emit_authored_effect_preview(
                 }
                 match
                   derive_effect_target_row_inventory(
-                    targets,
-                    changes.length(),
-                    max_wire_bytes,
-                    max_nodes,
-                    max_depth,
+                    targets, row_count, max_wire_bytes, max_nodes, max_depth,
                   ) {
                   Ok(order) => Some(order)
                   Err(issue) => return Err(issue)
@@ -516,13 +531,13 @@ fn emit_authored_effect_preview(
               @encode.end_array(writer)
             } else if member_name == "changes" {
               @encode.begin_array(writer)
-              for row_index in 0..<changes.length() {
-                @encode.begin_object(writer)
+              for row_index in 0..<row_count {
+                @encode.begin_ordered_object(writer)
                 for
                   (change_name, change_child) in @json.object_fields(
-                    changes[row_index],
+                    @json.array_at(changes, row_index).unwrap(),
                   ).unwrap() {
-                  @encode.key(writer, change_name)
+                  @encode.ordered_key(writer, change_name)
                   if change_name == "row_preview_cid" {
                     @encode.string_value(writer, rows[member_index][row_index])
                   } else if change_name == "row_idempotency_key" {
@@ -550,7 +565,7 @@ fn emit_authored_effect_preview(
       }
     }
     @encode.end_object(writer)
-    Ok(@encode.finish(writer))
+    Ok(@encode.finish_text_usage(writer))
   } catch {
     _ => Err(Encoding)
   }
@@ -567,54 +582,59 @@ pub fn author_effect_preview_semantic_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
-  let template = match
-    parse_effect_preview_shape(
-      template_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(PreviewShape(issue))
-  }
-  let rows = match
-    derive_effect_preview_row_identities(
-      template_wire, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let draft = match
-    emit_authored_effect_preview(
-      template,
-      rows,
-      None,
-      None,
-      None,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (preview_cid, member_cids) = match
-    derive_effect_preview_identities(
-      draft, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let wire = match
-    emit_authored_effect_preview(
-      template,
-      rows,
-      Some(member_cids),
-      Some(preview_cid),
-      None,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  // Return only the emitted wire across the full final admission boundary.
+  let wire = {
+    let template = match
+      parse_effect_preview_shape(
+        template_wire, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(PreviewShape(issue))
+    }
+    let rows = match
+      derive_effect_preview_row_identities_original(
+        template, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let (preview_cid, member_cids) = {
+      let (draft, _, _, _) = match
+        emit_authored_effect_preview(
+          template,
+          rows,
+          None,
+          None,
+          None,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        derive_effect_preview_identities(
+          draft, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
+    match
+      emit_authored_effect_preview(
+        template,
+        rows,
+        Some(member_cids),
+        Some(preview_cid),
+        None,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok((wire, _, _, _)) => wire
+      Err(issue) => return Err(issue)
+    }
   }
   match
     admit_effect_preview_identity(
@@ -624,6 +644,112 @@ pub fn author_effect_preview_semantic_wire(
     Ok(identity) => Ok((wire, identity))
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// The already admitted semantic Preview and its original codec scope.
+/// Dispatch completion can borrow it without deriving its identity again.
+struct AuthoredEffectPreview {
+  wire : String
+  identity : EffectPreviewIdentity
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+///|
+pub fn prepare_authored_effect_preview(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue] {
+  author_effect_preview_semantic_wire(
+    template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(value => {
+    wire: value.0,
+    identity: value.1,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  })
+}
+
+///|
+pub fn authored_effect_preview_identity(
+  value : AuthoredEffectPreview,
+) -> EffectPreviewIdentity {
+  value.identity
+}
+
+///|
+/// Dispatch-completed bytes and usage from the same original text writer.
+/// Admission still checks the whole completed Preview under its original codec.
+struct PreparedEffectPreviewDispatch {
+  wire : String
+  bytes : Int
+  nodes : Int
+  depth : Int
+  original : AuthoredEffectPreview
+}
+
+///|
+/// Only dispatch keys change. Borrow the original row order. The parsed
+/// semantic tree and emitter scratch end before returning the completed wire.
+pub fn prepare_effect_preview_dispatch_completion(
+  original : AuthoredEffectPreview,
+  key_cids : Array[Array[String]],
+) -> Result[PreparedEffectPreviewDispatch, EffectPreviewIdentityIssue] {
+  let semantic = match
+    parse_contract_wire(
+      original.wire,
+      original.max_wire_bytes,
+      original.max_nodes,
+      original.max_depth,
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  emit_authored_effect_preview(
+    semantic,
+    original.identity.row_cids,
+    Some(original.identity.member_cids),
+    Some(original.identity.semantic_cid),
+    Some(key_cids),
+    original.max_wire_bytes,
+    original.max_nodes,
+    original.max_depth,
+    reuse_row_order=true,
+  ).map(value => {
+    let (wire, bytes, nodes, depth) = value
+    { wire, bytes, nodes, depth, original, }
+  })
+}
+
+///|
+pub fn prepared_effect_preview_dispatch_usage(
+  value : PreparedEffectPreviewDispatch,
+) -> (Int, Int, Int) {
+  (value.bytes, value.nodes, value.depth)
+}
+
+///|
+pub fn admit_prepared_effect_preview_dispatch(
+  value : PreparedEffectPreviewDispatch,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+  let original = value.original
+  admit_effect_preview_identity(
+    value.wire,
+    original.identity.run_identity_cid,
+    original.identity.authoring_context_cid,
+    original.max_wire_bytes,
+    original.max_nodes,
+    original.max_depth,
+  ).map(identity => (value.wire, identity))
 }
 
 ///|
@@ -638,6 +764,24 @@ pub fn complete_effect_preview_dispatch_keys(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, EffectPreviewIdentityIssue] {
+  complete_effect_preview_dispatch_keys_with_identity(
+    semantic_wire, key_cids, expected_run_identity_cid, expected_authoring_context_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.0)
+}
+
+///|
+/// Return the completed wire with its exact admitted identity so the caller
+/// can check dispatch bindings without decoding the completed wire again.
+pub fn complete_effect_preview_dispatch_keys_with_identity(
+  semantic_wire : String,
+  key_cids : Array[Array[String]],
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
   let semantic = match
     parse_effect_preview_shape(
       semantic_wire, max_wire_bytes, max_nodes, max_depth,
@@ -646,33 +790,18 @@ pub fn complete_effect_preview_dispatch_keys(
     Err(issue) => return Err(PreviewShape(issue))
   }
   let identity = match
-    admit_effect_preview_identity(
-      semantic_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    admit_effect_preview_identity_original(
+      semantic, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
       max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let rows : Array[Array[String]] = []
-  let members : Array[String] = []
-  for member_index in 0..<effect_preview_member_count(identity) {
-    let member_rows : Array[String] = []
-    for
-      row_index in 0..<effect_preview_row_count(identity, member_index).unwrap() {
-      member_rows.push(
-        effect_preview_row_identity(identity, member_index, row_index).unwrap(),
-      )
-    }
-    rows.push(member_rows)
-    members.push(
-      effect_preview_member_identity(identity, member_index).unwrap(),
-    )
-  }
-  let wire = match
+  let (wire, _, _, _) = match
     emit_authored_effect_preview(
       semantic,
-      rows,
-      Some(members),
+      identity.row_cids,
+      Some(identity.member_cids),
       Some(effect_preview_semantic_identity(identity)),
       Some(key_cids),
       max_wire_bytes,
@@ -684,10 +813,14 @@ pub fn complete_effect_preview_dispatch_keys(
   }
   match
     admit_effect_preview_identity(
-      wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
-      max_nodes, max_depth,
+      wire,
+      identity.run_identity_cid,
+      identity.authoring_context_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
     ) {
-    Ok(_) => Ok(wire)
+    Ok(original) => Ok((wire, original))
     Err(issue) => Err(issue)
   }
 }

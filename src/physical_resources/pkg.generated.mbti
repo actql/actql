@@ -222,7 +222,7 @@ pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmi
 
 pub fn[I, P] complete_preparation_capacity(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
-pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Int64, NodeManagedRunOperationIssue[E]]
 
 pub fn[P, E] complete_prepared_run_operation_construction_output(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 

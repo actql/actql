@@ -84,6 +84,10 @@ pub fn issue_client_effect_local_manifest(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : (
+    (Int, Int, Int) -> Bool,
+    (@encode.EncodingConstructionGeometry) -> Bool,
+  )? = None,
 ) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue] {
   if !client_effect_local_invocation_matches(invocation, owner, invocation.unit) {
     return Err(ForeignInvocation)
@@ -99,9 +103,28 @@ pub fn issue_client_effect_local_manifest(
     return Err(MissingUnit)
   }
   let expected_count = @results.count(stage)
-  let table_members : Map[String, Int] = Map([])
   let headers = @checked.effect_program_static_headers(owner.candidate)
-  for index in 0..<@syntax.effect_header_count(headers) {
+  let header_count = @syntax.effect_header_count(headers)
+  let originals = match funding {
+    None => artifacts
+    Some((fund, _)) => {
+      let count = artifacts.length()
+      if !fund(expected_count, header_count, count) ||
+        artifacts.length() != count ||
+        !client_effect_local_invocation_matches(
+          invocation,
+          owner,
+          invocation.unit,
+        ) {
+        return Err(Encoding)
+      }
+      // Snapshot the original vector before the wire funding callback can
+      // reenter. The returned Manifest adopts this same backed copy.
+      artifacts.copy()
+    }
+  }
+  let table_members : Map[String, Int] = Map([])
+  for index in 0..<header_count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     if @syntax.effect_header_stage(header) == invocation.unit &&
       @syntax.effect_header_source_table_input(header) is Some(name) &&
@@ -115,7 +138,7 @@ pub fn issue_client_effect_local_manifest(
   let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
   let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
   let mut artifact_index = 0
-  for artifact in artifacts {
+  for artifact in originals {
     if !client_effect_local_artifact_matches_computation(artifact, owner) ||
       !physical_equal(artifact.invocation, invocation) {
       return Err(ForeignArtifact)
@@ -133,7 +156,7 @@ pub fn issue_client_effect_local_manifest(
         }
         if by_name.get(name) is Some(original) {
           for prior in 0..<artifact_index {
-            if physical_equal(artifacts[prior], artifact) {
+            if physical_equal(originals[prior], artifact) {
               return Err(DuplicateResult)
             }
           }
@@ -217,6 +240,47 @@ pub fn issue_client_effect_local_manifest(
     table_names.push(name)
   }
   table_names.sort_by(@canonical_value.compare_utf16)
+  if funding is Some((_, fund)) {
+    let geometry = {
+      let measure = @encode.construction_measuring_writer(
+        max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(Encoding)
+      }
+      defer @encode.cancel_writer(measure)
+      try {
+        emit_client_effect_local_manifest(
+          measure,
+          invocation.unit_definition_cid,
+          invocation.cid,
+          names,
+          by_name,
+          table_names,
+          by_table,
+          Some(invocation.cid),
+        )
+        @encode.finish_construction_measurement(measure)
+      } catch {
+        _ => return Err(Encoding)
+      }
+    }
+    if !fund(geometry) {
+      return Err(Encoding)
+    }
+    if !client_effect_local_invocation_matches(
+        invocation,
+        owner,
+        invocation.unit,
+      ) {
+      return Err(ForeignInvocation)
+    }
+    for artifact in originals {
+      if !client_effect_local_artifact_matches_computation(artifact, owner) ||
+        !physical_equal(artifact.invocation, invocation) {
+        return Err(ForeignArtifact)
+      }
+    }
+  }
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -250,7 +314,8 @@ pub fn issue_client_effect_local_manifest(
     _ => return Err(Encoding)
   }
   let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
-  Ok({ owner, invocation, artifacts: artifacts.copy(), cid, wire, })
+  let artifacts = if funding is Some(_) { originals } else { originals.copy() }
+  Ok({ owner, invocation, artifacts, cid, wire, })
 }
 
 ///|

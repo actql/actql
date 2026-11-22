@@ -101,8 +101,8 @@ priv struct BufferedText {
 
 ///|
 struct Writer {
-  output : OutputSink
-  frames : Array[Frame]
+  mut output : OutputSink
+  mut frames : Array[Frame]
   max_bytes : Int
   max_nodes : Int
   mut peak_depth : Int
@@ -1171,6 +1171,10 @@ pub fn finish_hash_metrics(
     @sha256.MessageTooLong => fail(w, OutputLimit)
     @sha256.InvalidAsciiRange => fail(w, InvalidUnicode)
   }
+  // The successful receipt keeps the charged counters, not the drained
+  // builder, hasher or former frame capacity of its closed writer.
+  w.output = MeasureOutput
+  w.frames = []
   (
     hex,
     w.max_bytes - w.remaining_bytes,

@@ -120,14 +120,25 @@ fn checked_client_source_policy_bodies(
     Unit,
     @checked.LocalDependencyBodyIssue,
   ])? = None,
+  before_emit? : ((Int, Int, Int) -> Bool)? = None,
+  before_catalog_emit? : ((Int, Int, Int) -> Bool)? = None,
+  before_measure? : ((Int, Int) -> Bool)? = None,
+  current? : (() -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining_work = work
   let cid = policy.cid
   let mut remaining = Int::min(max_bytes, 16777216)
   let bodies : Array[(String, String, String)] = []
   let seen : Map[String, Bool] = Map([])
+  let emit_funding = if before_emit is Some(_) {
+    before_emit
+  } else {
+    before_body
+  }
   fn retain(
     identity : String,
+    live_keys : Int,
+    emitter_depth : Int,
     emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
     receive : ((@publication.CapturedEffectDependencyBody, Int) -> Result[
       Unit,
@@ -142,10 +153,18 @@ fn checked_client_source_policy_bodies(
     if seen.contains(identity) {
       return Ok(())
     }
-    if before_body is Some(prepare) {
+    if emit_funding is Some(prepare) {
+      if before_measure is Some(fund) {
+        if !fund(live_keys, Int::min(max_depth, emitter_depth)) {
+          return Err(BudgetExceeded)
+        }
+        if current is Some(available) && !available() {
+          return Err(ForeignBody)
+        }
+      }
       // Traverse this SAME checked policy emitter without allocating output.
-      // The caller funds measuring-writer controls before entering this API,
-      // then funds exact text/body construction before the actual Writer.
+      // Existing callers fund the measuring Writer at entry. Scoped callers
+      // fund it above, then fund the exact owned body after measurement.
       let measure = @encode.measuring_writer(remaining, max_nodes, max_depth) catch {
         _ => return Err(BudgetExceeded)
       }
@@ -157,6 +176,9 @@ fn checked_client_source_policy_bodies(
       }
       if !prepare(bytes, nodes, depth) {
         return Err(BudgetExceeded)
+      }
+      if current is Some(available) && !available() {
+        return Err(ForeignBody)
       }
     }
     // Only immutable wire and usage cross to the hash, parser and receiver.
@@ -179,6 +201,9 @@ fn checked_client_source_policy_bodies(
       }
       if before_body is Some(prepare) && !prepare(bytes, nodes, depth) {
         return Err(BudgetExceeded)
+      }
+      if current is Some(available) && !available() {
+        return Err(ForeignBody)
       }
       let body = match
         @publication.admit_captured_effect_dependency_body(
@@ -212,6 +237,8 @@ fn checked_client_source_policy_bodies(
   match
     retain(
       cid,
+      5,
+      2,
       writer => @checked.emit_publication_source_policy(policy, writer),
       admitted_body,
     ) {
@@ -232,6 +259,8 @@ fn checked_client_source_policy_bodies(
     match
       retain(
         source.response_policy_cid,
+        6,
+        1,
         writer => {
           @checked.emit_source_response_policy(source.response_policy, writer)
         },
@@ -288,6 +317,8 @@ fn checked_client_source_policy_bodies(
               max_nodes,
               max_depth,
               before_body,
+              before_emit=before_catalog_emit,
+              current~,
             ) {
             Ok(value) => value
             Err(issue) => return Err(issue)
@@ -429,6 +460,8 @@ fn capture_checked_client_catalog_dependency(
   max_nodes : Int,
   max_depth : Int,
   before_body : ((Int, Int, Int) -> Bool)?,
+  before_emit? : ((Int, Int, Int) -> Bool)? = None,
+  current? : (() -> Bool)? = None,
 ) -> Result[
   (@publication.CapturedEffectDependencyBody, Int),
   @checked.LocalDependencyBodyIssue,
@@ -436,6 +469,12 @@ fn capture_checked_client_catalog_dependency(
   let mut bytes = 0
   let mut nodes = 0
   let mut depth = 0
+  let emit_funding = if before_emit is Some(_) {
+    before_emit
+  } else {
+    before_body
+  }
+  let mut lost_current = false
   let original = match
     @checked.checked_local_catalog_dependency_body(
       program,
@@ -449,17 +488,24 @@ fn capture_checked_client_catalog_dependency(
         bytes = b
         nodes = n
         depth = d
-        match before_body {
-          Some(prepare) => prepare(b, n, d)
-          None => true
+        if emit_funding is Some(prepare) && !prepare(b, n, d) {
+          return false
         }
+        if current is Some(available) && !available() {
+          lost_current = true
+          return false
+        }
+        true
       }),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(if lost_current { ForeignBody } else { issue })
   }
   if before_body is Some(prepare) && !prepare(bytes, nodes, depth) {
     return Err(BudgetExceeded)
+  }
+  if current is Some(available) && !available() {
+    return Err(ForeignBody)
   }
   let wire = @checked.checked_local_dependency_body_json(original)
   match

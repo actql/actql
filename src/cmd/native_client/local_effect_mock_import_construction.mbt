@@ -7,6 +7,12 @@ priv struct LocalNativeMockEffectImportConstruction {
   mut recipe : Array[@execution.ExecutionCapacity]
   mut retained : Int64
   mut workspace : Int64
+  // One live export snapshot awaiting typed Relation admission. Failure
+  // leaves the active extent on the original operation until cleanup.
+  mut source_snapshot : Int64?
+  // Live only inside one synchronous Source export, including on failure
+  // until that same operation's cleanup. Other exports are retained below.
+  mut source_copy : Int64?
 }
 
 ///|
@@ -52,6 +58,218 @@ fn LocalNativeMockEffectImportConstruction::retain_wire(
       Int::min(1024, Int::max(1, bytes)),
       Int::min(20, Int::max(1, bytes)),
     ) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+}
+
+///|
+// The measuring sink owns one Writer, its geometry state, and its returned
+// counters. Quote the full original policy here before measuring the actual
+// definition. The fixed recipe continues to fund checked name validation.
+fn LocalNativeMockEffectImportConstruction::fund_result_definition(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientEffectComputation,
+  unit : Int,
+  name : String,
+) -> Unit raise ClientStop {
+  let max_bytes = 16384
+  let max_nodes = 1024
+  let max_depth = 20
+  let measuring = @encode.measuring_writer_construction_extent(
+      max_nodes, max_depth,
+    )
+    .bind(extent => {
+      @execution.preparation_representation_cost({
+        record_headers: extent.record_headers + 3L,
+        reference_slots: extent.reference_slots + 2L,
+        scalar_words: extent.scalar_words + 14L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+    })
+    .bind(workspace => @execution.execution_capacity(0L, workspace))
+  if !self.prepare_body(original, measuring) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  let geometry = @run_host.client_effect_local_result_definition_construction_geometry(
+      prepared, unit, name, max_bytes, max_nodes, max_depth,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
+    .native_effect_proposal(original)
+  if !self.prepare_body(
+      original,
+      @run_host.client_effect_local_result_definition_issuer_capacity(geometry),
+    ) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::issue_result_definition(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientEffectComputation,
+  unit : Int,
+  name : String,
+) -> @run_host.ClientEffectLocalResultDefinition raise ClientStop {
+  self.fund_result_definition(original, prepared, unit, name)
+  @run_host.issue_client_effect_local_result_definition(
+    prepared, unit, name, 16384, 1024, 20,
+  )
+  .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
+  .native_effect_proposal(original)
+}
+
+///|
+// The same checked Manifest visits its Result names and Effect table headers,
+// builds temporary maps and name arrays, and adopts a private Artifact vector.
+fn native_mock_effect_manifest_inventory(
+  results : Int,
+  headers : Int,
+  artifacts : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let slots = results.to_int64() + headers.to_int64() + artifacts.to_int64()
+  guard results >= 0 &&
+    headers >= 0 &&
+    artifacts >= 0 &&
+    max_nodes > 0 &&
+    max_nodes < 2147483647 &&
+    @shape.collection_construction_extent({
+      records: 12L + 2L * slots,
+      record_references: 26L + 2L * slots,
+      record_words: 14L + slots,
+      reference_arrays: 4L,
+      reference_items: 4L * slots,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 3L,
+      map_entries: headers.to_int64() + artifacts.to_int64(),
+    })
+    is Some(collections) &&
+    @encode.measuring_writer_construction_extent(
+      Int64::min(max_nodes.to_int64() + 1L, slots + 6L).to_int(),
+      max_depth,
+    )
+    is Some(writer) &&
+    @execution.preparation_array_representation(1L, artifacts.to_int64(), false)
+    is Some(retained) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: {
+      record_headers: collections.record_headers + writer.record_headers,
+      reference_slots: collections.reference_slots + writer.reference_slots,
+      scalar_words: collections.scalar_words + writer.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+// The relation census counts the original selected dependency slots. Only the
+// relation vector, sort and measured-body controls are allocated in this frame.
+fn native_mock_effect_artifact_measurement_capacity(
+  count : Int64,
+) -> @execution.ExecutionCapacity? {
+  guard count >= 0L &&
+    count <= 2147483647L &&
+    @shape.collection_construction_extent({
+      records: 28L,
+      record_references: 51L,
+      record_words: 81L,
+      reference_arrays: 6L,
+      reference_items: 3L * count + 24L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(vector) &&
+    @encode.measuring_writer_construction_extent(1025, 20) is Some(writer) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: vector.record_headers + writer.record_headers,
+    reference_slots: vector.reference_slots + writer.reference_slots,
+    scalar_words: vector.scalar_words + writer.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(0L, bytes))
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::model_result_artifact_funding(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  definition : @run_host.ClientEffectLocalResultDefinition,
+) -> @run_host.ClientEffectModelArtifactFunding {
+  let mut controls = 0L
+  {
+    reserve_measurement: count => {
+      let quote = native_mock_effect_artifact_measurement_capacity(count)
+      if !self.prepare_body(original, quote) {
+        return false
+      }
+      controls = @execution.execution_capacity_execution_bytes(quote.unwrap())
+      true
+    },
+    reserve_bodies: bodies => {
+      self.prepare_body(
+        original,
+        @local_values.installed_effect_model_result_artifact_capacity(
+          bodies,
+          @run_host.client_effect_local_result_definition_cid(definition),
+          controls,
+        ),
+      )
+    },
+  }
+}
+
+///|
+// Contracts are measured sequentially on the fixed recipe's existing
+// construction reservation. Only one depth stack and extent carrier live.
+fn native_mock_effect_contract_extent_walk_capacity(
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let frames = 4L * (max_depth.to_int64() + 1L) + 16L
+  @execution.preparation_representation_cost({
+    record_headers: 12L + frames,
+    reference_slots: 24L + 4L * frames,
+    scalar_words: 16L + 4L * frames,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(workspace => @execution.execution_capacity(0L, workspace))
+}
+
+///|
+// Keep the fixed issuance budget and fund the bounded post-issuer walk.
+fn LocalNativeMockEffectImportConstruction::retain_result_artifact(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  artifact : @run_host.ClientEffectLocalResultArtifact,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Unit raise ClientStop {
+  if !self.prepare_body(
+      original,
+      native_mock_effect_contract_extent_walk_capacity(max_depth),
+    ) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  let backing = @run_host.client_effect_local_result_artifact_retained_bytes(
+    artifact, max_nodes, max_depth,
+  ).bind(retained => @execution.execution_capacity(retained, retained))
+  if !self.prepare_body(original, backing) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
 }
@@ -147,17 +365,265 @@ fn LocalNativeMockEffectImportConstruction::prepare_canonical(
 }
 
 ///|
-fn LocalNativeMockEffectImportConstruction::prepare(
+// The temporary wire is funded while it passes to admission. Only Policy
+// compares a whole-wire SHA digest here. That branch runs after the writer
+// unwinds, beside the returned String and the exact UTF8 buffer used by SHA.
+fn native_mock_effect_lookup_emit_workspace(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  digest : Bool,
+) -> @execution.ExecutionCapacity? {
+  guard native_mock_effect_plan_wire_capacity(bytes, nodes, depth) is Some(wire) else {
+    return None
+  }
+  guard native_mock_effect_lookup_emitter_workspace(depth) is Some(emitter) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(wire),
+      emitter,
+      1L,
+    )
+    is Some(writer) else {
+    return None
+  }
+  if !digest {
+    return @execution.execution_capacity(0L, writer)
+  }
+  guard @encode.hash_writer_construction_inventory(0, 0) is Some(hash) &&
+    @execution.preparation_representation_cost({
+      record_headers: hash.record_headers + 3L,
+      reference_slots: hash.reference_slots + 3L,
+      scalar_words: hash.scalar_words + 2L,
+      owned_utf16_units: hash.owned_utf16_units + 71L,
+      owned_wire_bytes: hash.owned_wire_bytes + bytes.to_int64(),
+    })
+    is Some(scratch) else {
+    return None
+  }
+  let retained_wire = @execution.execution_capacity_retained_bytes(wire)
+  @execution.checked_preparation_add_product(retained_wire, scratch, 1L).bind(hash_peak => {
+    @execution.execution_capacity(0L, Int64::max(writer, hash_peak))
+  })
+}
+
+///|
+// The collection backing stays alive through the next emitter/parser. The
+// Map owns its key strings; only distinct input wires need extra backing.
+// The nested policy receiver also tracks the CIDs it accepted. Each insert
+// there follows an insert in this outer table; its keys borrow those CIDs.
+fn native_mock_effect_lookup_table_workspace(
+  entries : Int,
+  key_units : Int64,
+  wire_units : Int64,
+) -> Int64? {
+  let count = entries.to_int64()
+  guard @shape.collection_construction_extent({
+      records: 2L + 2L * count,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 2L,
+      reference_items: count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 2L,
+      map_entries: 2L * count,
+    })
+    is Some(tables) &&
+    @execution.checked_preparation_add_product(key_units, wire_units, 1L)
+    is Some(text) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: tables.record_headers,
+    reference_slots: tables.reference_slots,
+    scalar_words: tables.scalar_words,
+    owned_utf16_units: text,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// Reuse the checked dependency census's fixed emitter/depth frame with its
+// zero-key measuring Writer removed. Each phase adds its own actual Writer.
+fn native_mock_effect_lookup_emitter_workspace(depth : Int) -> Int64? {
+  guard @local_values.installed_effect_dependency_fixed_capacity(0, 0, depth)
+    is Some(fixed) &&
+    @encode.measuring_writer_construction_extent(0, depth) is Some(empty) &&
+    @execution.preparation_representation_cost({
+      record_headers: empty.record_headers,
+      reference_slots: empty.reference_slots,
+      scalar_words: empty.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(writer) else {
+    return None
+  }
+  let total = @execution.execution_capacity_execution_bytes(fixed)
+  if writer > total {
+    return None
+  }
+  Some(total - writer)
+}
+
+///|
+// The bounded MeasureOutput owns its current frame/key geometry and the
+// original measuring operations. No text sink or digest is live in this pass.
+fn native_mock_effect_lookup_measure_workspace(
+  live_keys : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let operation = @encode.measurement_operation_construction_extent()
+  guard native_mock_effect_lookup_emitter_workspace(depth) is Some(emitter) &&
+    @encode.measuring_writer_construction_extent(live_keys, depth)
+    is Some(writer) &&
+    @execution.preparation_representation_cost({
+      record_headers: writer.record_headers +
+      operation.collections.record_headers,
+      reference_slots: writer.reference_slots +
+      operation.collections.reference_slots,
+      scalar_words: writer.scalar_words + operation.collections.scalar_words,
+      owned_utf16_units: operation.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(additional) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(emitter, additional, 1L).bind(bytes => {
+    @execution.execution_capacity(0L, bytes)
+  })
+}
+
+///|
+// The caller has adopted the same returned Array. Its Map and measuring
+// scopes have returned. Keep the Array slots and the original absolute
+// reservation floor; neither the Model nor the lookup scratch is live.
+fn LocalNativeMockEffectImportConstruction::retain_lookup_dependency_array(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  slots : Int,
+) -> Bool {
+  guard self.source_snapshot is None &&
+    self.source_copy is None &&
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 1L + slots.to_int64(),
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(array) &&
+    @execution.checked_preparation_add_product(self.retained, array, 1L)
+    is Some(retained) else {
+    original.retain_primary(
+      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+    )
+    return false
+  }
+  self.resize(original, self.recipe, retained, 0L)
+}
+
+///|
+// Snapshot emission returns only its row text. The stepper, writer and
+// discarded field vector cannot escape. Keep the entire former constructor
+// peak before entry, and carry only the returned wire into later dependency
+// admission. This reuses logical workspace without releasing physical backing.
+fn LocalNativeMockEffectImportConstruction::prepare_snapshot(
   self : Self,
   original : LocalCommandPreparationOriginal,
   bytes : Int,
   nodes : Int,
   depth : Int,
+  previous_workspace_returned? : Bool = false,
 ) -> Bool {
-  self.prepare_body(
-    original,
-    native_mock_effect_dependency_body_capacity(bytes, nodes, depth),
-  )
+  let capacity = native_mock_effect_dependency_body_capacity(
+    bytes, nodes, depth,
+  ).bind(peak => {
+    // The original logical wire also includes the Relation wrapper, so its
+    // measured UTF-8 bytes bound every UTF-16 unit in the returned rows.
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 2L,
+      scalar_words: 2L,
+      owned_utf16_units: bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    }).bind(retained => {
+      @execution.execution_capacity(
+        retained,
+        Int64::max(
+          retained,
+          @execution.execution_capacity_execution_bytes(peak),
+        ),
+      )
+    })
+  })
+  if self.source_snapshot is Some(_) && capacity is Some(value) {
+    return self.reserve_source_snapshot(
+      original,
+      @execution.execution_capacity_retained_bytes(value),
+      @execution.execution_capacity_execution_bytes(value),
+    )
+  }
+  self.prepare_body(original, capacity, previous_workspace_returned~)
+}
+
+///|
+// The fixed recipe and the next synchronous constructor share a workspace,
+// but either can coexist with the still-open Source snapshot. Reuse the same
+// committed execution peak across successive snapshots, without a Ledger refund.
+fn native_mock_effect_import_workspace(
+  fixed : @execution.ExecutionCapacity,
+  high_water : Int64,
+  live_snapshot : Int64,
+  constructor_workspace : Int64,
+  source_copy? : Int64 = 0L,
+) -> Int64? {
+  let fixed_workspace = @execution.execution_capacity_execution_bytes(fixed) -
+    @execution.execution_capacity_retained_bytes(fixed)
+  guard @execution.checked_preparation_add_product(
+      live_snapshot, source_copy, 1L,
+    )
+    is Some(live) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(
+    live,
+    Int64::max(fixed_workspace, constructor_workspace),
+    1L,
+  ).map(required => Int64::max(high_water, required))
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::reserve_source_snapshot(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  additional : Int64,
+  constructor_workspace : Int64,
+) -> Bool {
+  let source_copy = self.source_copy.unwrap_or(0L)
+  guard self.source_snapshot == Some(0L) &&
+    @execution.checked_preparation_add_product(
+      source_copy, constructor_workspace, 1L,
+    )
+    is Some(snapshot_peak) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      Int64::max(self.workspace, snapshot_peak),
+      additional,
+      0L,
+      source_copy~,
+    )
+    is Some(workspace) else {
+    original.retain_primary(
+      CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+    )
+    return false
+  }
+  if !self.resize(original, self.recipe, self.retained, workspace) {
+    return false
+  }
+  self.source_snapshot = Some(additional)
+  true
 }
 
 ///|
@@ -165,9 +631,10 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
   self : Self,
   original : LocalCommandPreparationOriginal,
   capacity : @execution.ExecutionCapacity?,
+  previous_workspace_returned? : Bool = false,
 ) -> Bool {
   self
-  .prepare_body_result(capacity)
+  .prepare_body_result(capacity, previous_workspace_returned~)
   .retain_mock_effect_proposal_issue(issue => {
     original.retain_primary(CommandBusinessEffectProposals(issue))
   })
@@ -177,22 +644,70 @@ fn LocalNativeMockEffectImportConstruction::prepare_body(
 fn LocalNativeMockEffectImportConstruction::prepare_body_result(
   self : Self,
   capacity : @execution.ExecutionCapacity?,
+  previous_workspace_returned? : Bool = false,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  if previous_workspace_returned &&
+    (self.source_snapshot is Some(_) || self.source_copy is Some(_)) {
+    return Err(Managed(InsufficientCapacity))
+  }
+  // Only a synchronous caller that has returned its whole previous workspace
+  // can rebase the relative peak. The installed absolute peak remains held.
+  let previous_workspace = if previous_workspace_returned {
+    0L
+  } else {
+    self.workspace
+  }
   guard capacity is Some(body) &&
     @execution.checked_preparation_add_product(
       self.retained,
       @execution.execution_capacity_retained_bytes(body),
       1L,
     )
-    is Some(retained) else {
+    is Some(retained) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      previous_workspace,
+      self.source_snapshot.unwrap_or(0L),
+      @execution.execution_capacity_execution_bytes(body) -
+      @execution.execution_capacity_retained_bytes(body),
+      source_copy=self.source_copy.unwrap_or(0L),
+    )
+    is Some(workspace) else {
     return Err(Managed(InsufficientCapacity))
   }
-  let workspace = Int64::max(
-    self.workspace,
-    @execution.execution_capacity_execution_bytes(body) -
-    @execution.execution_capacity_retained_bytes(body),
-  )
   self.resize_result(self.recipe, retained, workspace)
+}
+
+///|
+// The caller has left the proposal/Manifest frame. Live Source buffers must
+// have been returned as well. Keep the imported originals on this token;
+// reset the relative workspace only after its Resource return succeeds.
+fn LocalNativeMockEffectImportConstruction::yield_returned_workspace(
+  self : Self,
+) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
+  if self.source_snapshot is Some(_) || self.source_copy is Some(_) {
+    return Err(AlreadyBound)
+  }
+  @local_values.yield_installed_effect_operation_construction_workspace(
+    self.operation,
+  ).map(_ => self.workspace = 0L)
+}
+
+///|
+// The Source-import frame has returned. Keep its retained basis and all
+// additional issued bodies. Do not reacquire the cold issuer's fixed scratch
+// when the next original measures its own construction.
+fn LocalNativeMockEffectImportConstruction::yield_source_import_workspace(
+  self : Self,
+) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
+  let retained = @execution.execution_capacity_retained_bytes(self.recipe[0])
+  self
+  .yield_returned_workspace()
+  .map(_ => {
+    let recipe = self.recipe.copy()
+    recipe[0] = @execution.execution_capacity(retained, retained).unwrap()
+    self.recipe = recipe
+  })
 }
 
 ///|
@@ -250,7 +765,11 @@ fn LocalNativeMockEffectImportConstruction::resize_result(
   let result = @local_values.prepare_installed_effect_capture_recipe_extent(
     "native.mock.file.capture", recipe,
   ).bind(input => {
-    @local_values.grow_installed_effect_operation_input(self.operation, input)
+    @local_values.grow_installed_effect_operation_input(
+      self.operation,
+      input,
+      reuse_execution_peak=true,
+    )
   })
   match result {
     Err(issue) => Err(Managed(issue))
@@ -277,38 +796,62 @@ fn Result::retain_mock_effect_proposal_issue(
 }
 
 ///|
-// The original producer wire is borrowed. Fund its preserving row decoder and
-// retained cells on the SAME capture before the bridge allocates them. The
-// existing normalizing body recipe conservatively covers this decoder too.
-fn LocalNativeMockEffectImportConstruction::prepare_row(
+// Each bridge keeps its own copied prefix on the capture reservation. The
+// decoder returns before the next synchronous constructor can start, so its
+// workspace can reuse the same peak. Other live capture inputs stay charged.
+fn LocalNativeMockEffectImportConstruction::reserve_row_copy(
   self : Self,
-  original : LocalCommandPreparationOriginal,
-  wire : String,
-  limits : @execution.RetainedRowDecodeLimits,
-) -> Bool {
-  self
-  .prepare_row_result(wire, limits)
-  .retain_mock_effect_proposal_issue(issue => {
-    original.retain_primary(CommandBusinessEffectProposals(issue))
-  })
+  additional : Int64,
+  decoder : Int64,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  guard @execution.checked_preparation_add_product(
+      self.retained,
+      additional,
+      1L,
+    )
+    is Some(retained) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      self.workspace,
+      self.source_snapshot.unwrap_or(0L),
+      decoder,
+      source_copy=self.source_copy.unwrap_or(0L),
+    )
+    is Some(workspace) else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  self.resize_result(self.recipe, retained, workspace)
 }
 
 ///|
-fn LocalNativeMockEffectImportConstruction::prepare_row_result(
+// Source import closes this private copy before the enclosing constructor
+// returns. Charge its whole live prefix alongside the current scratch and
+// the retained artifacts, without accumulating earlier, closed copies.
+fn LocalNativeMockEffectImportConstruction::reserve_source_row_copy(
   self : Self,
-  wire : String,
-  limits : @execution.RetainedRowDecodeLimits,
+  additional : Int64,
+  decoder : Int64,
 ) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
-  guard @scalar.admit_utf8_length(wire, limits.max_bytes) is Ok(bytes) else {
-    return Err(ManagedExport(Bridge(Wire(InputLimit))))
+  guard self.source_copy is Some(prior) &&
+    @execution.checked_preparation_add_product(prior, additional, 1L)
+    is Some(source_copy) &&
+    native_mock_effect_import_workspace(
+      self.recipe[0],
+      self.workspace,
+      self.source_snapshot.unwrap_or(0L),
+      decoder,
+      source_copy~,
+    )
+    is Some(workspace) else {
+    return Err(Managed(InsufficientCapacity))
   }
-  self.prepare_body_result(
-    native_mock_effect_dependency_body_capacity(
-      Int::max(1, bytes),
-      Int::min(limits.max_nodes, Int::max(1, bytes)),
-      Int::min(limits.max_depth, Int::max(1, bytes)),
-    ),
-  )
+  match self.resize_result(self.recipe, self.retained, workspace) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      self.source_copy = Some(source_copy)
+      Ok(())
+    }
+  }
 }
 
 ///|
@@ -317,6 +860,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
   index : Int,
+  scoped_source_copy? : Bool = false,
 ) -> @local_values.LocalValuesEffectResultExport raise ClientStop {
   guard state.suffix is Some(execution) &&
     state.effect_capture is Some(captured) &&
@@ -327,6 +871,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
   let wire = limits.identity.wire
   let bridge = held.bridge_limits
   let row = bridge.row
+  // The synchronous bridge first reserves its startup controls, then offers
+  // copied prefixes. Startup stays on the retained lane for every export.
+  let mut started = false
   execution
   .prepare_effect_result_export(
     captured,
@@ -347,7 +894,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_local_result_export(
       schema: limits.identity.schema,
       max_batch_bytes: Int::min(wire.max_bytes, 16384),
     },
-    before_row=Some(text => construction.prepare_row(self.original, text, row)),
+    reserve_row_copy=Some((bytes, decoder) => {
+      let result = if scoped_source_copy && started {
+        construction.reserve_source_row_copy(bytes, decoder)
+      } else {
+        construction.reserve_row_copy(bytes, decoder)
+      }
+      started = true
+      result.retain_mock_effect_proposal_issue(issue => {
+        self.original.retain_primary(CommandBusinessEffectProposals(issue))
+      })
+    }),
   )
   .map_err(issue => LocalNativeMockEffectProposalIssue::ManagedExport(issue))
   .native_effect_proposal(self.original)
@@ -390,4 +947,304 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_direct_result_export(
     LocalNativeMockEffectProposalIssue::ManagedExport(Binding(issue))
   })
   .native_effect_proposal(self.original)
+}
+
+///|
+// Only the pair and its two Strings cross the projection's synchronous return.
+// The fixed member inventory already keeps the array wrapper and one backing
+// header. With growth, charge the exact new spare slots before replacement;
+// the old backing header and slots remain live until that replacement returns.
+fn LocalNativeMockEffectImportConstruction::append_proposal_row(
+  self : Self,
+  rows : Array[(String, String)],
+  proposal : (String, String),
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  let previous = rows.capacity()
+  guard @shape.reference_array_push_construction_extent(rows.length(), previous)
+    is Some(growth) &&
+    growth.reference_slots <= 2147483647L else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  let next = if growth.record_headers == 0L {
+    previous
+  } else {
+    growth.reference_slots.to_int()
+  }
+  guard @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: 3L,
+        reference_slots: 2L + (next - previous).to_int64(),
+        scalar_words: 2L,
+        owned_utf16_units: proposal.0.length().to_int64() +
+        proposal.1.length().to_int64(),
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: growth.record_headers,
+        reference_slots: if next == previous {
+          0L
+        } else {
+          previous.to_int64()
+        },
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(capacity) else {
+    return Err(Managed(InsufficientCapacity))
+  }
+  match self.prepare_body_result(Some(capacity)) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      rows.reserve_capacity(next)
+      rows.push(proposal)
+      Ok(())
+    }
+  }
+}
+
+///|
+// The complete export row is still borrowed when projection starts. The
+// same construction reservation keeps both until the synchronous projection
+// returns. Its two returned Strings then move into the existing row owner.
+fn LocalNativeMockEffectImportConstruction::reserve_proposal_projection(
+  self : Self,
+  decoded : Int64,
+  projection : Int64,
+) -> Result[Unit, LocalNativeMockEffectProposalIssue] {
+  self.prepare_body_result(
+    @execution.checked_preparation_add_product(decoded, projection, 1L).bind(peak => {
+      @execution.execution_capacity(0L, peak)
+    }),
+  )
+}
+
+///|
+// The checked export can sort two growing index arrays at once. The selected
+// order remains with the finished view and its snapshot; the other array and
+// replacement buffers unwind during preparation. Existing fixed capture
+// backing continues to fund schema/column metadata and comparison controls.
+fn native_mock_effect_proposal_order_capacity(
+  rows : Int,
+) -> @execution.ExecutionCapacity? {
+  if rows < 0 {
+    return None
+  }
+  let count = rows.to_int64()
+  let slots = if rows == 0 { 0L } else { Int64::max(8L, 2L * count) }
+  guard @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 2L,
+      scalar_items: 2L * count,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(peak) &&
+    @execution.preparation_representation_cost({
+      record_headers: peak.record_headers,
+      reference_slots: peak.reference_slots,
+      scalar_words: peak.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(execution) &&
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 1L,
+      scalar_words: 2L + slots,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::prepare_proposal_export(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  result : @strategy.CapturedAnyResultBorrow,
+  limits : @infer.Limits,
+  rows : Int,
+) -> Int64? {
+  let order = native_mock_effect_proposal_order_capacity(
+    Int::min(rows, limits.output_workspace),
+  ).bind(capacity => {
+    native_mock_effect_export_schema_workspace(0).bind(workspace => {
+      @execution.add_execution_capacity(capacity, workspace)
+    })
+  })
+  if !self.prepare_body(original, order) {
+    return None
+  }
+  let port = @execution.managed_result_occurrence_port(
+    @strategy.captured_any_result_borrow_occurrence(result),
+  )
+  let approved = Ref(0)
+  let capacity = @execution.completed_export_reference_capacity(
+    @results.port_schema(port),
+    Int::min(rows, limits.output_rows),
+    limits.identity.wire.max_nodes,
+    limits.output_values,
+    count => {
+      if count > approved.val {
+        if !self.prepare_body(
+            original,
+            native_mock_effect_export_schema_workspace(count),
+          ) {
+          return false
+        }
+        approved.val = count
+      }
+      true
+    },
+  )
+  guard capacity is Some(_) && self.prepare_body(original, capacity) else {
+    return None
+  }
+  // The same schema traversal runs once more when the stream opens its
+  // reference collector. Keep its observed frame bound alongside metadata.
+  native_mock_effect_export_schema_workspace(approved.val).map(
+    @execution.execution_capacity_execution_bytes,
+  )
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::export_metadata_funding(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  schema_workspace : Int64,
+) -> (@execution.ExecutionCapacity) -> Bool {
+  capacity => {
+    self.prepare_body(
+      original,
+      @execution.checked_preparation_add_product(
+        schema_workspace,
+        @execution.execution_capacity_execution_bytes(capacity),
+        1L,
+      ).bind(workspace => @execution.execution_capacity(0L, workspace)),
+    )
+  }
+}
+
+///|
+fn native_mock_effect_open_export_metadata(
+  original : LocalCommandPreparationOriginal,
+  preparation : @execution.CompletedResultRelationExportPreparation,
+  stream : @execution.CompletedOutputExport,
+) -> Int64 raise ClientStop {
+  let capacity : Result[
+    @execution.ExecutionCapacity,
+    LocalNativeMockEffectProposalIssue,
+  ] = match
+    @execution.completed_result_export_open_metadata_capacity(
+      preparation, stream,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(Managed(InsufficientCapacity))
+  }
+  @execution.execution_capacity_execution_bytes(
+    capacity.native_effect_proposal(original),
+  )
+}
+
+///|
+// The closed writer and decoded row are gone. Keep the measured survivors on
+// the same operation before reusing the export's relative workspace.
+fn LocalNativeMockEffectImportConstruction::retain_export_metadata(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  preparation : @execution.CompletedResultRelationExportPreparation,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Unit raise ClientStop {
+  self
+  .prepare_body_result(
+    @execution.completed_result_export_retained_metadata_capacity(
+      preparation, receipt,
+    ),
+    previous_workspace_returned=true,
+  )
+  .native_effect_proposal(original)
+}
+
+///|
+// The same proof owns one growing pending array. Its funded callbacks and
+// scalar results are local to the pre-walk; the same peak also covers the
+// export's later schema test on the same projected Result schema.
+fn native_mock_effect_export_schema_workspace(
+  pending : Int,
+) -> @execution.ExecutionCapacity? {
+  @execution.preparation_array_representation(1L, pending.to_int64(), true)
+  .bind(array => {
+    @execution.preparation_representation_cost({
+      ..array,
+      record_headers: array.record_headers + 6L,
+      reference_slots: array.reference_slots + 12L,
+      scalar_words: array.scalar_words + 6L,
+    })
+  })
+  .bind(workspace => @execution.execution_capacity(0L, workspace))
+}
+
+///|
+// The drained writer still owns its earlier buffer while the current row
+// is decoded. Both the Effect member and the additional Unit Result use
+// this quote against their original capture before either constructor runs.
+fn LocalNativeMockEffectImportConstruction::export_row_funding(
+  self : Self,
+  fixed_workspace : Int64,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> (
+  (@execution.ExecutionCapacity) -> Bool,
+  (Int, Int, Int) -> Bool,
+  Ref[Int64],
+) {
+  let mut writer = 0L
+  let decoded = Ref(0L)
+  let before_emit = fn(capacity) {
+    let next = @execution.execution_capacity_execution_bytes(capacity)
+    let quote = @execution.checked_preparation_add_product(
+      fixed_workspace, next, 1L,
+    ).bind(bytes => @execution.execution_capacity(0L, bytes))
+    if !self
+      .prepare_body_result(quote)
+      .retain_mock_effect_proposal_issue(report) {
+      return false
+    }
+    writer = next
+    true
+  }
+  let before_decode = fn(bytes, nodes, depth) {
+    let capacity = @local_values.installed_effect_capture_row_decode_workspace(
+      bytes, nodes, depth,
+    )
+    guard capacity is Some(quote) &&
+      @execution.checked_preparation_add_product(fixed_workspace, writer, 1L)
+      is Some(coheld) &&
+      @execution.checked_preparation_add_product(
+        coheld,
+        @execution.execution_capacity_execution_bytes(quote),
+        1L,
+      )
+      is Some(peak) &&
+      self
+      .prepare_body_result(@execution.execution_capacity(0L, peak))
+      .retain_mock_effect_proposal_issue(report) else {
+      return false
+    }
+    decoded.val = peak
+    true
+  }
+  (before_emit, before_decode, decoded)
 }

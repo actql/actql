@@ -122,7 +122,8 @@ fn NativeLocalJournalReadQueries::access(
     read: (table_name, key) => {
       if table_name == "client_submitted_intents" ||
         table_name == "client_runs" ||
-        table_name == "client_task_run_materials" {
+        table_name == "client_task_run_materials" ||
+        table_name == effect_ledger_entry_table {
         let header = match
           self.query(() => self.database.observe_body_extent(table_name, key)) {
           Ok(Ok(value)) => value
@@ -133,6 +134,14 @@ fn NativeLocalJournalReadQueries::access(
         // either adapter or Moon copy; no larger row policy is selected.
         if table_name == "client_task_run_materials" &&
           header.body_bytes > 131072L {
+          return Err(@sqlite.BodyTooLarge)
+        }
+        if table_name == effect_ledger_entry_table &&
+          (
+            header.body_bytes <= 0L ||
+            header.body_bytes >
+            native_client_effect_ledger_limits().max_wire_bytes.to_int64()
+          ) {
           return Err(@sqlite.BodyTooLarge)
         }
         if self.prepare_submitted_copy(header.body_bytes) is Err(_) {
@@ -148,6 +157,11 @@ fn NativeLocalJournalReadQueries::access(
         Ok(value) => value
         Err(issue) => Err(issue)
       }
+    },
+    observe_scan_body_extent: (table_name, cursor) => {
+      self
+      .query(() => self.database.observe_scan_body_extent(table_name, cursor))
+      .unwrap_or(Err(@sqlite.Busy))
     },
     scan: (table_name, cursor) => {
       if table_name == "client_submitted_intents" || table_name == "client_runs" {

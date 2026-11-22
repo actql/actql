@@ -32,27 +32,40 @@ fn emit_prepared_dependency_inventory(
 }
 
 ///|
-// All closure/ref/depth rules remain exact. Public normal limits retain
-//4096/16MiB. These larger bounds describe only this actually funded group.
+// An ordinary caller keeps its selected closure and wire limits while
+// preparing the same typed bodies for issuance. The separate funded group
+// can still measure its actual envelope before selecting a larger bound.
 pub fn prepare_captured_effect_dependency_inventory(
   bodies : Array[CapturedEffectDependencyBody],
   roots : Array[CapturedEffectDependencyBody],
   max_nodes : Int,
   max_depth : Int,
   work : (Int) -> Bool,
+  bounded_limits? : CapturedEffectDependencyLimits? = None,
 ) -> Result[
   PreparedCapturedEffectDependencyInventory,
   CapturedEffectDependencyIssue,
 ] {
-  let entries = Int::max(bodies.length(), roots.length())
-  let limits : CapturedEffectDependencyLimits = {
-    max_entries: entries,
-    max_total_bytes: 2147483647,
-    max_depth: 64,
-    max_references: 65536,
+  let limits = match bounded_limits {
+    Some(original) => {
+      if !dependency_inventory_limits_valid(original) {
+        return Err(InvalidLimits)
+      }
+      original
+    }
+    None =>
+      {
+        max_entries: Int::max(bodies.length(), roots.length()),
+        max_total_bytes: 2147483647,
+        max_depth: 64,
+        max_references: 65536,
+      }
   }
   if !work(bodies.length()) || !work(roots.length()) {
     return Err(ReferenceLimit)
+  }
+  if bodies.length() > limits.max_entries || roots.length() > limits.max_entries {
+    return Err(EntryLimit)
   }
   let held = bodies.copy()
   let held_roots = roots.copy()
@@ -62,14 +75,17 @@ pub fn prepare_captured_effect_dependency_inventory(
       held_roots,
       0,
       limits,
-      prepared=true,
+      prepared=bounded_limits is None,
       work=Some(work),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let writer = @encode.work_construction_census_writer(
-    2147483647, max_nodes, max_depth, work,
+    limits.max_total_bytes,
+    max_nodes,
+    max_depth,
+    work,
   ) catch {
     _ => return Err(InvalidLimits)
   }
