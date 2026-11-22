@@ -2,10 +2,60 @@
 // Its request/Content owner keeps physical cleanup; this adapter never issues a
 // grant, substitutes a writer, closes it twice, or creates a Resource root.
 import {checked} from '../host-common/runtime-result.mjs';
-const fail = code => {throw Object.assign(new Error(code), {code});};
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowIndex,
-  operationIndex, operation, transferBytes, invoke, requestsRetired}) {
+type CoreResult = Extract<SynchronousRuntimeData, object>;
+type CoreRuntime = {
+  clientProgramInstalledEffectManagedPlanOperation(plan: unknown, memberIndex: number, perRow: boolean,
+    operationIndex: number, operation: string): CoreResult;
+  clientProgramInstalledEffectOperationExtentPhysical(extent: unknown): boolean;
+  clientProgramInstalledEffectOperationExtentTransfer(extent: unknown): bigint;
+  clientProgramInstalledEffectOperationBorrow(owner: unknown, prepared: unknown, request: unknown, plan: unknown,
+    memberIndex: number, perRow: boolean, operationIndex: number, rowIndex: number, operation: string): CoreResult;
+  clientProgramInstalledEffectOperationStart(token: unknown): CoreResult;
+  clientProgramInstalledEffectOperationCharge(token: unknown, bytes: bigint): CoreResult;
+  clientProgramInstalledEffectOwnedPhysicalOperationComplete?(token: unknown): CoreResult;
+  clientProgramInstalledEffectOperationRetire(token: unknown, cleanupConfirmed: boolean): CoreResult;
+};
+type ManagedRun = {
+  runtime: CoreRuntime;
+  value: unknown;
+  prepared: unknown;
+  request: unknown;
+  operationPlan: unknown;
+  readPlan(owner: unknown, prepared: unknown, request: unknown): CoreResult;
+  closed?: boolean;
+  failure?: unknown;
+};
+type PhysicalChild = Readonly<{status(): Readonly<{pending: boolean}>}>;
+export type InstalledEffectPhysicalOperation = Readonly<{
+  retainPhysicalChild(original: PhysicalChild): undefined;
+  chargeBytes(bytes: bigint): undefined;
+}>;
+type OwnedPhysicalOptions<Result> = {
+  run: ManagedRun;
+  memberIndex: number;
+  rowIndex: number;
+  operationIndex: number;
+  operation: string;
+  transferBytes: bigint;
+  invoke(context: InstalledEffectPhysicalOperation): Result | PromiseLike<Result>;
+  requestsRetired(): boolean;
+};
+type OwnedPhysicalChild<Result> = Readonly<{
+  prepare(): Promise<Awaited<Result>>;
+  release(): boolean;
+  retry(): boolean;
+  status(): Readonly<{pending: boolean}>;
+}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+
+export function prepareInstalledEffectOwnedPhysicalChild<Result>(
+  options: OwnedPhysicalOptions<Result>): OwnedPhysicalChild<Result>;
+export function prepareInstalledEffectOwnedPhysicalChild<Result>({run, memberIndex, rowIndex,
+  operationIndex, operation, transferBytes, invoke, requestsRetired}:
+  Omit<OwnedPhysicalOptions<Result>, 'invoke'> & {invoke?: OwnedPhysicalOptions<Result>['invoke']}) {
   if (run === undefined || typeof invoke !== 'function' || typeof requestsRetired !== 'function' ||
       typeof transferBytes !== 'bigint' || transferBytes < 0n) fail('InvalidInstalledEffectOwnedOperation');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
@@ -36,8 +86,8 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
   let token = checked(Reflect.apply(borrow, runtime,
     [parent, prepared, request, plan, memberIndex, true, operationIndex, rowIndex, operation]));
   let attempted = false, preparing = false, stopping = false, releasing = false, retired = false, started = false;
-  let child, status, accountingFailed = false;
-  const retainPhysicalChild = original => {
+  let child: PhysicalChild | undefined, status: PhysicalChild['status'] | undefined, accountingFailed = false;
+  const retainPhysicalChild = (original: PhysicalChild): undefined => {
     current();
     if (!preparing || stopping || child !== undefined || started || original === null ||
         typeof original !== 'object') fail('ForeignInstalledEffectPhysicalChild');
@@ -51,7 +101,7 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
     if (stopping) fail('InstalledEffectOperationAlreadyPrepared');
     started = true;
   };
-  const chargeBytes = bytes => {
+  const chargeBytes = (bytes: bigint): undefined => {
     current();
     if (!preparing || stopping || !started || typeof bytes !== 'bigint' || bytes < 0n) {
       fail('ForeignInstalledEffectPhysicalChild');
@@ -88,14 +138,14 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
       attempted = true; preparing = true;
       try {
         current();
-        const result = await invoke(Object.freeze({retainPhysicalChild, chargeBytes}));
+        const result = await invoke!(Object.freeze({retainPhysicalChild, chargeBytes}));
         current();
         if (!started) fail('InstalledEffectPhysicalChildUnavailable');
         if (typeof complete === 'function' && !stopping && !accountingFailed) {
           // The same writer has already performed its own close. Return only
           // ended workspace; keep its object, output and request aliases until
           // the original release path can retire the full reservation.
-          const pending = Reflect.apply(status, child, [])?.pending;
+          const pending = Reflect.apply(status!, child, [])?.pending;
           current();
           if (pending === false && !stopping && !accountingFailed) {
             checked(Reflect.apply(complete, runtime, [token]));

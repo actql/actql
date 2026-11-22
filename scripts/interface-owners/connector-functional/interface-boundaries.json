@@ -25036,7 +25036,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-owned-operation.mjs",
-      "sha256": "754ae858a011f86faf52d5f4acfcc6a59818689b023aa18ffe725ba777b9415f",
+      "sha256": "14fba9741173805d7190925cef818d832dc66a50e006958e5809249d062cca66",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",
@@ -25118,7 +25118,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "prepareInstalledEffectOwnedPhysicalChild"
               },
               {
@@ -25128,7 +25128,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "prepareInstalledEffectOwnedPhysicalChild"
               },
               {
@@ -25138,51 +25138,51 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "run.request !== request || run.operationPlan !== plan || run.readPlan !== readPlan"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "child = original; // Before any fallible observation or the first acquisition."
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "if (attempted || stopping) fail('InstalledEffectOperationAlreadyPrepared')"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "accountingFailed = true; throw error;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "if (preparing || accountingFailed || releasing) return false;"
               },
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "if (requestsRetired() !== true) return false;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "checked(Reflect.apply(charge, runtime, [token, bytes]))"
               },
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "checked(Reflect.apply(retire, runtime, [token, true]))"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.mts",
                 "anchor": "prepareInstalledEffectOwnedPhysicalChild"
               },
               {
@@ -25192,15 +25192,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mts",
                 "anchor": "test('same physical child starts once and charges chunks without a second writer or cleanup owner'"
               },
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mts",
                 "anchor": "test('original undefined failure keeps its physical child until actual cleanup and request retirement'"
               },
               {
-                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mts",
                 "anchor": "test('physical extent refusal precedes any borrow and foreign Run cannot dispatch'"
               }
             ]

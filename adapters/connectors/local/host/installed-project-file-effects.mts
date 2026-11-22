@@ -18,6 +18,7 @@ import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';
 import {prepareLocalStoredContentWrite} from '../site/root-stored-content-writer.mjs';
 import {captureLocalFileWriteConstructionProfile} from '../site/root-file-writer-profile.mjs';
 import {prepareLocalFileStorePlanRecipe} from './local-file-store-plan.mjs';
+import type {InstalledEffectPhysicalOperation} from '../../../host-node/installed-effect-owned-operation.mjs';
 
 type Data = Readonly<Record<string, unknown>>;
 type Target = ReturnType<typeof prepareLocalFileStoreTarget>;
@@ -106,9 +107,7 @@ type RecoveredContentInput = Readonly<{
 }>;
 type SendInput = Readonly<{
   member: Member; request: object; current: object; authorization: Readonly<{proof: object; useId: unknown}>;
-  signal?: AbortSignal; runOriginal: object; physicalOperation?: Readonly<{
-    chargeBytes(bytes: bigint): undefined; retainPhysicalChild(child: Write): unknown;
-  }>;
+  signal?: AbortSignal; runOriginal: object; physicalOperation?: InstalledEffectPhysicalOperation;
 }>;
 type ObserverInput = Readonly<{request: object; observation?: Readonly<{useCid: unknown; statusCode: number; body: unknown}>}>;
 type GrantInput = Readonly<{operation: string; decision: Decision; resource: string;

@@ -1,14 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
-const ok = value => ({$tag: 1, _0: value});
+import type {InstalledEffectPhysicalOperation} from './installed-effect-owned-operation.mjs';
+
+type Run = Parameters<typeof prepareInstalledEffectOwnedPhysicalChild>[0]['run'];
+type Child = Parameters<InstalledEffectPhysicalOperation['retainPhysicalChild']>[0];
+type OwnedChild = ReturnType<typeof prepareInstalledEffectOwnedPhysicalChild>;
+type Calls = (string | [string, bigint])[];
+type Invoke<Result> = (context: InstalledEffectPhysicalOperation, original: Child, calls: Calls) =>
+  Result | PromiseLike<Result>;
+
+const ok = (value?: unknown) => ({$tag: 1, _0: value});
 
 // Explicit native ports: these test original custody, not real grants or I/O.
-function fixture(invoke) {
-  const parent = {}, prepared = {}, request = {}, plan = {}, extent = {}, token = {}, calls = [];
+function fixture<Result>(invoke: Invoke<Result>) {
+  const parent = {}, prepared = {}, request = {}, plan = {}, extent = {}, token = {}, calls: Calls = [];
   let aliases = false, pending = true;
   const original = {status() {assert.strictEqual(this, original); return {pending};}};
-  const runtime = {
+  const runtime: Run['runtime'] = {
     clientProgramInstalledEffectManagedPlanOperation(selected, member, perRow, index, operation) {
       assert.strictEqual(selected, plan); assert.deepEqual([member, perRow, index, operation], [0, true, 1, 'files.write']);
       return ok(extent);
@@ -21,7 +30,7 @@ function fixture(invoke) {
     clientProgramInstalledEffectOperationCharge(selected, bytes) {assert.strictEqual(selected, token); calls.push(['charge', bytes]); return ok();},
     clientProgramInstalledEffectOperationRetire(selected, ack) {assert.strictEqual(selected, token); assert.equal(ack, true); calls.push('retire'); return ok(true);},
   };
-  const run = {runtime, value: parent, prepared, request, operationPlan: plan, readPlan: () => ok(plan)};
+  const run: Run = {runtime, value: parent, prepared, request, operationPlan: plan, readPlan: () => ok(plan)};
   const create = () => prepareInstalledEffectOwnedPhysicalChild({run, memberIndex: 0, rowIndex: 2,
     operationIndex: 1, operation: 'files.write', transferBytes: 10n,
     invoke: context => invoke(context, original, calls), requestsRetired: () => aliases});
@@ -42,11 +51,11 @@ test('same physical child starts once and charges chunks without a second writer
 });
 
 test('closed original physical work completes its workspace while request aliases still prevent retirement', async () => {
-  let f, completeCalls = 0;
+  let f: ReturnType<typeof fixture>, completeCalls = 0;
   f = fixture(async ({retainPhysicalChild}, original) => {
     retainPhysicalChild(original); await Promise.resolve(); f.close(); return 'original response';
   });
-  const complete = function(token) {
+  const complete = function(this: Run['runtime'], token: unknown) {
     assert.strictEqual(this, f.runtime); assert.equal(typeof token, 'object');
     completeCalls++; f.calls.push('complete'); return ok();
   };
@@ -63,7 +72,7 @@ test('closed original physical work completes its workspace while request aliase
 
 for (const mode of ['pending', 'invoke-failure', 'foreign-current', 'unknown-charge']) {
   test(`physical workspace completion preserves an unfinished original prefix: ${mode}`, async () => {
-    let f; const failure = new Error(mode);
+    let f: ReturnType<typeof fixture>; const failure = new Error(mode);
     f = fixture(({retainPhysicalChild, chargeBytes}, original) => {
       retainPhysicalChild(original);
       if (mode === 'unknown-charge') {
@@ -86,7 +95,7 @@ for (const mode of ['pending', 'invoke-failure', 'foreign-current', 'unknown-cha
 }
 
 test('physical workspace completion retains its original failure and cannot be repeated by cleanup', async () => {
-  let f; const failure = new Error('Original completion refusal'); let completions = 0;
+  let f: ReturnType<typeof fixture>; const failure = new Error('Original completion refusal'); let completions = 0;
   f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); f.close(); return 'response';});
   f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => {completions++; throw failure;};
   const child = f.create();
@@ -97,7 +106,7 @@ test('physical workspace completion retains its original failure and cannot be r
 });
 
 test('a reentrant original status cannot complete workspace after retirement has begun', async () => {
-  let f, child;
+  let f: ReturnType<typeof fixture>, child: OwnedChild;
   f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); f.close(); return 'response';});
   f.original.status = function() {assert.strictEqual(this, f.original); assert.equal(child.release(), false); return {pending: false};};
   f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => assert.fail('completion after close reentry');
@@ -117,17 +126,18 @@ test('original undefined failure keeps its physical child until actual cleanup a
 });
 
 test('same physical operation retains in-flight task and refuses a second child or unstarted charge', async () => {
-  let release;
-  const wait = new Promise(resolve => {release = resolve;});
+  let release: () => void;
+  const wait = new Promise<void>(resolve => {release = resolve;});
   const f = fixture(async ({retainPhysicalChild, chargeBytes}, original) => {
     assert.throws(() => chargeBytes(1n), {code: 'ForeignInstalledEffectPhysicalChild'});
     retainPhysicalChild(original);
+    // @ts-expect-error The second child is deliberately missing a status method.
     assert.throws(() => retainPhysicalChild({}), {code: 'ForeignInstalledEffectPhysicalChild'});
     await wait; return 'done';
   });
   const child = f.create(), flight = child.prepare();
   f.close(); f.retireAliases(); assert.equal(child.release(), false);
-  release(); assert.equal(await flight, 'done'); assert.equal(child.retry(), true);
+  release!(); assert.equal(await flight, 'done'); assert.equal(child.retry(), true);
 });
 
 test('physical extent refusal precedes any borrow and foreign Run cannot dispatch', async () => {
@@ -141,7 +151,7 @@ test('physical extent refusal precedes any borrow and foreign Run cannot dispatc
 });
 
 test('physical child method observation cannot reenter close and then start I/O', async () => {
-  let child, f;
+  let child: OwnedChild, f: ReturnType<typeof fixture>;
   f = fixture(({retainPhysicalChild}, original) => {
     const status = original.status;
     Object.defineProperty(original, 'status', {get() {assert.equal(child.release(), false); return status;}});
@@ -158,7 +168,7 @@ test('successful charge keeps an undefined current refusal separate from origina
     calls.push('must not write after current refusal');
   });
   const charge = f.runtime.clientProgramInstalledEffectOperationCharge;
-  f.runtime.clientProgramInstalledEffectOperationCharge = function (...args) {
+  f.runtime.clientProgramInstalledEffectOperationCharge = function (this: Run['runtime'], ...args) {
     const result = Reflect.apply(charge, this, args);
     f.run.failure = undefined;
     return result;
