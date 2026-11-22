@@ -32,6 +32,20 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (caseId === 'registered-mixed') {
+    assert.equal(value.registeredSdk, true); assert.equal(value.projectCredential, true);
+    assert.deepEqual(value.mixedProviders, ['models/http', 'models/messages']);
+    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+    if (phase === 'cold') {
+      assert.notEqual(pid, originalPid);
+      for (const field of ['calls', 'egressChecks', 'projectTlsConnects', 'originalModelStarts']) assert.equal(value[field], 0);
+      assert.equal(value.originalSavedFirst, true); assert.deepEqual(value.dispatchedProviders, []);
+    } else {
+      for (const field of ['calls', 'tasks', 'requests', 'projectTlsConnects', 'originalModelStarts']) assert.equal(value[field], 2);
+      assert.deepEqual(value.dispatchedProviders, value.mixedProviders);
+    }
+    return;
+  }
   const registered = ['registered-project', 'registered-anthropic', 'registered-google'].includes(caseId);
   const project = caseId === 'project-key' || registered;
   if (caseId === 'usage-reported' || project) {
@@ -103,7 +117,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
     ['registered-project', 'cold'], ['registered-anthropic', 'cold'], ['registered-google', 'cold'],
-    ['registered-too-late'], ['registered-invalid'],
+    ['registered-mixed', 'cold'], ['registered-too-late'], ['registered-invalid'],
     ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
@@ -136,7 +150,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
         join(prepared.consumer, 'normal-provider-diagnostics.fixture.mjs'));
       await copyFile(join(repository, 'adapters/host-node/fixtures/work-observation.fixture.mjs'),
         join(prepared.consumer, 'work-observation.fixture.mjs'));
-      let originalPid;
+      let originalPid, originalRunDefinitionCid;
       for (const phase of phases) {
         const record = report.phases.find(value => value.case === id && value.phase === phase);
         record.status = 'running'; delete record.reason;
@@ -146,6 +160,10 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
           const value = JSON.parse(actual.stdout.trim());
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
+          if (id === 'registered-mixed') {
+            if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
+            else originalRunDefinitionCid = value.originalRunDefinitionCid;
+          }
           if (phase !== 'cold') originalPid = actual.pid;
           record.status = 'passed';
         } catch (failure) {

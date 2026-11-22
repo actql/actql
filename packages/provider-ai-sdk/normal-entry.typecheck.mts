@@ -1,4 +1,5 @@
-import {createOpenAIChatProvider, createProjectOpenAIChatProvider, type OpenAIChatProviderOptions,
+import {createOpenAIChatProvider, createProjectOpenAIChatProvider, createRegisteredSdkProviders,
+  type OpenAIChatProviderOptions, type RegisteredSdkProviderOptions,
   type ProjectOpenAIChatProviderOptions,
   type ConfiguredModelProviderRegistration, type ModelProviderRegistration} from './index.js';
 import type {HostInstallation} from '../local-node/index.js';
@@ -63,3 +64,9 @@ import {createInstalledUndiciOpenAIChatRegistration, type UndiciOpenAIChatRegist
 declare const legacyOriginals: UndiciOpenAIChatRegistrationOptions;
 // @ts-expect-error Public low-level originals cannot carry an unbound normal configuration override.
 createInstalledUndiciOpenAIChatRegistration({...legacyOriginals, transportTimeouts: {connectMs: 1, headersMs: 1, bodyMs: 1}});
+
+declare const registeredOptions: readonly RegisteredSdkProviderOptions[];
+const registeredProviders: HostInstallation['registerModelProviders'] = createRegisteredSdkProviders(registeredOptions);
+void registeredProviders;
+// @ts-expect-error Registered option lists do not choose transport or credentials.
+createRegisteredSdkProviders([{...registeredOptions[0], apiKeyFile: './key'}]);
