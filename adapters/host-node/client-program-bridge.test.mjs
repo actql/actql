@@ -272,7 +272,7 @@ test('checked acquired source and downstream task emit their input ports',
     environmentBody.connector_capabilities = [{...sourceSelector,
       capability_contract_cids: [
         machineCid(JSON.parse(evidenceContract)),
-        machineCid(JSON.parse(twoReceiptContract))],
+        machineCid(JSON.parse(twoReceiptContract))].sort(),
     }];
     delete environmentBody.evidence_bundle_cid;
     environmentBody.evidence_bundle_cid = machineCid(environmentBody);
