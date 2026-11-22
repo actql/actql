@@ -81058,7 +81058,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model-defaults.mts",
                 "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
               },
               {
@@ -81114,7 +81114,7 @@
                 "anchor": "spent = true;"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model-defaults.mts",
                 "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               },
               {
@@ -81138,7 +81138,7 @@
                 "anchor": "inventory. Candidate and installed views may overlap; their aliases and the"
               },
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model-defaults.mts",
                 "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
               },
               {

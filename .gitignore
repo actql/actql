@@ -2204,3 +2204,5 @@ target/
 /adapters/host-node/model-checkpoint-metadata.test.d.mts
 /adapters/host-node/infer-physical-observation.test.mjs
 /adapters/host-node/infer-physical-observation.test.d.mts
+/adapters/host-node/installed-model-defaults.mjs
+/adapters/host-node/installed-model-defaults.d.mts
