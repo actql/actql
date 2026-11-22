@@ -21,6 +21,30 @@ pub fn[E] inspect_client_cancellation_journal_inventory(
   ],
   custody_lost : E,
 ) -> Result[(Int, Int64), E] {
+  inspect_client_cancellation_journal_inventory_with_run_identity(
+    max_records,
+    scan,
+    read,
+    (row, _, _) => validate_run(row),
+    custody_lost,
+  )
+}
+
+///|
+/// Forward the admitted identity DATA from this cancellation to its fresh
+/// Run validator. A validator may reuse only matching canonical input and
+/// must still perform its remaining checks on the actual Run row.
+pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (
+    ClientJournalPhysicalRow,
+    ClientRequestIdentity,
+    @publication.PublicationContract,
+  ) -> Result[ClientCancellationRunJournalInspection, E],
+  custody_lost : E,
+) -> Result[(Int, Int64), E] {
   let marker = match read("client_cancel_custody", "issued") {
     Ok(Some(value)) if value.key == "issued" => value
     Err(issue) => return Err(issue)
@@ -77,7 +101,7 @@ pub fn[E] inspect_client_cancellation_journal_inventory(
       Err(issue) => return Err(issue)
       _ => return Err(custody_lost)
     }
-    let run = match validate_run(run_row) {
+    let run = match validate_run(run_row, value.request, value.definition) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }

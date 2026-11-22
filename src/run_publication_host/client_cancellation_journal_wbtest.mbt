@@ -224,3 +224,44 @@ test "nonempty cancellation census propagates physical and full Run validator fa
     Err("validator"),
   )
 }
+
+///|
+test "cancellation census reuses exact nested Run identities after observing the witness" {
+  let rows = cancellation_journal_rows()
+  let nested_decodes = Ref(0)
+  let inspect = witness_available => {
+    inspect_client_cancellation_journal_inventory_with_run_identity(
+      1024,
+      (table, cursor) => inventory_scan(rows, table, cursor),
+      (table, key) => {
+        if !witness_available && table == "client_cancel_originals" {
+          Err("physical")
+        } else {
+          inventory_read(rows, table, key)
+        }
+      },
+      (row, request, definition) => {
+        nested_decodes.val += 1
+        let (run, _, _) = decode_client_run_journal_row_with_retained_identity(
+          row.body,
+          request,
+          definition,
+        ).unwrap()
+        if !physical_equal(run.request, request) ||
+          !physical_equal(run.definition, definition) {
+          return Err("rebuilt identity")
+        }
+        Ok({
+          request: run.request,
+          definition: run.definition,
+          cancellation_requested: run.cancellation_requested,
+        })
+      },
+      "custody",
+    )
+  }
+  assert_eq(inspect(false), Err("physical"))
+  assert_eq(nested_decodes.val, 0)
+  assert_eq(inspect(true), Ok((1, 1L)))
+  assert_eq(nested_decodes.val, 1)
+}
