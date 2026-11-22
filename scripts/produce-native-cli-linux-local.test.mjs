@@ -19,6 +19,21 @@ const args = ['--source', sourceSha, '--package-version', '0.1.2-rc.3', '--outpu
   '--clang', '/tools/clang-19', '--sqlite-archive', '/inputs/sqlite.zip',
   '--openssl-package-archive', '/inputs/libssl-dev.deb', '--openssl-package-archive', '/inputs/libssl3t64.deb'];
 
+test('Linux producer passes a selected Remote HTTP receipt only to the existing recipe command', () => {
+  const remoteHttpPreparation = '/inputs/remote-http/preparation.json';
+  const selection = ['--remote-http-preparation', remoteHttpPreparation];
+  const selected = parseNativeLinuxLocalArguments([...args, ...selection]);
+  assert.equal(selected.remoteHttpPreparation, remoteHttpPreparation);
+  const baseline = planNativeLinuxLocalProduction(options, context);
+  const remote = planNativeLinuxLocalProduction(selected, context);
+  assert.deepEqual(remote.commands.filter(step => step.phase !== 'recipe'),
+    baseline.commands.filter(step => step.phase !== 'recipe'));
+  assert.deepEqual(remote.commands.find(step => step.phase === 'recipe').args.slice(-2), selection);
+  for (const invalid of ['relative/preparation.json', '/output/new/preparation.json', options.sqliteArchive]) {
+    assert.throws(() => planNativeLinuxLocalProduction({...selected, remoteHttpPreparation: invalid}, context));
+  }
+});
+
 test('the independently expected command sequence always produces Linux Local with an explicit version', () => {
   const plan = planNativeLinuxLocalProduction(options, context);
   assert.deepEqual(plan.commands, [

@@ -15,6 +15,27 @@ const systems = {
   'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
 };
+// This optional image contains a private static TLS closure. Only
+// exact OS dependencies are admitted for this role, including at staging.
+const remoteHttpSystems = {
+  'darwin-arm64': new Set([
+    ...systems['darwin-arm64'],
+    '/System/Library/Frameworks/LDAP.framework/Versions/A/LDAP',
+    '/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation',
+    '/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices',
+    '/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration',
+  ]),
+  'linux-x64-gnu': new Set([...systems['linux-x64-gnu'], 'libz.so.1', 'libgcc_s.so.1']),
+};
+export function nativeRemoteHttpLibraryName(platform) {
+  assert(remoteHttpSystems[platform]);
+  return platform === 'darwin-arm64' ? 'libcurl.4.dylib' : 'libcurl.so.4';
+}
+
+export function nativeRemoteHttpSystemDependency(platform, name) {
+  return remoteHttpSystems[platform]?.has(name) === true;
+}
+
 export const localRuntimeHash = bytes => createHash('sha256').update(bytes).digest('hex');
 const exact = (value, keys) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
@@ -77,7 +98,10 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
     exact(item.abi, [minimum]);
     assert.equal(typeof item.abi[minimum], 'string');
     assert.match(item.abi[minimum], /^\d+\.\d+(?:\.\d+)?$/u);
-    assert(['sqlite', 'crypto', 'dependency'].includes(item.role));
+    assert(['sqlite', 'crypto', 'dependency', 'remote-http'].includes(item.role));
+    if (item.role === 'remote-http') {
+      assert.equal(item.path, `lib/${nativeRemoteHttpLibraryName(platform)}`);
+    }
     if (item.role !== 'dependency') {
       assert(!libraryRoles.has(item.role)); libraryRoles.add(item.role);
     }
@@ -88,10 +112,15 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
     libraryNames.add(item.path.slice(4));
   }
   assert(libraryRoles.has('sqlite') && libraryRoles.has('crypto'));
+  if (libraryRoles.has('remote-http')) libraryNames.delete(nativeRemoteHttpLibraryName(platform));
   for (const item of value.libraries) for (const dependency of item.dependencies) {
     // Only explicit bundled names or the selected platform's finite OS ABI.
     // Homebrew paths, search directories and an ambient loader fallback fail.
-    assert(libraryNames.has(dependency) || systems[platform].has(dependency));
+    if (item.role === 'remote-http') {
+      assert(nativeRemoteHttpSystemDependency(platform, dependency));
+    } else {
+      assert(libraryNames.has(dependency) || systems[platform].has(dependency));
+    }
   }
   for (const item of value.assets) {
     exact(item, ['role', 'path', 'bytes', 'sha256']);
