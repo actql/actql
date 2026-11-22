@@ -111,6 +111,8 @@ test "registered time-series provider emits a bounded UTC grid" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("time-series provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("time-series provider failed")
+      @local_connector.AwaitIo(..) =>
+        fail("synchronous provider attempted physical I/O")
       @local_connector.Waiting(..) =>
         fail("synchronous provider unexpectedly waited")
       @local_connector.Settling(_, ..) =>

@@ -649,6 +649,28 @@ pub fn client_program_composed_infer_local_provider(
 }
 
 ///|
+#export_name("clientProgramComposedInferLocalProviderWithIo")
+pub fn client_program_composed_infer_local_provider_with_io(
+  occurrence : @publication_host.ClientInferOccurrence,
+  open : (Array[@local.ManagedProviderInput]) -> @infer_host.Execution?,
+  observe_issue : (@infer_host.Issue) -> Unit,
+  retain_completed : (@infer_host.Execution) -> Bool,
+  allow_cleanup : (@infer_host.Execution) -> Bool,
+  input_prefix : @execution.GeneratedSequence?,
+) -> @local.ManagedProvider {
+  client_infer_local_provider(
+    occurrence,
+    open,
+    observe_issue,
+    retain_completed,
+    allow_cleanup,
+    false,
+    input_prefix~,
+    host_await_io=true,
+  )
+}
+
+///|
 #export_name("clientProgramGeneratedInferLocalProvider")
 pub fn client_program_generated_infer_local_provider(
   occurrence : @publication_host.ClientInferOccurrence,
@@ -671,6 +693,7 @@ fn client_infer_local_provider(
   allow_cleanup : (@infer_host.Execution) -> Bool,
   boundary_only : Bool,
   input_prefix? : @execution.GeneratedSequence? = None,
+  host_await_io? : Bool = false,
 ) -> @local.ManagedProvider {
   @infer_host.composed_local_provider(
     occurrence,
@@ -689,6 +712,7 @@ fn client_infer_local_provider(
     allow_cleanup~,
     boundary_only~,
     input_prefix~,
+    host_await_io~,
   )
 }
 

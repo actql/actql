@@ -763,6 +763,8 @@ pub fn client_program_serialization_prefix_advance(
       Continue(progress~, work~)
       | Waiting(progress~, work~)
       | Settling(_, progress~, work~) => (None, progress, work, false, None)
+      AwaitIo(progress~, work~) =>
+        (None, progress, work, true, Some(@connector.ComputeUnsupported))
       Failed(issue, progress~, work~) =>
         (None, progress, work, true, Some(issue))
       Stopped(progress~, work~) => (None, progress, work, true, None)

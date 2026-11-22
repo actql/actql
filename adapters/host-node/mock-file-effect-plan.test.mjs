@@ -119,11 +119,18 @@ function targetFixture({pending = false, prepareFailure} = {}) {
   const method = declaration.init.arguments[0].properties.find(node => node.key.name === 'observeTargets');
   const retire = driver.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retireChild');
   const f = ownedFixture(), member = {}, selected = {}, request = {}, runOriginal = {}, events = [];
+  const target = {}, record = {target: 'same-target'};
   let child, managed, originalChild, closed = false, constructorCalls = 0;
-  const ports = {memberCurrent: actual => assert.strictEqual(actual, member),
-    description: actual => assert.strictEqual(actual, selected), runCurrent: actual => assert.strictEqual(actual, runOriginal),
-    own: actual => {assert.strictEqual(actual, request); return {record: {target: 'same-target'}};},
-    consume: () => ({}), admit: () => ({}), observe: () => ({versionCid: 'same-version', before: {id: 'same-target'}, beforeWire: '{"id":"same-target"}'}),
+  const ports = {memberCurrent: actual => {assert.strictEqual(actual, member); return target;},
+    targetForRecord: actual => {assert.strictEqual(actual, record); return target;},
+    description(actual, run, observedTarget) {
+      assert.strictEqual(actual, selected); assert.strictEqual(run, runOriginal);
+      assert.strictEqual(observedTarget, target);
+    },
+    runCurrent: actual => assert.strictEqual(actual, runOriginal),
+    own: actual => {assert.strictEqual(actual, request); return {record};},
+    consume: () => ({}), admit(bytes, actual) {assert.strictEqual(actual, target); return {};},
+    observe: () => ({versionCid: 'same-version', before: {id: 'same-target'}, beforeWire: '{"id":"same-target"}'}),
     wire: JSON.stringify,
     fail: code => {throw Object.assign(new Error(code), {code});},
     file: {readChild(options) {

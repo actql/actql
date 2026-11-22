@@ -27,12 +27,17 @@ fn physical_write_recipe_fixture(
 }
 
 ///|
-test "file request workspace composes only into its same request role" {
+test "file row keeps its original request peak without a duplicate Preview envelope" {
   let physical = @execution.execution_capacity(10L, 20L).unwrap()
   let request = @execution.execution_capacity(17L, 29L).unwrap()
   let old = physical_write_recipe_fixture(physical).unwrap()
   let combined = physical_write_recipe_fixture(
     physical,
+    request_construction=Some(request),
+  ).unwrap()
+  let narrow_preview = physical_write_recipe_fixture(
+    physical,
+    preview=10000,
     request_construction=Some(request),
   ).unwrap()
   for index in [0, 1, 3, 4, 5] {
@@ -49,9 +54,19 @@ test "file request workspace composes only into its same request role" {
     @execution.execution_capacity_retained_bytes(combined[2]),
     @execution.execution_capacity_retained_bytes(old[2]) + 17L,
   )
+  let row = local_file_store_json_capacity(100000, 10000, 16).unwrap()
+  let exact = standard_create_sequence_pair_capacity(row, row).unwrap()
   assert_eq(
     @execution.execution_capacity_execution_bytes(combined[2]),
-    @execution.execution_capacity_execution_bytes(old[2]) + 29L,
+    @execution.execution_capacity_execution_bytes(exact) + 29L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(narrow_preview[2]),
+    @execution.execution_capacity_execution_bytes(combined[2]),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(narrow_preview[0]) <
+    @execution.execution_capacity_retained_bytes(combined[0]),
   )
 }
 

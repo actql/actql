@@ -112112,7 +112112,8 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities"
           ],
           "exports": [],
           "attributes": {
@@ -114889,6 +114890,13 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
           "parameters": [
             "prepared",
@@ -116086,7 +116094,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ffc40a1c5f06470b219dca2fd2b596a0bed1551198e7fda87e08490a01a47111"
+      "sha256": "2d6f28b3c53bca427be9d220fd551fe4e6701af319a227d3a96ce1be51811070"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -117994,7 +118002,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a5d5b077c831f7c5af1d3e8f7e1f67ec2362d04aff33ee794977d11aed40e224",
+      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",

@@ -790,7 +790,9 @@ pub fn advance_client_infer_input(
         active.stopped = true
         Ok(Stopped(work=active.work))
       }
-      @local.Waiting(work~, ..) | @local.Settling(_, work~, ..) => {
+      @local.AwaitIo(work~, ..)
+      | @local.Waiting(work~, ..)
+      | @local.Settling(_, work~, ..) => {
         // The checked Compute-only prefix cannot own a Model call. Reject an
         // unexpected pause without pretending its physical owner has stopped.
         active.work += work

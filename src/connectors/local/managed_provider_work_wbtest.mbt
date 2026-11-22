@@ -179,8 +179,9 @@ test "provider pauses preserve zero-work custody without admitting Continue" {
       }
       next.val += 1
       match next.val {
-        1 => Ok(managed_provider_waiting(0L, 0L))
-        2 => Ok(managed_provider_settling(3, 1L, 1L))
+        1 => Ok(managed_provider_await_io(0L, 0L))
+        2 => Ok(managed_provider_waiting(0L, 0L))
+        3 => Ok(managed_provider_settling(3, 1L, 1L))
         _ => Ok(managed_provider_settling(3, 0L, 0L))
       }
     },
@@ -191,9 +192,10 @@ test "provider pauses preserve zero-work custody without admitting Continue" {
     fn() { stopped.val },
     fn() { Ok(stopped.val) },
   )
-  assert_true(advance_managed_provider(owner, 1).unwrap() is Waiting(..))
+  assert_true(advance_managed_provider(owner, 1).unwrap() is AwaitIo(..))
   assert_eq(managed_provider_cumulative_work(owner), Ok(0L))
   assert_false(cleanup_managed_provider(owner).unwrap())
+  assert_true(advance_managed_provider(owner, 1).unwrap() is Waiting(..))
   assert_true(advance_managed_provider(owner, 1).unwrap() is Settling(3, ..))
   assert_eq(managed_provider_cumulative_work(owner), Ok(1L))
   assert_true(advance_managed_provider(owner, 1).unwrap() is Settling(3, ..))
