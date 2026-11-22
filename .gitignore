@@ -1920,3 +1920,7 @@ target/
 /adapters/host-node/managed-identity-policy.d.mts
 /adapters/host-node/managed-identity-policy.test.mjs
 /adapters/host-node/managed-identity-policy.test.d.mts
+/adapters/host-node/effect-run-completion.mjs
+/adapters/host-node/effect-run-completion.d.mts
+/adapters/host-node/effect-run-recovery.mjs
+/adapters/host-node/effect-run-recovery.d.mts

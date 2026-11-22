@@ -46649,8 +46649,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46663,8 +46663,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -46677,7 +46677,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "// but cannot substitute a Set Receipt or decide that unknown rows succeeded."
               },
               {
@@ -46691,7 +46691,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from"
               },
               {
@@ -46705,8 +46705,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "const issuedSet = await issueAuthorizedEffectSetReceipt({"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "const issuedSet: IssuedSet = await issueAuthorizedEffectSetReceipt({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46719,7 +46719,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "throw Object.assign(new Error('InvalidCapturedEffectRunCompletion'), {"
               },
               {
@@ -46733,8 +46733,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "async function issueAndPublish({apply, receipt, publication, signal},"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "async function issueAndPublish({apply, receipt, publication, signal}: CompletionOptions,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46747,7 +46747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "receipt.members.length === 0 ||"
               },
               {
@@ -46761,8 +46761,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46793,8 +46793,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46807,8 +46807,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -46821,7 +46821,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "// but cannot substitute a Set Receipt or decide that unknown rows succeeded."
               },
               {
@@ -46835,7 +46835,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from"
               },
               {
@@ -46849,8 +46849,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "const issuedSet = await issueAuthorizedEffectSetReceipt({"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "const issuedSet: IssuedSet = await issueAuthorizedEffectSetReceipt({"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -46863,7 +46863,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "throw Object.assign(new Error('InvalidCapturedEffectRunCompletion'), {"
               },
               {
@@ -46877,8 +46877,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "async function issueAndPublish({apply, receipt, publication, signal},"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "async function issueAndPublish({apply, receipt, publication, signal}: CompletionOptions,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -46891,7 +46891,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
+                "path": "adapters/host-node/effect-run-completion.mts",
                 "anchor": "receipt.members.length === 0 ||"
               },
               {
@@ -46905,8 +46905,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-completion.mjs",
-                "anchor": "export function completeInterruptedEffectRun(options, recovered) {"
+                "path": "adapters/host-node/effect-run-completion.mts",
+                "anchor": "export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -47035,8 +47035,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "export const isEffectCaptureRecoveryRefusal = error =>"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "export const isEffectCaptureRecoveryRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -47049,8 +47049,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "export const isEffectCaptureRecoveryRefusal = error =>"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "export const isEffectCaptureRecoveryRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -47063,8 +47063,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' &&"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -47077,7 +47077,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "const retained = lookup(ownedKey, moon, control);"
               },
               {
@@ -47091,7 +47091,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "if (await authorizeEvidenceRead(binding) !== true) {"
               },
               {
@@ -47105,7 +47105,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "import {PublicationStoreError} from '../store-local/publication-store.mjs';"
               },
               {
@@ -47119,7 +47119,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "signal,"
               },
               {
@@ -47133,8 +47133,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 &&"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -47147,7 +47147,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "// Installed Host recovery only reopens an accepted request and its captured"
               },
               {
@@ -47181,7 +47181,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47191,7 +47191,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47211,7 +47211,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47221,7 +47221,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47231,7 +47231,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47241,7 +47241,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47251,7 +47251,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47261,7 +47261,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "export async function recoverAdmittedEffectRun({"
               },
               {
@@ -47289,8 +47289,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "export const isEffectCaptureRecoveryRefusal = error =>"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "export const isEffectCaptureRecoveryRefusal = (error: unknown) =>"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -47303,8 +47303,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "export const isEffectCaptureRecoveryRefusal = error =>"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "export const isEffectCaptureRecoveryRefusal = (error: unknown) =>"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -47317,8 +47317,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "const cid = value => typeof value === 'string' &&"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "const cid = (value: unknown): value is string => typeof value === 'string' &&"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -47331,7 +47331,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "const retained = lookup(ownedKey, moon, control);"
               },
               {
@@ -47345,7 +47345,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "if (await authorizeEvidenceRead(binding) !== true) {"
               },
               {
@@ -47359,7 +47359,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "import {PublicationStoreError} from '../store-local/publication-store.mjs';"
               },
               {
@@ -47373,7 +47373,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "signal,"
               },
               {
@@ -47387,8 +47387,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
-                "anchor": "const text = value => typeof value === 'string' && value.length > 0 &&"
+                "path": "adapters/host-node/effect-run-recovery.mts",
+                "anchor": "const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -47401,7 +47401,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-recovery.mjs",
+                "path": "adapters/host-node/effect-run-recovery.mts",
                 "anchor": "// Installed Host recovery only reopens an accepted request and its captured"
               },
               {

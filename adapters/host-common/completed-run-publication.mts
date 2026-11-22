@@ -17,6 +17,7 @@ type FreePublication = Parameters<typeof publishEffectFreeRun>[0];
 type EffectPublication = Parameters<typeof publishEffectfulRun>[0];
 type Evidence = FreePublication['evidence'];
 type Contract = Evidence['runDefinition'];
+type ContractInput = Pick<Contract, 'name' | 'identity' | 'wire'>;
 type Limits = FreePublication['limits'];
 type Preview = EffectPublication['preview'];
 type Physical = Readonly<{cid: string; bytes: number}>;
@@ -170,9 +171,9 @@ type CaptureInputs = Readonly<{
 type CompletedFreeOptions = Omit<ResultOptions, 'store' | 'control'> & CaptureInputs &
   Pick<FreePublication, 'request' | 'attempt' | 'now' | 'signal'> &
   Readonly<{store: FreePublication['store']; control: FreeControl}>;
-type RecoveryOptions = Readonly<{store: CaptureStore; control: CaptureControl; runDefinition: Contract; contractLimits: Limits}>;
+type RecoveryOptions = Readonly<{store: CaptureStore; control: CaptureControl; runDefinition: ContractInput; contractLimits: Limits}>;
 type EffectCaptureOptions = RecoveryOptions & CaptureInputs & Readonly<{
-  execution: Execution; storedResults: StoredResults<LiveResult>; invocation: Contract;
+  runDefinition: Contract; execution: Execution; storedResults: StoredResults<LiveResult>; invocation: Contract;
   preview: Preview; plans: readonly Contract[]; effectSourceHoldings: readonly SourceHolding[];
   connectorRecovery: readonly ConnectorRecovery[]; signal?: AbortSignal;
 }>;
@@ -257,7 +258,7 @@ const member = (value: unknown, name: string): unknown => {
 const contract = (value: unknown) => value !== null && typeof value === 'object' &&
   typeof (value as Contract).name === 'string' && typeof (value as Contract).identity === 'string' &&
   typeof (value as Contract).wire === 'string';
-const ownContract = (control: AdmitControl, value: Contract, limits: Limits,
+const ownContract = (control: AdmitControl, value: ContractInput, limits: Limits,
   code = 'InvalidCompletedRunPublicationContract') => {
   const admitted = control.admit(value.name, value.wire, limits);
   if (admitted.identity !== value.identity) {

@@ -1,13 +1,67 @@
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from
+  // @ts-expect-error The existing Effect apply owner is still authored in JavaScript.
   './effect-run-apply.mjs';
 import {issueAuthorizedEffectSetReceipt} from
+  // @ts-expect-error The existing receipt issuer is still authored in JavaScript.
   './effect-response-recovery.mjs';
 import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from
   '../host-common/completed-run-publication.mjs';
+// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issuedEffectSetReceiptWires} from '../host-common/effect-receipt-custody.mjs';
+import type {retainIssuedEffectSetReceipt} from '../host-common/effect-receipt-custody.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-const fail = () => {
+type Published = Parameters<typeof publishCompletedEffectfulRun>[0];
+type IssuedSet = ReturnType<typeof retainIssuedEffectSetReceipt>;
+type Ledger = Readonly<{currentAdmitted(locator: string): unknown}>;
+type ApplyRuntime = Readonly<{
+  clientProgramEffectApplySubjectCid(capturedInputs: unknown): unknown;
+  strategyEffectPreviewSemanticCid(preview: unknown): unknown;
+}>;
+type ApplicationControl = Readonly<{
+  logicalItemLocatorCid(locator: unknown): string;
+  ledgerEntryStateCode(entry: unknown): number;
+}>;
+type DispatchInputs = Readonly<{
+  memberIndex: number; rowIndex: number; claim: unknown;
+  currentPreflight: unknown;
+}>;
+type DispatchFacts = Readonly<{
+  members: readonly unknown[]; subjectCid: string;
+  signal: AbortSignal | undefined; decisions: readonly unknown[];
+}>;
+type DispatchRow = (row: DispatchInputs) => unknown;
+type Apply = Readonly<{
+  moon: ApplyRuntime; ledger: Ledger; capturedInputs?: unknown;
+  members?: readonly unknown[]; store?: unknown; publicationControl?: unknown;
+  computation?: unknown; preview?: unknown;
+  dispatchRow?: DispatchRow; bindDispatch?(facts: DispatchFacts): DispatchRow | undefined;
+}> & Readonly<Record<string, unknown>>;
+type Receipt = Readonly<{
+  commonMoon: unknown; ledger: unknown; preview: unknown; publicationPreview: unknown;
+  authorizeEvidenceRead: (...args: never[]) => unknown; providerBinding?: unknown;
+  members: readonly Readonly<{replayed: boolean; rowOwners: readonly Readonly<{
+    claim: Readonly<{locator: unknown}>;
+  }>[]}>[];
+  limits: Published['contractLimits'];
+}>;
+type Publication = Omit<Published, 'ledger' | 'issuedSet' | 'signal' | 'control'> & Readonly<{
+  ledger: unknown; control: Published['control'] & Readonly<{
+    effectComputationPreviewSemanticCid(preview: unknown): unknown;
+    effectSetReceiptRunDisposition(preview: Published['preview'],
+      wires: ReturnType<typeof issuedEffectSetReceiptWires>, limits: Published['contractLimits']): number;
+  }>;
+}>;
+type CompletionOptions = Readonly<{
+  apply: Apply; receipt: Receipt; publication: Publication; signal?: AbortSignal;
+  beforeDispatch?: () => SynchronousRuntimeData;
+}>;
+type Progress = Readonly<{status?: string; dispatched: number}> & Readonly<Record<string, unknown>>;
+type ThenField = Readonly<{then?: unknown}>;
+type EffectFailure = Readonly<{code?: unknown}>;
+
+const fail: () => never = () => {
   throw Object.assign(new Error('InvalidCapturedEffectRunCompletion'), {
     code: 'InvalidCapturedEffectRunCompletion',
   });
@@ -16,7 +70,7 @@ const fail = () => {
 // The Host owns the ordering of common apply, durable outcome admission and
 // publication. A provider may supply physical dispatch and current observation,
 // but cannot substitute a Set Receipt or decide that unknown rows succeeded.
-function validateCompletion({apply, receipt, publication, beforeDispatch}, recovered) {
+function validateCompletion({apply, receipt, publication, beforeDispatch}: CompletionOptions, recovered: boolean) {
   if (!apply || !receipt || !publication ||
       apply.moon !== receipt.commonMoon ||
       apply.ledger !== receipt.ledger ||
@@ -42,12 +96,12 @@ function validateCompletion({apply, receipt, publication, beforeDispatch}, recov
       receiptCid !== publicationCid) fail();
 }
 
-async function issueAndPublish({apply, receipt, publication, signal},
-  progress) {
+async function issueAndPublish({apply, receipt, publication, signal}: CompletionOptions,
+  progress: Progress) {
   if (progress.status === 'waiting') {
     return Object.freeze({status: 'waiting', progress});
   }
-  const issuedSet = await issueAuthorizedEffectSetReceipt({
+  const issuedSet: IssuedSet = await issueAuthorizedEffectSetReceipt({
     ...receipt,
     ledger: apply.ledger,
     commonMoon: apply.moon,
@@ -60,18 +114,18 @@ async function issueAndPublish({apply, receipt, publication, signal},
     return Object.freeze({status: 'published', progress, issuedSet,
       completed});
   } catch (error) {
-    if (error?.code === 'EffectfulRunNeedsReconciliation') {
+    if ((error as EffectFailure | null | undefined)?.code === 'EffectfulRunNeedsReconciliation') {
       return Object.freeze({status: 'needs_reconciliation', progress,
         issuedSet});
     }
-    if (error?.code === 'EffectfulRunFailed') {
+    if ((error as EffectFailure | null | undefined)?.code === 'EffectfulRunFailed') {
       return Object.freeze({status: 'failed', progress, issuedSet});
     }
     throw error;
   }
 }
 
-async function complete(options, recovered) {
+async function complete(options: CompletionOptions, recovered: boolean) {
   // Own the invocation wrapper before the first await; opaque checked owners
   // keep their references, while the caller cannot replace the custody target
   // or dispatch binder during current-use authorization.
@@ -84,14 +138,14 @@ async function complete(options, recovered) {
   // this wrapper is entered. Transfer cleanup custody before any provider can
   // send, and never interpret a missing reply as permission to reclaim it.
   let transferred = false;
-  const wrap = dispatch => typeof dispatch !== 'function' ? dispatch : async row => {
+  const wrap = (dispatch: DispatchRow | undefined) => typeof dispatch !== 'function' ? dispatch : async (row: DispatchInputs) => {
     if (!transferred) {
       await transferCompletedEffectfulCaptureCustody(options.publication);
       transferred = true;
     }
     options.signal?.throwIfAborted();
     const fenced = options.beforeDispatch?.();
-    if (typeof fenced?.then === 'function') {
+    if (typeof (fenced as ThenField | undefined)?.then === 'function') {
       void Promise.resolve(fenced).catch(() => {});
       fail();
     }
@@ -100,9 +154,9 @@ async function complete(options, recovered) {
   const original = options.apply;
   const apply = {...original, ...(original.bindDispatch === undefined
     ? {dispatchRow: wrap(original.dispatchRow)}
-    : {bindDispatch: facts => wrap(original.bindDispatch(facts))}),
+    : {bindDispatch: (facts: DispatchFacts) => wrap(original.bindDispatch!(facts))}),
     signal: options.signal};
-  const progress = recovered
+  const progress: Progress = recovered
     ? await applyRecoveredEffectSet(apply)
     : await applyCapturedEffectSet(apply);
   return issueAndPublish(options, progress);
@@ -113,10 +167,10 @@ async function complete(options, recovered) {
 // Any attempted row needs the common Set receipt, including an already
 // Applied/Accepted row followed by a currently refused unattempted remainder.
 // The issuer, not this Host, determines partial failure versus uncertainty.
-export function completeInterruptedEffectRun(options, recovered) {
+export function completeInterruptedEffectRun(options: CompletionOptions, recovered: boolean) {
   validateCompletion(options, recovered);
   const {apply, receipt} = options;
-  const control = runtimeCore(apply.moon).effectApplicationControl;
+  const control: ApplicationControl = runtimeCore(apply.moon).effectApplicationControl;
   const attempted = receipt.members.some(member =>
     member.rowOwners.some(owner => {
       const entry = apply.ledger.currentAdmitted(
@@ -135,14 +189,14 @@ export function completeInterruptedEffectRun(options, recovered) {
 // A failed resume binding can retain a fenced observation claim, but no new
 // execution or publication authority. Aggregate the exact historical rows
 // through the existing issuer; neither refresh nor a dispatch port is called.
-export async function settleRefusedEffectRun(options) {
+export async function settleRefusedEffectRun(options: CompletionOptions) {
   options = Object.freeze({...options,
     apply: Object.freeze({...options?.apply}),
     receipt: Object.freeze({...options?.receipt}),
     publication: Object.freeze({...options?.publication})});
   validateCompletion(options, true);
   const {apply, receipt, publication} = options;
-  const issuedSet = await issueAuthorizedEffectSetReceipt({...receipt,
+  const issuedSet: IssuedSet = await issueAuthorizedEffectSetReceipt({...receipt,
     ledger: apply.ledger, commonMoon: apply.moon,
     publicationPreview: publication.preview});
   const wires = issuedEffectSetReceiptWires(issuedSet, apply.ledger,
@@ -156,10 +210,10 @@ export async function settleRefusedEffectRun(options) {
     progress: Object.freeze({status: 'refused', dispatched: 0}), issuedSet});
 }
 
-export function completeCapturedEffectRun(options) {
+export function completeCapturedEffectRun(options: CompletionOptions) {
   return complete(options, false);
 }
 
-export function completeRecoveredEffectRun(options) {
+export function completeRecoveredEffectRun(options: CompletionOptions) {
   return complete(options, true);
 }

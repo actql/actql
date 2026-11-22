@@ -18,10 +18,8 @@ import {completeCapturedEffectRun as completeEffectRun,
   completeRecoveredEffectRun as completeRecoveredRun,
   completeInterruptedEffectRun as completeInterruptedRun,
   settleRefusedEffectRun as settleRefusedRun} from
-  // @ts-expect-error The original Effect completion owner is still authored in JavaScript.
   './effect-run-completion.mjs';
 import {recoverAdmittedEffectRun as recoverAdmittedRun} from
-  // @ts-expect-error The original Effect recovery owner is still authored in JavaScript.
   './effect-run-recovery.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
@@ -38,7 +36,8 @@ type EntryCore = InstalledRuntime['core'] & Readonly<{
     observeOriginalClientDispatchFailure(plan: unknown, host: object): SynchronousRuntimeData;
   }>;
 }>;
-type NodeRuntime = Readonly<{
+type RecoveryLoader = Parameters<typeof recoverAdmittedRun>[1];
+type NodeRuntime = Awaited<ReturnType<RecoveryLoader>> & EffectOptions['apply']['moon'] & Readonly<{
   strategyHostHasEffects(setup: object): boolean;
   strategyHostConfigureManagedIdentity(setup: object, publishCheckedResults: boolean,
     publication: boolean, consumer: boolean, hostPolicy: boolean): boolean;
@@ -72,7 +71,7 @@ type PublishedStrategyTarget<Runtime extends NodeRuntime> = Readonly<{
 }>;
 type CapturedEffectTarget<Runtime extends NodeRuntime> = Pick<CapturedStrategyTarget<Runtime>, 'options' | 'control' | 'composition' | 'cleanup'> &
   Readonly<{owner: unknown}>;
-type EffectOptions = Readonly<{apply?: Readonly<{moon?: unknown}>}>;
+type EffectOptions = Parameters<typeof completeEffectRun>[0];
 type CleanupFailure = Readonly<{cleanupPending?: boolean; cleanupHandle?: unknown}>;
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -265,7 +264,7 @@ export function createNodeHostEntry<Runtime extends NodeRuntime>(loadRuntime: Lo
   // Constructed only by installed composition, never read from caller options.
   const composition = Object.freeze({loadRuntime: load, install});
   return Object.freeze({
-    recoverAdmittedEffectRun: (options: unknown) => recoverAdmittedRun(options, load) as Promise<unknown>,
+    recoverAdmittedEffectRun: (options: Parameters<typeof recoverAdmittedRun>[0]) => recoverAdmittedRun(options, load),
     runCapturedStrategy: (setup: object, options: unknown = {}, signal?: AbortSignal, observer?: unknown, cleanup?: StrategyCleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
         control: {signal, observer}, results: {publishCheckedResults: true}, cleanup}),
@@ -283,28 +282,28 @@ export function createNodeHostEntry<Runtime extends NodeRuntime>(loadRuntime: Lo
     ) => runPublishedCapturedStrategyTarget({setup, publication, options,
       composition, control: {signal, observer, taskObservation, beforePublication},
       cleanup: {retainExecution, preparationHolder}}),
-    completeCapturedEffectRun: async (options: EffectOptions): Promise<unknown> => {
+    completeCapturedEffectRun: async (options: EffectOptions) => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
         throw new TypeError('InvalidCapturedEffectRunRuntime');
       }
       return completeEffectRun(options);
     },
-    completeRecoveredEffectRun: async (options: EffectOptions): Promise<unknown> => {
+    completeRecoveredEffectRun: async (options: EffectOptions) => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
         throw new TypeError('InvalidCapturedEffectRunRuntime');
       }
       return completeRecoveredRun(options);
     },
-    completeInterruptedEffectRun: async (options: EffectOptions, recovered: boolean): Promise<unknown> => {
+    completeInterruptedEffectRun: async (options: EffectOptions, recovered: boolean) => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
         throw new TypeError('InvalidCapturedEffectRunRuntime');
       }
       return completeInterruptedRun(options, recovered);
     },
-    settleRefusedEffectRun: async (options: EffectOptions): Promise<unknown> => {
+    settleRefusedEffectRun: async (options: EffectOptions) => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
         throw new TypeError('InvalidCapturedEffectRunRuntime');
