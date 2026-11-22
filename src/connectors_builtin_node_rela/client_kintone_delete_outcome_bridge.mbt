@@ -3,6 +3,47 @@
 // Thin same-runtime projection. This neither issues authority nor settles a claim.
 
 ///|
+#export_name("clientProgramKintoneDeleteMappingRecheckForm")
+pub fn client_program_kintone_delete_mapping_recheck_form(
+  mapping : @kintone_host.RecordDeleteMapping,
+  bytes : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_catalog.RecordMutationIssue] {
+  @kintone_host.record_delete_mapping_recheck_form(mapping, bytes, limits)
+}
+
+///|
+#export_name("clientProgramKintoneDeleteTargetReadBody")
+pub fn client_program_kintone_delete_target_read_body(
+  mapping : @kintone_host.RecordDeleteMapping,
+  identity : String,
+  max_fields : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[String, @kintone_catalog.RecordMutationIssue] {
+  @kintone_host.record_delete_target_read_body(
+    mapping, identity, max_fields, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintonePrepareDeleteTargetRead")
+pub fn client_program_kintone_prepare_delete_target_read(
+  mapping : @kintone_host.RecordDeleteMapping,
+  identity : String,
+  bytes : Bytes,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  (@kintone_host.RecordDeletePreview, @kintone_catalog.RecordDeleteRequest),
+  @kintone_host.RecordDeleteTargetReadIssue,
+] {
+  @kintone_host.prepare_record_delete_target_read(
+    mapping, identity, bytes, pages, values, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneDeletePreviewOutcome")
 pub fn client_program_kintone_delete_preview_outcome(
   mapping : @kintone_host.RecordDeleteMapping,

@@ -130,6 +130,8 @@ pub fn record_delete_mapping_matches_declaration(RecordDeleteMapping, RecordDecl
 
 pub fn record_delete_mapping_matches_request(RecordDeleteMapping, @catalog.RecordDeleteRequest) -> Bool
 
+pub fn record_delete_mapping_recheck_form(RecordDeleteMapping, Bytes, @catalog.FormFieldLimits) -> Result[Unit, @catalog.RecordMutationIssue]
+
 pub fn record_delete_preview_before_wire(RecordDeletePreview) -> String
 
 pub fn record_delete_preview_identity(RecordDeletePreview) -> String
