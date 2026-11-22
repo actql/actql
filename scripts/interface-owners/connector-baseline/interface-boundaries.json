@@ -984,7 +984,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/fixed-compute.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/fixed-compute.test.mts",
                 "anchor": "test("
               },
               {
@@ -1115,7 +1115,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/test/import-batch.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/import-batch.test.mts",
                 "anchor": "failed or cancelled batch does not retry or accept further rows"
               }
             ]

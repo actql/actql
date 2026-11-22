@@ -2,15 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createImportBatch} from '../import-batch.mjs';
 import {runFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
+import type {PhysicalScalar} from '../physical-values.mjs';
+
+type Port = Parameters<typeof runFixedCompute>[0];
+type Usage = Awaited<ReturnType<typeof runFixedCompute>>['usage'];
 
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 1000, maxParameters: 8, maxColumns: 2, maxChunkRows: 4, maxChunkBytes: 4096,
   memoryBytes: 128 * 1024 * 1024, threads: 1};
-const sql = rows => ({rows, sql: `INSERT INTO imported VALUES ${Array(rows).fill('(?)').join(', ')}`});
-const parameter = value => ({type: {id: 'VARCHAR'}, value});
+const sql = (rows: number) => ({rows, sql: `INSERT INTO imported VALUES ${Array(rows).fill('(?)').join(', ')}`});
+const parameter = (value: string | null) => ({type: {id: 'VARCHAR'}, value});
 
 test('import batches snapshot rows and bound both bytes and row count', async () => {
-  const written = [];
+  const written: unknown[][] = [];
   const batch = createImportBatch(1, 2, limits, sql, async (_sql, parameters) => {
     written.push(parameters.map(value => value.value));
   });
@@ -23,7 +27,7 @@ test('import batches snapshot rows and bound both bytes and row count', async ()
   assert.deepEqual(written, [['original', null], ['last']]);
   await assert.rejects(batch.append([parameter('late')]), {code: 'ImportBatchUnavailable'});
 
-  const narrow = [];
+  const narrow: number[] = [];
   const bounded = createImportBatch(1, 4, {...limits, maxChunkBytes: 90}, sql,
     async (_sql, parameters) => narrow.push(parameters.length));
   for (let i = 0; i < 3; i++) await bounded.append([parameter('日本語')]);
@@ -72,16 +76,16 @@ test('batch boundaries deliver queued cancellation before native writes', async 
 
 test('real batched fixed import preserves duplicate and NULL order with fewer native commands', async () => {
   const values = ['3', null, '3', '1', '2', null, '1', '3', '0'];
-  const makePort = batched => ({
+  const makePort = (batched: boolean): Port => ({
     importCount: () => 1, rowCount: () => values.length, columnCount: () => 1,
     createSql: () => 'CREATE TEMP TABLE imported(i BIGINT)', insertSql: () => sql(1).sql,
-    ...(batched ? {insertBatch: (_input, rows) => sql(rows)} : {}),
+    ...(batched ? {insertBatch: (_input: number, rows: number) => sql(rows)} : {}),
     parameter: (_input, row) => ({type: {id: 'BIGINT'}, value: values[row]}),
     querySql: () => 'SELECT i FROM imported', queryParameters: () => [],
   });
-  const outputs = [];
+  const outputs: Usage[] = [];
   for (const batched of [false, true]) {
-    const got = [];
+    const got: PhysicalScalar[] = [];
     const result = await runFixedCompute(makePort(batched), limits, {maxRows: 9, maxCells: 9},
       chunk => got.push(...chunk.columns[0]));
     try {
@@ -103,10 +107,10 @@ test('real batched fixed import preserves duplicate and NULL order with fewer na
 
 test('partial streamed batch is never queried after a receiving failure', async () => {
   let queried = 0;
-  const port = {
+  const port: Port = {
     importCount: () => 1, rowCount: () => 4, columnCount: () => 1,
     createSql: () => 'CREATE TEMP TABLE imported(i BIGINT)', insertSql: () => sql(1).sql,
-    insertBatch: (_input, rows) => sql(rows),
+    insertBatch: (_input: number, rows: number) => sql(rows),
     async consumeInput(_input, accept) {
       await accept([{type: {id: 'BIGINT'}, value: '1'}]);
       throw Error('retained input failed validation');

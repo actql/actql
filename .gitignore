@@ -1792,3 +1792,7 @@ target/
 /adapters/connectors/duckdb/node/import-batch.d.mts
 /adapters/connectors/duckdb/node/fixed-compute.mjs
 /adapters/connectors/duckdb/node/fixed-compute.d.mts
+/adapters/connectors/duckdb/node/test/fixed-compute.test.mjs
+/adapters/connectors/duckdb/node/test/fixed-compute.test.d.mts
+/adapters/connectors/duckdb/node/test/import-batch.test.mjs
+/adapters/connectors/duckdb/node/test/import-batch.test.d.mts
