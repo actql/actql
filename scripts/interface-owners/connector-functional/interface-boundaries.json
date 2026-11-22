@@ -2482,7 +2482,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
-      "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
+      "sha256": "8bd5d539ff2c3cc505a017bd221a5df7a2495698fd84e9110da1c955ed887cce",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing selected DuckDB contribution and resident session lifetime, not the generic serial driver",
@@ -2651,55 +2651,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "common serial"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "strategyModule_duckdb_Registration"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "closeEnvironments"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "await environment.close()"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "ResidentCleanupPending"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "signal"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "computePhysicalCapacity"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "preparedStrategyConfiguration"
               }
             ],

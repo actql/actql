@@ -216,8 +216,8 @@ export function installManagedRepresentation<Installed extends Representation>(m
   representations.set(material, Object.freeze(representation) as Representation);
 }
 
-export function managedInputCodecContractCid(material: object) {
-  return representations.get(material)?.codecContractCid;
+export function managedInputCodecContractCid(material: unknown) {
+  return representations.get(material as object)?.codecContractCid;
 }
 
 export function managedInputPhysicalManifestCid(material: object) {

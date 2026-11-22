@@ -5782,7 +5782,7 @@
     {
       "module": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
+      "sha256": "8bd5d539ff2c3cc505a017bd221a5df7a2495698fd84e9110da1c955ed887cce",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -5949,7 +5949,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -5959,7 +5959,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -5969,7 +5969,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -5979,7 +5979,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -5989,7 +5989,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -5999,7 +5999,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -6009,7 +6009,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -6019,7 +6019,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -6029,7 +6029,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -6039,7 +6039,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "duckdbStrategyContribution"
               },
               {
@@ -6059,7 +6059,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6069,7 +6069,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6079,7 +6079,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6089,7 +6089,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6099,7 +6099,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6109,7 +6109,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6119,7 +6119,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6129,7 +6129,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6139,7 +6139,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6149,7 +6149,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "managedSiteCapacity"
               },
               {
@@ -6171,7 +6171,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6181,7 +6181,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6191,7 +6191,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6201,7 +6201,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6211,7 +6211,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6221,7 +6221,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6231,7 +6231,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6241,7 +6241,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6251,7 +6251,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {
@@ -6261,7 +6261,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
+                "path": "adapters/connectors/duckdb/node/strategy-bundle.mts",
                 "anchor": "// DuckDB-specific execution and resident session lifetime. The common serial"
               },
               {

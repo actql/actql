@@ -9,6 +9,41 @@ import {managedColumnCodecContractCid} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 
+type ResidentEnvironment = Awaited<ReturnType<typeof openResidentStrategyEnvironment>>;
+type EnvironmentEntry = readonly [binding: unknown, environment: ResidentEnvironment];
+type MappingLimits = Parameters<typeof importResidentStrategyInput>[4];
+type ImportUsage = Awaited<ReturnType<typeof importResidentStrategyInput>>['usage'];
+type Compute = Awaited<ReturnType<typeof runStrategyHostCompute>>;
+type ReadRetained = Parameters<Compute['readRetained']>;
+type CompletionPermit = Readonly<{isAvailable: NonNullable<Parameters<typeof runStrategyHostCompute>[4]>}>;
+
+type ManagedInput = Readonly<{completed: unknown; material: object; siteMaterial?: object | null}>;
+type Outputs = ReadonlyMap<number, ManagedInput | null | undefined>;
+type ManagedPreparation = Readonly<{
+  configuration: unknown;
+  inputs: readonly ManagedInput[];
+  inputCodecContractCids: readonly string[];
+  siteCompletionReady?: CompletionPermit['isAvailable'];
+}>;
+
+type Runtime = Readonly<{
+  strategyModule_duckdb_Registration(setup: unknown): unknown;
+  strategyHostRegistrationSelectionKey(registration: unknown): string;
+  strategyHostNextTask(setup: unknown): number;
+  strategyHostManagedProducers(setup: unknown): readonly number[];
+  strategyHostManagedRequiresLogicalIdentity(setup: unknown): unknown;
+  strategyModule_duckdb_ManagedDispatch(setup: unknown, completed: readonly unknown[], outputFileBytes: bigint): unknown;
+  strategyModule_duckdb_ManagedCapacity(configuration: unknown): unknown;
+  strategyModule_duckdb_ManagedDuration(configuration: unknown): bigint | undefined;
+  strategyHostReleasableManagedProducers(setup: unknown): readonly number[];
+  strategyHostTask(task: unknown): number;
+  strategyHostResident(task: unknown): boolean;
+  strategyHostResourceBinding(task: unknown): unknown;
+  strategyHostRun(setup: unknown): unknown;
+  strategyHostResidentInputs(setup: unknown, task: number): unknown;
+  strategyModule_duckdb_Dispatch(setup: unknown, task: unknown): unknown;
+}>;
+
 // The standard contribution loader imports this module only after selection.
 const {host: {runStrategyHostCompute, runRetainedStrategyHostCompute,
   runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
@@ -16,19 +51,20 @@ const {host: {runStrategyHostCompute, runRetainedStrategyHostCompute,
   importResidentStrategyInput, runResidentStrategyHostCompute}} =
   await loadDuckDBNativeRuntime();
 
-const managedSiteCapacity = value => Array.isArray(value)
+const managedSiteCapacity = (value: unknown): readonly unknown[] | undefined => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
     ? [runtimeField(value, 0), runtimeField(value, 1)]
     : undefined;
 
-export function duckdbStrategyContribution(moon, setup, checked, configuration) {
+export function duckdbStrategyContribution(moon: Runtime, setup: unknown,
+  checked: (result: unknown) => unknown, configuration: unknown) {
   const options = preparedStrategyConfiguration(configuration);
   const limits = Object.freeze({ ...options.transportLimits });
   const imports = Object.freeze({ ...options.importLimits });
-  const environments = new Map();
-  async function closeEnvironments(entries) {
-    const failures = [];
+  const environments = new Map<unknown, ResidentEnvironment>();
+  async function closeEnvironments(entries: readonly EnvironmentEntry[]) {
+    const failures: unknown[] = [];
     for (const [binding, environment] of entries) {
       try {
         await environment.close();
@@ -51,7 +87,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
-    async prepareNext(outputs) {
+    async prepareNext(outputs: Outputs) {
       if (!options.managedOutput) return undefined;
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
@@ -70,12 +106,12 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
           inputs.some(input => input == null) ||
           inputCodecContractCids.some(cid =>
             ![managedColumnCodecContractCid, managedParquetCodecContractCid]
-              .includes(cid))) {
+              .includes(cid!))) {
         return undefined;
       }
       const managedConfiguration = checked(
         moon.strategyModule_duckdb_ManagedDispatch(
-          setup, inputs.map(input => input.completed),
+          setup, inputs.map(input => input!.completed),
           BigInt(options.managedOutput.wire.max_bytes),
         ),
       );
@@ -93,20 +129,20 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
         task,
         durationMilliseconds:
           moon.strategyModule_duckdb_ManagedDuration(managedConfiguration),
-        inputs: Object.freeze(inputs),
+        inputs: Object.freeze(inputs) as readonly ManagedInput[],
         siteCapacity: Object.freeze({
-          retainedBytes: connectorSiteCapacity[0],
+          retainedBytes: connectorSiteCapacity[0] as bigint,
           executionBytes:
-            connectorSiteCapacity[1] + nativeSiteCapacity.executionBytes,
+            (connectorSiteCapacity[1] as bigint) + nativeSiteCapacity.executionBytes,
         }),
         outputs,
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
-        inputCodecContractCids: Object.freeze(inputCodecContractCids),
+        inputCodecContractCids: Object.freeze(inputCodecContractCids) as readonly string[],
         configuration: managedConfiguration,
       });
     },
-    async runPrepared(prepared, signal) {
+    async runPrepared(prepared: ManagedPreparation, signal?: AbortSignal) {
       const result = await runManagedColumnStrategyHostCompute(
         prepared.configuration,
         prepared.inputs.map(input => input.siteMaterial ?? input.material),
@@ -129,16 +165,16 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
     async beforeNext() {
       await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
     },
-    async run(task, signal, completionPermit) {
+    async run(task: unknown, signal?: AbortSignal, completionPermit?: CompletionPermit) {
       const index = moon.strategyHostTask(task);
       const resident = moon.strategyHostResident(task);
-      const inputs = [];
-      let mapping;
-      let environment;
+      const inputs: unknown[] = [];
+      let mapping: MappingLimits | undefined;
+      let environment: ResidentEnvironment | undefined;
       let environmentCreated = false;
       let environmentOpenMilliseconds = 0;
       let importMilliseconds = 0;
-      const imported = [];
+      const imported: Readonly<{producer: number; rows: number; milliseconds: number; transport: ImportUsage}>[] = [];
       if (resident) {
         const binding = moon.strategyHostResourceBinding(task);
         if (binding == null) throw new Error('MissingResidentResourceBinding');
@@ -150,7 +186,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
           environments.set(binding, environment);
           environmentCreated = true;
         }
-        for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index))) {
+        for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index)) as readonly (readonly bigint[])[]) {
           mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
           if (!environment.hasTable(Number(producer))) {
             const importedAt = performance.now();
@@ -188,7 +224,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
         material: result.material,
         close: () => result.close(),
         ...(options.retainedOutput
-          ? {readRetained: (accept, readSignal) =>
+          ? {readRetained: (accept: ReadRetained[0], readSignal?: AbortSignal) =>
               result.readRetained(accept, readSignal)}
           : {}),
         diagnostic: Object.freeze({
