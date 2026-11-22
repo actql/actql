@@ -38,12 +38,29 @@ export function assertRecordApprovalTarget(snapshot, expected) {
   assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
 }
 
-export async function runInstalledRecordApprovalFixture(t, fixture) {
+function assertRecordApprovalControl(snapshot, expected) {
+  const {id, name} = snapshot.control;
+  assert.deepEqual({id, name}, expected.control, 'Independent provider control state');
+}
+
+export async function runInstalledRecordApprovalFixture(t, input) {
+  const authored = input.casePath === undefined ? undefined : await readAuthoredCase(input.casePath);
+  const authoredFixture = authored?.fixture;
+  let fixture = input;
+  if (authoredFixture !== undefined) {
+    assert.equal(typeof input.createInstallation, 'function', 'Select an original provider fixture adapter');
+    assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
+    fixture = {...input, ...input.createInstallation(authoredFixture.seed)};
+  }
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
   const rejecting = decision === 'rejected';
-  const expected = recordUpdateFixtureState(selection);
-  const authored = fixture.casePath === undefined ? undefined : await readAuthoredCase(fixture.casePath);
+  const expected = authoredFixture?.expected ?? recordUpdateFixtureState(selection);
+  if (authoredFixture !== undefined) {
+    const original = provider.snapshot();
+    assertRecordApprovalTarget(original, expected.before);
+    assertRecordApprovalControl(original, expected.before);
+  }
   const loss = recordApprovalReplyLossExpectation(fixture.replyLossExpectation);
   assert(!rejecting || (loss === undefined && fixture.faults === undefined), 'The rejection case selects only the ordinary provider');
   if (loss !== undefined) assert.equal(fixture.faults, undefined, 'Select one original reply-loss fault only');
@@ -177,10 +194,11 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       const after = provider.snapshot();
       assert.deepEqual(after.control, before.control);
-      assert.deepEqual({id: after.control.id, name: after.control.name}, expected.before.control);
       const writesExpected = rejecting || phase === 'capture' ? 0 : 1;
       assert.equal(after.writes, writesExpected);
-      assertRecordApprovalTarget(after, writesExpected === 0 ? expected.before : expected.after);
+      const expectedState = writesExpected === 0 ? expected.before : expected.after;
+      assertRecordApprovalTarget(after, expectedState);
+      assertRecordApprovalControl(after, expectedState);
       if (rejecting) assert.deepEqual(after.target, before.target, 'A rejected checkpoint preserves the entire target and revision');
       if (phase === 'recover' && loss === undefined) assert.equal(after.requests.length, before.requests.length,
         'Saved first sends no provider request');

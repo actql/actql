@@ -75,6 +75,16 @@ configuration. All three phases read the authored case. The original receipt
 binds both documents, their parameters and the oracle before approval or Saved
 recovery. Keep the case available for each phase.
 
+The installed HTTP fixture may also use a `fixture` object in the case file.
+Provide a `seed` with `recordId`, `previousName`, `controlId`, and `controlName`.
+Independently specify `expected.before` and `expected.after`, each containing
+`target` and `control` records with `id` and `name` fields. Pass `casePath` and
+the existing provider's installation factory as `createInstallation` when
+calling `runInstalledRecordApprovalFixture`. The runner binds the seed and
+expectations to the same Run receipt and checks them against the provider
+observations. The standalone phase commands use the independently supplied
+connection and check the Program and Review oracles.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.

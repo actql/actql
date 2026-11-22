@@ -3,6 +3,7 @@
 // it cannot supply a claim, current decision, credential or replacement Run.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {recordUpdateFixtureSeed} from './cases.mjs';
 
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
@@ -14,7 +15,9 @@ const closed = (value, keys) => object(value) && Object.keys(value).length === k
 export function admitAuthoredRecordApprovalCase(value) {
   const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
   const rows = value => Array.isArray(value) && value.every(object);
-  assert(closed(value, ['name', 'effect', 'read', 'review']));
+  assert(object(value));
+  const fixture = Object.hasOwn(value, 'fixture');
+  assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
   const {effect, read, review} = value;
   assert(object(effect));
   const additional = Object.hasOwn(effect, 'additionalResults');
@@ -25,6 +28,18 @@ export function admitAuthoredRecordApprovalCase(value) {
   assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
   assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
   assert(object(review.before) && object(review.changes) && Object.keys(review.changes).length > 0);
+  if (fixture) {
+    const {seed, expected} = value.fixture ?? {};
+    assert(closed(value.fixture, ['seed', 'expected']));
+    assert(closed(seed, ['recordId', 'controlId', 'previousName', 'controlName']));
+    recordUpdateFixtureSeed(seed);
+    assert(closed(expected, ['before', 'after']));
+    for (const state of [expected.before, expected.after]) {
+      assert(closed(state, ['target', 'control']));
+      assert([state.target, state.control].every(row => closed(row, ['id', 'name']) &&
+        text(row.id) && typeof row.name === 'string'));
+    }
+  }
   return retainCase(value);
 }
 
@@ -77,7 +92,8 @@ function binding(value) {
   const {document: effect, ...effectInput} = value.effect;
   const {document: read, ...readInput} = value.read;
   return {caseName: value.name, effectSha256: sha256(effect), readSha256: sha256(read),
-    effect: effectInput, read: readInput, review: value.review};
+    effect: effectInput, read: readInput, review: value.review,
+    ...(value.fixture === undefined ? {} : {fixture: value.fixture})};
 }
 
 function checkReview(review, summary, ref, expected) {

@@ -8,7 +8,7 @@ import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
 import {openRecordApprovalExchange, installedRecordReplyLossExpectation,
-  assertRecordApprovalTarget} from './fixtures/record-approval/installed.fixture.mjs';
+  assertRecordApprovalTarget, runInstalledRecordApprovalFixture} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
@@ -18,6 +18,7 @@ import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectation} from '
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
+import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed.fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
@@ -203,6 +204,12 @@ test('shared command reopens the same externally authored Program, parameters an
   value.effect.expectedRows[0].next_name = 'Selected alternate value';
   value.read.afterRows[0].Subject = 'Selected alternate value';
   value.review.changes.Subject = 'Selected alternate value';
+  const control = {id: 'alternate-control', name: 'Retain this control'};
+  value.fixture = {seed: {recordId: selection.recordId, previousName: selection.previousName,
+    controlId: control.id, controlName: control.name}, expected: {
+    before: {target: {id: selection.recordId, name: selection.previousName}, control},
+    after: {target: {id: selection.recordId, name: value.effect.parameters.next_name}, control: {...control}},
+  }};
   const f = await commandFixture(t, 'kintone', {casePath: 'case.json', connect: {mode: 'local'}});
   const path = join(f.root, 'case.json'), original = JSON.stringify(value);
   await writeFile(path, original);
@@ -230,20 +237,46 @@ test('shared command reopens the same externally authored Program, parameters an
   await runRecordApprovalCommand(f.options);
   assert.equal(JSON.parse(await readFile(f.options.argv[2] + '.captured.json', 'utf8')).binding.caseName, value.name);
   f.options.argv[0] = 'approve';
-  const changed = structuredClone(value);
-  changed.effect.expectedRows[0].next_name = 'Wrong independent oracle';
-  await writeFile(path, JSON.stringify(changed));
-  let cursor = sdk.events.length;
-  await assert.rejects(runRecordApprovalCommand(f.options), /Reopen the same Program/u);
-  assert.deepEqual(sdk.events.slice(cursor), ['close']);
+  for (const mutate of [changed => {changed.effect.expectedRows[0].next_name = 'Wrong independent oracle';},
+    changed => {changed.fixture.expected.after.control.name = 'Wrong control oracle';}]) {
+    const changed = structuredClone(value);
+    mutate(changed);
+    await writeFile(path, JSON.stringify(changed));
+    const cursor = sdk.events.length;
+    await assert.rejects(runRecordApprovalCommand(f.options), /Reopen the same Program/u);
+    assert.deepEqual(sdk.events.slice(cursor), ['close']);
+  }
   await writeFile(path, original);
   await runRecordApprovalCommand(f.options);
-  cursor = sdk.events.length;
+  const cursor = sdk.events.length;
   f.options.argv[0] = 'recover';
   await runRecordApprovalCommand(f.options);
   const recovered = sdk.events.slice(cursor);
   assert.deepEqual(recovered, ['attach', 'effect:result', 'effect:rows', 'effect:status', 'close']);
   assert.equal(sdk.events.filter(event => event === 'approve').length, 1);
+});
+
+test('authored provider seed differs from the independent expected control before any request', async t => {
+  const value = await definition('kintone'), f = await commandFixture(t, 'kintone');
+  const path = join(f.root, 'case.json');
+  const seed = {recordId: '9007199254743291', previousName: 'Initial subject',
+    controlId: '9007199254743299', controlName: 'Real control'};
+  const wrongControl = {id: seed.controlId, name: 'Wrong control oracle'};
+  const expected = {
+    before: {target: {id: seed.recordId, name: seed.previousName}, control: wrongControl},
+    after: {target: {id: seed.recordId, name: 'Expected after'}, control: wrongControl},
+  };
+  await writeFile(path, JSON.stringify({...value, fixture: {seed, expected}}));
+  let provider;
+  await assert.rejects(runInstalledRecordApprovalFixture(t, {casePath: path, createInstallation(actual) {
+    assert.deepEqual(actual, seed);
+    const fixture = kintoneApprovalInstallation(actual);
+    provider = fixture.provider;
+    return fixture;
+  }}), /Independent provider control state/u);
+  assert.equal(provider.snapshot().control.name, seed.controlName);
+  assert.deepEqual(provider.snapshot().requests, []);
+  assert.equal(provider.snapshot().writes, 0);
 });
 
 test('shared command refuses incompatible authored case inputs before connecting', async t => {
