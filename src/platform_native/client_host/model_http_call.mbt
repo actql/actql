@@ -1094,7 +1094,18 @@ fn NativeClientModelHttpCall::drive_in_original_read(
       Ok(Some(response)) => self.response = Some(response)
       Err(issue) => {
         self.observe_unknown()
-        return Err(Http(issue))
+        // Yield terminal loss only after the original Client closes. If that
+        // close fails, keep its custody and return the first transport cause.
+        match issue {
+          @http.CapacityExceeded
+          | @http.Cancelled
+          | @http.DeadlineExpired
+          | @http.Transport(_) =>
+            return self
+              .close_client_in_original_read(client)
+              .map_err(_ => Http(issue))
+          _ => return Err(Http(issue))
+        }
       }
     }
   }
