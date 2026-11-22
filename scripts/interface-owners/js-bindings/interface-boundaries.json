@@ -79161,7 +79161,7 @@
                 "anchor": "raw tuple projection preserves field roles"
               },
               {
-                "path": "adapters/host-node/infer-raw-port-retirement.test.mjs",
+                "path": "adapters/host-node/infer-raw-port-retirement.test.mts",
                 "anchor": "saved raw caller weakens only its retired Call alias"
               }
             ]
