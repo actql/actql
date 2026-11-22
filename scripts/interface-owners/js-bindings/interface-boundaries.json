@@ -84965,11 +84965,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mts",
                 "anchor": "test('same live Core Mock installation admits no-I/O preparation without fabricating egress'"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mts",
                 "anchor": "test('external Provider preparation keeps the original egress refusal'"
               }
             ]

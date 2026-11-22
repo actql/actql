@@ -78109,7 +78109,7 @@
                 "anchor": "TypedAdmissionFailed(_) | TypedAdmissionTerminal =>"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "['unused ill-typed answer',"
               }
             ],
@@ -78119,7 +78119,7 @@
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "test('actual original answer FD close refusal survives loader failure and retries only the same close'"
               }
             ],
@@ -78149,7 +78149,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "test('actual original project loads exact nested Task and mock answer without Provider selection'"
               },
               {
@@ -78317,7 +78317,7 @@
                 "anchor": "busy Model installation retains answers until the same installation acknowledges retirement"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mts",
                 "anchor": "actual Mock Model refuses equal-wire foreign Task instead of replacing the original answers"
               },
               {
@@ -78487,7 +78487,7 @@
                 "anchor": "TypedAdmissionFailed(_) | TypedAdmissionTerminal =>"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "['unused ill-typed answer',"
               }
             ],
@@ -78497,7 +78497,7 @@
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "test('actual original answer FD close refusal survives loader failure and retries only the same close'"
               }
             ],
@@ -78527,7 +78527,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mjs",
+                "path": "adapters/host-node/installed-project-mock-answers.actual.test.mts",
                 "anchor": "test('actual original project loads exact nested Task and mock answer without Provider selection'"
               },
               {

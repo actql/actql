@@ -1,6 +1,8 @@
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm,open} from 'node:fs/promises';
+import type {FileHandle} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -10,17 +12,29 @@ import {loadInstalledProjectConfiguration} from './installed-project-configurati
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-mock-answers.mjs';
 
+type AnswerLoader = Parameters<typeof loadInstalledProjectMockAnswers>;
+type AnswerView = Awaited<ReturnType<typeof loadInstalledProjectMockAnswers>>;
+type Runtime = AnswerLoader[0] & NonNullable<Parameters<typeof loadInstalledProjectConfiguration>[0]> &
+  NonNullable<Parameters<typeof selectInstalledProjectProfile>[0]> & Readonly<{
+    clientProgramMockAnswerCount(answers: unknown, task: unknown): unknown;
+    clientProgramMockAnswerDefault(answers: unknown, task: unknown): unknown;
+    clientProgramMockAnswerAt(answers: unknown, task: unknown, index: number): unknown;
+  }>;
+type FixtureOptions = {answerWire?: string; taskName?: string; answers?: boolean; profile?: string};
+type CleanupFailure = Readonly<{code: unknown; cleanupPending: boolean;
+  cleanupHandle: {retry(): Promise<{pending: boolean}>}}>;
+
 assert.ok(process.env.ACTQL_TEST_MOCK_ANSWER_RUNTIME,'Matching original mock-answer Common runtime required');
-const moon=await import(pathToFileURL(process.env.ACTQL_TEST_MOCK_ANSWER_RUNTIME));
+const moon: Runtime=await import(pathToFileURL(process.env.ACTQL_TEST_MOCK_ANSWER_RUNTIME).href);
 const limits=Object.freeze({maxTasks:4,maxBytes:10000,maxNodes:1000,maxDepth:32,maxMembers:100,
   contractNodes:100,contractDepth:16,contractTextBytes:1000,maxWork:100000,
   valueNodes:100,valueDepth:16,valueTextBytes:1000,maxEntries:10});
-const declaration=name=>`task: ${name}\ninput: {notes: string}\noutput: {enabled: boolean}\ninstructions: original\n`;
+const declaration=(name: string)=>`task: ${name}\ninput: {notes: string}\noutput: {enabled: boolean}\ninstructions: original\n`;
 const answer='task: model-task:mock.v1\nanswers:\n  default: {enabled: false}\n  by_key:\n    "001": {enabled: true}\n';
 
-async function fixture(t,{answerWire=answer,taskName='model-task:mock.v1',answers=true,profile='mock'}={}){
+async function fixture(t: TestContext,{answerWire=answer,taskName='model-task:mock.v1',answers=true,profile='mock'}: FixtureOptions={}){
   const directory=await mkdtemp(join(tmpdir(),'actql-mock-answer-originals-'));
-  const views=[],pending=new Set();let current=true,reads=0;
+  const views: AnswerView[]=[],pending=new Set<FileHandle>();let current=true,reads=0;
   await mkdir(join(directory,'registry','tasks'),{recursive:true});
   await writeFile(join(directory,'actql.config.json'),JSON.stringify({version:'actql-config/0.1',
     model_tasks:'./registry/models.json',profile,mock:{answers:answers?{'model-task:mock.v1':'./answers.yaml'}:{}}}));
@@ -28,7 +42,7 @@ async function fixture(t,{answerWire=answer,taskName='model-task:mock.v1',answer
     tasks:{'model-task:mock.v1':'./tasks/task.yaml'},providers:{}}));
   await writeFile(join(directory,'registry','tasks','task.yaml'),declaration(taskName));
   await writeFile(join(directory,'answers.yaml'),answerWire);
-  const project=await loadInstalledProjectConfiguration(moon,{directory});
+  const project=(await loadInstalledProjectConfiguration(moon,{directory}))!;
   const selected=selectInstalledProjectProfile(moon,project,undefined,65536);
   t.after(async()=>{
     for(const view of views)view.retire(moon);
@@ -37,11 +51,11 @@ async function fixture(t,{answerWire=answer,taskName='model-task:mock.v1',answer
     await rm(directory,{recursive:true});
   });
   const assertCurrent=()=>{if(!current)throw Object.assign(new Error('OriginalMockInstallationLost'),{code:'OriginalMockInstallationLost'});};
-  const openFile=async(...args)=>{
+  const openFile=async(...args: [path: string, flags: string])=>{
     reads++;const original=await open(...args);pending.add(original);
     return {read:original.read.bind(original),close:async()=>{await original.close();pending.delete(original);}};
   };
-  const load=async options=>{
+  const load=async (options?: AnswerLoader[3])=>{
     const view=await loadInstalledProjectMockAnswers(moon,project,selected,{limits,assertCurrent,openFile,...options});
     views.push(view);return view;
   };
@@ -73,7 +87,7 @@ test('actual original project loads exact nested Task and mock answer without Pr
 
 test('actual mock loader rejects copied project and profile and foreign runtime before answer acquisition',async t=>{
   const f=await fixture(t);
-  for(const [runtime,project,profile] of [[moon,{...f.project},f.selected],[{...moon},f.project,f.selected],[moon,f.project,{...f.selected}]]){
+  for(const [runtime,project,profile] of [[moon,{...f.project},f.selected],[{...moon},f.project,f.selected],[moon,f.project,{...f.selected}]] as const){
     await assert.rejects(loadInstalledProjectMockAnswers(runtime,project,profile,
       {limits,assertCurrent:f.assertCurrent,openFile:f.openFile}));
   }
@@ -104,12 +118,12 @@ for(const [name,options,code] of[
   ['wrong Task occurrence',{taskName:'model-task:foreign.v1'},'InstalledMockAnswerTaskMismatch'],
   ['wrong answer Task',{answerWire:answer.replace('mock.v1','foreign.v1')},'MoonBitHostFailure'],
   ['unused ill-typed answer',{answerWire:answer+'    unused: {enabled: 1}\n'},'MoonBitHostFailure'],
-])test(`actual mock loader refuses ${name} without accepting a replacement original`,async t=>{
+] as const)test(`actual mock loader refuses ${name} without accepting a replacement original`,async t=>{
   const f=await fixture(t,options);await assert.rejects(f.load(),{code});assert.equal(f.pending.size,0);
 });
 
 test('actual original answer FD close refusal survives loader failure and retries only the same close',async t=>{
-  const f=await fixture(t);let closes=0,held;
+  const f=await fixture(t);let closes=0,held: CleanupFailure | undefined;
   await assert.rejects(f.load({openFile:async(...args)=>{
     const original=await f.openFile(...args);
     if(args[0]!==join(f.directory,'answers.yaml'))return original;
@@ -117,8 +131,8 @@ test('actual original answer FD close refusal survives loader failure and retrie
       closes++;if(closes===1)throw Object.assign(new Error('OriginalAnswerClosePending'),{code:'OriginalAnswerClosePending'});
       await original.close();
     }};
-  }}),error=>{held=error;return error.code==='OriginalAnswerClosePending'&&error.cleanupPending===true;});
+  }}),(error: unknown)=>{held=error as CleanupFailure;return (error as CleanupFailure).code==='OriginalAnswerClosePending'&&(error as CleanupFailure).cleanupPending===true;});
   assert.equal(f.pending.size,1);assert.equal(f.reads(),2);assert.equal(closes,1);
-  assert.equal((await held.cleanupHandle.retry()).pending,false);
+  assert.equal((await held!.cleanupHandle.retry()).pending,false);
   assert.equal(f.pending.size,0);assert.equal(f.reads(),2);assert.equal(closes,2);
 });

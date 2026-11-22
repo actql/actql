@@ -2178,3 +2178,7 @@ target/
 /scripts/fixtures/model-provider-binding-fixture.d.mts
 /adapters/local-node/installed-project-mock-answers.mjs
 /adapters/local-node/installed-project-mock-answers.d.mts
+/adapters/host-node/installed-project-mock-answers.actual.test.mjs
+/adapters/host-node/installed-project-mock-answers.actual.test.d.mts
+/adapters/host-node/installed-project-mock-models.actual.test.mjs
+/adapters/host-node/installed-project-mock-models.actual.test.d.mts
