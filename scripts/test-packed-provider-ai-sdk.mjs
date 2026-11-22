@@ -11,7 +11,9 @@ import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestinat
 import {nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
-const registeredProviderCases = Object.freeze(['registered-project', 'registered-anthropic', 'registered-google']);
+const registeredProviderCases = Object.freeze([
+  'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed',
+]);
 
 // Assertions over the original child report only; this issues no Run authority
 // or substitute provider result. The caller still owns actual process/state
@@ -119,7 +121,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
     ...registeredProviderCases.map(id => [id, 'cold']),
-    ['registered-mixed', 'cold'], ['registered-too-late'], ['registered-invalid'],
+    ['registered-too-late'], ['registered-invalid'],
     ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
