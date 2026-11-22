@@ -73,11 +73,14 @@ type Metric = HealthMetric & Record<string, unknown>;
 type WorkflowOptions = {prepared: Pick<Prepared, 'consumer'>; root: string; repository: string;
   command: Command; counts: {warmSamples: number; coldSamples: number};
   onMetric: (metric: Metric) => unknown};
+type ColdWorkflowOptions = Omit<WorkflowOptions, 'counts'> & {
+  counts: Pick<WorkflowOptions['counts'], 'coldSamples'>;
+};
 type TerminalVariant = Parameters<typeof terminalMockScenario>[0];
 type TerminalPhase = Parameters<typeof assertTerminalMockObservation>[1]['phase'];
 type AccountScenario = 'default' | 'explicit-operator-content';
 type MockOptions = {template?: string; variant?: string; accountScenario?: AccountScenario};
-type TerminalOptions = WorkflowOptions & {
+type TerminalOptions = ColdWorkflowOptions & {
   template: string; variant: TerminalVariant; accountScenario: AccountScenario;
 };
 type PhaseReport<T> = {phase: string; command: string; args: readonly string[]; cwd: string;
@@ -459,7 +462,7 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 }
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
-  template = 'churn-risk-mock', variant = 'readme', accountScenario = 'default'}: WorkflowOptions & MockOptions) {
+  template = 'churn-risk-mock', variant = 'readme', accountScenario = 'default'}: ColdWorkflowOptions & MockOptions) {
   assert(['default', 'explicit-operator-content'].includes(accountScenario));
   if (accountScenario !== 'default') assert.equal(variant, 'terminal-content');
   if (['terminal-infer', 'terminal-content'].includes(variant)) {

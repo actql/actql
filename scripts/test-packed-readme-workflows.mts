@@ -12,7 +12,62 @@ import {runPackedAccountControls} from './packed-account-controls.mjs';
 import {packedModelControlPhases, runPackedModelControls} from './packed-model-controls.mjs';
 import {runPackedProjectFileStoreInventory} from './packed-project-file-store-inventory.mjs';
 import {runPackedDependencyBoundaries} from './packed-project-dependency-boundary.mjs';
-import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
+
+type Prepared = Awaited<ReturnType<typeof prepareHealthPackages>>;
+type Command = typeof execute;
+type Executed = Awaited<ReturnType<Command>>;
+type CommandFailure = {commandResult?: Executed} | null | undefined;
+type Failure = ReturnType<typeof nodeBenchmarkFailure>;
+type CollectionPhase = 'budget' | 'memory-recovery' | 'work-recovery' | 'accepted-memory-recovery'
+  | 'capture' | 'saved' | 'large-row-capture' | 'large-row-saved';
+type ProjectPhase = 'capture' | 'saved';
+type Status = 'unexecuted' | 'running' | 'passed' | 'failed';
+type Receipt = {completed: boolean; status: Status; unexecutedReason?: string;
+  pid?: number | null; error?: Failure};
+type CollectionRecord = Receipt & {
+  phase: CollectionPhase; actual?: CollectionObservation; largeRowUnexecutedReason?: string;
+  partialObservation?: unknown; partialObservationUnavailable?: Failure;
+  progressObservation?: unknown; progressObservationUnavailable?: Failure;
+};
+type ProjectRecord = Receipt & {phase: ProjectPhase; observation?: ProjectObservation};
+type CaseMetric = Parameters<Parameters<typeof mockWorkflowMetrics>[0]['onMetric']>[0];
+type WorkflowCase = Receipt & {template: string; variant: string; metric?: CaseMetric};
+type PublicBudget = {phase: string; dimension: string; setting: string; policy: string;
+  message: string; quantities: unknown};
+type Refusal = {verified: boolean; phase: string; kind: string; classification?: string;
+  outcome?: string; dimension: string; task: number; step: number;
+  workLimit?: number; controlWorkLimit?: number; budget?: unknown; code?: string;
+  publicBudget?: PublicBudget} & Record<string, unknown>;
+type ResultCase = {id: string; complete: boolean; ref: unknown; resultName: string;
+  count?: number; rows: number; wireBytes: number; maxRowWireBytes: number};
+type LargeRow = {complete?: boolean; ref?: unknown; resultName: string; rows: number;
+  fields: number; textUnitsPerField: number; wireBytes: number; unexecutedReason?: string};
+type CollectionObservation = {
+  phase: CollectionPhase; pid: number; complete: boolean; sourceFreeMaxWork: number;
+  firstClose: string; firstCloseCalls?: number; aliveScopedFD: unknown; submits: number;
+  cleanup?: unknown[]; cases: ResultCase[]; largeRow?: LargeRow;
+  budgetRefusal?: Refusal; memoryRefusal?: Refusal; acceptedMemoryRefusal?: Refusal; workRefusal?: Refusal;
+  acceptedComputeTerminal?: {status: string; physical_stop: string; result_available: boolean};
+  workObservations: {ref: unknown; code: string; primaryCode: string; primaryDiagnostic: unknown}[];
+} & Record<string, unknown>;
+type ProjectObservation = {
+  phase: ProjectPhase; pid: number; complete: boolean; ref: unknown; resultName: string;
+} & Record<string, unknown>;
+
+type RunReport = {
+  collection: CollectionRecord[]; projectFiles: ProjectRecord[];
+  cases: WorkflowCase[]; compositions: WorkflowCase[];
+  account: NonNullable<Parameters<typeof runPackedAccountControls>[0]['report']['account']>;
+  model: Parameters<typeof runPackedModelControls>[0]['records'];
+  controls: Parameters<typeof runMockEffectControls>[0]['records'];
+  fileInventory: NonNullable<Parameters<typeof runPackedProjectFileStoreInventory>[0]['report']>;
+  dependencyBoundaries: NonNullable<Parameters<typeof runPackedDependencyBoundaries>[0]['report']> & {complete: boolean};
+  manifest?: Prepared['manifest']; complete: boolean; failures?: Failure[]; failure?: Failure;
+  cleanup?: Failure[];
+} & Record<string, unknown>;
+type ConsumerOptions = {prepared: Prepared; root: string; repository: string;
+  command: Command; report: RunReport; cleanup: unknown[]};
 
 export const packedReadmeCases = Object.freeze([
   Object.freeze({template: 'churn-risk-mock', variant: 'readme'}),
@@ -32,20 +87,22 @@ export const packedCompositionCases = Object.freeze([
 // The existing phase and its complete oracles, independently invocable for the
 // SAME completed original Result. This helper installs nothing and submits no
 // replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
-export async function runCollectionPhase({collection, command, record, capturePid}) {
+export async function runCollectionPhase({collection, command, record, capturePid}: {
+  collection: string; command: Command; record: CollectionRecord; capturePid?: number | null;
+}) {
   assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].includes(record.phase));
-  if (record.phase === 'saved' || record.phase === 'large-row-saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
+  if (record.phase === 'saved' || record.phase === 'large-row-saved') assert(Number.isSafeInteger(capturePid) && capturePid! > 0);
   const members = ['scripts/fixtures/packed-result-collection.mjs'];
   const {phase} = record;
   const args = [join(collection, members[0]), phase, join(collection, phase.startsWith('large-row-') ? 'large-row-original.json' : 'original.json')];
   Object.assign(record, {command: process.execPath, args, cwd: collection,
     startedAt: new Date().toISOString(), status: 'running'});
   delete record.unexecutedReason;
-  let observed;
+  let observed: Executed | undefined;
   try {
     observed = await command(process.execPath, args,
       {cwd: collection, name: `collection-${phase}`, timeout: 120_000});
-    const actual = JSON.parse(observed.stdout.trim()); record.actual = actual;
+    const actual = JSON.parse(observed.stdout.trim()) as CollectionObservation; record.actual = actual;
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
     if (phase === 'saved' || phase === 'large-row-saved') assert.notEqual(actual.pid, capturePid);
     assert.equal(actual.sourceFreeMaxWork, phase.startsWith('large-row-') ? 100000000 : phase === 'work-recovery' ? 100000 : 30000000);
@@ -76,7 +133,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.equal(actual.explicitRefusal, 'ResultRowWireLimit'); assert.equal(actual.sameRunRecovery, true);
         assert.equal(actual.originalProgramsRemovedAfterFirstClose, 2);
       } else {
-        const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8'));
+        const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8')) as CollectionObservation;
         assert.equal(captured.pid, capturePid); assert.equal(captured.complete, true);
         assert.equal(captured.firstClose, 'returned'); assert.equal(captured.firstCloseCalls, 1);
         assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
@@ -88,13 +145,13 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.equal(actual.budgetDisposition, 'pre_send_capture');
       assert.equal(actual.budgetInputPublished, false);
       assert.equal(actual.budgetPublicOutcome, undefined); assert.equal(actual.budgetPublicAttempt, undefined);
-      assert.equal(actual.budgetRefusal.phase, 'request_snapshot');
-      assert.equal(actual.budgetRefusal.outcome, 'pre_send_capture');
-      assert.equal(actual.budgetRefusal.classification, 'resource_limit');
-      assert.equal(actual.budgetRefusal.dimension, 'retention');
+      assert.equal(actual.budgetRefusal!.phase, 'request_snapshot');
+      assert.equal(actual.budgetRefusal!.outcome, 'pre_send_capture');
+      assert.equal(actual.budgetRefusal!.classification, 'resource_limit');
+      assert.equal(actual.budgetRefusal!.dimension, 'retention');
       const amounts = ['requiredRetentionBytes', 'requiredExecutionBytes',
         'availableRetentionBytes', 'availableExecutionBytes'].map(name => {
-        const text = actual.budgetRefusal[name];
+        const text = actual.budgetRefusal![name];
         assert(typeof text === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(text));
         const amount = BigInt(text); assert(amount <= 9223372036854775807n); return amount;
       });
@@ -109,18 +166,18 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.equal(actual.cleanup?.length, 0);
       if (phase === 'memory-recovery') {
         assert.equal(actual.memoryRefusal?.verified, true);
-        assert.equal(actual.memoryRefusal.phase, 'request_snapshot');
-        assert.equal(actual.memoryRefusal.classification, 'resource_limit');
-        assert.equal(actual.memoryRefusal.outcome, 'pre_send_capture');
+        assert.equal(actual.memoryRefusal!.phase, 'request_snapshot');
+        assert.equal(actual.memoryRefusal!.classification, 'resource_limit');
+        assert.equal(actual.memoryRefusal!.outcome, 'pre_send_capture');
         const amounts = ['requiredRetentionBytes', 'requiredExecutionBytes',
           'availableRetentionBytes', 'availableExecutionBytes'].map(key => {
-          const text = actual.memoryRefusal[key];
+          const text = actual.memoryRefusal![key];
           assert(typeof text === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(text));
           const value = BigInt(text); assert(value <= 9223372036854775807n); return value;
         });
         assert(amounts[2] <= BigInt(memory) && amounts[3] <= BigInt(memory));
-        assert(actual.memoryRefusal.dimension === 'retention' ? amounts[0] > amounts[2]
-          : actual.memoryRefusal.dimension === 'execution' && amounts[0] <= amounts[2] && amounts[1] > amounts[3]);
+        assert(actual.memoryRefusal!.dimension === 'retention' ? amounts[0] > amounts[2]
+          : actual.memoryRefusal!.dimension === 'execution' && amounts[0] <= amounts[2] && amounts[1] > amounts[3]);
         assert.deepEqual(actual.cases, [{expectedRefusal: 'request_snapshot', complete: true}]);
       } else if (phase === 'accepted-memory-recovery') {
         assert.equal(actual.firstCloseCalls, 1);
@@ -128,14 +185,14 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert(actual.acceptedComputeRef !== null && typeof actual.acceptedComputeRef === 'object');
         assert.equal(actual.acceptedComputeTerminal?.physical_stop, 'confirmed');
         assert.deepEqual(actual.capacityObservations, []);
-        if (actual.acceptedComputeTerminal.status === 'succeeded') {
-          assert.equal(actual.acceptedComputeTerminal.result_available, true);
+        if (actual.acceptedComputeTerminal!.status === 'succeeded') {
+          assert.equal(actual.acceptedComputeTerminal!.result_available, true);
           assert.deepEqual(actual.workObservations, []);
           assert.equal(actual.acceptedMemoryRefusal, undefined);
           assert.deepEqual(actual.cases, [{count: 100000, disposition: 'succeeded', rows: 100000, complete: true}]);
         } else {
-          assert.equal(actual.acceptedComputeTerminal.status, 'failed');
-          assert.equal(actual.acceptedComputeTerminal.result_available, false);
+          assert.equal(actual.acceptedComputeTerminal!.status, 'failed');
+          assert.equal(actual.acceptedComputeTerminal!.result_available, false);
           const data = actual.acceptedMemoryRefusal;
           assert.equal(data?.verified, true);
           assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'dimension', 'kind', 'phase', 'publicBudget', 'task', 'verified']);
@@ -154,7 +211,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
           assert.deepEqual(actual.cases, [{count: 100000, disposition: 'resource_refused', complete: true}]);
         }
       } else {
-        const data = actual.workRefusal;
+        const data = actual.workRefusal!;
         assert.equal(data.verified, true); assert.equal(data.code, 'MoonBitHostFailure');
         assert.equal(data.phase, 'local_managed_advance');
         assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
@@ -169,8 +226,8 @@ export async function runCollectionPhase({collection, command, record, capturePi
         }
         assert.deepEqual(actual.cases, [{expectedRefusal: data.kind, complete: true}]);
       }
-      if (phase === 'work-recovery' || phase === 'accepted-memory-recovery' && actual.acceptedComputeTerminal.status === 'failed') {
-        const original = phase === 'work-recovery' ? actual.workRefusal : actual.acceptedMemoryRefusal;
+      if (phase === 'work-recovery' || phase === 'accepted-memory-recovery' && actual.acceptedComputeTerminal!.status === 'failed') {
+        const original = phase === 'work-recovery' ? actual.workRefusal! : actual.acceptedMemoryRefusal!;
         const publicBudget = original.publicBudget;
         assert.equal(publicBudget?.phase, 'local_managed_advance');
         assert.equal(publicBudget.dimension, original.kind === 'resource' ? original.dimension : original.kind);
@@ -195,15 +252,17 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576,
         expectedRefusal: 'ResultRowRetainedLimit', complete: true});
       assert(actual.largeRow?.ref !== undefined);
-      assert.equal(typeof actual.largeRow.resultName, 'string'); assert(actual.largeRow.resultName.length > 0);
-      assert.deepEqual(actual.largeRow, {ref: actual.largeRow.ref, resultName: actual.largeRow.resultName,
+      assert.equal(typeof actual.largeRow!.resultName, 'string'); assert(actual.largeRow!.resultName.length > 0);
+      assert.deepEqual(actual.largeRow, {ref: actual.largeRow!.ref, resultName: actual.largeRow!.resultName,
         rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144,
         aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true});
       assert.equal(actual.originalProgramsRemovedAfterFirstClose, 6);
     } else {
       assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
-      const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8'));
-      const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8'));
+      const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8')) as {
+      count: number; ref: unknown; resultName: string; largeRow?: LargeRow;
+    };
+      const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8')) as CollectionObservation;
       assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'capture');
       assert.equal(captured.firstClose, 'returned');
       assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
@@ -217,7 +276,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.equal(large.rows, 1); assert.equal(large.fields, 17);
         assert.equal(large.textUnitsPerField, 64000); assert.equal(large.wireBytes, 1088144);
         assert.equal(captured.largeRow?.complete, true);
-        for (const name of Object.keys(large)) assert.deepEqual(large[name], captured.largeRow[name]);
+        for (const name of Object.keys(large)) assert.deepEqual(large[name as keyof LargeRow], captured.largeRow![name as keyof LargeRow]);
         assert.deepEqual(actual.largeRow, {...large, complete: true});
       } else {
         // A failed later capture does not erase an earlier completed Result.
@@ -225,20 +284,20 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.notEqual(captured.complete, true); assert.notEqual(captured.largeRow?.complete, true);
         assert.deepEqual(actual.largeRow,
           {complete: false, unexecutedReason: 'Requires completed original large-row handoff'});
-        record.largeRowUnexecutedReason = actual.largeRow.unexecutedReason;
+        record.largeRowUnexecutedReason = actual.largeRow!.unexecutedReason;
       }
     }
     record.completed = true; record.status = 'passed';
   } catch (error) {
-    observed ??= error?.commandResult;
+    observed ??= (error as CommandFailure)?.commandResult;
     record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
     // A timed-out close may never produce stdout or a final observation. Only
     // consume this actual child/phase's pre-close receipt; do not infer ACK.
     try {
       const partial = JSON.parse(await readFile(join(collection, `${phase}.pending.json`), 'utf8'));
       assert.equal(partial.phase, phase);
-      assert(Number.isSafeInteger(observed?.pid) && observed.pid > 0);
-      assert.equal(partial.pid, observed.pid);
+      assert(Number.isSafeInteger(observed?.pid) && observed!.pid! > 0);
+      assert.equal(partial.pid, observed!.pid);
       record.partialObservation = partial;
     } catch (diagnosticError) {
       record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
@@ -251,8 +310,8 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert(text.length <= 131072);
       const progress = JSON.parse(text);
       assert.equal(progress.phase, phase);
-      assert(Number.isSafeInteger(observed?.pid) && observed.pid > 0);
-      assert.equal(progress.pid, observed.pid);
+      assert(Number.isSafeInteger(observed?.pid) && observed!.pid! > 0);
+      assert.equal(progress.pid, observed!.pid);
       assert(['start', 'end', 'complete'].includes(progress.event));
       assert(Number.isSafeInteger(progress.elapsedNs) && progress.elapsedNs >= 0);
       assert(typeof progress.complete === 'boolean');
@@ -271,10 +330,12 @@ export async function runCollectionPhase({collection, command, record, capturePi
 
 // Fixture handoff/cleanup evidence only; the actual Saved read keeps all public
 // current, authentication and byte validation in the installed owners.
-export async function completedCollectionCapture(collection, capturePid) {
+export async function completedCollectionCapture(collection: string, capturePid?: number | null) {
   try {
-    const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8'));
-    const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8'));
+    const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8')) as CollectionObservation;
+    const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8')) as {
+      count: number; ref: unknown; resultName: string; largeRow?: LargeRow;
+    };
     assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'capture');
     assert.equal(captured.firstClose, 'returned'); assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0});
     assert.deepEqual(captured.cleanup, []);
@@ -285,9 +346,9 @@ export async function completedCollectionCapture(collection, capturePid) {
   } catch {return false;}
 }
 
-export async function completedLargeRowCapture(collection, capturePid) {
+export async function completedLargeRowCapture(collection: string, capturePid?: number | null) {
   try {
-    const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8'));
+    const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8')) as CollectionObservation;
     const original = JSON.parse(await readFile(join(collection, 'large-row-original.json'), 'utf8'));
     assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'large-row-capture');
     assert.equal(captured.complete, true); assert.equal(captured.firstClose, 'returned');
@@ -299,7 +360,7 @@ export async function completedLargeRowCapture(collection, capturePid) {
   } catch {return false;}
 }
 
-async function runCollectionConsumer({prepared, root, repository, command, report, cleanup}) {
+async function runCollectionConsumer({prepared, root, repository, command, report, cleanup}: ConsumerOptions) {
   const collection = join(root, 'collection'); await mkdir(collection);
   const members = ['scripts/fixtures/packed-result-collection.mjs',
     'scripts/fixtures/record-approval/scoped-fds.fixture.mjs'];
@@ -335,7 +396,7 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
   }
 }
 
-function assertProjectFileJoinOutcome(actual, phase) {
+function assertProjectFileJoinOutcome(actual: ProjectObservation, phase: ProjectPhase) {
   assert.equal(actual.case, 'project-local-files-same-unit-join');
   assert.equal(actual.phase, phase); assert.equal(actual.complete, true);
   assert.deepEqual(actual.rows, [{left_path: 'left.txt', left_bytes: 3,
@@ -347,7 +408,7 @@ function assertProjectFileJoinOutcome(actual, phase) {
   assert(actual.ref && typeof actual.resultName === 'string' && actual.resultName.length);
 }
 
-async function runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup}) {
+async function runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup}: ConsumerOptions) {
   const collection = join(root, 'collection'); await mkdir(collection, {recursive: true});
   const application = join(collection, 'project-files'); await mkdir(application);
   for (const path of ['scripts/fixtures/packed-project-file-join.mjs',
@@ -357,38 +418,38 @@ async function runProjectFileJoinConsumer({prepared, root, repository, command, 
   }
   await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
   const home = join(application, 'home'); await mkdir(home);
-  const env = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
+  const env: NodeJS.ProcessEnv = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
   delete env.ACTQL_PACKED_CLIENT_PACKAGES;
   const software = join(prepared.consumer, 'node_modules'), alias = join(application, 'node_modules');
   const handoff = join(collection, 'project-files-original.json');
   await symlink(software, alias, 'dir');
   try {
     await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
-    let captured;
+    let captured: ProjectObservation | undefined;
     for (const record of report.projectFiles) {
       if (record.phase === 'saved' && captured === undefined) continue;
       record.status = 'running'; delete record.unexecutedReason;
-      let observed;
+      let observed: Executed | undefined;
       try {
         if (record.phase === 'saved') {
           const original = JSON.parse(await readFile(handoff, 'utf8'));
-          assert.equal(original.complete, true); assert.deepEqual(original.ref, captured.ref);
-          assert.equal(original.resultName, captured.resultName);
+          assert.equal(original.complete, true); assert.deepEqual(original.ref, captured!.ref);
+          assert.equal(original.resultName, captured!.resultName);
         }
         observed = await command(process.execPath, [join(application,
           'scripts/fixtures/packed-project-file-join.mjs'), record.phase, handoff],
         {cwd: application, env, name: `project-files-${record.phase}`, timeout: 30_000});
         assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
-        const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1));
+        const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1)!) as ProjectObservation;
         assertProjectFileJoinOutcome(actual, record.phase); assert.equal(actual.pid, observed.pid);
         if (record.phase === 'capture') captured = actual;
         else {
-          assert.notEqual(actual.pid, captured.pid);
-          assert.deepEqual(actual.ref, captured.ref); assert.equal(actual.resultName, captured.resultName);
+          assert.notEqual(actual.pid, captured!.pid);
+          assert.deepEqual(actual.ref, captured!.ref); assert.equal(actual.resultName, captured!.resultName);
         }
         record.observation = actual; record.completed = true; record.status = 'passed';
       } catch (error) {
-        observed ??= error?.commandResult;
+        observed ??= (error as CommandFailure)?.commandResult;
         record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
         throw error;
       } finally {
@@ -402,7 +463,8 @@ async function runProjectFileJoinConsumer({prepared, root, repository, command, 
   }
 }
 
-async function runReadmeCases({prepared, root, repository, command, report, failures, cases = report.cases}) {
+async function runReadmeCases({prepared, root, repository, command, report, failures, cases = report.cases}:
+  Omit<ConsumerOptions, 'cleanup'> & {failures: unknown[]; cases?: WorkflowCase[]}) {
   for (const record of cases) {
     // A shared software failure invalidates the remaining inputs. A failed
     // consumer does not mask the other fresh, independent project variants.
@@ -416,8 +478,8 @@ async function runReadmeCases({prepared, root, repository, command, report, fail
           record.metric = metric;
           await writeFile(join(root, `${template}-${variant}.json`), JSON.stringify(metric, null, 2) + '\n');
         }});
-      assert.equal(record.metric.samples.length, 1);
-      assert(record.metric.samples[0].completed && record.metric.samples[0].verified);
+      assert.equal(record.metric!.samples!.length, 1);
+      assert(record.metric!.samples![0].completed && record.metric!.samples![0].verified);
       record.completed = true; record.status = 'passed';
     } catch (error) {
       failures.push(error); record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
@@ -425,7 +487,7 @@ async function runReadmeCases({prepared, root, repository, command, report, fail
   }
 }
 
-export async function runPackedReadmeWorkflows(root) {
+export async function runPackedReadmeWorkflows(root: string) {
   assert(isAbsolute(root), 'Require a fresh absolute consumer output directory');
   const retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
   assert(typeof retained === 'string' && isAbsolute(retained),
@@ -441,9 +503,9 @@ export async function runPackedReadmeWorkflows(root) {
     tree: execFileSync('git', ['rev-parse', 'HEAD^{tree}'], {cwd: repository, encoding: 'utf8'}).trim()};
   await mkdir(root);
   const raw = join(root, 'raw'); await mkdir(raw);
-  const report = {source, node: process.version, platform: process.platform,
+  const report: RunReport = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
-    collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+    collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].map((phase): CollectionRecord => ({phase: phase as CollectionPhase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
         : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
     fileInventory: {cases: []},
@@ -451,7 +513,7 @@ export async function runPackedReadmeWorkflows(root) {
     account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
     model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires the same verified normal packages and original capture'})),
-    projectFiles: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+    projectFiles: (['capture', 'saved'] as const).map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires original two-file JOIN and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),
@@ -461,9 +523,9 @@ export async function runPackedReadmeWorkflows(root) {
       unexecutedReason: 'Requires verified unchanged normal packages and matching composition fixture'})),
     complete: false, performanceAcceptance: false,
     qualification: 'Same normal artifact, fresh state per variant; functional once each, not a latency verdict'};
-  const command = (cmd, args, options) => execute(cmd, args, {...options, raw});
-  let prepared;
-  const failures = [], cleanup = [];
+  const command: Command = (cmd, args, options) => execute(cmd, args, {...options, raw});
+  let prepared: Prepared | undefined;
+  const failures: unknown[] = [], cleanup: unknown[] = [];
   try {
     prepared = await prepareHealthPackages({repository, root, source, retained, command, normalLifecycle: true});
     report.manifest = prepared.manifest;

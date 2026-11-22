@@ -2050,3 +2050,5 @@ target/
 /scripts/fixtures/external-rest/timed-installed-context.fixture.d.mts
 /scripts/health-monitor-adapters.mjs
 /scripts/health-monitor-adapters.d.mts
+/scripts/test-packed-readme-workflows.mjs
+/scripts/test-packed-readme-workflows.d.mts
