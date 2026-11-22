@@ -2135,7 +2135,7 @@
     {
       "module": "adapters/connectors/duckdb/node/native-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d74d3b7e65af7442ca386b2f12d8717b690638f525962aec9bc6e26b6400703",
+      "sha256": "c88aaeae47a3c32b97dd9d3b0314e1d8c5164e15d047459b759c2860c7eaedec",
       "role": "physical-io",
       "owner": "Explicit optional Neo runtime loader; no installation or capability fallback",
       "exports": [

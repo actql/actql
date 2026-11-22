@@ -1826,3 +1826,5 @@ target/
 /adapters/connectors/duckdb/node/broad-host-query.d.mts
 /adapters/connectors/duckdb/node/native-host-query.mjs
 /adapters/connectors/duckdb/node/native-host-query.d.mts
+/adapters/connectors/duckdb/node/host.mjs
+/adapters/connectors/duckdb/node/host.d.mts

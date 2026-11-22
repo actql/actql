@@ -14,6 +14,8 @@ import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import type {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
+import type {BroadResidualRuntime} from '../connectors/duckdb/node/broad-host-query.mjs';
+import type {SourceEvidenceOptions} from '../connectors/duckdb/node/source-evidence-original.mjs';
 
 type QueryOptions = Parameters<typeof prepareOriginalSourceQuery>[0];
 type SelectionInputs = Parameters<typeof selectInstalledDuckDBAcquisition>[0];
@@ -114,21 +116,9 @@ type NativeCapture = Readonly<{
   document(): string;
   close(): unknown;
 }>;
-type EvidenceOptions = Readonly<Record<string, unknown>>;
-type NativeRuntime = Readonly<{
-  session: Pick<Awaited<ReturnType<typeof loadDuckDBNativeRuntime>>['session'], 'authorizeLocalDatabase'>;
-  host: {
-    runNativeHostQuery(grant: unknown, acquisition: unknown, limits: TransportLimits,
-      signal?: AbortSignal): Promise<NativeCapture>;
-    runBroadHostQuery(grant: unknown, acquisition: unknown, limits: TransportLimits,
-      signal: AbortSignal | undefined, moon: Runtime, ledger: unknown): Promise<NativeCapture>;
-    runStrategyNativeHostQuery(grant: unknown, acquisition: unknown, ledger: unknown,
-      limits: TransportLimits, signal?: AbortSignal): Promise<NativeCapture>;
-    nativeSourceIdentityMatches(capture: NativeCapture, identity: unknown): boolean;
-    issueNativeSourceEvidence(capture: NativeCapture, options: EvidenceOptions): Promise<unknown>;
-    prepareNativeSourceEvidenceOriginal(capture: NativeCapture, options: EvidenceOptions): Promise<unknown>;
-  };
-}>;
+type EvidenceOptions = Omit<SourceEvidenceOptions, 'context' | 'identity' | 'logicalInput'> &
+  Readonly<Record<string, unknown>>;
+type NativeRuntime = Awaited<ReturnType<typeof loadDuckDBNativeRuntime>>;
 
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 const contractFiles = [
@@ -334,7 +324,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   };
   let owner: Preparation | RetainedPreparation | undefined;
   let prepared: ReturnType<typeof describeCapturedSource>;
-  let grant: unknown;
+  let grant: Awaited<ReturnType<NativeRuntime['session']['authorizeLocalDatabase']>>;
   let native: NativeRuntime;
   let authorizedSelection: ReturnType<typeof selectAcquisition> | undefined;
   try {
@@ -376,7 +366,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         throw new Error('InstalledSourceCapacityEnvelopeMismatch');
       }
     }
-    native = await loadDuckDBNativeRuntime() as NativeRuntime;
+    native = await loadDuckDBNativeRuntime();
     grant = await native.session.authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
     failAcquisition(cause, 'not_started');
@@ -391,7 +381,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   try {
     capture = broad
       ? await runBroadHostQuery(grant, acquisition, owner.transportLimits,
-        signal, moon, ledger)
+        signal, moon as Runtime & BroadResidualRuntime, ledger)
       : ledger === undefined
         ? await runNativeHostQuery(grant, acquisition, owner.transportLimits, signal)
         : await runStrategyNativeHostQuery(grant, acquisition, ledger,

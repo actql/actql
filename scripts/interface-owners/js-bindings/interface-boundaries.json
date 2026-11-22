@@ -15,7 +15,7 @@
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5a45832d3d5b3c87a42930086cead0f5b3e2515ec59bc9c6f0152f354aadf8ba",
+      "sha256": "286f19bf0945db00216b0da39c9e3b9c184b48fb4751794ae2a8baa36a895703",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -652,7 +652,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -662,7 +662,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -672,7 +672,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -682,7 +682,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -692,7 +692,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -702,7 +702,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -712,7 +712,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -722,7 +722,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -732,7 +732,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -742,7 +742,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -766,7 +766,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -776,7 +776,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -786,7 +786,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -796,7 +796,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -806,7 +806,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -816,7 +816,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -826,7 +826,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -836,7 +836,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -846,7 +846,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -856,7 +856,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "consumeRetainedComputeInput"
               },
               {
@@ -879,7 +879,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -889,7 +889,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -899,7 +899,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -909,7 +909,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -919,7 +919,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -929,7 +929,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -939,7 +939,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -949,7 +949,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -959,7 +959,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -969,7 +969,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "fieldsFrame"
               },
               {
@@ -991,7 +991,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1001,7 +1001,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1011,7 +1011,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1021,7 +1021,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1031,7 +1031,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1041,7 +1041,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1051,7 +1051,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1061,7 +1061,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1071,7 +1071,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1081,7 +1081,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importResidentStrategyInput"
               },
               {
@@ -1106,7 +1106,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1116,7 +1116,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1126,7 +1126,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1136,7 +1136,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1146,7 +1146,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1156,7 +1156,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1166,7 +1166,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1176,7 +1176,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1186,7 +1186,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1196,7 +1196,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "importRetainedComputeInput"
               },
               {
@@ -1222,7 +1222,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1236,7 +1236,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1246,7 +1246,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1260,7 +1260,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1274,7 +1274,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1284,7 +1284,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1294,7 +1294,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1304,7 +1304,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1318,7 +1318,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1328,7 +1328,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
@@ -1352,7 +1352,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1362,7 +1362,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1372,7 +1372,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1382,7 +1382,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1392,7 +1392,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1402,7 +1402,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1412,7 +1412,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1422,7 +1422,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1432,7 +1432,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1442,7 +1442,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "loadRuntime"
               },
               {
@@ -1465,7 +1465,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1475,7 +1475,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1485,7 +1485,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1495,7 +1495,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1505,7 +1505,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1515,7 +1515,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1525,7 +1525,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1535,7 +1535,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1545,7 +1545,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1555,7 +1555,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalComparisonAccounting"
               },
               {
@@ -1578,7 +1578,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1588,7 +1588,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1598,7 +1598,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1608,7 +1608,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1618,7 +1618,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1628,7 +1628,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1638,7 +1638,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1648,7 +1648,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1658,7 +1658,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1668,7 +1668,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "logicalMeasurementAccounting"
               },
               {
@@ -1692,7 +1692,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1702,7 +1702,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1712,7 +1712,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1722,7 +1722,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1732,7 +1732,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1742,7 +1742,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1752,7 +1752,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1762,7 +1762,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1772,7 +1772,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1782,7 +1782,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -1804,7 +1804,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1814,7 +1814,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1824,7 +1824,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1834,7 +1834,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1844,7 +1844,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1854,7 +1854,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1864,7 +1864,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1874,7 +1874,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1884,7 +1884,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1894,7 +1894,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "openResidentStrategyEnvironment"
               },
               {
@@ -1914,7 +1914,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1924,7 +1924,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1934,7 +1934,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1944,7 +1944,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1954,7 +1954,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1964,7 +1964,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1974,7 +1974,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1984,7 +1984,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -1994,7 +1994,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -2004,7 +2004,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -2026,7 +2026,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2036,7 +2036,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2046,7 +2046,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2056,7 +2056,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2066,7 +2066,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2076,7 +2076,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2086,7 +2086,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2096,7 +2096,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2106,7 +2106,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2116,7 +2116,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "rows"
               },
               {
@@ -2138,7 +2138,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2152,7 +2152,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2162,7 +2162,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2176,7 +2176,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2190,7 +2190,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2200,7 +2200,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2210,7 +2210,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2220,7 +2220,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2234,7 +2234,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2244,7 +2244,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runBroadHostQuery"
               },
               {
@@ -2272,7 +2272,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2282,7 +2282,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2292,7 +2292,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2302,7 +2302,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2312,7 +2312,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2322,7 +2322,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2332,7 +2332,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2342,7 +2342,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2352,7 +2352,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2362,7 +2362,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runFixedHostCompute"
               },
               {
@@ -2439,7 +2439,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2449,7 +2449,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2459,7 +2459,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2469,7 +2469,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2479,7 +2479,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2489,7 +2489,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2499,7 +2499,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2509,7 +2509,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2519,7 +2519,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2529,7 +2529,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostCompute"
               },
               {
@@ -2549,7 +2549,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2563,7 +2563,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2573,7 +2573,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2587,7 +2587,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2601,7 +2601,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2611,7 +2611,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2621,7 +2621,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2631,7 +2631,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2645,7 +2645,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2655,7 +2655,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runHostNativeQuery"
               },
               {
@@ -2684,7 +2684,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2694,7 +2694,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2704,7 +2704,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2714,7 +2714,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2724,7 +2724,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2734,7 +2734,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2744,7 +2744,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2754,7 +2754,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2764,7 +2764,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2774,7 +2774,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runManagedRetainedStrategyHostCompute"
               },
               {
@@ -2798,7 +2798,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2808,7 +2808,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2818,7 +2818,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2828,7 +2828,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2838,7 +2838,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2848,7 +2848,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2858,7 +2858,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2868,7 +2868,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2878,7 +2878,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2888,7 +2888,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runNativeHostQuery"
               },
               {
@@ -2912,7 +2912,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2922,7 +2922,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2932,7 +2932,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2942,7 +2942,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2952,7 +2952,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2962,7 +2962,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2972,7 +2972,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2982,7 +2982,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -2992,7 +2992,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -3002,7 +3002,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runResidentStrategyHostCompute"
               },
               {
@@ -3027,7 +3027,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3037,7 +3037,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3047,7 +3047,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3057,7 +3057,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3067,7 +3067,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3077,7 +3077,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3087,7 +3087,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3097,7 +3097,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3107,7 +3107,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3117,7 +3117,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedFixedHostCompute"
               },
               {
@@ -3141,7 +3141,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3151,7 +3151,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3161,7 +3161,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3171,7 +3171,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3181,7 +3181,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3191,7 +3191,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3201,7 +3201,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3211,7 +3211,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3221,7 +3221,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3231,7 +3231,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedNativeHostQuery"
               },
               {
@@ -3256,7 +3256,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3266,7 +3266,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3276,7 +3276,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3286,7 +3286,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3296,7 +3296,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3306,7 +3306,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3316,7 +3316,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3326,7 +3326,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3336,7 +3336,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3346,7 +3346,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyHostCompute"
               },
               {
@@ -3370,7 +3370,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3380,7 +3380,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3390,7 +3390,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3400,7 +3400,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3410,7 +3410,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3420,7 +3420,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3430,7 +3430,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3440,7 +3440,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3450,7 +3450,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3460,7 +3460,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runRetainedStrategyNativeHostQuery"
               },
               {
@@ -3484,7 +3484,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3494,7 +3494,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3504,7 +3504,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3514,7 +3514,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3524,7 +3524,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3534,7 +3534,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3544,7 +3544,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3554,7 +3554,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3564,7 +3564,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3574,7 +3574,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               },
               {
@@ -3598,7 +3598,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3608,7 +3608,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3618,7 +3618,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3628,7 +3628,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3638,7 +3638,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3648,7 +3648,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3658,7 +3658,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3668,7 +3668,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3678,7 +3678,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3688,7 +3688,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyNativeHostQuery"
               },
               {
@@ -3711,7 +3711,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3721,7 +3721,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3731,7 +3731,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3741,7 +3741,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3751,7 +3751,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3759,13 +3759,13 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "const loadRuntime = () => runtime ??= import(runtimeUrl.href);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3775,7 +3775,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3785,7 +3785,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3795,7 +3795,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {
@@ -3805,7 +3805,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "// Standard source-checkout Host entry. Neither Program inputs nor ordinary"
               },
               {

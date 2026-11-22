@@ -1,6 +1,6 @@
 // Only an explicitly selected DuckDB installation crosses this boundary.
 // Configuration, capacity and captured-handle inspection remain dependency-free.
-export async function loadDuckDBNativeRuntime(): Promise<{host: unknown; session: typeof import('./session.mjs')}> {
+export async function loadDuckDBNativeRuntime(): Promise<{host: typeof import('./host.mjs'); session: typeof import('./session.mjs')}> {
   try {
     // TypeScript emit also runs on hosts that have not installed this optional SDK.
     await import('@duckdb/node-api' as string);
@@ -15,7 +15,6 @@ export async function loadDuckDBNativeRuntime(): Promise<{host: unknown; session
     {code: 'DuckDBDependencyUnavailable'});
   }
   const [host, session] = await Promise.all([
-    // @ts-expect-error TS7016 The Native Host entry is still authored in JavaScript.
     import('./host.mjs'),
     import('./session.mjs'),
   ]);

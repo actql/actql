@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "5a45832d3d5b3c87a42930086cead0f5b3e2515ec59bc9c6f0152f354aadf8ba",
+      "sha256": "286f19bf0945db00216b0da39c9e3b9c184b48fb4751794ae2a8baa36a895703",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
@@ -759,13 +759,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "runStrategyHostCompute"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "nativeSourceIdentityMatches"
               },
               {
@@ -775,7 +775,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "registerRetained"
               },
               {
@@ -785,29 +785,29 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "issueNativeSourceEvidence"
               },
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "const loadRuntime = () => runtime ??= import(runtimeUrl.href);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "cleanupPending"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "signal"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/host.mjs",
+                "path": "adapters/connectors/duckdb/node/host.mts",
                 "anchor": "computePhysicalCapacity"
               },
               {

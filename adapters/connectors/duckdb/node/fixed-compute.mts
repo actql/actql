@@ -40,7 +40,7 @@ type ResidentInputEvidence = Readonly<{
 }>;
 type ResidentPort = Pick<FixedPort, 'importCount' | 'consumeInput' | 'queryParameters'> &
   Readonly<{verifyResidentInput?(input: number, session: Session):
-    ResidentInputEvidence | undefined | Promise<ResidentInputEvidence | undefined>}>;
+    ResidentInputEvidence | false | undefined | Promise<ResidentInputEvidence | false | undefined>}>;
 type Resident = Readonly<{
   viewSqls(): readonly string[];
   createResultSql(): string;
@@ -190,7 +190,7 @@ async function executeFixedCompute(port: FixedPort, limits: ValidatedLimits, imp
 
 // Transport provenance only. The MoonBit completion issuer must independently
 // check the exact fixed input, semantics, guards, output and retained evidence.
-export function matchesFixedCompute(result: unknown, port: object, consume: unknown) {
+export function matchesFixedCompute(result: unknown, port: unknown, consume: unknown) {
   const owned = completed.get(result as object);
   return owned !== undefined && owned.port === port && owned.consume === consume
     && owned.session !== undefined;
