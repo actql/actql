@@ -30,6 +30,136 @@ fn relation_document_test_admit(
 }
 
 ///|
+test "relation insertion keeps original bytes in both empty and populated collections" {
+  let declaration = relation_mapping_declaration()
+  let prefix = " {\"padding\":\"" +
+    "x".repeat(4096) +
+    "\",\"control\":[9223372036854775807],\"keys\":[\"id\"],\"collection\":{\"records\":["
+  let suffix = " \t]}}\n"
+  let previous = " {\"label\":null,\"choices\":[],\"amount\":null,\"id\":\"previous\"}"
+  let row = "{\"amount\":\"123.450\",\"choices\":[\"é\"],\"id\":\"new\",\"label\":\"🌱\"}"
+  for case_ in [("", row, 1, 0), (previous, previous + "," + row, 2, 1)] {
+    let (existing, output, count, index) = case_
+    let input = @utf8.encode(prefix + existing + suffix)
+    let expected = @utf8.encode(prefix + output + suffix)
+    let limits = {
+      ..relation_document_test_limits(),
+      max_bytes: expected.length(),
+      max_rows: count,
+    }
+    let original = admit_relation_document(input, limits, 10000000).unwrap()
+    let prepared = prepare_relation_document_contract(
+      declaration, "records", "id", limits,
+    ).unwrap()
+    let replacement = prepare_relation_target_insert(
+      original,
+      prepared,
+      ["collection", "records"],
+      Some(["keys"]),
+      row,
+    ).unwrap()
+    assert_eq(replacement, expected)
+    let reopened = admit_relation_document(replacement, limits, 10000000).unwrap()
+    let selected = project_relation_target_document(
+      reopened,
+      declaration,
+      "records",
+      ["collection", "records"],
+      Some(["keys"]),
+      "id",
+      [],
+      prepared_contract=Some(prepared),
+    ).unwrap()
+    assert_eq(relation_target_row_count(selected), Some(count))
+    assert_eq(relation_target_row_identity(selected, index), Some("new"))
+    let required_work = 10000000 - original.work.val
+    let short = admit_relation_document(input, limits, required_work - 1).unwrap()
+    assert_true(
+      prepare_relation_target_insert(
+        short,
+        prepared,
+        ["collection", "records"],
+        Some(["keys"]),
+        row,
+      )
+      is Err(InvalidPage),
+    )
+    let short_limits = { ..limits, max_bytes: limits.max_bytes - 1, }
+    let short_prepared = prepare_relation_document_contract(
+      declaration, "records", "id", short_limits,
+    ).unwrap()
+    let shorter = admit_relation_document(input, short_limits, 10000000).unwrap()
+    assert_true(
+      prepare_relation_target_insert(
+        shorter,
+        short_prepared,
+        ["collection", "records"],
+        Some(["keys"]),
+        row,
+      )
+      is Err(InvalidPage),
+    )
+  }
+}
+
+///|
+test "relation insertion refuses malformed identity row limits and retired backing" {
+  let declaration = relation_mapping_declaration()
+  let limits = relation_document_test_limits()
+  let input = @utf8.encode(relation_document_test_text())
+  let original = admit_relation_document(input, limits, 10000000).unwrap()
+  let prepared = prepare_relation_document_contract(
+    declaration, "records", "id", limits,
+  ).unwrap()
+  let items_path = ["collection", "records"]
+  let duplicate = "{\"id\":\"first\",\"label\":null,\"amount\":null,\"choices\":[]}"
+  let missing = "{\"id\":\"new\",\"label\":null,\"choices\":[]}"
+  let invalid = "{\"id\":\"new\",\"label\":null,\"amount\":true,\"choices\":[]}"
+  let row = "{\"id\":\"new\",\"label\":null,\"amount\":null,\"choices\":[]}"
+  assert_true(
+    prepare_relation_target_insert(
+      original,
+      prepared,
+      items_path,
+      None,
+      duplicate,
+    )
+    is Err(InvalidPage),
+  )
+  assert_true(
+    prepare_relation_target_insert(
+      original,
+      prepared,
+      items_path,
+      None,
+      missing,
+    )
+    is Err(MissingField("amount")),
+  )
+  assert_true(
+    prepare_relation_target_insert(
+      original,
+      prepared,
+      items_path,
+      None,
+      invalid,
+    )
+    is Err(Value("amount")),
+  )
+  let full_limits = { ..limits, max_rows: 2, }
+  let full = admit_relation_document(input, full_limits, 10000000).unwrap()
+  assert_true(
+    prepare_relation_target_insert(full, prepared, items_path, None, row)
+    is Err(InvalidPage),
+  )
+  assert_true(discard_relation_document_original(original))
+  assert_true(
+    prepare_relation_target_insert(original, prepared, items_path, None, row)
+    is Err(ForeignSource),
+  )
+}
+
+///|
 test "relation target deletion preserves rows whitespace and another collection" {
   let declaration = relation_mapping_declaration()
   let first = "{\"id\":\"first\",\"label\":\"before🌱\",\"choices\":[\",\"],\"amount\":null}"

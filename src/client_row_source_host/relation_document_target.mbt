@@ -667,6 +667,140 @@ fn emit_relation_document_value(
 }
 
 ///|
+/// Prepare an insertion from the original locked document DATA and a complete
+/// typed storage row. The caller supplies the resolved Text identity in that
+/// row and owns construction funding, approval and physical replacement.
+pub fn prepare_relation_target_insert(
+  backing : RelationDocument,
+  prepared : RelationDocumentPreparedContract,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  row_wire : String,
+) -> Result[Bytes, RowSourceIssue] {
+  let document = match
+    project_relation_target_document(
+      backing,
+      prepared.declaration,
+      prepared.resource,
+      items_path,
+      key_path,
+      prepared.primary_identity,
+      [],
+      prepared_contract=Some(prepared),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  defer discard_relation_target_document_original(document) |> ignore
+  try {
+    let limits = document.limits
+    let work = backing.work
+    let bytes = backing.bytes
+    let rows = document.row_cursors
+    let separator = if rows.is_empty() { 0 } else { 1 }
+    let room = limits.max_bytes - bytes.length() - separator
+    let nodes = limits.max_nodes - backing.usage.nodes
+    let depth = limits.max_depth - items_path.length() - 1
+    if rows.length() >= limits.max_rows ||
+      room < 1 ||
+      nodes < 1 ||
+      depth < 1 ||
+      row_wire.length() > limits.max_bytes {
+      raise RelationDocumentStop(InvalidPage)
+    }
+    relation_document_work(work, row_wire.length())
+    let wire = @utf8.encode(row_wire)
+    relation_document_work(work, wire.length())
+    let parsed = @source.parse_json_bytes_preserving(wire, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: nodes,
+      max_depth: depth,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let cursor = @decode.admit(parsed, {
+      max_nodes: nodes,
+      max_depth: depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    relation_document_work(work, @decode.admission_usage(cursor).nodes)
+    let object = @decode.closed_object(cursor, document.columns).unwrap_or_else(() => {
+        raise RelationDocumentStop(InvalidPage)
+      },
+    )
+    let writer = @encode.writer(room, nodes, depth)
+    @encode.begin_object(writer)
+    for index, name in document.columns {
+      relation_document_work(work, nodes)
+      let contract = @schema.field_at(document.schema, index).unwrap().contract
+      let checked = @admitted.admit_wire(
+        contract,
+        relation_document_field(object, name),
+        {
+          max_nodes: nodes,
+          max_depth: depth,
+          max_text_bytes: limits.max_bytes,
+        },
+      ).unwrap_or_else(() => raise RelationDocumentStop(Value(name)))
+      if index == document.identity_index {
+        guard checked.value is @admitted.Text(identity) && !identity.is_empty() else {
+          raise RelationDocumentStop(InvalidInputSchema)
+        }
+        for row in document.rows {
+          guard row[index].value is @admitted.Text(previous) else {
+            raise RelationDocumentStop(InvalidInputSchema)
+          }
+          relation_document_work(work, previous.length())
+          relation_document_work(work, identity.length())
+          if previous == identity {
+            raise RelationDocumentStop(InvalidPage)
+          }
+        }
+      }
+      @encode.key(writer, name)
+      emit_relation_document_value(checked.value, writer)
+    }
+    @encode.end_object(writer)
+    let row = @utf8.encode(@encode.finish(writer))
+    relation_document_work(work, row.length())
+    let array = @decode.cursor_span(
+      relation_document_path(backing.root, items_path),
+    )
+    let slot = match rows.last() {
+      Some(last) => @decode.cursor_span(last).end_byte
+      None => array.start_byte + 1
+    }
+    if array.start_byte < 0 ||
+      array.end_byte > bytes.length() ||
+      slot <= array.start_byte ||
+      slot >= array.end_byte ||
+      bytes[array.start_byte] != b'[' ||
+      bytes[array.end_byte - 1] != b']' ||
+      row.length() > room {
+      raise RelationDocumentStop(InvalidPage)
+    }
+    let inserted = row.length() + separator
+    let size = bytes.length() + inserted
+    relation_document_work(work, size)
+    Ok(
+      Bytes::makei(size, index => {
+        if index < slot {
+          bytes[index]
+        } else if separator == 1 && index == slot {
+          b','
+        } else if index < slot + inserted {
+          row[index - slot - separator]
+        } else {
+          bytes[index - inserted]
+        }
+      }),
+    )
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+    _ => Err(InvalidPage)
+  }
+}
+
+///|
 /// Prepare byte-preserving changes for an already checked UPDATE. Exact row
 /// version and original correspondence are required, but remain DATA checks:
 /// only the installed file Owner may bind approval/currentness and replace it.

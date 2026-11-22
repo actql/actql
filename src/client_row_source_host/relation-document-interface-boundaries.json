@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9b5023bf920cafbbe00dc61623d18d763fd154680c7603e5af366d597dcc9ceb",
+      "sha256": "2a0a4d237e26bd32f31a10cd704d88f75132a31a262dce2771e47b66f82d05e9",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -56,6 +56,10 @@
         {
           "name": "prepare_relation_target_delete",
           "declaration": "prepare_relation_target_delete ( document : RelationTargetDocument , row : RelationTargetRow , expected_version : String , max_work : Int , ) - > Result [ Bytes , RowSourceIssue ]"
+        },
+        {
+          "name": "prepare_relation_target_insert",
+          "declaration": "prepare_relation_target_insert ( backing : RelationDocument , prepared : RelationDocumentPreparedContract , items_path : Array [ String ] , key_path : Array [ String ] ? , row_wire : String , ) - > Result [ Bytes , RowSourceIssue ]"
         },
         {
           "name": "prepare_relation_target_update",
@@ -143,6 +147,7 @@
             "emit_relation_target_row",
             "observe_relation_target",
             "prepare_relation_target_delete",
+            "prepare_relation_target_insert",
             "prepare_relation_target_update",
             "project_relation_target_document",
             "relation_document_field",
@@ -226,6 +231,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation insertion keeps original bytes in both empty and populated collections"
               }
             ]
           }
