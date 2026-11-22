@@ -98,6 +98,18 @@ test "GitHub Source backs initial requests then grows only actual native respons
 }
 
 ///|
+test "GitHub Source quotes outer cursor history and bounded failure aliases" {
+  let quote = github_source_read_prefix_construction_capacity(
+    4000000, 400000, 32, 100, 10, 100, 512, 16384, 10,
+  ).unwrap()
+  // The previous exact 10-response quote already includes both map headers
+  // and the cursor keys. Add the native 1H1R wrapper and two escape entries:
+  // 24 + 2 * (4H11R13W), or 536 bytes on both axes.
+  assert_eq(@execution.execution_capacity_retained_bytes(quote), 26235072L)
+  assert_eq(@execution.execution_capacity_execution_bytes(quote), 66270324L)
+}
+
+///|
 test "GitHub Source prefix quotes retained occurrences without constructing future pages" {
   let quote = (responses, bytes) => {
     github_source_read_prefix_construction_capacity(
