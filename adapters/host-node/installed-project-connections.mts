@@ -4,13 +4,25 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+type Runtime = Readonly<{
+  clientProjectConfigurationConnectorsFile?(configuration: unknown): unknown;
+  clientProjectConnectionsAdmit?(wire: string): unknown;
+  clientProjectConnectionsAdmissionConstructionCapacity?(wire: string): unknown;
+}>;
+type Project = Readonly<{directory?: unknown}>;
+type Inventory = Readonly<{
+  readMetadataUtf8(path: string, maxBytes: number): string | Promise<string>;
+  prepareMetadataInput(input: Readonly<{capacity(): unknown; project(): unknown}>): unknown;
+}>;
+type ConnectionLoadOptions = Readonly<{assertCurrent?: () => unknown;
+  openFile?: unknown; installationInventory?: Inventory}>;
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 
 // Same-project declaration acquisition only. Connector readers still admit the
 // exact selected entry before installation; this does not create an installed
 // Source, credential use, current authority, capacity or durable publication.
-export async function loadInstalledProjectConnections(moon, project,
-  {assertCurrent, openFile = open, installationInventory} = {}) {
+export async function loadInstalledProjectConnections(moon: Runtime | null | undefined, project: Project,
+  {assertCurrent, openFile = open, installationInventory}: ConnectionLoadOptions = {}) {
   const projectOriginal = installedProjectOriginalsForRuntime(project, moon);
   const directory = project.directory;
   if (typeof directory !== 'string' || !directory ||
@@ -40,11 +52,11 @@ export async function loadInstalledProjectConnections(moon, project,
   // No second parse or file read can replace this exact acquisition. Close
   // failures retain the original FD on the existing reader's cleanup carrier.
   check();
-  const admission = () => checked(Reflect.apply(admit, moon, [wire]));
+  const admission = () => checked(Reflect.apply(admit, moon, [wire!]));
   const connections = wire === undefined ? undefined : installationInventory === undefined
     ? admission() : installationInventory.prepareMetadataInput(Object.freeze({
       capacity() {
-        const quote = moon.clientProjectConnectionsAdmissionConstructionCapacity;
+        const quote = moon!.clientProjectConnectionsAdmissionConstructionCapacity;
         if (typeof quote !== 'function') fail('InstalledProjectRuntimeUnavailable');
         const quantity = Reflect.apply(quote, moon, [wire]);
         if (quantity == null) fail('InstalledProjectMetadataCapacityUnavailable');
@@ -53,7 +65,7 @@ export async function loadInstalledProjectConnections(moon, project,
     }));
   check();
   const original = Object.freeze({project: projectOriginal, path, wire, connections});
-  return Object.freeze({originalsForRuntime(runtime) {
+  return Object.freeze({originalsForRuntime(runtime: unknown) {
     if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
     check();
     return original;

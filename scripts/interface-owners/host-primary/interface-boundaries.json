@@ -25326,8 +25326,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -25588,7 +25588,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               },
               {

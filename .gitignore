@@ -2150,3 +2150,7 @@ target/
 /adapters/host-node/fixtures/table-logical-receipt.d.mts
 /adapters/host-node/installed-table-effect.mjs
 /adapters/host-node/installed-table-effect.d.mts
+/adapters/host-node/installed-project-configuration.mjs
+/adapters/host-node/installed-project-configuration.d.mts
+/adapters/host-node/installed-project-connections.mjs
+/adapters/host-node/installed-project-connections.d.mts

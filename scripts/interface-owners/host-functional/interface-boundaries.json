@@ -49604,8 +49604,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -49886,7 +49886,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -50103,8 +50103,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -50217,7 +50217,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               },
               {
@@ -50443,8 +50443,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -50717,7 +50717,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -73933,8 +73933,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -74199,7 +74199,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -74743,8 +74743,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -74813,7 +74813,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -74964,8 +74964,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -75230,7 +75230,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -76437,7 +76437,7 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "081684433daafa18a4f646bb187ddd3ae5f1fc5368a919c1334476cc7cfff042",
+      "sha256": "bc44f6c16be292448715fcab8b7729594767d9a8a891df6d01acdaa254eac27a",
       "exports": [
         "admitInstalledProjectConfiguration",
         "installedProjectOriginalsForRuntime",
@@ -76554,8 +76554,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon: Runtime | null | undefined,"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -76574,17 +76574,17 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
@@ -76614,7 +76614,7 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               },
               {
@@ -76640,11 +76640,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
@@ -76670,8 +76670,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "if (opened || (error as {code?: unknown} | null | undefined)?.code !== 'ENOENT') throw error;"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -76726,8 +76726,8 @@
                 "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "{maxBytes: 65536, openFile: async (...args: [path: string, flags: string]) => {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -76772,7 +76772,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -76851,8 +76851,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -76993,7 +76993,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -77045,8 +77045,8 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
@@ -77115,7 +77115,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -77161,8 +77161,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon: Runtime | null | undefined,"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -77181,17 +77181,17 @@
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export function retireInstalledProjectConfiguration(project: unknown, moon: unknown) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
@@ -77221,7 +77221,7 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               },
               {
@@ -77247,11 +77247,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
@@ -77277,8 +77277,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "if (opened || (error as {code?: unknown} | null | undefined)?.code !== 'ENOENT') throw error;"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -77333,8 +77333,8 @@
                 "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "{maxBytes: 65536, openFile: async (...args: [path: string, flags: string]) => {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -77379,7 +77379,7 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
@@ -77420,7 +77420,7 @@
     {
       "module": "adapters/host-node/installed-project-connections.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f10d66176b185e0dc5addfca23a11f2fcf8c5e920ecd0070e1cb0bb2dc76a54",
+      "sha256": "c38b2ad1357edf55f8a999a60f366f9a37705b4bf5bb53efe87d7f774d2e7cb9",
       "role": "physical-io",
       "owner": "Existing Project configuration and installed Host acquisition Owners",
       "exports": [
@@ -77472,7 +77472,7 @@
                 "anchor": "## Original public connection declarations"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "// Same-project declaration acquisition only."
               },
               {
@@ -77486,7 +77486,7 @@
                 "anchor": "pub fn admit_client_project_connections("
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const original = Object.freeze({project: projectOriginal, path, wire, connections});"
               },
               {
@@ -77496,7 +77496,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const projectOriginal = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
@@ -77514,7 +77514,7 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "// failures retain the original FD on the existing reader's cleanup carrier."
               },
               {
@@ -77524,16 +77524,16 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const select = moon?.clientProjectConfigurationConnectorsFile;"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const admit = moon?.clientProjectConnectionsAdmit;"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
-                "anchor": "checked(Reflect.apply(admit, moon, [wire]));"
+                "path": "adapters/host-node/installed-project-connections.mts",
+                "anchor": "checked(Reflect.apply(admit, moon, [wire!]));"
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
@@ -77542,7 +77542,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "fail('InvalidInstalledProjectConnectionsSelection');"
               },
               {
@@ -77556,7 +77556,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "assertCurrent();"
               },
               {
@@ -77574,7 +77574,7 @@
                 "anchor": "The existing installation inventory must cover the Project and view references,"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "await installationInventory.readMetadataUtf8(path, 65536);"
               },
               {
@@ -77624,7 +77624,7 @@
                 "anchor": "## Original public connection declarations"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "// Same-project declaration acquisition only."
               }
             ],
@@ -77634,13 +77634,13 @@
                 "anchor": "pub fn admit_client_project_connections("
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const original = Object.freeze({project: projectOriginal, path, wire, connections});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const projectOriginal = installedProjectOriginalsForRuntime(project, moon);"
               },
               {
@@ -77654,27 +77654,27 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "// failures retain the original FD on the existing reader's cleanup carrier."
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const select = moon?.clientProjectConfigurationConnectorsFile;"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "const admit = moon?.clientProjectConnectionsAdmit;"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
-                "anchor": "checked(Reflect.apply(admit, moon, [wire]));"
+                "path": "adapters/host-node/installed-project-connections.mts",
+                "anchor": "checked(Reflect.apply(admit, moon, [wire!]));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "fail('InvalidInstalledProjectConnectionsSelection');"
               },
               {
@@ -77684,7 +77684,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "assertCurrent();"
               },
               {
@@ -77698,7 +77698,7 @@
                 "anchor": "The existing installation inventory must cover the Project and view references,"
               },
               {
-                "path": "adapters/host-node/installed-project-connections.mjs",
+                "path": "adapters/host-node/installed-project-connections.mts",
                 "anchor": "await installationInventory.readMetadataUtf8(path, 65536);"
               }
             ],
@@ -100005,8 +100005,8 @@
                 "anchor": "### Query-shaped acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon: Runtime | null | undefined,"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -100031,11 +100031,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
@@ -100065,7 +100065,7 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               },
               {
@@ -100087,11 +100087,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
@@ -100117,8 +100117,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "if (opened || (error as {code?: unknown} | null | undefined)?.code !== 'ENOENT') throw error;"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -100173,8 +100173,8 @@
                 "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "{maxBytes: 65536, openFile: async (...args: [path: string, flags: string]) => {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -100659,8 +100659,8 @@
                 "anchor": "### Query-shaped acquisition"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon: Runtime | null | undefined,"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -100681,11 +100681,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               },
               {
@@ -100711,7 +100711,7 @@
                 "anchor": "original = await (openFile as"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               }
             ],
@@ -100729,11 +100729,11 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "path": "adapters/host-node/installed-project-configuration.mts",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               },
               {
@@ -100755,8 +100755,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "if (opened || (error as {code?: unknown} | null | undefined)?.code !== 'ENOENT') throw error;"
               },
               {
                 "path": "adapters/host-node/source-profile-json.mts",
@@ -100803,8 +100803,8 @@
                 "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
               },
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+                "path": "adapters/host-node/installed-project-configuration.mts",
+                "anchor": "{maxBytes: 65536, openFile: async (...args: [path: string, flags: string]) => {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
