@@ -1205,6 +1205,8 @@ target/
 /adapters/host-node/installed-source-physical-construction.d.mts
 /adapters/host-node/installed-source-material-accounting.mjs
 /adapters/host-node/installed-source-material-accounting.d.mts
+/adapters/host-node/installed-model-task-construction.test.mjs
+/adapters/host-node/installed-model-task-construction.test.d.mts
 /adapters/host-node/installed-source-publication-original.test.mjs
 /adapters/host-node/installed-source-publication-original.test.d.mts
 /adapters/local-node/managed-row-cause-diagnostic.test.mjs
