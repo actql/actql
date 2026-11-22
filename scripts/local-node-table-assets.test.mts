@@ -30,7 +30,9 @@ test('Local package carries the finite optional Table worker and dependency pins
   const requirements = readFileSync(join(destination, 'requirements.in'), 'utf8');
   assert.match(requirements, /^pyiceberg\[sql-sqlite\]==0\.10\.0$/mu);
   assert.match(requirements, /^pyarrow==21\.0\.0$/mu);
-  const dependencies = JSON.parse(readFileSync(join(root, 'packages/local-node/package.json'))).dependencies;
+  const dependencies = (JSON.parse(readFileSync(join(root, 'packages/local-node/package.json')) as unknown as string) as {
+    dependencies: Readonly<Record<string, string>>;
+  }).dependencies;
   assert.deepEqual(Object.keys(dependencies).sort(), ['@actql/client-wire', '@actql/sdk']);
   const installed = readFileSync(join(root, 'packages/local-node/adapters/connectors/local/host/installed-local-table.mjs'), 'utf8');
   assert.match(installed, /from '@actql\/sdk\/host-port'/u);

@@ -1133,6 +1133,8 @@ target/
 /adapters/connectors/local/host/iceberg-process.d.mts
 /adapters/connectors/local/host/installed-local-table.mjs
 /adapters/connectors/local/host/installed-local-table.d.mts
+/scripts/local-node-table-assets.test.mjs
+/scripts/local-node-table-assets.test.d.mts
 /adapters/host-node/process-channel.test.mjs
 /adapters/host-node/process-channel.test.d.mts
 /adapters/store-local/delegated-file-fixture.mjs
