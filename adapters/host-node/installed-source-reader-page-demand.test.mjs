@@ -8,6 +8,7 @@ import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNam
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
+import {createInstalledSourceContextCustody} from './installed-source-context-custody.mjs';
 import {createProcessFrameReader} from './process-frames.mjs';
 
 const ok=value=>({$tag:1,_0:value});
@@ -39,10 +40,12 @@ function serviceFixture(){
     clientProgramInstalledJsonSourceReaderCapacity(actual,columns,secret){
       assert.deepEqual(actual,installedJsonSourceReaderLimitNames.map(name=>limits[name]));
       assert.equal(columns,3);assert.equal(secret,100);return capacity;}};
+  const {requireSourceConstructor}=createInstalledSourceContextCustody({fail,installations,sourceContexts});
   const ports={installations,sourceContexts,fail,checked,runtimeField,runtimeIsBoxedSome,nodeTypes,
-    createInstalledCredentialSourceReader,installedJsonSourceReaderLimitNames,installedJsonSourceReaderProfileLimitNames,
+    requireSourceConstructor,createInstalledCredentialSourceReader,installedJsonSourceReaderLimitNames,
+    installedJsonSourceReaderProfileLimitNames,
     installedRowCredentialOperationSite(actual){assert.equal(actual,credential);return originalSite;}};
-  const create=Function(...Object.keys(ports),body(source,'requireSourceConstructor')+'\n'+
+  const create=Function(...Object.keys(ports),
     body(source,'createInstalledHostServices')+'\nreturn createInstalledHostServices;')(...Object.values(ports));
   const services=create({root:'/UNOPENED',principalId:'component',moon,assertCurrent(){}});
   const state=installations.get(services),runtimeBundleCid='sha256:'+'a'.repeat(64);
