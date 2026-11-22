@@ -1,6 +1,6 @@
 import {createRequire} from 'node:module';
 import {beginOrdinaryHostControl, isOrdinaryHostControl, assertOrdinaryHostControlCurrent,
-  ordinaryHostControlInput, readOrdinaryHostAsset} from './ordinary-host-control.mjs';
+  ordinaryHostControlInput, ordinaryHostControlModelSdk, readOrdinaryHostAsset} from './ordinary-host-control.mjs';
 
 // The actual CJS startup may synchronously capture this ESM namespace before
 // entry. Read its already-published original forwarders through that SAME CJS
@@ -105,4 +105,8 @@ export function readInitialControlInstallationInput(scope, sameOriginals) {
     throw error;
   }
   return apply(readInput, startup, [scope, sameOriginals]);
+}
+
+export function readInitialControlInstallationModelSdk(scope, sameOriginals) {
+  return isOrdinaryHostControl(scope) ? ordinaryHostControlModelSdk(scope, sameOriginals) : undefined;
 }

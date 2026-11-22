@@ -55351,7 +55351,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "fa330fbdc3fefe085c3b65bd4e409d43f353c6f508cf2f4501da202f4c17a75d",
+      "sha256": "8d38b40c7882f264d125f7f8d196c3d187cbfc6ca8412e8d22a28bdaf76f7e7c",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -55386,6 +55386,20 @@
         {
           "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/entry/entry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/initializeHostNamespace/group/group",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -55457,11 +55471,13 @@
             "captureOrdinaryInitialControlPackageCustody",
             "capturePackageCustody/assertCurrent",
             "capturePackageCustody/initializeHostNamespace",
+            "capturePackageCustody/initializeHostNamespace/entry/entry",
+            "capturePackageCustody/initializeHostNamespace/group/group",
             "capturePackageCustody/readAsset",
-            "concrete/concrete/concrete",
             "capturePackageCustody/readSdkImage",
             "capturePackageCustody/readSdkImage/group/group",
             "capturePackageCustody/readSdkImage/image/image",
+            "concrete/concrete/concrete",
             "readVerifiedSdkImage"
           ],
           "exports": [
@@ -83434,12 +83450,13 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "9d5a32588b500bf513d78dc9de99f6c16ec700941a1f23bb7b0b68da4fd03d14",
+      "sha256": "363de0776b2bf111c94d848d5f7b3a6a6889c23faa95e6744e16c944b4d9bddb",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
         "readInitialControlInstallationAsset",
-        "readInitialControlInstallationInput"
+        "readInitialControlInstallationInput",
+        "readInitialControlInstallationModelSdk"
       ],
       "operations": [
         {
@@ -83481,6 +83498,14 @@
             "sameOriginals"
           ],
           "async": false
+        },
+        {
+          "name": "readInitialControlInstallationModelSdk",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -83500,13 +83525,15 @@
             "beginInitialControlInstallation",
             "explicitStartup/explicitStartup",
             "readInitialControlInstallationAsset",
-            "readInitialControlInstallationInput"
+            "readInitialControlInstallationInput",
+            "readInitialControlInstallationModelSdk"
           ],
           "exports": [
             "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation",
             "readInitialControlInstallationAsset",
-            "readInitialControlInstallationInput"
+            "readInitialControlInstallationInput",
+            "readInitialControlInstallationModelSdk"
           ],
           "attributes": {
             "responsibility": [
@@ -107571,12 +107598,13 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "cf299c8a5f04952b2de823dbc131c219d2c86c640e33ae786bb95ee802428093",
+      "sha256": "6b26ca075979b487d56ff9f87b4790ba6450a9c25c165fa731fcd8a5f9fa5438",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
         "isOrdinaryHostControl",
         "ordinaryHostControlInput",
+        "ordinaryHostControlModelSdk",
         "readOrdinaryHostAsset"
       ],
       "operations": [
@@ -107663,6 +107691,21 @@
           "async": false
         },
         {
+          "name": "ordinaryHostControlModelSdk",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareModelSdkInstallation/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "readOrdinaryHostAsset",
           "parameters": [
             "scope",
@@ -107690,10 +107733,16 @@
         }
       ],
       "imports": [
+        "./initial-control-package-custody.cjs",
+        "./initial-control-package-original.cjs",
+        "./initial-control-phase-envelope.cjs",
         "./installed-host-policy.mjs",
         "node:fs",
+        "node:module",
         "node:path",
-        "node:url"
+        "node:url",
+        "node:util",
+        "node:v8"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -107715,6 +107764,8 @@
             "close/flight/flight",
             "isOrdinaryHostControl",
             "ordinaryHostControlInput",
+            "ordinaryHostControlModelSdk",
+            "prepareModelSdkInstallation/data/data/data",
             "readOrdinaryHostAsset",
             "readOrdinaryHostAsset/readOrdinaryHostAsset",
             "readOrdinaryHostAsset/readOrdinaryHostAsset#2",
@@ -107725,6 +107776,7 @@
             "beginOrdinaryHostControl",
             "isOrdinaryHostControl",
             "ordinaryHostControlInput",
+            "ordinaryHostControlModelSdk",
             "readOrdinaryHostAsset"
           ],
           "attributes": {
@@ -137713,8 +137765,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5518,
-    "exports": 1195,
+    "operations": 5523,
+    "exports": 1197,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

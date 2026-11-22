@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {types as nodeTypes} from 'node:util';
+import {isDeepStrictEqual, types as nodeTypes} from 'node:util';
 import packageCustody from './initial-control-package-custody.cjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
@@ -63,7 +63,7 @@ export async function installConfiguredModelProviders({moon, register, project,
   let phase = 'registering', failure, preparing = false;
   let defaults, candidates;
   const executionOriginals = new Map();
-  let preparedSdkIds;
+  let preparedSdkIds, preparedSdkRegistrations;
   const pending = new Set();
   const track = operation => {
     // A sealed context cannot create even a new asynchronous child from an
@@ -130,6 +130,10 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
+    registeredSdkSelected(providerId) {
+      check();
+      return verifiedSdkInstallations?.has(providerId) === true;
+    },
     prepareRegisteredSdk(providerId) {
       return track(async () => {
         check();
@@ -197,7 +201,7 @@ export async function installConfiguredModelProviders({moon, register, project,
             const providerOptions = sdkProviderOptions(original.providerOptions,
               adapter.optionNamespace, adapter.optionSchema);
             check();
-            return Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
+            const registration = Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
               sdkPackage: original.sdk.packageName,
               sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
               adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
@@ -206,7 +210,7 @@ export async function installConfiguredModelProviders({moon, register, project,
                 assertNewHostRuntime?.();
                 requireOriginal();
                 sdkImageCustody.assertCurrent();
-                return createLanguageModel(factory, original.route.modelId, fetch);
+                return createLanguageModel(factory, original.route.modelId, fetch, original.route);
               },
               verifyRequest(wire, call) {
                 assertCurrent();
@@ -215,6 +219,9 @@ export async function installConfiguredModelProviders({moon, register, project,
                 sdkImageCustody.assertCurrent();
                 return verifyRequest(wire, call, original.route, providerOptions);
               }});
+            preparedSdkRegistrations ??= new Map();
+            preparedSdkRegistrations.set(providerId, registration);
+            return registration;
           },
           retained: () => capacity(64n, 10304n),
         }));
@@ -594,8 +601,37 @@ export async function installConfiguredModelProviders({moon, register, project,
       }
     }
     const taskOriginals = candidates?.originalsForRuntime(moon);
+    const prepareSdkCapability = preparedSdkRegistrations === undefined ? undefined :
+      (registration, providerId, taskCid, provider, raw) => {
+        const original = taskOriginals?.find(task => task.taskCid === taskCid && task.providerId === providerId);
+        if (preparedSdkRegistrations.get(providerId) !== registration || original === undefined ||
+            typeof moon.clientProgramPrepareInstalledStructuredSdkCapability !== 'function' ||
+            typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function') {
+          fail(invalidSdkInstallation);
+        }
+        return reader().prepareModelTaskInput(Object.freeze({
+          capacity: () => capacity(24n, 0n, 0n, 12n * 4096n, 12n * 65536n, 8n * 65536n),
+          project() {
+            assertCurrent(); assertNewHostRuntime?.();
+            const {route} = registration, {binding} = original.defaults;
+            const revision = JSON.parse(binding.originals.installationRevision.wire);
+            const configuration = JSON.parse(binding.originals.configuration.wire);
+            if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
+                revision.builder_artifact_cid !== registration.adapterArtifactCid ||
+                revision.lock_artifact_cid !== registration.lockArtifactCid ||
+                !isDeepStrictEqual(configuration.provider_options, registration.providerOptions)) {
+              fail(invalidSdkInstallation);
+            }
+            const opaque = checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
+              provider, binding.value, binding.originals.configuration.wire,
+              route.selector, route.modelId, route.apiMode, route.endpoint, raw.profile));
+            return Object.freeze({opaque, installation: raw.installation});
+          },
+          retained: () => capacity(24n),
+        }));
+      };
     const install = () => installModelProviders(moon, () => entries, assertHostRuntime,
-      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals);
+      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability);
     const providerNodes = candidates === undefined ? 0n : 64n +
       64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length);
     const providers = candidates === undefined ? install() : reader().prepareModelTaskInput(Object.freeze({

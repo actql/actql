@@ -1,5 +1,6 @@
 import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
+import {createAdmittedRegisteredSdkPreflight} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits,fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
@@ -58,11 +59,12 @@ export function createInstalledUndiciOpenAIChatRegistration(config) {
 // included these same frozen settings in its original contract/configuration
 // bodies under the initial construction Resource. Legacy public low-level
 // registrations accept no unbound timeout field.
-export function createConfiguredUndiciOpenAIChatRegistration(config, transportTimeouts, openAICredentialBytes) {
-  return installedChatRegistration(config, true, fixedOriginalTransportTimeouts(transportTimeouts), openAICredentialBytes);
+export function createConfiguredUndiciOpenAIChatRegistration(config, transportTimeouts, openAICredentialBytes, registeredSdk) {
+  return installedChatRegistration(config, true, fixedOriginalTransportTimeouts(transportTimeouts), openAICredentialBytes,
+    registeredSdk);
 }
 
-function installedChatRegistration(config, originalUndici, transportTimeouts, openAICredentialBytes) {
+function installedChatRegistration(config, originalUndici, transportTimeouts, openAICredentialBytes, registeredSdk) {
   if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
     issue('OpenAIOriginalStringLimitsUnavailable');
   }
@@ -212,6 +214,7 @@ function installedChatRegistration(config, originalUndici, transportTimeouts, op
       transportTimeouts, openAICredentialBytes}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       sdkStaticOriginals:openAIChatStaticOriginals,
+      ...(registeredSdk === undefined ? {} : {registeredSdk}),
       bindingOriginals:bindings,
       ...(recipeMode ? {originalReadRecipe:original} : {originalReadInstallation:original}),
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
@@ -219,12 +222,12 @@ function installedChatRegistration(config, originalUndici, transportTimeouts, op
       // comparator selects the installed interpretation, not a JS evaluator.
       validatePrompt:(task,selector,payload)=>task===taskCid &&
         selector===modelSelector && payload===promptPayloadWire,
-      physicalPreflight(request,notification,retainRawBinder,admittedProvider) {
+      physicalPreflight(request,notification,retainRawBinder,admittedProvider,structuredAdmission) {
         if (typeof notification?.notify!=='function' || typeof retainRawBinder!=='function' ||
             admittedProvider===undefined) issue('OpenAIOriginalPhysicalContextUnavailable');
-        return createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
+        const common = {moon,request,admittedProvider,modelId,baseURL,apiKey,
           taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
-          modelId,baseURL,apiKey,fetch:physicalFetch,observeAt,notify:notification.notify,
+          fetch:physicalFetch,observeAt,notify:notification.notify,
           rawCaptureBinder:retainRawBinder,profile:raw.profile,installation,
           needsCredential: openAICredentialBytes !== undefined,
           quantities:quantities.perAttempt,responseLimits,
@@ -233,7 +236,12 @@ function installedChatRegistration(config, originalUndici, transportTimeouts, op
           checked(value) {
             if (runtimeIsOk(value)) return runtimeField(value, 0);
             issue('OpenAIOriginalCommonRefused');
-          }}).preflight;
+          }};
+        if (registeredSdk !== undefined) {
+          if (structuredAdmission === undefined) issue('RegisteredSdkPhysicalInstallationUnavailable');
+          return createAdmittedRegisteredSdkPreflight({...common, registeredSdk, admission:structuredAdmission}).preflight;
+        }
+        return createAdmittedOpenAIChatPreflight(common).preflight;
       },
     })];
   };

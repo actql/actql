@@ -228,11 +228,20 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
   }
   const loader = ordinary ? installOrdinaryInitialControlImageLoader(groups) : installInitialControlImageLoader(groups);
   const originalRequire = createRequire(join(root, 'package.json'));
-  let namespace, publicNamespaces, initialized = false;
+  let namespace, publicNamespaces, initialized = false, selectedSdk = false;
   function initializeHostNamespace() {
     if (apply(preloading, module, []) !== !ordinary) fail('InitialControlPackageCustodyUnavailable');
     loader.assertCurrent();
     if (initialized) return namespace;
+    if (selectedSdk && ordinary) {
+      // Compile the fixed optional package entrance with the same selected
+      // modules. Its CommonJS dependencies must land before the cache seal.
+      const directory = apply(mapGet, sdkPackages, ['@actql/provider-ai-sdk']);
+      const group = groups.find(value => value.root === directory);
+      const entry = group.images.find(value => value.path === 'index.mjs');
+      if (entry === undefined) fail('InitialControlSdkImageUnavailable');
+      loader.loadSelectedModule(join(directory, entry.path), entry.captured.sha256);
+    }
     // Actual Source delivery precedes this compilation. Do not capture a
     // mutable pathname later or initialize a replacement caller namespace.
     const loaded = originalRequire(join(root, hostModule));
@@ -277,6 +286,7 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
     if (image === undefined || 'sha256:' + image.captured.sha256 !== cid ||
         kind === 'lock' && path !== 'npm-shrinkwrap.json') fail('InitialControlPackageImageChanged');
     const namespace = kind === 'module' ? loader.loadSelectedModule(join(directory, path), image.captured.sha256) : undefined;
+    if (!initialized && namespace !== undefined) selectedSdk = true;
     loader.assertCurrent();
     return freeze({namespace, cid, packageName, version: group.version});
   }

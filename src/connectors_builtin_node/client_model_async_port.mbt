@@ -200,6 +200,48 @@ pub fn client_program_bind_admitted_structured_model_provider(
 }
 
 ///|
+// Initialization retains this exact capability before any original Request.
+#export_name("clientProgramPrepareInstalledStructuredSdkCapability")
+pub fn client_program_prepare_installed_structured_sdk_capability(
+  provider : @model.ModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration : String,
+  selector : String,
+  model_id : String,
+  api_mode : String,
+  endpoint : String,
+  profile : @check_environment.ModelResponseProfile,
+) -> Result[
+  @model.StructuredModelCapability,
+  @model.StructuredModelCapabilityIssue,
+] {
+  @model.register_structured_model_capability(
+    provider,
+    binding,
+    configuration,
+    { selector, model_id, adapter_kind: "ai-sdk", api_mode, endpoint, },
+    profile,
+    true,
+    true,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitInstalledStructuredSdkCapability")
+pub fn client_program_admit_installed_structured_sdk_capability(
+  capability : @model.StructuredModelCapability,
+  original : @model.AdmittedModelProvider,
+  installation : @check_environment.ModelResponseProfileInstallation,
+) -> Result[
+  @model.AdmittedStructuredModelProvider,
+  @model.StructuredModelCapabilityIssue,
+] {
+  @model.bind_admitted_structured_model_provider(
+    capability, original, installation,
+  )
+}
+
+///|
 #export_name("clientProgramAdmittedStructuredSdkRouteMatches")
 pub fn client_program_admitted_structured_sdk_route_matches(
   admitted : @model.AdmittedStructuredModelProvider,

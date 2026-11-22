@@ -182,6 +182,15 @@ function configureOpenAIChatProvider(options, projectMode) {
     const builderCid = await context.artifactIdentity(builderArtifactUrl);
     const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
     const lockCid = await context.artifactIdentity(lockArtifactUrl);
+    const registeredSdk = context.registeredSdkSelected?.(config.providerId)
+      ? await context.prepareRegisteredSdk(config.providerId) : undefined;
+    if (registeredSdk !== undefined && (!projectMode || registeredSdk.adapterArtifactCid !== builderCid ||
+        registeredSdk.lockArtifactCid !== lockCid || registeredSdk.sdkPackage !== '@ai-sdk/openai' ||
+        registeredSdk.sdkVersion !== '4.0.91' || registeredSdk.route.selector !== config.modelSelector ||
+        registeredSdk.route.modelId !== config.modelId || registeredSdk.route.apiMode !== 'chat_completions' ||
+        registeredSdk.route.endpoint !== config.baseURL + '/chat/completions')) {
+      refuse('InstalledModelResolvedConfigurationMismatch');
+    }
     const apiKey = projectMode ? unboundOpenAICredential
       : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
     const sdk = Object.freeze({package_name: '@ai-sdk/openai', version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
@@ -190,7 +199,8 @@ function configureOpenAIChatProvider(options, projectMode) {
     // a current fixed route cannot match a historical selector-only binding.
     const bindings = await context.prepareBindingOriginals(() => [
       JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
-        runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid}),
+        runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid,
+        ...(registeredSdk === undefined ? {} : {sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid})}),
       JSON.stringify({provider_id: config.providerId,
         required: ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode'],
         physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
@@ -202,6 +212,7 @@ function configureOpenAIChatProvider(options, projectMode) {
         model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
         selector: config.modelSelector, model_id: config.modelId, adapter_kind: 'ai-sdk', api_mode: 'chat_completions',
+        ...(registeredSdk === undefined ? {} : {provider_options: registeredSdk.providerOptions}),
         ...(projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
           models: [{model: config.modelSelector, data_handling: handling,
@@ -292,7 +303,7 @@ function configureOpenAIChatProvider(options, projectMode) {
             maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
           physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
           observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts,
-        projectMode ? config.maxSecretBytes : undefined);
+        projectMode ? config.maxSecretBytes : undefined, registeredSdk);
         return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
       });
       return [Object.freeze({...entries[0].entry,

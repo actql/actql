@@ -1936,12 +1936,28 @@
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b1334ceebeba63501bdfac2138106e03f3a6e814492d7d16d978d0591a684f7",
+      "sha256": "ed4a2e9e510a413136364685cae7dfdb5e1969e0ecf3007ea1f37814e2795e91",
       "exports": [
+        "createLanguageModel",
         "openAIChatStaticOriginals",
-        "prepareOpenAIChatRequest"
+        "optionNamespace",
+        "optionSchema",
+        "prepareOpenAIChatRequest",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
       ],
       "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
         {
           "name": "prepareOpenAIChatRequest",
           "parameters": [
@@ -1973,6 +1989,23 @@
             "abortSignal"
           ],
           "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "body",
+            "options",
+            "route",
+            "providerOptions"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -1981,13 +2014,22 @@
         {
           "operations": [
             "<module>",
+            "createLanguageModel",
             "prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
-            "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2"
+            "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
+            "readReportedUsage",
+            "verifyRequest"
           ],
           "exports": [
+            "createLanguageModel",
             "openAIChatStaticOriginals",
-            "prepareOpenAIChatRequest"
+            "optionNamespace",
+            "optionSchema",
+            "prepareOpenAIChatRequest",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
           ],
           "attributes": {
             "responsibility": [
@@ -2088,6 +2130,13 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./intercepted-request.mjs",
+        "./original-undici-transport.mjs",
+        "@ai-sdk/openai",
+        "@ai-sdk/provider-utils",
+        "node:util"
       ]
     },
     {
@@ -3479,7 +3528,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d65fd1a033133d21bdf55fbcef1755ad85b47f96f3e510edf4030fc2575c2cb9",
+      "sha256": "0b0f45eb065f4aeff14e5c4888624bbd8711698e24691c8232fc34d70e0badaf",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider"

@@ -42,6 +42,7 @@ export type EmbeddedHostInstallation = Readonly<{
   modelInstallation?: HostInstallation['modelInstallation'];
   calendarArtifact?: HostInstallation['calendarArtifact'];
   registerModelProviders?: HostInstallation['registerModelProviders'];
+  modelSdkRegistrations?: HostInstallation['modelSdkRegistrations'];
   verifyRequestValuePolicy?: HostInstallation['verifyRequestValuePolicy'];
   resultDataPolicy?: HostInstallation['resultDataPolicy'];
   inferEvidence?: HostInstallation['inferEvidence'];

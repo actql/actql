@@ -93,7 +93,7 @@ import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
   retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
 import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
-  readInitialControlInstallationAsset, readInitialControlInstallationInput}
+  readInitialControlInstallationAsset, readInitialControlInstallationInput, readInitialControlInstallationModelSdk}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {installConfiguredModelProviders} from './installed-model-configuration.mjs';
@@ -1706,7 +1706,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       installationServices, assertCurrent: assertProjectRuntime,
       assertHostRuntime: modelRuntimeView === undefined ? undefined : assertModelRuntime,
       assertNewHostRuntime: modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
-      bindSdkStaticOriginals: modelRuntimeView === undefined ? undefined : bindModelSdkStaticOriginals});
+      bindSdkStaticOriginals: modelRuntimeView === undefined ? undefined : bindModelSdkStaticOriginals,
+      ...preparation?.modelSdkInstallation()});
     modelProviders = configured.providers;
     projectTasks = configured.projectTasks;
     persistModelOriginals = configured.persistOriginals;
@@ -7140,6 +7141,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
     } finally {entry.selecting = false;}
   }
   const preparation = Object.freeze({host, initialControl,
+    modelSdkInstallation() {
+      return readInitialControlInstallationModelSdk(control, originals);
+    },
     selectSourceProfilePaths(options, fallback, root, principalId) {
       assertInitialControlHostPreparation(originals);
       // This same Host already selected its runtime and detached options.

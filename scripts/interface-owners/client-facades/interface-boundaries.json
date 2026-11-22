@@ -1948,7 +1948,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "73d5a3e6a63f9640616ce7c5623bcb006b36072f59b411f8c91943f16af44e07",
+      "sha256": "671a18716f4a839a547453862676de844bbf9395e49f8120f37b55637b562d61",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -1960,6 +1960,7 @@
         "HostRequestValuePolicyVerifier",
         "InstalledConnectorEntry",
         "InstalledConnectorTable",
+        "InstalledModelSdkRegistration",
         "SourceProfilePaths",
         "connect",
         "createInstalledConnectorTable",
@@ -2076,6 +2077,8 @@
           ],
           "exports": [
             "CalendarArtifactInstallation",
+            "connect",
+            "createInstalledConnectorTable",
             "EffectProfilePaths",
             "HostCapacityPolicy",
             "HostInstallation",
@@ -2085,11 +2088,10 @@
             "HostRequestValuePolicyVerifier",
             "InstalledConnectorEntry",
             "InstalledConnectorTable",
-            "SourceProfilePaths",
-            "connect",
-            "createInstalledConnectorTable",
+            "InstalledModelSdkRegistration",
             "publishEffect",
-            "publishSource"
+            "publishSource",
+            "SourceProfilePaths"
           ],
           "attributes": {
             "responsibility": [
@@ -2961,7 +2963,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1d89786a05e258be87f1786d3dc460d90ad82a5307e508f46adab9c25c01e88c",
+      "sha256": "d66ad3cf8886b106f8690197fa59594ba7bd14f9c53faa9f36cb19f384844651",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",

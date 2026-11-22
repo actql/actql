@@ -1167,8 +1167,10 @@ canonical tree, writer and output overlap before invoking this DATA constructor.
 For private SDK installation preparation, the registration callback selects an
 existing Provider ID. The same package image owner verifies the installed
 adapter and dependency closure and retains the exact module namespaces it
-loaded from those images before completing startup. A package-relative image
-selector and digest choose from those originals. The Host borrows the exact
+loaded from those images before completing startup. Ordinary Node selects
+immutable installation descriptors before the existing initial-control loader
+seals its module cache. Configuration borrows those selected modules from the
+same owner. A package-relative image selector and digest choose from those originals. The Host borrows the exact
 SDK export and request verifier together under its initial Resource, and
 checks the configured options against the adapter's closed schema before a
 factory call. The option snapshot and resolved route accompany request

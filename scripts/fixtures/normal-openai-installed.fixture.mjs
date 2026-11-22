@@ -2,7 +2,8 @@
 // outside-checkout installation. Only installed public package entrances run.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createRequire} from 'node:module';
 import {realpathSync} from 'node:fs';
 import {access, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
@@ -15,7 +16,7 @@ import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.m
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
-  'timeout-headers', 'timeout-body', 'timeout-call'].includes(phase));
+  'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
@@ -33,7 +34,7 @@ for (const [name, url] of publicModules) {
 }
 // Resolve and validate all public entrances before any package can execute.
 const {open} = await import(publicModules.get('@actql/node'));
-const {createOpenAIChatProvider, createProjectOpenAIChatProvider} = await import(publicModules.get('@actql/provider-ai-sdk'));
+const providerModule = publicModules.get('@actql/provider-ai-sdk');
 const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
 const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
 const work = workflowWorkObservation({createObservation: createHostObservationConnection});
@@ -42,19 +43,52 @@ const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const selection = fresh ? {
-  usage: phase === 'project-key' ? 'reported' : phase.startsWith('usage-') ? phase.slice(6) : null,
+  usage: phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
+    : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
   rateLimit: phase === 'rate-limit',
-  project: phase === 'project-key',
+  project: phase === 'project-key' || phase.startsWith('registered-'),
+  registered: phase.startsWith('registered-'),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert.deepEqual(Object.keys(selection).sort(), ['project', 'rateLimit', 'timeout', 'usage']);
+assert.deepEqual(Object.keys(selection).sort(), ['project', 'rateLimit', 'registered', 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const project = selection.project === true;
-if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true});
+const registered = selection.registered === true;
+if (project) assert.deepEqual(selection, {usage: 'reported', timeout: null, rateLimit: false, project: true, registered});
 const officialHost = 'api.openai.com';
+let modelSdkRegistrations;
+if (registered) {
+  const sdkEntry = createRequire(new URL(providerModule)).resolve('@ai-sdk/openai');
+  assert.equal(sdkEntry, realpathSync(sdkEntry));
+  assert(sdkEntry.startsWith(modules + '/') && sdkEntry.endsWith('/@ai-sdk/openai/dist/index.js'));
+  const image = async (path, file) => Object.freeze({path,
+    cid: 'sha256:' + createHash('sha256').update(await readFile(file)).digest('hex')});
+  const path = '_internal/openai-chat.mjs';
+  modelSdkRegistrations = Object.freeze([Object.freeze({
+    adapter: await image(path, new URL(path, providerModule)),
+    lock: await image('npm-shrinkwrap.json', new URL('npm-shrinkwrap.json', providerModule)),
+    sdk: Object.freeze({...await image('dist/index.js', sdkEntry),
+      packageName: '@ai-sdk/openai', version: '4.0.91', exportName: 'createOpenAI'}),
+    route: Object.freeze({providerId: 'models/http', modelId: 'fixture-chat', selector: 'fixture-chat',
+      apiMode: 'chat_completions', endpoint: 'https://api.openai.com/v1/chat/completions'}),
+    providerOptions: Object.freeze({store: false, strictJsonSchema: true}),
+  })]);
+}
+if (phase === 'registered-too-late') {
+  // Deliberately use the actual public module before the Host can adopt its
+  // captured image. This must refuse in actual open(), before any callback.
+  await import(providerModule);
+  let registrations = 0;
+  await assert.rejects(open({stateDir: '.state', installation: {modelSdkRegistrations,
+    registerModelProviders() {registrations++; return [];}}}), {code: 'InitialControlPackageImageChanged'});
+  assert.equal(registrations, 0);
+  await assert.rejects(access('.state'), {code: 'ENOENT'});
+  process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
+  process.exit(0);
+}
 const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
 const maxCalls = usageMode === 'reported' ? 1n : 2n;
 const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
@@ -166,9 +200,14 @@ const providerOptions = {modelId: 'fixture-chat',
     egressChecks++;
     return {classification: 'public', region: 'global', providerRetention: true, trainingUse: false};
   }};
-const registerModelProviders = missingKey || project ? createProjectOpenAIChatProvider(providerOptions)
-  : createOpenAIChatProvider({...providerOptions, providerId: 'models/http',
-    apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
+const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatProvider}) =>
+  missingKey || project ? createProjectOpenAIChatProvider(providerOptions)
+    : createOpenAIChatProvider({...providerOptions, providerId: 'models/http',
+      apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
+const registerModelProviders = registered ? async (runtime, context) => {
+  assert.equal(context.registeredSdkSelected('models/http'), true);
+  return configureProvider(await import(providerModule))(runtime, context);
+} : configureProvider(await import(providerModule));
 const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'installed-' + field,
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: {type: 'string', nullable: false}, [field]: {type, nullable: false}},
@@ -263,6 +302,7 @@ try {
   }
   client = await open({stateDir: '.state', installation: {
     registerModelProviders, authorization, observation: work.connection,
+    ...(registered ? {modelSdkRegistrations} : {}),
     ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
   if (fresh) {
     if (project) process.env.OPENAI_API_KEY = fixtureCredential;
@@ -315,7 +355,9 @@ try {
       assert.equal(usageCaptures, 1); assert.equal(usageAuthorizations, 1);
       assert(usageReceipt !== undefined);
       assert.deepEqual(JSON.parse(await readFile('usage-receipt.json', 'utf8')), usageReceipt);
-      assert.equal(JSON.parse(await readFile('usage-original.json', 'utf8')).observation_origin, 'reported');
+      const captured = JSON.parse(await readFile('usage-original.json', 'utf8'));
+      assert.equal(captured.observation_origin, 'reported');
+      if (registered) assert.match(captured.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
     }
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
@@ -370,6 +412,7 @@ if (project) {
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
+  ...(registered ? {registeredSdk: true} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
   ...(phase === 'cold' ? {egressChecks,

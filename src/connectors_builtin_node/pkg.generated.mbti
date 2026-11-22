@@ -318,6 +318,8 @@ pub fn client_program_admit_infer_run_materials(String, String, Bool, Bool, Bool
 
 pub fn client_program_admit_installed_effect_captured_run(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[@run_publication.PreparedCapturedEffectRun, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_admit_installed_structured_sdk_capability(@model_execution.StructuredModelCapability, @model_execution.AdmittedModelProvider, @check_environment.ModelResponseProfileInstallation) -> Result[@model_execution.AdmittedStructuredModelProvider, @model_execution.StructuredModelCapabilityIssue]
+
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn client_program_admit_local_table_storage_mapping(String, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
@@ -3533,6 +3535,8 @@ pub fn client_program_prepare_installed_managed_whole_sources_plan(@run_publicat
 pub fn client_program_prepare_installed_managed_whole_sources_plan_at_query_time(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_installed_mock_model_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_installed_structured_sdk_capability(@model_execution.ModelProvider, @run_publication.RunEvidenceValue, String, String, String, String, String, @check_environment.ModelResponseProfile) -> Result[@model_execution.StructuredModelCapability, @model_execution.StructuredModelCapabilityIssue]
 
 pub fn client_program_prepare_keyed_acquisition(@run_publication_host.PreparedClientProgram, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
 
