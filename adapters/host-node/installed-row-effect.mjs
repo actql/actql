@@ -554,14 +554,16 @@ export function prepareInstalledTargetPlanRecipes(mappings, recipes) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
     const entry = Object.getOwnPropertyDescriptors(value);
-    const operation = entry.targetReadOperation?.value;
-    if (Reflect.ownKeys(entry).length !== 2 || !text(operation) || !operation.isWellFormed() ||
+    const read = entry.targetReadOperation, operation = read?.value;
+    if (Reflect.ownKeys(entry).length !== 2 || !Object.hasOwn(read ?? {}, 'value') ||
+        (operation !== undefined && (!text(operation) || !operation.isWellFormed())) ||
         !Object.hasOwn(entry.recipe ?? {}, 'value')) fail('InvalidInstalledEffectPlanRecipe');
     const recipe = captureInstalledEffectPlanRecipe(entry.recipe.value, localContractLimits.maxNodes);
     const writeOperation = recipe?.rowOperations[recipe.physicalWrite?.operationIndex]?.operation;
-    if (!text(writeOperation) ||
-        recipe?.ownedReadOperations?.length !== 3 || recipe.ownedReadOperations.some(read =>
-          recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase)) {
+    const reads = recipe?.ownedReadOperations;
+    if (!text(writeOperation) || (operation === undefined ? reads !== undefined :
+        reads?.length !== 3 || reads.some(read =>
+          recipe.rowOperations[read.operationIndex].operation !== operation + '.' + read.phase))) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
     const entryLimit = recipe.savedControlCodec?.maxEntryBytes ?? effectLedgerImplementationBounds.maxEntryBytes;
@@ -1313,7 +1315,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
       suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
       managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-      owned.kinds.length === 0 || !owned.kinds.every(kind => kind === 'update' || kind === 'delete') ||
+      owned.kinds.length === 0 || !owned.kinds.every(kind =>
+        kind === 'create' || kind === 'update' || kind === 'delete') ||
       owned.check !== undefined || owned.confirmResponse !== undefined)) fail('InvalidInstalledEffectPlanRecipe');
   if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
     fail('InvalidInstalledEffectDriverConstruction');
@@ -1357,9 +1360,10 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
       approval: body.minimum_approval});
   }));
   if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
-    const operation = managedTargetPlanRecipes.byMapping[mapping.mappingCid]?.writeOperation;
-    if (operation === undefined ||
-        !mapping.rules.some(rule => owned.kinds.includes(rule.effect_kind) && rule.permissions?.includes(operation))) {
+    const plan = managedTargetPlanRecipes.byMapping[mapping.mappingCid];
+    if (plan === undefined || !mapping.rules.some(rule =>
+      owned.kinds.includes(rule.effect_kind) && rule.permissions?.includes(plan.writeOperation) &&
+      (plan.targetReadOperation === undefined) === (rule.effect_kind === 'create'))) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
   }
@@ -1582,7 +1586,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (owner.managedTargetPlanRecipes === undefined) return undefined;
     const plan = owner.managedTargetPlanRecipes.byMapping[member.mapping?.mappingCid];
     if (plan === undefined || !member.mapping.rules.some(rule =>
-      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation))) {
+      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation)) ||
+      (plan.targetReadOperation === undefined) !== (member.kind === 'create')) {
       fail('ForeignInstalledEffectOccurrence');
     }
     return plan;
