@@ -6,13 +6,16 @@ import * as http from '../packages/provider-http/index.mjs';
 import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration}
   from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
 import {createInstalledHttpChatRegistration} from '../packages/provider-http/_internal/installed-http-chat.mjs';
+import {createRegisteredSdkProvider} from '../packages/provider-ai-sdk/_internal/normal-openai-chat.mjs';
 
-test('optional entries expose the original Host assemblers only', () => {
-  assert.deepEqual(Object.keys(sdk),
-    ['createInstalledOpenAIChatRegistration', 'createInstalledUndiciOpenAIChatRegistration']);
+test('optional entries expose Host assemblers and configured registrations', () => {
+  assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration',
+    'createInstalledUndiciOpenAIChatRegistration', 'createOpenAIChatProvider',
+    'createProjectOpenAIChatProvider', 'createRegisteredSdkProvider']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
   assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
   assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
+  assert.strictEqual(sdk.createRegisteredSdkProvider, createRegisteredSdkProvider);
   assert.strictEqual(http.createInstalledHttpChatRegistration, createInstalledHttpChatRegistration);
   for (const entry of [sdk, http]) {
     assert.equal(entry.startSdkTransport, undefined);

@@ -4,7 +4,9 @@ import {setImmediate as turn} from 'node:timers/promises';
 import {readFileSync} from 'node:fs';
 import {isDeepStrictEqual} from 'node:util';
 import {createOpenAI} from '@ai-sdk/openai';
+import {createAnthropic} from '@ai-sdk/anthropic';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
+import * as anthropic from './_internal/anthropic-messages.mjs';
 import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
   deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
@@ -46,6 +48,46 @@ async function release(handle) {
   }
   assert.fail('SDK physical preparation did not retire');
 }
+
+test('registered Anthropic preserves the selected Messages body and refuses non-neutral topP', async () => {
+  const modelId = 'claude-sonnet-4-6', selector = 'fixture-alias', apiMode = 'messages';
+  const endpoint = 'https://api.anthropic.com/v1/messages';
+  const route = {modelId, selector, apiMode, endpoint}, admission = {};
+  const moon = {clientProgramAdmittedStructuredSdkRouteMatches: (...actual) =>
+    isDeepStrictEqual(actual, [admission, selector, modelId, apiMode, endpoint])};
+  const prompt = [{role: 'system', content: 'Return a typed assessment.'},
+    {role: 'user', content: [{type: 'text', text}]}];
+  const providerOptions = {anthropic: {structuredOutputMode: 'outputFormat'}};
+  const expected = {model: modelId, max_tokens: 16, temperature: 0,
+    system: [{type: 'text', text: 'Return a typed assessment.'}], messages: [prompt[1]],
+    output_config: {format: {type: 'json_schema', schema}}};
+  for (const topP of [1, 0.5]) {
+    const options = {prompt, responseFormat: {type: 'json', schema, name: 'assessment'},
+      providerOptions, temperature: 0, topP, maxOutputTokens: 16};
+    const handle = prepareRegisteredSdkLanguageModel({moon, admission, ...route,
+      sdkProvider: anthropic.sdkProvider,
+      createLanguageModel: fetch => anthropic.createLanguageModel(createAnthropic, modelId, fetch, route),
+      options, verifyRequest: body => anthropic.verifyRequest(body, options, route, providerOptions),
+      maxRequestBytes: 8192, maxHeaderBytes: 8192, maxHeaders: 16, notify() {}});
+    try {
+      if (topP !== 1) {
+        assert.equal((await eventually(() => pollSdkPreparation(handle), 'rejected')).issue, 'SdkOriginalRequestMismatch');
+        assert.equal(sdkPreparedRequest(handle), undefined);
+        continue;
+      }
+      await eventually(() => pollSdkPreparation(handle), 'ready');
+      assert.deepEqual(JSON.parse(sdkPreparedRequest(handle).body), expected);
+      const reply = {id: 'anthropic-fixture', type: 'message', role: 'assistant', model: modelId,
+        stop_reason: 'end_turn', content: [{type: 'text', text: '{"assessment":"ok"}'}],
+        usage: {input_tokens: 0, output_tokens: 4}};
+      deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+      await eventually(() => pollSdkDecode(handle), 'ready');
+      assert.equal(takeSdkDecodedResult(handle).content[0].text, '{"assessment":"ok"}');
+      assert.deepEqual(anthropic.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 4n});
+      assert.equal(anthropic.readReportedUsage({}), undefined);
+    } finally {await release(handle);}
+  }
+});
 
 test('real pinned SDK captures one exact original request with no ambient network', async t => {
   const ambient = globalThis.fetch;

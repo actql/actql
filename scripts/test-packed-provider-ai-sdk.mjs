@@ -32,11 +32,13 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
-  if (caseId === 'usage-reported' || caseId === 'project-key' || caseId === 'registered-project') {
+  const registered = caseId === 'registered-project' || caseId === 'registered-anthropic';
+  const project = caseId === 'project-key' || registered;
+  if (caseId === 'usage-reported' || project) {
     assert.equal(value.maxCalls, 1);
   }
-  if (caseId === 'registered-project') assert.equal(value.registeredSdk, true);
-  if (caseId === 'project-key' || caseId === 'registered-project') {
+  if (registered) assert.equal(value.registeredSdk, true);
+  if (project) {
     assert.equal(value.projectCredential, true);
     assert.equal(value.projectTlsConnects, phase === 'cold' ? 0 : 1);
   }
@@ -64,8 +66,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   } else if (phase === 'missing-key') {
     assert.equal(value.requests, 1); assert.equal(value.calls, 0); assert.equal(value.credentialRefused, true);
   } else {
-    assert.equal(value.usageMode, ['project-key', 'registered-project'].includes(caseId)
-      ? 'reported' : phase.slice('usage-'.length));
+    assert.equal(value.usageMode, project ? 'reported' : phase.slice('usage-'.length));
     for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
   }
 }
@@ -101,7 +102,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
-    ['registered-project', 'cold'], ['registered-too-late'], ['registered-invalid'],
+    ['registered-project', 'cold'], ['registered-anthropic', 'cold'], ['registered-too-late'], ['registered-invalid'],
     ['registered-credential-reference'], ['registered-credential-header']].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
