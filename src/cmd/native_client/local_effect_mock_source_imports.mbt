@@ -424,18 +424,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_source_imports(
     .native_effect_proposal(self.original),
   )
   let imported = held.imports.unwrap()
-  construction.retain_wire(
-    self.original,
-    @run_host.client_effect_imported_scope_json(imported),
-  )
-  construction.retain_wire(
-    self.original,
-    @run_host.client_effect_local_invocation_json(
-      @run_host.client_effect_imported_invocation(imported),
-    ),
-  )
-  for wire in @run_host.client_effect_imported_relation_bodies(imported) {
-    construction.retain_wire(self.original, wire)
+  // Issuance used the complete original recipe. Its temporary containers
+  // have returned. This walk prices the adopted holder without rebuilding
+  // any wire, and the holder stays attached if growth refuses.
+  if !construction.prepare_body(
+      self.original,
+      native_mock_effect_contract_extent_walk_capacity(20),
+    ) {
+    stop("LocalOriginalEffectProposalsUnavailable")
+  }
+  let backing = @run_host.client_effect_imported_evidence_retained_bytes(
+    imported, 1024, 20,
+  ).bind(retained => @execution.execution_capacity(retained, retained))
+  if !construction.prepare_body(self.original, backing) {
+    stop("LocalOriginalEffectProposalsUnavailable")
   }
   // Only now can the next capture phase start. Restore the original full
   // Preview/row recipe beside ALL retained import originals, before the

@@ -111,9 +111,23 @@ fn LocalNativeMockEffectImportConstruction::issue_result_definition(
 }
 
 ///|
-// The fixed recipe still funds issuance. After the three sealers return, the
-// retained contracts carry their own canonical tree and wire. Only a depth
-// stack and one extent carrier are added for the sequential backing walk.
+// Contracts are measured sequentially on the fixed recipe's existing
+// construction reservation. Only one depth stack and extent carrier live.
+fn native_mock_effect_contract_extent_walk_capacity(
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let frames = 4L * (max_depth.to_int64() + 1L) + 16L
+  @execution.preparation_representation_cost({
+    record_headers: 12L + frames,
+    reference_slots: 24L + 4L * frames,
+    scalar_words: 16L + 4L * frames,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(workspace => @execution.execution_capacity(0L, workspace))
+}
+
+///|
+// Keep the fixed issuance budget and fund the bounded post-issuer walk.
 fn LocalNativeMockEffectImportConstruction::retain_result_artifact(
   self : Self,
   original : LocalCommandPreparationOriginal,
@@ -121,15 +135,10 @@ fn LocalNativeMockEffectImportConstruction::retain_result_artifact(
   max_nodes : Int,
   max_depth : Int,
 ) -> Unit raise ClientStop {
-  let frames = 4L * (max_depth.to_int64() + 1L) + 16L
-  let walk = @execution.preparation_representation_cost({
-    record_headers: 12L + frames,
-    reference_slots: 24L + 4L * frames,
-    scalar_words: 16L + 4L * frames,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }).bind(workspace => @execution.execution_capacity(0L, workspace))
-  if !self.prepare_body(original, walk) {
+  if !self.prepare_body(
+      original,
+      native_mock_effect_contract_extent_walk_capacity(max_depth),
+    ) {
     stop("LocalOriginalEffectProposalsUnavailable")
   }
   let backing = @run_host.client_effect_local_result_artifact_retained_bytes(

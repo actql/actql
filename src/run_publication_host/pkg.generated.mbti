@@ -651,6 +651,8 @@ pub fn client_effect_direct_sources_publication_invocation(ClientEffectDirectSou
 
 pub fn client_effect_direct_sources_publication_observation(ClientEffectDirectSourcesPublication) -> @run_publication.RunEvidenceValue
 
+pub fn client_effect_imported_evidence_retained_bytes(ClientEffectImportedEvidence, Int, Int) -> Int64?
+
 pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
 
 pub fn client_effect_imported_relation_bodies(ClientEffectImportedEvidence) -> Array[String]

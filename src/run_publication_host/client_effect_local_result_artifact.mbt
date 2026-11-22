@@ -472,11 +472,8 @@ pub fn client_effect_local_result_artifact_retained_bytes(
       @publication.result_ordering_derivation_contract(value.evidence),
       @publication.result_ordering_evidence_contract(value.evidence),
     ] {
-    guard @publication.publication_contract_representation_extent(
-        contract, max_nodes, max_depth, 2147483647,
-      )
-      is Ok(extent) &&
-      publication_protocol_extent_cost(extent) is Some(bytes) &&
+    guard local_effect_contract_retained_bytes(contract, max_nodes, max_depth)
+      is Some(bytes) &&
       @execution.checked_preparation_add_product(retained, bytes, 1L)
       is Some(total) else {
       return None
@@ -484,6 +481,21 @@ pub fn client_effect_local_result_artifact_retained_bytes(
     retained = total
   }
   Some(retained)
+}
+
+///|
+fn local_effect_contract_retained_bytes(
+  contract : @publication.PublicationContract,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int64? {
+  guard @publication.publication_contract_representation_extent(
+      contract, max_nodes, max_depth, 2147483647,
+    )
+    is Ok(extent) else {
+    return None
+  }
+  publication_protocol_extent_cost(extent)
 }
 
 ///|

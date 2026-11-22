@@ -988,6 +988,60 @@ fn dependency_boundary_complete_inventory(
     max_nodes,
     depth,
   ).unwrap()
+  if count == 2 {
+    let scope = @publication_host.client_effect_imported_scope_json(imported)
+    let relations = @publication_host.client_effect_imported_relation_bodies(
+      imported,
+    )
+    let invocation = @publication_host.client_effect_imported_invocation(
+      imported,
+    )
+    // Independently measure the completed wire contracts to set the exact
+    // traversal bounds. Pricing still walks the original retained trees.
+    let scope_contract = @publication.admit_publication_contract(
+      "acquisition_scope", scope, max_bytes, max_nodes, depth,
+    ).unwrap()
+    let (_, scope_nodes, scope_depth) = @publication.publication_contract_wire_usage(
+      scope_contract,
+    ).unwrap()
+    let mut nodes = scope_nodes
+    let mut retained_depth = scope_depth
+    let mut text = scope.length().to_int64() +
+      @publication_host.client_effect_local_invocation_json(invocation)
+      .length()
+      .to_int64()
+    for wire in relations {
+      let contract = @publication.admit_publication_contract(
+        "acquisition_relation", wire, max_bytes, max_nodes, depth,
+      ).unwrap()
+      let (_, relation_nodes, relation_depth) = @publication.publication_contract_wire_usage(
+        contract,
+      ).unwrap()
+      nodes = Int::max(nodes, relation_nodes)
+      retained_depth = Int::max(retained_depth, relation_depth)
+      text += wire.length().to_int64()
+    }
+    let retained = @publication_host.client_effect_imported_evidence_retained_bytes(
+      imported, nodes, retained_depth,
+    ).unwrap()
+    assert_true(retained > 2L * text)
+    assert_true(
+      @publication_host.client_effect_imported_evidence_retained_bytes(
+        imported,
+        nodes - 1,
+        retained_depth,
+      )
+      is None,
+    )
+    assert_eq(
+      @publication_host.client_effect_imported_scope_json(imported),
+      scope,
+    )
+    assert_eq(
+      @publication_host.client_effect_imported_relation_bodies(imported),
+      relations,
+    )
+  }
   let managed = execution
     .prepare_effect_result_export(
       captured_run,
