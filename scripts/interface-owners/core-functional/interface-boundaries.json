@@ -42787,7 +42787,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "e94244e7cb105f7438f10e02da33c8e6f70cd9f394c772007d33b7653749cafd",
+      "sha256": "f20f90632d02e32c18f3a92610b3f4522459cc4b8cec6f3f5cd6a373bbf8df37",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -42800,6 +42800,10 @@
         {
           "name": "installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_json_source_reader_capacity",
@@ -43304,7 +43308,8 @@
           "operations": [
             "installed_json_cursor_source_reader_capacity",
             "installed_source_cursor_progress_inventory",
-            "installed_json_cursor_source_reader_capacity_with_request"
+            "installed_json_cursor_source_reader_capacity_with_request",
+            "installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -43374,6 +43379,14 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
               }
             ]
           }
@@ -63736,7 +63749,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "4bcd171b7688ab1ffe97417a43d5e3ba7b82b38be95e7532b0165749dc3ee802",
+      "sha256": "7a1d1e64a27f24dfaa2556c984e2893a577dd9f6c9851a75c64ad78d9af893af",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -63749,6 +63762,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -64387,7 +64404,8 @@
         {
           "operations": [
             "client_program_installed_json_cursor_source_reader_capacity",
-            "client_program_installed_json_cursor_source_reader_capacity_with_request"
+            "client_program_installed_json_cursor_source_reader_capacity_with_request",
+            "client_program_installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -64457,6 +64475,18 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "REST actual Common codec identity capacity retains the same request"
               }
             ]
           }
@@ -88188,7 +88218,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "c42f7122c4d8caaf6cfea544e0f2bf2ca06e04d2dce1fcac7289d1fb376948f4",
+      "sha256": "07640e6fa0c8271e158e6cfa0faf47fbbf56d23d65d33a9a3bafbcc3bbc5f746",
       "exports": [],
       "operations": [
         {
@@ -88245,7 +88275,7 @@
         },
         {
           "name": "prepare_installed_effect_combined_source_result_artifact",
-          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+          "declaration": "prepare_installed_effect_combined_source_result_artifact ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , publication : @ publication_host . ClientEffectDirectSourcesPublication , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , max_bytes : Int , max_nodes : Int , max_depth : Int , imported ? : ( @ publication_host . ClientEffectImportedEvidence , @ publication . PublicationContract , ) ?"
         },
         {
           "name": "prepare_installed_effect_combined_source_unit",
@@ -107973,7 +108003,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
-      "sha256": "b59144da5be23edaf36461a57f8eeca5fc169bb3218a764258072ea232b2d1bc",
+      "sha256": "d3573f05561a3d33eaa5f1df251c2f5a8313e082bb4deb0b6760d8a62e4b6512",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -107986,6 +108016,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_identity_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -108624,7 +108658,8 @@
         {
           "operations": [
             "client_program_installed_json_cursor_source_reader_capacity",
-            "client_program_installed_json_cursor_source_reader_capacity_with_request"
+            "client_program_installed_json_cursor_source_reader_capacity_with_request",
+            "client_program_installed_json_identity_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -108694,6 +108729,18 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "portable cursor Source mode"
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "codec identity reader funds complete map growth on the same original backing"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "codec identity progress selects its funded reader and cannot reuse the plain cursor mode"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "REST actual Common codec identity capacity retains the same request"
               }
             ]
           }
