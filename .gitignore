@@ -1968,3 +1968,5 @@ target/
 /scripts/fixtures/kintone-approval/workflow.d.mts
 /scripts/fixtures/salesforce-approval/workflow.mjs
 /scripts/fixtures/salesforce-approval/workflow.d.mts
+/adapters/site-node/https-exchange-fixture.mjs
+/adapters/site-node/https-exchange-fixture.d.mts

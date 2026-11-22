@@ -6,16 +6,33 @@
 // the Effect Ledger stay the product's; the fixture only answers HTTPS.
 import {execFileSync} from 'node:child_process';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import type {IncomingHttpHeaders, ServerResponse} from 'node:http';
 import {createServer} from 'node:https';
+import type {AddressInfo} from 'node:net';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import type {TestContext} from 'node:test';
 
-function openssl(root, ...arguments_) {
+type Exchange = Readonly<{
+  method: string | undefined;
+  path: string | undefined;
+  pathname: string;
+  query: Readonly<Record<string, string>>;
+  headers: Readonly<IncomingHttpHeaders>;
+  authorized: boolean;
+  body: string;
+}>;
+type Match = {method?: string; pathname?: string | RegExp; bodyIncludes?: string};
+type Reply = {status?: number; headers?: Record<string, string>; body?: unknown};
+type Route = Match & {handle: (exchange: Exchange) => Reply | PromiseLike<Reply>};
+type Fault = Match & {kind: 'lose-reply' | 'reply' | 'apply-then-lose-reply'; times?: number; reply?: Reply};
+
+function openssl(root: string, ...arguments_: string[]) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
 }
 
 // A one-day test CA and a `localhost`/`127.0.0.1` resource certificate.
-export async function fixtureCertificates(root) {
+export async function fixtureCertificates(root: string) {
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out', 'ca.crt',
     '-subj', '/CN=ActQL Exchange Fixture CA', '-days', '1');
@@ -35,14 +52,14 @@ export async function fixtureCertificates(root) {
 const credentialHeaders = new Set(['authorization', 'proxy-authorization',
   'cookie', 'x-cybozu-api-token', 'x-cybozu-authorization']);
 
-function matches({method, pathname, bodyIncludes}, exchange) {
+function matches({method, pathname, bodyIncludes}: Match, exchange: Exchange) {
   return (method === undefined || method === exchange.method) &&
     (pathname === undefined || (pathname instanceof RegExp
       ? pathname.test(exchange.pathname) : pathname === exchange.pathname)) &&
     (bodyIncludes === undefined || exchange.body.includes(bodyIncludes));
 }
 
-function send(response, {status = 200, headers = {}, body = ''} = {}) {
+function send(response: ServerResponse, {status = 200, headers = {}, body = ''}: Reply = {}) {
   const bytes = Buffer.from(typeof body === 'string' ? body
     : JSON.stringify(body), 'utf8');
   response.writeHead(status, {'content-type': 'application/json', ...headers,
@@ -59,19 +76,19 @@ function send(response, {status = 200, headers = {}, body = ''} = {}) {
 // answering, `{kind: 'reply', reply}` answers with a fixed reply such as a
 // 429 or 403 rate limit. A fault or route may also require `bodyIncludes`. `seen()` returns every request the
 // server observed, with credential headers reduced to `authorized`.
-export async function openHttpsExchangeFixture(t, {routes = [],
-  faults = []} = {}) {
+export async function openHttpsExchangeFixture(t: Pick<TestContext, 'after'> | undefined, {routes = [],
+  faults = []}: {routes?: readonly Route[]; faults?: readonly Fault[]} = {}) {
   const preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1';
   const root = await mkdtemp(join(tmpdir(), 'actql-https-exchange-'));
   const {ca, cert, key, caPath} = await fixtureCertificates(root);
-  const seen = [];
+  const seen: Exchange[] = [];
   const pending = faults.map(fault => ({...fault, times: fault.times ?? 1}));
   const server = createServer({cert, key}, (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     request.on('data', chunk => chunks.push(chunk));
     request.once('end', () => {
-      const url = new URL(request.url, 'https://fixture.invalid');
-      const headers = {};
+      const url = new URL(request.url!, 'https://fixture.invalid');
+      const headers: IncomingHttpHeaders = {};
       for (const [name, value] of Object.entries(request.headers)) {
         if (!credentialHeaders.has(name)) headers[name] = value;
       }
@@ -112,13 +129,13 @@ export async function openHttpsExchangeFixture(t, {routes = [],
         () => request.socket.destroy());
     });
   });
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
   });
-  const origin = `https://127.0.0.1:${server.address().port}`;
+  const origin = `https://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const close = async () => {
-    await new Promise(resolve => server.close(resolve));
+    await new Promise<void>(resolve => server.close(resolve as (error?: Error) => void));
     if (!preserveScratch) await rm(root, {recursive: true, force: true});
   };
   t?.after(close);
@@ -129,7 +146,7 @@ export async function openHttpsExchangeFixture(t, {routes = [],
 }
 
 // An RFC 8288 `Link` header value from `{rel: target}` relations.
-export function linkHeader(relations) {
+export function linkHeader(relations: Readonly<Record<string, string>>) {
   return Object.entries(relations)
     .map(([rel, target]) => `<${target}>; rel="${rel}"`).join(', ');
 }
@@ -139,10 +156,11 @@ export function linkHeader(relations) {
 // relations `next`, `prev`, `first`, `last`; the last page carries no `next`.
 export function pagedListing({items, origin, pathname, defaultSize = 30,
   maxSize = 100, sizeParameter = 'per_page', pageParameter = 'page',
-  query = {}}) {
-  const matchesFixed = exchange => Object.entries(query).every(([name,
+  query = {}}: {items: readonly unknown[]; origin: string; pathname: string; defaultSize?: number;
+    maxSize?: number; sizeParameter?: string; pageParameter?: string; query?: Record<string, string>}) {
+  const matchesFixed = (exchange: Exchange) => Object.entries(query).every(([name,
     value]) => exchange.query[name] === value);
-  return Object.freeze({method: 'GET', pathname, handle(exchange) {
+  return Object.freeze({method: 'GET', pathname, handle(exchange: Exchange) {
     if (!matchesFixed(exchange)) return {status: 404, body: ''};
     const size = Math.min(maxSize,
       Number(exchange.query[sizeParameter] ?? defaultSize));
@@ -152,12 +170,12 @@ export function pagedListing({items, origin, pathname, defaultSize = 30,
       return {status: 422, body: {message: 'Validation Failed'}};
     }
     const last = Math.max(1, Math.ceil(items.length / size));
-    const target = number => {
+    const target = (number: number) => {
       const parameters = new URLSearchParams({...query,
         [sizeParameter]: String(size), [pageParameter]: String(number)});
       return `${origin}${pathname}?${parameters}`;
     };
-    const relations = {};
+    const relations: Record<string, string> = {};
     if (page < last) {
       relations.next = target(page + 1);
       relations.last = target(last);
