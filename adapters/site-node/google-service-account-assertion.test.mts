@@ -7,13 +7,26 @@ import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionReque
 const {privateKey, publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
 const limits=Object.freeze({maxScopes:4,maxScopeBytes:512,maxIdentityBytes:256,
   maxClaimBytes:2048,maxAssertionBytes:4096,maxRequestBytes:8192,maxKeyBits:4096});
-const base=()=>({privateKey,clientEmail:'reader@fixture.iam.gserviceaccount.com',privateKeyId:'key-original',
+type FixtureOptions = {
+  privateKey: typeof privateKey;
+  clientEmail: string;
+  privateKeyId?: string;
+  scopes: string[];
+  delegate?: string;
+  issuedAtUnixSeconds: number;
+  lifetimeSeconds: number;
+  limits: typeof limits;
+};
+
+const base = (): FixtureOptions =>({privateKey,clientEmail:'reader@fixture.iam.gserviceaccount.com',privateKeyId:'key-original',
   scopes:['https://www.googleapis.com/auth/calendar.readonly','https://mail.google.com/'],
   delegate:'ops@fixture.invalid',issuedAtUnixSeconds:1700000000,lifetimeSeconds:3600,limits});
-const split=request=>{
+const split=(request: ReturnType<typeof googleServiceAccountAssertionRequest>)=>{
   const assertion=new URLSearchParams(request.body).get('assertion');
-  const [header,claims,signature]=assertion.split('.');
-  return {header:JSON.parse(Buffer.from(header,'base64url')),claims:JSON.parse(Buffer.from(claims,'base64url')),
+  const [header,claims,signature]=assertion!.split('.');
+  // JSON.parse coerces the decoded Buffer to its UTF-8 string.
+  return {header: JSON.parse(Buffer.from(header,'base64url') as unknown as string),
+    claims: JSON.parse(Buffer.from(claims,'base64url') as unknown as string),
     signature:Buffer.from(signature,'base64url'),message:Buffer.from(`${header}.${claims}`),assertion};
 };
 
@@ -121,7 +134,7 @@ test('Google assertion separately bounds original claims signed assertion and co
 });
 
 test('Google assertion snapshots original option scope and limit getters once without parser or I/O callbacks',()=>{
-  const input=base();const counts=new Map(),options={},bound={};
+  const input=base();const counts=new Map<string, number>(),options={},bound={};
   for(const [key,value] of Object.entries(limits))Object.defineProperty(bound,key,{enumerable:true,get(){counts.set(key,(counts.get(key)??0)+1);return value;}});
   for(const [key,value] of Object.entries({...input,limits:bound}))Object.defineProperty(options,key,{enumerable:true,get(){counts.set(key,(counts.get(key)??0)+1);return value;}});
   const value=prepareGoogleServiceAccountAssertion(options);assert.equal(split(googleServiceAccountAssertionRequest(value)).claims.sub,'ops@fixture.invalid');

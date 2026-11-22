@@ -1721,6 +1721,10 @@ target/
 /adapters/host-common/remote-transfer-control.d.mts
 /adapters/host-common/remote-transfer-control.test.mjs
 /adapters/host-common/remote-transfer-control.test.d.mts
+/adapters/site-node/google-service-account-assertion.mjs
+/adapters/site-node/google-service-account-assertion.d.mts
+/adapters/site-node/google-service-account-assertion.test.mjs
+/adapters/site-node/google-service-account-assertion.test.d.mts
 /adapters/site-node/https-credential-request.mjs
 /adapters/site-node/https-credential-request.d.mts
 /adapters/site-node/https-credential-response.mjs
