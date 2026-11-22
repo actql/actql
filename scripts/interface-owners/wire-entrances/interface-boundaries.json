@@ -17534,7 +17534,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire.mjs",
-      "sha256": "e2531dcbe3c94a0c08d6b33a24bf69df18a6750e7feaab0c0603b078b81e35eb",
+      "sha256": "6951a55cb0abd8085ef8e00081ede93b8d0e84bf294d1a83d8af8b9aa787f5ed",
       "exports": [
         "checkpointAnswerContract",
         "commonCheckpointProfileSource"
@@ -17896,7 +17896,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire-js.mjs",
-      "sha256": "45b4a0e60a86c99703391eb13e2f1746758b880d380b2d487858dbf6f1a32b9c",
+      "sha256": "9ac687751d75eccdaf762930ee4a14c7615a8a6bc89118a051944bd4430d960a",
       "exports": [
         "checkpointAnswerJavaScriptSource",
         "checkpointAnswerTypeScriptSource"
@@ -18066,7 +18066,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-wire-python.mjs",
-      "sha256": "549dcaf66b4ccc3b6315ccfb74dfd73f01c49503eea2a6d07c7ac47fc0f82548",
+      "sha256": "2dade042d85742bdb31ed36f434847108bf6b731607d935be6593513138cda26",
       "exports": [
         "checkpointAnswerPythonSource"
       ],

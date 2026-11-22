@@ -2098,3 +2098,11 @@ target/
 /adapters/host-node/table-operation-preview.d.mts
 /adapters/host-node/table-capture-recovery.mjs
 /adapters/host-node/table-capture-recovery.d.mts
+/scripts/checkpoint-answer-wire.mjs
+/scripts/checkpoint-answer-wire.d.mts
+/scripts/checkpoint-answer-wire-js.mjs
+/scripts/checkpoint-answer-wire-js.d.mts
+/scripts/checkpoint-answer-wire-python.mjs
+/scripts/checkpoint-answer-wire-python.d.mts
+/packages/sdk/checkpoint-candidate-boundary.test.mjs
+/packages/sdk/checkpoint-candidate-boundary.test.d.mts

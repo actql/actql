@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {signedAnswer} from './checkpoints.mjs';
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const summary = Object.freeze({
   checkpointId: 'checkpoint-original', checkpointCid: cid('1'),
   kind: 'run_scope', phase: 'preflight',
@@ -37,15 +37,15 @@ test('fabricated noncanonical original identities refuse before application sign
 });
 
 test('canonical original identities stay exact while display text does not enter signed preimages', async () => {
-  const sign = captured => bytes => {
+  const sign = (captured: string[]) => (bytes: Uint8Array) => {
     captured.push(new TextDecoder().decode(bytes));
     return new Uint8Array(64);
   };
-  const signer = captured => ({keyId: 'fixture-key',
+  const signer = (captured: string[]) => ({keyId: 'fixture-key',
     reviewerId: 'fixture-reviewer', sign: sign(captured)});
   const legal = {...summary, checkpointId: ' id-é ',
     subject: {...summary.subject, prepareAttemptId: 'préparation-original'}};
-  const before = [], after = [];
+  const before: string[] = [], after: string[] = [];
   const original = await signedAnswer(legal, 'approved', signer(before), decidedAt);
   const displayed = await signedAnswer({...legal, humanSummary: 'e\u0301\r\n'},
     'approved', signer(after), decidedAt);
@@ -61,7 +61,7 @@ test('signer byte capacity and encoding use the original typed array storage', a
   const tooLong = new Uint8Array(65);
   Object.defineProperty(tooLong, 'byteLength', {value: 64});
   tooLong[Symbol.iterator] = () => new Uint8Array(64).values();
-  const signer = sign => ({keyId: 'fixture-key', reviewerId: 'fixture-reviewer', sign});
+  const signer = (sign: Parameters<typeof signedAnswer>[2]['sign']) => ({keyId: 'fixture-key', reviewerId: 'fixture-reviewer', sign});
   await assert.rejects(signedAnswer(summary, 'rejected', signer(() => tooLong), decidedAt),
     {message: 'InvalidCheckpointSignature'});
 

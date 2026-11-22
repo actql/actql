@@ -5176,7 +5176,7 @@
                 "anchor": "test('Effect semantic review verification rejects"
               },
               {
-                "path": "packages/sdk/checkpoint-candidate-boundary.test.mjs",
+                "path": "packages/sdk/checkpoint-candidate-boundary.test.mts",
                 "anchor": "test('fabricated noncanonical original identities refuse before application signing'"
               },
               {
