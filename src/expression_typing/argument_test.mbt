@@ -50,3 +50,40 @@ test "fixed argument domains resolve only immediate NULL literals" {
   ).unwrap()
   assert_true(!@expression_typing.result_type(n).nullable)
 }
+
+///|
+test "the root NULL context retains the checked contract and does not type descendants" {
+  let item = @contract.primitive(StringType, nullable=false)
+  let context = @contract.array_contract(
+    item,
+    max_items=Some(2L),
+    nullable=false,
+  ).unwrap()
+  let checked = @expression_typing.check(
+    syntax("{\"literal\":null}"),
+    env(),
+    test_limits(),
+    root_null_context=Some(context),
+  ).unwrap()
+  let contract = @expression_typing.result_type(checked)
+  assert_true(contract.nullable)
+  assert_true(contract.shape is @contract.Array(_, max_items=Some(2L)))
+  assert_true(
+    @expression_typing.check(
+      syntax("\"coalesce(NULL, NULL)\""),
+      env(),
+      test_limits(),
+      root_null_context=Some(context),
+    )
+    is Err(_),
+  )
+  let ordinary = @expression_typing.check(
+    syntax("\"8\""),
+    env(),
+    test_limits(),
+    root_null_context=Some(context),
+  ).unwrap()
+  assert_true(
+    @expression_typing.result_type(ordinary).shape is @contract.Number,
+  )
+}

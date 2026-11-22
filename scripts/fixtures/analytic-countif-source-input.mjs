@@ -43,15 +43,18 @@ export const analyticCountifSuccesses = [
     `SELECT id, ${call('PARTITION BY amount ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW')} FROM records WHERE id > 0 ORDER BY id`,
     {expected: [{id: 1, n: 0}, {id: 2, n: 1}, {id: 3, n: 0},
       {id: 4, n: 2}, {id: 5, n: 0}, {id: 6, n: 0}]}),
+  {name: 'analytic-countif-default-frame', format: 'sql',
+    text: 'SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM records',
+    sourceRows, sourceReadSessionCount: 1,
+    results: {main: {rows: [{n: 1}, {n: 1}, {n: 2}, {n: 2}, {n: 3}, {n: 3}, {n: 3}],
+      columns: [{name: 'n', contract: number}], unordered: true}}},
   success('typed-empty', sql, {sourceRows: [], expected: []}),
 ];
 export const analyticCountifRefusals = [
-  'SELECT COUNTIF(id) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
-  'SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM records',
-  'SELECT COUNTIF(amount > @missing) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
-  'SELECT amount > 10 AS invented, COUNTIF(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
-].map((text, index) => ({name: 'analytic-countif-refuse-' + index, format: 'sql', text,
-  ...(index === 1 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
+  [0, 'SELECT COUNTIF(id) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records'],
+  [2, 'SELECT COUNTIF(amount > @missing) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records'],
+  [3, 'SELECT amount > 10 AS invented, COUNTIF(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records'],
+].map(([index, text]) => ({name: 'analytic-countif-refuse-' + index, format: 'sql', text}));
 export const analyticCountifExecutionFailures = [{
   name: 'analytic-countif-demanded-expression-failure', format: 'sql',
   text: 'SELECT COUNTIF(1 / 0 > 0) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',

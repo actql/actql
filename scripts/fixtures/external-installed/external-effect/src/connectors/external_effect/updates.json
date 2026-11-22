@@ -1,0 +1,1 @@
+{"writes":[{"resource":"events","primary_identity":"id","update":{"fields":["note"],"permission":"external_effect:events:update","approval":"required"}}]}

@@ -16752,9 +16752,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -27131,7 +27133,9 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
+          "parameters": [
+            "cut"
+          ],
           "async": false
         },
         {
@@ -27166,6 +27170,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
@@ -27191,6 +27202,13 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
           "parameters": [],
           "async": false
         },
@@ -29327,7 +29345,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dfe2261e264d53368bbe538eb0a4beb92e147a65f888898f3dbe3d55d141f2b0"
+      "sha256": "f5feb52862afdc0275e13160005f31b592051b61e66e157c5bac98146719411d"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -34698,7 +34716,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "3911d211d8ff6980d2d1881a14c83a1e86fd3f8b9dc665978bdfc8d4b1be583b",
+      "sha256": "0b3a6da15f6b5ac0c2826d3494e4176280479874f9d594799c5b27dd9ffa9cf6",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -35042,6 +35060,36 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [
+            "name",
+            "selector",
+            "modelId",
+            "endpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
           "parameters": [],
           "async": false
@@ -35300,7 +35348,12 @@
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2"
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2"
           ],
           "exports": [
             "installConfiguredModelProviders"

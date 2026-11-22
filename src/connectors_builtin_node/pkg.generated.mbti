@@ -1826,6 +1826,8 @@ pub fn client_program_install_model_provider(String, (@model_execution.ModelRequ
 
 pub fn client_program_install_original_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, @model_execution.ModelMockAnswers, () -> String) -> Result[@model_execution.ModelMockInstallation, @model_execution.ModelMockInstallationIssue]
 
+pub fn client_program_installed_chat_configuration_matches(@run_publication.RunEvidenceValue, String, String, String, String, String) -> Bool
+
 pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_installed_described_effect_input_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]

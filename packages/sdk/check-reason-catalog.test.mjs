@@ -11,7 +11,7 @@ test('public check catalog exposes separate readonly presentation metadata witho
   assert.equal(previous.checkSchemas.previousOriginal.reasonCid, reasonCid);
   verifyIdentity(current.body, current.cid, current.canonicalPreimage);
   assert.deepEqual(getCheckReasonCatalogInfo(), {version: 'actql-check-reason-catalog/0.1',
-    revision: '2026-10-25.1', reasonSchemaCid: current.cid});
+    revision: '2026-11-21.1', reasonSchemaCid: current.cid});
   const entry = getCheckReasonCatalogEntry('parameter_value_required');
   assert.equal(entry.family, 'requirement');
   assert.equal(entry.default_severity, 'info');
@@ -34,4 +34,16 @@ test('catalog selection preserves specific safe advice and unknown fallbacks', (
     'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.');
   assert.deepEqual(explainCheckReason({code: 'future_reason', facts: {private: 'hidden'}}),
     {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+});
+
+test('text-time ceiling advice distinguishes input, output and replacements', () => {
+  const codes = ['text_time_input_ceiling', 'text_time_output_ceiling', 'text_time_replacement_ceiling'];
+  const explanations = codes.map(code => {
+    const entry = getCheckReasonCatalogEntry(code);
+    assert.equal(entry.family, 'limit');
+    assert.deepEqual(entry.locations, []);
+    return explainCheckReason({code});
+  });
+  assert.deepEqual(explanations.map(value => value.kind), ['known', 'known', 'known']);
+  assert.equal(new Set(explanations.map(value => value.summary)).size, codes.length);
 });

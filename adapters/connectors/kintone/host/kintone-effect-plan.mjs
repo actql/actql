@@ -4,7 +4,7 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, captureDeclaredUpdateTargetCapacity} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
   httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum,
@@ -33,6 +33,7 @@ const names = ['maxInputBytes', 'maxRequestBytes', 'maxResponseBytes', 'maxNodes
   'maxValueDepth', 'maxValueTextBytes', 'maxIdentityBytes', 'maxComparisonWork', 'maxRecoveryBytes'];
 
 export function captureKintoneEffectPlanRecipeBuilder({moon}) {
+  const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
   const original = Object.freeze(Object.fromEntries(['MutationLimits', 'PageLimits', 'ValueLimits',
     'WriteLimits', 'FormLimits', 'UpdateProposalConstructionCapacity', 'UpdateFormConstructionCapacity',
     'UpdateTargetConstructionCapacity', 'UpdateFinalizationConstructionCapacity',
@@ -46,7 +47,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
   const native = value => {const result = runtimeUnboxedReferenceOption(value); if (!result) fail(); return result;};
   const add = (left, right) => native(original.UpdateAddConstructionCapacity(left, right));
   return function prepareKintoneEffectPlanRecipe({mapping, fields, formResource, bindingUnits,
-    credentialSite, limits, inputLimits, maxRecoveryBytes}) {
+    credentialSite, limits, inputLimits, maxRecoveryBytes, maxTargetBytes}) {
     const policy = data(limits, names);
     if (!Object.values(policy).every(positive) || policy.maxValueNodes > 2147483645 ||
         policy.maxValueDepth > 2147483645 || !positive(bindingUnits) || !positive(maxRecoveryBytes) ||
@@ -166,10 +167,11 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       physical(phase + '-target', 'schema-after', formResource, true, false);
     }
     const writeIndex = rowOperations.length;
+    const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
     rowOperations.push({operation: KINTONE_RECORD_UPDATE_OPERATION, extent: operationExtent(KINTONE_RECORD_UPDATE_OPERATION,
-      initial[3], BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes), true)});
+      writeCapacity, BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes), true)});
     credentialOperations.push(Object.freeze({phase: 'write', operationIndex: writeIndex,
-      maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes}));
+      maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes, maxTargetBytes}));
     const recoveryIndex = memberOperations.length; memberOperations.push(memberOperations[0]);
     return captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze(memberOperations.map(Object.freeze)),
       rowOperations: Object.freeze(rowOperations.map(Object.freeze)), credentialOperations: Object.freeze(credentialOperations),

@@ -1,7 +1,7 @@
 ///|
 // Grouping and numeric unary plus retain the literal/whole-parameter role.
 // Never turn an arbitrary expression into an offset value.
-fn lower_analytic_offset(
+fn lower_analytic_count(
   construction : Construction,
   expression : @query.Expression,
   index : Int,
@@ -41,7 +41,7 @@ fn lower_analytic_offset(
         ])
       // These forms cannot supply the required literal/whole-parameter role.
       Reference(_) | Binary(_, _, _) => raise Abort(InvalidQuery)
-      // A known NULL atom violates the navigation offset's non-null domain.
+      // A known NULL atom cannot supply an analytic integer operand.
       // Parentheses and unary plus cannot turn it into a support limitation.
       Null => raise Abort(InvalidQuery)
       Unary("-", child) => {

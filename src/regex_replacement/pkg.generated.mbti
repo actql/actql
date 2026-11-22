@@ -13,13 +13,15 @@ pub fn emit(Replacement, @encode_core.Writer) -> Unit raise @encode_core.EncodeF
 
 pub fn emit_preimage(Replacement, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
-pub fn parse(String, Limits) -> Result[Replacement, Issue]
+pub fn parse(String, Limits, syntax? : Syntax) -> Result[Replacement, Issue]
 
 pub fn part_at(Replacement, Int) -> Part?
 
 pub fn part_count(Replacement) -> Int
 
 pub fn stats(Replacement) -> Stats
+
+pub fn syntax(Replacement) -> Syntax
 
 pub fn usage(Replacement) -> (Int, Int, Int)
 
@@ -53,6 +55,11 @@ pub struct Stats {
   capture_reference_count : Int
   max_capture_index : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum Syntax {
+  Actql
+  GoogleSql
+} derive(Eq)
 
 // Type aliases
 

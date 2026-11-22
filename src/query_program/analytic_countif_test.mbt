@@ -68,18 +68,22 @@ test "analytic COUNTIF source matches the independent checked full Program" {
 }
 
 ///|
-test "analytic COUNTIF retains explicit frame and input snapshot scope" {
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT COUNTIF(flag) OVER (ORDER BY id) AS n FROM flags",
-        syntax_limits(),
-      ).unwrap(),
-      analytic_countif_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedAnalytic),
-  )
+test "analytic COUNTIF retains its default frame and input snapshot scope" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT COUNTIF(flag) OVER (ORDER BY id) AS n FROM flags",
+      syntax_limits(),
+    ).unwrap(),
+    analytic_countif_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(program).contains("\"frame\":"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("the authored default frame is closed")
+  }
   for
     text in [
       "SELECT flag AS invented, COUNTIF(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM flags",

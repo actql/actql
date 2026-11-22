@@ -152,6 +152,7 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
 ) -> (
   @local_host.NativeClientSubmittedPreparation,
   @run_host.ClientLocalNormalization?,
+  @run_host.ClientAuthoringContextPreparation?,
 ) raise ClientStop {
   guard self.business is Some(business) &&
     business.request_input is Some(input) &&
@@ -161,6 +162,7 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
   }
   business.request_intent = Some(intent)
   let mut normalization = None
+  let mut authoring = None
   let preparation = self.with_business_request(capture, () => {
     if business.request_intake_units > 0L {
       // construct_business_intent returned before this entry. Keep the same
@@ -196,7 +198,16 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
             Err(issue) => Err(@local_host.RequestNormalization(issue))
             Ok(original) => {
               normalization = Some(original)
-              Ok(())
+              match
+                @local_values.prepare_request_program_authoring_context(
+                  parent, input,
+                ) {
+                Err(issue) => Err(@local_host.RequestAuthoring(issue))
+                Ok(evidence) => {
+                  authoring = Some(evidence)
+                  Ok(())
+                }
+              }
             }
           }
         }),
@@ -208,7 +219,7 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
       }
     }
   })
-  (preparation, normalization)
+  (preparation, normalization, authoring)
 }
 
 ///|

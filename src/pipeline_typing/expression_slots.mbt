@@ -7,6 +7,7 @@ pub(all) enum ExpressionConsumer {
   AggregateArgument(String)
   AnalyticFilter(String)
   AnalyticArgument(String)
+  AnalyticDefault(String)
   SequencePredicate(Int)
   GraphMatchPredicate
   GraphSubgraphEdgePredicate
@@ -195,9 +196,24 @@ fn slot_relation(
               ),
               AnalyticArgument(call.name),
             )
+            if call.function
+              is (@relation.Lag(fallback=Some(fallback), ..)
+              | @relation.Lead(fallback=Some(fallback), ..)) {
+              slot_add(
+                c,
+                step,
+                Some(
+                  @relation.binding_at(operation, fallback).unwrap().expression,
+                ),
+                AnalyticDefault(call.name),
+              )
+            }
           }
-          @relation.RowNumber | @relation.Rank | @relation.DenseRank =>
-            slot_tick(c)
+          @relation.RowNumber
+          | @relation.Rank
+          | @relation.DenseRank
+          | @relation.PercentRank
+          | @relation.Ntile(_) => slot_tick(c)
         }
       }
     }

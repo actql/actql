@@ -18,6 +18,15 @@ test('analytic STRING_AGG obligations preserve NULLs, duplicates and empty-frame
     [{id: 4, names: null}, {id: 5, names: null}]);
   assert.deepEqual(cases.get('analytic-string-agg-partition-duplicate-values').expected[3],
     {id: 4, names: 'b|b'});
+  const defaultFrame = cases.get('analytic-string-agg-default-frame');
+  assert.equal(defaultFrame.text, "SELECT STRING_AGG('b') OVER (ORDER BY id) AS names FROM records");
+  assert.equal(defaultFrame.sourceReadSessionCount, 1);
+  assert.deepEqual(defaultFrame.results.main, {
+    columns: [{name: 'names', contract: {type: 'string', nullable: true}}],
+    unordered: true,
+    rows: [{names: 'b'}, {names: 'b,b'}, {names: 'b,b,b'}, {names: 'b,b,b,b'},
+      {names: 'b,b,b,b,b'}, {names: 'b,b,b,b,b,b'}],
+  });
   const control = JSON.parse(cases.get('analytic-string-agg-independent-json').text);
   assert.deepEqual(control, analyticStringAggProgram);
   const aggregate = control.stages[1].steps[0].analytic.functions.names;
@@ -30,10 +39,8 @@ test('analytic STRING_AGG obligations preserve NULLs, duplicates and empty-frame
     ...analyticStringAggExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   assert.deepEqual(analyticStringAggRefusals.filter(item => item.expectedCode !== undefined)
-    .map(item => item.name), [1, 2, 3, 4].map(index => 'analytic-string-agg-refuse-' + index));
-  for (const item of analyticStringAggRefusals.slice(1, 5)) {
-    assert.equal(item.expectedCode, 'ClientProgramImplementationLimit');
-  }
+    .map(item => [item.name, item.expectedCode]), [1, 2, 3].map(index =>
+    ['analytic-string-agg-refuse-' + index, 'ClientProgramImplementationLimit']));
 });
 
 test('ordinary and selected packed acceptance share the STRING_AGG obligations', async () => {

@@ -124,7 +124,7 @@ test "analytic property arguments lower computed values within the common call" 
 }
 
 ///|
-test "analytic property arguments preserve exact scope and frame refusals" {
+test "analytic property arguments preserve scope with default frames" {
   for
     text in [
       "SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects", "FROM objects AS old |> AS `current` |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous",
@@ -140,17 +140,21 @@ test "analytic property arguments preserve exact scope and frame refusals" {
       msg=text,
     )
   }
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects",
-        syntax_limits(),
-      ).unwrap(),
-      analytic_property_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedAnalytic),
-  )
+  let program = compile(
+    @query.parse_query(
+      "SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects",
+      syntax_limits(),
+    ).unwrap(),
+    analytic_property_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(program).contains("\"frame\":"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("the authored default frame is closed")
+  }
   assert_true(
     compile(
       @query.parse_query(
