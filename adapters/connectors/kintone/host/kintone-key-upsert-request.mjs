@@ -3,7 +3,7 @@
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
-import {freezeInput} from '../../../../packages/sdk/internal/data.mjs';
+import {freezeInput} from '../../../../packages/sdk/internal/private-source-preparation.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {KINTONE_RECORD_CREATE_OPERATION, KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';

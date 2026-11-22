@@ -8964,7 +8964,7 @@
     },
     {
       "module": "adapters/connectors/kintone/host/kintone-key-upsert-request.mjs",
-      "sha256": "2e696f3abeaf9ca0d620f01a3635f0d1840130c9034e561ac0748097b7097963",
+      "sha256": "3331e29724ee8122842ba85f97e522a8d79c563b71f954f4dc2f73fef5b2a726",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Original Kintone keyed UPSERT request and saved material projection",
@@ -9154,7 +9154,7 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
-        "../../../../packages/sdk/internal/data.mjs",
+        "../../../../packages/sdk/internal/private-source-preparation.mjs",
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "../site/kintone-record-write.mjs",
