@@ -743,6 +743,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.receipt = Some(receipt)
+      if before_metadata is Some(_) {
+        construction
+        .unwrap()
+        .retain_export_metadata(self.original, preparation, receipt)
+      }
       if !@strategy.captured_effect_local_result_export_matches_receipt(
           inputs, exported, receipt,
         ) {

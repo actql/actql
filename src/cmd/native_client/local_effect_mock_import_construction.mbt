@@ -1078,6 +1078,25 @@ fn LocalNativeMockEffectImportConstruction::export_metadata_funding(
 }
 
 ///|
+// The closed writer and decoded row are gone. Keep the measured survivors on
+// the same operation before reusing the export's relative workspace.
+fn LocalNativeMockEffectImportConstruction::retain_export_metadata(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  preparation : @execution.CompletedResultRelationExportPreparation,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Unit raise ClientStop {
+  self
+  .prepare_body_result(
+    @execution.completed_result_export_retained_metadata_capacity(
+      preparation, receipt,
+    ),
+    previous_workspace_returned=true,
+  )
+  .native_effect_proposal(original)
+}
+
+///|
 // The same proof owns one growing pending array. Its funded callbacks and
 // scalar results are local to the pre-walk; the same peak also covers the
 // export's later schema test on the same projected Result schema.

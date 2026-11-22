@@ -196,6 +196,58 @@ test "Result export metadata cancellation cannot publish an open stream" {
 }
 
 ///|
+test "Result export retains the original receipt and closed stream metadata once" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  let finish = fn(stream : CompletedOutputExport) {
+    while next_completed_output_export_canonical_row(stream, 100, 10, 4096).unwrap()
+          is Some(_) {
+      ()
+    }
+    finish_completed_relation_export(stream).unwrap().0
+  }
+  let (original, stream) = original_export_row_preparation(source, occurrence)
+  let (_, other_stream) = original_export_row_preparation(source, occurrence)
+  let receipt = finish(stream)
+  let other = finish(other_stream)
+  assert_eq(receipt.rows.content.cid, other.rows.content.cid)
+  assert_true(receipt.rows.references is None)
+  assert_true(
+    completed_result_export_retained_metadata_capacity(original, other) is None,
+  )
+  let retained = completed_result_export_retained_metadata_capacity(
+    original, receipt,
+  ).unwrap()
+  let receipt_only = completed_relation_export_retained_capacity(receipt).unwrap()
+  // Fixed controls 24H/72R/80W, 15 current array wrappers at 56B each,
+  // four 32B order tuples, and the actual order/projection backing slots.
+  // The existing receipt quote already counts both shared name arrays.
+  let extra = 2568L +
+    8L *
+    (
+      stream.order.columns.capacity().to_int64() +
+      stream.rows.columns.unwrap().capacity().to_int64()
+    )
+  let bytes = execution_capacity_retained_bytes(receipt_only) + extra
+  assert_eq(execution_capacity_retained_bytes(retained), bytes)
+  assert_eq(execution_capacity_execution_bytes(retained), bytes)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_result_export_retained_metadata_capacity(original, receipt)
+    is None,
+  )
+  cancel_completed_relation_export_receipt(other)
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "original export row keeps typed cells and exact selected projection order" {
   let owner = original_export_row_owner()
   let source = export_fixture(owner)

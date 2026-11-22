@@ -210,6 +210,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
       .native_effect_proposal(self.original)
     entry.receipt = Some(receipt)
+    if before_metadata is Some(_) {
+      construction.retain_export_metadata(self.original, preparation, receipt)
+    }
     let definition = construction.issue_result_definition(
       self.original,
       state._retained_prepared,
