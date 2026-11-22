@@ -164,7 +164,7 @@ export const currentPackageConfigurations = Object.freeze({
   'src/platform_native/sqlite/moon.pkg': Object.freeze({digest: 'a0daf570148be64164de728248ed8f4b3df02262b9d4873cd04e2445c3b40281', rule: 'literal-native-options-with-bound-source-membership', revision: '24bf383caf9ad31fe921410ee6da2cd30ee4cb47'}),
   'src/platform_native/trusted_clock/moon.pkg': Object.freeze({digest: '19f2c6b1beb2a401a9152b82e679f0df352d11da6efeb1bc79f56ab516537ab0', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/query_integration/moon.pkg': Object.freeze({digest: '85c6a9e865217e88e0322ca57208d43cc60742d508da3f04d5be00c724f8c15b', rule: 'literal-native-options-with-bound-source-membership', revision: 'd0a65454c66690c3725c9cfbcc31ee84fdd4c3f1'}),
-  'src/connectors/kintone/host/moon.pkg': Object.freeze({digest: '85ba3f07ed79308b595b1c00cf085a87f2d7ec9f9f40c88be4ffc1c264d216bd', rule: 'literal-target-selectors-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
+  'src/connectors/kintone/host/moon.pkg': Object.freeze({digest: '23ed01e36e53c962cbe05b3be0555ce78a511cd44735c3faa35543f5442a4f8b', rule: 'literal-target-selectors-with-bound-source-membership', revision: '0e2eec632ffb99c4efc4e986bd068afc57768720'}),
   'src/source_value/moon.pkg': Object.freeze({digest: '7924497475b1578e83add3ebe773c473b6eba23182ed7c8e9b54ec38ecfba44b', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3ce2057976a7c88a13246a6349fbd7a584d11478'}),
 });
 
