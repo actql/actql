@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {sourceJsonWireGeometry, sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry,
   sourceAuthoredViewConstructionGeometry, sourceEnvironmentCompositionGeometry} from './installed-source-construction-geometry.mjs';
-import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
+import {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
 import {installedEnvironmentDataWriterConstructionGeometry,
   installedEnvironmentMemberSortConstructionGeometry, installedCanonicalTextConstructionShape,
   installedCheckpointBindingCanonicalConstructionGeometry} from './installed-check-environment-construction.mjs';
 import {canonicalJson as localCanonicalJson} from './local-account-config.mjs';
 import {sourceCheckpointInventoryConstructionGeometry} from './source-alias-construction.mjs';
 
-const count = value => value !== null && typeof value === 'object'
-  ? 1n + Object.values(value).reduce((n, child) => n + count(child), 0n) : 1n;
-const freeze = value => {
+const count = (value: unknown): bigint => value !== null && typeof value === 'object'
+  ? 1n + Object.values(value).reduce<bigint>((n, child) => n + count(child), 0n) : 1n;
+const freeze = <Value,>(value: Value): Value => {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) freeze(child);
     Object.freeze(value);
@@ -71,8 +71,10 @@ test('staged Environment writer keeps legacy CID sorting and complete original b
   const declared = {evidence_schemas: values, evidence_capabilities: values,
     view_bodies: values, contracts: values, command_bodies: values,
     catalog: values[0], manifest_entry: values[1]};
-  const legacy = rowSourceCheckEnvironment(base, declared, values), phases = [];
-  const invoke = (name, quote, project) => {
+  const legacy = rowSourceCheckEnvironment(base, declared, values), phases: string[] = [];
+  const invoke = <Value,>(name: string, quote: Readonly<{
+    retained: {nodes: bigint}; workspace: {nodes: bigint};
+  }>, project: () => Value): Value => {
     assert.ok(quote.retained.nodes >= 0n && quote.workspace.nodes >= 0n);
     phases.push(name);return project();
   };
@@ -101,7 +103,8 @@ test('wire geometry bounds actual JSON value occurrences including escaped detac
   const longEscaped = JSON.stringify({catalog: JSON.stringify({value: '\\\"日本語😀{}[]'.repeat(1000)})});
   assert.ok(sourceJsonWireGeometry(longEscaped).nodes >= count(JSON.parse(JSON.parse(longEscaped).catalog)));
   for (let depth = 0; depth < 30; depth++) {
-    let value = 'escaped \\ " {} [] 日本語😀';
+    type NestedValue = string | {left: NestedValue; right: (number | null)[]};
+    let value: NestedValue = 'escaped \\ " {} [] 日本語😀';
     for (let index = 0; index < depth; index++) value = {left: value, right: [null, index]};
     const wire = JSON.stringify(value);
     assert.ok(sourceJsonWireGeometry(wire).nodes >= count(value));
@@ -144,7 +147,7 @@ test('Environment quote covers the actual detached parses and canonical output w
 });
 
 test('authored-view snapshot prices fixed records and borrowed String fields separately', () => {
-  const views = value => Object.freeze([Object.freeze({resource: 'rows', schema_wire: value, facts_wire: '{}'})]);
+  const views = (value: string) => Object.freeze([Object.freeze({resource: 'rows', schema_wire: value, facts_wire: '{}'})]);
   const short = sourceAuthoredViewConstructionGeometry(views('{}'));
   const long = sourceAuthoredViewConstructionGeometry(views('x'.repeat(100000)));
   assert.equal(short.nodes, long.nodes);
@@ -156,7 +159,7 @@ test('authored-view snapshot prices fixed records and borrowed String fields sep
 });
 
 test('final Environment composition separates scalar text from actual tree occurrences', () => {
-  const wire = text => JSON.stringify({version: 'v', source_views: [{name: text}]});
+  const wire = (text: string) => JSON.stringify({version: 'v', source_views: [{name: text}]});
   const short = sourceEnvironmentCompositionGeometry([wire('x'), undefined]);
   const long = sourceEnvironmentCompositionGeometry([wire('x'.repeat(100000)), undefined]);
   assert.equal(long.nodes, short.nodes, 'A larger String is not another tree of Value nodes');
@@ -164,13 +167,15 @@ test('final Environment composition separates scalar text from actual tree occur
   assert.ok(long.wire >= BigInt(Buffer.byteLength(wire('x'.repeat(100000)))));
   const many = sourceEnvironmentCompositionGeometry([JSON.stringify(Array(1000).fill(null))]);
   assert.ok(many.nodes > short.nodes, 'Actual additional values still require tree capacity');
-  let nested = 'x'.repeat(1000);
+  type Nested = string | {value: Nested};
+  let nested: Nested = 'x'.repeat(1000);
   for (let depth = 0; depth < 12; depth++) nested = {value: nested};
   const deep = sourceEnvironmentCompositionGeometry([JSON.stringify(nested)]);
   assert.ok(deep.text > sourceEnvironmentCompositionGeometry([JSON.stringify('x'.repeat(1000))]).text,
     'Canonical recursion retains intermediate text, not just the final wire');
   for (const invalid of [null, 1, {}, [null]]) {
-    assert.throws(() => sourceEnvironmentCompositionGeometry(invalid));
+    assert.throws(() => sourceEnvironmentCompositionGeometry(
+      invalid as Parameters<typeof sourceEnvironmentCompositionGeometry>[0]));
   }
 });
 

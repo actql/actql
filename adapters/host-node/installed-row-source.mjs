@@ -43,17 +43,14 @@ import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {rejectInstalledRowSource as fail} from './installed-row-source-mapping.mjs';
+import {valueCid} from './installed-row-source-environment.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
+export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
 const text = value => typeof value === 'string' && value.length > 0;
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
-// A keyed request includes data values (not configuration identifiers).
-// Keep exact version/target text; NFC must not broaden read approval identity.
-const valueCid = value => `sha256:${createHash('sha256')
-  .update(canonicalValueJson(value, {dataKeys: true})).digest('hex')}`;
-
 // Private standard installation DATA, not a callback-currentness promise.
 // Callback targets keep their original full revalidation below, even when a
 // callback happens to return a frozen object. No public or restored wire can
@@ -99,85 +96,6 @@ function prepareImmutablePhysicalTargets(value) {
   }});
 }
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
-
-const byCid = values => values.map(value => JSON.parse(value))
-  .sort((a, b) => {
-    const left = valueCid(a);
-    const right = valueCid(b);
-    return left < right ? -1 : left > right ? 1 : 0;
-  });
-
-// The Check Environment of a restored row declaration: the Host's base
-// environment with the declaration's Catalog, source views, contracts,
-// manifest entry and evidence members, plus the create Mappings the common
-// runtime generated from the connector's declared writes. Built only from
-// regenerated declarations; nothing is read from the provider. Complete
-// declared Command bodies keep their original Catalog/role correspondence for
-// Common admission; this assembly does not confer permission or issue targets.
-// Without Mappings or Commands the read-only environment remains unchanged.
-// Checked contracts contain exact data text, including enum values and field
-// names. Preserve those originals rather than applying configuration NFC.
-export function rowSourceCheckEnvironment(baseWire, declared, mappings = [], retainOriginal, construction) {
-  const parse = wire => construction === undefined ? JSON.parse(wire)
-    : construction.freeze(JSON.parse(wire));
-  const members = values => construction === undefined ? byCid(values) : values.map(parse);
-  const build = () => {
-    const base = parse(baseWire);
-    const {evidence_bundle_cid: _, ...body} = base;
-    const commands = Object.hasOwn(declared, 'command_bodies')
-      ? declared.command_bodies : [];
-    if (body.version !== 'actql-check-environment/0.1' ||
-        body.connector_catalogs.length !== 0 ||
-        body.schema_snapshots.length !== 0 ||
-        body.connector_capabilities.length !== 0 ||
-        body.connector_manifest !== undefined ||
-        declared.evidence_schemas.length !== declared.view_bodies.length ||
-        declared.evidence_capabilities.length !== declared.view_bodies.length ||
-        !Array.isArray(mappings) || !Array.isArray(commands) ||
-        (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
-        (commands.length !== 0 && body.command_contracts?.length !== 0)) {
-      fail('InvalidRowSourceCheckEnvironmentBase');
-    }
-    const environment = {...body,
-      schema_snapshots: members(declared.evidence_schemas),
-      connector_capabilities: members(declared.evidence_capabilities),
-      source_views: members(declared.view_bodies),
-      contract_registry: members(declared.contracts),
-      connector_catalogs: [parse(declared.catalog)],
-      connector_manifest: {version: 'actql-connectors/0.1',
-        connectors: [parse(declared.manifest_entry)]},
-      ...(mappings.length === 0 ? {} : {mapping_contracts: members(mappings)}),
-      ...(commands.length === 0 ? {} : {command_contracts: members(commands)})};
-    return environment;
-  };
-  const environment = construction === undefined ? build() : construction.parse(build);
-  if (construction !== undefined) {
-    for (const section of ['schema_snapshots', 'connector_capabilities', 'source_views',
-      'contract_registry', 'mapping_contracts', 'command_contracts']) {
-      const values = environment[section];
-      if (!Object.isFrozen(values)) construction.sort(values, () => {
-        values.sort((a, b) => {
-          const left = valueCid(a), right = valueCid(b);
-          return left < right ? -1 : left > right ? 1 : 0;
-        });
-        Object.freeze(values);return Object.freeze({});
-      });
-    }
-    construction.seal(environment);
-  }
-  const evidenceCid = construction === undefined ? valueCid(environment)
-    : construction.hash(environment, () => valueCid(environment));
-  const document = Object.freeze({...environment, evidence_bundle_cid: evidenceCid});
-  const encode = () => {
-    const result = Object.freeze({
-      wire: canonicalValueJson(document,
-        {dataKeys: true}),
-      evidenceCid});
-    retainOriginal?.(result, document, environment);
-    return result;
-  };
-  return construction === undefined ? encode() : construction.encode(document, encode);
-}
 
 // The Host account gate of one installed row source, under its own context.
 // A trusted existing installer may retain its original immutable context

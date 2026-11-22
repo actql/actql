@@ -13688,23 +13688,8 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "fd306b46610a7d49e8a261ef9dda8e5257ae7f4afef561f26fd58c95fcf61caa",
+      "sha256": "9346ccc0d2614a4b4f54f09a390e7f1adaae094e429db2e47901deb99cd07b9d",
       "operations": [
-        {
-          "name": "byCid/byCid/byCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "byCid/byCid/byCid#2",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
         {
           "name": "createInstalledRowSource",
           "parameters": [
@@ -15186,52 +15171,6 @@
           "async": false
         },
         {
-          "name": "rowSourceCheckEnvironment",
-          "parameters": [
-            "baseWire",
-            "declared",
-            "mappings",
-            "retainOriginal",
-            "construction"
-          ],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/build/build",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/encode/encode",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/parse/parse",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -15268,6 +15207,7 @@
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-source.mjs",
         "./local-account-config.mjs",
@@ -15288,8 +15228,6 @@
         {
           "operations": [
             "<module>",
-            "byCid/byCid/byCid",
-            "byCid/byCid/byCid#2",
             "createInstalledRowSource",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
@@ -15401,13 +15339,6 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
-            "rowSourceCheckEnvironment",
-            "rowSourceCheckEnvironment/build/build",
-            "rowSourceCheckEnvironment/encode/encode",
-            "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
-            "rowSourceCheckEnvironment/parse/parse",
-            "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
-            "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
             "text/text",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
@@ -15519,7 +15450,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-environment.mts",
                 "anchor": "exact version/target text"
               },
               {
@@ -16688,7 +16619,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-environment.mts",
                 "anchor": "exact version/target text"
               },
               {
@@ -17853,7 +17784,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-environment.mts",
                 "anchor": "exact version/target text"
               },
               {
@@ -18770,6 +18701,193 @@
         }
       ],
       "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
+    },
+    {
+      "module": "adapters/host-node/installed-row-source-environment.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "rowSourceCheckEnvironment",
+        "valueCid"
+      ],
+      "operations": [
+        {
+          "name": "byCid/byCid/byCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "byCid/byCid/byCid#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment",
+          "parameters": [
+            "baseWire",
+            "declared",
+            "mappings",
+            "retainOriginal",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/build/build",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/encode/encode",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/parse/parse",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "valueCid/valueCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "./installed-row-source-mapping.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "cfb3361b393b3daedd83bb99f726d23d097fb92745d19101a2b0c1691395ba2f",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "byCid/byCid/byCid",
+            "byCid/byCid/byCid#2",
+            "rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/build/build",
+            "rowSourceCheckEnvironment/encode/encode",
+            "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+            "rowSourceCheckEnvironment/parse/parse",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+            "valueCid/valueCid"
+          ],
+          "exports": [
+            "rowSourceCheckEnvironment",
+            "valueCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "export function rowSourceCheckEnvironment("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "type Declared ="
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "type Result ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "const evidenceCid = construction === undefined ? valueCid(environment)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "retainOriginal?.(result, document, environment);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "type Construction = Readonly<{"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "construction.sort(values!, () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "fail('InvalidRowSourceCheckEnvironmentBase');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "construction.encode(document, encode);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "construction.parse(build)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "construction.seal(environment);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-environment.mts",
+                "anchor": "...(commands.length === 0 ? {} : {command_contracts: members(commands)})"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mts",
+                "anchor": "test('staged Environment writer keeps legacy CID sorting and complete original bytes'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mts",
+                "anchor": "test('Environment quote covers the actual detached parses and canonical output without byte-as-node inflation'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/installed-row-source-mapping.mjs",

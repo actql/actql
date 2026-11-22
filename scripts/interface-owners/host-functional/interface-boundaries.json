@@ -142564,7 +142564,7 @@
                 "anchor": "test('profile wire facts preserve payload whitespace escapes numbers and malformed prefixes'"
               },
               {
-                "path": "adapters/host-node/installed-source-construction-geometry.test.mjs",
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mts",
                 "anchor": "test('wire geometry bounds actual JSON value occurrences including escaped detached syntax'"
               },
               {
@@ -143475,7 +143475,7 @@
                 "anchor": "test('profile wire facts preserve payload whitespace escapes numbers and malformed prefixes'"
               },
               {
-                "path": "adapters/host-node/installed-source-construction-geometry.test.mjs",
+                "path": "adapters/host-node/installed-source-construction-geometry.test.mts",
                 "anchor": "test('wire geometry bounds actual JSON value occurrences including escaped detached syntax'"
               }
             ]

@@ -10,6 +10,7 @@ import {sourceEnvironmentConstructionGeometry, sourceDeclarationRetainedGeometry
 import type {composeInstalledSourceEnvironment as composeEnvironment} from './installed-funded-environment.mjs';
 import type {createInstalledSourceMaterialAccounting} from './installed-source-material-accounting.mjs';
 import type {RowSourceMappingMethod, rowSourceMapping} from './installed-row-source-mapping.mjs';
+import type {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
 
 type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
 type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
@@ -50,14 +51,6 @@ type Scope = {
   declarationAttempted?: boolean; mappingsAttempted?: boolean; readMetadataAttempted?: boolean;
   publishedEnvironment?: boolean; borrowedDeclaration?: Scope; closed?: boolean;
 };
-type EnvironmentConstruction = Readonly<{
-  freeze: Accounting['freezeSourceProjection'];
-  parse<Value extends NativeValue>(project: () => Value): Value;
-  sort<Value extends NativeValue>(values: readonly unknown[], project: () => Value): Value;
-  seal<Value extends NativeValue>(body: Value): Value;
-  hash(body: unknown, project: () => string): string;
-  encode<Value extends NativeValue>(document: unknown, project: () => Value): Value;
-}>;
 type ContextPorts = Pick<Accounting, 'installedSourceConfigurationReader' | 'reserveSource' | 'reconcileSource' |
   'freezeSourceProjection' | 'sourceProjectionMethods' | 'requireSynchronousSourceConstruction'> & Readonly<{
   fail(code: string): never;
@@ -66,9 +59,7 @@ type ContextPorts = Pick<Accounting, 'installedSourceConfigurationReader' | 'res
   services: object;
   scope: Scope;
   currentContext(): CommandContext;
-  rowSourceCheckEnvironment(baseWire: string, declared: Declared, mappings?: readonly string[],
-    retainOriginal?: (value: EnvironmentArgs[1], document: EnvironmentArgs[2], body: EnvironmentArgs[3]) => void,
-    construction?: EnvironmentConstruction): NativeEnvironment;
+  rowSourceCheckEnvironment: typeof rowSourceCheckEnvironment;
 }>;
 
 export function createInstalledSourceContextConstruction({fail: reject, original, material, services, scope,
