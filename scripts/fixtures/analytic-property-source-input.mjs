@@ -67,6 +67,11 @@ export const analyticPropertySuccesses = [
       a: {...payload, fields: {score: nullableNumber}}, b: {...payload, fields: {score: nullableNumber}},
       c: {...payload, fields: {score: nullableNumber}}},
     parameters: {...parameters, b: {score: null}}}),
+  {name: 'analytic-property-first-value-default', hostProfile: 'analytic-property', format: 'aql-text',
+    text: binding + 'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
+    parameterDeclarations, parameters, sourceReadCount: 0,
+    results: {main: {rows: [{value: 20}, {value: 20}, {value: 20}],
+      columns: [{name: 'value', contract: nullableNumber}], unordered: true}}},
   textCase('typed-empty',
     'SELECT id, LAG(payload.score) OVER (ORDER BY id) AS previous FROM objects WHERE id < 0 ORDER BY id', []),
 ];
@@ -99,13 +104,11 @@ analyticPropertySuccesses.push(
 );
 
 export const analyticPropertyRefusals = [
-  'SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects',
-  'SELECT LAG(payload.missing) OVER (ORDER BY id) AS previous FROM objects',
-  'SELECT LAG(id.score) OVER (ORDER BY id) AS previous FROM objects',
-  'FROM objects AS old |> AS current |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous',
-  'SELECT other AS invented, LAG(invented.score) OVER (ORDER BY id) AS previous FROM objects',
-  'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
-  'SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS previous FROM objects',
-].map((tail, index) => ({name: 'analytic-property-invalid-' + index, hostProfile: 'analytic-property',
-  format: 'aql-text', text: binding + tail, parameterDeclarations, parameters,
-  ...(index === 5 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
+  [0, 'SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects'],
+  [1, 'SELECT LAG(payload.missing) OVER (ORDER BY id) AS previous FROM objects'],
+  [2, 'SELECT LAG(id.score) OVER (ORDER BY id) AS previous FROM objects'],
+  [3, 'FROM objects AS old |> AS current |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous'],
+  [4, 'SELECT other AS invented, LAG(invented.score) OVER (ORDER BY id) AS previous FROM objects'],
+  [6, 'SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS previous FROM objects'],
+].map(([index, tail]) => ({name: 'analytic-property-invalid-' + index, hostProfile: 'analytic-property',
+  format: 'aql-text', text: binding + tail, parameterDeclarations, parameters}));

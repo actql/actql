@@ -6,7 +6,7 @@ import {analyticCountifRefusals} from './fixtures/analytic-countif-source-input.
 import {analyticPropertyRefusals} from './fixtures/analytic-property-source-input.mjs';
 
 // These expected inputs and policies are authored independently of the compiler,
-// installed runtime and observed refusal codes. Only these five support gaps
+// installed runtime and observed refusal codes. Only these three support gaps
 // may override the ordinary invalid-input fixture policy.
 const declarations = {
   a: {type: 'object', nullable: true, fields: {score: {type: 'number', nullable: false}}},
@@ -31,13 +31,6 @@ const limits = [
   {name: 'replace-call-refuse-5', format: 'sql',
     text: "SELECT ACTQL.REPLACE('a', 'b', 'c') AS value",
     expectedCode: 'ClientProgramImplementationLimit'},
-  {name: 'analytic-countif-refuse-1', format: 'sql',
-    text: 'SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM records',
-    expectedCode: 'ClientProgramImplementationLimit'},
-  {name: 'analytic-property-invalid-5', hostProfile: 'analytic-property', format: 'aql-text',
-    text: objects + 'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
-    parameterDeclarations: declarations, parameters,
-    expectedCode: 'ClientProgramImplementationLimit'},
 ];
 const invalid = [
   {name: 'right-join-refuse-0', format: 'sql',
@@ -53,7 +46,7 @@ const invalid = [
 const cases = [...rightJoinRefusals, ...replaceCallRefusals,
   ...analyticCountifRefusals, ...analyticPropertyRefusals];
 
-test('only five independently proven support gaps override refusal classification', () => {
+test('only three independently proven support gaps override refusal classification', () => {
   assert.deepEqual(cases.filter(item => Object.hasOwn(item, 'expectedCode')), limits);
 });
 

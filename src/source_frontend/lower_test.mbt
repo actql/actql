@@ -350,6 +350,19 @@ test "query syntax admission is bounded and independent of semantic context" {
 }
 
 ///|
+test "public SQL lowers the original bare GENERATE_ARRAY value table" {
+  let source = "FROM UNNEST(GENERATE_ARRAY(1, 3)) AS x"
+  assert_true(
+    lower(source, Sql, Some(test_context()), public_primary=true) is Ok(_),
+  )
+  assert_true(parse_query(source + " |> SELECT x", Sql) is Err(WrongQueryForm))
+  assert_true(parse_query(source + " |> SELECT x", Text) is Ok(_))
+  assert_true(
+    parse_query("FROM UNNEST(GENERATE_ARRAY(1, 3))", Sql) is Err(QuerySyntax(_)),
+  )
+}
+
+///|
 test "published receiver schemas retain generation binding and input ownership" {
   let input = test_context().inputs[0]
   let entry : PublishedAlias = {

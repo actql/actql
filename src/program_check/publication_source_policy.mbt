@@ -784,7 +784,7 @@ fn prepare_target_source_policy(
                   identity_charge(budget, 1)
                   match
                     @relation.analytic_call_at(analytic, call).unwrap().function {
-                    Lag(..) | Lead(..) => missing = true
+                    Lag(..) | Lead(..) | Ntile(_) => missing = true
                     Aggregate(aggregate) =>
                       if @relation.aggregate_delimiter(aggregate) is Some(_) ||
                         @relation.aggregate_fraction(aggregate) is Some(_) ||
@@ -795,6 +795,7 @@ fn prepare_target_source_policy(
                     RowNumber
                     | Rank
                     | DenseRank
+                    | PercentRank
                     | FirstValue(_)
                     | LastValue(_) => ()
                   }

@@ -57,7 +57,7 @@ priv struct AnalyticEvaluation[T] {
   mut prefix : Array[Int]
   // Per-row indexes.
   position_by_row : Array[Int]
-  partition_start : Array[Int]
+  peer_end_by_row : Array[Int]
   partition_by_row : Array[Int]
   ranks : Array[Int]
   dense_ranks : Array[Int]
@@ -174,7 +174,7 @@ fn[T : RelationRows] start_analytic_evaluation(
     count_indices: [],
     prefix: [],
     position_by_row: [],
-    partition_start: [],
+    peer_end_by_row: [],
     partition_by_row: [],
     ranks: [],
     dense_ranks: [],
@@ -875,7 +875,7 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       }
       if s.index < count {
         s.position_by_row.push(-1)
-        s.partition_start.push(-1)
+        s.peer_end_by_row.push(-1)
         s.partition_by_row.push(-1)
         s.ranks.push(0)
         s.dense_ranks.push(0)
@@ -886,10 +886,21 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         s.index += 1
         return Ok(None)
       }
+      let default_frame = @lower.analytic_frame(analytic) is None
       for call_index in 0..<call_count {
-        if analytic_frame_aggregate(s, call_index) is Some(_) &&
+        let call = @lower.analytic_call_at(analytic, call_index).unwrap()
+        let function = @lower.analytic_call_function(call)
+        if function is PreparedFrameAggregate(_) &&
           s.count_indices[call_index] is None {
           s.needs_aggregate_demand = true
+        }
+        if default_frame &&
+          (
+            function is PreparedFrameAggregate(_) ||
+            function is PreparedLastValue(_)
+          ) {
+          // Resolve the exclusive peer ends before determining aggregate demand.
+          s.frame_end = -1
         }
       }
       s.index = 0
@@ -904,7 +915,12 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
     // Positions, ranks and navigation references.
     11 => {
       if s.range_index >= s.ranges.length() {
-        s.phase = 12
+        if s.frame_end != 0 {
+          s.index = count
+          s.phase = 24
+        } else {
+          s.phase = 12
+        }
         return Ok(None)
       }
       let range = s.ranges[s.range_index]
@@ -952,7 +968,6 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       }
       let source = s.sorted[position]
       s.position_by_row[source] = position
-      s.partition_start[source] = range.start
       s.partition_by_row[source] = s.range_index
       s.ranks[source] = s.peer_start - range.start + 1
       s.dense_ranks[source] = s.dense
@@ -976,23 +991,26 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
             }
           }
           PreparedFirstValue(_) | PreparedLastValue(_) => {
-            guard @lower.analytic_frame(analytic) is Some(frame) else {
-              return Err(InvalidRows)
-            }
-            match analytic_frame_range(frame, relative, length) {
-              None => -1
-              Some((first, end)) => {
-                let selected = if @lower.analytic_call_function(call)
-                  is PreparedFirstValue(_) {
-                  first
-                } else {
-                  end - 1
+            let first_value = @lower.analytic_call_function(call)
+              is PreparedFirstValue(_)
+            match @lower.analytic_frame(analytic) {
+              Some(frame) =>
+                match analytic_frame_range(frame, relative, length) {
+                  None => -1
+                  Some((first, end)) =>
+                    s.sorted[range.start +
+                    (if first_value { first } else { end - 1 })]
                 }
-                s.sorted[range.start + selected]
-              }
+              // The ordered default begins at the partition's first row.
+              // LAST_VALUE waits for the authored peer end.
+              None => if first_value { s.sorted[range.start] } else { -1 }
             }
           }
-          PreparedRowNumber | PreparedRank | PreparedDenseRank => -1
+          PreparedRowNumber
+          | PreparedRank
+          | PreparedDenseRank
+          | PreparedPercentRank
+          | PreparedNtile(_) => -1
           PreparedFrameAggregate(_) => -1
         }
         s.references[call_index][source] = reference
@@ -1002,16 +1020,20 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
             | PreparedLead(_, _)
             | PreparedFirstValue(_)
             | PreparedLastValue(_) => if reference >= 0 { 1L } else { 0L }
-            PreparedFrameAggregate(_) => {
-              guard @lower.analytic_frame(analytic) is Some(frame) else {
-                return Err(InvalidRows)
+            PreparedFrameAggregate(_) =>
+              match @lower.analytic_frame(analytic) {
+                Some(frame) =>
+                  match analytic_frame_range(frame, relative, length) {
+                    None => 0L
+                    Some((first, end)) => Int64::from_int(end - first)
+                  }
+                None => 0L // default memberships are metered with the peer ends
               }
-              match analytic_frame_range(frame, relative, length) {
-                None => 0L
-                Some((first, end)) => Int64::from_int(end - first)
-              }
-            }
-            PreparedRowNumber | PreparedRank | PreparedDenseRank => 0L
+            PreparedRowNumber
+            | PreparedRank
+            | PreparedDenseRank
+            | PreparedPercentRank
+            | PreparedNtile(_) => 0L
           }
           if memberships > value.frame_memberships - s.frame_memberships {
             return Err(AnalyticEnvelope(FrameMemberships))
@@ -1029,9 +1051,6 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         s.phase = 14
         s.index = 0
         return Ok(None)
-      }
-      guard @lower.analytic_frame(analytic) is Some(frame) else {
-        return Err(InvalidRows)
       }
       if s.inner == 0 {
         if count == 2147483647 ||
@@ -1076,12 +1095,11 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         if !spend_control(s.control, 1) {
           return Err(RowLimit)
         }
-        match analytic_frame_range(frame, s.index, length) {
-          None => ()
-          Some((first, end)) => {
-            s.difference[range.start + first] += 1
-            s.difference[range.start + end] -= 1
-          }
+        let source = s.sorted[range.start + s.index]
+        let (first, end) = analytic_aggregate_interval(s, range, source)
+        if first < end {
+          s.difference[first] += 1
+          s.difference[end] -= 1
         }
         s.index += 1
         return Ok(None)
@@ -1335,6 +1353,8 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       s.index += 1
       Ok(None)
     }
+    // Complete peer prefixes before the demand and evaluation passes.
+    24 => analytic_resolve_default_frames(s)
     // Envelope measurement.
     100 =>
       match analytic_measure_step(s) {
@@ -1342,6 +1362,73 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
         Err(issue) => Err(issue)
       }
     _ => Err(InvalidRows)
+  }
+}
+
+///|
+// One reverse row per advance. Completed positions identify endpoints, but
+// only the authored peer rank and original partition determine membership.
+fn[T] analytic_resolve_default_frames(
+  s : AnalyticEvaluation[T],
+) -> Result[Array[String]?, RowIssue] {
+  if s.index == 0 {
+    s.phase = 12
+    return Ok(None)
+  }
+  if !spend_control(s.control, 1) {
+    return Err(RowLimit)
+  }
+  let position = s.index - 1
+  let source = s.sorted[position]
+  let range = s.ranges[s.partition_by_row[source]]
+  if position + 1 == range.end ||
+    s.ranks[source] != s.ranks[s.sorted[position + 1]] {
+    s.frame_end = position + 1
+  }
+  s.peer_end_by_row[source] = s.frame_end
+  for call_index in 0..<s.call_count {
+    let call = @lower.analytic_call_at(s.analytic, call_index).unwrap()
+    let function = @lower.analytic_call_function(call)
+    let memberships = match function {
+      PreparedLastValue(_) => 1L
+      PreparedFrameAggregate(_) => (s.frame_end - range.start).to_int64()
+      _ => continue
+    }
+    if !spend_control(s.control, 1) {
+      return Err(RowLimit)
+    }
+    if s.envelope is Some(value) {
+      if memberships > value.frame_memberships - s.frame_memberships {
+        return Err(AnalyticEnvelope(FrameMemberships))
+      }
+      s.frame_memberships += memberships
+    }
+    if function is PreparedLastValue(_) {
+      s.references[call_index][source] = s.sorted[s.frame_end - 1]
+    }
+  }
+  s.index = position
+  Ok(None)
+}
+
+///|
+fn[T] analytic_aggregate_interval(
+  s : AnalyticEvaluation[T],
+  range : AnalyticPartitionRange,
+  source : Int,
+) -> (Int, Int) {
+  match @lower.analytic_frame(s.analytic) {
+    None => (range.start, s.peer_end_by_row[source])
+    Some(frame) =>
+      match
+        analytic_frame_range(
+          frame,
+          s.position_by_row[source] - range.start,
+          range.end - range.start,
+        ) {
+        Some((first, end)) => (range.start + first, range.start + end)
+        None => (range.start, range.start)
+      }
   }
 }
 
@@ -1482,21 +1569,37 @@ fn[T : RelationRows] analytic_advance_arguments(
     | PreparedLead(expression, _)
     | PreparedFirstValue(expression)
     | PreparedLastValue(expression) => {
-      if !s.demanded[call_index][source] {
-        analytic_next_call(s, 18)
-        return Ok(None)
+      let fallback = if s.references[call_index][source] < 0 {
+        @lower.analytic_call_default(call)
+      } else {
+        None
       }
-      match analytic_expression_step(s, expression, source, call_index) {
-        Err(issue) => Err(issue)
-        Ok(None) => Ok(None)
-        Ok(Some(value)) => {
-          s.arguments[call_index][source] = Some(value)
-          analytic_next_call(s, 18)
-          Ok(None)
+      if s.call_phase == 0 && s.demanded[call_index][source] {
+        match analytic_expression_step(s, expression, source, call_index) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(value)) => s.arguments[call_index][source] = Some(value)
+        }
+        if fallback is Some(_) {
+          s.call_phase = 1
+          return Ok(None)
         }
       }
+      if fallback is Some(fallback) {
+        match analytic_expression_step(s, fallback, source, call_index) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(value)) => s.evaluated[call_index][source] = Some(value)
+        }
+      }
+      analytic_next_call(s, 18)
+      Ok(None)
     }
-    PreparedRowNumber | PreparedRank | PreparedDenseRank => {
+    PreparedRowNumber
+    | PreparedRank
+    | PreparedDenseRank
+    | PreparedPercentRank
+    | PreparedNtile(_) => {
       analytic_next_call(s, 18)
       Ok(None)
     }
@@ -1529,15 +1632,7 @@ fn[T] analytic_advance_aggregates(
   match s.call_phase {
     // Frame bounds, or an indexed count.
     0 => {
-      guard @lower.analytic_frame(s.analytic) is Some(frame) else {
-        return Err(InvalidRows)
-      }
-      let position = s.position_by_row[source] - range.start
-      let length = range.end - range.start
-      let (first, end) = match analytic_frame_range(frame, position, length) {
-        Some((first, end)) => (range.start + first, range.start + end)
-        None => (range.start, range.start)
-      }
+      let (first, end) = analytic_aggregate_interval(s, range, source)
       match s.count_indices[call_index] {
         Some(CountRows) => {
           s.evaluated[call_index][source] = Some(
@@ -1705,21 +1800,53 @@ fn[T : RelationRows] analytic_advance_output(
     } else {
       let call = @lower.analytic_call_at(s.analytic, index).unwrap()
       match @lower.analytic_call_function(call) {
-        PreparedRowNumber =>
-          Number(
-            (s.position_by_row[source] - s.partition_start[source] + 1).to_double(),
-          )
+        PreparedRowNumber => {
+          let range = s.ranges[s.partition_by_row[source]]
+          Number((s.position_by_row[source] - range.start + 1).to_double())
+        }
         PreparedRank => Number(s.ranks[source].to_double())
         PreparedDenseRank => Number(s.dense_ranks[source].to_double())
+        PreparedPercentRank => {
+          let range = s.ranges[s.partition_by_row[source]]
+          let length = range.end - range.start
+          Number(
+            if length == 1 {
+              0.0
+            } else {
+              (s.ranks[source] - 1).to_double() / (length - 1).to_double()
+            },
+          )
+        }
+        PreparedNtile(buckets) => {
+          let range = s.ranges[s.partition_by_row[source]]
+          let length = (range.end - range.start).to_int64()
+          let offset = (s.position_by_row[source] - range.start).to_int64()
+          let base = length / buckets
+          let remainder = length % buckets
+          // The first remainder buckets each take one extra row. This
+          // prefix is bounded by length even when buckets exceeds length.
+          let prefix = (base + 1L) * remainder
+          let bucket = if offset < prefix {
+            offset / (base + 1L)
+          } else {
+            remainder + (offset - prefix) / base
+          }
+          capture(@admitted.signed64_value(bucket + 1L))
+        }
         PreparedLag(_, _)
         | PreparedLead(_, _)
         | PreparedFirstValue(_)
         | PreparedLastValue(_) => {
           let reference = s.references[index][source]
-          if reference < 0 {
-            Null
-          } else {
+          if reference >= 0 {
             s.arguments[index][reference].unwrap()
+          } else if @lower.analytic_call_default(call) is Some(_) {
+            guard s.evaluated[index][source] is Some(value) else {
+              return Err(InvalidRows)
+            }
+            value
+          } else {
+            Null
           }
         }
         PreparedFrameAggregate(_) =>

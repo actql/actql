@@ -2,7 +2,11 @@
 fn analytic_borrow_capacity_fixture(
   expression? : String = "{\"literal\":\"x\"}",
   recursive? : Bool = false,
+  two_calls? : Bool = false,
 ) -> GeneratedSequence raise {
+  let string_agg = "{\"fn\":\"string_agg\",\"expr\":" +
+    expression +
+    ",\"delimiter\":\"|\",\"max_bytes\":65536}"
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}" +
     (if recursive {
@@ -12,9 +16,10 @@ fn analytic_borrow_capacity_fixture(
     }) +
     "},\"rows\":[{\"id\":1,\"label\":\"a\"" +
     (if recursive { ",\"nested\":[1]" } else { "" }) +
-    "}]},\"as\":\"seed\"},{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":{\"preceding\":1},\"end\":\"current_row\"},\"functions\":{\"names\":{\"fn\":\"string_agg\",\"expr\":" +
-    expression +
-    ",\"delimiter\":\"|\",\"max_bytes\":65536}}}}]",
+    "}]},\"as\":\"seed\"},{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":{\"preceding\":1},\"end\":\"current_row\"},\"functions\":{\"names\":" +
+    string_agg +
+    (if two_calls { ",\"more_names\":" + string_agg } else { "" }) +
+    "}}}]",
   )
   let sequence = prepared_sequence(owner)
   let generated = prepare_generated_sequence(
@@ -36,7 +41,11 @@ test "bounded analytic quote preserves staged frame Text before output admission
   }
   assert_true(bounded_analytic_borrows_input(kernel))
   let base = string_group_constructor_limits()
-  let limits = { ..base, rows: { ..base.rows, max_rows: 100, }, }
+  let limits = {
+    ..base,
+    rows: { ..base.rows, max_rows: 100, },
+    max_work: 10000000,
+  }
   assert_eq(
     bounded_analytic_staged_text_capacity(kernel, limits),
     Some(52454400L),
@@ -67,6 +76,25 @@ test "bounded analytic quote preserves staged frame Text before output admission
       { ..tiny, rows: { ..tiny.rows, max_rows: 99, }, },
       measure,
     ).unwrap().execution_bytes,
+  )
+}
+
+///|
+test "staged analytic StringAgg calls share one control budget for text bytes" {
+  let generated = analytic_borrow_capacity_fixture(two_calls=true)
+  guard generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) else {
+    fail("original analytic kernel missing")
+  }
+  let base = string_group_constructor_limits()
+  // Two calls x ten rows x 256 bytes per Value node, plus 41 shared
+  // UTF-8 bytes x 8. The budget is shared across both calls and all rows.
+  assert_eq(
+    bounded_analytic_staged_text_capacity(kernel, { ..base, max_work: 41, }),
+    Some(5448L),
+  )
+  assert_eq(
+    bounded_analytic_staged_text_capacity(kernel, { ..base, max_work: 40, }),
+    Some(5440L),
   )
 }
 

@@ -553,7 +553,8 @@ fn check_program_diagnostic(
       findings.push(ProgramLimit("analysis_budget_exhausted", original_pointer))
     MissingInput =>
       check_missing_input_findings(findings, diagnostic, BoundInput)
-    UnclassifiedFailure => findings.push(Limit("check_unclassified"))
+    UnclassifiedFailure =>
+      findings.push(Limit(check_unclassified_limit_code(diagnostic)))
     InvalidConfiguration => return Failed("check_context_invalid")
   }
   Report

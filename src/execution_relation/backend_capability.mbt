@@ -77,8 +77,13 @@ fn check_backend_capabilities(
       remaining -= 1 + copied
       let body = @lower.expression_body(expression)
       let edges = match body {
-        Field(_, _) | Literal(_) | TypedNull | EmptyArray | CurrentTimestamp =>
-          0
+        Field(_, _)
+        | Literal(_)
+        | DateLiteral(_)
+        | TypedNull
+        | EmptyArray
+        | CurrentTimestamp
+        | CurrentDate => 0
         Unary(_, _) | Cast(_) | Property(_, _, _) => 1
         Object(fields) => fields.length()
         Binary(_, _, _) | Subscript(_, _) | ArrayOffset(_, _, _) => 2
@@ -99,8 +104,13 @@ fn check_backend_capabilities(
       }
       remaining -= edges
       match body {
-        Field(_, _) | Literal(_) | TypedNull | EmptyArray | CurrentTimestamp =>
-          ()
+        Field(_, _)
+        | Literal(_)
+        | DateLiteral(_)
+        | TypedNull
+        | EmptyArray
+        | CurrentTimestamp
+        | CurrentDate => ()
         Unary(_, child) => pending.push(child)
         Property(child, _, _) => pending.push(child)
         Subscript(value, index) | ArrayOffset(value, index, _) => {
@@ -173,10 +183,15 @@ fn check_backend_capabilities(
             | Contains
             | Like
             | DateTruncate
+            | TimestampTruncate
+            | DateBoundaryTruncate
+            | ExtractTimestamp
             | DecimalDivide(_)
             | Utf8Truncate
             | ParseTimestamp
-            | FormatTimestamp => ()
+            | TryPatternedTimestamp
+            | FormatTimestamp
+            | RegexMatch => ()
           }
           pending.push(right)
           pending.push(left)

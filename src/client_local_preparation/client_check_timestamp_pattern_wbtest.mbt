@@ -78,3 +78,75 @@ test "timestamp pattern diagnosis preserves valid modes and missing original pro
   assert_true(missing.contains("\"verdict\":\"undetermined\""), msg=missing)
   assert_true(!missing.contains("invalid_timestamp_pattern"), msg=missing)
 }
+
+///|
+test "Text-time Check reports the original input, output and replacement ceiling" {
+  for
+    (sql, code) in [
+      (
+        "SELECT REGEXP_CONTAINS('" + "a".repeat(65) + "', 'a') AS x",
+        "text_time_input_ceiling",
+      ),
+      ("SELECT ACTQL.NFKC('ＡＫ') AS x", "text_time_output_ceiling"),
+      (
+        "SELECT REGEXP_REPLACE('a', 'a', 'b') AS x", "text_time_replacement_ceiling",
+      ),
+    ] {
+    let report = timestamp_pattern_check_report(sql)
+    assert_true(report.contains("\"outcome\":\"completed\""), msg=report)
+    assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+    assert_true(
+      report.contains(
+        "\"runnable\":{\"reasons\":[{\"code\":\"" +
+        code +
+        "\"}],\"verdict\":\"no\"}",
+      ),
+      msg=report,
+    )
+    assert_true(
+      report.contains("\"limits\":[{\"code\":\"" + code + "\"}]"),
+      msg=report,
+    )
+    assert_true(!report.contains("check_unclassified"), msg=report)
+    assert_true(!report.contains("\"location\""), msg=report)
+  }
+  let exact = timestamp_pattern_check_report(
+    "SELECT REGEXP_REPLACE('', 'a', 'b') AS x",
+  )
+  assert_true(exact.contains("\"verdict\":\"verified\""), msg=exact)
+}
+
+///|
+test "structured text-time Check preserves the replacement ceiling without a private witness" {
+  let original = timestamp_pattern_check_environment()
+  let document =
+    #|{"version":"actql/0.1","id":"text-time-limit","stages":[{"id":"main","inputs":{},"steps":[{"as":"input","values":{"schema":{"text":{"type":"string","nullable":false}},"rows":[{"text":"private-text-marker"}]}},{"from":"input","as":"done","derive":{"output":"regex_replace(text, 'a', '$$')"}}],"results":{"r":{"from":"done","fields":["output"]}}}],"results":{"answer":{"from":{"stage":"main","result":"r"}}}}
+  let report = client_program_check_program(
+    document,
+    original,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(original) +
+    "\",\"aliases\":[]}",
+    None,
+    "ctx:timestamp-pattern",
+    "rev:" + "a".repeat(64),
+    None,
+    "corr:timestamp-pattern",
+    "bound_input",
+    None,
+  )
+  assert_true(report.contains("\"outcome\":\"completed\""), msg=report)
+  assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+  assert_true(
+    report.contains(
+      "\"runnable\":{\"reasons\":[{\"code\":\"text_time_replacement_ceiling\"}],\"verdict\":\"no\"}",
+    ),
+    msg=report,
+  )
+  assert_true(
+    report.contains("\"limits\":[{\"code\":\"text_time_replacement_ceiling\"}]"),
+    msg=report,
+  )
+  assert_true(!report.contains("private-text-marker"), msg=report)
+  assert_true(!report.contains("\"location\""), msg=report)
+}

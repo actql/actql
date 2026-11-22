@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
-import {updateArrayOffsetContracts, arrayOffsetLaws} from './array-offset-expression-contract.mjs';
+import {updateArrayOffsetContracts, updateArrayLengthContracts, arrayOffsetLaws} from './array-offset-expression-contract.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const prior = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/array-offset/predecessor.json.gz')));
@@ -72,4 +72,22 @@ test('registration preserves the complete fixed predecessor except the declared 
   for(const [name,schema] of Object.entries(protocol.artifact_schemas)) protocol.artifact_schema_cids[name]=machineCid(schema);
   protocol.artifact_registry_cid=machineCid(protocol.artifact_schemas);
   assert.deepEqual(protocol,prior.bodies[protocolPath]);
+});
+
+
+test('array length registers a single child and preserves the existing len operator', () => {
+  const expressions = read(expressionPath);
+  const protocol = read(protocolPath);
+  assert.deepEqual(updateArrayLengthContracts(expressions, protocol, grammar), {source: 7, node: 3});
+  const forms = expressions.schemas.expression.$defs.expression.oneOf;
+  const operand = {$ref: '#/$defs/expression'};
+  for (const name of ['array_length', 'len']) {
+    assert.deepEqual(forms.find(shape => shape.required?.includes(name)), {
+      type: 'object', additionalProperties: false, required: [name],
+      properties: {[name]: operand},
+    });
+  }
+  const nodes = expressions.schemas.expression_node.$defs.expression.oneOf;
+  nodes.find(shape => shape.properties?.op?.const === 'array_length').properties.body = {type: 'string'};
+  assert.throws(() => updateArrayLengthContracts(expressions, protocol, grammar), /stale node/);
 });

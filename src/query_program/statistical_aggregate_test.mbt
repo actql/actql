@@ -124,15 +124,24 @@ test "statistical arguments retain input scope and ordinary type validation" {
     )
     is Err(Expression({ issue: @expression.UnknownReference, .. })),
   )
-  assert_true(
-    compile(
-      @query.parse_query(
-        "SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM orders",
-        syntax_limits(),
-      ).unwrap(),
-      values_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedAnalytic),
-  )
+  let program = compile(
+    @query.parse_query(
+      "SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM orders",
+      syntax_limits(),
+    ).unwrap(),
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(program).contains("\"frame\":"))
+  match
+    @check.check_parsed(
+      program,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("the authored default frame is closed")
+  }
 }

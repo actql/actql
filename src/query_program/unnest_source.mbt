@@ -8,6 +8,7 @@ fn unnest_source_element(
   limits : Limits,
   max_work : Int,
   resolve_parameter : ((String) -> Result[String, @expression.Issue])?,
+  correlated~ : Bool,
 ) -> @contract.Contract? raise Abort {
   let source_limits = limits.source
   let origin = @query.expression_origin(
@@ -51,6 +52,14 @@ fn unnest_source_element(
     probe_refused: false,
     replacements: Map([]),
   }
+  // The no-row probe may see an exact, compiler-generated field for a
+  // correlated operand. Retry against the actual prefix; a missing member
+  // on a parameter Object has its original property node and still fails.
+  fn needs_row(issue : @typing.Issue) -> Bool {
+    correlated &&
+    issue.kind is UnknownField(name) &&
+    member_text(issue.source, "field") == Some(name)
+  }
   let mut refused : @typing.Issue? = None
   resolution.expression(
     @builder.cursor(resolution.source),
@@ -59,10 +68,10 @@ fn unnest_source_element(
     retain_refusal=issue => refused = Some(issue),
   )
   if refused is Some(issue) {
-    match issue.kind {
-      NullTypeUnresolved => return None
-      _ => raise Abort(ExpressionTyping(issue))
+    if issue.kind is NullTypeUnresolved || needs_row(issue) {
+      return None
     }
+    raise Abort(ExpressionTyping(issue))
   }
   let normalized = resolution.finish()
   let admitted = match
@@ -103,6 +112,7 @@ fn unnest_source_element(
     // their existing unsupported scope. Proven input violations are different:
     // a star requires this probe to succeed before any Program can be checked.
     Err({ kind: NullTypeUnresolved, .. }) => return None
+    Err(issue) if needs_row(issue) => return None
     Err(issue) => raise Abort(ExpressionTyping(issue))
   }
   match @typing.result_type(typed).shape {

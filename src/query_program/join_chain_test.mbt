@@ -175,3 +175,58 @@ test "JOIN chain filters original left columns before assigning private slots" {
     }
   }
 }
+
+///|
+test "comma FROM joins use the existing bounded cross-join program" {
+  let head = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
+  let context = { ..fixture_context(), inputs: [], }
+  let direct = checked_with_join(
+    head + "SELECT a.n AS a_n, b.n AS b_n FROM t AS a, t AS b ORDER BY a_n, b_n",
+    context,
+  )
+  let explicit = checked_with_join(
+    head +
+    "SELECT a.n AS a_n, b.n AS b_n FROM t AS a CROSS JOIN t AS b ORDER BY a_n, b_n",
+    context,
+  )
+  assert_eq(semantic(direct), semantic(explicit))
+  assert_true(semantic(direct).contains("\"fields\":[\"a_n\",\"b_n\"]"))
+}
+
+///|
+test "comma FROM joins preserve left-to-right scope and correlated arrays" {
+  for
+    (implicit, explicit) in [
+      (
+        "SELECT a.x AS p, b.x AS q, c.k AS r FROM t AS a, t AS b JOIN r AS c ON b.x = c.k ORDER BY p, q, r",
+        "SELECT a.x AS p, b.x AS q, c.k AS r FROM t AS a CROSS JOIN t AS b JOIN r AS c ON b.x = c.k ORDER BY p, q, r",
+      ),
+      (
+        "SELECT a.x AS p, v AS q FROM t AS a, UNNEST([a.x, a.y]) AS v ORDER BY p, q",
+        "SELECT a.x AS p, v AS q FROM t AS a CROSS JOIN UNNEST([a.x, a.y]) AS v ORDER BY p, q",
+      ),
+    ] {
+    assert_eq(checked_join_order(implicit), checked_join_order(explicit))
+  }
+}
+
+///|
+test "comma FROM joins retain the cross-join ceiling and refuse trailing outer joins" {
+  let query = @query.parse_query(
+    "SELECT l.x FROM t AS l, t AS r, t AS s",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, join_order_context(), {
+      ..construction_limits(),
+      max_join_output_rows: 7L,
+    })
+    is Err(UnsupportedJoin),
+  )
+  for side in ["RIGHT", "FULL"] {
+    let text = "SELECT a.x FROM t AS a, t AS b " +
+      side +
+      " JOIN r AS c ON b.x = c.k"
+    assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
+  }
+}
