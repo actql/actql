@@ -24,7 +24,7 @@
   Row handles retain the corresponding original projection.
   Read-only getters expose bounded Text, exact UTF-8 bytes, row count and Text
   identities; they cannot create reference authority or normalize content.
-- Synchronization: update preparation checks original row/document correspondence
+- Synchronization: UPDATE and DELETE preparation check original row/document correspondence
   and expected value version synchronously. The actual Host must still check the
   installed original file, current authorization, approval and durable claim,
   and conditionally replace the exact observed bytes. No I/O occurs here.
@@ -45,7 +45,10 @@
   bounded cumulative observations, not a pre-I/O quotation or retirement proof.
   Selected capture is rechecked against actual input
   contracts and retention limits. Updated bytes replace only validated original
-  value spans, preserving every other byte, key order and whitespace.
+  value spans. DELETE removes one original row span and its adjacent separator;
+  whitespace outside the row and all other bytes are preserved. The DELETE work
+  bound covers the separator gap and every output byte. Its caller must fund
+  the output buffer, up to the original input length, while the original remains live.
 - Extension: physical values follow declared full nested contracts rather than
   inferred row shapes. Int64 accepts canonical decimal Text and exact JSON
   integer tokens, read from original byte spans without a Double conversion.
@@ -59,7 +62,8 @@
   the multi-relation Host path.
 - Verification: `relation_document_target_wbtest.mbt` covers typed Array/Decimal
   updates, exact untouched bytes, Unicode content, nominal originals, stale
-  versions, unique identities, declared writable fields, bounds, nested JSON,
+  versions, exact first/middle/last/only row removal and its work bound, unique
+  identities, declared writable fields, bounds, nested JSON,
   full Int64 endpoints, explicit key metadata, shared original backing,
   cumulative successful/failed projection budgets and externally replaced data. These focused Core checks do
   not establish installed Host transport, funding, conditional writes, normal
