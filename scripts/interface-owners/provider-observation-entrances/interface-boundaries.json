@@ -3536,7 +3536,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ddc9bf7e324c536cdb55d45916a45f1943cb91dde03d0b2c10e99d5e03116462",
+      "sha256": "347cd4098cb0f76673984f1cc5d36cc28c043f0bda228a8c22dc59c0eee7de49",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider"
@@ -3610,12 +3610,12 @@
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/physical/physical",
           "parameters": [],
           "async": false
         },
         {
-          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
+          "name": "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
           "parameters": [],
           "async": false
         },
@@ -3717,15 +3717,6 @@
             "<module>",
             "amount/amount",
             "configuration/configuration",
-            "createOpenAIChatProvider",
-            "data/data",
-            "data/data/data",
-            "data/data/data#2",
-            "data/data/data#3",
-            "observation/observation",
-            "observation/observation/fields/fields",
-            "observation/observation/observation",
-            "observation/observation/observation#2",
             "configureOpenAIChatProvider/configureOpenAIChatProvider",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/bindings/bindings",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/config/config",
@@ -3734,12 +3725,21 @@
             "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries",
+            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/physical/physical",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
-            "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider/entries/entries/register/register",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/configureOpenAIChatProvider#2",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/owned/owned",
             "configureOpenAIChatProvider/configureOpenAIChatProvider/profile/profile",
-            "createProjectOpenAIChatProvider"
+            "createOpenAIChatProvider",
+            "createProjectOpenAIChatProvider",
+            "data/data",
+            "data/data/data",
+            "data/data/data#2",
+            "data/data/data#3",
+            "observation/observation",
+            "observation/observation/fields/fields",
+            "observation/observation/observation",
+            "observation/observation/observation#2"
           ],
           "exports": [
             "createOpenAIChatProvider",

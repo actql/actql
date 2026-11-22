@@ -5,9 +5,10 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a15ef0ad548b39480455f21221f8f3d2278342cfcec8e04ff6ea703fa8d73cba",
+      "sha256": "bb44e5f5df0f42b7394e4502af45516a2c2a1c2e59ec6a70cd73a89718d800e0",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
+        "createConfiguredUndiciRegisteredSdkRegistration",
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration"
       ],
@@ -32,6 +33,16 @@
             "config",
             "transportTimeouts",
             "openAICredentialBytes",
+            "registeredSdk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createConfiguredUndiciRegisteredSdkRegistration",
+          "parameters": [
+            "config",
+            "transportTimeouts",
+            "credentialBytes",
             "registeredSdk"
           ],
           "async": false
@@ -177,6 +188,7 @@
             "assertRuntime/assertRuntime/assertRuntime",
             "cid/cid",
             "createConfiguredUndiciOpenAIChatRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
             "installedChatRegistration/installedChatRegistration",
@@ -196,6 +208,7 @@
           ],
           "exports": [
             "createConfiguredUndiciOpenAIChatRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration"
           ],

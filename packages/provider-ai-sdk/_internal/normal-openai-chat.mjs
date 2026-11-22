@@ -1,6 +1,7 @@
 import {types} from 'node:util';
 import {fixedOriginalTransportTimeouts, unboundOpenAICredential} from './original-undici-transport.mjs';
-import {createConfiguredUndiciOpenAIChatRegistration} from './installed-openai-chat.mjs';
+import {createConfiguredUndiciOpenAIChatRegistration,
+  createConfiguredUndiciRegisteredSdkRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 
 const refuse = code => {throw Object.assign(new TypeError(code), {code});};
@@ -274,6 +275,9 @@ function configureOpenAIChatProvider(options, projectMode) {
       // Keep the adapter's complete declared live holding/workspace in
       // addition to every prepared row; neither minimum can replace the other.
       const entries = owned.map(task => {
+        if (registeredCredential !== undefined && task.modelSelector !== registeredSdk.route.selector) {
+          refuse('InstalledModelResolvedConfigurationMismatch');
+        }
         const profile = profiles.get(task.taskCid).profile;
         const originalReadRecipe = Object.freeze({
           bootstrap: Object.freeze({bootstrapRetainedBytes: 1048576n, bootstrapExecutionBytes: 1048576n,
@@ -298,18 +302,22 @@ function configureOpenAIChatProvider(options, projectMode) {
           selectedAt: at(now), availableUntil: at(now + 86400000), deleteBy: at(now + 172800000),
           extensionCeilingAt: at(now + 172800000), metadataDeleteBy: at(now + 259200000),
           selectionAvailable: () => Date.now() < now + 86400000});
-        const register = createConfiguredUndiciOpenAIChatRegistration({providerId: config.providerId,
-          modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
-          originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
-            maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256},
+        const physical = {providerId: config.providerId,
           taskCid: task.taskCid, promptCid: task.promptCid, outputSchemaCid: task.outputSchemaCid,
           promptPayloadWire: task.promptPayloadWire, bindingOriginals, quantityCapacity, originalReadRecipe, rawCaptureSelection,
           projectionLimits: bodyLimits, requestLimits: {maxBytes: limits.request_bytes, maxHeaderBytes: limits.header_bytes, maxHeaders: 32},
           responseLimits: {maxBytes: limits.response_bytes, maxChunkBytes: limits.chunk_bytes, maxChunks: limits.chunks,
             maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
           physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
-          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts,
-        projectMode ? config.maxSecretBytes : undefined, registeredSdk);
+          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)};
+        const register = registeredCredential === undefined
+          ? createConfiguredUndiciOpenAIChatRegistration({...physical,
+            modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
+            originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
+              maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256}},
+          config.transportTimeouts, projectMode ? config.maxSecretBytes : undefined, registeredSdk)
+          : createConfiguredUndiciRegisteredSdkRegistration(physical,
+            config.transportTimeouts, config.maxSecretBytes, registeredSdk);
         return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
       });
       return [Object.freeze({...entries[0].entry,
