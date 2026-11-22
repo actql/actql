@@ -148,3 +148,50 @@ test "next transfer refuses stopped current even with a funded remainder but pre
   assert_eq(ledger_usage(ledger).reserved_transfer_bytes, 0L)
   assert_eq(ledger_usage(ledger).attempts, 1)
 }
+
+///|
+test "measured transfer settles once on its entered reservation and keeps prior uncertainty" {
+  let ledger = create_ledger({ ..test_limits(), transfer_bytes: 16L, }).unwrap()
+  let foreign = create_ledger(test_limits()).unwrap()
+  let prior = reserve_attempt(ledger, 4L, 0L, 0L).unwrap()
+  mark_transfer_uncertain(ledger, prior, 4L).unwrap()
+  settle_reservation(ledger, prior).unwrap()
+  let pending = reserve_attempt(ledger, 12L, 0L, 0L).unwrap()
+  assert_eq(settle_entered_transfer(ledger, pending, 12L, Some(5L)), Ok(false))
+  consume_reserved_attempt(ledger, pending).unwrap()
+  let reserved = ledger_usage(ledger)
+  assert_eq(reserved.reserved_transfer_bytes, 12L)
+  assert_eq(reserved.uncertain_transfer_bytes, 4L)
+  assert_true(reserve_attempt(ledger, 1L, 0L, 0L) is Err(TransferLimit))
+  assert_eq(
+    settle_entered_transfer(foreign, pending, 12L, Some(5L)),
+    Err(ForeignOwner),
+  )
+  assert_eq(
+    settle_entered_transfer(ledger, pending, 12L, Some(-1L)),
+    Err(InvalidCharge),
+  )
+  assert_eq(
+    settle_entered_transfer(ledger, pending, 12L, Some(13L)),
+    Err(InvalidCharge),
+  )
+  assert_eq(
+    settle_entered_transfer(ledger, pending, 11L, Some(5L)),
+    Err(TransferLimit),
+  )
+  assert_eq(ledger_usage(ledger), reserved)
+  assert_eq(settle_entered_transfer(ledger, pending, 12L, Some(5L)), Ok(true))
+  assert_eq(settle_entered_transfer(ledger, pending, 12L, Some(3L)), Ok(false))
+  assert_eq(settle_entered_transfer(ledger, pending, 12L, None), Ok(false))
+  settle_reservation(ledger, pending).unwrap()
+  let missing = reserve_attempt(ledger, 7L, 0L, 0L).unwrap()
+  consume_reserved_attempt(ledger, missing).unwrap()
+  assert_eq(settle_entered_transfer(ledger, missing, 7L, None), Ok(true))
+  assert_eq(settle_entered_transfer(ledger, missing, 7L, Some(2L)), Ok(false))
+  settle_reservation(ledger, missing).unwrap()
+  let usage = ledger_usage(ledger)
+  assert_eq(usage.attempts, 3)
+  assert_eq(usage.transferred_bytes, 5L)
+  assert_eq(usage.uncertain_transfer_bytes, 11L)
+  assert_eq(usage.reserved_transfer_bytes, 0L)
+}

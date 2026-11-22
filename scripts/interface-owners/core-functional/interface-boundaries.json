@@ -92493,6 +92493,7 @@
             "retain_allocation",
             "return_unused_attempt",
             "settle_completed_output_reservation",
+            "settle_entered_transfer",
             "settle_execution_reservation",
             "settle_reservation",
             "settle_reservation_current",
@@ -92603,7 +92604,7 @@
           }
         }
       ],
-      "sha256": "b80c915960bf4c62a6912cc5d8b27ac12d57478790054539f7cbe7246562183c",
+      "sha256": "044dc7b97a688db7762fb847173cbbe031c5da80fc0bf44c03e7347b5c1c9839",
       "operations": [
         {
           "name": "charge_planning",
@@ -92708,6 +92709,10 @@
         {
           "name": "settle_completed_output_reservation",
           "declaration": "settle_completed_output_reservation ( ledger : Ledger , reservation : Reservation , holding : Holding ? , output_bytes : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_entered_transfer",
+          "declaration": "settle_entered_transfer ( ledger : Ledger , reservation : Reservation , ceiling : Int64 , observed : Int64 ? , ) - > Result [ Bool , LedgerIssue ]"
         },
         {
           "name": "settle_execution_reservation",

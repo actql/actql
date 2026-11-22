@@ -257,15 +257,20 @@ test "incremental bearer POST retains the original client until completion or ph
     original.poll_bearer_post(wait_milliseconds=51) is Err(InvalidRequest),
   )
   let mut observed = None
+  let sizes = FixedArray::make(2, -1L)
   for _ in 0..<100 {
-    if original.poll_bearer_post(wait_milliseconds=50).unwrap() is Some(value) {
+    if original.poll_measured_bearer_post(sizes, wait_milliseconds=50).unwrap()
+      is Some(value) {
       observed = Some(value)
       break
     }
+    assert_eq((sizes[0], sizes[1]), (-1L, -1L))
   }
   assert_eq(observed.unwrap().status, 503)
   assert_eq(observed.unwrap().body, b"{\"unavailable\":true}")
-  assert_true(original.poll_bearer_post() is Err(Closed))
+  assert_eq((sizes[0], sizes[1]), (17L, 20L))
+  assert_true(original.poll_measured_bearer_post(sizes) is Err(Closed))
+  assert_eq((sizes[0], sizes[1]), (-1L, -1L))
   original.close_checked().unwrap()
 
   let interrupted = create()
@@ -275,8 +280,12 @@ test "incremental bearer POST retains the original client until completion or ph
       break
     }
     assert_true(
-      interrupted.poll_bearer_post(wait_milliseconds=50).unwrap() is None,
+      interrupted
+      .poll_measured_bearer_post(sizes, wait_milliseconds=50)
+      .unwrap()
+      is None,
     )
+    assert_eq((sizes[0], sizes[1]), (-1L, -1L))
   }
   assert_true(fixture.observe_file("incremental-entered") is Ok(_))
   fixture.close().unwrap()

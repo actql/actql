@@ -34,6 +34,7 @@ struct NativeClientModelHttpCall {
   mut start_refusal : NativeClientModelHttpIssue?
   mut advancing : Bool
   mut stop_scope_pending : Bool
+  transfer_sizes : FixedArray[Int64]
   mut response : @http.NativeHttpResponse?
   mut raw : @model.ModelRawCaptureSave?
   mut raw_store : NativeClientModelRawCapture?
@@ -875,6 +876,7 @@ fn prepare_native_model_http_plan(
       }
       started
     },
+    measured_transfer=true,
   ).map(plan => (plan, handoff))
 }
 
@@ -978,9 +980,9 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   let ca_bytes = 3L * ca_path.length().to_int64() + 1L
   guard header > 0L &&
     @execution.preparation_representation_cost({
-      record_headers: 13L,
-      reference_slots: 34L,
-      scalar_words: 13L,
+      record_headers: 14L,
+      reference_slots: 35L,
+      scalar_words: 15L,
       owned_utf16_units: 0L,
       owned_wire_bytes: maximum_body + 1L + 2L * ca_bytes,
     })
@@ -990,7 +992,7 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
   self
   .fund_model_http_material_in_original_read(
     copy,
-    header + Int64::max(maximum_body + 1L, ca_bytes),
+    header + Int64::max(Int64::max(maximum_body + 1L, ca_bytes), 16L),
   )
   .bind(_ => {
     let call : NativeClientModelHttpCall = {
@@ -1011,6 +1013,7 @@ pub fn NativeLocalJournalCapture::prepare_model_http_call_in_original_read(
       start_refusal: None,
       advancing: false,
       stop_scope_pending: false,
+      transfer_sizes: FixedArray::make(2, -1L),
       response: None,
       raw: None,
       raw_store: None,
@@ -1187,7 +1190,11 @@ fn NativeClientModelHttpCall::drive_in_original_read(
       }
       self.started = true
     }
-    match client.poll_bearer_post(wait_milliseconds=50) {
+    match
+      client.poll_measured_bearer_post(
+        self.transfer_sizes,
+        wait_milliseconds=50,
+      ) {
       Ok(None) => return Ok(())
       Ok(Some(response)) => self.response = Some(response)
       Err(issue) => {
@@ -1446,14 +1453,15 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
   let units = response.body.length().to_int64()
   let (header, unit, terminator, _, _) = @bootstrap.native_managed_value_layout()
   // The pinned decoder fills one UInt16 array then presents its backing as a
-  // String. Reserve for the largest exact-body decode and retained carrier.
+  // String. Also reserve the measured poll and the Raw fact/binding views
+  // that coexist when Core accepts the original Store receipt.
   guard header > 0L &&
     unit == 2L &&
     terminator == unit &&
     @execution.preparation_representation_cost({
-      record_headers: 6L,
-      reference_slots: 13L,
-      scalar_words: 3L,
+      record_headers: 9L,
+      reference_slots: 20L,
+      scalar_words: 8L,
       owned_utf16_units: units + 1L,
       owned_wire_bytes: 0L,
     })
@@ -1463,7 +1471,7 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
   self.decode_attempted = true
   if self.capture.fund_model_http_material_in_original_read(
       decoded,
-      header + units * unit + terminator,
+      header + Int64::max(units * unit + terminator, 40L),
     )
     is Err(issue) {
     return Err(issue)
@@ -1488,10 +1496,15 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
         @model.ProviderError
       }
       self.outcome = Some(
-        @model.PhysicalRejected(failure, {
-          input_tokens: None,
-          output_tokens: None,
-        }),
+        @model.PhysicalMeasuredHttp(
+          receipt,
+          self.transfer_sizes[0],
+          self.transfer_sizes[1],
+          @model.PhysicalRejected(failure, {
+            input_tokens: None,
+            output_tokens: None,
+          }),
+        ),
       )
       self.response = None
       self.raw = None
@@ -1500,7 +1513,14 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
   }
   @model.model_saved_raw_chat_response(receipt, body, None)
   .map(value => {
-    self.outcome = Some(@model.PhysicalChatResponse(value))
+    self.outcome = Some(
+      @model.PhysicalMeasuredHttp(
+        receipt,
+        self.transfer_sizes[0],
+        self.transfer_sizes[1],
+        @model.PhysicalChatResponse(value),
+      ),
+    )
     // The Store owns the confirmed bytes. The checked response now owns its
     // separate decoded text and exact receipt.
     self.response = None

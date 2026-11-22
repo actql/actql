@@ -140,11 +140,15 @@ enum {
   ACTQL_CURLOPT_HTTPGET = 80,
   ACTQL_CURLOPT_TIMEOUT_MS = 155,
   ACTQL_CURLOPT_CONNECTTIMEOUT_MS = 156,
+  ACTQL_CURLOPT_HTTP_CONTENT_DECODING = 158,
+  ACTQL_CURLOPT_TRANSFER_ENCODING = 207,
   ACTQL_CURLOPT_XFERINFOFUNCTION = 20219,
   ACTQL_CURLOPT_DNS_SERVERS = 10211,
   ACTQL_CURLOPT_PROTOCOLS = 181,
   ACTQL_CURLOPT_QUICK_EXIT = 322,
   ACTQL_CURLINFO_RESPONSE_CODE = 0x200002,
+  ACTQL_CURLINFO_SIZE_UPLOAD_T = 0x600007,
+  ACTQL_CURLINFO_SIZE_DOWNLOAD_T = 0x600008,
   ACTQL_CURL_ERROR_SIZE = 256,
   ACTQL_CURL_HTTP_VERSION_1_1 = 2,
   ACTQL_CURL_GLOBAL_ALL = 3,
@@ -1930,6 +1934,10 @@ static int32_t actql_native_http_client_request_owned(
     // replacement. The installed destination does not use ambient proxies.
     ACTQL_SET(ACTQL_CURLOPT_HTTP_VERSION, (long)ACTQL_CURL_HTTP_VERSION_1_1);
     ACTQL_SET(ACTQL_CURLOPT_PROXY, "");
+    // The write callback owns the HTTP body representation counted by curl.
+    // Keep HTTP framing removal but do not decompress content before Raw.
+    ACTQL_SET(ACTQL_CURLOPT_HTTP_CONTENT_DECODING, 0L);
+    ACTQL_SET(ACTQL_CURLOPT_TRANSFER_ENCODING, 0L);
     if (client->test_dns_port) {
       char dns_server[sizeof("127.0.0.1:65535")];
       (void)snprintf(dns_server, sizeof(dns_server), "127.0.0.1:%u",
@@ -2140,8 +2148,8 @@ int32_t actql_native_http_client_start_projected_bearer_post(
   return result;
 }
 
-int32_t actql_native_http_client_poll_bearer_post(
-  actql_native_http_client *client, int32_t wait_milliseconds
+static int32_t actql_http_poll_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds, int64_t *sizes
 ) {
   if (wait_milliseconds < 0 || wait_milliseconds > 50) return 6;
   if (!client || !client->library || client->library->original_process != getpid()) return 3;
@@ -2154,11 +2162,41 @@ int32_t actql_native_http_client_poll_bearer_post(
     if (pthread_equal(transfer->thread, pthread_self()) && actql_http_read_current(client->library)) {
       actql_http_advance_transfer(client, wait_milliseconds);
       int32_t observed = transfer->result;
-      if (actql_http_retire_transfer(client)) result = observed;
+      curl_off_t uploaded = -1;
+      curl_off_t downloaded = -1;
+      bool measured = sizes && transfer->done && !transfer->retirement_unknown &&
+        observed == 0 && client->status >= 200 && client->status <= 599 &&
+        client->library->easy_getinfo(transfer->easy,
+          ACTQL_CURLINFO_SIZE_UPLOAD_T, &uploaded) == ACTQL_CURLE_OK &&
+        client->library->easy_getinfo(transfer->easy,
+          ACTQL_CURLINFO_SIZE_DOWNLOAD_T, &downloaded) == ACTQL_CURLE_OK &&
+        uploaded >= 0 && downloaded >= 0 &&
+        (uint64_t)downloaded == client->response_length;
+      if (actql_http_retire_transfer(client)) {
+        result = observed;
+        if (measured) {
+          sizes[0] = uploaded;
+          sizes[1] = downloaded;
+        }
+      }
     }
   }
   actql_http_end_request(client);
   return result;
+}
+
+int32_t actql_native_http_client_poll_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds
+) {
+  return actql_http_poll_bearer_post(client, wait_milliseconds, NULL);
+}
+
+int32_t actql_native_http_client_poll_measured_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds, int64_t *sizes
+) {
+  sizes[0] = -1;
+  sizes[1] = -1;
+  return actql_http_poll_bearer_post(client, wait_milliseconds, sizes);
 }
 
 int32_t actql_native_http_client_get_local_preparation(

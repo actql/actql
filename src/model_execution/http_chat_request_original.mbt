@@ -174,6 +174,7 @@ pub fn prepared_model_http_chat_plan(
   installation : @environment.ModelResponseProfileInstallation,
   quantities : @resources.QuantityAmounts,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
+  measured_transfer? : Bool = false,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   let capability = original.provider.capability
   let execution = original.provider.original.execution
@@ -192,7 +193,11 @@ pub fn prepared_model_http_chat_plan(
     quantities,
     capability.profile,
     installation,
-    AsynchronousHttpChat(original, start),
+    if measured_transfer {
+      AsynchronousMeasuredHttpChat(original, start)
+    } else {
+      AsynchronousHttpChat(original, start)
+    },
     None,
     [],
   )
@@ -209,7 +214,9 @@ pub fn check_prepared_model_http_chat_dispatch_current(
   let capability = original.provider.capability
   let request = original.request
   guard call.original_binding is Some(binding) &&
-    binding.plan.invocation is AsynchronousHttpChat(prepared, _) &&
+    binding.plan.invocation
+    is (AsynchronousHttpChat(prepared, _)
+    | AsynchronousMeasuredHttpChat(prepared, _)) &&
     physical_equal(prepared, original) &&
     model_physical_call_dispatch_entry(call, request, capability.profile, raw)
     is Some(entry) &&

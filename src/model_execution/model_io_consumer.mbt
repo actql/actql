@@ -46,6 +46,7 @@ pub fn bind_prepared_model_io_access(
       plan.invocation
       is (Asynchronous(_)
       | AsynchronousHttpChat(_, _)
+      | AsynchronousMeasuredHttpChat(_, _)
       | AsynchronousSavedStructured(_, _, _)) &&
       plan.response_profile is Some(profile) else {
       return Err(InvalidProvider)

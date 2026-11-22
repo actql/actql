@@ -254,6 +254,14 @@ extern "C" fn client_poll_bearer_post_ffi(
 ) -> Int = "actql_native_http_client_poll_bearer_post"
 
 ///|
+#borrow(client, sizes)
+extern "C" fn client_poll_measured_bearer_post_ffi(
+  client : Client,
+  wait_milliseconds : Int,
+  sizes : FixedArray[Int64],
+) -> Int = "actql_native_http_client_poll_measured_bearer_post"
+
+///|
 #borrow(client)
 extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_client_status"
 
@@ -905,7 +913,29 @@ pub fn Client::poll_bearer_post(
   self : Client,
   wait_milliseconds? : Int = 0,
 ) -> Result[NativeHttpResponse?, NativeHttpIssue] {
-  match client_poll_bearer_post_ffi(self, wait_milliseconds) {
+  self.project_bearer_poll(client_poll_bearer_post_ffi(self, wait_milliseconds))
+}
+
+///|
+/// The original caller supplies two funded slots. A completed observation
+/// writes upload then download bytes. A missing observation leaves both -1.
+pub fn Client::poll_measured_bearer_post(
+  self : Client,
+  sizes : FixedArray[Int64],
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  guard sizes.length() == 2 else { return Err(InvalidRequest) }
+  self.project_bearer_poll(
+    client_poll_measured_bearer_post_ffi(self, wait_milliseconds, sizes),
+  )
+}
+
+///|
+fn Client::project_bearer_poll(
+  self : Client,
+  status : Int,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  match status {
     0 =>
       Ok(
         Some({ status: client_status_ffi(self), body: client_body_ffi(self), }),

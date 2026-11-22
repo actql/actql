@@ -639,14 +639,17 @@ fn advance_model(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
-  // ModelResponse contains typed content and token observations, not exact
-  // transport bytes. Physical and arbitrary fixture invocations retain their
-  // dispatched envelope as uncertain usage. The nominal OriginalMock branch
-  // only selects an admitted local answer and cannot invoke transport; keep
-  // its wire ceiling reserved without inventing a physical transfer history.
-  // This does not clear any earlier or restored uncertain usage.
+  // The measured Native plan holds its original ceiling until complete Raw
+  // can justify exact bytes. Restore still uses the conservative Entry law.
   if state.progress.entry is None {
-    match mark_model_attempt_entered(state, reservation) {
+    let consumed = if state.physical_plans.get(state.progress.slot)
+      is Some(plan) &&
+      plan.invocation is AsynchronousMeasuredHttpChat(_, _) {
+      @resources.consume_reserved_attempt(state.ledger, reservation)
+    } else {
+      mark_model_attempt_entered(state, reservation)
+    }
+    match consumed {
       Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       Ok(_) => ()
     }
@@ -782,6 +785,7 @@ fn advance_model(
     plan.invocation
     is (Asynchronous(start)
     | AsynchronousHttpChat(_, start)
+    | AsynchronousMeasuredHttpChat(_, start)
     | AsynchronousSavedStructured(_, start, _)) {
     guard send_gate is Some(gate) else {
       retire_model_entering(state)
@@ -1428,6 +1432,25 @@ fn cleanup_model_execution_owned(
     Ok(true) => {
       if @bounded.cleanup_pending(execution.session) {
         return Ok(false)
+      }
+      // Any measured attempt without authenticated complete Raw still owes
+      // the entire original ceiling. Finish before releasing any reservation.
+      let state = execution.state
+      for (slot, reservation) in state.reservations {
+        if @resources.reservation_open(reservation) &&
+          state.physical_plans.get(slot) is Some(plan) &&
+          plan.invocation is AsynchronousMeasuredHttpChat(_, _) {
+          match
+            @resources.settle_entered_transfer(
+              state.ledger,
+              reservation,
+              state.limits.max_request_bytes + state.limits.max_response_bytes,
+              None,
+            ) {
+            Err(issue) => return Err(Ledger(issue))
+            Ok(_) => ()
+          }
+        }
       }
       if execution.state.slot_window is Some(window) {
         for frame in window.frames {

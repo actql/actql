@@ -115,7 +115,8 @@ pub fn prepared_model_awaits_portable_http(
   state.progress.phase is AwaitPhysicalResponse &&
   !(state.progress.call is Some(call) && call.settlement_acknowledged) &&
   state.physical_plans.get(state.progress.slot) is Some(plan) &&
-  plan.invocation is AsynchronousHttpChat(_, _)
+  plan.invocation
+  is (AsynchronousHttpChat(_, _) | AsynchronousMeasuredHttpChat(_, _))
 }
 
 ///|
@@ -206,7 +207,8 @@ pub fn bind_prepared_model_scope(
   for index in 0..<slots.length() {
     if value.owner.state.physical_plans.get(index) is Some(plan) {
       let provider_matches = match plan.invocation {
-        AsynchronousHttpChat(original, _) =>
+        AsynchronousHttpChat(original, _)
+        | AsynchronousMeasuredHttpChat(original, _) =>
           provider_cid ==
           @publication.run_evidence_value_identity(
             original.provider.capability.binding,

@@ -45,6 +45,10 @@ enum ModelPhysicalInvocation {
     PreparedModelHttpChatRequest,
     (ModelCallEntry) -> ModelPhysicalCall?
   )
+  AsynchronousMeasuredHttpChat(
+    PreparedModelHttpChatRequest,
+    (ModelCallEntry) -> ModelPhysicalCall?
+  )
   AsynchronousSavedStructured(
     StructuredModelCapability,
     (ModelCallEntry) -> ModelPhysicalCall?,
@@ -398,7 +402,8 @@ fn advance_model_physical_preflight(
           if !state.durable_calls || plan.response_profile is None {
             return @bounded.Failed(InvalidProvider, 1, 1)
           }
-        (AsynchronousPhysical, AsynchronousHttpChat(original, _)) =>
+        (AsynchronousPhysical, AsynchronousHttpChat(original, _))
+        | (AsynchronousPhysical, AsynchronousMeasuredHttpChat(original, _)) =>
           if !physical_equal(provider, original.provider.capability.provider) ||
             !state.durable_calls ||
             plan.response_profile is None {

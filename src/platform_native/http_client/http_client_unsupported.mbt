@@ -179,6 +179,16 @@ pub fn Client::poll_bearer_post(
 }
 
 ///|
+pub fn Client::poll_measured_bearer_post(
+  _self : Client,
+  _sizes : FixedArray[Int64],
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  ignore(wait_milliseconds)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::cancel(_self : Client) -> Bool {
   false
 }
