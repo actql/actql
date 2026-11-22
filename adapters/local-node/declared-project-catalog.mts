@@ -7,8 +7,8 @@ import {assertDeclaredFileInstallationInventory} from './declared-file-installat
 import {resolve} from 'node:path';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: the original installed Row Source owner is still authored in JavaScript.
-import {rowSourceMapping} from '../host-node/installed-row-source.mjs';
+import {rowSourceMapping} from '../host-node/installed-row-source-mapping.mjs';
+import type {RowSourceMappingRuntime} from '../host-node/installed-row-source-mapping.mjs';
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
 import {declaredProjectCatalogJsonParseConstructionGeometry,
   declaredProjectCatalogEntryHostConstructionGeometry,
@@ -96,7 +96,7 @@ type CatalogBindings = Readonly<{
     physicalResource: string, ...fields: FileProfileFields): unknown;
   clientProgramComposeInstalledSourceConstructionCapacity(quantity: unknown, providers: readonly unknown[]): unknown;
 }>;
-type Runtime = Partial<CatalogBindings>;
+type Runtime = Partial<CatalogBindings> & RowSourceMappingRuntime;
 type Restored = Readonly<Partial<ReturnType<Member['prepareNativeDeclaration']>>>;
 type EffectPrepared = ReturnType<Member['prepareMappings']>;
 type PhysicalBinding = Readonly<{

@@ -13688,7 +13688,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
+      "sha256": "fd306b46610a7d49e8a261ef9dda8e5257ae7f4afef561f26fd58c95fcf61caa",
       "operations": [
         {
           "name": "byCid/byCid/byCid",
@@ -15232,19 +15232,6 @@
           "async": false
         },
         {
-          "name": "rowSourceMapping",
-          "parameters": [
-            "moon",
-            "declaration",
-            "writesJson",
-            "resource",
-            "sources",
-            "operation",
-            "sourcesJson"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -15277,10 +15264,11 @@
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./client-source-operation.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-row-source-mapping.mjs",
         "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
@@ -18609,9 +18597,7 @@
           }
         },
         {
-          "operations": [
-            "rowSourceMapping"
-          ],
+          "operations": [],
           "exports": [
             "rowSourceMapping"
           ],
@@ -18784,6 +18770,134 @@
         }
       ],
       "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
+    },
+    {
+      "module": "adapters/host-node/installed-row-source-mapping.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
+      "exports": [
+        "rejectInstalledRowSource",
+        "rowSourceMapping"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceMapping",
+          "parameters": [
+            "moon",
+            "declaration",
+            "writesJson",
+            "resource",
+            "sources",
+            "operation",
+            "sourcesJson"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "83e4f960ae440009944d4d76931942cdd20855cb061d378269e1a794c25808da",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "rowSourceMapping"
+          ],
+          "exports": [
+            "rejectInstalledRowSource",
+            "rowSourceMapping"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "export function rowSourceMapping("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "type MappingReply ="
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "type RowSourceMappingMethod ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "[declaration, writesJson, resource, sourceWire]"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "Reflect.apply(prepare, moon,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": ") => string;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "Reflect.apply(prepare, moon,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "if (prepared.issue !== undefined)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "throw Object.assign(new Error(code, {cause}), {code});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "Reflect.apply(prepare, moon,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "writeFields: Object.freeze(prepared.write_fields)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "const prepare = operation === 'update'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/collection-mapping.test.mjs",
+                "anchor": "test('an explicit collection-only create reaches raw Common Effect preparation'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
+                "anchor": "test('actual catalog admits explicit NULL only for selected nullable writable fields'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",

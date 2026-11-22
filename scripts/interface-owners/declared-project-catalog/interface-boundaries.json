@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "fc27f3144559e89ddd86dcae5d1e9365e1cb58a93fba8027abaf473624c3aa7d",
+      "sha256": "27edece6466b49782e00884c209b023aa4ead249275fa19ef56d0e82fb67cbe2",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -521,7 +521,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
-        "../host-node/installed-row-source.mjs",
+        "../host-node/installed-row-source-mapping.mjs",
         "../host-node/source-profile-json.mjs",
         "./declared-file-installation.mjs",
         "node:crypto",

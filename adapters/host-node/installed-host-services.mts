@@ -24,6 +24,7 @@ import {createInstalledSourcePhysicalConstruction} from './installed-source-phys
 import {createInstalledSourceMaterialAccounting} from './installed-source-material-accounting.mjs';
 import {createInstalledSourceContextCustody, captureInstalledSourceServices} from './installed-source-context-custody.mjs';
 import {createInstalledSourceContextFactory} from './installed-source-context-construction.mjs';
+import type {RowSourceMappingRuntime} from './installed-row-source-mapping.mjs';
 
 type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
 type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
@@ -40,10 +41,8 @@ type AccountOptions = Parameters<typeof createAccountConstruction>[0];
 type DuckDBOptions = Parameters<typeof createInstalledDuckDBSource>;
 type Runtime = ContextRecord['original']['moon'] & AccountOptions['moon'] &
   DuckDBOptions[1] & NonNullable<Parameters<typeof installDuckDBSourceProfile>[1]['runtime']> &
-  Readonly<Record<string, unknown>> & {
+  Readonly<Record<string, unknown>> & RowSourceMappingRuntime & {
     clientProgramRowSourceDeclarationJson: CoreMethod;
-    clientProgramRowSourcePrepareMapping?: CoreMethod;
-    clientProgramRowSourcePrepareUpdateMapping?: CoreMethod;
     clientProgramRowSourceUpdateMappingConstructionCapacity?: CoreMethod;
     clientProgramPrepareInstalledAccountRead(capacity: unknown, input: unknown): ReturnType<AccountOptions['prepareRead']>;
   };

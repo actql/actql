@@ -9,6 +9,7 @@ import {sourceEnvironmentConstructionGeometry, sourceDeclarationRetainedGeometry
   from './installed-source-construction-geometry.mjs';
 import type {composeInstalledSourceEnvironment as composeEnvironment} from './installed-funded-environment.mjs';
 import type {createInstalledSourceMaterialAccounting} from './installed-source-material-accounting.mjs';
+import type {RowSourceMappingMethod, rowSourceMapping} from './installed-row-source-mapping.mjs';
 
 type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
 type Material = NonNullable<ReturnType<Accounting['sourceMaterial']>>;
@@ -20,14 +21,8 @@ type NativeValue = Extract<SynchronousRuntimeData, object>;
 type Geometry = ReturnType<typeof sourceEnvironmentConstructionGeometry>['parsed'];
 type CoreMethod = (...args: unknown[]) => unknown;
 type Role = 'source' | 'effect';
-type MappingRuntime = Readonly<{
-  clientProgramRowSourcePrepareMapping?: CoreMethod;
-  clientProgramRowSourcePrepareUpdateMapping: CoreMethod;
-}>;
 type MappingCarrier = Readonly<{resource: string; mappingRef: string; mappingCid: string; body: string}>;
-type MappingOutput = Omit<MappingCarrier, 'resource'> & Readonly<{
-  target: unknown; writeFields: readonly unknown[]; omittable: readonly unknown[];
-}>;
+type MappingOutput = ReturnType<typeof rowSourceMapping>;
 type ProviderOriginal = Readonly<{
   declared: Readonly<{declaration: unknown; catalog: string; manifest_entry: string;
     contracts: readonly string[]; source_views: readonly string[]}>;
@@ -36,7 +31,8 @@ type ProviderOriginal = Readonly<{
 type Original = Parameters<Accounting['sourceMaterial']>[0] &
   Readonly<{moon: EnvironmentArgs[0] & Parameters<typeof composeEnvironment>[1]; declarationJson: CoreMethod;
     restoreDeclaration?: unknown; restoreAuthoredDeclaration?: unknown;
-    prepareMapping?: CoreMethod; prepareUpdateMapping?: CoreMethod; prepareUpdateMappingCapacity?: CoreMethod;
+    prepareMapping?: RowSourceMappingMethod; prepareUpdateMapping?: RowSourceMappingMethod;
+    prepareUpdateMappingCapacity?: CoreMethod;
     current(): void}>;
 type Prepared = Readonly<{
   declaration?: unknown; declared?: Declared; environment?: ContextEnvironment; environmentMappings?: readonly string[];
@@ -537,8 +533,7 @@ type SourceContextPorts = Omit<ContextPorts, 'original' | 'material' | 'services
   Pick<Accounting, 'prepareSourceNativeInput' | 'retainCompletedSourceNativeConstruction'> & Readonly<{
     sourceContexts: Pick<WeakMap<object, RetainedContext>, 'get' | 'set'>;
     composeInstalledSourceEnvironment: typeof composeEnvironment;
-    rowSourceMapping(runtime: MappingRuntime, declaration: unknown, writesJson: string, resource: string,
-      sources: readonly unknown[], operation?: 'create' | 'update', sourcesJson?: string): MappingOutput;
+    rowSourceMapping: typeof rowSourceMapping;
   }>;
 
 export function createInstalledSourceContextFactory({fail: reject, sourceContexts, composeInstalledSourceEnvironment,
@@ -923,7 +918,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               capacity: () => checked(Reflect.apply(capacity, original.moon,
                 [originalPrepared.declaration, writesJson, write.resource, sourceWire.wire])),
               project() {
-                const runtime = Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args: unknown[]) =>
+                const runtime = Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args: Parameters<RowSourceMappingMethod>) =>
                   Reflect.apply(original.prepareUpdateMapping!, original.moon, args)});
                 return Object.freeze({resource: write.resource,
                   ...rowSourceMapping(runtime, originalPrepared.declaration,
@@ -958,9 +953,9 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
         let prepared;
         material.busy = true;
         try {
-          const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args: unknown[]) =>
+          const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args: Parameters<RowSourceMappingMethod>) =>
             Reflect.apply(original.prepareMapping!, original.moon, args),
-            clientProgramRowSourcePrepareUpdateMapping: (...args: unknown[]) =>
+            clientProgramRowSourcePrepareUpdateMapping: (...args: Parameters<RowSourceMappingMethod>) =>
               Reflect.apply(original.prepareUpdateMapping!, original.moon, args)});
           const mappings = Object.freeze(writes.map(write => Object.freeze({resource: write.resource,
             ...rowSourceMapping(runtime, scope.prepared!.declaration, writesJson, write.resource, write.sources,
