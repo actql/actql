@@ -187,6 +187,14 @@ pub fn load_library_with_custody(
 }
 
 ///|
+pub fn load_command_model_library_with_custody(
+  _member : @filesystem.NativeObservedComponentMember,
+  _diagnostic_ceiling : Int,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 pub fn Library::create_client_with_custody(
   _self : Library,
   _ca_path : String,

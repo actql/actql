@@ -323,6 +323,35 @@ pub fn load_library_with_custody(
     encoded.length(),
     diagnostic_ceiling.unwrap_or(0),
   )
+  http_library_load_result(library)
+}
+
+///|
+/// Open only the exact member bound to the existing Native command. The
+/// caller holds the Runtime's current Read and retains the returned original.
+pub fn load_command_model_library_with_custody(
+  component : @filesystem.NativeObservedComponentMember,
+  diagnostic_ceiling : Int,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  if diagnostic_ceiling <= 0 {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  http_library_load_result(
+    load_command_model_library_with_custody_ffi(component, diagnostic_ceiling),
+  )
+}
+
+///|
+#borrow(component)
+extern "C" fn load_command_model_library_with_custody_ffi(
+  component : @filesystem.NativeObservedComponentMember,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_http_load_command_model_library_with_custody"
+
+///|
+fn http_library_load_result(
+  library : Library,
+) -> Result[Library, NativeHttpLibraryLoadError] {
   if library_ready_ffi(library) {
     Ok(library)
   } else {

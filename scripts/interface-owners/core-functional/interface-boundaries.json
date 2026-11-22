@@ -112959,7 +112959,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_packaged_runtime.mbt",
-      "sha256": "c8e146745cbf0a34150bf9ca5ee5b0d75c66645db085f73edd36b4ba4971b03c",
+      "sha256": "fc6571b7fab2b289d4355fccdf23677c4ec0a39473f3a98e3c26339e90ba0189",
       "exports": [],
       "operations": [
         {
@@ -113017,6 +113017,10 @@
         {
           "name": "NativeLocalPackagedRuntime::bind_original_host_resources",
           "declaration": "NativeLocalPackagedRuntime : : bind_original_host_resources ( self : NativeLocalPackagedRuntime , resources : @ arena . InstalledArenaLocalHostResources , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::borrow_model_http_library",
+          "declaration": "NativeLocalPackagedRuntime : : borrow_model_http_library ( self : NativeLocalPackagedRuntime , diagnostic_ceiling : Int , ) - > Result [ @ http . Library , NativeLocalModelHttpIssue ]"
         },
         {
           "name": "NativeLocalPackagedRuntime::check_current",
@@ -113093,6 +113097,7 @@
             "local_runtime_retain_root",
             "NativeLocalPackagedRuntime::assets",
             "NativeLocalPackagedRuntime::bind_original_host_resources",
+            "NativeLocalPackagedRuntime::borrow_model_http_library",
             "NativeLocalPackagedRuntime::check_current",
             "NativeLocalPackagedRuntime::close",
             "NativeLocalPackagedRuntime::command_library_members",
@@ -113175,7 +113180,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
+      "sha256": "7d198a4f205f394b1220cfc2da052e20e51a94ba9ceb0435950e85da4fa7df7f",
       "exports": [],
       "operations": [
         {
@@ -113205,6 +113210,10 @@
         {
           "name": "client_native_local_runtime_original",
           "declaration": "client_native_local_runtime_original ( value : ClientNativeLocalRuntime , ) - > String"
+        },
+        {
+          "name": "native_local_model_http_system",
+          "declaration": "native_local_model_http_system ( platform : String , dependency : String , ) - > Bool"
         },
         {
           "name": "runtime_assemble",
@@ -113242,14 +113251,15 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "[T]runtime_refuse",
+            "<module>",
             "admit_client_native_local_runtime",
             "assemble_client_native_local_product_originals",
             "client_native_local_finite_product_originals",
             "client_native_local_product_originals",
             "client_native_local_runtime_members",
             "client_native_local_runtime_original",
+            "native_local_model_http_system",
             "runtime_assemble",
             "runtime_elements",
             "runtime_filename",

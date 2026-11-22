@@ -22,6 +22,8 @@ struct NativeLocalPackagedRuntime {
   mut crypto : String
   mut command_sqlite_member : @filesystem.NativeObservedComponentMember?
   mut command_crypto_member : @filesystem.NativeObservedComponentMember?
+  mut command_model_http_member : @filesystem.NativeObservedComponentMember?
+  mut model_http_load : Result[@http.Library, @http.NativeHttpLibraryLoadError]?
   mut ready : Bool
   mut closed : Bool
 }
@@ -191,6 +193,8 @@ fn local_runtime_empty(
     crypto: "",
     command_sqlite_member: None,
     command_crypto_member: None,
+    command_model_http_member: None,
+    model_http_load: None,
     ready: false,
     closed: false,
   }
@@ -531,16 +535,17 @@ fn local_runtime_capture(
       if collect {
         bodies[entry.role] = body
       }
-      if runtime.original_read is Some(_) &&
-        (entry.role == "sqlite" || entry.role == "crypto") {
+      let command_kind = match entry.role {
+        "sqlite" => 1
+        "crypto" => 2
+        "model-http" => 3
+        _ => 0
+      }
+      if runtime.original_read is Some(_) && command_kind != 0 {
         let observation = runtime.witnesses[runtime.witnesses.length() - 1]
         let component = observation
           .command_component_member(
-            if entry.role == "sqlite" {
-              1
-            } else {
-              2
-            },
+            command_kind,
             source_sha,
             manifest_sha256,
             entry.sha256,
@@ -550,10 +555,10 @@ fn local_runtime_capture(
         if !local_runtime_bind_command_member(runtime, component) {
           local_runtime_stop(Changed)
         }
-        if entry.role == "sqlite" {
-          runtime.command_sqlite_member = Some(component)
-        } else {
-          runtime.command_crypto_member = Some(component)
+        match command_kind {
+          1 => runtime.command_sqlite_member = Some(component)
+          2 => runtime.command_crypto_member = Some(component)
+          _ => runtime.command_model_http_member = Some(component)
         }
       }
       if entry.role == "sqlite" {
@@ -899,6 +904,18 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   self.ready = false
+  match self.model_http_load {
+    Some(Ok(library)) =>
+      if library.close_checked() is Err(_) {
+        return Err(CleanupPending)
+      }
+    Some(Err(@http.CleanupRequired(failure))) =>
+      if failure.retry_cleanup() is Err(_) {
+        return Err(CleanupPending)
+      }
+    Some(Err(@http.RefusedBeforeAcquisition(_))) | None => ()
+  }
+  self.model_http_load = None
   if self.reader_open_failure is Some(failure) {
     if failure.retry_cleanup() is Err(_) {
       return Err(CleanupPending)
@@ -974,4 +991,48 @@ pub fn NativeLocalPackagedRuntime::command_library_members(
     return Err(Changed)
   }
   Ok((sqlite, crypto))
+}
+
+///|
+pub(all) enum NativeLocalModelHttpIssue {
+  Runtime(NativeLocalPackagedRuntimeIssue)
+  Unavailable
+  Load(@http.NativeHttpIssue)
+}
+
+///|
+/// Borrow one command-owned Library. Subsequent attempts reuse this exact
+/// result; each entered call must use its own Client under the same Read.
+/// The Runtime keeps the Library or its first load failure through close.
+/// Only Model preparation should request this optional component.
+pub fn NativeLocalPackagedRuntime::borrow_model_http_library(
+  self : NativeLocalPackagedRuntime,
+  diagnostic_ceiling : Int,
+) -> Result[@http.Library, NativeLocalModelHttpIssue] {
+  guard self.command_model_http_member is Some(component) else {
+    return Err(Unavailable)
+  }
+  match local_runtime_read_begin(self) {
+    Err(issue) => return Err(Runtime(issue))
+    Ok(_) => ()
+  }
+  let result = self
+    .local_runtime_check_originals()
+    .map(_ => {
+      if self.model_http_load is Some(original) {
+        return original
+      }
+      let original = @http.load_command_model_library_with_custody(
+        component, diagnostic_ceiling,
+      )
+      self.model_http_load = Some(original)
+      original
+    })
+  let left = local_runtime_read_finish(self, Ok(()))
+  match result {
+    Err(issue) => Err(Runtime(issue))
+    Ok(Err(@http.RefusedBeforeAcquisition(issue))) => Err(Load(issue))
+    Ok(Err(@http.CleanupRequired(failure))) => Err(Load(failure.issue()))
+    Ok(Ok(library)) => left.map(_ => library).map_err(issue => Runtime(issue))
+  }
 }

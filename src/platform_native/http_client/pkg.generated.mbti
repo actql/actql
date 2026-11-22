@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn load_command_model_library_with_custody(@filesystem.NativeObservedComponentMember, Int) -> Result[Library, NativeHttpLibraryLoadError]
+
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpIssue]
 
 pub fn load_library_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpLibraryLoadError]
