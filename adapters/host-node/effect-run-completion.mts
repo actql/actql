@@ -1,5 +1,4 @@
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from
-  // @ts-expect-error The existing Effect apply owner is still authored in JavaScript.
   './effect-run-apply.mjs';
 import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
@@ -15,29 +14,22 @@ type Published = Parameters<typeof publishCompletedEffectfulRun>[0];
 type IssuedSet = ReturnType<typeof retainIssuedEffectSetReceipt>;
 type ReceiptOptions = Parameters<typeof issueAuthorizedEffectSetReceipt>[0];
 type Ledger = ReceiptOptions['ledger'] & Readonly<{currentAdmitted(locator: string): unknown}>;
-type ApplyRuntime = Readonly<{
-  clientProgramEffectApplySubjectCid(capturedInputs: unknown): unknown;
+type ApplyOptions = Parameters<typeof applyCapturedEffectSet>[0] | Parameters<typeof applyRecoveredEffectSet>[0];
+type ApplyRuntime = ApplyOptions['moon'] & Readonly<{
   strategyEffectPreviewSemanticCid(preview: unknown): unknown;
 }>;
 type ApplicationControl = Readonly<{
   logicalItemLocatorCid(locator: unknown): string;
   ledgerEntryStateCode(entry: unknown): number;
 }>;
-type DispatchInputs = Readonly<{
-  memberIndex: number; rowIndex: number; claim: unknown;
-  currentPreflight: unknown;
-}>;
-type DispatchFacts = Readonly<{
-  members: readonly unknown[]; subjectCid: string;
-  signal: AbortSignal | undefined; decisions: readonly unknown[];
-}>;
-type DispatchRow = (row: DispatchInputs) => unknown;
-type Apply = Readonly<{
+type DispatchRow = NonNullable<ApplyOptions['dispatchRow']>;
+type DispatchInputs = Parameters<DispatchRow>[0];
+type DispatchFacts = Parameters<NonNullable<ApplyOptions['bindDispatch']>>[0];
+type Apply = ApplyOptions & Readonly<{
   moon: ApplyRuntime; ledger: Ledger; capturedInputs?: unknown;
   members?: readonly unknown[]; store?: unknown; publicationControl?: unknown;
   computation?: unknown; preview?: unknown;
-  dispatchRow?: DispatchRow; bindDispatch?(facts: DispatchFacts): DispatchRow | undefined;
-}> & Readonly<Record<string, unknown>>;
+}>;
 type Receipt = Omit<ReceiptOptions, 'members'> & Readonly<{
   members: readonly Readonly<{replayed: boolean; rowOwners: readonly Readonly<{
     claim: Extract<ReceiptOptions['members'][number]['rowOwners'][number], {claim: object}>['claim'];
@@ -155,8 +147,8 @@ async function complete(options: CompletionOptions, recovered: boolean) {
     : {bindDispatch: (facts: DispatchFacts) => wrap(original.bindDispatch!(facts))}),
     signal: options.signal};
   const progress: Progress = recovered
-    ? await applyRecoveredEffectSet(apply)
-    : await applyCapturedEffectSet(apply);
+    ? await applyRecoveredEffectSet(apply as Parameters<typeof applyRecoveredEffectSet>[0])
+    : await applyCapturedEffectSet(apply as Parameters<typeof applyCapturedEffectSet>[0]);
   return issueAndPublish(options, progress);
 }
 

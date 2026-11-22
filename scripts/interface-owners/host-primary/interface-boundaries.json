@@ -7131,11 +7131,11 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -7149,7 +7149,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -7167,7 +7167,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "subjectCid"
               },
               {
@@ -7195,11 +7195,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "Before any ready row sends"
               },
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -7213,7 +7213,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -7227,7 +7227,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -7241,7 +7241,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "maxFrontierWork"
               },
               {
@@ -7303,11 +7303,11 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -7317,7 +7317,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -7331,7 +7331,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "subjectCid"
               },
               {
@@ -7351,11 +7351,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "Before any ready row sends"
               },
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -7365,7 +7365,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -7375,7 +7375,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -7385,7 +7385,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "maxFrontierWork"
               },
               {

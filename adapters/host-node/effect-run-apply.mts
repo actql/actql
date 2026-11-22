@@ -1,23 +1,131 @@
 import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {confirmCompletedEffectfulApplySources} from
   '../host-common/completed-run-publication.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import type {createNodeAuthorizationGate} from './authorization.mjs';
+import type {EffectDispatchClaim} from './effect-physical-dispatch.mjs';
 
-const fail = code => {
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Gate = Awaited<ReturnType<typeof createNodeAuthorizationGate>>;
+type Decision = Awaited<ReturnType<Gate['authorize']>>;
+type Resume = NonNullable<NonNullable<Parameters<Gate['resume']>[2]>['resumption']>;
+type HeldClaim = NonNullable<Resume['claim']>;
+type JournalClaim = Extract<HeldClaim, {claim: object}>['claim'];
+type Claimed = Readonly<{action: 'claimed'; claim: JournalClaim; checkpointCid?: string}>;
+type ResumeInputs = Readonly<{
+  claim?: Claimed;
+  journal?: Readonly<{claimResume(runId: string, options: Readonly<{
+    claimant: string; leaseMs: number; binding: unknown; unknownEffects: readonly unknown[];
+  }>): Readonly<{action: string; claim?: JournalClaim; checkpointCid?: string}>}>;
+  runId?: string; claimant?: string; leaseMs?: number; binding?: unknown; unknownEffects?: readonly unknown[];
+}>;
+type Admission = NonNullable<Decision['admission']>;
+type Scope = Readonly<{connection: string; resource: string}>;
+type Authorization = Readonly<{
+  gate: Pick<Gate, 'authorize' | 'resume'> & Readonly<{
+    continuationAdmission?(resumption: Resume, subjectCid: string): Admission | undefined;
+  }>;
+  scopes: readonly Scope[]; resume?: ResumeInputs;
+}>;
+type CheckedAuthorization = ReturnType<typeof checkedAuthorization>;
+type PreflightFailure = Readonly<{code: 'EffectTargetVersionMismatch';
+  kind: 'target_version_mismatch'; phase: 'effect_apply_preflight'}>;
+type FailureCode = Readonly<{code?: unknown}>;
+
+type PreflightSlot = 'proofs' | 'sources' | 'contracts' | 'capabilities' |
+  'authorities' | 'observedRows' | 'guardVersions' | 'routes';
+type PreflightBindings = Readonly<{
+  risk?: unknown; requirePartialApplication?: boolean;
+  reviewProjectionCid: string; authorityScopeCid: string; policyCid: string;
+  validityCid: string; issuerCid: string; authenticationCid: string;
+  issuerKind: string; decision: string; requestScope: unknown;
+  maxMembers: number; maxRows: number; maxFootprintWork: number; maxWork: number;
+}>;
+type Keys = readonly (readonly unknown[])[];
+type PreflightInput = PreflightBindings &
+  Readonly<Partial<Record<PreflightSlot, readonly unknown[]>>> & Readonly<{keys?: Keys}>;
+type OwnedPreflight = PreflightBindings & Readonly<Record<PreflightSlot, readonly unknown[]>> & Readonly<{keys: Keys}>;
+type PreflightTail = [
+  sources: readonly unknown[], contracts: readonly unknown[], capabilities: readonly unknown[],
+  authorities: readonly unknown[], observedRows: readonly unknown[], guardVersions: readonly unknown[],
+  routes: readonly unknown[], risk: unknown, requirePartialApplication: boolean,
+  reviewProjectionCid: string, authorityScopeCid: string, policyCid: string, validityCid: string,
+  issuerCid: string, authenticationCid: string, issuerKind: string, decision: string,
+  requestScope: unknown, keys: Keys, maxMembers: number, maxRows: number, maxFootprintWork: number, maxWork: number,
+];
+type ApplyRuntime = Readonly<{
+  clientProgramEffectApplySubjectCid(capturedInputs: unknown): string | undefined;
+  clientProgramEffectApplyMemberCount(capturedInputs: unknown): number | undefined;
+  clientProgramEffectApplyPreflightTargetVersionChanged?(cause: unknown): boolean;
+  clientProgramCheckEffectApplyPreflight(capturedInputs: unknown, proofs: readonly unknown[], ...tail: PreflightTail): unknown;
+  clientProgramCheckRecoveredEffectApplySemantics(preview: unknown, recoveredGuards: unknown, ...tail: PreflightTail): unknown;
+}>;
+type ApplicationControl = Pick<ReturnType<typeof effectApplicationControl>,
+  'logicalRequestScopeCid' | 'setFrontierReadyCount' | 'setFrontierReadyMember' | 'setFrontierReadyRow' | 'recoveredPreviewKeys'>;
+type Member = Readonly<{claims: readonly EffectDispatchClaim[]}>;
+type DispatchRow = (facts: Readonly<{
+  memberIndex: number; rowIndex: number; claim: EffectDispatchClaim; currentPreflight: PreflightInput | undefined;
+}>) => unknown;
+type BindDispatch = (facts: Readonly<{members: readonly Member[]; subjectCid: string;
+  signal: AbortSignal | undefined; decisions: readonly Decision[]}>) => DispatchRow;
+type DispatchOptions = Readonly<{
+  moon: ApplyRuntime; maxFrontierWork: number; signal?: AbortSignal; authorization?: Authorization;
+  dispatchRow?: DispatchRow; bindDispatch?: BindDispatch;
+}>;
+type FrontierOptions = Readonly<{
+  control: ApplicationControl; frontier(members: readonly Member[], maxWork: number): unknown;
+  members: readonly Member[]; maxFrontierWork: number; dispatchRow: DispatchRow; signal?: AbortSignal;
+  beforeDispatch?(): void; currentPreflight: PreflightInput | undefined;
+}>;
+type CapturedApply = DispatchOptions & Readonly<{
+  capturedInputs: unknown; preflight: PreflightInput; members: readonly Member[];
+  ledger: Readonly<{
+    frontierFromCapturedHeads(inputs: unknown, members: readonly Member[], maxWork: number): unknown;
+    prepareCapturedSetIntents(inputs: unknown, members: readonly Member[], maxWork: number): SynchronousRuntimeData;
+  }>;
+  refreshPreflight?(facts: Readonly<{signal: AbortSignal | undefined; preflight: OwnedPreflight}>):
+    Awaitable<PreflightInput | undefined>;
+}>;
+type Confirmation = Parameters<typeof confirmCompletedEffectfulApplySources>[0];
+type RecoveryFacts = Readonly<{preview: unknown; scope: unknown; programId: string; nodeId: string;
+  maxRows: number; maxWork: number}>;
+type RecoveredApply = DispatchOptions & Pick<Confirmation, 'store' | 'computation' | 'preview'> &
+  Readonly<{
+    publicationControl: Confirmation['control'] & Readonly<{
+      effectComputationPreviewLedgerIdentity(preview: Confirmation['preview']): unknown;
+      effectComputationPreviewSemanticCid(preview: Confirmation['preview']): string;
+    }>;
+    ledger: Readonly<{
+      recoverClaimFacts(facts: RecoveryFacts): Readonly<{members: readonly Member[]; frontier: unknown}>;
+      frontierFromDurableHeads(preview: unknown, members: readonly Member[], maxWork: number): unknown;
+      recoveredTargetGuards(preview: unknown, members: readonly Member[], maxWork: number): unknown;
+    }>;
+    requestScope: unknown; programId: string; nodeId: string; maxRows: number; maxRecoveryWork: number;
+    keyLimits: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxWork: number}>;
+    reconcileStoredResponses?(facts: Readonly<{members: readonly Member[]; preview: unknown;
+      signal: AbortSignal | undefined}>): unknown;
+    refreshPreflight(facts: Readonly<{signal: AbortSignal | undefined}>): Awaitable<PreflightInput | undefined>;
+    observationOnly?: boolean;
+  }>;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-const preflightRejections = new WeakSet();
-const preflightFailureObservations = new WeakMap();
+const preflightRejections = new WeakSet<object>();
+const preflightFailureObservations = new WeakMap<object, PreflightFailure>();
 
-export function effectApplyPreflightFailureObservation(error) {
-  return preflightRejections.has(error) ? preflightFailureObservations.get(error) : undefined;
+export function effectApplyPreflightFailureObservation(error: unknown) {
+  return preflightRejections.has(error as object) ? preflightFailureObservations.get(error as object) : undefined;
 }
 
-export function isEffectApplyPreflightRejection(error) {
+export function isEffectApplyPreflightRejection(error: unknown) {
   return error !== null && typeof error === 'object' &&
     preflightRejections.has(error);
 }
@@ -25,7 +133,7 @@ export function isEffectApplyPreflightRejection(error) {
 // A checked preflight rejection is a definitive refusal of this Preview.
 // Provider observation failures occur before this boundary and remain
 // retryable; they must not be converted into a terminal Run result.
-function checkedPreflight(result, moon) {
+function checkedPreflight(result: unknown, moon: ApplyRuntime) {
   if (runtimeIsError(result)) {
     const error = Object.assign(new Error('MoonBitHostFailure', {
       cause: runtimeField(result, 0)}), {code: 'MoonBitHostFailure'});
@@ -33,7 +141,7 @@ function checkedPreflight(result, moon) {
     // The Core getter consumes ONLY the same retained typed error. Missing or
     // failed optional diagnostics cannot replace its original refusal.
     try {
-      if (moon.clientProgramEffectApplyPreflightTargetVersionChanged(error.cause) === true) {
+      if (moon.clientProgramEffectApplyPreflightTargetVersionChanged!(error.cause) === true) {
         preflightFailureObservations.set(error, Object.freeze({code: 'EffectTargetVersionMismatch',
           kind: 'target_version_mismatch', phase: 'effect_apply_preflight'}));
       }
@@ -43,10 +151,10 @@ function checkedPreflight(result, moon) {
   return checked(result);
 }
 
-const text = value => typeof value === 'string' && value.length > 0 &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&
   value.length <= 512;
 
-const validDispatch = (dispatchRow, bindDispatch) =>
+const validDispatch = (dispatchRow: unknown, bindDispatch: unknown) =>
   (typeof dispatchRow === 'function' && bindDispatch === undefined) ||
   (dispatchRow === undefined && typeof bindDispatch === 'function');
 
@@ -57,8 +165,8 @@ const validDispatch = (dispatchRow, bindDispatch) =>
 // one per distinct Host tuple in member order of first appearance; a
 // provider binds each physical write grant to its member's decision and
 // never to a decision of another tuple or an earlier generation.
-function bindOwnedDispatch(dispatchRow, bindDispatch, members, subjectCid,
-  signal, decisions) {
+function bindOwnedDispatch(dispatchRow: DispatchRow | undefined, bindDispatch: BindDispatch | undefined,
+  members: readonly Member[], subjectCid: string, signal: AbortSignal | undefined, decisions: readonly Decision[]) {
   const dispatch = bindDispatch === undefined ? dispatchRow :
     bindDispatch(Object.freeze({members, subjectCid, signal, decisions}));
   if (typeof dispatch !== 'function') fail('InvalidEffectDispatchBinding');
@@ -79,7 +187,7 @@ const READ_OPERATION = 'read';
 // this function to claim the approved resume intent (`journal`, `runId`,
 // `claimant`, `leaseMs`, `binding`). The committed Resolution and its
 // evidence are read by the gate from the journal, never from the caller.
-function checkedAuthorization(authorization, memberCount) {
+function checkedAuthorization(authorization: Authorization | undefined, memberCount: number) {
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.gate?.authorize !== 'function' ||
       !Array.isArray(authorization.scopes) ||
@@ -94,21 +202,21 @@ function checkedAuthorization(authorization, memberCount) {
       (resume.claim === undefined &&
         (typeof resume.journal?.claimResume !== 'function' ||
           !text(resume.runId) || !text(resume.claimant) ||
-          !Number.isSafeInteger(resume.leaseMs) || resume.leaseMs < 1)) ||
+          !Number.isSafeInteger(resume.leaseMs) || resume.leaseMs! < 1)) ||
       (resume.claim !== undefined && (resume.claim === null ||
         typeof resume.claim !== 'object')))) {
     fail('EffectApplyAuthorizationRequired');
   }
   return Object.freeze({
     gate: authorization.gate,
-    scopes: Object.freeze(authorization.scopes.map(scope => Object.freeze({
+    scopes: Object.freeze(authorization.scopes.map((scope: Scope) => Object.freeze({
       connection: scope.connection, resource: scope.resource,
       operation: EFFECT_OPERATION}))),
     resume: resume === undefined ? undefined : Object.freeze({...resume}),
   });
 }
 
-function sealedSubject(moon, capturedInputs, memberCount) {
+function sealedSubject(moon: ApplyRuntime, capturedInputs: unknown, memberCount: number) {
   const subjectCid = moon.clientProgramEffectApplySubjectCid(capturedInputs);
   if (typeof subjectCid !== 'string' ||
       moon.clientProgramEffectApplyMemberCount(capturedInputs) !==
@@ -121,12 +229,12 @@ function sealedSubject(moon, capturedInputs, memberCount) {
 // Authorize the credentialed target reads of the guard refresh: one
 // acquisition decision per distinct Effect target, bound to the sealed Set
 // Preview. Only dispatch continues; nothing is read otherwise.
-async function authorizeTargetReads(authorization, subjectCid, signal) {
-  const tuples = new Map(authorization.scopes.map(scope => [
+async function authorizeTargetReads(authorization: CheckedAuthorization, subjectCid: string, signal: AbortSignal | undefined) {
+  const tuples = new Map(authorization.scopes.map((scope: Scope) => [
     JSON.stringify([scope.connection, scope.resource]),
     Object.freeze({connection: scope.connection, resource: scope.resource,
       operation: READ_OPERATION})]));
-  const decisions = [];
+  const decisions: Decision[] = [];
   for (const tuple of tuples.values()) {
     signal?.throwIfAborted();
     const decision = await authorization.gate.authorize('acquisition', tuple,
@@ -140,15 +248,15 @@ async function authorizeTargetReads(authorization, subjectCid, signal) {
 // Evaluate the Effect commit boundary for the complete sealed Effect Set
 // Preview, once per distinct Host tuple of its members. Only dispatch
 // continues; the first other outcome stops the whole set before any claim.
-async function authorizeEffectCommit(authorization, subjectCid, signal) {
+async function authorizeEffectCommit(authorization: CheckedAuthorization, subjectCid: string, signal: AbortSignal | undefined) {
   const tuples = new Map(authorization.scopes.map(tuple => [
     JSON.stringify([tuple.connection, tuple.resource, tuple.operation]),
     tuple]));
-  let resumption;
+  let resumption: Readonly<{claim: Claimed}> | undefined;
   if (authorization.resume !== undefined) {
     const resume = authorization.resume;
-    const claimed = resume.claim ?? resume.journal.claimResume(resume.runId, {
-      claimant: resume.claimant, leaseMs: resume.leaseMs,
+    const claimed = resume.claim ?? resume.journal!.claimResume(resume.runId!, {
+      claimant: resume.claimant!, leaseMs: resume.leaseMs!,
       binding: resume.binding, unknownEffects: resume.unknownEffects ?? [],
     });
     if (claimed.action !== 'claimed') {
@@ -156,9 +264,9 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
         code: 'EffectApplyResumeNotClaimed', resume: claimed,
       });
     }
-    resumption = Object.freeze({claim: claimed});
+    resumption = Object.freeze({claim: claimed as Claimed});
   }
-  const decisions = [];
+  const decisions: Decision[] = [];
   for (const tuple of tuples.values()) {
     signal?.throwIfAborted();
     const decision = resumption === undefined
@@ -198,7 +306,7 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
 // sealed Set Preview. Every row send of the set is idempotent under the
 // Effect ledger for this identity, so a later claim generation may continue
 // it only through the reconciliation path with this same identity.
-function effectSetApplyIdentity(control, requestScope, subjectCid) {
+function effectSetApplyIdentity(control: ApplicationControl, requestScope: unknown, subjectCid: string) {
   return `actql-effect-set-apply/0.1:${
     control.logicalRequestScopeCid(requestScope)}:${subjectCid}`;
 }
@@ -208,24 +316,24 @@ function effectSetApplyIdentity(control, requestScope, subjectCid) {
 // (`PriorAdmissionUnresolved`); then only the same durable identity is
 // admitted, through reconciliation. Any other refusal propagates and
 // nothing is sent.
-function enterResumedAdmission(admission, identity) {
+function enterResumedAdmission(admission: Admission, identity: string) {
   try {
     return admission.enter(identity);
   } catch (error) {
-    if (error?.code !== 'PriorAdmissionUnresolved') throw error;
+    if ((error as FailureCode | null | undefined)?.code !== 'PriorAdmissionUnresolved') throw error;
     return admission.reconcile(identity);
   }
 }
 
-const ownPreflight = (supplied, requireProofs = true) => {
+const ownPreflight = (supplied: PreflightInput | undefined, requireProofs = true): OwnedPreflight => {
   if (!supplied) fail('InvalidCapturedEffectApply');
   const preflight = {...supplied};
-  const names = ['sources', 'contracts', 'capabilities',
+  const names: PreflightSlot[] = ['sources', 'contracts', 'capabilities',
     'authorities', 'observedRows', 'guardVersions', 'routes'];
   if (requireProofs) names.unshift('proofs');
   for (const name of names) {
     if (!Array.isArray(preflight[name])) fail('InvalidCapturedEffectApply');
-    preflight[name] = Object.freeze([...preflight[name]]);
+    preflight[name] = Object.freeze([...preflight[name]!]);
   }
   if (!Array.isArray(preflight.keys) ||
       !preflight.keys.every(Array.isArray)) {
@@ -234,12 +342,12 @@ const ownPreflight = (supplied, requireProofs = true) => {
   preflight.keys = Object.freeze(preflight.keys.map(keys =>
     Object.freeze([...keys])));
   if (!requireProofs) preflight.proofs = Object.freeze([]);
-  return Object.freeze(preflight);
+  return Object.freeze(preflight) as OwnedPreflight;
 };
 
 const driveAdmittedFrontier = async ({control, frontier, members,
   maxFrontierWork, dispatchRow, signal, beforeDispatch,
-  currentPreflight}) => {
+  currentPreflight}: FrontierOptions) => {
   const totalRows = members.reduce((sum, member) =>
     sum + member.claims.length, 0);
   let dispatched = 0;
@@ -279,7 +387,7 @@ export async function applyCapturedEffectSet({
   moon, capturedInputs, preflight: suppliedPreflight, ledger, members,
   dispatchRow, bindDispatch,
   maxFrontierWork, signal, refreshPreflight, authorization,
-}) {
+}: CapturedApply) {
   if (!moon || !capturedInputs || !suppliedPreflight || !ledger ||
       typeof ledger.frontierFromCapturedHeads !== 'function' ||
       typeof ledger.prepareCapturedSetIntents !== 'function' ||
@@ -291,9 +399,9 @@ export async function applyCapturedEffectSet({
     fail('InvalidCapturedEffectApply');
   }
   const preflight = ownPreflight(suppliedPreflight);
-  const ownedMembers = Object.freeze(members.map(member => {
+  const ownedMembers = Object.freeze(members.map((member: Member) => {
     if (!Array.isArray(member?.claims)) fail('InvalidCapturedEffectApply');
-    return Object.freeze({claims: Object.freeze(member.claims.map(claim =>
+    return Object.freeze({claims: Object.freeze(member.claims.map((claim: EffectDispatchClaim) =>
       Object.freeze({...claim})))});
   }));
   const totalRows = ownedMembers.reduce((sum, member) =>
@@ -305,7 +413,7 @@ export async function applyCapturedEffectSet({
   // passed only when the Host holds one, and `partial_application_accepted`
   // is required only when the Host's delegated-decision policy declares it.
   signal?.throwIfAborted();
-  const control = runtimeCore(moon).effectApplicationControl;
+  const control: ApplicationControl = runtimeCore(moon).effectApplicationControl;
   const initialFrontier = ledger.frontierFromCapturedHeads(
     capturedInputs, ownedMembers, maxFrontierWork);
   const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
@@ -317,9 +425,9 @@ export async function applyCapturedEffectSet({
   const commit = noReadyRows ? undefined :
     checkedAuthorization(authorization, ownedMembers.length);
   const subjectCid = sealedSubject(moon, capturedInputs, ownedMembers.length);
-  let readDecisions = Object.freeze([]);
+  let readDecisions: readonly Decision[] = Object.freeze([]);
   if (!noReadyRows) {
-    readDecisions = await authorizeTargetReads(commit, subjectCid, signal);
+    readDecisions = await authorizeTargetReads(commit!, subjectCid, signal);
     const read = readDecisions.at(-1);
     if (read?.action === 'waiting') {
       return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
@@ -331,7 +439,7 @@ export async function applyCapturedEffectSet({
     }
   }
   const refreshed = noReadyRows ? undefined :
-    await refreshPreflight({signal, preflight});
+    await refreshPreflight!({signal, preflight});
   const current = noReadyRows ? preflight : ownPreflight(refreshed);
   if (current.requirePartialApplication !== undefined &&
       typeof current.requirePartialApplication !== 'boolean') {
@@ -358,7 +466,7 @@ export async function applyCapturedEffectSet({
     return Object.freeze({status: 'applied', dispatched: 0,
       frontier: initialFrontier, subjectCid});
   }
-  const authorized = await authorizeEffectCommit(commit, subjectCid, signal);
+  const authorized = await authorizeEffectCommit(commit!, subjectCid, signal);
   const last = authorized.decisions.at(-1);
   if (last?.action === 'waiting') {
     return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
@@ -371,7 +479,7 @@ export async function applyCapturedEffectSet({
   }
   const identity = effectSetApplyIdentity(control, current.requestScope,
     subjectCid);
-  let entered;
+  let entered: ReturnType<Admission['enter']> | undefined;
   let prepared = false;
   const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
     ownedMembers, subjectCid, signal, authorized.decisions);
@@ -408,7 +516,7 @@ export async function applyRecoveredEffectSet({
   maxRecoveryWork, keyLimits,
   reconcileStoredResponses, refreshPreflight, dispatchRow, bindDispatch, signal,
   authorization, observationOnly = false,
-}) {
+}: RecoveredApply) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
       typeof ledger?.recoverClaimFacts !== 'function' ||
       typeof ledger?.frontierFromDurableHeads !== 'function' ||
@@ -432,7 +540,7 @@ export async function applyRecoveredEffectSet({
     fail('InvalidRecoveredEffectApply');
   }
   signal?.throwIfAborted();
-  const control = runtimeCore(moon).effectApplicationControl;
+  const control: ApplicationControl = runtimeCore(moon).effectApplicationControl;
   const admittedPreview = publicationControl
     .effectComputationPreviewLedgerIdentity(preview);
   let recovered = ledger.recoverClaimFacts({preview: admittedPreview,
@@ -461,7 +569,7 @@ export async function applyRecoveredEffectSet({
   const commit = checkedAuthorization(authorization, recovered.members.length);
   const subjectCid = publicationControl.effectComputationPreviewSemanticCid(
     preview);
-  const readDecisions = await authorizeTargetReads(commit, subjectCid, signal);
+  const readDecisions = await authorizeTargetReads(commit!, subjectCid, signal);
   const read = readDecisions.at(-1);
   if (read?.action === 'waiting') {
     return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
@@ -472,10 +580,10 @@ export async function applyRecoveredEffectSet({
   }
   const current = await refreshPreflight({signal});
   const keys = control.recoveredPreviewKeys(
-    admittedPreview, requestScope, current?.maxMembers,
-    current?.maxRows, keyLimits.maxWork, keyLimits.maxBytes,
-    keyLimits.maxNodes, keyLimits.maxDepth);
-  const preflight = ownPreflight({...current, keys}, false);
+    admittedPreview, requestScope, current?.maxMembers!,
+    current?.maxRows!, keyLimits.maxWork, keyLimits.maxBytes,
+    keyLimits.maxNodes, keyLimits.maxDepth) as Keys;
+  const preflight = ownPreflight({...current!, keys}, false);
   // A fresh authorization cannot silently change the logical request that
   // owns the already prepared intents.
   if (control.logicalRequestScopeCid(preflight.requestScope) !==
@@ -504,7 +612,7 @@ export async function applyRecoveredEffectSet({
     preflight.maxMembers, preflight.maxRows,
     preflight.maxFootprintWork, preflight.maxWork,
   ), moon);
-  const authorized = await authorizeEffectCommit(commit, subjectCid, signal);
+  const authorized = await authorizeEffectCommit(commit!, subjectCid, signal);
   const last = authorized.decisions.at(-1);
   if (last?.action === 'waiting') {
     return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
@@ -516,7 +624,7 @@ export async function applyRecoveredEffectSet({
     });
   }
   const identity = effectSetApplyIdentity(control, requestScope, subjectCid);
-  let entered;
+  let entered: ReturnType<Admission['enter']> | undefined;
   const dispatch = bindOwnedDispatch(dispatchRow, bindDispatch,
     recovered.members, subjectCid, signal, authorized.decisions);
   const result = await driveAdmittedFrontier({control,

@@ -1934,3 +1934,5 @@ target/
 /adapters/host-node/effect-physical-dispatch.d.mts
 /adapters/host-node/effect-response-recovery.mjs
 /adapters/host-node/effect-response-recovery.d.mts
+/adapters/host-node/effect-run-apply.mjs
+/adapters/host-node/effect-run-apply.d.mts

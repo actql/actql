@@ -48976,7 +48976,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -48986,7 +48986,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -48996,7 +48996,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49006,7 +49006,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49016,7 +49016,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49026,7 +49026,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49036,7 +49036,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49046,7 +49046,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49056,7 +49056,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49066,7 +49066,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyCapturedEffectSet"
               },
               {
@@ -49092,7 +49092,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49102,7 +49102,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49112,7 +49112,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49122,7 +49122,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49132,7 +49132,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49142,7 +49142,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49152,7 +49152,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49162,7 +49162,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49172,7 +49172,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49182,7 +49182,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "applyRecoveredEffectSet"
               },
               {
@@ -49208,7 +49208,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49222,7 +49222,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49236,7 +49236,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49250,7 +49250,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49264,7 +49264,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49278,7 +49278,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49292,7 +49292,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49306,7 +49306,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49324,7 +49324,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49338,7 +49338,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeEffectCommit"
               },
               {
@@ -49368,7 +49368,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49378,7 +49378,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49388,7 +49388,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49398,7 +49398,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49408,7 +49408,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49418,7 +49418,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49428,7 +49428,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49438,7 +49438,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49448,7 +49448,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49458,7 +49458,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "authorizeTargetReads"
               },
               {
@@ -49478,7 +49478,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49488,7 +49488,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49498,7 +49498,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49508,7 +49508,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49518,7 +49518,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49528,7 +49528,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49538,7 +49538,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49548,7 +49548,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49558,7 +49558,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49568,7 +49568,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "bindOwnedDispatch"
               },
               {
@@ -49591,7 +49591,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49601,7 +49601,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49611,7 +49611,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49621,7 +49621,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49631,7 +49631,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49641,7 +49641,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49651,7 +49651,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49661,7 +49661,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49671,7 +49671,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49681,7 +49681,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedAuthorization"
               },
               {
@@ -49701,7 +49701,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49711,7 +49711,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49721,7 +49721,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49731,7 +49731,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49741,7 +49741,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49751,7 +49751,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49761,7 +49761,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49771,7 +49771,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49781,7 +49781,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49791,7 +49791,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "checkedPreflight"
               },
               {
@@ -49813,7 +49813,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49823,7 +49823,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49833,7 +49833,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49843,7 +49843,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49853,7 +49853,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49863,7 +49863,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49873,7 +49873,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49883,7 +49883,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49893,7 +49893,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49903,7 +49903,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "driveAdmittedFrontier"
               },
               {
@@ -49923,7 +49923,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49933,7 +49933,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49943,7 +49943,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49953,7 +49953,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49963,7 +49963,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49973,7 +49973,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49983,7 +49983,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -49993,7 +49993,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -50003,7 +50003,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -50013,7 +50013,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "effectSetApplyIdentity"
               },
               {
@@ -50033,7 +50033,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50043,7 +50043,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50053,7 +50053,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50063,7 +50063,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50073,7 +50073,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50083,7 +50083,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50093,7 +50093,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50103,7 +50103,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50113,7 +50113,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50123,7 +50123,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "enterResumedAdmission"
               },
               {
@@ -50143,7 +50143,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50153,7 +50153,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50163,7 +50163,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50173,7 +50173,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50183,7 +50183,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50193,7 +50193,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50203,7 +50203,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50213,7 +50213,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50223,7 +50223,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50233,7 +50233,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "fail"
               },
               {
@@ -50259,7 +50259,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50273,7 +50273,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50287,7 +50287,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50301,7 +50301,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50315,7 +50315,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50329,7 +50329,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50343,7 +50343,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50357,7 +50357,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50371,7 +50371,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50385,7 +50385,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "isEffectApplyPreflightRejection"
               },
               {
@@ -50411,7 +50411,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50421,7 +50421,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50431,7 +50431,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50441,7 +50441,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50451,7 +50451,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50461,7 +50461,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50471,7 +50471,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50481,7 +50481,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50491,7 +50491,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50501,7 +50501,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "ownPreflight"
               },
               {
@@ -50521,7 +50521,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50531,7 +50531,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50541,7 +50541,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50551,7 +50551,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50561,7 +50561,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50571,7 +50571,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50581,7 +50581,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50591,7 +50591,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50601,7 +50601,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50611,7 +50611,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "sealedSubject"
               },
               {
@@ -50631,7 +50631,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50641,7 +50641,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50651,7 +50651,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50661,7 +50661,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50671,7 +50671,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50681,7 +50681,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50691,7 +50691,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50701,7 +50701,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50711,7 +50711,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50721,7 +50721,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "text"
               },
               {
@@ -50741,7 +50741,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50751,7 +50751,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50761,7 +50761,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50771,7 +50771,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50781,7 +50781,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50791,7 +50791,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50801,7 +50801,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50811,7 +50811,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50821,7 +50821,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50831,7 +50831,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "validDispatch"
               },
               {
@@ -50853,7 +50853,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50863,7 +50863,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50873,7 +50873,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50883,7 +50883,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50893,7 +50893,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50903,7 +50903,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50913,7 +50913,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50923,7 +50923,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50933,7 +50933,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -50943,7 +50943,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-run-apply.mjs",
+                "path": "adapters/host-node/effect-run-apply.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
