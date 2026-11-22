@@ -2,6 +2,10 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "paths": {
+      "@duckdb/node-api": [
+        "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/lib/index.d.ts",
+        "./adapters/connectors/duckdb/node/neo-session-api.d.mts"
+      ],
       "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
       "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
       "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],

@@ -116,9 +116,7 @@ type NativeCapture = Readonly<{
 }>;
 type EvidenceOptions = Readonly<Record<string, unknown>>;
 type NativeRuntime = Readonly<{
-  session: {
-    authorizeLocalDatabase(database: string, access: SourceAccess): Promise<unknown>;
-  };
+  session: Pick<Awaited<ReturnType<typeof loadDuckDBNativeRuntime>>['session'], 'authorizeLocalDatabase'>;
   host: {
     runNativeHostQuery(grant: unknown, acquisition: unknown, limits: TransportLimits,
       signal?: AbortSignal): Promise<NativeCapture>;

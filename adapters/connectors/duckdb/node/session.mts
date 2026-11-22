@@ -3,18 +3,92 @@
 import { realpath, stat, lstat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
-import { bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes,
-  physicalType } from './physical-values.mjs';
+import type {DuckDBConnection, DuckDBAppender, DuckDBPreparedStatement} from '@duckdb/node-api';
+// @ts-expect-error TS7016 Physical values are still authored in JavaScript.
+import { bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes, physicalType } from './physical-values.mjs';
+// @ts-expect-error TS7016 Physical appending is still authored in JavaScript.
 import {createPhysicalAppender} from './physical-appender.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
+// @ts-expect-error TS7016 Bounded vectors are still authored in JavaScript.
 import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
 import environmentContract from '../environment-contract.json' with {type: 'json'};
 export { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
   '../../../host-common/authorization-gate.mjs';
 
-const files = new WeakMap();
+import type {createAuthorizationGate} from '../../../host-common/authorization-gate.mjs';
+
+type Authorize = ReturnType<typeof createAuthorizationGate>['authorize'];
+type ReadDecision = Pick<Awaited<ReturnType<Authorize>>, 'action' | 'basis' | 'reason'>;
+type Authorization = {authorize(...args: Parameters<Authorize>): ReadDecision | Promise<ReadDecision>};
+type SourceAccess = Readonly<{
+  authorization?: Authorization;
+  connection?: string;
+  resource?: string;
+  subjectCid?: string;
+  sourceRef?: string;
+}>;
+type SourceGrant = Readonly<{
+  path: string;
+  authorization: Authorization;
+  scope: Parameters<Authorize>[1];
+  subjectCid?: string;
+  sourceRef?: string;
+}>;
+type Limits = Parameters<typeof validateLimits>[0];
+type ValidatedLimits = Limits & Parameters<typeof boundedTransport>[0] & Readonly<Record<'maxRows' | 'maxCells' | 'maxTransportBytes' |
+  'maxSqlBytes' | 'maxParameters' | 'maxColumns' | 'memoryBytes' | 'threads', number>>;
+type Settlement = {settled(confirmed: boolean): void};
+type Accounting = Settlement & {started(): void; chargeTransfer(bytes: number): void};
+type CleanupStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type CleanupHandle = Readonly<{status(): CleanupStatus; retry(): Promise<CleanupStatus>}>;
+type CleanupFailure = Readonly<{code?: string; cleanupErrors?: readonly unknown[];
+  cleanupPending?: boolean; cleanupHandle?: CleanupHandle}>;
+type TransportFailure = DuckDBTransportError & {
+  primaryFailure: unknown;
+  cleanupErrors: readonly unknown[];
+  cleanupPending: boolean;
+  cleanupHandle?: CleanupHandle;
+};
+type Deadline = {expired: true; failed?: never; error?: never; value?: never};
+type Completion<Value> = {value: Value; expired?: never; failed?: never; error?: never} |
+  {failed: true; error: unknown; expired?: never; value?: never};
+type PhysicalType = Readonly<{id: string; precision?: number; scale?: number}>;
+type Parameter = Readonly<{type: PhysicalType; value: unknown}>;
+type Field = Readonly<{name: string; type: PhysicalType}>;
+type Scalar = string | boolean | number | null;
+type Frame = Readonly<{fields: readonly Field[]; rowCount: number; columns: readonly (readonly Scalar[])[]}>;
+type Consume = (chunk: Frame) => unknown;
+type ReceiveMetadata = (fields: readonly Field[]) => unknown;
+type Command = (sql: string, parameters: readonly Parameter[], consume: Consume,
+  reuseInsert?: boolean, statementMode?: 'ordinary' | 'copy-parquet',
+  receiveMetadata?: ReceiveMetadata) => Promise<readonly Field[]>;
+type ResidentAppender = Readonly<{
+  types: readonly PhysicalType[];
+  appendScalars(values: readonly Scalar[]): void;
+  append(parameters: readonly Parameter[]): void;
+  flush(): void;
+  finish(): void;
+}>;
+type Usage = Readonly<{
+  rows: number; cells: number; transportBytes: number; statements: number; preparations: number; chunks: number;
+  appendedRows: number; commandMilliseconds: number; prepareMilliseconds: number;
+  receiveCallbackMilliseconds: number; cleanupMilliseconds: number;
+}>;
+type Session = Readonly<{
+  command: Command;
+  insert(sql: string, parameters: readonly Parameter[], consume: Consume): Promise<readonly Field[]>;
+  openResidentAppender(table: string, columns: number): Promise<ResidentAppender>;
+  createFileView(sql: string, inputPath: string, consume: Consume): Promise<readonly Field[]>;
+  copyParquet(selectSql: string, parameters: readonly Parameter[], outputPath: string):
+    Promise<Readonly<{device: number; inode: number; bytes: number}>>;
+  usage(): Usage;
+}>;
+type SessionBody<Value> = (session: Session) => Value | Promise<Value>;
+type SharedDatabase = Readonly<{instance: DuckDBInstance}>;
+
+const files = new WeakMap<object, SourceGrant>();
 
 
 // Call only from explicit Host setup, never from Program/source wire decoding.
@@ -24,7 +98,7 @@ const files = new WeakMap();
 // admission only: every acquisition still needs a dispatch decision for this
 // exact scope before any provider session opens. Without a gate the Host has
 // no account configuration and acquisition is denied (configuration_missing).
-export async function authorizeLocalDatabase(path, access = {}) {
+export async function authorizeLocalDatabase(path: unknown, access: SourceAccess = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) throw new DuckDBTransportError('InvalidSourcePath');
   if (access === null || typeof access !== 'object') throw new DuckDBTransportError('InvalidSourceAccess');
   const authorization = access.authorization ?? missingAuthorizationGate();
@@ -56,7 +130,7 @@ export async function authorizeLocalDatabase(path, access = {}) {
 // Acquisition boundary shared by every source read (native and broad,
 // metadata/catalog SQL included): no provider session opens without a
 // dispatch decision for this exact scope.
-async function authorizeSourceAccess(source, signal) {
+async function authorizeSourceAccess(source: SourceGrant, signal?: AbortSignal) {
   const decision = await source.authorization.authorize(
     'acquisition', source.scope, {subjectCid: source.subjectCid, signal},
   );
@@ -67,22 +141,23 @@ async function authorizeSourceAccess(source, signal) {
 
 // A caller's cancellation deadline is not native settlement. Keep observing the
 // original operation and retain its cleanup responsibility after returning early.
-async function cancellationBoundary(start, limits, signal, accounting) {
+async function cancellationBoundary<Value>(start: (limits: Limits) => Promise<Value>, limits: Limits,
+  signal?: AbortSignal, accounting?: Settlement) {
   limits = validateLimits(limits);
   if (limits.cancelWaitMs === undefined || !signal) return start(limits);
   let settled = false;
-  let terminalError;
-  let timer;
-  let resolveDeadline;
-  const deadline = new Promise(resolve => { resolveDeadline = resolve; });
+  let terminalError: CleanupFailure | null | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let resolveDeadline!: (deadline: Deadline) => void;
+  const deadline = new Promise<Deadline>(resolve => { resolveDeadline = resolve; });
   const onAbort = () => {
     if (timer !== undefined || settled) return;
     timer = setTimeout(() => resolveDeadline({ expired: true }), limits.cancelWaitMs);
   };
   signal.addEventListener('abort', onAbort, { once: true });
-  const operation = Promise.resolve().then(() => start(limits)).then(
+  const operation = Promise.resolve().then(() => start(limits)).then<Completion<Value>, Completion<Value>>(
     value => { settled = true; return { value }; },
-    error => { settled = true; terminalError = error; return { failed: true, error }; },
+    error => { settled = true; terminalError = error as CleanupFailure | null | undefined; return { failed: true, error }; },
   );
   if (signal.aborted) onAbort();
   let outcome = await Promise.race([operation, deadline]);
@@ -97,7 +172,7 @@ async function cancellationBoundary(start, limits, signal, accounting) {
     pending: !settled || (terminalError?.cleanupHandle?.status().pending ?? false),
     errors: terminalError?.cleanupHandle?.status().errors ?? terminalError?.cleanupErrors ?? Object.freeze([]),
   });
-  const failure = new DuckDBTransportError('Cancelled');
+  const failure = new DuckDBTransportError('Cancelled') as TransportFailure;
   failure.primaryFailure = new DuckDBTransportError('Cancelled');
   failure.cleanupErrors = Object.freeze([]);
   failure.cleanupPending = true;
@@ -113,8 +188,9 @@ async function cancellationBoundary(start, limits, signal, accounting) {
   throw failure;
 }
 
-async function usingSession(path, readonly, suppliedLimits, body, signal, accounting, shared, inputFiles = []) {
-  const limits = validateLimits(suppliedLimits);
+async function usingSession<Value>(path: string, readonly: boolean, suppliedLimits: Limits, body: SessionBody<Value>,
+  signal?: AbortSignal, accounting?: Accounting, shared?: SharedDatabase, inputFiles: readonly string[] = []) {
+  const limits = validateLimits(suppliedLimits) as ValidatedLimits;
   const bounded = boundedTransport(limits);
   if (bounded) assertBoundedVectorRuntime();
   accounting?.started();
@@ -122,27 +198,27 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   let active = true;
   let busy = false;
   let pending = false;
-  let instance;
-  let connection;
+  let instance: DuckDBInstance | undefined;
+  let connection: DuckDBConnection | undefined;
   let transaction = false;
-  let commandFailure;
+  let commandFailure: unknown;
   let commandFailed = false;
   // At most one prepared INSERT, owned by this exact session. It replaces, not
   // supplements, the ordinary per-command statement allocation.
-  let cachedInsert;
-  let activeAppender;
-  let appenderFailure;
+  let cachedInsert: {sql: string; prepared: DuckDBPreparedStatement} | undefined;
+  let activeAppender: DuckDBAppender | undefined;
+  let appenderFailure: unknown;
   let appenderFailed = false;
-  const inFlight = new Set();
-  const recordAppenderFailure = error => {
+  const inFlight = new Set<Promise<unknown>>();
+  const recordAppenderFailure = (error: unknown) => {
     if (!appenderFailed) appenderFailure = error;
     appenderFailed = true;
   };
-  const recordCommandFailure = error => {
+  const recordCommandFailure = (error: unknown) => {
     if (!commandFailed) commandFailure = error;
     commandFailed = true;
   };
-  const trackFlight = (promise, recordFailure) => {
+  const trackFlight = <Result,>(promise: Promise<Result>, recordFailure: (error: unknown) => void) => {
     inFlight.add(promise);
     promise.then(
       () => inFlight.delete(promise),
@@ -170,12 +246,12 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     if (pending) connection?.interrupt();
   };
   signal?.addEventListener('abort', onAbort, { once: true });
-  const chargeBytes = (n) => {
+  const chargeBytes = (n: number) => {
     if (n > limits.maxTransportBytes - usage.transportBytes) throw new DuckDBTransportError('TransportBytes');
     accounting?.chargeTransfer(n);
     usage.transportBytes += n;
   };
-  const startResidentAppender = async (table, columns) => {
+  const startResidentAppender = async (table: string, columns: number): Promise<ResidentAppender> => {
     assertLive();
     if (busy || readonly || !shared || activeAppender ||
         typeof table !== 'string' || !/^resident_(0|[1-9][0-9]{0,9})$/.test(table) ||
@@ -185,7 +261,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     busy = true;
     try {
       pending = true;
-      activeAppender = await connection.createAppender(table, 'main');
+      activeAppender = await connection!.createAppender(table, 'main');
       pending = false;
       assertLive();
       const physical = createPhysicalAppender(activeAppender, columns, {
@@ -204,7 +280,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             ensure();
             pending = true;
             try {
-              physical.appendScalars(values, bytes => {
+              physical.appendScalars(values, (bytes: number) => {
                 if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
                   throw new DuckDBTransportError('ChunkBytes');
                 }
@@ -228,7 +304,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             try {
               // Stage every typed value before charging or writing a native row.
               // The same bounded pass measures the physical transport charge.
-              physical.append(parameters, bytes => {
+              physical.append(parameters, (bytes: number) => {
                 if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
                   throw new DuckDBTransportError('ChunkBytes');
                 }
@@ -249,7 +325,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             pending = true;
             try {
               physical.flush();
-              activeAppender.flushSync();
+              activeAppender!.flushSync();
             }
             finally { pending = false; }
           } catch (error) {
@@ -264,7 +340,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             pending = true;
             try {
               physical.flush();
-              activeAppender.closeSync();
+              activeAppender!.closeSync();
               activeAppender = undefined;
               live = false;
               busy = false;
@@ -283,9 +359,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       throw error;
     }
   };
-  const openResidentAppender = (...args) =>
+  const openResidentAppender = (...args: Parameters<typeof startResidentAppender>) =>
     trackFlight(startResidentAppender(...args), recordAppenderFailure);
-  const runCommand = async (sql, parameters, consume, reuseInsert = false,
+  const runCommand: Command = async (sql, parameters, consume, reuseInsert = false,
     statementMode = 'ordinary', receiveMetadata) => {
     assertLive();
     if (busy) throw new DuckDBTransportError('ConcurrentCommand');
@@ -306,7 +382,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         if ((value !== null && typeof value !== 'string' && typeof value !== 'boolean') ||
             !type || typeof type.id !== 'string' || type.id.length > 32 ||
             Object.keys(type).some(key => !['id', 'precision', 'scale'].includes(key)) ||
-            ['precision', 'scale'].some(key => type[key] !== undefined && !Number.isSafeInteger(type[key]))) {
+            ['precision', 'scale'].some(key => type[key as keyof PhysicalType] !== undefined && !Number.isSafeInteger(type[key as keyof PhysicalType]))) {
           throw new DuckDBTransportError('Parameters');
         }
       }
@@ -323,7 +399,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     }
     busy = true;
     const commandStarted = performance.now();
-    let prepared;
+    let prepared: DuckDBPreparedStatement | undefined;
     let succeeded = false;
     try {
       if (reuseInsert && cachedInsert?.sql === sql) {
@@ -333,7 +409,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         const prepareStarted = performance.now();
         try {
           pending = true;
-          const extracted = await connection.extractStatements(sql);
+          const extracted = await connection!.extractStatements(sql);
           pending = false;
           assertLive();
           if (extracted.count !== 1) throw new DuckDBTransportError('StatementCount');
@@ -361,7 +437,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       pending = false;
       assertLive();
       if (result.columnCount > limits.maxColumns) throw new DuckDBTransportError('Columns');
-      const fieldItems = [];
+      const fieldItems: Field[] = [];
       let fieldBytes = Buffer.byteLength('{"fields":[]}\n', 'utf8');
       for (let i = 0; i < result.columnCount; i++) {
         const name = result.columnName(i);
@@ -396,7 +472,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         const frameLimit = limits.maxChunkBytes ?? limits.maxTransportBytes;
         for (let start = 0; start < chunk.rowCount;) {
           const maximumRows = Math.min(rowsPerBatch, chunk.rowCount - start);
-          const columns = fields.map(() => []);
+          const columns = fields.map((): Scalar[] => []);
           const emptyFrameBytes = Buffer.byteLength(JSON.stringify({
             rowCount: 0, columns,
           }) + '\n', 'utf8');
@@ -406,7 +482,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
           const vectors = fields.map((_, i) => chunk.getColumnVector(i).slice(start, maximumRows));
           let rowCount = 0;
           let batchBytes = emptyFrameBytes;
-          const candidate = [];
+          const candidate: Scalar[] = [];
           while (rowCount < maximumRows) {
             candidate.length = 0;
             let nextBytes = batchBytes + String(rowCount + 1).length - String(rowCount).length;
@@ -456,13 +532,13 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       }
     }
   };
-  const command = (...args) => {
+  const command = (...args: Parameters<Command>) => {
     const promise = runCommand(...args);
     // Observe failures even if trusted orchestration accidentally catches or
     // forgets to await a command. Such an attempt must never return success.
     return trackFlight(promise, recordCommandFailure);
   };
-  const createFileView = (sql, inputPath, consume) => {
+  const createFileView = (sql: string, inputPath: string, consume: Consume) => {
     if (typeof sql !== 'string' || typeof inputPath !== 'string' ||
         typeof consume !== 'function' || !inputFiles.includes(inputPath) ||
         !sql.startsWith('CREATE TEMP VIEW ') ||
@@ -480,7 +556,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     chargeBytes(pathBytes);
     return command(sql.replace('?', quoted), [], consume);
   };
-  const runCopyParquet = async (selectSql, parameters, outputPath) => {
+  const runCopyParquet = async (selectSql: string, parameters: readonly Parameter[], outputPath: string) => {
     if (typeof selectSql !== 'string' || !inputFiles.includes(outputPath)) {
       throw new DuckDBTransportError('UnauthorizedOutputPath');
     }
@@ -495,12 +571,12 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     return Object.freeze({device: state.dev, inode: state.ino,
       bytes: state.size});
   };
-  const copyParquet = (...args) =>
+  const copyParquet = (...args: Parameters<typeof runCopyParquet>) =>
     trackFlight(runCopyParquet(...args), recordCommandFailure);
-  let result;
-  let failure;
+  let result!: Awaited<Value>;
+  let failure: unknown;
   let failed = false;
-  const cleanupErrors = [];
+  const cleanupErrors: unknown[] = [];
   let cleaning = false;
   const cleanupStatus = () => Object.freeze({
     pending: activeAppender !== undefined || cachedInsert !== undefined ||
@@ -601,9 +677,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     await cleanOwnedResources();
   }
   if (cleanupErrors.length) {
-    const combined = new DuckDBTransportError(failure?.code ?? 'CleanupFailed', {
+    const combined = new DuckDBTransportError((failure as CleanupFailure | null | undefined)?.code ?? 'CleanupFailed', {
       cause: failed ? failure : cleanupErrors[0],
-    });
+    }) as TransportFailure;
     combined.primaryFailure = failure;
     combined.cleanupErrors = Object.freeze([...cleanupErrors]);
     combined.cleanupPending = cleanupStatus().pending;
@@ -620,7 +696,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   return Object.freeze({ value: result, usage: Object.freeze({ ...usage }) });
 }
 
-function createInstance(path, readonly, limits, inputFiles = []) {
+function createInstance(path: string, readonly: boolean, limits: Limits, inputFiles: readonly string[] = []) {
   return DuckDBInstance.create(path, {
     ...environmentContract.settings,
     access_mode: readonly ? 'READ_ONLY' : 'READ_WRITE',
@@ -633,10 +709,10 @@ function createInstance(path, readonly, limits, inputFiles = []) {
 // must reserve the DB capacity before calling. Each task has its own connection,
 // transaction, cancellation scope, transfer budget and scratch accounting.
 // No source grant or arbitrary existing instance can be attached here.
-export async function provisionComputeDatabase(suppliedLimits, accounting) {
-  const limits = validateLimits(suppliedLimits);
+export async function provisionComputeDatabase(suppliedLimits: Limits, accounting: Settlement & {started(): void}) {
+  const limits = validateLimits(suppliedLimits) as ValidatedLimits;
   accounting.started();
-  let instance;
+  let instance: DuckDBInstance | undefined;
   try {
     instance = await createInstance(':memory:', false, limits);
   } catch (error) {
@@ -645,7 +721,7 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
   }
   let closing = false;
   let busy = false;
-  let pendingCleanup;
+  let pendingCleanup: CleanupHandle | undefined;
   const status = () => Object.freeze({
     live: instance !== undefined && !closing,
     pending: instance !== undefined,
@@ -680,7 +756,7 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
     close,
     memoryBytes: limits.memoryBytes,
     threads: limits.threads,
-    async run(taskLimits, body, signal, taskAccounting) {
+    async run<Value>(taskLimits: Limits, body: SessionBody<Value>, signal?: AbortSignal, taskAccounting?: Accounting) {
       taskLimits = validateLimits(taskLimits);
       if (!instance || closing || pendingCleanup) throw new DuckDBTransportError('SessionClosed');
       if (busy) throw new DuckDBTransportError('ConcurrentCommand');
@@ -692,10 +768,10 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
       return cancellationBoundary(async fixedLimits => {
         try {
           return await usingSession(':memory:', false, fixedLimits, body, signal,
-            taskAccounting, { instance });
+            taskAccounting, { instance } as SharedDatabase);
         } catch (error) {
-          if (error?.cleanupPending) {
-            pendingCleanup = error.cleanupHandle;
+          if ((error as CleanupFailure | null | undefined)?.cleanupPending) {
+            pendingCleanup = (error as CleanupFailure).cleanupHandle;
             closing = true;
           }
           throw error;
@@ -707,19 +783,21 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
   });
 }
 
-export async function withSourceDatabase(grant, limits, body, signal, accounting) {
+export async function withSourceDatabase<Value>(grant: object, limits: Limits, body: SessionBody<Value>,
+  signal?: AbortSignal, accounting?: Accounting) {
   const source = files.get(grant);
   if (!source) throw new DuckDBTransportError('UnauthorizedSource');
   await authorizeSourceAccess(source, signal);
   return cancellationBoundary(fixedLimits => usingSession(source.path, true, fixedLimits, body, signal, accounting), limits, signal, accounting);
 }
 
-export async function withComputeDatabase(limits, body, signal, accounting, suppliedFiles = []) {
+export async function withComputeDatabase<Value>(limits: Limits, body: SessionBody<Value>, signal?: AbortSignal,
+  accounting?: Accounting, suppliedFiles: readonly string[] = []) {
   // Trusted transport wiring, never a Program path. Freeze before any await;
   // admit exact files only, not directories, globs, URLs or external access.
   if (!Array.isArray(suppliedFiles) || suppliedFiles.length > 2 || suppliedFiles.some(path =>
     typeof path !== 'string' || !isAbsolute(path) || /[\u0000*?\[\]]/.test(path) ||
-    Buffer.byteLength(path, 'utf8') > limits.maxSqlBytes)) throw new DuckDBTransportError('InvalidInputFileGrant');
+    Buffer.byteLength(path, 'utf8') > limits.maxSqlBytes!)) throw new DuckDBTransportError('InvalidInputFileGrant');
   const inputFiles = Object.freeze([...new Set(suppliedFiles)]);
   return cancellationBoundary(fixedLimits => usingSession(':memory:', false, fixedLimits, body, signal, accounting,
     undefined, inputFiles), limits, signal, accounting);
@@ -727,15 +805,15 @@ export async function withComputeDatabase(limits, body, signal, accounting, supp
 
 // Explicit Host revocation affects both future reads and evidence issuance.
 // It does not report a currently executing native operation as stopped.
-export function revokeLocalDatabase(grant) {
+export function revokeLocalDatabase(grant: object) {
   return files.delete(grant);
 }
 
 // Issuance uses the same opaque file grant and exact configured logical source
 // as acquisition. Recheck after the async authority decision to cover revocation
 // while delegate policy is answering. The body runs synchronously after admission.
-export async function withCurrentSourceEvidenceRead(grant, sourceRef, body,
-  signal) {
+export async function withCurrentSourceEvidenceRead<Value>(grant: object, sourceRef: string, body: () => Value,
+  signal?: AbortSignal) {
   const source = files.get(grant);
   if (!source || source.sourceRef !== sourceRef) {
     throw new DuckDBTransportError('UnauthorizedSourceEvidence');

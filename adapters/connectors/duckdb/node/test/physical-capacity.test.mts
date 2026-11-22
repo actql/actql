@@ -4,7 +4,6 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import type {Node} from 'acorn';
 import { computePhysicalCapacity, sourceTransportLimits } from '../physical-capacity.mjs';
-// @ts-expect-error TS7016 The existing Session re-export and provider preflight are still authored in JavaScript.
 import { provisionComputeDatabase, validateLimits } from '../session.mjs';
 import {runtimeField} from '../../../../host-common/compiler-binding.generated.mjs';
 

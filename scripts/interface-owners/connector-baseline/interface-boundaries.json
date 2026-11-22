@@ -422,7 +422,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "chargeTransfer"
               }
             ],
@@ -2007,7 +2007,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "chargeTransfer"
               }
             ],
@@ -3155,43 +3155,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "usingSession"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "authorizeLocalDatabase"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "Retain the instance"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "cleanOwnedResources"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "combined.primaryFailure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "cancellationBoundary"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "chargeTransfer"
               }
             ],
@@ -3227,25 +3227,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "authorizeSourceAccess"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "withCurrentSourceEvidenceRead"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "authorizeLocalDatabase"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "revokeLocalDatabase"
               }
             ],
@@ -3263,13 +3263,13 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/duckdb/node/session.mjs",
+                "path": "adapters/connectors/duckdb/node/session.mts",
                 "anchor": "revokeLocalDatabase"
               }
             ],
