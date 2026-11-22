@@ -458,6 +458,9 @@ fn command_preparation_cleanup_cause(
       match cause {
         ForeignOriginal => "ForeignOriginal"
         Original(_) => "Original"
+        Library(Unavailable) => "ModelHttpLibraryUnavailable"
+        Library(Runtime(_)) => "ModelHttpLibraryRuntime"
+        Library(Load(_)) => "ModelHttpLibraryLoad"
         Dispatch(_) => "Dispatch"
         RawPolicy(_) => "RawPolicy"
         Raw(_) => "Raw"

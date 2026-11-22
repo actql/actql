@@ -632,7 +632,26 @@ fn native_scoped_model_credential(
 ) -> Bytes raise {
   let stage = Ref("open scoped journal")
   let written = Ref(false)
+  let original = capture.original_resources.unwrap()
+  let foreign = local_runtime_empty(None)
+  foreign.ready = true
+  let without_model = local_runtime_empty(
+    Some((original.host, original.read)),
+    original_resources=Some(original.pair),
+  )
+  without_model.ready = true
   let result = capture.with_original_read(host => {
+    // A live Read alone cannot load from another Runtime or substitute a
+    // system library for an unselected optional member.
+    stage.val = "refuse the foreign Runtime and the unselected Model HTTP library"
+    guard capture.require_model_http_runtime_in_original_read(foreign)
+      is Err(ForeignOriginal) &&
+      capture.require_model_http_runtime_in_original_read(without_model)
+      is Err(Library(Unavailable)) &&
+      foreign.model_http_load is None &&
+      without_model.model_http_load is None else {
+      return Err(NativeLocalAdoptionIssue::CustodyLost)
+    }
     stage.val = "observe current adoption"
     capture.with_current_adoption_material_in_original_read(
       (current, _, operations) => {

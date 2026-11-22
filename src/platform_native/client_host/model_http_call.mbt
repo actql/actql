@@ -2,6 +2,7 @@
 pub(all) enum NativeClientModelHttpIssue {
   ForeignOriginal
   Original(NativeLocalAdoptionIssue)
+  Library(NativeLocalModelHttpIssue)
   Dispatch(@model.ModelExecutionIssue)
   RawPolicy(@host.ClientModelRawCaptureIssue)
   Raw(@model.ModelRawCaptureSaveIssue)
@@ -154,10 +155,10 @@ fn native_model_http_configuration_route(
 }
 
 ///|
-fn NativeLocalJournalCapture::require_loaded_model_http_in_original_read(
+fn NativeLocalJournalCapture::require_model_http_runtime_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
-) -> Result[NativeLocalLoadedModelHttp, NativeClientModelHttpIssue] {
+) -> Result[Unit, NativeClientModelHttpIssue] {
   if self.check_original_read_lifetime() is Err(issue) {
     return Err(Original(issue))
   }
@@ -167,11 +168,29 @@ fn NativeLocalJournalCapture::require_loaded_model_http_in_original_read(
     runtime.original_read is Some((host, read)) &&
     physical_equal(host, original.host) &&
     physical_equal(read, original.read) &&
-    runtime.model_http_load is Some(Ok(loaded)) &&
-    !loaded.stopping else {
+    runtime.ready &&
+    !runtime.closed else {
     return Err(ForeignOriginal)
   }
-  Ok(loaded)
+  if runtime.command_model_http_member is None {
+    return Err(Library(Unavailable))
+  }
+  Ok(())
+}
+
+///|
+fn NativeLocalJournalCapture::require_loaded_model_http_in_original_read(
+  self : NativeLocalJournalCapture,
+  runtime : NativeLocalPackagedRuntime,
+) -> Result[NativeLocalLoadedModelHttp, NativeClientModelHttpIssue] {
+  self
+  .require_model_http_runtime_in_original_read(runtime)
+  .bind(_ => {
+    guard runtime.model_http_load is Some(Ok(loaded)) && !loaded.stopping else {
+      return Err(ForeignOriginal)
+    }
+    Ok(loaded)
+  })
 }
 
 ///|
@@ -439,8 +458,10 @@ pub fn NativeLocalJournalCapture::adopt_model_http_configuration_in_original_rea
 }
 
 ///|
-/// Join this exact configuration and checked execution to the loaded Runtime.
-/// The adopted provider binding is reused rather than recreated from copies.
+/// Join the exact admitted configuration and checked execution to the
+/// command's Runtime. Load the selected library only after successful Model
+/// admission and restore its original private file projection without opening
+/// a Client or reading credential bytes.
 pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read(
   self : NativeLocalJournalCapture,
   runtime : NativeLocalPackagedRuntime,
@@ -448,11 +469,12 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
   execution : @environment.ModelExecutionContract,
   dependencies : @environment.SingleAttemptModelDependencies,
   profile : @environment.ModelResponseProfileInstallation,
+  diagnostic_ceiling : Int,
 ) -> Result[NativeModelHttpInstallation, NativeClientModelHttpIssue] {
-  if !physical_equal(configuration.capture, self) {
+  if !physical_equal(configuration.capture, self) || diagnostic_ceiling <= 0 {
     return Err(ForeignOriginal)
   }
-  if self.require_loaded_model_http_in_original_read(runtime) is Err(issue) {
+  if self.require_model_http_runtime_in_original_read(runtime) is Err(issue) {
     return Err(issue)
   }
   self
@@ -540,6 +562,18 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
+  .bind(installation => {
+    // The journal's same Read is still entered. The Runtime borrows this
+    // frame, owns the first load result and keeps partial loads for close.
+    runtime
+    .borrow_model_http_library(diagnostic_ceiling)
+    .map_err(issue => Library(issue))
+    .bind(_ => {
+      self
+      .require_loaded_model_http_in_original_read(runtime)
+      .map(_ => installation)
+    })
+  })
 }
 
 ///|
