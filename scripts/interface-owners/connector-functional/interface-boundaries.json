@@ -21179,7 +21179,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "daf212ee5ee1e023c95892eb074783c632394c59998307e38ab81f0c68d36370",
+      "sha256": "4790b4ca057fe62f41a88535910bc4b4f25b7abd21b78d550e3a6cca72a992cd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",
@@ -21838,7 +21838,7 @@
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
         "./installed-effect-managed-plan.mjs",
-        "./installed-effect-plan.mjs",
+        "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-values-plan.mjs",
@@ -22985,63 +22985,6 @@
       ],
       "operations": [
         {
-          "name": "captureDeclaredUpdateTargetCapacity",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
-          "parameters": [
-            "original",
-            "maxTargetBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureInstalledStandardCreateLimits",
-          "parameters": [
-            "providerMoon"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectRecoveryPreviewBounds",
-          "parameters": [
-            "bytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledDeclaredUpdatePlanRecipe",
-          "parameters": [
-            "moon",
-            "providerMoon",
-            "write",
-            "credentialSite",
-            "limits",
-            "resourceTextUnits",
-            "connectorRegistration"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectCaptureChild",
           "parameters": [
             "options"
@@ -23539,95 +23482,6 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe",
-          "parameters": [
-            "moon",
-            "operation",
-            "inputLimits",
-            "limits",
-            "construction",
-            "requestConstruction",
-            "physicalConstruction",
-            "targetReadOperation",
-            "footprintCapacity"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
-          "parameters": [
-            "name",
-            "capacity",
-            "transfer",
-            "physical"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
-          "parameters": [
-            "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
-          "parameters": [
-            "previewWire",
-            "recovery",
-            "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledStandardCreatePlanRecipe",
-          "parameters": [
-            "moon",
-            "providerMoon",
-            "construction",
-            "credentialSite",
-            "limits",
-            "resourceTextUnits",
-            "requestInput"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -23637,21 +23491,18 @@
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
-        "./effect-ledger-implementation-bounds.mjs",
         "./installed-effect-managed-plan.mjs",
+        "./installed-effect-recipe-construction.mjs",
         "./installed-effect-recipe.mjs",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a807fa9c9254d9fac9b1c7dc7a7272829fe1c9cc9079c62e43a57ca236717c95",
+      "sha256": "8a94e973f865d92f96e1dc8451229f9f1ea513e039cc7fb4f4e46aa822754132",
       "contracts": [
         {
           "operations": [
             "<module>",
-            "captureDeclaredUpdateTargetCapacity",
-            "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
-            "captureInstalledStandardCreateLimits",
             "prepareInstalledEffectConstructorChild/drain/drain",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
@@ -23684,13 +23535,7 @@
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
-            "prepareInstalledEffectRequestChild",
-            "prepareInstalledStandardCreatePlanRecipe",
-            "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
-            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "prepareInstalledDeclaredUpdatePlanRecipe",
-            "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
-            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
+            "prepareInstalledEffectRequestChild"
           ],
           "exports": [
             "captureDeclaredUpdateTargetCapacity",
@@ -24004,16 +23849,7 @@
           }
         },
         {
-          "operations": [
-            "effectRecoveryPreviewBounds",
-            "prepareInstalledPhysicalWritePlanRecipe",
-            "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
-            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
-            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
-            "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
-          ],
+          "operations": [],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
@@ -24032,7 +23868,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24042,7 +23878,7 @@
                 "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24052,7 +23888,7 @@
                 "anchor": "recipe!.savedControlCodec!.fallbackCapacity"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24066,7 +23902,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24080,7 +23916,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24090,7 +23926,7 @@
                 "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               }
             ],
@@ -24103,7 +23939,7 @@
                 "anchor": "controlsPerRow: recipe!.savedControlCodec!.fallbackCapacity"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24117,7 +23953,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -24127,11 +23963,11 @@
                 "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               },
               {
@@ -24673,6 +24509,530 @@
       ]
     },
     {
+      "module": "adapters/host-node/installed-effect-recipe-construction.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "exports": [
+        "captureDeclaredUpdateTargetCapacity",
+        "captureInstalledStandardCreateLimits",
+        "effectRecoveryPreviewBounds",
+        "prepareInstalledDeclaredUpdatePlanRecipe",
+        "prepareInstalledPhysicalWritePlanRecipe",
+        "prepareInstalledStandardCreatePlanRecipe"
+      ],
+      "operations": [
+        {
+          "name": "captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
+          "parameters": [
+            "original",
+            "maxTargetBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledStandardCreateLimits",
+          "parameters": [
+            "providerMoon"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectRecoveryPreviewBounds",
+          "parameters": [
+            "bytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "write",
+            "credentialSite",
+            "limits",
+            "resourceTextUnits",
+            "connectorRegistration"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe",
+          "parameters": [
+            "moon",
+            "operation",
+            "inputLimits",
+            "limits",
+            "construction",
+            "requestConstruction",
+            "physicalConstruction",
+            "targetReadOperation",
+            "footprintCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
+          "parameters": [
+            "name",
+            "capacity",
+            "transfer",
+            "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
+          "parameters": [
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
+          "parameters": [
+            "previewWire",
+            "recovery",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledStandardCreatePlanRecipe",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "construction",
+            "credentialSite",
+            "limits",
+            "resourceTextUnits",
+            "requestInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/http-exchange.mjs",
+        "../host-common/runtime-result.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "./effect-ledger-implementation-bounds.mjs",
+        "./installed-effect-recipe.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "c63524fc0ad0c86fcfea90bf8a229066cb53c2de0b30cc8bec4f8e0d0bf17eea",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureDeclaredUpdateTargetCapacity",
+            "captureDeclaredUpdateTargetCapacity/captureDeclaredUpdateTargetCapacity",
+            "captureInstalledStandardCreateLimits",
+            "prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
+            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
+            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
+          ],
+          "exports": [
+            "captureDeclaredUpdateTargetCapacity",
+            "captureInstalledStandardCreateLimits",
+            "prepareInstalledStandardCreatePlanRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Initial headers and trailers have separate parser counters and can"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The original staged physical response returns projection workspace only after"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Explicit empty response-header observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"HTTP response inventory retains initial headers and trailers beside the original body\""
+              },
+              {
+                "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
+                "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_staged_input_js_wbtest.mbt",
+                "anchor": "test \"physical response projection returns only its same original workspace without cleanup or history refund\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
+                "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
+                "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "effectRecoveryPreviewBounds",
+            "prepareInstalledPhysicalWritePlanRecipe",
+            "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
+            "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
+          ],
+          "exports": [
+            "prepareInstalledPhysicalWritePlanRecipe",
+            "effectRecoveryPreviewBounds"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-recipe.mts",
+                "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-recipe.mts",
+                "anchor": "recipe!.savedControlCodec!.fallbackCapacity"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
+                "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure selection of the same captured recipe DATA; no control operation or cleanup is started."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-recipe.mts",
+                "anchor": "controlsPerRow: recipe!.savedControlCodec!.fallbackCapacity"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
+                "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
+                "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce recovered Preview allocation uses its own wire"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/installed-effect-recipe.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -25054,7 +25414,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25064,7 +25424,7 @@
                 "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25074,7 +25434,7 @@
                 "anchor": "recipe!.savedControlCodec!.fallbackCapacity"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25088,7 +25448,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25102,7 +25462,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25112,7 +25472,7 @@
                 "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               }
             ],
@@ -25125,7 +25485,7 @@
                 "anchor": "controlsPerRow: recipe!.savedControlCodec!.fallbackCapacity"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25139,7 +25499,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "path": "adapters/host-node/installed-effect-recipe-construction.mts",
                 "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
@@ -25149,11 +25509,11 @@
                 "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               },
               {

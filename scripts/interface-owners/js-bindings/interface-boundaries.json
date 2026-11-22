@@ -106086,7 +106086,7 @@
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "daf212ee5ee1e023c95892eb074783c632394c59998307e38ab81f0c68d36370",
+      "sha256": "4790b4ca057fe62f41a88535910bc4b4f25b7abd21b78d550e3a6cca72a992cd",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -107776,7 +107776,7 @@
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
         "./installed-effect-managed-plan.mjs",
-        "./installed-effect-plan.mjs",
+        "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-values-plan.mjs",

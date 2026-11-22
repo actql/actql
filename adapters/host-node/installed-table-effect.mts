@@ -18,8 +18,7 @@ import {issueCompletedEffectfulComputationEvidence,
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 // @ts-expect-error TS7016: the installed Row Effect still has a JavaScript entry.
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
-// @ts-expect-error TS7016: the physical Effect recipe composer still has a JavaScript entry.
-import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-recipe-construction.mjs';
 import {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';
 import {preparePinnedEffectSourceSet, preparePinnedEffectSourceHoldings,
   retainPinnedEffectDependencyPayloads}
@@ -84,7 +83,8 @@ type Ledger = DispatchOwner['ledger'] & ReconcileOptions['ledger'] & Apply['ledg
     nodeId: string; maxRows: number; maxWork: number}>): Readonly<{members: readonly Member[]}>;
 }>;
 type PlanBuilder = Parameters<typeof prepareInstalledEffectManagedPlan>[0];
-type Runtime = PreviewOptions['moon'] & Apply['moon'] & PlanBuilder['moon'] & Readonly<{
+type PhysicalPlanBuilder = Parameters<typeof prepareInstalledPhysicalWritePlanRecipe>[0];
+type Runtime = PreviewOptions['moon'] & Apply['moon'] & PlanBuilder['moon'] & PhysicalPlanBuilder['moon'] & Readonly<{
   clientProgramEffectCompilationPlanWire(compilation: unknown): string;
   clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
   clientProgramEffectInputExportLimits(...limits: number[]): unknown;
@@ -328,7 +328,7 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
         2 * (frame.maxBytes + 4) > 2147483647) {
         fail('InstalledTableConstructionUnavailable');
       }
-      const recipe: ManagedRecipe & Readonly<{controlsPerRow: unknown}> = prepareInstalledPhysicalWritePlanRecipe({moon, operation: 'table.commit',
+      const recipe = prepareInstalledPhysicalWritePlanRecipe({moon, operation: 'table.commit',
         inputLimits: {body: {maxBytes: limits.maxInputBytes,
           maxNodes: limits.maxInputBytes, maxDepth: limits.preview.maxDepth}, preview: limits.preview},
         limits: {maxRequestBytes: frame.maxBytes, maxRecoveryBytes: limits.maxEntryBytes,

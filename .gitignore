@@ -2326,3 +2326,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect-managed-plan.d.mts
 /adapters/host-node/installed-effect-combined-plan.test.mjs
 /adapters/host-node/installed-effect-combined-plan.test.d.mts
+/adapters/host-node/installed-effect-recipe-construction.mjs
+/adapters/host-node/installed-effect-recipe-construction.d.mts
+/adapters/host-node/installed-physical-write-plan.test.mjs
+/adapters/host-node/installed-physical-write-plan.test.d.mts

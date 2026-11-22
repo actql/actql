@@ -65221,7 +65221,7 @@
                 "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
               },
               {
-                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "path": "adapters/host-node/installed-physical-write-plan.test.mts",
                 "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
               },
               {
