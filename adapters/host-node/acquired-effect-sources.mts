@@ -1,19 +1,104 @@
 // Select the bounded checked acquisitions from an inert installation inventory.
 // This owns no provider work, authorization or continuation identity.
 import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
-function effectSourceInputs(moon, preparedEffect, managedPlan, requestIdentity) {
+
+type CoreResult = Extract<SynchronousRuntimeData, object>;
+type QueryPreparation = Parameters<typeof prepareOriginalSourceQuery>[0];
+type Registry = QueryPreparation['registry'];
+type Coordinate = readonly [stage: number, input: number, sourceSlot: number, computeTask: number];
+type CoordinatesRuntime = Readonly<{
+  clientProgramEffectAcquisitionCount(prepared: unknown): number;
+  clientProgramInstalledEffectManagedPlanSourceCoordinates?(plan: unknown, prepared: unknown, request: unknown): CoreResult;
+  clientProgramEffectDirectSourceCoordinates?(prepared: unknown): CoreResult;
+}>;
+type InputRuntime = CoordinatesRuntime & Readonly<{
+  clientProgramSelectInstalledEffectSourceInput(prepared: unknown, request: unknown, stage: number, input: number): CoreResult;
+  clientProgramSelectedSourceInputKind(selection: unknown): string;
+  clientProgramSelectedSourceInputRef(selection: unknown): string | undefined;
+}>;
+type PlanRuntime = InputRuntime & Readonly<{
+  clientProgramInstalledEffectRowSourceInputPrepare?(declaration: unknown, provider: unknown, inputLimits?: unknown): CoreResult;
+  clientProgramInstalledEffectDuckDBSourceInputPrepare?(sourceRef: string, schema: string, table: string,
+    queryContract: string, evidenceContract: string, twoReceiptContract: string): CoreResult;
+}>;
+type AcquiredRuntime = InputRuntime & QueryPreparation['moon'] & Readonly<{
+  clientProgramInstalledEffectManagedPlanSource(plan: unknown, task: number): CoreResult;
+  clientProgramQueryRequirementSourceRef(requirement: unknown): string;
+  clientProgramInstalledEffectManagedOperationPlan(run: unknown, prepared: unknown, request: unknown): CoreResult;
+  clientProgramInstalledEffectManagedPlanWholeSource(plan: unknown, task: number): CoreResult;
+  clientProgramInstalledEffectManagedDuckDBCapture(run: unknown, prepared: unknown, request: unknown, task: number): CoreResult;
+  clientProgramWholeSourceFacts(acquisition: unknown): readonly [sourceRef: string, ...rest: unknown[]] | undefined;
+}>;
+type LedgerContributions = [capacities: readonly unknown[], transferBytes: readonly bigint[],
+  executionBytes: readonly bigint[], installedContracts: Registry, values: string,
+  fragment: string | undefined, ordered: string | undefined];
+type LedgerRuntime = CoordinatesRuntime & Readonly<{
+  clientProgramInstalledEffectManagedRunPrepareLedger?(run: unknown, prepared: unknown, request: unknown,
+    ...contributions: LedgerContributions): CoreResult;
+  clientProgramPrepareMultiCapturedEffectInstalledLedger?(prepared: unknown, ...contributions: LedgerContributions): unknown;
+}>;
+type SourceCapacity = Readonly<{capacity: unknown; transferBytes: bigint; executionBytes: bigint; managedRun?: unknown}>;
+type Adapter = Readonly<{
+  admitsSource(sourceRef: string): boolean;
+  realizationKey: string;
+  prepare?: unknown;
+  open?: unknown;
+  supportsRetainedRelationOutput?: boolean;
+  ledgerCapacity?(preparedSource: unknown): SourceCapacity;
+}>;
+type SourceProfile<Member extends Adapter> = Parameters<typeof installedSourceFor<Member>>[0];
+type NativePlanSource = Readonly<{
+  sourceRef: string;
+  schema: string;
+  table: string;
+  contracts: readonly [query: string, evidence: string, twoReceipt: string];
+}>;
+type PlanInput = Readonly<{
+  nativeSource?: NativePlanSource;
+  declaration?: unknown;
+  provider?: unknown;
+  inputLimits?: unknown;
+  transferBytes: bigint;
+  executionBytes: bigint;
+}>;
+type PlanOptions<Member extends Adapter> = Readonly<{
+  moon: PlanRuntime; preparedEffect: unknown; requestIdentity: unknown; sourceProfile: SourceProfile<Member>;
+  queryContract: string; evidenceContract: string;
+}>;
+type Occurrence = Readonly<{stage: number; input: number; task: number; computeTask?: number}>;
+type Selection<Member extends Adapter> = Readonly<{
+  adapter: Member; sourceKind: 'query' | 'whole-input'; occurrence: Occurrence;
+}>;
+type UnsupportedSelection<Member extends Adapter> = Readonly<{
+  reason: 'unsupported-realization'; count: number; sourceRef: string | undefined; adapter: Member;
+  realization: string | undefined; previousRef: string | undefined; previousAdapter: Member | undefined;
+}>;
+type AcquiredOptions<Member extends Adapter> = Readonly<{
+  moon: AcquiredRuntime; preparedEffect: unknown; sourceProfile: SourceProfile<Member>;
+  registry?: Registry; values?: string; fragment?: string; ordered?: string; queryTimePreparation?: unknown;
+  requestIdentity?: unknown; managedPlan?: unknown; managedRun?: unknown;
+  onUnsupportedSelection?(error: TypeError, detail: UnsupportedSelection<Member>): unknown;
+}>;
+type LedgerOptions = Readonly<{
+  moon: LedgerRuntime; preparedEffect: unknown;
+  sources: readonly Readonly<{adapter: Adapter; preparedSource: unknown; occurrence: Occurrence}>[];
+  registry: Registry; values: string; fragment?: string; ordered?: string; requestIdentity?: unknown;
+}>;
+
+function effectSourceInputs(moon: CoordinatesRuntime, preparedEffect: unknown, managedPlan?: unknown, requestIdentity?: unknown): readonly Coordinate[] {
   const planned = managedPlan !== undefined && requestIdentity !== undefined;
   const count = planned ? undefined : moon.clientProgramEffectAcquisitionCount(preparedEffect);
-  if (!planned && (!Number.isSafeInteger(count) || count < 0)) throw new TypeError('UnsupportedEffectSourceCount');
+  if (!planned && (!Number.isSafeInteger(count) || count! < 0)) throw new TypeError('UnsupportedEffectSourceCount');
   if (count === 0) return [];
   const select = planned ? moon.clientProgramInstalledEffectManagedPlanSourceCoordinates
     : moon.clientProgramEffectDirectSourceCoordinates;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectSourceCoordinatesUnavailable');
-  const coordinates = checked(Reflect.apply(select, moon,
+  const coordinates = checked(Reflect.apply(select as Function, moon,
     planned ? [managedPlan, preparedEffect, requestIdentity] : [preparedEffect]));
   if (!Array.isArray(coordinates) || !planned && coordinates.length !== count) {
     throw new TypeError('InvalidInstalledEffectSourceCoordinates');
@@ -28,20 +113,21 @@ function effectSourceInputs(moon, preparedEffect, managedPlan, requestIdentity) 
     if (ports.has(port)) throw new TypeError('InvalidInstalledEffectSourceCoordinates');
     ports.add(port);
   }
-  return coordinates;
+  return coordinates as readonly Coordinate[];
 }
 
 // Select original installation inputs from the checked Requests before the
 // Plan constructs requirements/acquisitions. Repeated occurrences retain
 // separate slots even when they borrow the same immutable Source.
-export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIdentity,
-  sourceProfile, queryContract, evidenceContract}) {
+export function selectAcquiredEffectPlanInputs<Member extends Adapter>({moon, preparedEffect, requestIdentity,
+  sourceProfile, queryContract, evidenceContract}: PlanOptions<Member>) {
   const coordinates = effectSourceInputs(moon, preparedEffect);
   const count = coordinates.length;
   if (count === 0) return undefined;
   const select = moon.clientProgramSelectInstalledEffectSourceInput;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
-  const originals = [], declarations = [], providers = [], transferBytes = [], executionBytes = [];
+  const originals: PlanInput[] = [], declarations: unknown[] = [], providers: unknown[] = [],
+    transferBytes: bigint[] = [], executionBytes: bigint[] = [];
   let wholeInput = false;
   for (let task = 0; task < count; task++) {
     const [stage, input] = coordinates[task];
@@ -51,11 +137,11 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
       throw new TypeError('UnsupportedEffectSourceRealization');
     }
     const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
-    const adapter = installedSourceFor(sourceProfile, sourceRef);
+    const adapter = installedSourceFor(sourceProfile, sourceRef!);
     const prepare = Object.getOwnPropertyDescriptor(adapter, 'managedEffectPlanSelection')?.value;
     if (typeof prepare !== 'function') throw new TypeError('InstalledEffectPlanInputsUnavailable');
     const original = Reflect.apply(prepare, adapter,
-      kind === 'whole-input' ? [Object.freeze({preparedEffect})] : []);
+      kind === 'whole-input' ? [Object.freeze({preparedEffect})] : []) as PlanInput;
     const native = original?.nativeSource;
     if (kind === 'whole-input' && native !== undefined) throw new TypeError('UnsupportedEffectSourceRealization');
     if (kind === 'whole-input') {
@@ -86,7 +172,7 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
       const construct = native === undefined ? moon.clientProgramInstalledEffectRowSourceInputPrepare
         : moon.clientProgramInstalledEffectDuckDBSourceInputPrepare;
       if (typeof construct !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
-      return checked(Reflect.apply(construct, moon, native === undefined
+      return checked(Reflect.apply(construct as Function, moon, native === undefined
         ? [original.declaration, original.provider,
           ...(original.inputLimits === undefined ? [] : [original.inputLimits])]
         : [native.sourceRef, native.schema, native.table, ...native.contracts]));
@@ -101,17 +187,17 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
     executionBytes: Object.freeze(executionBytes)});
 }
 
-export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
+export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,
   registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun,
-  onUnsupportedSelection}) {
+  onUnsupportedSelection}: AcquiredOptions<Member>) {
   const coordinates = effectSourceInputs(moon, preparedEffect, managedPlan, requestIdentity);
   const count = coordinates.length;
-  const selected = [];
-  let firstRef;
+  const selected: Selection<Member>[] = [];
+  let firstRef: string | undefined;
   for (let task = 0; task < count; task++) {
     const [stage, input, sourceSlot, computeTask] = coordinates[task];
-    let kind = 'query';
-    let sourceRef;
+    let kind: string = 'query';
+    let sourceRef: string | undefined;
     if (requestIdentity !== undefined) {
       // Select the adapter from the original checked Request. Its current
       // native/row getter below verifies the SAME retained Plan requirement.
@@ -126,13 +212,13 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
       const requirement = managedPlan !== undefined
       ? runtimeField(checked(moon.clientProgramInstalledEffectManagedPlanSource(managedPlan, task)), 1)
       : queryTimePreparation === undefined
-      ? checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-        preparedEffect, stage, input, registry, values, fragment, ordered))
+      ? checked(moon.clientProgramEffectPrepareLocalQueryRequirement!(
+        preparedEffect, stage, input, registry!, values!, fragment, ordered))
       : prepareOriginalSourceQuery({moon, preparedEffect, stage, input,
-        registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement;
+        registry: registry!, values: values!, fragment, ordered, queryTimePreparation, requestIdentity}).requirement;
       sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
     }
-    const adapter = installedSourceFor(sourceProfile, sourceRef);
+    const adapter = installedSourceFor(sourceProfile, sourceRef!);
     if (kind === 'whole-input' && adapter.realizationKey !== 'row-source-acquired') {
       throw new TypeError('UnsupportedEffectSourceRealization');
     }
@@ -158,7 +244,7 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }
     const realization = count > 1 ? adapter.realizationKey : undefined;
-    if (count > 1 && !['duckdb-acquired', 'row-source-acquired'].includes(realization)) {
+    if (count > 1 && !['duckdb-acquired', 'row-source-acquired'].includes(realization!)) {
       const error = new TypeError('UnsupportedEffectSourceRealization');
       onUnsupportedSelection?.(error, Object.freeze({reason: 'unsupported-realization', count,
         sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
@@ -168,7 +254,7 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
     // An installation is a factory, not an acquisition occurrence. The same
     // immutable backing may serve several checked ports; each preparation,
     // capture, capacity and cleanup obligation retains its original slot.
-    selected.push(Object.freeze({adapter, sourceKind: kind,
+    selected.push(Object.freeze({adapter, sourceKind: kind as Selection<Member>['sourceKind'],
       occurrence: Object.freeze({stage, input, task: sourceSlot,
         ...(computeTask === sourceSlot ? {} : {computeTask})})}));
   }
@@ -178,13 +264,13 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
 // Mixed installed Sources contribute their own opaque checked capture budgets.
 // No row-backed capacity can be passed to a nominal DuckDB configuration API.
 export function prepareInstalledAcquiredEffectLedger({moon, preparedEffect, sources,
-  registry, values, fragment, ordered, requestIdentity}) {
+  registry, values, fragment, ordered, requestIdentity}: LedgerOptions) {
   if (!Array.isArray(sources) || sources.length < 1) {
     throw new TypeError('InstalledMultiSourceCapacityUnavailable');
   }
   const coordinates = effectSourceInputs(moon, preparedEffect);
   if (coordinates.length !== sources.length) throw new TypeError('InstalledMultiSourceCapacityUnavailable');
-  const capacities = sources.map(({adapter, preparedSource, occurrence}, index) => {
+  const capacities = sources.map(({adapter, preparedSource, occurrence}: LedgerOptions['sources'][number], index) => {
     if (!['duckdb-acquired', 'row-source-acquired'].includes(adapter?.realizationKey) ||
         adapter.supportsRetainedRelationOutput !== true ||
         typeof adapter.ledgerCapacity !== 'function' ||

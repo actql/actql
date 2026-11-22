@@ -16282,7 +16282,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b5ac53856e0c7fa3298621b888d36f662113a00a3f821043feb042fc03764d86",
+      "sha256": "091018e802be854051f2cd029253062d6c6ce09294ff103f6e5f6da5aa1c31b9",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -16477,8 +16477,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -16491,8 +16491,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -16505,7 +16505,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// This owns no provider work, authorization or continuation identity."
               },
               {
@@ -16519,8 +16519,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind as Selection<Member>['sourceKind'],"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -16533,8 +16533,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -16547,7 +16547,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "throw new TypeError('UnsupportedEffectSourceCount');"
               },
               {
@@ -16561,8 +16561,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -16575,7 +16575,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// Select the bounded checked acquisitions from an inert installation inventory."
               },
               {
@@ -16589,7 +16589,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// Select the bounded checked acquisitions from an inert installation inventory."
               },
               {
@@ -16701,8 +16701,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -16715,8 +16715,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -16729,7 +16729,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// This owns no provider work, authorization or continuation identity."
               },
               {
@@ -16743,8 +16743,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind as Selection<Member>['sourceKind'],"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -16757,8 +16757,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -16771,7 +16771,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "throw new TypeError('UnsupportedEffectSourceCount');"
               },
               {
@@ -16785,8 +16785,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,"
+                "path": "adapters/host-node/acquired-effect-sources.mts",
+                "anchor": "export function selectAcquiredEffectSources<Member extends Adapter>({moon, preparedEffect, sourceProfile,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -16799,7 +16799,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// Select the bounded checked acquisitions from an inert installation inventory."
               },
               {
@@ -16813,7 +16813,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/acquired-effect-sources.mjs",
+                "path": "adapters/host-node/acquired-effect-sources.mts",
                 "anchor": "// Select the bounded checked acquisitions from an inert installation inventory."
               },
               {
