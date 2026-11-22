@@ -206,17 +206,22 @@ function loadDirectoryNative(packageRoot, expected, limits, assertRuntimeCurrent
     if (status().pending) fail('HostJournalNativeImageCleanupPending');
     const native = own(entry.module, 'exports');
     const captured = {};
-    for (const name of ['open', 'next', 'current', 'close']) {
+    const required = ordinary
+      ? ['openFileRoot', 'fileRootCurrent', 'fileRootClose', 'openStoreOwnerLease',
+        'storeOwnerLeaseReceipt', 'publishStoreOwnerDirectory', 'openFileDirectory', 'replaceStoreOwnerMetadata']
+      : ['open', 'next', 'current', 'close'];
+    for (const name of required) {
       const operation = own(native, name);
       if (typeof operation !== 'function') fail('HostJournalNativeImageUnavailable');
       captured[name] = operation;
     }
-    // The optional Store lease borrows this SAME selected image. Older images
-    // still support directory inspection but supply no recovery capability.
-    for (const name of ['openFileRoot','fileRootCurrent','fileRootClose',
-      'openStoreOwnerLease','storeOwnerLeaseReceipt']) {
-      const operation = descriptor(native, name)?.value;
-      if (typeof operation === 'function') captured[name] = operation;
+    if (!ordinary) {
+      // Older journal images can inspect directories without the Store lease.
+      for (const name of ['openFileRoot', 'fileRootCurrent', 'fileRootClose',
+        'openStoreOwnerLease', 'storeOwnerLeaseReceipt']) {
+        const operation = descriptor(native, name)?.value;
+        if (typeof operation === 'function') captured[name] = operation;
+      }
     }
     // Ordinary Local Files borrows the entire verified addon, including the
     // Store lease operations. Preserve that exact export table for its lifetime.

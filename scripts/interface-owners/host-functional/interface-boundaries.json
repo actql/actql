@@ -46541,7 +46541,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-native-image.cjs",
-      "sha256": "45f92210e5fd793992b80ed60f8351e95197d0f0a10dfe36e897c13b843988a1",
+      "sha256": "dc042713fc2639bdc85ff654363c675358024f98f0418700357a7b0c835c0d4e",
       "exports": [
         "commonjs:loadHostJournalDirectoryNative",
         "commonjs:loadOrdinaryLocalFilesNative"
