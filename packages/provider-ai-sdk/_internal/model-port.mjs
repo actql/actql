@@ -1,4 +1,4 @@
-import {runtimePair} from './compiler-binding.generated.mjs';
+import {runtimePair, runtimeTriple} from './compiler-binding.generated.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
@@ -16,9 +16,10 @@ export function createSdkModelPreflight(options) {
 
 // The admitted selection belongs to the existing installed Provider. The
 // runtime still binds this exact Request, Profile, Call, Store and one send.
-export function createSdkStructuredModelPreflight(options, admission) {
+export function createSdkStructuredModelPreflight(options, admission, readReportedUsage) {
   const moon = options?.moon;
   if (admission === undefined ||
+      (readReportedUsage !== undefined && typeof readReportedUsage !== 'function') ||
       typeof moon?.clientProgramModelStructuredRequestPlan !== 'function' ||
       typeof moon?.clientProgramModelPhysicalSavedStructured !== 'function') {
     throw new TypeError('StructuredSdkPhysicalRuntimeUnavailable');
@@ -27,7 +28,7 @@ export function createSdkStructuredModelPreflight(options, admission) {
     profile, installation, start, readDecoded) =>
     runtime.clientProgramModelStructuredRequestPlan(admission, request, bytes,
       amounts.tokens, amounts.costUnits, amounts.durationMs,
-      profile, installation, start, readDecoded), undefined, 'saved-sdk');
+      profile, installation, start, readDecoded), undefined, 'saved-sdk', readReportedUsage);
 }
 
 function generationPlan(moon, request, bytes, quantities, profile, installation, start) {
@@ -55,7 +56,7 @@ export function createSdkNativeDecisionPreflight(options, original, provider, pr
 
 function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}, preparePlan, selectSaved, responseMode) {
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}, preparePlan, selectSaved, responseMode, readReportedUsage) {
   const deferredRaw = rawCaptureBinder !== undefined;
   const structured = responseMode === 'saved-sdk';
   if (typeof fetch !== 'function' || needsCredential && !deferredRaw ||
@@ -100,7 +101,8 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
         content[0]?.type !== 'text' || typeof content[0].text !== 'string') {
       return undefined;
     }
-    return content[0].text;
+    const usage = readReportedUsage?.(decoded.response?.body);
+    return runtimeTriple(content[0].text, usage?.inputTokens, usage?.outputTokens);
   } : undefined;
   const pollResponse = () => {
     // Only the unused SDK projection is dropped. Saved/raw observations and
@@ -224,6 +226,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     cleanupRaw = undefined;
     preparePlan = undefined;
     selectSaved = undefined;
+    readReportedUsage = undefined;
     retired = true;
     return true;
   };

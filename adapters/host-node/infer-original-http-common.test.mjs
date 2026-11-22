@@ -57,11 +57,23 @@ test('selected structured SDK rejects a type-invalid complete 2xx through Common
     outcome:'schema_invalid',wire:responseWire.replace('\\"low\\"','123'),
   }));
 
+test('selected structured SDK records provider-reported zero usage',
+  {timeout:15000}, t => originalHttpSettlement(t, true, {
+    wire:responseWire.replace('"prompt_tokens":3,"completion_tokens":2',
+      '"prompt_tokens":0,"completion_tokens":0'), usage:[0,0],
+  }));
+
+test('selected structured SDK preserves absent usage separately from reported zero',
+  {timeout:15000}, t => originalHttpSettlement(t, true, {
+    wire:responseWire.replace(',"usage":{"prompt_tokens":3,"completion_tokens":2}',''),
+    usage:[null,null],
+  }));
+
 test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
-  status=200, outcome, wire=responseWire} = {}) {
+  status=200, outcome, wire=responseWire, usage=[3,2]} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -124,11 +136,23 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       // another invocation or acknowledging the uncertain remote outcome.
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
     } else {
-      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome);
+      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage);
     }
     assert.equal(calls.length,1,'Settlement must not repeat the original physical request');
-    await until(()=>capture.custody.cleanup(),value=>value===true);
-    await until(()=>f.opened.cleanup(),value=>value===true);
+    const firstCaptureCleanup=await capture.custody.cleanup();
+    assert.equal(calls.length,1);
+    if (firstCaptureCleanup !== true) {
+      assert.equal(firstCaptureCleanup,false);
+      await until(()=>capture.custody.cleanup(),value=>value===true);
+    }
+    const firstContinuationCleanup=await f.opened.cleanup();
+    assert.equal(calls.length,1);
+    if (firstContinuationCleanup !== true) {
+      assert.equal(firstContinuationCleanup,false);
+      await until(()=>f.opened.cleanup(),value=>value===true);
+    }
+    t.diagnostic('First cleanup capture='+firstCaptureCleanup+
+      ', continuation='+firstContinuationCleanup);
     assert.equal(f.operation.cleanupPending(),false);
     assert.equal(f.opened.cleanupPending(),false);
     const original=f.originalPreparation;
@@ -143,7 +167,7 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
     t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite; synthetic funding and private Host fixture');
 }
 
-async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome) {
+async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage) {
     const boundary=await f.operation.run();
     assert.equal(boundary.status,'settling');
     assert.equal(calls.length,1);
@@ -170,7 +194,12 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome) {
         const bundle=JSON.parse(wire);
         assert.equal(bundle.captures.length,1);
         assert.deepEqual(bundle.captures[0].structured_response,{reason:null,risk:'low'});
-        assert.match(bundle.captures[0].evidence.raw_response_artifact_cid,/^sha256:[a-f0-9]{64}$/u);
+        const evidence=bundle.captures[0].evidence;
+        assert.match(evidence.raw_response_artifact_cid,/^sha256:[a-f0-9]{64}$/u);
+        assert.deepEqual([evidence.input_tokens,evidence.output_tokens],usage);
+        const accounting=JSON.parse(moon.strategyRunEvidenceJson(
+          moon.clientProgramInferAttemptLeaf(f.operation.attemptEvidence(0),'accounting')));
+        assert.deepEqual([accounting.input_tokens,accounting.output_tokens],usage);
       } finally {
         assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exporter)),true);
       }

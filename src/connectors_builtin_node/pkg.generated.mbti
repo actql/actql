@@ -3216,7 +3216,7 @@ pub fn client_program_model_response_profile_transport_matches(@check_environmen
 
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
-pub fn client_program_model_structured_request_plan(@model_execution.AdmittedStructuredModelProvider, @model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?, (@model_execution.ModelPhysicalCall, @model_execution.ModelSavedRawReceipt, Bytes) -> String?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+pub fn client_program_model_structured_request_plan(@model_execution.AdmittedStructuredModelProvider, @model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?, (@model_execution.ModelPhysicalCall, @model_execution.ModelSavedRawReceipt, Bytes) -> (String, Int64?, Int64?)?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
 

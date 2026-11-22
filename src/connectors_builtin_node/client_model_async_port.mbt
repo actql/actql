@@ -200,8 +200,8 @@ pub fn client_program_bind_admitted_structured_model_provider(
 }
 
 ///|
-// The selected Host decoder transfers only the answer of its own SDK
-// invocation. Optional observations remain unavailable until corroborated.
+// The selected decoder transfers its original answer and optional reported
+// usage from the same SDK read. Core meters and checks the observed quantities.
 #export_name("clientProgramModelStructuredRequestPlan")
 pub fn client_program_model_structured_request_plan(
   admitted : @model.AdmittedStructuredModelProvider,
@@ -213,7 +213,11 @@ pub fn client_program_model_structured_request_plan(
   profile : @check_environment.ModelResponseProfile,
   installation : @check_environment.ModelResponseProfileInstallation,
   start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
-  read_answer : (@model.ModelPhysicalCall, @model.ModelSavedRawReceipt, Bytes) -> String?,
+  read_answer : (@model.ModelPhysicalCall, @model.ModelSavedRawReceipt, Bytes) -> (
+    String,
+    Int64?,
+    Int64?,
+  )?,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   @model.bound_structured_model_async_request_plan(
     admitted,
@@ -224,29 +228,32 @@ pub fn client_program_model_structured_request_plan(
     installation,
     start,
     (call, receipt, bytes) => {
-      read_answer(call, receipt, bytes).map(body => {
-        body,
-        observation: {
-          origin: @publication.Reported,
-          provider_model: None,
-          provider_revision: None,
-          provider_request_id: None,
-          gateway_request_id: None,
-          input_tokens: None,
-          output_tokens: None,
-          provider_finish_reason: None,
-          historical_finish_reason: None,
-          response_profile_cid: Some(
-            @check_environment.model_response_profile_identity(profile),
-          ),
-          response_complete: Some(true),
-          raw_response_artifact_cid: None,
-          provider_metadata: None,
-          observed_at: "",
-        },
-        transport_eof: true,
-        endpoint_complete: true,
-        answer_complete: true,
+      read_answer(call, receipt, bytes).map(answer => {
+        let (body, input_tokens, output_tokens) = answer
+        {
+          body,
+          observation: {
+            origin: @publication.Reported,
+            provider_model: None,
+            provider_revision: None,
+            provider_request_id: None,
+            gateway_request_id: None,
+            input_tokens,
+            output_tokens,
+            provider_finish_reason: None,
+            historical_finish_reason: None,
+            response_profile_cid: Some(
+              @check_environment.model_response_profile_identity(profile),
+            ),
+            response_complete: Some(true),
+            raw_response_artifact_cid: None,
+            provider_metadata: None,
+            observed_at: "",
+          },
+          transport_eof: true,
+          endpoint_complete: true,
+          answer_complete: true,
+        }
       })
     },
   )

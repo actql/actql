@@ -543,7 +543,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73cf05fd1236fcd84e40263d11f6db171283c8e55cb558a67c816e3ad449ec4c",
+      "sha256": "82c3516e2739b4c6d673b13d2274834a6eade87b1bc334440854f1804faa6ab8",
       "exports": [
         "createSdkModelPreflight",
         "createSdkNativeDecisionPreflight",
@@ -716,7 +716,8 @@
           "name": "createSdkStructuredModelPreflight",
           "parameters": [
             "options",
-            "admission"
+            "admission",
+            "readReportedUsage"
           ],
           "async": false
         },
@@ -1418,7 +1419,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6acd7146502e0bddb8e9c3603e0f3df198b877146987a7154f4d079e3d47425",
+      "sha256": "ce7bf645f84e22260b50d233a1df0bece028b1946bd1143d6a4a4883085fc6c6",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1508,6 +1509,13 @@
             "verifyRequest"
           ],
           "async": false
+        },
+        {
+          "name": "readOpenAIChatReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -1530,7 +1538,8 @@
             "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
             "originalExpectedBodyVerifier/originalExpectedBodyVerifier",
             "prepareAdmittedOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest"
+            "prepareOriginalOpenAIChatRequest",
+            "readOpenAIChatReportedUsage"
           ],
           "exports": [
             "createAdmittedOpenAIChatPreflight",

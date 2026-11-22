@@ -85,6 +85,19 @@ function prepareProjectedOriginal({moon,request,taskCid,promptCid,
   });
 }
 
+// The pinned Chat SDK returns its parsed, unnormalized response as
+// response.body. Its normalized usage may fill missing counters with zero.
+function readOpenAIChatReportedUsage(body) {
+  const reported = body?.usage;
+  if (reported === null || typeof reported !== 'object') return undefined;
+  const tokenCount = value => Number.isSafeInteger(value) && value >= 0
+    ? BigInt(value) : undefined;
+  return {
+    inputTokens: tokenCount(reported.prompt_tokens),
+    outputTokens: tokenCount(reported.completion_tokens),
+  };
+}
+
 // Exact private builder for the existing physical preflight. Projection is a
 // Common read-only child, not a JS schema evaluator or another execution owner.
 // Installation must fund the child/callback/SDK overlap before calling this.
@@ -148,5 +161,5 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   const options = {...port,moon,request,notify,preparationProgress:progress,
     ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})};
   return structuredAdmission === undefined ? createSdkModelPreflight(options)
-    : createSdkStructuredModelPreflight(options, structuredAdmission);
+    : createSdkStructuredModelPreflight(options, structuredAdmission, readOpenAIChatReportedUsage);
 }
