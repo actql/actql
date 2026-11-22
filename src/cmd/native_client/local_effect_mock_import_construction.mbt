@@ -395,6 +395,21 @@ fn LocalNativeMockEffectImportConstruction::prepare_body_result(
 }
 
 ///|
+// The caller has left the proposal/Manifest frame. Live Source buffers must
+// have been returned as well. Keep the imported originals on this token;
+// reset the relative workspace only after its Resource return succeeds.
+fn LocalNativeMockEffectImportConstruction::yield_returned_workspace(
+  self : Self,
+) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
+  if self.source_snapshot is Some(_) || self.source_copy is Some(_) {
+    return Err(AlreadyBound)
+  }
+  @local_values.yield_installed_effect_operation_construction_workspace(
+    self.operation,
+  ).map(_ => self.workspace = 0L)
+}
+
+///|
 fn LocalNativeMockEffectImportConstruction::finish(
   self : Self,
   original : LocalCommandPreparationOriginal,

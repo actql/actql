@@ -747,9 +747,16 @@ fn LocalCommandBusinessPreparation::yield_mock_effect_proposal_workspace(
       held.construction is Some(construction) else {
       stop("LocalOriginalEffectProposalsUnavailable")
     }
-    @local_values.yield_installed_effect_operation_construction_workspace(
-      construction.operation,
-    )
+    let yielded = if held.imports is Some(_) {
+      // The imported Model path has independently selected the warm recipe
+      // used by Preview. Its prior proposal scratch has no remaining alias.
+      construction.yield_returned_workspace()
+    } else {
+      @local_values.yield_installed_effect_operation_construction_workspace(
+        construction.operation,
+      )
+    }
+    yielded
     .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
     .native_effect_proposal(self.original)
   })

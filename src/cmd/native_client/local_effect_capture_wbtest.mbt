@@ -213,6 +213,47 @@ test "Native first member retains one original capture before input and full rec
 }
 
 ///|
+test "Native proposal return drops only its old workspace before the next construction" {
+  with_native_mock_capture_construction(fn(construction) raise {
+    let original_recipe = construction.recipe
+    construction
+    .prepare_body_result(@execution.execution_capacity(30L, 19970L))
+    .unwrap()
+    assert_eq(construction.retained, 30L)
+    assert_eq(construction.workspace, 19940L)
+
+    // The copied Source prefix still belongs to the live original phase.
+    construction.source_copy = Some(0L)
+    construction.reserve_source_row_copy(10L, 20L).unwrap()
+    assert_true(construction.yield_returned_workspace() is Err(AlreadyBound))
+    assert_eq(construction.workspace, 19940L)
+    assert_eq(construction.source_copy, Some(10L))
+    construction.source_copy = None
+
+    construction.yield_returned_workspace().unwrap()
+    assert_true(physical_equal(construction.recipe, original_recipe))
+    assert_eq(construction.retained, 30L)
+    assert_eq(construction.workspace, 0L)
+
+    // Original maximum is 20000. Base and adopted retention total 60.
+    // Another retained byte leaves 19939 for the new phase's scratch.
+    assert_true(
+      construction.prepare_body_result(
+        @execution.execution_capacity(1L, 19941L),
+      )
+      is Err(Managed(InsufficientCapacity)),
+    )
+    assert_eq(construction.retained, 30L)
+    assert_eq(construction.workspace, 0L)
+    construction
+    .prepare_body_result(@execution.execution_capacity(1L, 19940L))
+    .unwrap()
+    assert_eq(construction.retained, 31L)
+    assert_eq(construction.workspace, 19939L)
+  })
+}
+
+///|
 test "Native proposal append reserves the returned strings and replacement slots" {
   // Base 30, first pair 3H+2R+2W+2 UTF16 units =84. Next pair has
   // three UTF16 units (two supplementary, one BMP), costing 86. Replacing
