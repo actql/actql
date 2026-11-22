@@ -40,6 +40,15 @@ pub fn client_effect_dependency_capture_body_count(
 }
 
 ///|
+/// Borrow one admitted body without copying the original immutable inventory.
+pub fn client_effect_dependency_capture_body_at(
+  value : ClientEffectDependencyCapture,
+  index : Int,
+) -> @publication.CapturedEffectDependencyBody? {
+  value.bodies.get(index)
+}
+
+///|
 /// Check the exact live Result borrow before the Native adapter reads it.
 /// Neither an equal Artifact CID nor a different Result in the same Unit
 /// substitutes for that borrow.

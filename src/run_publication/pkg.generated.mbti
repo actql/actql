@@ -199,6 +199,8 @@ pub fn captured_content_reference_wire(CapturedContentReference) -> String
 
 pub fn captured_effect_context_dependency_roots_match(@canonical_json.CanonicalValue, CapturedEffectDependencyInventory, Int, Int, Int) -> Bool
 
+pub fn captured_effect_dependency_body_bytes(CapturedEffectDependencyBody) -> Int
+
 pub fn captured_effect_dependency_body_cid(CapturedEffectDependencyBody) -> String
 
 pub fn captured_effect_dependency_body_field_count(CapturedEffectDependencyBody) -> Int?

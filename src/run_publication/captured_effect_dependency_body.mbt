@@ -18,6 +18,14 @@ pub fn captured_effect_dependency_body_wire_usage(
 }
 
 ///|
+/// Exact canonical UTF-8 extent established by admission of this same body.
+pub fn captured_effect_dependency_body_bytes(
+  body : CapturedEffectDependencyBody,
+) -> Int {
+  body.node.canonical_bytes
+}
+
+///|
 /// Same admitted object width. Text length cannot supply this field count.
 pub fn captured_effect_dependency_body_field_count(
   body : CapturedEffectDependencyBody,

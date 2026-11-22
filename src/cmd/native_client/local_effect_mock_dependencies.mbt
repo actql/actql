@@ -58,13 +58,23 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     if bodies.length() >= limits.max_entries {
       refuse(EntryLimit)
     }
-    let bytes = @utf8.encode(wire).length()
+    let bytes = @publication.captured_effect_dependency_body_bytes(body)
     if bytes > remaining {
       refuse(ByteLimit)
     }
     remaining -= bytes
     bodies.push(body)
     seen[key] = wire
+  }
+  let retain_capture = fn(
+    capture : @run_host.ClientEffectDependencyCapture,
+  ) -> Unit raise ClientStop {
+    let count = @run_host.client_effect_dependency_capture_body_count(capture)
+    for index in 0..<count {
+      retain(
+        @run_host.client_effect_dependency_capture_body_at(capture, index).unwrap(),
+      )
+    }
   }
   let append = fn(
     kind : String,
@@ -103,9 +113,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       )
     }
     for capture in source.captures {
-      for body in @run_host.client_effect_dependency_capture_bodies(capture) {
-        retain(body)
-      }
+      retain_capture(capture)
     }
   }
   for observed in proposals.import_observations {
@@ -213,9 +221,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
       ) else {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
     }
-    for body in @run_host.client_effect_dependency_capture_bodies(capture) {
-      retain(body)
-    }
+    retain_capture(capture)
     let original_artifact = @run_host.client_effect_local_result_artifact_contract(
       artifact,
     )

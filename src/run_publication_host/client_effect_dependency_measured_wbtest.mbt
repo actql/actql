@@ -307,6 +307,7 @@ test "funded Relation dependency includes the wrapper before construction" {
   assert_eq(calls, [(42, 5, 3), (42, 5, 3), (42, 5, 3)])
   assert_eq(original_checks.val, 2)
   assert_eq(bytes, 42)
+  assert_eq(@publication.captured_effect_dependency_body_bytes(body), 42)
   assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
   assert_eq(@publication.captured_effect_dependency_body_cid(body), cid)
 }

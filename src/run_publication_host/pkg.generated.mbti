@@ -643,6 +643,8 @@ pub fn client_effect_completion_free_catalog_cid() -> String
 
 pub fn client_effect_dependency_capture_bodies(ClientEffectDependencyCapture) -> Array[@run_publication.CapturedEffectDependencyBody]
 
+pub fn client_effect_dependency_capture_body_at(ClientEffectDependencyCapture, Int) -> @run_publication.CapturedEffectDependencyBody?
+
 pub fn client_effect_dependency_capture_body_count(ClientEffectDependencyCapture) -> Int
 
 pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
