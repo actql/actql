@@ -160,6 +160,11 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
   ("logical_map", true, static_plan_validation_profile("logical_map", true)),
   ("plan_view", true, static_plan_validation_profile("plan_view", true)),
   (
+    "effectful_static_plan_view",
+    true,
+    static_plan_validation_profile("effectful_static_plan_view", true),
+  ),
+  (
     "explanation_facts",
     false,
     static_plan_validation_profile("explanation_facts", false),
@@ -170,9 +175,29 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
     static_plan_validation_profile("explanation_facts", true),
   ),
   (
+    "explanation_context",
+    true,
+    static_plan_validation_profile("explanation_context", true),
+  ),
+  (
     "run_explanation_view",
     true,
     static_plan_validation_profile("run_explanation_view", true),
+  ),
+  (
+    "run_explanation_context_view",
+    true,
+    static_plan_validation_profile("run_explanation_context_view", true),
+  ),
+  (
+    "static_explanation_view",
+    true,
+    static_plan_validation_profile("static_explanation_view", true),
+  ),
+  (
+    "bound_invocation_template",
+    true,
+    static_plan_validation_profile("bound_invocation_template", true),
   ),
   (
     "prepared_invocation",

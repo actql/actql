@@ -1,5 +1,5 @@
 import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
-import {validWireRunExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
+import {validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -102,7 +102,11 @@ const storyText = Object.freeze({
 // authorization path, including Run.plan() when explaining a Saved Run.
 export function planStoryModel(view, {locale = 'en'} = {}) {
   if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
-  const model = planReadModel(view), text = storyText[locale];
+  return planStory(view, planReadModel(view), locale);
+}
+
+function planStory(view, model, locale) {
+  const text = storyText[locale];
   const original = view.version === 'actql-effectful-static-plan-view/0.1'
     ? view.computation.plan_view : view;
   return freeze({locale, compiledPlanCid: model.compiledPlanCid,
@@ -215,7 +219,7 @@ function predicateStory(predicate, text, budget) {
         output.append('('); output.append(render(children[0], depth + 1)); output.append(')');
         if (node.operator !== 'not') {output.append(' '); output.append(operator);}
       } else if (node.operator === 'and' || node.operator === 'or') {
-        if (children.length < 2) refuse('ExplorerInvalidExplanation');
+        if (children.length === 0) refuse('ExplorerInvalidExplanation');
         for (let i = 0; i < children.length; i++) {
           if (i > 0) {output.append(' '); output.append(operator); output.append(' ');}
           output.append('('); output.append(render(children[i], depth + 1)); output.append(')');
@@ -290,6 +294,12 @@ const sameIds = (ids, ports, role) => {
 // read/egress admission or establish compiler provenance by itself.
 export function explanationStoryModel(view, facts, {locale = 'en'} = {}) {
   const story = planStoryModel(view, {locale});
+  checkExplanationFacts(story, facts);
+  const text = explanationText[locale], budget = storyConstructionBudget();
+  return attachExplanationFacts(story, facts, index => meaningStory(facts.steps[index].meaning, text, budget));
+}
+
+function checkExplanationFacts(story, facts) {
   if (!Array.isArray(facts?.steps) || facts.steps.length > graphViewLimits.steps) refuse('ExplorerExplanationLimit');
   let nodes = 0, edges = 0, fields = 0;
   for (const step of facts.steps) {
@@ -313,17 +323,99 @@ export function explanationStoryModel(view, facts, {locale = 'en'} = {}) {
       (story.declaredEffects !== undefined && facts.parameter_values_cid !== story.declaredEffects.parameterValuesCid)) {
     refuse('ExplorerInvalidExplanation');
   }
-  const text = explanationText[locale], budget = storyConstructionBudget();
+  for (const [index, occurrence] of story.occurrences.entries()) {
+    const fact = facts.steps[index];
+    if (fact.step_id !== occurrence.stepId || fact.operator !== occurrence.operator ||
+        !sameKey(fact.key, occurrence.key) || !sameIds(fact.input_ports, occurrence.ports, 'input') ||
+        !sameIds(fact.output_ports, occurrence.ports, 'output')) refuse('ExplorerInvalidExplanation');
+  }
+}
+
+function attachExplanationFacts(story, facts, describe) {
   return freeze({...story, factsCid: facts.self_cid, parameterValuesCid: facts.parameter_values_cid,
     occurrences: story.occurrences.map((occurrence, index) => {
       const fact = facts.steps[index];
-      if (fact.step_id !== occurrence.stepId || fact.operator !== occurrence.operator ||
-          !sameKey(fact.key, occurrence.key) || !sameIds(fact.input_ports, occurrence.ports, 'input') ||
-          !sameIds(fact.output_ports, occurrence.ports, 'output')) refuse('ExplorerInvalidExplanation');
-      const rendered = meaningStory(fact.meaning, text, budget);
       return {...occurrence, explanation: {state: fact.meaning.kind === 'not_projected' ? 'not_projected' : 'projected',
-        meaning: structuredClone(fact.meaning), text: rendered}};
+        meaning: structuredClone(fact.meaning), text: describe(index)}};
     })});
+}
+
+function sameDeclaration(actual, expected) {
+  if (actual === expected) return true;
+  if (typeof actual !== 'object' || actual === null || typeof expected !== 'object' || expected === null) return false;
+  const names = Object.keys(actual);
+  return names.length === Object.keys(expected).length && names.every(name =>
+    Object.hasOwn(expected, name) && sameDeclaration(actual[name], expected[name]));
+}
+
+function checkedContext(story, facts, context, saved) {
+  const binding = context.binding;
+  const effects = story.declaredEffects;
+  if (binding.compiled_plan_cid !== story.compiledPlanCid || binding.logical_map_cid !== story.logicalMapCid ||
+      binding.program_definition_cid !== story.programDefinitionCid || binding.parameter_values_cid !== facts.parameter_values_cid ||
+      effects !== undefined && binding.check_environment_cid !== effects.checkEnvironmentCid) refuse('ExplorerInvalidExplanation');
+  const locator = ({stage_ordinal, input_port_ordinal}) => `${stage_ordinal}:${input_port_ordinal}`;
+  const inputs = new Map();
+  for (const {locator: original, stepId, inputPortId} of story.stageInputs) {
+    const key = locator(original);
+    if (!inputs.has(key)) inputs.set(key, []);
+    inputs.get(key).push({step_id: stepId, port_id: inputPortId});
+  }
+  const steps = new Map(story.occurrences.map(step => [step.stepId, step]));
+  const sources = new Set();
+  let sawEffects = false;
+  for (const item of context.items) {
+    if (item.kind === 'source') {
+      const key = locator(item.stage_input);
+      const ports = inputs.get(key) ?? [];
+      if (sources.has(key) || ports.length !== item.consuming_ports.length ||
+          !ports.every((port, index) => sameDeclaration(port, item.consuming_ports[index]))) refuse('ExplorerInvalidExplanation');
+      sources.add(key);
+    } else if (item.kind === 'effect_set') {
+      // A Saved reply carries the computation map and the committed Effect
+      // declarations in Context. A static reply also carries the separate
+      // Effect set, against which every declaration must still agree.
+      if (sawEffects || !saved && (effects === undefined || item.unit_id !== effects.unitId ||
+          item.members.length !== effects.members.length || !item.members.every((member, index) =>
+            sameDeclaration(member.declaration, effects.members[index])))) refuse('ExplorerInvalidExplanation');
+      sawEffects = true;
+    } else if (item.producer.state === 'projected') {
+      const {step_id, port_id} = item.producer, step = steps.get(step_id);
+      if (!step?.ports.some(port => port.role === 'output' && port.port_id === port_id) ||
+          item.kind === 'model_task' && step.operator !== 'infer') refuse('ExplorerInvalidExplanation');
+    }
+  }
+  if (!saved && sawEffects !== (effects !== undefined)) refuse('ExplorerInvalidExplanation');
+}
+
+// The public SDK is the disclosure boundary. These checks prevent mixing
+// presentation originals after the read and confer no new authority.
+export function staticExplanationReadModel(view, {locale = 'en', render}) {
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  if (!withinResultDescriptionLimits(view, projectionLimits)) refuse('ExplorerExplanationLimit');
+  if (!validWireStaticExplanationViewShape(view)) refuse('ExplorerInvalidExplanation');
+  return explanationContextReadModel(view, locale, render, false);
+}
+
+function explanationContextReadModel(view, locale, render, saved) {
+  const plan = planReadModel(view.plan), original = planStory(view.plan, plan, locale);
+  checkExplanationFacts(original, view.facts);
+  checkedContext(original, view.facts, view.context, saved);
+  const narrative = render(view, locale);
+  if (!Array.isArray(narrative?.steps) || narrative.steps.length !== view.facts.steps.length ||
+      !Array.isArray(narrative.context) || narrative.context.length !== view.context.items.length) {
+    refuse('ExplorerInvalidExplanation');
+  }
+  let characters = 0;
+  for (const lines of [narrative.context, narrative.steps]) for (const line of lines) {
+    if (typeof line !== 'string') refuse('ExplorerInvalidExplanation');
+    if ((characters += line.length) > explanationLimits.characters) refuse('ExplorerExplanationLimit');
+  }
+  const scope = saved && view.context.items.some(item => item.kind === 'effect_set')
+    ? 'computation_component' : original.scope;
+  const story = attachExplanationFacts({...original, scope}, view.facts, index => narrative.steps[index]);
+  return freeze({plan, story, context: view.context.items.map((item, index) =>
+    ({origin: structuredClone(item), text: narrative.context[index]}))});
 }
 
 // A UI epoch only discards stale presentation. It is not a Host permission,
@@ -373,6 +465,16 @@ export async function readStaticPlan(client, input, options, ticket) {
     const view = await client.plan(input, boundedProjectionOptions(options));
     ticket.assertCurrent();
     return planReadModel(view);
+  });
+}
+
+export async function readStaticExplanation(client, input, options, {locale = 'en', render}, ticket) {
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  return currentRead(ticket, async () => {
+    if (typeof client.explain !== 'function') refuse('ExplorerCapabilityUnavailable');
+    const view = await client.explain(input, boundedProjectionOptions(options));
+    ticket.assertCurrent();
+    return staticExplanationReadModel(view, {locale, render});
   });
 }
 
@@ -459,6 +561,31 @@ export async function readExistingRunPresentation(client, ref, options, ticket) 
   const plan = planReadModel(view.plan_view);
   ticket.assertCurrent();
   return freeze({runRef: original, plan, explanation: {state: 'projected', story}});
+}
+
+// One authorized read of the attached execution supplies every Saved
+// presentation original, including the immutable computation map.
+export async function readExistingRunContext(client, ref, {locale = 'en', render}, ticket) {
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
+  const run = await currentRead(ticket, () => client.attach(original));
+  const view = await currentRead(ticket, () => {
+    if (typeof run.explainContext !== 'function') refuse('ExplorerCapabilityUnavailable');
+    return run.explainContext(projectionLimits);
+  });
+  if (!withinResultDescriptionLimits(view, projectionLimits) ||
+      !validWireRunExplanationContextViewShape(view) ||
+      view.run_ref.namespaceId !== original.namespaceId ||
+      view.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+      view.run_ref.runDefinitionCid !== original.runDefinitionCid) refuse('ExplorerInvalidExplanation');
+  ticket.assertCurrent();
+  if (view.explanation.state === 'not_projected') {
+    return freeze({runRef: original, plan: null, explanation: view.explanation});
+  }
+  const {plan, story, context} = explanationContextReadModel(view.explanation.view, locale, render, true);
+  ticket.assertCurrent();
+  return freeze({runRef: original, plan, explanation: {state: 'projected', story, context}});
 }
 
 // Capture presentation options before the first asynchronous read, then use

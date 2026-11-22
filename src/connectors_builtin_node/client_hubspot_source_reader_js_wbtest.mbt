@@ -15,6 +15,75 @@ fn hubspot_managed_reader_quote(
 }
 
 ///|
+test "HubSpot shared Source constructor retains exact digest and target quantities" {
+  let identity = client_program_hubspot_metadata_identity_capacity(2, 100L, 10L).unwrap()
+  let target = client_program_hubspot_read_target_capacity(2, 6L).unwrap()
+  // Independent original inventory: two CID nodes plus 71 text units,
+  // identity render peak for 31 nodes/672 units, and 27 target slots.
+  assert_eq(@execution.execution_capacity_retained_bytes(identity), 1080L)
+  assert_eq(@execution.execution_capacity_execution_bytes(identity), 379968L)
+  assert_eq(@execution.execution_capacity_retained_bytes(target), 6912L)
+  assert_eq(@execution.execution_capacity_execution_bytes(target), 13824L)
+  for capacity in [identity, target] {
+    let r = @execution.execution_capacity_retained_bytes(capacity)
+    let e = @execution.execution_capacity_execution_bytes(capacity)
+    for (r_short, e_short) in [(0L, 0L), (1L, 0L), (0L, 1L)] {
+      let ledger = @resources.create_ledger({
+        planning_work: 0,
+        attempts: 1,
+        holdings: 0,
+        transfer_bytes: 0L,
+        retained_bytes: r - r_short,
+        execution_bytes: e - e_short,
+      }).unwrap()
+      let result = @resources.reserve_attempt(ledger, 0L, r, e)
+      if r_short == 1L {
+        assert_true(result is Err(@resources.RetentionLimit))
+      } else if e_short == 1L {
+        assert_true(result is Err(@resources.ExecutionLimit))
+      } else {
+        @resources.settle_reservation(ledger, result.unwrap()).unwrap()
+      }
+      assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    }
+  }
+  assert_true(
+    client_program_hubspot_metadata_identity_capacity(1, 0L, -1L)
+    is Err(@resources.InvalidExtent),
+  )
+  assert_true(
+    client_program_hubspot_read_target_capacity(1, 9223372036854775807L)
+    is Err(@resources.InvalidExtent),
+  )
+}
+
+///|
+test "HubSpot shared Source constructor preserves independent response and target bounds" {
+  assert_eq(
+    client_program_hubspot_read_sequence_bounds(8, 8192, 22, 1, 9, 21L).unwrap(),
+    (65536, 1342),
+  )
+  assert_eq(
+    client_program_hubspot_read_sequence_bounds(
+      2, 1073741823, 1, 1, 1, 357913767L,
+    ).unwrap(),
+    (2147483646, 2147483644),
+  )
+  assert_true(
+    client_program_hubspot_read_sequence_bounds(
+      2, 1073741824, 1, 1, 1, 357913767L,
+    )
+    is Err(@resources.InvalidExtent),
+  )
+  assert_true(
+    client_program_hubspot_read_sequence_bounds(
+      2, 1073741823, 1, 1, 1, 357913768L,
+    )
+    is Err(@resources.InvalidExtent),
+  )
+}
+
+///|
 test "HubSpot managed original reader grows complete received prefixes without a private allowance" {
   let initial = hubspot_managed_reader_quote([]).unwrap()
   let first = hubspot_managed_reader_quote([32]).unwrap()

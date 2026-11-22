@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const ok = value => ({$tag:1,_0:value});
 const cid = 'sha256:'+'a'.repeat(64);
@@ -76,14 +77,61 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
     reservePhysicalStart(){state.events.push('claim');state.claims++;return true;},
     originalSubmittedIntent:()=>undefined,
   };
-  const install=({prepareDefinition,requestIdentityFor,authorizeRunStart=async()=>true,validateInstallation}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
-    prepareDefinition,requestIdentityFor,validateInstallation,
+  const install=({prepareDefinition,captureDefinitionExplanation,requestIdentityFor,authorizeRunStart=async()=>true,validateInstallation}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
+    prepareDefinition,captureDefinitionExplanation,requestIdentityFor,validateInstallation,
     authorizeRequest:async()=>policy,authorizeRunStart,
     now:()=> '2026-10-19T00:00:00.000Z',
     prepareExecution(facts){state.events.push('prepare');state.preparations.push(facts);return {};},
     execute:async facts=>{state.events.push('execute');state.executions.push(facts);return {};}});
   return {state,request,moon,install,policy,ref,identity,journal};
 }
+
+test('Effect first admission forwards one original Explanation ticket before Plan adoption', async () => {
+  for (const selected of [true, false]) {
+    const f = fixture(), ticket = Object.freeze({});
+    let capture, evidence;
+    const run = f.install({
+      captureDefinitionExplanation(facts, readEvidence, hasIntent) {
+        assert.equal(capture, undefined);
+        assert.equal(facts.prepared, f.request.prepared);
+        assert.equal(facts.definition, f.state.issued[0]);
+        assert.equal(hasIntent, false);
+        capture = facts;
+        evidence = readEvidence();
+        if (selected) {
+          return Object.freeze({ticket, evidence});
+        }
+      },
+      prepareDefinition(facts) {assert.equal(facts, capture);},
+    });
+    await run.accept(f.request);
+    if (selected) {
+      assert.equal(f.state.saved.originalPlan, ticket);
+      assert.equal(f.state.saved.originalExplanation, ticket);
+      assert.equal(f.state.saved.runAdmissionEvidence, evidence);
+    } else {
+      assert.equal(Object.hasOwn(f.state.saved, 'originalPlan'), false);
+      assert.equal(Object.hasOwn(f.state.saved, 'originalExplanation'), false);
+      assert.notEqual(f.state.saved.runAdmissionEvidence, evidence);
+    }
+    const saved = f.state.saved;
+    await run.accept(f.request);
+    assert.equal(f.state.saved, saved);
+    assert.equal(f.state.issued.length, 1);
+    assert.equal(f.state.claims, 0);
+  }
+});
+
+test('optional Effect admission premeasures its existing Model evidence before encoding it', () => {
+  const compiled = {template: {wire: '\"日本語\"'}, preparedEvidence: {wire: '\\'},
+    authorization: {wire: '"allow"'}, compiledPlan: {wire: '{}'}};
+  const definition = {wire: '{}'};
+  const original = originalModelRunWire(compiled, definition);
+  const bytes = Buffer.byteLength(original);
+  assert.equal(originalModelRunWire(compiled, definition, bytes), original);
+  assert.equal(originalModelRunWire(compiled, definition, bytes - 1), undefined);
+  assert.equal(originalModelRunWire(compiled, definition), original);
+});
 
 test('ordinary Effect admission and winning issuer consume one original Request identity', async () => {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
@@ -317,8 +365,12 @@ test('keyed initial tuple refuses a different Journal winner before the physical
 test('keyed initial tuple checks complete prepared authorization and Definition bytes', async () => {
   for (const field of ['prepared', 'authorization', 'definition']) {
     const f = fixture(), k = keyedInitialTuple(f), handle = await k.run.accept(f.request);
-    if (field === 'definition') f.state.saved.runDefinition = {...f.state.saved.runDefinition, wire: '{"changed":true}'};
-    else f.state.saved.runAdmissionEvidence[field] = '{"changed":true}';
+    const original = f.state.saved;
+    assert.ok(Object.isFrozen(original.runAdmissionEvidence));
+    const changed = '{"changed":true}';
+    f.state.saved = field === 'definition'
+      ? {...original, runDefinition: {...original.runDefinition, wire: changed}}
+      : {...original, runAdmissionEvidence: Object.freeze({...original.runAdmissionEvidence, [field]: changed})};
     await assert.rejects(k.run.start(handle), {code: 'ClientEffectRunDenied'});
     assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
   }

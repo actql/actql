@@ -6,6 +6,7 @@ physical acknowledgement. No garbage collection or private retirement is used.
 """
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from contextlib import _GeneratorContextManager
 from types import BuiltinMethodType, FunctionType, GeneratorType
@@ -347,8 +348,44 @@ def inventory(client):
     counts = {name: len(getattr(host, name)) for name in names}
     counts['stopped_work'] = sum(work.stopped for work in tuple(host._physical_work))
     counts['core_loans'] = len(host._core._loans)
+    counts['core_task_loans'] = len(host._core._task_loans)
+    counts['custody_runs'] = len(host._runs._runs)
+    counts['custody_preparations'] = len(host._preparation._preparations)
     counts['core_retained_work'] = host._core._host_retained_work is not None
     return counts
+
+
+SETTLED_COUNTS = (
+    '_physical_work', '_tasks', 'core_task_loans', '_result_exports', '_result_chunks',
+    '_run_loans', 'custody_runs', '_public_run_references', '_run_state_custody',
+    '_prepared_inputs', 'custody_preparations', '_saved_result_reads', '_response_streams',
+)
+
+
+def settled_inventory(client, mode, ordinal):
+    # These checkpoints follow successful worker wait and all Result reader
+    # closes. No failed, pending or concurrent work belongs to this fixture.
+    observed = inventory(client)
+    if any(observed[name] != 0 for name in SETTLED_COUNTS) or observed['core_retained_work']:
+        write_event('retirement-pending', mode=mode, ordinal=ordinal, inventory=observed)
+        raise AssertionError('Successful ordinary execution or closed reader remains held')
+    return observed
+
+
+def record_reference(references, ordinal, submission, run=None):
+    # Keep the signed submission in the private replay input only. The
+    # artifact carries a fingerprint and the synthetic Run definition CID.
+    encoded = json.dumps(submission, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    reference = {'ordinal': ordinal, 'submission_sha256': hashlib.sha256(encoded).hexdigest()}
+    if run is not None:
+        reference['run_definition_cid'] = run['runDefinitionCid']
+        references[-1] = reference
+    else:
+        references.append(reference)
+    temporary = ROOT / 'original-reference.pending'
+    temporary.write_text(json.dumps({'producer_pid': os.getpid(), 'runs': references}) + '\n',
+                         encoding='utf-8')
+    temporary.replace(ROOT / 'original-reference.json')
 
 
 def rows(run, expected):
@@ -376,15 +413,18 @@ def run_phase(phase):
         client = Client.open()
         write_event('opened', mode=phase, inventory=inventory(client))
         if phase == 'warm':
-            originals, executions = [], []
+            originals, executions, references = [], [], []
             for ordinal in range(1, 11):
                 submission = client.new_submission()
+                submission_data = plain(submission)
+                record_reference(references, ordinal, submission_data)
                 write_event('submission-created', ordinal=ordinal)
                 expected = 40 + ordinal
                 execution = client.start_source(f'SELECT {expected} AS n', format='sql',
                                                 submission_ref=submission)
                 original = {'ordinal': ordinal, 'expected': expected,
-                            'submission': plain(submission), 'run': plain(execution.ref)}
+                            'submission': submission_data, 'run': plain(execution.ref)}
+                record_reference(references, ordinal, submission_data, original['run'])
                 assert all(item['run'] != original['run'] for item in originals)
                 originals.append(original)
                 # Persist every actual reference before its first wait.
@@ -402,7 +442,8 @@ def run_phase(phase):
                         attached = client.attach(item['run'])
                         assert plain(attached.ref) == item['run']
                         rows(attached, item['expected'])
-                    write_event('checkpoint-complete', ordinal=ordinal, inventory=inventory(client))
+                    write_event('checkpoint-complete', ordinal=ordinal, retirement_checked=True,
+                                inventory=settled_inventory(client, phase, ordinal))
             write_event('warm-complete', runs=len(originals), inventory=inventory(client))
         elif phase == 'saved':
             original = json.loads((ROOT / 'originals.json').read_text())
@@ -416,7 +457,8 @@ def run_phase(phase):
                 assert plain(execution.ref) == item['run']
                 rows(execution, item['expected'])
                 write_event('saved-result-complete', ordinal=item['ordinal'])
-            write_event('saved-complete', runs=10, inventory=inventory(client))
+            write_event('saved-complete', runs=10, retirement_checked=True,
+                        inventory=settled_inventory(client, phase, 10))
         else:
             raise ValueError('Unknown repeated-Host fixture phase')
     except BaseException as primary:
@@ -433,7 +475,7 @@ def run_phase(phase):
                 if not failed:
                     raise
             else:
-                write_event('first-close-returned', mode=phase)
+                write_event('first-close-returned', mode=phase, physical_release_observed=False)
 
 
 START = time.monotonic()

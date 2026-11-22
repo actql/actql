@@ -12,7 +12,8 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView} from
+  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView,
+  WireRunExplanationContextView, WireStaticExplanationView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -554,6 +555,9 @@ export interface Execution {
    * The signal cancels this read only, not the execution. */
   explain(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationView>;
+  /** Read the original Saved Plan, Facts, and Context where it was retained. */
+  explainContext(options?: {signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number}): Promise<WireRunExplanationContextView>;
   /** Read-only Owner-local projection; omitted pending facts remain unknown. */
   inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;
@@ -626,6 +630,9 @@ export interface Client {
     maxWireBytes?: number; maxNodes?: number; maxDepth?: number;
     signal?: AbortSignal;
   }): Promise<WirePlanView | WireEffectfulStaticPlanView>;
+  /** Static structural Plan, Facts and Context through the current Host's read authority. */
+  explain(input: string | Record<string, unknown>,
+    options?: Parameters<Client['plan']>[1]): Promise<WireStaticExplanationView>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,

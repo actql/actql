@@ -1,6 +1,7 @@
 // Actual SQLite persistence with explicit nominal compiler-control ports.
 // This is not funded compiler capture or installed Host/SDK acceptance.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -8,8 +9,15 @@ import {join} from 'node:path';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import schemaSupport from './host-journal-schema-support.cjs';
+import recipeModule from './host-journal-service-recipe.cjs';
 import {controls, request, requestControl, options, evidence, planOriginal} from './fixtures/original-plan-journal.mjs';
 import {explanationFacts} from '../../scripts/fixtures/explanation-facts-vectors.mjs';
+import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+const contextWire = JSON.stringify(effectfulStaticExplanationFixture().context);
+// The storage control is explicit here. The Common capture test establishes
+// the semantic Template/Run/Check Environment relation independently.
+const invocationTemplateWire = '{"test_original_template":"effect-first-admission"}';
 function fixture(t, configuration = {}, afterAcknowledgement) {
   const path = mkdtempSync(join(tmpdir(), 'actql-g-original-explanation-'));
   let journal = openClientRequestJournal(path,configuration), captures = 0, acknowledgements = 0;
@@ -32,7 +40,14 @@ function fixture(t, configuration = {}, afterAcknowledgement) {
     runDefinitionCid: options.runDefinition.identity};
   t.after(() => {journal.close(); rmSync(path, {recursive: true, force: true});});
   return {path, control, ref, captures: () => captures, acknowledgements: () => acknowledgements,
-    ticket(factsWire = JSON.stringify(explanationFacts)) {const ticket = Object.freeze({}); tickets.set(ticket, {factsWire}); return ticket;},
+    ticket(factsWire = JSON.stringify(explanationFacts), context,
+      template = context === undefined ? undefined : invocationTemplateWire) {
+      const ticket = Object.freeze({});
+      tickets.set(ticket, {factsWire,
+        ...(context === undefined ? {} : {contextWire: context}),
+        ...(template == null ? {} : {invocationTemplateWire: template})});
+      return ticket;
+    },
     planTicket: () => base.ticket(),
     accept: ticket => journal.acceptDefinition(request, {...options, originalPlan: base.ticket(), originalExplanation: ticket}, requestControl, control),
     lookup: () => journal.lookupRunDefinition(ref, requestControl, control),
@@ -146,24 +161,31 @@ test('the original loan receives its ACK only after the same Facts transaction i
 });
 
 test('a lost COMMIT reply retains the original loan even when the fresh row was written', t => {
-  const f=fixture(t), original=DatabaseSync.prototype.exec;
-  const primary=Error('AuthoredLostFactsCommitReply');
-  let injected=false;
-  DatabaseSync.prototype.exec=function(sql){
-    const result=Reflect.apply(original,this,[sql]);
-    if(sql==='COMMIT'&&!injected){injected=true;throw primary;}
-    return result;
-  };
-  try {
-    let failure;
-    try {f.accept(f.ticket());} catch(error){failure=error;}
-    assert.equal(injected,true);
-    assert.equal(failure?.code,'ClientRequestAcceptanceUnknown');
-    assert.equal(failure?.outcome,'unknown');
-    assert.equal(failure?.cause,primary);
-    assert.equal(f.acknowledgements(),0);
-  } finally {DatabaseSync.prototype.exec=original;}
-  assert.equal(f.explanation().factsWire,JSON.stringify(explanationFacts));
+  for (const context of [undefined, contextWire]) {
+    const f = fixture(t), original = DatabaseSync.prototype.exec;
+    const primary = Error('AuthoredLostExplanationCommitReply');
+    let injected = false;
+    DatabaseSync.prototype.exec = function(sql) {
+      const result = Reflect.apply(original, this, [sql]);
+      if (sql === 'COMMIT' && !injected) {injected = true; throw primary;}
+      return result;
+    };
+    try {
+      assert.throws(() => f.accept(f.ticket(undefined, context)), error => {
+        assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+        assert.equal(error.outcome, 'unknown');
+        assert.equal(error.cause, primary);
+        return true;
+      });
+      assert.equal(injected, true);
+      assert.equal(f.acknowledgements(), 0);
+    } finally {DatabaseSync.prototype.exec = original;}
+    const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+    const retained = f.journal.readRunExplanationContextOriginal(f.ref, extent);
+    assert.equal(retained.factsWire, JSON.stringify(explanationFacts));
+    assert.equal(retained.contextWire, context);
+    assert.equal(retained.invocationTemplateWire, context === undefined ? undefined : invocationTemplateWire);
+  }
 });
 
 test('post-ACK cleanup failure preserves its primary and the committed original Facts', t => {
@@ -332,4 +354,269 @@ test('structural full read refuses growth after its scalar probe before any over
     assert.throws(() => f.journal.readRunExplanationOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
     assert(!Object.values(observations.at(-1)).includes('x'.repeat(131072)));
   } finally {StatementSync.prototype.get = get; DatabaseSync.prototype.prepare = prepare; db.close();}
+});
+
+test('Context and Template join the same committed Plan and Facts and leave the old selection unchanged', async t => {
+  let acknowledged = false;
+  const f = fixture(t, explanationSchemaConfiguration, () => {
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+    try {
+      const committed = db.prepare(`SELECT r.run_definition_wire, r.run_admission_evidence_json,
+        f.facts_wire, c.context_wire, c.invocation_template_wire FROM client_requests r
+        JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid
+        JOIN client_run_explanation_context_originals c ON c.run_definition_cid = f.run_definition_cid`).get();
+      assert.equal(committed.run_definition_wire, options.runDefinition.wire);
+      assert.equal(committed.run_admission_evidence_json, JSON.stringify({...evidence, logicalPlanOriginal: planOriginal}));
+      assert.equal(committed.facts_wire, JSON.stringify(explanationFacts));
+      assert.equal(committed.context_wire, contextWire);
+      assert.equal(committed.invocation_template_wire, invocationTemplateWire);
+      acknowledged = true;
+    } finally {db.close();}
+  });
+  assert.equal(f.journal.supportsOriginalExplanationContext(), true);
+  const ticket = f.ticket(undefined, contextWire);
+  const first = await f.journal.admitOrLookupDefinition(request, {
+    ...options, issueDefinition: async () => ({...options, originalPlan: f.planTicket(), originalExplanation: ticket}),
+  }, requestControl, f.control);
+  assert.equal(first.inserted, true);
+  assert.equal(acknowledged, true);
+  const captures = f.captures();
+  f.reopen();
+  const old = f.journal.probeRunExplanationOriginal(f.ref);
+  const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+  assert.equal(Object.hasOwn(old, 'contextBytes'), false);
+  assert.equal(Object.hasOwn(old, 'invocationTemplateBytes'), false);
+  assert.equal(extent.contextBytes, Buffer.byteLength(contextWire));
+  assert.equal(extent.invocationTemplateBytes, Buffer.byteLength(invocationTemplateWire));
+  assert.equal(extent.storedBytes, old.storedBytes + extent.contextBytes + extent.invocationTemplateBytes + 64);
+  const original = f.journal.readRunExplanationOriginal(f.ref, old);
+  assert.equal(Object.hasOwn(original, 'contextWire'), false);
+  assert.equal(Object.hasOwn(original, 'invocationTemplateWire'), false);
+  assert.deepEqual(f.journal.readRunExplanationContextOriginal(f.ref, extent),
+    {...original, contextWire, invocationTemplateWire});
+  assert.equal(f.captures(), captures);
+  assert.equal(f.journal.probeRunExplanationContextOriginal({...f.ref, namespaceId: 'foreign'}), undefined);
+  assert.equal(f.journal.readRunExplanationContextOriginal({...f.ref, namespaceId: 'foreign'}, extent), undefined);
+  assert.equal(f.accept(ticket).inserted, false);
+  assert.throws(() => f.accept(f.ticket(undefined, '{}')), {code: 'ClientRequestExplanationEvidenceMismatch'});
+  assert.throws(() => f.accept(f.ticket(undefined, contextWire, '{}')), {code: 'ClientRequestExplanationEvidenceMismatch'});
+});
+
+test('old Facts-only Runs never backfill Context and selected unsupported storage refuses admission', t => {
+  const f = fixture(t, explanationSchemaConfiguration);
+  f.accept(f.ticket());
+  f.reopen();
+  const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+  assert.equal(extent.contextBytes, 0);
+  assert.equal(extent.invocationTemplateBytes, 0);
+  const original = f.journal.readRunExplanationContextOriginal(f.ref, extent);
+  assert.equal(original.contextWire, undefined);
+  assert.equal(original.invocationTemplateWire, undefined);
+  assert.throws(() => f.accept(f.ticket(undefined, contextWire)), {code: 'ClientRequestExplanationEvidenceMissing'});
+  const unsupported = fixture(t, {...explanationSchemaConfiguration, primarySchemaSqlSupport:
+    schemaSupport.sql.filter(sql => !sql.startsWith('CREATE TABLE client_run_explanation_context_originals ('))});
+  assert.equal(unsupported.journal.supportsOriginalExplanation(), true);
+  assert.equal(unsupported.journal.supportsOriginalExplanationContext(), false);
+  assert.throws(() => unsupported.accept(unsupported.ticket(undefined, contextWire)),
+    {code: 'ClientRequestExplanationStorageUnavailable'});
+  assert.equal(unsupported.lookup(), undefined);
+  assert.equal(unsupported.acknowledgements(), 0);
+  unsupported.accept(unsupported.ticket());
+  assert.equal(unsupported.explanation().factsWire, JSON.stringify(explanationFacts));
+});
+
+test('selected wider Journal caps optional Context facets and evidence at the same 64 KiB extent', t => {
+  const policy = recipeModule.declareHostJournalServiceRecipe({}).journal;
+  assert.equal(policy.maxRunDefinitionWireBytes, 64 * 1024 * 1024);
+  const limit = 65536;
+  for (const extra of [0, 1]) {
+    const f = fixture(t, policy);
+    assert.equal(f.journal.originalExplanationContextLimit(), limit);
+    const facts = JSON.stringify(explanationFacts);
+    const sized = 'x'.repeat(limit - Buffer.byteLength(facts) - Buffer.byteLength(invocationTemplateWire) + extra);
+    const ticket = f.ticket(facts, sized);
+    if (extra === 0) {
+      assert.equal(f.accept(ticket).inserted, true);
+      f.reopen();
+      const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+      assert.equal(extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes, limit);
+      assert.equal(f.acknowledgements(), 1);
+    } else {
+      assert.throws(() => f.accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});
+      assert.equal(f.lookup(), undefined);
+      assert.equal(f.acknowledgements(), 0);
+    }
+  }
+  for (const extra of [0, 1]) {
+    const f = fixture(t, policy), ticket = f.ticket(undefined, contextWire), originalPlan = f.planTicket();
+    const prefix = {...evidence, effectOriginalRunWire: ''};
+    const available = limit - Buffer.byteLength(JSON.stringify({...prefix, logicalPlanOriginal: planOriginal}));
+    const base = Object.freeze({...prefix, effectOriginalRunWire: 'x'.repeat(available + extra)});
+    assert.equal(Buffer.byteLength(JSON.stringify({...base, logicalPlanOriginal: planOriginal})), limit + extra);
+    const control = {...f.control,
+      originalRunPlanAdmissionEvidence(selected, run, program, admitted) {
+        assert.equal(admitted, base);
+        return f.control.originalRunPlanAdmissionEvidence(selected, run, program, evidence);
+      },
+      originalRunExplanationAdmissionEvidence(selected, run, program, admitted) {
+        assert.equal(admitted, base);
+        return f.control.originalRunExplanationAdmissionEvidence(selected, run, program, evidence);
+      },
+    };
+    const accept = contextTicket => f.journal.acceptDefinition(request, {...options,
+      runAdmissionEvidence: base, originalPlan, originalExplanation: contextTicket}, requestControl, control);
+    if (extra === 0) {
+      assert.equal(accept(ticket).inserted, true);
+      assert.equal(f.acknowledgements(), 1);
+    } else {
+      const stringify = JSON.stringify;
+      JSON.stringify = (value, ...args) => {
+        assert(!Object.hasOwn(value ?? {}, 'logicalPlanOriginal'), 'oversized optional evidence must not be serialized');
+        return stringify(value, ...args);
+      };
+      try {assert.throws(() => accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});}
+      finally {JSON.stringify = stringify;}
+      assert.equal(f.lookup(), undefined);
+      assert.equal(f.acknowledgements(), 0);
+      assert.equal(accept(undefined).inserted, true, 'the ordinary Journal policy still admits this size');
+      const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+      assert.equal(extent.evidenceBytes, limit + extra);
+      assert.equal(extent.contextBytes, 0);
+    }
+  }
+});
+
+test('competing Effect Context keeps the exact durable winner and returns only its own loan', t => {
+  for (const retainedContext of [undefined, contextWire]) {
+    const f = fixture(t);
+    f.accept(f.ticket(undefined, retainedContext));
+    const body = JSON.parse(options.runDefinition.wire);
+    delete body.run_definition_cid;
+    body.run_id = 'competing-context-run';
+    const identity = 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
+    const runDefinition = Object.freeze({name: 'run_definition', identity,
+      wire: canonicalText({...body, run_definition_cid: identity})});
+    assert.notEqual(runDefinition.identity, f.ref.runDefinitionCid);
+    const ticket = f.ticket(undefined, '{}');
+    const plan = f.planTicket();
+    const control = {...f.control,
+      admit(kind, wire) {
+        assert.equal(kind, 'run_definition');
+        if (wire === options.runDefinition.wire) return options.runDefinition;
+        assert.equal(wire, runDefinition.wire);
+        return runDefinition;
+      },
+      originalRunPlanAdmissionEvidence(selected, definition, program, original) {
+        assert.equal(selected, plan);
+        assert.equal(definition, runDefinition);
+        return f.control.originalRunPlanAdmissionEvidence(selected, options.runDefinition, program, original);
+      },
+      originalRunExplanationAdmissionAcknowledged(selected, definition, program, original) {
+        assert.equal(selected, ticket);
+        assert.equal(definition, runDefinition);
+        f.control.originalRunExplanationAdmissionAcknowledged(selected, options.runDefinition, program, original);
+      },
+    };
+    const accepted = f.journal.acceptDefinition(request, {...options, runDefinition,
+      originalPlan: plan, originalExplanation: ticket}, requestControl, control);
+    assert.equal(accepted.inserted, false);
+    assert.deepEqual(accepted.ref, f.ref);
+    assert.equal(f.acknowledgements(), 2);
+    const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+    assert.equal(f.journal.readRunExplanationContextOriginal(f.ref, extent).contextWire, retainedContext);
+    assert.equal(f.journal.probeRunExplanationContextOriginal({...f.ref, runDefinitionCid: identity}), undefined);
+  }
+});
+
+test('failed Context insertion rolls back the first Run, Plan and Facts before acknowledgement', t => {
+  const f = fixture(t);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    db.exec(`CREATE TABLE client_run_explanation_context_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
+  context_wire TEXT NOT NULL,
+  context_wire_sha256 TEXT NOT NULL,
+  invocation_template_wire TEXT NOT NULL
+) STRICT`);
+    db.exec(`CREATE TRIGGER fail_context_fixture BEFORE INSERT ON client_run_explanation_context_originals
+      BEGIN SELECT RAISE(ABORT, 'test Context write failure'); END`);
+    assert.throws(() => f.accept(f.ticket(undefined, contextWire)), error => {
+      assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+      assert.equal(error.outcome, 'failed');
+      assert.equal(error.connectionUsable, true);
+      assert.match(error.cause?.message, /test Context write failure/u);
+      return true;
+    });
+    assert.equal(f.lookup(), undefined);
+    assert.equal(f.explanation(), undefined);
+    assert.equal(f.acknowledgements(), 0);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM client_run_explanation_context_originals').get().n, 0);
+  } finally {db.close();}
+});
+
+test('Context and Template enforce a paired aggregate extent and refuse changed rows inside the native SELECT', t => {
+  const f = fixture(t);
+  assert.throws(() => f.accept(f.ticket(undefined, contextWire, null)), {code: 'InvalidClientRunExplanationOriginal'});
+  assert.throws(() => f.accept(f.ticket(undefined, undefined, invocationTemplateWire)), {code: 'InvalidClientRunExplanationOriginal'});
+  assert.throws(() => f.accept(f.ticket(undefined, 'é'.repeat(32768))), {code: 'InvalidClientRunAdmissionEvidence'});
+  assert.throws(() => f.accept(f.ticket(undefined, contextWire, 'é'.repeat(32768))), {code: 'InvalidClientRunAdmissionEvidence'});
+  assert.equal(f.lookup(), undefined);
+  f.accept(f.ticket(undefined, contextWire));
+  const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
+  assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, {...extent,
+    invocationTemplateBytes: 0, storedBytes: extent.storedBytes - extent.invocationTemplateBytes}),
+  {code: 'InvalidClientRunExplanationExtent'});
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  const prepare = DatabaseSync.prototype.prepare, get = StatementSync.prototype.get;
+  const selected = new WeakSet();
+  let observed;
+  DatabaseSync.prototype.prepare = function(sql, ...args) {
+    const statement = Reflect.apply(prepare, this, [sql, ...args]);
+    if (sql.includes('JOIN client_run_explanation_context_originals')) {
+      assert(Buffer.byteLength(sql) <= 4096);
+      selected.add(statement);
+    }
+    return statement;
+  };
+  StatementSync.prototype.get = function(...args) {
+    const row = Reflect.apply(get, this, args);
+    if (selected.has(this)) observed = row;
+    return row;
+  };
+  try {
+    for (const [field, original] of [['context_wire', contextWire], ['invocation_template_wire', invocationTemplateWire]]) {
+      const update = db.prepare(`UPDATE client_run_explanation_context_originals SET ${field}=?`);
+      for (const changed of ['{}', 'é'.repeat(32769)]) {
+        update.run(changed);
+        assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+        assert.equal(observed[field], null, 'the native reader must withhold the changed original');
+        assert.equal(f.explanation().factsWire, JSON.stringify(explanationFacts));
+      }
+      assert.throws(() => f.journal.probeRunExplanationContextOriginal(f.ref), {code: 'ClientRequestJournalCorrupt'});
+      update.run(original);
+    }
+    const changed = contextWire.replace('["tag"]', '["zip"]');
+    assert.notEqual(changed, contextWire);
+    assert.equal(Buffer.byteLength(changed), extent.contextBytes);
+    const updateContext = db.prepare('UPDATE client_run_explanation_context_originals SET context_wire=?');
+    updateContext.run(changed);
+    assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+    assert.equal(observed.context_wire, changed, 'length alone admits the replacement from SQLite');
+    assert.equal(f.explanation().factsWire, JSON.stringify(explanationFacts));
+    updateContext.run(contextWire);
+    const original = f.journal.readRunExplanationContextOriginal(f.ref, extent);
+    assert.equal(original.contextWire, contextWire);
+    assert.equal(Object.hasOwn(original, 'contextWireSha256'), false);
+    const replaceChecksum = db.prepare('UPDATE client_run_explanation_context_originals SET context_wire_sha256=?');
+    replaceChecksum.run(createHash('sha256').update('sha256:' + 'f'.repeat(64)).update(contextWire).digest('hex'));
+    assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+    replaceChecksum.run(createHash('sha256').update(f.ref.runDefinitionCid).update(contextWire).digest('hex'));
+    assert.equal(f.journal.readRunExplanationContextOriginal(f.ref, extent).contextWire, contextWire);
+    db.prepare('DELETE FROM client_run_explanation_context_originals').run();
+    assert.throws(() => f.journal.readRunExplanationContextOriginal(f.ref, extent), {code: 'ClientRequestJournalCorrupt'});
+  } finally {
+    StatementSync.prototype.get = get;
+    DatabaseSync.prototype.prepare = prepare;
+    db.close();
+  }
 });

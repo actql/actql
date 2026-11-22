@@ -207,6 +207,8 @@ pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_pub
 
 pub fn[I] begin_request_effect_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
+pub fn[I] begin_request_explanation_context_read(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] begin_request_explanation_read(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] begin_request_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -268,6 +270,8 @@ pub fn cancel_program_validation(ClientProgramValidation) -> Unit
 pub fn capture_installed_logical_observation_record(ClientLogicalObservationRecord) -> Result[Unit, ClientLogicalObservationIssue]
 
 pub fn capture_installed_managed_run_explanation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientOriginalExplanationCapture, ClientOriginalExplanationCaptureIssue]
+
+pub fn[I] capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int, journal_bytes? : Int) -> Result[ClientRequestEffectRunExplanation[I], ClientRequestStaticContextIssue]
 
 pub fn[I] capture_request_original_explanation(ClientRequestOriginalExplanation[I], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientOriginalExplanationCapture, ClientOriginalExplanationCaptureIssue]
 
@@ -505,9 +509,15 @@ pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, 
 
 pub fn[I, A] construct_request_effect_materials(ClientRequestPreparation[I], I, @run_publication_host.PreparedClientEffectComputation, codec_owner? : @run_publication_host.PreparedClientEffectComputation?, ((String, Int, Int, Int) -> Bool) -> Result[A, @run_publication_host.ClientEffectRunMaterialsIssue]) -> Result[A, ClientRequestProgramPlanIssue]
 
+pub fn[I] construct_request_static_effect_context(ClientRequestPreparation[I], I, @run_publication_host.ClientStaticEffectExplanationOriginal, @run_publication_host.ClientEffectCompilation, Int, Int, Int, Int) -> Result[String, ClientRequestStaticContextIssue]
+
+pub fn[I] construct_request_static_effect_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientStaticEffectExplanationOriginal, @run_publication_host.ClientEffectCompilation, Int, Int, Int, Int) -> Result[(String, String), ClientRequestStaticContextIssue]
+
 pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientRequestPreparationIssue]
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
+
+pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, decline? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
 
 pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -882,6 +892,8 @@ pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, 
 pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, requirements? : ClientLocalRequirements?, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+
+pub fn[I] original_effect_run_explanation_facets(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract) -> Result[ClientRequestEffectRunExplanationFacets, ClientRequestStaticContextIssue]
 
 pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String, lexical_work? : Int?) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
@@ -1289,6 +1301,8 @@ pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relati
 
 pub fn read_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedTaskBoundaryPhase) -> Result[ClientLogicalObservationRecord, ClientLogicalObservationIssue]
 
+pub fn[I] read_request_explanation_context(ClientRequestPreparation[I], I, String, String?, String?, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
+
 pub fn[I] read_request_explanation_view(ClientRequestPreparation[I], I, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 
 pub fn rebind_installed_effect_result_retention(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientEffectUnitPreparationIssue]
@@ -1393,6 +1407,12 @@ pub fn[I] request_preparation_work_calls(ClientRequestPreparation[I]) -> (Int64,
 
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
+pub fn[I] request_prepared_static_effect_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[ClientRequestStaticEffectExplanation, ClientRequestStaticContextIssue]
+
+pub fn[I] request_prepared_static_effect_explanation_narrative(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, @run_publication_host.ClientExplanationLanguage, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
+
+pub fn[I] request_prepared_static_effect_explanation_wire(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticContextIssue]
+
 pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int, infers? : Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestTerminalIssue]
 
 pub fn request_program_authoring_context_issue_code(Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]) -> String?
@@ -1446,6 +1466,8 @@ pub fn[I] reserve_request_effect_capture_recovery(ClientRequestPreparation[I], I
 pub fn[I] reserve_request_effect_original_material(ClientRequestPreparation[I], I, @run_publication_host.PreparedClientEffectComputation, Int, (Int) -> String) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] reserve_request_explanation_context_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_explanation_read(ClientRequestPreparation[I], I, Int, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -1652,6 +1674,8 @@ pub fn[I, P] take_program_compilation_preparation(ClientProgramCheckPreparation[
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
+
+pub fn[I] try_capture_request_effect_run_explanation(ClientRequestPreparation[I], I, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[ClientRequestEffectRunExplanation[I]?, ClientRequestStaticContextIssue]
 
 pub fn[T, E] with_program_commit_validation_view_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue], (ClientProgramValidation, @run_publication.PublicationCommitPreparation) -> Result[T, E]) -> Result[Result[T, E]?, ClientProgramValidationIssue]
 
@@ -2106,6 +2130,16 @@ pub(all) enum ClientRequestComputationKind {
   Effect
 } derive(Eq, @debug.Debug)
 
+type ClientRequestEffectRunExplanation[I]
+
+pub struct ClientRequestEffectRunExplanationFacets {
+  plan : String
+  compiled_plan : String
+  invocation_template : String
+  facts : String
+  context : String
+}
+
 pub(all) enum ClientRequestExplanationReadIssue {
   Preparation(ClientRequestPreparationIssue)
   Projection(@run_publication_host.ClientRetainedExplanationIssue)
@@ -2144,6 +2178,21 @@ pub(all) enum ClientRequestPreparationIssue {
   ParameterDeclarations(@parameter_binding.Issue)
   ParameterSource(@stage_parameters.Issue)
 } derive(@debug.Debug)
+
+pub(all) enum ClientRequestStaticContextIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Context(@run_publication_host.ClientStaticExplanationSourceIssue)
+  Facts(@run_publication_host.ClientExplanationFactsIssue)
+  Encoding(@encode_core.EncodeFailure)
+  Contract(@run_publication.PublicationContractIssue)
+  Presentation(@run_publication_host.ClientExplanationNarrativeIssue)
+} derive(@debug.Debug)
+
+pub struct ClientRequestStaticEffectExplanation {
+  plan : String
+  facts : String
+  context : String
+}
 
 pub struct ClientRetainedContentOutput {
   generation : @run_publication_host.ClientSerializationGeneration

@@ -12,7 +12,8 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape, validWireRunExplanationViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
@@ -107,7 +108,8 @@ export function createNodeInProcessClientHost({
   bindOwnedRequest,
   attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
-  resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, runExplanation, maxRowBytes, observe,
+  resources, inspectResource, peekResource, check, plan, staticEffectExplanation,
+  inspectRun, runPlan, runExplanation, runExplanationContext, maxRowBytes, observe,
   performInstalledRequest,
   captureResultObservation,
   captureResultOperation,
@@ -128,7 +130,7 @@ export function createNodeInProcessClientHost({
       // Static preparation probes the same funded-original lookup, even
       // though a plan read has no submission producer or execution grant.
       const tracksSource = bindOwnedRequest !== undefined &&
-        ['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
+        ['plan', 'static-explanation', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
       const own = (parent, derived) => {
         if (tracksSource && bindOwnedRequest(parent, derived) !== undefined) {
           fail('SourceManagedPreparationUnavailable');
@@ -273,14 +275,23 @@ export function createNodeInProcessClientHost({
             Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunPlanView');
         return view;
       }
-      if (operation === 'run-explanation') {
-        return await invoke(runExplanation, undefined, view => {
-          if (!validWireRunExplanationViewShape(view) ||
+      if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
+            operation === 'static-explanation') {
+        const staticRead = operation === 'static-explanation';
+        const contextRead = operation === 'run-explanation-context';
+        const reader = staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
+        return await invoke(reader, undefined, view => {
+          if (staticRead) {
+            if (!validWireStaticExplanationViewShape(view)) fail('InvalidClientHostStaticExplanationView');
+          } else if (!validateRun(view) ||
               Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunExplanationView');
           // Consume the Host-owned parsed view while its original read is
           // admitted. Only the independent caller value crosses this boundary.
           const wire = JSON.stringify(view);
-          if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) fail('RunExplanationReadLimit');
+          if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) {
+            fail(staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
+          }
           return JSON.parse(wire);
         });
       }
