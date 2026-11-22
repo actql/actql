@@ -253,6 +253,18 @@ fn admit_source_free_client_effect_preview_identities(
     Ok(value) => value
     Err(_) => return Err(ForeignPreview)
   }
+  check_admitted_source_free_client_effect_preview_identities(
+    owner, inputs, preview, identities,
+  ).map(_ => preview)
+}
+
+///|
+fn check_admitted_source_free_client_effect_preview_identities(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  preview : @publication.EffectPreviewIdentity,
+  identities : Array[ClientEffectLocalIdentity],
+) -> Result[Unit, ClientEffectLocalIdentityIssue] {
   if @publication.effect_preview_program_definition_cid(preview) !=
     prepared_client_effect_computation_definition_cid(owner) ||
     @publication.effect_preview_program_semantics_cid(preview) !=
@@ -327,5 +339,5 @@ fn admit_source_free_client_effect_preview_identities(
   if source_count != identities.length() {
     return Err(MissingIdentity)
   }
-  Ok(preview)
+  Ok(())
 }
