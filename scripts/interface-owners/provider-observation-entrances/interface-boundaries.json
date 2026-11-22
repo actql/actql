@@ -3392,7 +3392,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb0e2d546f3008fb5dd6d3c98bc52d0dee7aaa6c0d392be223fdb99fd78b8617",
+      "sha256": "d65fd1a033133d21bdf55fbcef1755ad85b47f96f3e510edf4030fc2575c2cb9",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider"

@@ -34716,7 +34716,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "3911d211d8ff6980d2d1881a14c83a1e86fd3f8b9dc665978bdfc8d4b1be583b",
+      "sha256": "0b3a6da15f6b5ac0c2826d3494e4176280479874f9d594799c5b27dd9ffa9cf6",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -35060,6 +35060,36 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [
+            "name",
+            "selector",
+            "modelId",
+            "endpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
           "parameters": [],
           "async": false
@@ -35318,7 +35348,12 @@
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
             "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2"
+            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2"
           ],
           "exports": [
             "installConfiguredModelProviders"

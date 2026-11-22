@@ -18,6 +18,7 @@ interface Task {name: string; providerId: string; taskCid: string; modelSelector
   promptCid: string; outputSchemaCid: string; promptPayloadWire: string}
 interface SelectedTasks {
   tasks: readonly Task[];
+  verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string): Promise<void>;
   responseProfileFor(name: string, project: () => string): Promise<{profile: unknown}>;
   executionOriginalsFor(name: string, limits: Readonly<Record<string, bigint>>): Promise<unknown>;
   bindingOriginalsFor(providerId: string): unknown;
@@ -246,6 +247,8 @@ function configureOpenAIChatProvider(options: unknown, projectMode: boolean) {
     const selected = await context.prepareTasks([{providerId: config.providerId, bindingOriginals: bindings}]);
     const owned = selected.tasks.filter(task => task.providerId === config.providerId);
     if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
+    await selected.verifyChatConfiguration(owned[0].name, config.modelSelector,
+      config.modelId, config.baseURL + '/chat/completions');
     const raw = await context.prepareRawPolicies(policies);
     const profiles = new Map<string, {profile: unknown}>();
     for (const task of owned) {
