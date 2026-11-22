@@ -23022,7 +23022,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "056e752938421ec678451114b205ed09f11f775e9b0ce740bb4cf8dd831769f9",
+      "sha256": "0dce9245325653e3081c56b3c3c11005443b514b924c8a2ae7a16ae2e4df1492",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
