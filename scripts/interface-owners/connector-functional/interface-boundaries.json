@@ -6882,6 +6882,488 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-physical-read.mjs",
+      "sha256": "e4da4173e19690f43f0a398e209f8ab2e9fbe7ab86da1a7722a3687296b63051",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectPhysicalOperation",
+        "createInstalledRowEffectReadChild",
+        "createInstalledRowEffectReadOperations"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectPhysicalOperation",
+          "parameters": [
+            "moon",
+            "recipeOf",
+            "fail",
+            "installedRowCredentialOperationSite",
+            "prepareInstalledRowCaptureChild",
+            "prepareInstalledEffectCredentialChild"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [
+            "member",
+            "rowIndex",
+            "phase",
+            "operation",
+            "site",
+            "originalAuthorization",
+            "useId",
+            "resource",
+            "purpose",
+            "invoke",
+            "managedEffect",
+            "requestChildren",
+            "retireRequestAliases",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "assertCurrent",
+            "signal",
+            "maxResponseBytes",
+            "constructChild",
+            "credentialSlot",
+            "responsePreparation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild",
+          "parameters": [
+            "ownerOf",
+            "recipeOf",
+            "requireSynchronousEffectResource",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "member",
+            "phase",
+            "physicalOperations",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "assertCurrent",
+            "signal",
+            "originalTargetAuthorization",
+            "accountTargetRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/init:owned/init:owned",
+          "parameters": [
+            "constructChild",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild#2",
+          "parameters": [
+            "authorization",
+            "input",
+            "rowIndex",
+            "slot",
+            "project",
+            "prepareOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/ownedRead/ownedRead",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations",
+          "parameters": [
+            "ownerOf",
+            "recipeOf",
+            "managedReadChild",
+            "resourceFields",
+            "readDecision",
+            "sameValue",
+            "cidPattern",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/checkRows/checkRows",
+          "parameters": [
+            "members",
+            "entries",
+            "runInvocationCid",
+            "dispatches",
+            "subjectOf",
+            "signal",
+            "assertCurrent",
+            "physicalOperations",
+            "controlConstruction",
+            "operationPhase"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/checkRows/checkRows/checkRows",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/describeMember/describeMember",
+          "parameters": [
+            "member",
+            "maxRows",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "label",
+            "approval",
+            "signal",
+            "assertCurrent",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/observeRows/observeRows",
+          "parameters": [
+            "member",
+            "entries",
+            "current",
+            "read",
+            "signal",
+            "assertCurrent",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/observeRows/observeRows/observeRows",
+          "parameters": [
+            "readTarget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectReadOperations/observeRows/observeRows/observeRows#2",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectPhysicalOperation",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+            "createInstalledRowEffectPhysicalOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3"
+          ],
+          "exports": [
+            "createInstalledRowEffectPhysicalOperation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const prepareCredentialOperation = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "export function createInstalledRowEffectPhysicalOperation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "managedEffect?.runtime !== moon"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "installedRowCredentialOperationSite(site!.credential)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "requestsRetired: retireRequestAliases"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "reject('InstalledEffectPhysicalChildLimit')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "assertCurrent, signal});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: responseBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const ownedRead = recipe?.ownedReadOperations?.find"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-read-slots.test.mjs",
+                "anchor": "named credential read caller preserves child binding"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectReadChild",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/init:owned/init:owned",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/managedReadChild#2",
+            "createInstalledRowEffectReadChild/managedReadChild/managedReadChild/ownedRead/ownedRead"
+          ],
+          "exports": [
+            "createInstalledRowEffectReadChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const managedReadChild = ("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "export function createInstalledRowEffectReadChild"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "input?.grant !== originalAuthorization?.grant"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "originalTargetAuthorization(authorization, rowIndex)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "requireSynchronousEffectResource(project(response))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "reject('ForeignInstalledEffectReadChild')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "runInvocationCid, dispatchRequestCid, assertCurrent, signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "maxResponseBytes: input.maxResponseBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const field=Object.getOwnPropertyDescriptor(project,'responsePreparation')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-read-slots.test.mjs",
+                "anchor": "named credential read caller preserves child binding"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectReadOperations",
+            "createInstalledRowEffectReadOperations/checkRows/checkRows",
+            "createInstalledRowEffectReadOperations/checkRows/checkRows/checkRows",
+            "createInstalledRowEffectReadOperations/describeMember/describeMember",
+            "createInstalledRowEffectReadOperations/observeRows/observeRows",
+            "createInstalledRowEffectReadOperations/observeRows/observeRows/observeRows",
+            "createInstalledRowEffectReadOperations/observeRows/observeRows/observeRows#2"
+          ],
+          "exports": [
+            "createInstalledRowEffectReadOperations"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const describeMember = async"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const checkRows = async"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "const observeRows = async"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "export function createInstalledRowEffectReadOperations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "sameValue(identity, entries[index].target)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "site.issueReadGrant(grantFacts)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "assertCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "reject('ForeignInstalledRowEffectObservation')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "maxUses: 1"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-read.mts",
+                "anchor": "await withDeclaredUpdateTargetReads"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "managed Salesforce read handoff retains exact issuer originals"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/owned-invocation-context.mjs",
+        "./installed-effect-owned-operation.mjs",
+        "./installed-effect-plan.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
       "responsibilityFacet": "primary",
@@ -8346,7 +8828,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "aecae524ff5b939aa99c58ba16d078835400bb87f2ddb3411ca3369ee1859925",
+      "sha256": "58d134b98bf2a65fda9a67e0d76f5ac3df13cccf318ea23e0164d07bb275b8fb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -8977,15 +9459,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/checkRows/checkRows/checkRows",
-          "parameters": [
-            "authorization",
-            "credential",
-            "callResource"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/claimsOf/claimsOf/claimsOf",
           "parameters": [
             "member",
@@ -9012,64 +9485,6 @@
           "name": "createRowEffectStage/controlRecipes/controlRecipes",
           "parameters": [
             "recipe"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
-          "parameters": [
-            "constructChild",
-            "rowIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
-          "parameters": [
-            "authorization",
-            "credential",
-            "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2",
-          "parameters": [
-            "authorization",
-            "input",
-            "rowIndex",
-            "slot",
-            "project",
-            "prepareOperations"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/observeRows/observeRows/observeRows",
-          "parameters": [
-            "readTarget"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/observeRows/observeRows/observeRows#2",
-          "parameters": [
-            "row",
-            "index"
           ],
           "async": false
         },
@@ -9277,33 +9692,6 @@
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createRowEffectStage/prepareRecovered",
@@ -9873,12 +10261,6 @@
             "createRowEffectStage/claimsOf/claimsOf/claimsOf",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
             "createRowEffectStage/continuationOf/continuationOf/continuationOf",
-            "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
-            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
-            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
-            "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/observeRows/observeRows/observeRows",
-            "createRowEffectStage/observeRows/observeRows/observeRows#2",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
@@ -10516,17 +10898,12 @@
             "createRowEffectStage/captureStage/physicalOperations/physicalOperations",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
-            "createRowEffectStage/checkRows/checkRows/checkRows",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
             "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
-            "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation"
+            "createRowEffectStage/physicalRoute/physicalRoute/retire/retire"
           ],
           "exports": [],
           "attributes": {
@@ -13949,7 +14326,6 @@
           "operations": [
             "createRowEffectStage/controlRecipes/controlRecipes",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
             "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits"
           ],
           "exports": [
@@ -14300,9 +14676,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -14677,7 +15051,6 @@
         "./effect-response-recovery.mjs",
         "./effect-result-work.mjs",
         "./installed-effect-ledger-open.mjs",
-        "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
@@ -14686,6 +15059,7 @@
         "./installed-row-effect-driver.mjs",
         "./installed-row-effect-members.mjs",
         "./installed-row-effect-owner-projection.mjs",
+        "./installed-row-effect-physical-read.mjs",
         "./installed-row-effect-plan-capture.mjs",
         "./installed-row-effect-run-controls.mjs",
         "./installed-row-source.mjs",

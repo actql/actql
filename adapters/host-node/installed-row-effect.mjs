@@ -1,7 +1,6 @@
 import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
-import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
 // Mapping or a checked Command contract (see installed-row-source.mjs for the
@@ -95,18 +94,20 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
 import {createInstalledRowEffectConstruction} from './installed-row-effect-construction.mjs';
+import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild,
+  createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision,
   createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
-import {invokeDeclaredRowUpdate, withDeclaredUpdateTargetReads} from '../host-common/owned-invocation-context.mjs';
+import {invokeDeclaredRowUpdate} from '../host-common/owned-invocation-context.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {refusedEffectPreparation} from
   '../host-common/effect-preparation-result.mjs';
@@ -513,235 +514,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     version: ownerOf(member).profile.targetCheck, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
 
-  // This is the same capture retainer and original Run/Plan, including its
-  // failed child prefix. The implementation recipe selects a DISTINCT native
-  // occurrence for each phase; equal operation names do not share a slot.
-  const prepareCredentialOperation = async ({member, rowIndex, phase, operation,
-    site, originalAuthorization, useId, resource, purpose, invoke,
-    managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild, credentialSlot, responsePreparation}) => {
-    const recipe = recipeOf(member);
-    const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
-    if (ownedRead !== undefined) {
-      if (credentialSlot !== undefined || recipe.rowOperations[ownedRead.operationIndex].operation !== operation ||
-          managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
-          typeof retireRequestAliases !== 'function' || typeof constructChild !== 'function') {
-        fail('InstalledEffectPhysicalPlanUnavailable');
-      }
-      return prepareInstalledRowCaptureChild({children: requestChildren,
-        create: () => prepareInstalledEffectOwnedRequestChild({run: managedEffect,
-          memberIndex: member.memberIndex, rowIndex, operationIndex: ownedRead.operationIndex, operation,
-          constructChild, requestsRetired: retireRequestAliases}), assertCurrent, signal});
-    }
-    if (recipe?.physicalWrite !== undefined) {
-      const selected = recipe.physicalWrite;
-      if (credentialSlot !== undefined || phase !== 'write' || recipe.rowOperations[selected.operationIndex].operation !== operation ||
-          managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
-          typeof retireRequestAliases !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-      return prepareInstalledRowCaptureChild({children: requestChildren,
-        create: () => prepareInstalledEffectOwnedPhysicalChild({run: managedEffect,
-          memberIndex: member.memberIndex, rowIndex, operationIndex: selected.operationIndex, operation,
-          transferBytes: selected.transferBytes, invoke, requestsRetired: retireRequestAliases}),
-        assertCurrent, signal});
-    }
-    const selected = selectInstalledEffectCredentialOperation(recipe, phase, credentialSlot);
-    const perRow = selected?.perRow ?? true;
-    const operations = perRow ? recipe?.rowOperations : recipe?.memberOperations;
-    const responseBytes = maxResponseBytes ?? selected?.maxResponseBytes;
-    if (selected === undefined || operations[selected.operationIndex]?.operation !== operation ||
-        selected.resource !== undefined && (resource !== selected.resource || purpose !== 'read') ||
-        !Number.isSafeInteger(responseBytes) || responseBytes < 1 || responseBytes > selected.maxResponseBytes ||
-        managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
-        typeof retireRequestAliases !== 'function' || typeof assertCurrent !== 'function') {
-      fail('InstalledEffectPhysicalPlanUnavailable');
-    }
-    const readChildren = moon.clientProgramInstalledEffectManagedPlanCaptureChildren;
-    if (typeof readChildren !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
-    const maxChildren = Reflect.apply(readChildren, moon, [managedEffect.operationPlan]);
-    if (!Number.isSafeInteger(maxChildren) || maxChildren < 1 || requestChildren.length >= maxChildren) {
-      fail('InstalledEffectPhysicalChildLimit');
-    }
-    // Lookup recognizes only the original credential returned by this Site.
-    // Its issuer receives the untouched authorization, never the useId copy.
-    const originalSite = installedRowCredentialOperationSite(site.credential);
-    return prepareInstalledRowCaptureChild({children: requestChildren,
-      create: () => prepareInstalledEffectCredentialChild({run: managedEffect,
-        memberIndex: member.memberIndex, rowIndex,
-        operationIndex: selected.operationIndex, operation, perRow, originalSite,
-        originalAuthorization, useId, resource, purpose, runInvocationCid, dispatchRequestCid,
-        maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: responseBytes,
-        responseExtent: selected.responseExtent, responsePreparation,
-        discardResponseProjection: selected.discardResponseProjection === true,
-        assertCurrent, observeCurrent: async () => {assertCurrent();},
-        requestsRetired: retireRequestAliases, invoke}), assertCurrent, signal});
-  };
-
-  const managedReadChild = ({member, phase, physicalOperations, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, originalTargetAuthorization, accountTargetRead}) => {
-    const recipe = recipeOf(member);
-    const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
-    if (ownedRead !== undefined) {
-      if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-      return Object.freeze({owned(constructChild, rowIndex) {
-        if (typeof constructChild !== 'function' || !Number.isSafeInteger(rowIndex) || rowIndex < 0) {
-          fail('ForeignInstalledEffectReadChild');
-        }
-        return physicalOperations({member, rowIndex, phase,
-          operation: recipe.rowOperations[ownedRead.operationIndex].operation,
-          constructChild, assertCurrent, signal});
-      }});
-    }
-    if (!recipe?.credentialOperations?.some(entry => entry.phase === phase)) return undefined;
-    if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
-    const {site} = ownerOf(member);
-    return (authorization, input, rowIndex = 0, slot, project, prepareOperations) => {
-      if (project !== undefined && (typeof project !== 'function' || nodeTypes.isProxy(project) ||
-          nodeTypes.isAsyncFunction(project))) fail('ForeignInstalledEffectReadChild');
-      const selected = selectInstalledEffectCredentialOperation(recipe, phase, slot);
-      if (selected === undefined ||
-          prepareOperations !== undefined && (typeof prepareOperations !== 'function' ||
-            selected.maxTargetBytes === undefined || slot !== 'target')) fail('ForeignInstalledEffectReadChild');
-      const operation = (selected.perRow === false ? recipe.memberOperations : recipe.rowOperations)
-        [selected.operationIndex].operation;
-      // Only a target occurrence consumes this same row's retained approval
-      // grant. Metadata slots require their OWN Account read authorization;
-      // that original is validated again by the existing Credential child.
-      const originalAuthorization = selected.resource === undefined && selected.perRow !== false &&
-          originalTargetAuthorization !== undefined
-        ? originalTargetAuthorization(authorization, rowIndex) : authorization;
-      if (input?.grant !== originalAuthorization?.grant || input.useId === undefined ||
-          !Number.isSafeInteger(input.maxResponseBytes) || input.maxResponseBytes < 1 ||
-          input.maxResponseBytes > selected.maxResponseBytes) fail('ForeignInstalledEffectReadChild');
-      let responsePreparation;
-      if(project!==undefined){
-        if(typeof project!=='function'||nodeTypes.isProxy(project))fail('InvalidInstalledEffectReadProjector');
-        const field=Object.getOwnPropertyDescriptor(project,'responsePreparation');
-        if(field!==undefined&&!Object.hasOwn(field,'value'))fail('InvalidInstalledEffectReadProjector');
-        responsePreparation=field?.value;
-      }
-      // The standard declaration consumes its own ordinary Account-issued
-      // read grant when there was no Checkpoint target-read delegation.
-      // The physical child still requires the exact original Site purpose.
-      const ordinaryRead = selected.perRow === false || selected.resource !== undefined ||
-        (accountTargetRead === true && prepareOperations !== undefined);
-      return physicalOperations({member, rowIndex, phase, operation, site, originalAuthorization,
-        responsePreparation,
-        useId: input.useId, resource: selected.resource ?? member.resource,
-        purpose: ordinaryRead ? 'read' : 'target-read',
-        credentialSlot: slot,
-        runInvocationCid, dispatchRequestCid, assertCurrent, signal,
-        maxResponseBytes: input.maxResponseBytes,
-        invoke: async ({authorization, credential, callResource}) => {
-          const operations = prepareOperations === undefined ? input.operations : prepareOperations();
-          const response = await callResource({...input, operations,
-            ...credential, ...authorization, maxRequestBytes: selected.maxRequestBytes});
-          // Native decoding must finish INSIDE the original physical child.
-          // Its response workspace cannot shrink while projection is pending.
-          return project === undefined ? response : requireSynchronousEffectResource(project(response));
-        }});
-    };
-  };
-  const describeMember = async ({member, maxRows, physicalOperations, operationPhase, runInvocationCid,
-    dispatchRequestCid, label, approval, signal, assertCurrent, controlConstruction}) => {
-    const {owned} = ownerOf(member);
-    if (owned.describe === undefined) return undefined;
-    const readChild = managedReadChild({member, phase: `${operationPhase}-describe`,
-      physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal});
-    return owned.describe({member, maxRows, runInvocationCid, dispatchRequestCid, label, approval, signal, controlConstruction,
-      ...(readChild === undefined ? {} : {readChild}), ...resourceFields(member)});
-  };
-
-  // Every create row's provider check, under a current read decision.
-  const checkRows = async ({members, entries, runInvocationCid, dispatches,
-    subjectOf, signal, assertCurrent, physicalOperations, controlConstruction, operationPhase = 'capture'}) => {
-    assertCurrent?.();
-    for (const [index, member] of members.entries()) {
-      const {owned, site} = ownerOf(member);
-      const managedPlanRecipe = recipeOf(member);
-      if (member.kind !== 'create' || owned.check === undefined) continue;
-      if (managedPlanRecipe?.credentialOperations !== undefined && typeof physicalOperations !== 'function') {
-        fail('InstalledEffectPhysicalPlanUnavailable');
-      }
-      const subjectCid = subjectOf(member);
-      const decision = await readDecision(member, owned.check.resource, subjectCid,
-        signal, assertCurrent);
-      for (const [rowIndex, entry] of entries[index].entries()) {
-        signal?.throwIfAborted();
-        assertCurrent?.();
-        const grantFacts = {operation: owned.check.operation,
-          decision, resource: owned.check.resource, runInvocationCid,
-          dispatchRequestCid: dispatches[index], maxUses: 1};
-        const grant = controlConstruction === undefined ? site.issueReadGrant(grantFacts)
-          : (controlConstruction.grant ?? controlConstruction)(site, site.issueReadGrant, [grantFacts]);
-        const useId = `${dispatches[index]}-check-${subjectCid}-${rowIndex}`;
-        if (managedPlanRecipe?.credentialOperations !== undefined) {
-          await physicalOperations({member, rowIndex, phase: `${operationPhase}-check`,
-            operation: owned.check.operation, site, originalAuthorization: grant, useId,
-            resource: owned.check.resource, purpose: 'read',
-            runInvocationCid, dispatchRequestCid: dispatches[index], assertCurrent, signal,
-            invoke: ({authorization, credential, callResource}) =>
-              owned.checkRequest({member, request: entry.request, authorization, credential, callResource, signal, controlConstruction})});
-        } else {
-          await owned.checkRequest({member, request: entry.request,
-            authorization: {...grant, useId},
-            credential: site.credential, callResource: site.callResource, signal, controlConstruction});
-        }
-        assertCurrent?.();
-      }
-    }
-  };
+  const prepareCredentialOperation = createInstalledRowEffectPhysicalOperation({
+    moon, recipeOf, fail, installedRowCredentialOperationSite, prepareInstalledRowCaptureChild, prepareInstalledEffectCredentialChild,
+  });
+  const managedReadChild = createInstalledRowEffectReadChild({ownerOf, recipeOf, requireSynchronousEffectResource, fail});
+  const {describeMember, checkRows, observeRows} = createInstalledRowEffectReadOperations({
+    ownerOf, recipeOf, managedReadChild, resourceFields, readDecision, sameValue, cidPattern, fail,
+  });
 
   const decideTargetRead = createInstalledRowEffectTargetAuthorization({ownerOf, targetPlanOf, recipeOf, fail});
-
-  // The observed target of every update row under its read decision. Each
-  // observation must be of exactly the target the row's request selects.
-  const observeRows = async ({member, entries, current, read, signal, assertCurrent,
-    physicalOperations, operationPhase, runInvocationCid, dispatchRequestCid}) => {
-    const {owned, updateWriteSlot} = ownerOf(member);
-    assertCurrent?.();
-    const phase = `${operationPhase}-target`;
-    const readChild = managedReadChild({member, phase,
-      physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal,
-      originalTargetAuthorization: read.consumeOriginal, accountTargetRead: read.approval === undefined});
-    const observe = targetEntry => owned.observeTargets({member, entries, current,
-      ...targetEntry, signal,
-      ...(readChild === undefined ? {} : typeof readChild === 'function' ? {
-        readChild
-      } : {ownedReadChild: readChild.owned}),
-      ...resourceFields(member)});
-    let observed;
-    if (updateWriteSlot === undefined) {
-      observed = await observe({authorizationForRow: read.authorizationForRow});
-    } else {
-      const recipe = recipeOf(member);
-      const slot = selectInstalledEffectCredentialOperation(recipe, phase, 'target');
-      const operation = owned.targetRead.operation;
-      if (slot === undefined || slot.perRow === false || slot.resource !== undefined ||
-          recipe.rowOperations[slot.operationIndex]?.operation !== operation) {
-        fail('InstalledEffectPhysicalPlanUnavailable');
-      }
-      observed = await withDeclaredUpdateTargetReads({readChild,
-        authorizationForRow: read.authorizationForRow, slot, operation, rowCount: entries.length,
-        assertCurrent, signal}, readTarget => observe({readTarget}));
-    }
-    assertCurrent?.();
-    if (!Array.isArray(observed) || observed.length !== entries.length) {
-      fail('ForeignInstalledRowEffectObservation');
-    }
-    return Object.freeze(observed.map((row, index) => {
-      const {identity, state, versionCid, before} = row ?? {};
-      if (!sameValue(identity, entries[index].target)) fail('ForeignInstalledRowEffectObservation');
-      if (state === 'absent') {
-        if (member.kind !== 'upsert' || versionCid !== undefined || before !== undefined) {
-          fail('ForeignInstalledRowEffectObservation');
-        }
-        return Object.freeze({identity, state: 'absent'});
-      }
-      if ((state !== undefined && state !== 'present') || !cidPattern.test(versionCid ?? '') ||
-          before === null || typeof before !== 'object') fail('ForeignInstalledRowEffectObservation');
-      return Object.freeze({identity, state: 'present', versionCid, before});
-    }));
-  };
 
   const scopeKey = member => JSON.stringify([ownerOf(member).connection, member.resource]);
   // A resource name alone cannot identify a decision across installations.

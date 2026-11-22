@@ -10,11 +10,12 @@ import {parse} from 'acorn';
 import {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
+import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {installedEffectDependencyOriginal, registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -34,18 +35,29 @@ const recipePort = ownerOf => expression('recipeOf', {ownerOf,
   // Existing single-recipe fixtures have no codec-size substitution. Keep
   // that explicit port while executing the actual shared kind selection.
   controlRecipes: {get: original => original}});
-const readPorts = (ownerOf, resourceFields = () => ({})) => {
-  const recipeOf = recipePort(ownerOf);
-  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail, selectInstalledEffectCredentialOperation});
-  const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
-  return {recipeOf, managedReadChild, describeMember};
+const unusedReadPort = () => assert.fail('The fixture did not select this read port');
+const readPorts = (ownerOf, resourceFields = () => ({}), recipeOf = recipePort(ownerOf)) => {
+  const {requireSynchronousEffectResource} = createInstalledRowEffectDriverControls({
+    fail, text: value => typeof value === 'string' && value.length > 0,
+    optionalFunction: unusedReadPort, kinds: [], guarded: unusedReadPort,
+  });
+  const managedReadChild = createInstalledRowEffectReadChild({ownerOf, recipeOf, fail, requireSynchronousEffectResource});
+  const {describeMember, observeRows} = createInstalledRowEffectReadOperations({
+    ownerOf, recipeOf, managedReadChild, resourceFields, readDecision: unusedReadPort, fail,
+    sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
+  });
+  return {recipeOf, managedReadChild, describeMember, observeRows};
 };
+const checkRowsFixture = ({ownerOf, readDecision}) => createInstalledRowEffectReadOperations({
+  ownerOf, recipeOf: recipePort(ownerOf), readDecision, fail, managedReadChild: unusedReadPort,
+  resourceFields: unusedReadPort, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/,
+}).checkRows;
 const expression=(name,ports)=>{
   if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
   if (name === 'recipeOf' && ports.targetPlanOf === undefined) {
     ports = {...ports, targetPlanOf: expression('targetPlanOf', {fail})};
   }
-  if (['footprintOf', 'checkRows', 'prepareCredentialOperation', 'physicalRoute'].includes(name) &&
+  if (['footprintOf', 'physicalRoute'].includes(name) &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {
     ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
@@ -380,8 +392,8 @@ test('actual create check forwards the same issued authorization into its select
     assert.equal(context.request,request);assert.equal(context.authorization.grant,raw.grant);
     assert.equal(context.credential,boundCredential);assert.equal(context.callResource,boundResource);
     events.push('provider');return {checked:true};}};
-  const checkRows=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:selectedRecipe}),
-    readDecision:async()=>decision,fail});
+  const checkRows=checkRowsFixture({ownerOf:()=>({owned,site,managedPlanRecipe:selectedRecipe}),
+    readDecision:async()=>decision});
   let forwarded;
   await checkRows({members:[selected],entries:[[{request}]],runInvocationCid:'run',dispatches:['dispatch'],
     subjectOf:()=> 'subject',assertCurrent(){},operationPhase:'capture',
@@ -424,8 +436,7 @@ test('actual capture operation retains the original bound child before invoking 
     callResource(){events.push('read');return Promise.resolve({originalResponse:true});}});
   const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
     {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
-  const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
-    selectInstalledEffectCredentialOperation,
+  const actual=createInstalledRowEffectPhysicalOperation({moon,recipeOf:()=>recipe,fail,
     installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
     prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
   const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
@@ -446,7 +457,7 @@ test('managed create checks and cold routes refuse missing original parent reten
   let entered=0;
   const selected={kind:'create'},owner={managedPlanRecipe:{credentialOperations:[]},
     owned:{check:{resource:'rows',operation:'form-read'}},site:{issueReadGrant:()=>{entered++;}}};
-  const checkRows=expression('checkRows',{ownerOf:()=>owner,readDecision:async()=>{entered++;},fail});
+  const checkRows=checkRowsFixture({ownerOf:()=>owner,readDecision:async()=>{entered++;}});
   await assert.rejects(checkRows({members:[selected],entries:[[]],dispatches:[],subjectOf:()=> 'subject'}),
     {code:'InstalledEffectPhysicalPlanUnavailable'});
   const physicalRoute=expression('physicalRoute',{ownerOf:()=>owner,fail});
@@ -678,8 +689,8 @@ test('actual CREATE read grant uses its original control frame and returns works
   const f=sameControlFrame(),selected={kind:'create',resource:'rows'},entry={request:{}},decision={},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
   const owned={check:{operation:'read',resource:'form'},checkRequest(context){assert.equal(context.authorization,grant);assert.equal(context.controlConstruction,f.work);f.events.push('physical');}};
-  const check=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
-    readDecision:async()=>decision,fail});
+  const check=checkRowsFixture({ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
+    readDecision:async()=>decision});
   await check({members:[selected],entries:[[entry]],runInvocationCid:'run',dispatches:['dispatch'],subjectOf:()=> 'subject',
     controlConstruction:f.work,physicalOperations(facts){assert.equal(f.active(),false);assert.equal(facts.originalAuthorization,grant);return facts.invoke({authorization:grant});}});
   assert.deepEqual(f.events,['begin','grant','complete','physical']);assert.equal(f.work.retire(),true);
@@ -836,8 +847,7 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
         return current;
       }});
   };
-  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail, selectInstalledEffectCredentialOperation});
-  const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
+  const {describeMember: describe, observeRows: observe} = readPorts(ownerOf, () => ({}), recipeOf);
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
   const decide = createInstalledRowEffectTargetAuthorization({
@@ -845,8 +855,6 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   });
   const read = await decide({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch', subjectCid: 'subject',
     targetReads: {authorize: () => decision}});
-  const observe = expression('observeRows', {ownerOf, managedReadChild, resourceFields: () => ({}),
-    fail, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/});
   const observed = await observe({member, entries: [{target}], current, read, physicalOperations,
     operationPhase: 'capture', runInvocationCid: 'run', dispatchRequestCid: 'dispatch'});
   assert.deepEqual(observed, [{identity: target, state: 'present', versionCid, before: {Name: 'before'}}]);
