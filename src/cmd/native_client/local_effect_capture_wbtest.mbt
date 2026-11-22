@@ -653,3 +653,67 @@ test "Native serial Source snapshots reuse the actual overlapping constructor pe
     is None,
   )
 }
+
+///|
+test "Native inventory Source binding funds the same operation before checking roots" {
+  let cid = "sha256:58aca71c9645edf63bfebadb8d0717cccebbc1a7092ad6f12ee9192304401bc3"
+  let wire = "{\"self_cid\":\"" +
+    cid +
+    "\",\"sources\":[],\"version\":\"actql-acquisition-scope/0.1\"}"
+  let body = @publication.admit_publication_effect_dependency_body(
+    "acquisition_scope", wire, 8192, 1000, 32,
+  ).unwrap()
+  let prepared = @publication.prepare_captured_effect_dependency_inventory(
+    [body],
+    [body],
+    1000,
+    32,
+    _ => true,
+  ).unwrap()
+  let empty = @publication.prepare_captured_effect_dependency_inventory(
+    [],
+    [],
+    1000,
+    32,
+    _ => true,
+  ).unwrap()
+  // The original fixture basis is R30/E50. A workspace request of 77
+  // leaves retention unchanged and requires E107 on the same reservation.
+  for maximum in [106L, 107L] {
+    with_native_mock_capture_construction(
+      max_retained=30L,
+      max_execution=maximum,
+      fn(construction) raise {
+        let operation = construction.operation
+        let result = construction.bind_dependency_inventory_sources(
+          prepared,
+          [],
+          8192,
+          1000,
+          32,
+          Some(77L),
+        )
+        assert_true(physical_equal(construction.operation, operation))
+        assert_eq(construction.retained, 0L)
+        if maximum == 106L {
+          assert_true(result is Err(Managed(InsufficientCapacity)))
+          assert_eq(construction.workspace, 20L)
+        } else {
+          assert_true(result is Err(Inventory(InvalidBody)))
+          assert_eq(construction.workspace, 77L)
+          let matched = construction
+            .bind_dependency_inventory_sources(
+              empty,
+              [],
+              8192,
+              1000,
+              32,
+              Some(77L),
+            )
+            .unwrap()
+          assert_true(physical_equal(matched, empty))
+        }
+      },
+    )
+  }
+}

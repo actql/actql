@@ -349,6 +349,46 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
     )
     .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
     .native_effect_proposal(self.original)
+  // The original prepared vectors and a growing filtered root array can
+  // coexist with the comparison Writer, or with another graph validation
+  // after the comparison has returned. No emitted inventory exists yet.
+  let selected_roots = @execution.preparation_array_representation(
+    1L,
+    roots.length().to_int64(),
+    true,
+  ).bind(@execution.preparation_representation_cost)
+  let bind_workspace = match
+    (graph, held_bodies, selected_roots, held_roots, census_stack) {
+    (Some(graph), Some(bodies), Some(roots), Some(copy), Some(stack)) =>
+      @execution.checked_preparation_add_product(measuring, stack, 1L)
+      .bind(compare => {
+        @execution.checked_preparation_add_product(
+          Int64::max(
+            @execution.execution_capacity_execution_bytes(graph),
+            compare,
+          ),
+          bodies,
+          1L,
+        )
+      })
+      .bind(frame => {
+        @execution.checked_preparation_add_product(frame, roots, 1L)
+      })
+      // A filtered result returns a fixed-size copy. Until it has returned,
+      // keep the original root vector, growing selection and final copy paid.
+      .bind(frame => @execution.checked_preparation_add_product(frame, copy, 1L))
+    _ => None
+  }
+  let prepared = construction
+    .bind_dependency_inventory_sources(
+      prepared,
+      preview._retained_local_sources,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      bind_workspace,
+    )
+    .native_effect_proposal(self.original)
   let envelope = @local_values.installed_effect_dependency_envelope_capacity(
     @publication.prepared_captured_effect_dependency_inventory_geometry(
       prepared,
@@ -368,36 +408,38 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_dependency_inventory(
   construction
   .prepare_body_result(issue_capacity)
   .native_effect_proposal(self.original)
-  let inventory = @publication.issue_prepared_captured_effect_dependency_inventory(
-      prepared,
-      _ => true,
-    )
-    .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
-    .native_effect_proposal(self.original)
-  // The typed closure has already been checked under the ordinary limits.
-  // Match its roots to the admitted Sources before transferring the same
-  // inventory. A differing Source keeps the existing typed refusal path.
   preview._retained_dependency_inventory = Some(
-    if @publication.captured_effect_dependency_sources_match(
-        preview._retained_local_sources,
-        inventory,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      ) {
-      inventory
-    } else {
-      @publication.admit_captured_effect_source_dependencies(
-        preview._retained_local_sources,
-        @publication.captured_effect_dependency_inventory_json(inventory),
-        max_bytes,
-        max_nodes,
-        max_depth,
-      )
-      .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
-      .native_effect_proposal(self.original)
-    },
+    @publication.issue_prepared_captured_effect_dependency_inventory(prepared, _ => {
+      true
+    })
+    .map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
+    .native_effect_proposal(self.original),
   )
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::bind_dependency_inventory_sources(
+  self : Self,
+  prepared : @publication.PreparedCapturedEffectDependencyInventory,
+  sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  workspace : Int64?,
+) -> Result[
+  @publication.PreparedCapturedEffectDependencyInventory,
+  LocalNativeMockEffectProposalIssue,
+] {
+  match
+    self.prepare_body_result(
+      workspace.bind(bytes => @execution.execution_capacity(0L, bytes)),
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      @publication.bind_aligned_prepared_effect_dependency_sources(
+        prepared, sources, max_bytes, max_nodes, max_depth,
+      ).map_err(issue => LocalNativeMockEffectProposalIssue::Inventory(issue))
+  }
 }
 
 ///|
