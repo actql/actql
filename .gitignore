@@ -2184,3 +2184,5 @@ target/
 /adapters/host-node/installed-project-mock-models.actual.test.d.mts
 /adapters/local-node/declared-file-installation.mjs
 /adapters/local-node/declared-file-installation.d.mts
+/adapters/local-node/declared-project-catalog.mjs
+/adapters/local-node/declared-project-catalog.d.mts
