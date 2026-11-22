@@ -503,3 +503,15 @@ test "GitHub timestamps become the same instant in ActQL spelling" {
     Err(InvalidField("created_at")),
   )
 }
+
+///|
+test "GraphQL outer history rejects immediate and older exact cursor repeats" {
+  let history = prepare_graphql_outer_cursor_history()
+  assert_true(record_graphql_outer_cursor(history, "é"))
+  assert_false(record_graphql_outer_cursor(history, "é"))
+  assert_true(record_graphql_outer_cursor(history, "e\u0301"))
+  assert_false(record_graphql_outer_cursor(history, "é"))
+  assert_true(
+    record_graphql_outer_cursor(prepare_graphql_outer_cursor_history(), "é"),
+  )
+}

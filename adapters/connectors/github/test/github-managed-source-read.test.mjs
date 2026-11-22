@@ -24,6 +24,8 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
   }),journal:{}});
   let commentReplies = 0, sends = 0, closeAttempts = 0;
   const methods = {
+    githubGraphqlOuterCursorHistory() {return Object.freeze({});},
+    githubRecordGraphqlOuterCursor() {assert.fail('The test page is final');},
     githubIssuesRequestJson() {events.push('request');return '{"body":"original native request"}';},
     githubIssuePageReadBegin() {events.push('decode');if(projectionFailure)throw projectionFailure;return {$tag:1,_0:{}};},
     githubIssuePageReadNextRequestJson() {return {$tag:1,_0:'{"body":null}'};},

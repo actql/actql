@@ -363,6 +363,21 @@ pub fn github_repository_request(owner : String, name : String) -> String {
 }
 
 ///|
+#export_name("githubGraphqlOuterCursorHistory")
+pub fn github_graphql_outer_cursor_history() -> @catalog.GraphqlOuterCursorHistory {
+  @catalog.prepare_graphql_outer_cursor_history()
+}
+
+///|
+#export_name("githubRecordGraphqlOuterCursor")
+pub fn github_record_graphql_outer_cursor(
+  history : @catalog.GraphqlOuterCursorHistory,
+  cursor : String,
+) -> Bool {
+  @catalog.record_graphql_outer_cursor(history, cursor)
+}
+
+///|
 /// One Issue page request body for the published node ID, or a refusal:
 /// `{"body": "..."}` or `{"refused": "..."}`. Callers supply variables only.
 #export_name("githubIssuesRequestJson")
