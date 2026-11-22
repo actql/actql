@@ -246,7 +246,7 @@ fn protocol_wire_codec_construction_inventory(
 // Shared closed protocol validators. Borrowing an already admitted contract
 // still constructs these checks, but does not construct a new Source parser
 // or canonical conversion forest.
-fn protocol_wire_validation_construction_extent(
+pub fn protocol_wire_validation_construction_extent(
   count : Int64,
 ) -> @shape.CollectionConstructionExtent? {
   @shape.collection_construction_extent({

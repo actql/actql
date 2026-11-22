@@ -151,6 +151,7 @@ pub fn issue_effect_free_run_receipt(
   max_nodes : Int,
   max_depth : Int,
   content_generations? : Array[BoundContentGeneration] = [],
+  funding? : ((Int64) -> Bool, (Int, Int, Int) -> Bool)? = None,
 ) -> Result[PublicationContract, RunReceiptIssuanceIssue] {
   if run_definition.name != "run_definition" ||
     invocation.name != "run_invocation" ||
@@ -172,6 +173,38 @@ pub fn issue_effect_free_run_receipt(
     contract_string(admission.compiled_plan, "aoa_logical_cid")
     is Some(aoa_logical_cid) else {
     return Err(ReceiptIssuanceReferenceMismatch("compiled_plan"))
+  }
+  if funding is Some((before_inventory, _)) {
+    let slots = () => {
+      let mut size = definitions.length().to_int64() +
+        artifacts.length().to_int64() +
+        binding_names.length().to_int64() +
+        binding_digests.length().to_int64() +
+        source_evidence.length().to_int64() +
+        model_evidence.length().to_int64() +
+        barrier_attempt_receipt_cids.length().to_int64() +
+        content_generations.length().to_int64()
+      for name in ["source_evidence_cids", "content_generation_cids"] {
+        if @json.object_field(observation.value, name)
+          is Some(@json.Array(items)) {
+          size += @json.array_count(items).to_int64()
+        }
+      }
+      for artifact in artifacts {
+        if @json.object_field(artifact.value, "provenance_evidence_cids")
+          is Some(@json.Array(items)) {
+          size += @json.array_count(items).to_int64()
+        }
+      }
+      size
+    }
+    let size = slots()
+    if !before_inventory(size) {
+      return Err(ReceiptIssuanceEncoding)
+    }
+    if slots() != size {
+      return Err(ReceiptIssuanceInventoryMismatch("funded_inputs"))
+    }
   }
   match
     validate_run_publication_chain(
@@ -222,6 +255,13 @@ pub fn issue_effect_free_run_receipt(
       return Err(ReceiptIssuanceReferenceMismatch("program_definition_cid"))
     }
   }
+  // Once funded, the selected evidence vector belongs to this issuer through
+  // validation and both emissions. A later hook cannot replace its entries.
+  let source_evidence = if funding is Some(_) {
+    source_evidence.copy()
+  } else {
+    source_evidence
+  }
   let source_cids = match receipt_source_identities(source_evidence) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -258,40 +298,61 @@ pub fn issue_effect_free_run_receipt(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(ReceiptIssuanceEncoding)
+  let emit = fn(writer : @encode.Writer) raise @encode.EncodeFailure {
+    emit_effect_free_run_receipt_body(
+      aoa_ir_version,
+      aoa_logical_cid,
+      derivations.length(),
+      index => derivations[index],
+      barriers,
+      bindings,
+      check_environment_cid,
+      admission.compiled_plan_cid,
+      compiler_version,
+      cross_source_consistency,
+      content_cids,
+      model_cids,
+      source_cids,
+      invocation.identity,
+      normalization_journal.identity,
+      observation.value,
+      observation.identity,
+      admission.prepared.value,
+      program_definition_cid,
+      program_semantics_cid,
+      Some(result_artifacts),
+      Some(manifest.value),
+      manifest.identity,
+      admission.authorization.value,
+      source_evidence,
+      writer,
+    )
   }
-  emit_effect_free_run_receipt_body(
-    aoa_ir_version,
-    aoa_logical_cid,
-    derivations.length(),
-    index => derivations[index],
-    barriers,
-    bindings,
-    check_environment_cid,
-    admission.compiled_plan_cid,
-    compiler_version,
-    cross_source_consistency,
-    content_cids,
-    model_cids,
-    source_cids,
-    invocation.identity,
-    normalization_journal.identity,
-    observation.value,
-    observation.identity,
-    admission.prepared.value,
-    program_definition_cid,
-    program_semantics_cid,
-    Some(result_artifacts),
-    Some(manifest.value),
-    manifest.identity,
-    admission.authorization.value,
-    source_evidence,
-    writer,
-  ) catch {
-    _ => return Err(ReceiptIssuanceEncoding)
+  let (body_bytes, body_nodes, body_depth) = if funding
+    is Some((_, before_material)) {
+    let (bytes, nodes, depth) = try {
+      let measure = @encode.measuring_writer(
+        max_wire_bytes, max_nodes, max_depth,
+      )
+      defer @encode.cancel_writer(measure)
+      emit(measure)
+      @encode.finish_measurement_usage(measure)
+    } catch {
+      _ => return Err(ReceiptIssuanceEncoding)
+    }
+    if !before_material(bytes, nodes, depth) {
+      return Err(ReceiptIssuanceEncoding)
+    }
+    (bytes, nodes, depth)
+  } else {
+    (max_wire_bytes, max_nodes, max_depth)
   }
-  let body = @encode.finish(writer) catch {
+  let body = try {
+    let writer = @encode.writer(body_bytes, body_nodes, body_depth)
+    defer @encode.cancel_writer(writer)
+    emit(writer)
+    @encode.finish(writer)
+  } catch {
     _ => return Err(ReceiptIssuanceEncoding)
   }
   match

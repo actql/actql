@@ -651,7 +651,7 @@ pub fn issue_durable_result_binding_from_snapshot(CapturedResultSnapshot, Public
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
-pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int, content_generations? : Array[BoundContentGeneration], funding? : ((Int64) -> Bool, (Int, Int, Int) -> Bool)?) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool, observed_terminal_outcome? : RunOutcomeStatus?, execution_unknown? : Bool) -> Result[String, RunStateIssue]
 
@@ -988,6 +988,8 @@ pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead,
 pub fn project_publication_request_context(PublicationContract) -> Result[PublicationRequestContext, PublicationPublisherIssue]
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
+
+pub fn protocol_wire_validation_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn public_index_entry_construction_geometry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, PublicationCommitIssuanceIssue]
 
