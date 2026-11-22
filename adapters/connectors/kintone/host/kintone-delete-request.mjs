@@ -40,6 +40,8 @@ export function createKintoneDeleteRequestAdapter({moon, mapping, declaration, o
     'DeleteMappingMatchesDeclaration', 'DeleteMappingMatchesRequest', 'DeleteMappingBody',
     'DeleteMappingRecheckForm', 'DeleteTargetReadBody', 'PrepareDeleteTargetRead',
     'DeletePreviewIdentity', 'DeletePreviewBefore', 'DeletePreviewVersionCid', 'DeleteApp', 'DeleteBody',
+    'DeleteObservedOutcome', 'DeletePreviewOutcomeMatches', 'DeletePreviewOutcomeWire',
+    'DeletePreviewOutcomeResponseSha256', 'DeletePreviewOutcomeRowCid',
     'MutationLimits', 'PageLimits', 'ValueLimits', 'FormLimits',
   ].map(name => {
     const method = Object.getOwnPropertyDescriptor(moon, 'clientProgramKintone' + name)?.value;
@@ -87,7 +89,7 @@ export function createKintoneDeleteRequestAdapter({moon, mapping, declaration, o
         !native.DeleteMappingMatchesRequest(mapping, request)) fail('ForeignKintoneDeleteTarget');
     const body = native.DeleteBody(request), versionCid = native.DeletePreviewVersionCid(preview);
     if (!isCid(versionCid) || Buffer.byteLength(body) > policy.maxRequestBytes) fail('KintoneDeleteRequestLimit');
-    return {native: request, body, versionCid, beforeWire: native.DeletePreviewBefore(preview)};
+    return {native: request, preview, body, versionCid, beforeWire: native.DeletePreviewBefore(preview)};
   };
   const final = request => {
     const original = get(request);
@@ -139,6 +141,26 @@ export function createKintoneDeleteRequestAdapter({moon, mapping, declaration, o
     },
     nativeRequest(request) {return final(request).target.native;},
     requestBody(request) {return final(request).body;},
+    projectResponse({request, observation, preview, memberIndex, rowIndex}) {
+      const original = final(request).target;
+      if (!Number.isInteger(observation?.statusCode) || !(observation.body instanceof Uint8Array) ||
+          observation.body.byteLength > policy.maxResponseBytes ||
+          ![memberIndex, rowIndex].every(value => Number.isInteger(value) && value >= 0 && value <= 2147483647)) {
+        fail('InvalidKintoneDeleteObservation');
+      }
+      try {
+        const projected = checked(native.DeleteObservedOutcome(mapping, original.native, original.preview,
+          observation.statusCode, observation.body, preview, memberIndex, rowIndex, beforeLimits));
+        const responseSha256 = native.DeletePreviewOutcomeResponseSha256(projected);
+        if (!native.DeletePreviewOutcomeMatches(projected, mapping, original.native, preview, memberIndex, rowIndex) ||
+            'sha256:' + responseSha256 !== digest(observation.body)) fail('ForeignKintoneDeleteObservation');
+        return Object.freeze({kind: 'typed-success-response', projected, responseSha256,
+          rowPreviewCid: native.DeletePreviewOutcomeRowCid(projected),
+          outcome: JSON.parse(native.DeletePreviewOutcomeWire(projected))});
+      } catch (cause) {
+        return Object.freeze({kind: 'unclassified-response', observation, cause});
+      }
+    },
     savedWire(request) {
       const {identity, logicalCid, requestTag, targetBodyBase64, targetBodyCid, body, requestCid} = final(request);
       const wire = encode({binding, identity, logicalCid, requestTag, targetBodyBase64, targetBodyCid, body, requestCid});

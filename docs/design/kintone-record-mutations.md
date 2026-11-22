@@ -728,6 +728,12 @@ applied outcome shape; no missing record, Record Number or guessed revision
 becomes an acknowledgement. Raw batch support remains unchanged, but a batch
 response cannot substitute an individual row projection.
 
+The request adapter retains the same checked before projection used to build
+the conditional request. The response checker checks its nominal identity and
+reuses it for the approved row comparison. During recovery the adapter
+reprojects the stored target bytes once, before checking the saved response.
+Malformed success bodies and non-success responses remain unclassified.
+
 - DELETE outcome responsibility: the existing Catalog retains original target,
   request and native acknowledgement DATA; the existing Common Preview Owner
   validates the bounded row outcome. Account, Credential and Effect Owners

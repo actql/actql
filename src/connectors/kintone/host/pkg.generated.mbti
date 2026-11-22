@@ -82,6 +82,8 @@ pub fn prepare_record_update_proposal(RecordUpdateMapping, String, Bytes, Int, @
 
 pub fn project_record_create_preview_outcome(RecordCreateMapping, @catalog.RecordCreateRequest, @catalog.RecordCreateAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[RecordCreatePreviewOutcome, RecordCreateOutcomeIssue]
 
+pub fn project_record_delete_observed_outcome(RecordDeleteMapping, @catalog.RecordDeleteRequest, RecordDeletePreview, Int, Bytes, @run_publication.EffectPreviewIdentity, Int, Int, @catalog.RecordMutationLimits) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue]
+
 pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.RecordDeleteRequest, @catalog.RecordDeleteAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue]
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]

@@ -4,6 +4,7 @@
 /// outcome or sealed Effect Preview; the original Site/capture must establish
 /// and retain those facts.
 pub struct RecordDeletePreview {
+  priv mut self : RecordDeletePreview?
   priv mapping : RecordDeleteMapping
   priv target : @catalog.OriginalRecordTarget
   priv checked : @catalog.CheckedRecordPage
@@ -132,7 +133,16 @@ pub fn prepare_record_delete_preview(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ mapping, target, checked, before_wire: before, version_cid: version, })
+  let result : RecordDeletePreview = {
+    self: None,
+    mapping,
+    target,
+    checked,
+    before_wire: before,
+    version_cid: version,
+  }
+  result.self = Some(result)
+  Ok(result)
 }
 
 ///|
@@ -157,6 +167,8 @@ pub fn record_delete_preview_matches(
   mapping : RecordDeleteMapping,
   target : @catalog.OriginalRecordTarget,
 ) -> Bool {
+  view.self is Some(original) &&
+  physical_equal(original, view) &&
   physical_equal(view.mapping, mapping) &&
   physical_equal(view.target, target) &&
   physical_equal(

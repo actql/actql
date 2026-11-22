@@ -125,6 +125,43 @@ test "DELETE typed outcome refuses changed approved target revision Mapping and 
 }
 
 ///|
+test "DELETE response projection requires the retained original target observation" {
+  let (mapping, request) = delete_outcome_originals()
+  let target = @catalog.record_delete_request_targets(request)[0]
+  let before = prepare_record_delete_preview(
+    mapping,
+    target,
+    delete_preview_values(),
+    delete_preview_limits(),
+  ).unwrap()
+  let copied : RecordDeletePreview = { ..before, }
+  let equal = delete_original_request(mapping.original.catalog)
+  let foreign = prepare_record_delete_preview(
+    mapping,
+    @catalog.record_delete_request_targets(equal)[0],
+    delete_preview_values(),
+    delete_preview_limits(),
+  ).unwrap()
+  let preview = delete_outcome_preview(mapping)
+  let project = fn(observation) {
+    project_record_delete_observed_outcome(
+      mapping,
+      request,
+      observation,
+      200,
+      b"{}",
+      preview,
+      0,
+      0,
+      delete_preview_limits(),
+    )
+  }
+  assert_true(project(before) is Ok(_))
+  assert_true(project(copied) is Err(ForeignPreview))
+  assert_true(project(foreign) is Err(ForeignPreview))
+}
+
+///|
 test "DELETE outcome retains nominal original request response and Mapping rather than equal copies" {
   let (mapping, request) = delete_outcome_originals()
   let response = @catalog.project_record_delete_acknowledgement(

@@ -102,6 +102,27 @@ pub fn client_program_kintone_delete_preview_outcome(
 }
 
 ///|
+#export_name("clientProgramKintoneDeleteObservedOutcome")
+pub fn client_program_kintone_delete_observed_outcome(
+  mapping : @kintone_host.RecordDeleteMapping,
+  request : @kintone_catalog.RecordDeleteRequest,
+  before : @kintone_host.RecordDeletePreview,
+  status : Int,
+  bytes : Bytes,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordDeletePreviewOutcome,
+  @kintone_host.RecordDeleteOutcomeIssue,
+] {
+  @kintone_host.project_record_delete_observed_outcome(
+    mapping, request, before, status, bytes, preview, member_index, row_index, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneDeletePreviewOutcomeWire")
 pub fn client_program_kintone_delete_preview_outcome_wire(
   value : @kintone_host.RecordDeletePreviewOutcome,

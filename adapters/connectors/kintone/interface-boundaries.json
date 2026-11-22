@@ -1025,7 +1025,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_delete_preview.mbt",
-      "sha256": "fc0b9079264756cb1902be2cc2be570219dcfb9eda0bb5c8a91b758c2b3e513b",
+      "sha256": "b73994c0d4ae710d1977b18646b9943ac4efdd18f861a06495488f03d889fb1b",
       "exports": [],
       "operations": [
         {
@@ -1154,6 +1154,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
                 "anchor": "kintone observed DELETE target binds Preview DATA and the exact revision request"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
+                "anchor": "DELETE response projection requires the retained original target observation"
               }
             ]
           }
@@ -4634,7 +4638,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_delete_outcome_bridge.mbt",
-      "sha256": "9379a5c0ce8616bf41351cfbee67029494db3eaa42c0ebf6f5e6a71738ce4985",
+      "sha256": "01e25e3431deabb98eb35b6742b44098a94a10ceebd6f6b6cf76e81c18f644e5",
       "exports": [],
       "operations": [
         {
@@ -4644,6 +4648,10 @@
         {
           "name": "client_program_kintone_delete_mapping_recheck_form",
           "declaration": "client_program_kintone_delete_mapping_recheck_form ( mapping : @ kintone_host . RecordDeleteMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_catalog . RecordMutationIssue ]"
+        },
+        {
+          "name": "client_program_kintone_delete_observed_outcome",
+          "declaration": "client_program_kintone_delete_observed_outcome ( mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , before : @ kintone_host . RecordDeletePreview , status : Int , bytes : Bytes , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordDeletePreviewOutcome , @ kintone_host . RecordDeleteOutcomeIssue , ]"
         },
         {
           "name": "client_program_kintone_delete_preview_outcome",
@@ -4691,6 +4699,7 @@
             "<module>",
             "client_program_kintone_delete_form_construction_capacity",
             "client_program_kintone_delete_mapping_recheck_form",
+            "client_program_kintone_delete_observed_outcome",
             "client_program_kintone_delete_preview_outcome",
             "client_program_kintone_delete_preview_outcome_matches",
             "client_program_kintone_delete_preview_outcome_response_sha256",
@@ -4777,6 +4786,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
                 "anchor": "kintone DELETE construction charges the original target once and keeps form scratch temporary"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
+                "anchor": "DELETE response projection requires the retained original target observation"
               }
             ]
           }
@@ -4785,7 +4798,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_delete_outcome_bridge.mbt",
-      "sha256": "18362d29a3d26ff516a2815a613b0e9c83a844fa2ec6b4b607109a356bc20630",
+      "sha256": "65d7e4b0fbfd46d6538642807d7d606a403cd9dadeebc09ff992a8640211999b",
       "exports": [],
       "operations": [
         {
@@ -4795,6 +4808,10 @@
         {
           "name": "client_program_kintone_delete_mapping_recheck_form",
           "declaration": "client_program_kintone_delete_mapping_recheck_form ( mapping : @ kintone_host . RecordDeleteMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_catalog . RecordMutationIssue ]"
+        },
+        {
+          "name": "client_program_kintone_delete_observed_outcome",
+          "declaration": "client_program_kintone_delete_observed_outcome ( mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , before : @ kintone_host . RecordDeletePreview , status : Int , bytes : Bytes , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordDeletePreviewOutcome , @ kintone_host . RecordDeleteOutcomeIssue , ]"
         },
         {
           "name": "client_program_kintone_delete_preview_outcome",
@@ -4842,6 +4859,7 @@
             "<module>",
             "client_program_kintone_delete_form_construction_capacity",
             "client_program_kintone_delete_mapping_recheck_form",
+            "client_program_kintone_delete_observed_outcome",
             "client_program_kintone_delete_preview_outcome",
             "client_program_kintone_delete_preview_outcome_matches",
             "client_program_kintone_delete_preview_outcome_response_sha256",
@@ -4928,6 +4946,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
                 "anchor": "kintone DELETE construction charges the original target once and keeps form scratch temporary"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
+                "anchor": "DELETE response projection requires the retained original target observation"
               }
             ]
           }
@@ -5121,9 +5143,21 @@
     },
     {
       "module": "src/connectors/kintone/host/record_delete_outcome.mbt",
-      "sha256": "37893edcb52779632093411ded5ec6bd7efb9cc4936d60a87f1f30224b8ac8c6",
+      "sha256": "6f0c692a4d909871b131de1fa18928924190968373cff9b31ae0bf74874d1b25",
       "exports": [],
       "operations": [
+        {
+          "name": "delete_outcome_target",
+          "declaration": "delete_outcome_target ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , response : @ catalog . RecordDeleteAcknowledgement , ) - > Result [ @ catalog . OriginalRecordTarget , RecordDeleteOutcomeIssue ]"
+        },
+        {
+          "name": "project_record_delete_observed_outcome",
+          "declaration": "project_record_delete_observed_outcome ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , before : RecordDeletePreview , status : Int , bytes : Bytes , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordDeletePreviewOutcome , RecordDeleteOutcomeIssue ]"
+        },
+        {
+          "name": "project_record_delete_outcome",
+          "declaration": "project_record_delete_outcome ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , response : @ catalog . RecordDeleteAcknowledgement , before : RecordDeletePreview , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordDeletePreviewOutcome , RecordDeleteOutcomeIssue ]"
+        },
         {
           "name": "project_record_delete_preview_outcome",
           "declaration": "project_record_delete_preview_outcome ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , response : @ catalog . RecordDeleteAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordDeletePreviewOutcome , RecordDeleteOutcomeIssue ]"
@@ -5152,6 +5186,9 @@
         {
           "operations": [
             "<module>",
+            "delete_outcome_target",
+            "project_record_delete_observed_outcome",
+            "project_record_delete_outcome",
             "project_record_delete_preview_outcome",
             "record_delete_preview_outcome_matches",
             "record_delete_preview_outcome_response_sha256",
@@ -5218,6 +5255,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- DELETE outcome verification:"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
+                "anchor": "DELETE response projection requires the retained original target observation"
               }
             ]
           }
@@ -8313,7 +8354,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing kintone Catalog and installed Row Effect",
-      "sha256": "de0929868bd3f40d0e44596a28c6d8dad40acb0d5bac22fd5528bf9cc4f0c6a8",
+      "sha256": "87376f0ca4a3be15df819584193a9dc89f4207164e88e3161004ffc1f75a99f5",
       "exports": [
         "createKintoneDeleteRequestAdapter"
       ],
@@ -8383,6 +8424,24 @@
           "name": "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
           "parameters": [
             "selector",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "request",
+            "observation",
+            "preview",
+            "memberIndex",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -8514,6 +8573,8 @@
             "createKintoneDeleteRequestAdapter/init:finalize/init:finalize",
             "createKintoneDeleteRequestAdapter/init:nativeRequest/init:nativeRequest",
             "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
+            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
+            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
             "createKintoneDeleteRequestAdapter/init:projectTarget/init:projectTarget",
             "createKintoneDeleteRequestAdapter/init:recheckForm/init:recheckForm",
             "createKintoneDeleteRequestAdapter/init:requestBody/init:requestBody",
@@ -8597,6 +8658,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-delete-request.test.mjs",
                 "anchor": "DELETE recovery reprojects only the original bounded target bytes and conditional request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-outcome.test.mjs",
+                "anchor": "row Effect DELETE response uses the retained target and exact approved Preview after restore"
               }
             ]
           }
