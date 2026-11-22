@@ -96,6 +96,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
   state : LocalNativeMockEffectPlan,
   held : LocalNativeMockEffectProposals,
   max_bytes : Int,
+  measure_artifacts? : Bool = false,
 ) -> Unit raise ClientStop {
   guard self.original.business is Some(business) &&
     held.construction is Some(construction) &&
@@ -184,6 +185,13 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
       name,
     )
     entry._retained_definition = Some(definition)
+    let funding = if measure_artifacts {
+      Some(
+        construction.model_result_artifact_funding(self.original, definition),
+      )
+    } else {
+      None
+    }
     let artifact = business.model_work[0]
       .local_effect_model_artifact(
         materials,
@@ -195,17 +203,20 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_unit_results(
         16384,
         1024,
         20,
+        funding~,
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
       .native_effect_proposal(self.original)
     entry.artifact = Some(artifact)
-    for
-      body in [
-        @run_host.client_effect_local_result_artifact_json(artifact),
-        @run_host.client_effect_local_result_derivation_json(artifact),
-        @run_host.client_effect_local_result_ordering_json(artifact),
-      ] {
-      construction.retain_wire(self.original, body)
+    if funding is None {
+      for
+        body in [
+          @run_host.client_effect_local_result_artifact_json(artifact),
+          @run_host.client_effect_local_result_derivation_json(artifact),
+          @run_host.client_effect_local_result_ordering_json(artifact),
+        ] {
+        construction.retain_wire(self.original, body)
+      }
     }
     let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
         stream, receipt,

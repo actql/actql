@@ -282,6 +282,76 @@ test "Native returned import funds next Model body on the exact original reserva
 }
 
 ///|
+test "Native Model Result Artifact reserves measured bodies beside its original census" {
+  let cid = "sha256:" + "1".repeat(64)
+  let measured = @publication.local_result_metadata_construction_geometry(
+    cid,
+    cid,
+    cid,
+    cid,
+    cid,
+    [cid],
+    cid,
+    cid,
+    "actql-common-host",
+    cid,
+    cid,
+    17,
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  let bodies = [
+    ("derivation_evidence", measured[0]),
+    ("ordering_evidence", measured[1]),
+    ("result_artifact", measured[2]),
+  ]
+  let census = native_mock_effect_artifact_measurement_capacity(1L).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(census), 0L)
+  let scratch = @execution.execution_capacity_execution_bytes(census)
+  let quote = @local_values.installed_effect_model_result_artifact_capacity(
+    bodies, cid, scratch,
+  ).unwrap()
+  let unshared = @local_values.installed_effect_model_result_artifact_capacity(
+    bodies, cid, 0L,
+  ).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(quote)
+  let execution = @execution.execution_capacity_execution_bytes(quote)
+  assert_eq(retained, @execution.execution_capacity_retained_bytes(unshared))
+  assert_eq(
+    execution - @execution.execution_capacity_execution_bytes(unshared),
+    scratch,
+  )
+  let original = 30L
+  let imported = 10L
+  let required = original + imported + execution
+  for maximum in [required - 1L, required] {
+    with_native_mock_capture_construction(
+      max_retained=original + imported + retained,
+      max_execution=maximum,
+      fn(construction) raise {
+        let operation = construction.operation
+        construction
+        .prepare_body_result(@execution.execution_capacity(imported, imported))
+        .unwrap()
+        construction.prepare_body_result(Some(census)).unwrap()
+        let admission = construction.prepare_body_result(Some(quote))
+        assert_true(physical_equal(operation, construction.operation))
+        if maximum < required {
+          assert_true(admission is Err(Managed(InsufficientCapacity)))
+          assert_eq(construction.retained, imported)
+          assert_eq(construction.workspace, scratch)
+        } else {
+          admission.unwrap()
+          assert_eq(construction.retained, imported + retained)
+          assert_eq(construction.workspace, execution - retained)
+        }
+      },
+    )
+  }
+}
+
+///|
 test "Native proposal return drops only its old workspace before the next construction" {
   with_native_mock_capture_construction(fn(construction) raise {
     let original_recipe = construction.recipe

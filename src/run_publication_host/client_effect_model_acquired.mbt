@@ -342,6 +342,15 @@ pub fn client_effect_model_acquired_lookup_dependency_bodies(
 }
 
 ///|
+/// Numerical funding for the original Model Artifact issuer. The first
+/// callback backs the relation vector and measuring sinks; the second backs
+/// the measured contracts while those controls are still owned.
+pub(all) struct ClientEffectModelArtifactFunding {
+  reserve_measurement : (Int64) -> Bool
+  reserve_bodies : (Array[(String, @encode.EncodingConstructionGeometry)]) -> Bool
+}
+
+///|
 /// Bind the named Result's exact export to the original completed Model host
 /// output, directly or through its checked serial same-Unit suffix input.
 /// The calling Model owner retains OutputUse/currentness; the captured
@@ -362,6 +371,7 @@ pub fn issue_model_client_effect_local_result_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
@@ -380,6 +390,7 @@ pub fn issue_model_client_effect_local_result_artifact(
     max_bytes,
     max_nodes,
     max_depth,
+    funding~,
   )
 }
 
@@ -439,6 +450,7 @@ fn build_model_client_effect_local_result_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
@@ -460,51 +472,9 @@ fn build_model_client_effect_local_result_artifact(
     ) {
     return Err(ForeignOwner)
   }
-  let model_task = acquired.call_scope.plan.task
-  // Select using immutable identity, not a failed current observation or task
-  // numbering. Preserve every old direct original; a declined direct branch
-  // never retries through the suffix path.
-  let original_matches = if @execution.completed_relation_export_has_output_identity(
-      receipt, expected_output,
+  if !model_result_original_export_matches(
+      owner, custody, exported, acquired, expected_output, receipt,
     ) {
-    (match custody {
-      EffectInputs(inputs) =>
-        @strategy.captured_effect_local_result_export_matches_receipt(
-          inputs, exported, receipt,
-        )
-      AcquiredUnit(inputs) =>
-        @strategy.captured_effect_local_unit_result_export_matches_receipt(
-          inputs, exported, receipt,
-        )
-    }) &&
-    @execution.completed_relation_export_matches_output(
-      receipt, expected_output,
-    )
-  } else {
-    match custody {
-      EffectInputs(inputs) =>
-        @strategy.captured_effect_local_result_export_matches_model_suffix(
-          exported,
-          inputs,
-          owner.graph,
-          invocation.unit,
-          model_task,
-          expected_output,
-          receipt,
-        )
-      AcquiredUnit(inputs) =>
-        @strategy.captured_effect_local_unit_result_export_matches_model_suffix(
-          exported,
-          inputs,
-          owner.graph,
-          invocation.unit,
-          model_task,
-          expected_output,
-          receipt,
-        )
-    }
-  }
-  if !original_matches {
     return Err(ForeignExport)
   }
   let borrow = @strategy.captured_effect_local_result_borrow(result)
@@ -550,6 +520,91 @@ fn build_model_client_effect_local_result_artifact(
       (None, policy, @publication.run_publication_execution_context(admission))
     }
   }
+  let measured_relations = match funding {
+    None => None
+    Some(fund) => {
+      let count = if !acquired.scope_relations.is_empty() {
+        acquired.scope_relations.length()
+      } else {
+        match acquired.imports {
+          Some(original) => original.relations.length()
+          None => acquired.direct.length()
+        }
+      }
+      let relation_count = count.to_int64() +
+        (if acquired.keyed is Some(_) { 1L } else { 0L })
+      if !(fund.reserve_measurement)(relation_count) {
+        return Err(Evidence(IssuanceEncoding))
+      }
+      guard custody is EffectInputs(inputs) &&
+        model_result_original_export_matches(
+          owner, custody, exported, acquired, expected_output, receipt,
+        ) &&
+        @strategy.captured_effect_local_result_export_retained(inputs, exported) else {
+        return Err(ForeignExport)
+      }
+      let relations = match effect_model_acquired_relation_cids(acquired) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let retention_shape = match
+        @publication.result_retention_policy_construction_geometry(
+          acquired.retention,
+          policy,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Scope(issue))
+      }
+      let logical = @execution.completed_relation_export_identity(receipt)
+      let metadata = match
+        @publication.local_result_metadata_construction_geometry(
+          definition.cid,
+          invocation.cid,
+          @execution.logical_relation_cid(logical),
+          @execution.relation_schema_cid(
+            @execution.completed_relation_export_schema_identity(receipt),
+          ),
+          definition.unit_definition_cid,
+          relations,
+          @publication.publication_contract_identity(acquired.scope),
+          policy,
+          "actql-common-host",
+          authority,
+          // A replacement retention's checked self CID has the same width.
+          @publication.publication_contract_identity(acquired.retention),
+          @execution.logical_relation_usage(logical).2,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Evidence(issue))
+      }
+      let bodies = [
+        ("derivation_evidence", metadata[0]),
+        ("ordering_evidence", metadata[1]),
+        ("result_artifact", metadata[2]),
+      ]
+      if retention_shape is Some(shape) {
+        bodies.push(("result_retention_policy", shape))
+      }
+      if !(fund.reserve_bodies)(bodies) {
+        return Err(Evidence(IssuanceEncoding))
+      }
+      if !model_result_original_export_matches(
+          owner, custody, exported, acquired, expected_output, receipt,
+        ) ||
+        !@strategy.captured_effect_local_result_export_retained(
+          inputs, exported,
+        ) {
+        return Err(ForeignExport)
+      }
+      Some(relations)
+    }
+  }
   let retention = match
     @publication.issue_result_retention_for_data_policy(
       acquired.retention,
@@ -561,9 +616,13 @@ fn build_model_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Scope(issue))
   }
-  let relations = match effect_model_acquired_relation_cids(acquired) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let relations = match measured_relations {
+    Some(relations) => relations
+    None =>
+      match effect_model_acquired_relation_cids(acquired) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
   build_client_effect_local_result_artifact(
     custody,
@@ -581,6 +640,62 @@ fn build_model_client_effect_local_result_artifact(
     max_depth,
     scope=Some(acquired.scope),
   )
+}
+
+///|
+fn model_result_original_export_matches(
+  owner : PreparedClientEffectComputation,
+  custody : ClientEffectLocalArtifactCustody,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  acquired : ClientEffectModelAcquiredEvidence,
+  expected_output : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  let invocation = acquired.invocation
+  let model_task = acquired.call_scope.plan.task
+  // Select using immutable identity, not a failed current observation or task
+  // numbering. Preserve every old direct original; a declined direct branch
+  // never retries through the suffix path.
+  if @execution.completed_relation_export_has_output_identity(
+      receipt, expected_output,
+    ) {
+    (match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+    }) &&
+    @execution.completed_relation_export_matches_output(
+      receipt, expected_output,
+    )
+  } else {
+    match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_model_suffix(
+          exported,
+          inputs,
+          owner.graph,
+          invocation.unit,
+          model_task,
+          expected_output,
+          receipt,
+        )
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_matches_model_suffix(
+          exported,
+          inputs,
+          owner.graph,
+          invocation.unit,
+          model_task,
+          expected_output,
+          receipt,
+        )
+    }
+  }
 }
 
 ///|

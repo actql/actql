@@ -175,6 +175,67 @@ fn native_mock_effect_manifest_inventory(
 }
 
 ///|
+// The relation census counts the original selected dependency slots. Only the
+// relation vector, sort and measured-body controls are allocated in this frame.
+fn native_mock_effect_artifact_measurement_capacity(
+  count : Int64,
+) -> @execution.ExecutionCapacity? {
+  guard count >= 0L &&
+    count <= 2147483647L &&
+    @shape.collection_construction_extent({
+      records: 28L,
+      record_references: 51L,
+      record_words: 81L,
+      reference_arrays: 6L,
+      reference_items: 3L * count + 24L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(vector) &&
+    @encode.measuring_writer_construction_extent(1025, 20) is Some(writer) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: vector.record_headers + writer.record_headers,
+    reference_slots: vector.reference_slots + writer.reference_slots,
+    scalar_words: vector.scalar_words + writer.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(0L, bytes))
+}
+
+///|
+fn LocalNativeMockEffectImportConstruction::model_result_artifact_funding(
+  self : Self,
+  original : LocalCommandPreparationOriginal,
+  definition : @run_host.ClientEffectLocalResultDefinition,
+) -> @run_host.ClientEffectModelArtifactFunding {
+  let mut controls = 0L
+  {
+    reserve_measurement: count => {
+      let quote = native_mock_effect_artifact_measurement_capacity(count)
+      if !self.prepare_body(original, quote) {
+        return false
+      }
+      controls = @execution.execution_capacity_execution_bytes(quote.unwrap())
+      true
+    },
+    reserve_bodies: bodies => {
+      self.prepare_body(
+        original,
+        @local_values.installed_effect_model_result_artifact_capacity(
+          bodies,
+          @run_host.client_effect_local_result_definition_cid(definition),
+          controls,
+        ),
+      )
+    },
+  }
+}
+
+///|
 // Contracts are measured sequentially on the fixed recipe's existing
 // construction reservation. Only one depth stack and extent carrier live.
 fn native_mock_effect_contract_extent_walk_capacity(

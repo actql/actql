@@ -376,7 +376,9 @@ fn build_client_effect_local_result_artifact(
       invocation.cid,
       evidence,
       retention,
-      @execution.completed_relation_export_measurement(receipt).row_count,
+      @execution.logical_relation_usage(
+        @execution.completed_relation_export_identity(receipt),
+      ).2,
       max_wire_bytes,
       max_nodes,
       max_depth,

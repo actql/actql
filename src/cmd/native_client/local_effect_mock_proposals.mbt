@@ -729,6 +729,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
         .native_effect_proposal(self.original)
       current._retained_definition = Some(definition)
+      let funding = if measure_proposal_rows {
+        Some(
+          construction
+          .unwrap()
+          .model_result_artifact_funding(self.original, definition),
+        )
+      } else {
+        None
+      }
       let artifact = business.model_work[0]
         .local_effect_model_artifact(
           held.materials.unwrap(),
@@ -740,6 +749,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           16384,
           1024,
           20,
+          funding~,
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
         .native_effect_proposal(self.original)
@@ -822,7 +832,12 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     }
     // The owner requires every declared Result and Effect-consumed Table of
     // the Unit. A consumed subset must not be presented as a whole Manifest.
-    self.prepare_mock_effect_unit_results(state, held, max_capture_bytes)
+    self.prepare_mock_effect_unit_results(
+      state,
+      held,
+      max_capture_bytes,
+      measure_artifacts=measure_unit_manifest,
+    )
     let manifest_funding = if measure_unit_manifest {
       let construction = held.construction.unwrap()
       // The caller's temporary collection coexists with the original

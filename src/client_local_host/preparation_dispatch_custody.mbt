@@ -582,6 +582,50 @@ pub fn installed_effect_imported_model_evidence_body_capacity(
 }
 
 ///|
+/// Construction and retention of a Model Result's measured contracts. The
+/// Artifact keeps the original Definition, receipt and pins by reference.
+/// Every issued contract remains live, while their synchronous codecs share
+/// a single workspace alongside the producer's original census.
+pub fn installed_effect_model_result_artifact_capacity(
+  bodies : Array[(String, @encode.EncodingConstructionGeometry)],
+  original_cid : String,
+  coheld_workspace : Int64,
+) -> @execution.ExecutionCapacity? {
+  guard coheld_workspace >= 0L &&
+    effect_unit_publication_capacity(bodies, original_cid) is Some(capacity) else {
+    return None
+  }
+  let count = bodies.length().to_int64()
+  // The Result Artifact, its custody/source variants, ordering evidence and
+  // the two optional parent contracts, plus one owned wrapper per body.
+  guard @execution.preparation_representation_cost({
+      record_headers: 6L + 3L * count,
+      reference_slots: 18L + 8L * count,
+      scalar_words: 5L + 4L * count,
+      owned_utf16_units: 71L * count,
+      owned_wire_bytes: 0L,
+    })
+    is Some(additional) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(capacity),
+      additional,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(capacity),
+      additional,
+      1L,
+    )
+    is Some(held) &&
+    @execution.checked_preparation_add_product(held, coheld_workspace, 1L)
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
 // The measuring frame is synchronous and returns only its immutable quote.
 // Preserve the execution floor that was already live before opening it;
 // failed measurement or a failed current check keeps the original debit.
