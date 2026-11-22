@@ -1047,7 +1047,7 @@
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -1145,7 +1145,7 @@
                 "anchor": "pending read and stop Promises"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {

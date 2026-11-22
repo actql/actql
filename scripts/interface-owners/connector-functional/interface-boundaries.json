@@ -7176,7 +7176,7 @@
                 "anchor": "`stopBefore`"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               },
               {
@@ -7218,8 +7218,8 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -7246,8 +7246,8 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
               },
               {
                 "path": "docs/design/effect-constructor-frames.md",
@@ -7264,8 +7264,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -7314,7 +7314,7 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -7322,7 +7322,7 @@
                 "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -7364,7 +7364,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -7410,7 +7410,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               },
               {
@@ -7460,11 +7460,11 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -7510,7 +7510,7 @@
                 "anchor": "function cleanupCustody("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               },
               {
@@ -8327,7 +8327,7 @@
                 "anchor": "`stopBefore`"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               },
               {
@@ -8377,12 +8377,12 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -8431,8 +8431,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -8485,7 +8485,7 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -8493,7 +8493,7 @@
                 "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -8539,7 +8539,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -8593,7 +8593,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               },
               {
@@ -8647,11 +8647,11 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -8701,7 +8701,7 @@
                 "anchor": "function cleanupCustody("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               },
               {
@@ -9332,7 +9332,7 @@
                 "anchor": "`stopBefore`"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               },
               {
@@ -9382,12 +9382,12 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -9436,8 +9436,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -9490,7 +9490,7 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -9498,7 +9498,7 @@
                 "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -9544,7 +9544,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -9598,7 +9598,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               },
               {
@@ -9652,11 +9652,11 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -9706,7 +9706,7 @@
                 "anchor": "function cleanupCustody("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               },
               {
@@ -10011,7 +10011,7 @@
                 "anchor": "`stopBefore`"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               },
               {
@@ -10057,12 +10057,12 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -10107,8 +10107,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -10157,7 +10157,7 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -10165,7 +10165,7 @@
                 "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -10207,7 +10207,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -10257,7 +10257,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               },
               {
@@ -10307,11 +10307,11 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -10357,7 +10357,7 @@
                 "anchor": "function cleanupCustody("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               },
               {
@@ -10825,7 +10825,7 @@
                 "anchor": "`stopBefore`"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               },
               {
@@ -10863,12 +10863,12 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options)"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export function retainInstalledRowCaptureChild({children, create,"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -10905,8 +10905,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
@@ -10947,7 +10947,7 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -10955,7 +10955,7 @@
                 "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze"
               },
               {
@@ -10989,7 +10989,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -11031,7 +11031,7 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               },
               {
@@ -11073,11 +11073,11 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -11115,7 +11115,7 @@
                 "anchor": "function cleanupCustody("
               },
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               },
               {

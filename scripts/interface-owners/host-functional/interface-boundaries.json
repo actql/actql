@@ -82028,7 +82028,7 @@
     {
       "module": "adapters/host-node/installed-row-capture-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca7fba3d7bcdc895314bd2cf896e81cf0b12c221b92c732a20161b6871ce1e4a",
+      "sha256": "303e445f3662cdac46fd2068e6da0aac76b19ed5841fc2464b72dcf241343867",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -82179,25 +82179,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options) {"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -82207,7 +82207,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -82217,19 +82217,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               }
             ],
@@ -82259,25 +82259,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "export async function prepareInstalledRowCaptureChild(options) {"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
-                "anchor": "let child = create();"
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
               },
               {
@@ -82287,7 +82287,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (result !== false && !preparing &&"
               },
               {
@@ -82297,19 +82297,19 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
                 "anchor": "if (childPending()) return false;"
               }
             ],

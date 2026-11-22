@@ -1,29 +1,61 @@
 import {releasePreparedResults} from '../host-common/completed-run-publication.mjs';
 
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Release = () => Awaitable<unknown>;
+type Status = Readonly<{pending: boolean}>;
+type PreparedEntry = Parameters<typeof releasePreparedResults>[0][number];
+type CaptureChild<Result> = Readonly<{
+  prepare(): Awaitable<Result>;
+  release: Release;
+  retry: Release;
+  status(): Status;
+}>;
+type RetainOptions<Result> = {
+  children: PreparedEntry[];
+  create: () => CaptureChild<Result>;
+  assertCurrent?: () => unknown;
+  signal?: AbortSignal;
+};
+type ReleaseOptions = Readonly<{
+  payloads?: readonly PreparedEntry[];
+  children?: readonly PreparedEntry[];
+  releaseResults?: Release;
+  releaseInputs?: Release;
+  control: Parameters<typeof releasePreparedResults>[2];
+}>;
+type CleanupFailure = Readonly<{
+  primaryFailure: unknown;
+  cleanupPending: boolean;
+  cleanupHandle: Readonly<{retry(): Awaitable<Status>}>;
+}>;
+
 // The existing capture retains this original child before any fallible current
 // check or asynchronous preparation. A fulfilled request is not retirement of
 // its reader, backing, borrowed Content or pending physical cleanup.
-export async function prepareInstalledRowCaptureChild(options) {
+export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>) {
   return retainInstalledRowCaptureChild(options).prepare();
 }
 
 // The SAME retainer can hold an original constructor before its actual data
 // exists. Preparation is still the captured original method, never a new child,
 // callback producer or cleanup owner. Immediate callers use the wrapper above.
-export function retainInstalledRowCaptureChild({children, create,
-  assertCurrent, signal}) {
+export function retainInstalledRowCaptureChild<Result>(options: RetainOptions<Result>): Readonly<{
+  prepare(): Promise<Awaited<Result>>;
+}>;
+export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:
+  Omit<RetainOptions<Result>, 'create'> & Readonly<{create?: RetainOptions<Result>['create']}>) {
   signal?.throwIfAborted();
   assertCurrent?.();
-  let child = create();
+  let child: CaptureChild<Result> | undefined = create!();
   create = undefined;
-  let methods;
+  let methods: CaptureChild<Result> | undefined;
   let preparing = false;
   let retired = false;
-  let flight;
+  let flight: Promise<void> | undefined;
   let openingFlight = false;
   const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),
     {code: 'InvalidInstalledRowRequestChild'});
-  const drain = retry => {
+  const drain = (retry: boolean) => {
     if (retired) return;
     // The async executor calls the original method synchronously, before its
     // returned Promise can be assigned. Fence that exact opening interval.
@@ -36,7 +68,7 @@ export function retainInstalledRowCaptureChild({children, create,
           if (typeof method !== 'function') throw invalid();
           const result = await Reflect.apply(method, child, []);
           if (result !== false && !preparing &&
-              Reflect.apply(methods.status, child, [])?.pending === false) {
+              Reflect.apply(methods!.status, child, [])?.pending === false) {
             retired = true;
             child = undefined;
             methods = undefined;
@@ -65,7 +97,7 @@ export function retainInstalledRowCaptureChild({children, create,
     try {
       assertCurrent?.();
       signal?.throwIfAborted();
-      const prepared = await Reflect.apply(methods.prepare, child, []);
+      const prepared = await Reflect.apply(methods!.prepare, child, []);
       assertCurrent?.();
       signal?.throwIfAborted();
       return prepared;
@@ -77,7 +109,7 @@ export function retainInstalledRowCaptureChild({children, create,
 // the common prepared cleanup owner. Every sibling is attempted independently;
 // an unsuccessful release remains pending in that owner's retained retry handle.
 export async function releaseInstalledRowCapture({payloads = [], children = [], releaseResults,
-  releaseInputs, control}, primary) {
+  releaseInputs, control}: ReleaseOptions, primary: unknown) {
   // Capture children are append-only original handles; their retained wrapper
   // retires monotonically and cannot reopen. Advance only after that actual
   // retirement report. Each dependent need not rescan the same retired prefix.
@@ -94,9 +126,9 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
     }
     return false;
   };
-  const retain = release => {
+  const retain = (release: Release | undefined) => {
     let pending = typeof release === 'function';
-    let flight;
+    let flight: Promise<void> | undefined;
     let openingFlight = false;
     const drain = () => {
       if (!pending) return;
@@ -106,7 +138,7 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
         openingFlight = true;
         try {
           flight = (async () => {
-            if (await release() !== false) { pending = false; release = undefined; }
+            if (await release!() !== false) { pending = false; release = undefined; }
           })().finally(() => { flight = undefined; });
         } finally {openingFlight = false;}
       }
@@ -117,12 +149,12 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
       status: () => Object.freeze({pending}),
     })});
   };
-  const dependent = value => {
+  const dependent = (value: PreparedEntry) => {
     let original = value.prepared;
-    let flight;
+    let flight: Promise<void> | undefined;
     let openingFlight = false;
     let attempted = false;
-    const drain = retry => {
+    const drain = (retry: boolean) => {
       if (original === undefined) return;
       if (openingFlight) return false;
       if (childPending()) return false;
@@ -130,12 +162,12 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
         openingFlight = true;
         try {
           flight = (async () => {
-            if (original.status()?.pending !== false) {
-              const operation = retry && attempted ? original.retry : original.release;
+            if (original!.status()?.pending !== false) {
+              const operation = retry && attempted ? original!.retry : original!.release;
               attempted = true;
-              await Reflect.apply(operation, original, []);
+              await Reflect.apply(operation!, original, []);
             }
-            if (original.status()?.pending === false) original = undefined;
+            if (original!.status()?.pending === false) original = undefined;
           })().finally(() => { flight = undefined; });
         } finally {openingFlight = false;}
       }
@@ -159,11 +191,11 @@ export async function releaseInstalledRowCapture({payloads = [], children = [], 
       ...payloads.slice().reverse().map(value => children.length ? dependent(value) : value)],
     primary, control);
   } catch (error) {
-    if (children.length && !childPending() && error?.primaryFailure === primary &&
-        error.cleanupPending === true) {
+    if (children.length && !childPending() && (error as CleanupFailure | undefined)?.primaryFailure === primary &&
+        (error as CleanupFailure).cleanupPending === true) {
       // Only advance the same finite parent inventory after all original child
       // ACKs. This is not another preparation/read/send or a physical retry.
-      if ((await error.cleanupHandle.retry()).pending === false) throw primary;
+      if ((await (error as CleanupFailure).cleanupHandle.retry()).pending === false) throw primary;
     }
     throw error;
   }
