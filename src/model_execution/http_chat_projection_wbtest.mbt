@@ -161,7 +161,7 @@ test "portable HTTP borrows only the paid codec result of the exact request and 
   let foreign_request = { ..request, slot_cid: request.slot_cid, }
   let installation = structured_capability_fixture_installation()
   let configuration =
-    #|{"adapter_kind":"portable-http","api_mode":"chat-completions","endpoint":"https://models.example/v1/structured","model_id":"fixture-http","provider_id":"models/fixture","selector":"fixture-chat"}
+    #|{"adapter_kind":"portable-http","api_mode":"chat-completions","credential_ref":"file:original.secret","endpoint":"https://models.example/v1/structured","model_id":"fixture-http","provider_id":"models/fixture","selector":"fixture-chat"}
   let binding = @publication_host.issue_client_model_provider_binding(
     "models/fixture", "{}", "{}", configuration,
   ).unwrap()
@@ -197,6 +197,16 @@ test "portable HTTP borrows only the paid codec result of the exact request and 
     ).unwrap()
   }
   let admitted = admit()
+  assert_true(
+    model_http_original_credential_reference(admitted, configuration)
+    is Some("file:original.secret"),
+  )
+  let substituted =
+    #|{"adapter_kind":"portable-http","api_mode":"chat-completions","credential_ref":"file:replaced.secret","endpoint":"https://models.example/v1/structured","model_id":"fixture-http","provider_id":"models/fixture","selector":"fixture-chat"}
+  assert_true(substituted.length() == configuration.length())
+  assert_true(
+    model_http_original_credential_reference(admitted, substituted) is None,
+  )
   let original = prepare_model_http_chat_request(
     admitted, request, installation, 100,
   ).unwrap()

@@ -191,6 +191,8 @@ pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
 pub fn model_execution_unknown_calls(ModelExecution) -> Bool
 
+pub fn model_http_original_credential_reference(AdmittedStructuredModelProvider, String) -> String?
+
 pub fn model_mock_answer_at(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration, Int) -> Result[(String, @value_admission.CheckedValue)?, ModelMockAnswerIssue]
 
 pub fn model_mock_answer_count(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Int, ModelMockAnswerIssue]

@@ -1231,6 +1231,8 @@ pub fn client_model_handed_off_read_capacity_available(ClientModelReadScope, Cli
 
 pub fn client_model_input_materialization_matches(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, @execution_relation.CompletedOutput) -> Bool
 
+pub fn client_model_original_credential_reference(@run_publication.RunEvidenceValue, String, String) -> String?
+
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
 
 pub fn client_model_parked_read_capacity_available(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool

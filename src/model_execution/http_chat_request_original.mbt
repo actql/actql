@@ -55,6 +55,25 @@ pub fn prepare_model_http_chat_request(
 }
 
 ///|
+/// Borrow the nonsecret reference within the resolved portable installation.
+/// This is used at construction, before retaining the original file handle.
+pub fn model_http_original_credential_reference(
+  provider : AdmittedStructuredModelProvider,
+  configuration_wire : String,
+) -> String? {
+  let selected = provider.capability
+  if selected.resolved.adapter_kind != "portable-http" ||
+    selected.resolved.api_mode != "chat-completions" {
+    return None
+  }
+  @publication_host.client_model_original_credential_reference(
+    selected.binding,
+    selected.provider.provider_id,
+    configuration_wire,
+  )
+}
+
+///|
 /// Borrow the same bytes for the exact request and the exact installed
 /// selection. This cannot encode or adopt a replacement body at dispatch.
 pub fn prepared_model_http_chat_material(
