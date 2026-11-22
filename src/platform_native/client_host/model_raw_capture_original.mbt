@@ -54,7 +54,7 @@ fn native_model_raw_run_current(
 /// durable Run and physical Store all have to agree. Key material comes from
 /// the existing adopted epoch and Store binding. The caller must retain this
 /// result before attempting persistence.
-pub fn NativeLocalJournalCapture::prepare_model_raw_capture_in_original_read(
+fn NativeLocalJournalCapture::prepare_model_raw_capture_in_original_read(
   self : NativeLocalJournalCapture,
   request : @host.ClientRequestIdentity,
   compiled : @host.ClientCompiledRun,
@@ -217,7 +217,7 @@ pub fn NativeClientModelRawCapture::persist_in_original_read(
 ///|
 /// Call in the original Model frame after Store confirmation. The Core
 /// issuer still rechecks its exact live Call and capture authority.
-pub fn NativeClientModelRawCapture::acknowledge_saved(
+fn NativeClientModelRawCapture::acknowledge_saved(
   self : NativeClientModelRawCapture,
 ) -> Result[@model.ModelSavedRawReceipt, NativeClientModelRawIssue] {
   if self.phase != ReceiptReady {

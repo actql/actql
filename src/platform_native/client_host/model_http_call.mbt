@@ -5,6 +5,7 @@ pub(all) enum NativeClientModelHttpIssue {
   Dispatch(@model.ModelExecutionIssue)
   RawPolicy(@host.ClientModelRawCaptureIssue)
   Raw(@model.ModelRawCaptureSaveIssue)
+  RawStore(NativeClientModelRawIssue)
   Http(@http.NativeHttpIssue)
 }
 
@@ -553,41 +554,60 @@ pub fn NativeClientModelHttpCall::close_unentered_in_original_read(
 }
 
 ///|
-/// The Raw adapter borrows only the physically observed body and status from
-/// this retained Client. Persist and acknowledge this same view before any
-/// typed decoder result can be published.
-pub fn NativeClientModelHttpCall::observe_raw_in_original_read(
+/// Prepare the Store child from the exact completed HTTP response. The command
+/// retains the returned child before persistence, including when Store or
+/// Read return fails. A failed save cannot acquire another HTTP attempt.
+pub fn NativeClientModelHttpCall::prepare_raw_save_in_original_read(
   self : NativeClientModelHttpCall,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  namespace_id : String,
+  store : @publication_store.Store,
   observed_at : String,
-) -> Result[(@model.ModelRawCaptureSave, Bytes), NativeClientModelHttpIssue] {
+) -> Result[NativeClientModelRawCapture, NativeClientModelHttpIssue] {
   match self.capture.check_original_read_lifetime() {
     Ok(_) => ()
     Err(issue) => return Err(Original(issue))
   }
   guard !self.cancelled &&
+    !self.advancing &&
     self.client is None &&
+    self.raw is None &&
     self.original is Some(call) &&
     self.response is Some(response) &&
     self.outcome is None else {
     return Err(ForeignOriginal)
   }
-  let saved = match self.raw {
-    Some(original) => Ok(original)
-    None =>
-      @model.observe_model_raw_capture(
-        call,
-        self.raw_registration,
-        "sha256:" + @sha.hex(response.body),
-        response.body.length(),
-        response.status,
-        true,
-        observed_at,
-      ).map_err(issue => Raw(issue))
+  self.advancing = true
+  defer {
+    self.advancing = false
   }
-  saved.map(value => {
-    self.raw = Some(value)
-    (value, response.body)
-  })
+  let raw = match
+    @model.observe_model_raw_capture(
+      call,
+      self.raw_registration,
+      "sha256:" + @sha.hex(response.body),
+      response.body.length(),
+      response.status,
+      true,
+      observed_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Raw(issue))
+  }
+  self.raw = Some(raw)
+  self.capture
+  .prepare_model_raw_capture_in_original_read(
+    request,
+    compiled,
+    definition,
+    namespace_id,
+    store,
+    raw,
+    response.body,
+  )
+  .map_err(issue => RawStore(issue))
 }
 
 ///|
@@ -595,23 +615,24 @@ pub fn NativeClientModelHttpCall::observe_raw_in_original_read(
 /// on that Read until the same original Model observes the settled Call.
 pub fn NativeClientModelHttpCall::adopt_saved_chat(
   self : NativeClientModelHttpCall,
-  receipt : @model.ModelSavedRawReceipt,
+  saved : NativeClientModelRawCapture,
 ) -> Result[Unit, NativeClientModelHttpIssue] {
   guard !self.cancelled &&
+    !self.advancing &&
     !self.decode_attempted &&
     self.client is None &&
-    self.original is Some(call) &&
+    self.original is Some(_) &&
     self.raw is Some(raw) &&
     self.response is Some(response) &&
     self.outcome is None &&
-    @model.model_saved_raw_receipt_matches(
-      receipt,
-      call,
-      @publication.model_raw_response_value(
-        @model.model_raw_capture_save_binding(raw),
-      ),
-    ) else {
+    saved.phase is ReceiptReady &&
+    physical_equal(saved.capture, self.capture) &&
+    physical_equal(saved.view, raw) else {
     return Err(ForeignOriginal)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
   }
   let units = response.body.length().to_int64()
   let (header, unit, terminator, _, _) = @bootstrap.native_managed_value_layout()
@@ -637,6 +658,16 @@ pub fn NativeClientModelHttpCall::adopt_saved_chat(
     )
     is Err(issue) {
     return Err(issue)
+  }
+  let receipt = match saved.acknowledge_saved() {
+    Ok(value) => value
+    Err(issue) => return Err(RawStore(issue))
+  }
+  if self.cancelled {
+    return Err(ForeignOriginal)
+  }
+  if self.capture.check_original_read_lifetime() is Err(issue) {
+    return Err(Original(issue))
   }
   let body = @utf8.decode(response.body, ignore_bom=true) catch {
     _ => {

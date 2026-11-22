@@ -461,6 +461,12 @@ fn command_preparation_cleanup_cause(
         Dispatch(_) => "Dispatch"
         RawPolicy(_) => "RawPolicy"
         Raw(_) => "Raw"
+        RawStore(ForeignOriginal) => "RawStoreForeignOriginal"
+        RawStore(Original(_)) => "RawStoreOriginalRead"
+        RawStore(Capture(_)) => "RawStoreCapture"
+        RawStore(Store(store)) =>
+          "RawStore/" +
+          command_preparation_cleanup_cause(CommandBusinessStore(store))
         Http(_) => "Http"
       }
     CommandBusinessModel(cause) =>
