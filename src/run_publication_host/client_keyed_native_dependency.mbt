@@ -22,6 +22,8 @@ fn[T] require_native_lookup_dependency(
 /// Encoders can fund writing separately from admission. The last emitter
 /// argument selects the additional digest over a returned Policy wire.
 /// Table quotes supply the live entry, key text and additional wire extents.
+/// Measurement quotes supply the live unordered keys and emitter depth before
+/// the measuring Writer is constructed, separately from table growth.
 pub fn client_keyed_lookup_native_dependency_bodies(
   lookup : ClientKeyedLookupInput,
   retention : @publication.PublicationContract,
@@ -32,6 +34,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
   before_body? : ((Int, Int, Int) -> Bool)? = None,
   before_emit? : ((Int, Int, Int, Bool) -> Bool)? = None,
   before_tables? : ((Int, Int64, Int64) -> Bool)? = None,
+  before_measure? : ((Int, Int) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -50,6 +53,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     before_body,
     before_emit~,
     before_tables~,
+    before_measure~,
   )
 }
 
@@ -77,6 +81,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   retain_catalog? : Bool = true,
   before_emit? : ((Int, Int, Int, Bool) -> Bool)? = None,
   before_tables? : ((Int, Int64, Int64) -> Bool)? = None,
+  before_measure? : ((Int, Int) -> Bool)? = None,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -329,13 +334,27 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   let policy_emit_funding = before_emit.map(prepare => {
     fn(bytes, nodes, depth) { prepare(bytes, nodes, depth, true) }
   })
-  let current = before_emit.map(_ => original_current)
+  let current = if before_emit is Some(_) || before_measure is Some(_) {
+    Some(original_current)
+  } else {
+    None
+  }
   fn emit(
     kind : String,
     cid : String,
+    live_keys : Int,
+    emitter_depth : Int,
     produce : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Unit raise NativeLookupDependencyStop {
     if emit_funding is Some(prepare) {
+      if before_measure is Some(fund) {
+        if !fund(live_keys, Int::min(max_depth, emitter_depth)) {
+          raise NativeLookupDependencyStop(ConstructionRefused)
+        }
+        if !original_current() {
+          raise NativeLookupDependencyStop(ForeignInput)
+        }
+      }
       let measure = try {
         let writer = @encode.measuring_writer(remaining, max_nodes, max_depth)
         produce(writer)
@@ -377,7 +396,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     // ObjectRelation identifies the checked non-null row ValueContract, not
     // its Catalog envelope or field map. Serialize that same typed original
     // once for durable custody; do not recompile or hash the whole Graph.
-    emit("carrier_contract", cid, writer => @contract.emit_checked(row, writer))
+    // Checked contract emission only uses ordered object frames.
+    emit("carrier_contract", cid, 0, max_depth, writer => {
+      @contract.emit_checked(row, writer)
+    })
   }
   try {
     for
@@ -497,7 +519,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       )
       append("task_fragment", component.left.logical_cid, pipeline_wire)
     } else {
-      emit("task_fragment", component.left.logical_cid, writer => {
+      // CanonicalValue borrows the previous ordered key, with no key Map.
+      emit("task_fragment", component.left.logical_cid, 0, max_depth, writer => {
         @canonical.emit_value(pipeline, writer)
       })
     }
@@ -565,16 +588,21 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       is Some(execution) else {
       return Err(ForeignInput)
     }
-    emit("lookup_execution_policy", component.original.lookup_execution_cid, writer => {
-      @environment.emit_lookup_execution_policy(execution, writer)
-    })
-    emit("data_policy", component.original.request_policy_cid, writer => {
+    // The admitted Lookup policy is one object of seven scalar fields.
+    emit(
+      "lookup_execution_policy",
+      component.original.lookup_execution_cid,
+      7,
+      1,
+      writer => @environment.emit_lookup_execution_policy(execution, writer),
+    )
+    emit("data_policy", component.original.request_policy_cid, 5, 2, writer => {
       @checked.emit_effective_policy(
         component.original.policies.request,
         writer,
       )
     })
-    emit("data_policy", component.original.response_policy_cid, writer => {
+    emit("data_policy", component.original.response_policy_cid, 6, 1, writer => {
       @checked.emit_source_response_policy(
         @checked.source_execution_subject(original.keyed.check).response_policy,
         writer,
@@ -609,6 +637,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
               before_body=funding,
               admitted_body=policy_receiver,
               before_emit=policy_emit_funding,
+              before_measure~,
               before_catalog_emit=if before_emit is Some(_) {
                 emit_funding
               } else {

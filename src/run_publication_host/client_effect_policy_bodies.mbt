@@ -122,6 +122,7 @@ fn checked_client_source_policy_bodies(
   ])? = None,
   before_emit? : ((Int, Int, Int) -> Bool)? = None,
   before_catalog_emit? : ((Int, Int, Int) -> Bool)? = None,
+  before_measure? : ((Int, Int) -> Bool)? = None,
   current? : (() -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining_work = work
@@ -136,6 +137,8 @@ fn checked_client_source_policy_bodies(
   }
   fn retain(
     identity : String,
+    live_keys : Int,
+    emitter_depth : Int,
     emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
     receive : ((@publication.CapturedEffectDependencyBody, Int) -> Result[
       Unit,
@@ -151,9 +154,17 @@ fn checked_client_source_policy_bodies(
       return Ok(())
     }
     if emit_funding is Some(prepare) {
+      if before_measure is Some(fund) {
+        if !fund(live_keys, Int::min(max_depth, emitter_depth)) {
+          return Err(BudgetExceeded)
+        }
+        if current is Some(available) && !available() {
+          return Err(ForeignBody)
+        }
+      }
       // Traverse this SAME checked policy emitter without allocating output.
-      // The caller funds measuring-writer controls before entering this API,
-      // then funds exact text/body construction before the actual Writer.
+      // Existing callers fund the measuring Writer at entry. Scoped callers
+      // fund it above, then fund the exact owned body after measurement.
       let measure = @encode.measuring_writer(remaining, max_nodes, max_depth) catch {
         _ => return Err(BudgetExceeded)
       }
@@ -226,6 +237,8 @@ fn checked_client_source_policy_bodies(
   match
     retain(
       cid,
+      5,
+      2,
       writer => @checked.emit_publication_source_policy(policy, writer),
       admitted_body,
     ) {
@@ -246,6 +259,8 @@ fn checked_client_source_policy_bodies(
     match
       retain(
         source.response_policy_cid,
+        6,
+        1,
         writer => {
           @checked.emit_source_response_policy(source.response_policy, writer)
         },

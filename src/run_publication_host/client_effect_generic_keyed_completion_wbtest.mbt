@@ -649,6 +649,8 @@ fn run_original_source_completion(
     let quotes : Array[(Int, Int)] = []
     let emissions : Array[(Int, Int)] = []
     let tables : Array[(Int, Int64, Int64)] = []
+    let measurements : Array[(Int, Int)] = []
+    let measurements_before_table = Ref(0)
     let collected = client_keyed_lookup_native_dependency_bodies(
       lookup,
       retention,
@@ -673,8 +675,20 @@ fn run_original_source_completion(
         tables.push((entries, key_units, wire_units))
         true
       }),
+      before_measure=Some((keys, depth) => {
+        if tables.length() <= 1 {
+          measurements_before_table.val += 1
+        }
+        measurements.push((keys, depth))
+        true
+      }),
     ).unwrap()
     assert_true(!emissions.is_empty())
+    assert_eq(measurements_before_table.val, 0)
+    assert_true(measurements.contains((7, 1)))
+    assert_true(measurements.contains((5, 2)))
+    assert_true(measurements.contains((6, 1)))
+    assert_true(measurements.all(quote => quote.0 <= 7))
     assert_true(quotes.contains((bytes, nodes)))
     assert_eq(
       collected.map(@publication.captured_effect_dependency_body_cid),
@@ -724,6 +738,35 @@ fn run_original_source_completion(
       is Err(ConstructionRefused),
     )
     assert_eq(growth_refusals.val, 1)
+    let measurement_refusals = Ref(0)
+    let emission_after_refusal = Ref(false)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_tables=Some((_, _, _) => true),
+        before_measure=Some((_, _) => {
+          measurement_refusals.val += 1
+          false
+        }),
+        before_emit=Some((_, _, _, _) => {
+          emission_after_refusal.val = true
+          true
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(measurement_refusals.val, 1)
+    assert_false(emission_after_refusal.val)
     let attempted_emissions = Ref(0)
     let late_admissions = Ref(0)
     assert_true(

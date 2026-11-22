@@ -490,14 +490,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }
           let previous_workspace = construction.workspace
-          let measuring = if measured {
-            mock_effect_dependency_measurement_bytes(
-              wire.max_nodes,
-              wire.max_depth,
-            )
-          } else {
-            Some(0L)
-          }
           let mut table_workspace = 0L
           let before_tables = if measured {
             Some((entries, keys, wires) => {
@@ -505,12 +497,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
                 entries, keys, wires,
               )
               let quote = tables.bind(bytes => {
-                measuring.bind(measure => {
-                  @execution.checked_preparation_add_product(bytes, measure, 1L).bind(peak => {
-                      @execution.execution_capacity(0L, peak)
-                    },
-                  )
-                })
+                @execution.execution_capacity(0L, bytes)
               })
               if !construction.prepare_body(self.original, quote) {
                 return false
@@ -549,6 +536,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           } else {
             None
           }
+          let before_measure = if measured {
+            Some((live_keys, depth) => {
+              prepare(
+                native_mock_effect_lookup_measure_workspace(live_keys, depth),
+              )
+            })
+          } else {
+            None
+          }
           let dependencies = @run_host.client_keyed_lookup_native_dependency_bodies(
               lookup,
               retention,
@@ -564,6 +560,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
               before_body~,
               before_emit~,
               before_tables~,
+              before_measure~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Dependency(issue)

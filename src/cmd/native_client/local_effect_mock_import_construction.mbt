@@ -377,7 +377,15 @@ fn native_mock_effect_lookup_emit_workspace(
   guard native_mock_effect_plan_wire_capacity(bytes, nodes, depth) is Some(wire) else {
     return None
   }
-  let writer = @execution.execution_capacity_execution_bytes(wire)
+  guard native_mock_effect_lookup_emitter_workspace(depth) is Some(emitter) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(wire),
+      emitter,
+      1L,
+    )
+    is Some(writer) else {
+    return None
+  }
   if !digest {
     return @execution.execution_capacity(0L, writer)
   }
@@ -401,6 +409,8 @@ fn native_mock_effect_lookup_emit_workspace(
 ///|
 // The collection backing stays alive through the next emitter/parser. The
 // Map owns its key strings; only distinct input wires need extra backing.
+// The nested policy receiver also tracks the CIDs it accepted. Each insert
+// there follows an insert in this outer table; its keys borrow those CIDs.
 fn native_mock_effect_lookup_table_workspace(
   entries : Int,
   key_units : Int64,
@@ -411,12 +421,12 @@ fn native_mock_effect_lookup_table_workspace(
       records: 2L + 2L * count,
       record_references: 0L,
       record_words: 0L,
-      reference_arrays: 1L,
+      reference_arrays: 2L,
       reference_items: count,
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 1L,
-      map_entries: count,
+      maps: 2L,
+      map_entries: 2L * count,
     })
     is Some(tables) &&
     @execution.checked_preparation_add_product(key_units, wire_units, 1L)
@@ -429,6 +439,58 @@ fn native_mock_effect_lookup_table_workspace(
     scalar_words: tables.scalar_words,
     owned_utf16_units: text,
     owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// Reuse the checked dependency census's fixed emitter/depth frame with its
+// zero-key measuring Writer removed. Each phase adds its own actual Writer.
+fn native_mock_effect_lookup_emitter_workspace(depth : Int) -> Int64? {
+  guard @local_values.installed_effect_dependency_fixed_capacity(0, 0, depth)
+    is Some(fixed) &&
+    @encode.measuring_writer_construction_extent(0, depth) is Some(empty) &&
+    @execution.preparation_representation_cost({
+      record_headers: empty.record_headers,
+      reference_slots: empty.reference_slots,
+      scalar_words: empty.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(writer) else {
+    return None
+  }
+  let total = @execution.execution_capacity_execution_bytes(fixed)
+  if writer > total {
+    return None
+  }
+  Some(total - writer)
+}
+
+///|
+// The bounded MeasureOutput owns its current frame/key geometry and the
+// original measuring operations. No text sink or digest is live in this pass.
+fn native_mock_effect_lookup_measure_workspace(
+  live_keys : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  let operation = @encode.measurement_operation_construction_extent()
+  guard native_mock_effect_lookup_emitter_workspace(depth) is Some(emitter) &&
+    @encode.measuring_writer_construction_extent(live_keys, depth)
+    is Some(writer) &&
+    @execution.preparation_representation_cost({
+      record_headers: writer.record_headers +
+      operation.collections.record_headers,
+      reference_slots: writer.reference_slots +
+      operation.collections.reference_slots,
+      scalar_words: writer.scalar_words + operation.collections.scalar_words,
+      owned_utf16_units: operation.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(additional) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(emitter, additional, 1L).bind(bytes => {
+    @execution.execution_capacity(0L, bytes)
   })
 }
 

@@ -282,6 +282,41 @@ test "Native returned import funds next Model body on the exact original reserva
 }
 
 ///|
+test "Native lookup measures beside its current tables on the original capture reservation" {
+  let table_workspace = native_mock_effect_lookup_table_workspace(3, 237L, 0L).unwrap()
+  let tables = @execution.execution_capacity(0L, table_workspace).unwrap()
+  let writer = native_mock_effect_lookup_measure_workspace(7, 1).unwrap()
+  let writer_workspace = @execution.execution_capacity_execution_bytes(writer)
+  let required = 30L + table_workspace + writer_workspace
+  let simultaneous = @execution.add_execution_capacity(tables, writer).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(simultaneous), 0L)
+  assert_true(
+    writer_workspace <
+    mock_effect_dependency_measurement_bytes(100000, 64).unwrap(),
+  )
+  for maximum in [required - 1L, required] {
+    with_native_mock_capture_construction(
+      max_retained=30L,
+      max_execution=maximum,
+      fn(construction) raise {
+        let operation = construction.operation
+        construction.prepare_body_result(Some(tables)).unwrap()
+        let measured = construction.prepare_body_result(Some(simultaneous))
+        assert_true(physical_equal(construction.operation, operation))
+        assert_eq(construction.retained, 0L)
+        if maximum < required {
+          assert_true(measured is Err(Managed(InsufficientCapacity)))
+          assert_eq(construction.workspace, table_workspace)
+        } else {
+          measured.unwrap()
+          assert_eq(construction.workspace, table_workspace + writer_workspace)
+        }
+      },
+    )
+  }
+}
+
+///|
 test "Native Model Result Artifact reserves measured bodies beside its original census" {
   let cid = "sha256:" + "1".repeat(64)
   let measured = @publication.local_result_metadata_construction_geometry(
