@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import * as originalMoon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createInstalledLoaderParent, installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {loadInstalledEffect, installedEffectIdentity} from '../../../host-node/installed-effect.mjs';
+import {installedRowEffectOwnerBinding} from '../../../host-node/installed-row-effect.mjs';
 import {installedSourceConfigurationReader, retireInstalledSourceInitialization} from '../../../host-node/installed-host-services.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
@@ -56,7 +57,8 @@ async function fixture(t, {field = 'Subject', kind = 'update'} = {}) {
   const path = join(root, 'effect.json');
   await writeFile(path, JSON.stringify({version: 'actql-installed-kintone-effect/0.1', connectorId: 'kintone',
     sourceProfilePath: sourcePath, writes: [kind === 'delete' ? {resource: 'inquiries', kind} :
-      {resource: 'inquiries', fields: [field]}]}));
+      {resource: 'inquiries', fields: [field]}],
+    ...(kind === 'delete' ? {queryUpdateTargets: [{name: 'kintone.inquiries', targetRef: 'connector://kintone/inquiries'}]} : {})}));
   parent = createInstalledLoaderParent({root, moon}); parent.open();
   const load = async () => {
     try {
@@ -89,6 +91,9 @@ test('standard kintone DELETE installs the exact guarded Mapping and closes with
   assert.equal(effect.mappings.length, 1);
   const original = effect.mappings[0];
   assert.equal(original.kind, 'delete');
+  assert.deepEqual(effect.queryUpdateTargets, [{name: 'kintone.inquiries', targetRef: original.target,
+    installationBindingCid: effect.connectorBindings[0].bindingCid,
+    installationOwnerCid: installedRowEffectOwnerBinding(effect).cid}]);
   const mapping = environment.mapping_contracts.find(value => value.mapping_contract_cid === original.mappingCid);
   assert.equal(mapping.primary_identity, '$id');
   assert.equal(mapping.target_ref, original.target);
