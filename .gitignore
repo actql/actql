@@ -1978,3 +1978,7 @@ target/
 /scripts/test-packed-hubspot-source.d.mts
 /scripts/fixtures/packed-record-approval-mock.mjs
 /scripts/fixtures/packed-record-approval-mock.d.mts
+/scripts/fixtures/record-approval/installed-child.mjs
+/scripts/fixtures/record-approval/installed-child.d.mts
+/scripts/fixtures/record-approval/scoped-fds.fixture.mjs
+/scripts/fixtures/record-approval/scoped-fds.fixture.d.mts

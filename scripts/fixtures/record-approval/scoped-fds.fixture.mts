@@ -3,14 +3,14 @@ import {execFileSync} from 'node:child_process';
 import {readdir, readlink, realpath} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 
-export function recordApprovalScopedPaths(paths, roots) {
+export function recordApprovalScopedPaths(paths: readonly string[], roots: readonly string[]) {
   return paths.filter(path => {
     const original = path.replace(/ \(deleted\)$/, '');
     return roots.some(root => original === root || original.startsWith(root + sep));
   });
 }
 
-export async function observeRecordApprovalDescriptors(roots) {
+export async function observeRecordApprovalDescriptors(roots: readonly string[]) {
   const scopeRoots = [...new Set((await Promise.all(roots.map(async root =>
     [resolve(root), await realpath(root)]))).flat())];
   let paths, observer;
@@ -18,7 +18,7 @@ export async function observeRecordApprovalDescriptors(roots) {
     observer = 'procfs';
     paths = (await Promise.all((await readdir('/proc/self/fd')).map(async fd => {
       try {return await readlink('/proc/self/fd/' + fd);}
-      catch (error) {if (error.code === 'ENOENT') return undefined; throw error;}
+      catch (error) {if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error;}
     }))).filter(path => path !== undefined);
   } else if (process.platform === 'darwin') {
     observer = 'lsof';
