@@ -289,6 +289,10 @@ test "Native lookup measures beside its current tables on the original capture r
   let writer_workspace = @execution.execution_capacity_execution_bytes(writer)
   let required = 30L + table_workspace + writer_workspace
   let simultaneous = @execution.add_execution_capacity(tables, writer).unwrap()
+  let returned_model = @execution.execution_capacity(
+    0L,
+    table_workspace + writer_workspace - 1L,
+  ).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(simultaneous), 0L)
   assert_true(
     writer_workspace <
@@ -300,7 +304,11 @@ test "Native lookup measures beside its current tables on the original capture r
       max_execution=maximum,
       fn(construction) raise {
         let operation = construction.operation
-        construction.prepare_body_result(Some(tables)).unwrap()
+        construction.prepare_body_result(Some(returned_model)).unwrap()
+        construction
+        .prepare_body_result(Some(tables), previous_workspace_returned=true)
+        .unwrap()
+        assert_eq(construction.workspace, table_workspace)
         let measured = construction.prepare_body_result(Some(simultaneous))
         assert_true(physical_equal(construction.operation, operation))
         assert_eq(construction.retained, 0L)

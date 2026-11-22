@@ -392,42 +392,43 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             stop("LocalOriginalEffectProposalsUnavailable")
           }
         }
-        let mut inventory_workspace = 0L
-        let before_inventory = if measured {
-          Some(source_slots => {
-            let frame = @local_values.installed_effect_imported_model_evidence_frame_capacity(
-              source_slots, 1024, 20,
+        let acquired = {
+          let mut inventory_workspace = 0L
+          let before_inventory = if measured {
+            Some(source_slots => {
+              let frame = @local_values.installed_effect_imported_model_evidence_frame_capacity(
+                source_slots, 1024, 20,
+              )
+              if construction.prepare_body(self.original, frame) {
+                let capacity = frame.unwrap()
+                inventory_workspace = @execution.execution_capacity_execution_bytes(
+                    capacity,
+                  ) -
+                  @execution.execution_capacity_retained_bytes(capacity)
+                true
+              } else {
+                false
+              }
+            })
+          } else {
+            None
+          }
+          let before_body = if measured {
+            let cid = @publication.publication_contract_identity(
+              state.first.definition,
             )
-            if construction.prepare_body(self.original, frame) {
-              let capacity = frame.unwrap()
-              inventory_workspace = @execution.execution_capacity_execution_bytes(
-                  capacity,
-                ) -
-                @execution.execution_capacity_retained_bytes(capacity)
-              true
-            } else {
-              false
-            }
-          })
-        } else {
-          None
-        }
-        let before_body = if measured {
-          let cid = @publication.publication_contract_identity(
-            state.first.definition,
-          )
-          Some((kind, geometry) => {
-            construction.prepare_body(
-              self.original,
-              @local_values.installed_effect_imported_model_evidence_body_capacity(
-                kind, geometry, cid, inventory_workspace,
-              ),
-            )
-          })
-        } else {
-          None
-        }
-        let acquired = business.model_work[0]
+            Some((kind, geometry) => {
+              construction.prepare_body(
+                self.original,
+                @local_values.installed_effect_imported_model_evidence_body_capacity(
+                  kind, geometry, cid, inventory_workspace,
+                ),
+              )
+            })
+          } else {
+            None
+          }
+          business.model_work[0]
           .local_effect_model_acquired_evidence(
             retention,
             16384,
@@ -439,6 +440,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
           .native_effect_proposal(self.original)
+        }
         // Keep the actual returned originals before any later export/target
         // constructor. All members reuse this one semantic Invocation.
         held.acquired = Some(acquired)
@@ -489,7 +491,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           guard physical_source is Some(_) else {
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }
-          let previous_workspace = construction.workspace
           let mut table_workspace = 0L
           let before_tables = if measured {
             Some((entries, keys, wires) => {
@@ -499,7 +500,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
               let quote = tables.bind(bytes => {
                 @execution.execution_capacity(0L, bytes)
               })
-              if !construction.prepare_body(self.original, quote) {
+              // Only the first table callback enters after the entire Model
+              // census has returned. Keep its adopted bodies and reuse its
+              // absolute execution reservation for the lookup's live data.
+              let funded = construction.prepare_body(
+                self.original,
+                quote,
+                previous_workspace_returned=table_workspace == 0L,
+              )
+              if !funded {
                 return false
               }
               table_workspace = tables.unwrap()
@@ -571,7 +580,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             !construction.retain_lookup_dependency_array(
               self.original,
               dependencies.capacity(),
-              previous_workspace,
             ) {
             stop("LocalOriginalEffectProposalsUnavailable")
           }

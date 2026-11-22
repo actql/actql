@@ -496,13 +496,12 @@ fn native_mock_effect_lookup_measure_workspace(
 
 ///|
 // The caller has adopted the same returned Array. Its Map and measuring
-// scopes have returned. Preserve the workspace that preceded the call and
-// the original absolute reservation floor while retaining the Array slots.
+// scopes have returned. Keep the Array slots and the original absolute
+// reservation floor; neither the Model nor the lookup scratch is live.
 fn LocalNativeMockEffectImportConstruction::retain_lookup_dependency_array(
   self : Self,
   original : LocalCommandPreparationOriginal,
   slots : Int,
-  previous_workspace : Int64,
 ) -> Bool {
   guard self.source_snapshot is None &&
     self.source_copy is None &&
@@ -521,7 +520,7 @@ fn LocalNativeMockEffectImportConstruction::retain_lookup_dependency_array(
     )
     return false
   }
-  self.resize(original, self.recipe, retained, previous_workspace)
+  self.resize(original, self.recipe, retained, 0L)
 }
 
 ///|
