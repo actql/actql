@@ -24,7 +24,6 @@ import {authorizationRuntimeCode} from '../host-common/authorization-gate.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {canonicalJson, contentCid} from
   './local-account-config.mjs';
-import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction, prepareInstalledSourceAcquisitionContracts, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
@@ -33,7 +32,6 @@ import {valueCid} from './installed-row-source-environment.mjs';
 import {installRowSourceAuthorization} from './installed-row-source-authorization.mjs';
 import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
 import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
-import {ownCredentialAcquisitionLimits, ownCredentialSecretPresentation} from './installed-row-source-credential-options.mjs';
 import {createInstalledRowSourceCredentialSite} from './installed-row-source-credential-site.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
@@ -46,7 +44,7 @@ const cid = value => `sha256:${createHash('sha256')
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 export const {installedRowCredentialOperationSite, loadRowSourceCredentialCustody,
-  openRowSourceCredentialCustody, openRowSourceCredentialSite} =
+  openRowSourceCredentialCustody, openRowSourceCredentialSite, openInstalledRowSite} =
   createInstalledRowSourceCredentialSite({runtimeCore, text, cidPattern});
 
 // The installed source adapter of one row declaration (see
@@ -1984,97 +1982,4 @@ export async function createInstalledRowSource({moon, declaration, commands,
     retainInstalledSourceConstruction(sourceInitialization, installedSource, declaration, declared, environment);
   }
   return installedSource;
-}
-
-
-export async function openInstalledRowSite({root, principalId, commonMoon,
-  installation, runtimeBundleCid, accountConfiguration, originalContext, accountConstruction,
-  connection, profile, resolveSecret, ca, responseHeaders = [],
-  admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
-  assertCurrent, receiver, configurationReader, prepareSecretMaterial, openCredentialJournal}) {
-  if (typeof assertCurrent !== 'function' || nodeTypes.isAsyncFunction(assertCurrent) ||
-      !installation || typeof installation !== 'object' || nodeTypes.isProxy(installation) ||
-      profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
-      !Object.isFrozen(profile) || Object.values(Object.getOwnPropertyDescriptors(profile))
-        .some(field => !Object.hasOwn(field, 'value')) || !Array.isArray(responseHeaders)) {
-    fail('InvalidInstalledRowSite');
-  }
-  const identity = Object.getOwnPropertyDescriptors(installation);
-  const registration = identity.registration?.value, revision = identity.revision?.value;
-  if (!text(registration) || !text(revision) || nodeTypes.isProxy(responseHeaders)) {
-    fail('InvalidInstalledRowSite');
-  }
-  const secretPresentation = ownCredentialSecretPresentation(arguments[0]);
-  const headerFields = Object.getOwnPropertyDescriptors(responseHeaders);
-  const headers = [];
-  for (let index = 0; index < responseHeaders.length; index++) {
-    const field = headerFields[index];
-    if (!field || !Object.hasOwn(field, 'value') || !text(field.value)) {
-      fail('InvalidInstalledRowSite');
-    }
-    headers.push(field.value);
-  }
-  Object.freeze(headers);
-  const acquisition = ownCredentialAcquisitionLimits(runAcquisitionLimits);
-  const current = () => {
-    if (Reflect.apply(assertCurrent, receiver, []) !== undefined) {
-      fail('InstalledRowSiteCurrentCheckNotSynchronous');
-    }
-  };
-  current();
-  let authorization, site, materialOwner, originalMaterial, materialResolve, materialClose, materialClosed = false;
-  if (prepareSecretMaterial !== undefined && (typeof prepareSecretMaterial !== 'function' ||
-      nodeTypes.isProxy(prepareSecretMaterial) || nodeTypes.isAsyncFunction(prepareSecretMaterial))) {
-    fail('InvalidInstalledSecretMaterialConstructor');
-  }
-  try {
-    authorization = await installRowSourceAuthorization({root, principalId,
-      connectorRegistration: registration, accountConfiguration, originalContext,
-      gateOptions: {runtime: commonMoon, accountConstruction}});
-    current();
-    if (prepareSecretMaterial !== undefined) {
-      // Retain the returned original before inspecting methods/currentness.
-      // This constructor is pure and synchronous; provider secrets remain
-      // lazy and are resolved only by the existing operational credential use.
-      materialOwner = Object.freeze({
-        resolveSecret(...args) {
-          if (materialClosed || typeof materialResolve !== 'function') fail('InstalledSecretMaterialClosed');
-          return Reflect.apply(materialResolve, originalMaterial, args);
-        },
-        close() {
-          if (materialClosed) return;
-          if (typeof materialClose !== 'function') fail('InstalledSecretMaterialCleanupUnavailable');
-          const result = Reflect.apply(materialClose, originalMaterial, []);
-          if (result !== undefined) fail('InstalledSecretMaterialCleanupPending');
-          materialClosed = true; originalMaterial = materialResolve = materialClose = undefined;
-        },
-      });
-      originalMaterial = Reflect.apply(prepareSecretMaterial, undefined, []);
-      if (!originalMaterial || typeof originalMaterial !== 'object' || nodeTypes.isProxy(originalMaterial)) {
-        fail('InvalidInstalledSecretMaterial');
-      }
-      const fields = Object.getOwnPropertyDescriptors(originalMaterial);
-      if (Object.hasOwn(fields.close ?? {}, 'value') && typeof fields.close.value === 'function' &&
-          !nodeTypes.isAsyncFunction(fields.close.value)) materialClose = fields.close.value;
-      if (!Object.hasOwn(fields.close ?? {}, 'value') || typeof fields.close.value !== 'function' ||
-          !Object.hasOwn(fields.resolveSecret ?? {}, 'value') || typeof fields.resolveSecret.value !== 'function' ||
-          nodeTypes.isAsyncFunction(fields.close.value) || Object.hasOwn(fields, 'then')) fail('InvalidInstalledSecretMaterial');
-      materialClose = fields.close.value; materialResolve = fields.resolveSecret.value;
-      resolveSecret = materialOwner.resolveSecret;
-      current();
-    }
-    site = await openRowSourceCredentialSite({root, profile, principalId, authorization,
-      connection, connectorRegistration: registration, connectorRevision: revision,
-      runtimeBundleCid, commonMoon, resolveSecret, ca, responseHeaders: headers,
-      configurationReader, openCredentialJournal, secretMaterial: materialOwner,
-      admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits: acquisition,
-      ownAuthorization: true, ...(secretPresentation === undefined ? {} : {secretPresentation})});
-    current();
-    return Object.freeze({authorization, site});
-  } catch (cause) {
-    if (authorization === undefined) throw cause;
-    if (originalMaterial === undefined) materialOwner = undefined;
-    throw await retainInstalledHostInitializationFailure(cause,
-      site === undefined ? {authorization, secretMaterial: materialOwner} : {sourceProfile: site});
-  }
 }

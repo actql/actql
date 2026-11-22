@@ -14866,6 +14866,52 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSourceCredentialSite/openInstalledRowSite",
+          "parameters": [
+            "root",
+            "principalId",
+            "commonMoon",
+            "installation",
+            "runtimeBundleCid",
+            "accountConfiguration",
+            "originalContext",
+            "accountConstruction",
+            "connection",
+            "profile",
+            "resolveSecret",
+            "ca",
+            "responseHeaders",
+            "admitsApprovalTarget",
+            "admitsEffectTargetRead",
+            "runAcquisitionLimits",
+            "assertCurrent",
+            "receiver",
+            "configurationReader",
+            "prepareSecretMaterial",
+            "openCredentialJournal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openInstalledRowSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openInstalledRowSite/init:resolveSecret/init:resolveSecret",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSourceCredentialSite/openInstalledRowSite/openInstalledRowSite",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSourceCredentialSite/openRowSourceCredentialSite",
           "parameters": [
             "profile",
@@ -15015,6 +15061,7 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/sqlite-credential-journal.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-row-source-authorization.mjs",
         "./installed-row-source-credential-custody.mjs",
         "./installed-row-source-credential-options.mjs",
         "./installed-row-source-mapping.mjs",
@@ -15026,7 +15073,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e36319f7d476425867ab582ab852efc46199f4b1661d124128b2884c1037e759",
+      "sha256": "a553422f5cfdf91efe25f9a662d652c63c225e28fe45ad38b7b4a1af45be03a4",
       "contracts": [
         {
           "operations": [
@@ -15159,6 +15206,145 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSourceCredentialSite/openInstalledRowSite",
+            "createInstalledRowSourceCredentialSite/openInstalledRowSite/init:close/init:close",
+            "createInstalledRowSourceCredentialSite/openInstalledRowSite/init:resolveSecret/init:resolveSecret",
+            "createInstalledRowSourceCredentialSite/openInstalledRowSite/openInstalledRowSite"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "fail('InvalidRowSourceSecretPresentation')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "fail('InvalidRowSourceSecretPresentation')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata issuer uses the same configuration read and receiver captured before the metadata await"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-configuration-reader.test.mjs",
+                "anchor": "metadata wrong issuer type retires its same original view through existing initialization cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source failed read retirement remains with the same Source close retry"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source identity keeps boxed payload and refuses None or malformed original CID pairs"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source close cannot return a constructor read retired during authorization await"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source keeps its unstarted read when the actual managed wrapper rejects after prepare"
+              },
+              {
+                "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
+                "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
         }
       ]
     },
@@ -15167,7 +15353,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "311781d4cb6d1e3916a69abf05e18137d0c635f0068559d9f4f2b3ab28908e2f",
+      "sha256": "c5d9fde86cc6e3b0204205ed08bc9f7c0aed5f5a0f2f0c4fe9f07646a32ea11b",
       "operations": [
         {
           "name": "createInstalledRowSource",
@@ -15924,52 +16110,6 @@
           "async": true
         },
         {
-          "name": "openInstalledRowSite",
-          "parameters": [
-            "root",
-            "principalId",
-            "commonMoon",
-            "installation",
-            "runtimeBundleCid",
-            "accountConfiguration",
-            "originalContext",
-            "accountConstruction",
-            "connection",
-            "profile",
-            "resolveSecret",
-            "ca",
-            "responseHeaders",
-            "admitsApprovalTarget",
-            "admitsEffectTargetRead",
-            "runAcquisitionLimits",
-            "assertCurrent",
-            "receiver",
-            "configurationReader",
-            "prepareSecretMaterial",
-            "openCredentialJournal"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledRowSite/init:close/init:close",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledRowSite/init:resolveSecret/init:resolveSecret",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledRowSite/openInstalledRowSite",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -15997,12 +16137,10 @@
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./client-source-operation.mjs",
-        "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-row-source-authorization.mjs",
-        "./installed-row-source-credential-options.mjs",
         "./installed-row-source-credential-site.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
@@ -18297,12 +18435,7 @@
           }
         },
         {
-          "operations": [
-            "openInstalledRowSite",
-            "openInstalledRowSite/init:close/init:close",
-            "openInstalledRowSite/init:resolveSecret/init:resolveSecret",
-            "openInstalledRowSite/openInstalledRowSite"
-          ],
+          "operations": [],
           "exports": [
             "installedRowCredentialOperationSite",
             "openInstalledRowSite"

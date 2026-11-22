@@ -13,7 +13,7 @@ import {rejectInstalledRowSource as fail} from './installed-row-source-mapping.m
 import {prepareInstallationMetadataSite} from './installed-row-source-metadata-site.mjs';
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 
-import type {installRowSourceAuthorization} from './installed-row-source-authorization.mjs';
+import {installRowSourceAuthorization} from './installed-row-source-authorization.mjs';
 
 type IssuerPorts = Parameters<typeof createInstalledRowSourceCredentialCustody>[0];
 type Issuers = ReturnType<typeof createInstalledRowSourceCredentialCustody>;
@@ -41,12 +41,28 @@ type SiteOptions = Omit<LoaderOptions, 'resolveSecret' | 'now' | 'grantLifetimeM
   admitsEffectTargetRead?: (binding: unknown, resource: string, operation: string) => unknown;
   installationMetadata?: unknown;
   configurationReader?: ConfigurationReader;
+  root?: string;
   ownAuthorization?: boolean;
   secretMaterial?: {close(): unknown};
   responseHeaders?: readonly string[];
   now?: () => number;
   grantLifetimeMs?: number;
 };
+type InstallAuthorizationOptions = Parameters<typeof installRowSourceAuthorization>[0];
+type InstalledSiteOptions = Pick<SiteOptions, 'profile' | 'principalId' | 'commonMoon' |
+  'runtimeBundleCid' | 'connection' | 'resolveSecret' | 'ca' | 'responseHeaders' |
+  'admitsApprovalTarget' | 'admitsEffectTargetRead' | 'runAcquisitionLimits' |
+  'configurationReader' | 'openCredentialJournal' | 'secretPresentation'> & {
+  root: string;
+  installation: unknown;
+  accountConfiguration: InstallAuthorizationOptions['accountConfiguration'];
+  originalContext?: InstallAuthorizationOptions['originalContext'];
+  accountConstruction?: NonNullable<InstallAuthorizationOptions['gateOptions']>['accountConstruction'];
+  assertCurrent: () => unknown;
+  receiver?: unknown;
+  prepareSecretMaterial?: () => unknown;
+};
+type SecretMaterial = Readonly<{resolveSecret: SiteOptions['resolveSecret']; close(): void}>;
 type CheckpointFacts = Readonly<{
   kind?: unknown;
   principalId?: unknown;
@@ -406,6 +422,100 @@ export function createInstalledRowSourceCredentialSite({runtimeCore, text, cidPa
       connectorRevision, runtimeBundleCid}, selectedAcquisitionLimits !== undefined);
   }
 
+  async function openInstalledRowSite({root, principalId, commonMoon,
+    installation, runtimeBundleCid, accountConfiguration, originalContext, accountConstruction,
+    connection, profile, resolveSecret, ca, responseHeaders = [],
+    admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
+    assertCurrent, receiver, configurationReader, prepareSecretMaterial, openCredentialJournal}: InstalledSiteOptions) {
+    if (typeof assertCurrent !== 'function' || nodeTypes.isAsyncFunction(assertCurrent) ||
+        !installation || typeof installation !== 'object' || nodeTypes.isProxy(installation) ||
+        profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
+        !Object.isFrozen(profile) || Object.values(Object.getOwnPropertyDescriptors(profile))
+          .some(field => !Object.hasOwn(field, 'value')) || !Array.isArray(responseHeaders)) {
+      fail('InvalidInstalledRowSite');
+    }
+    const identity = Object.getOwnPropertyDescriptors(installation);
+    const registration = identity.registration?.value, revision = identity.revision?.value;
+    if (!text(registration) || !text(revision) || nodeTypes.isProxy(responseHeaders)) {
+      fail('InvalidInstalledRowSite');
+    }
+    const secretPresentation = ownCredentialSecretPresentation(arguments[0]);
+    const headerFields = Object.getOwnPropertyDescriptors(responseHeaders);
+    const headers: string[] = [];
+    for (let index = 0; index < responseHeaders.length; index++) {
+      const field = headerFields[index];
+      if (!field || !Object.hasOwn(field, 'value') || !text(field.value)) {
+        fail('InvalidInstalledRowSite');
+      }
+      headers.push(field.value);
+    }
+    Object.freeze(headers);
+    const acquisition = ownCredentialAcquisitionLimits(runAcquisitionLimits);
+    const current = () => {
+      if (Reflect.apply(assertCurrent, receiver, []) !== undefined) {
+        fail('InstalledRowSiteCurrentCheckNotSynchronous');
+      }
+    };
+    current();
+    let authorization: LocalGate | undefined, site: Awaited<ReturnType<typeof openRowSourceCredentialSite>> | undefined,
+      materialOwner: SecretMaterial | undefined, originalMaterial: unknown,
+      materialResolve: SiteOptions['resolveSecret'] | undefined, materialClose: (() => unknown) | undefined, materialClosed = false;
+    if (prepareSecretMaterial !== undefined && (typeof prepareSecretMaterial !== 'function' ||
+        nodeTypes.isProxy(prepareSecretMaterial) || nodeTypes.isAsyncFunction(prepareSecretMaterial))) {
+      fail('InvalidInstalledSecretMaterialConstructor');
+    }
+    try {
+      authorization = await installRowSourceAuthorization({root, principalId,
+        connectorRegistration: registration, accountConfiguration, originalContext,
+        gateOptions: {runtime: commonMoon, accountConstruction}});
+      current();
+      if (prepareSecretMaterial !== undefined) {
+        // Retain the returned original before inspecting methods/currentness.
+        // This constructor is pure and synchronous; provider secrets remain
+        // lazy and are resolved only by the existing operational credential use.
+        materialOwner = Object.freeze({
+          resolveSecret(...args: Parameters<SiteOptions['resolveSecret']>) {
+            if (materialClosed || typeof materialResolve !== 'function') fail('InstalledSecretMaterialClosed');
+            return Reflect.apply(materialResolve, originalMaterial, args);
+          },
+          close() {
+            if (materialClosed) return;
+            if (typeof materialClose !== 'function') fail('InstalledSecretMaterialCleanupUnavailable');
+            const result = Reflect.apply(materialClose, originalMaterial, []);
+            if (result !== undefined) fail('InstalledSecretMaterialCleanupPending');
+            materialClosed = true; originalMaterial = materialResolve = materialClose = undefined;
+          },
+        });
+        originalMaterial = Reflect.apply(prepareSecretMaterial, undefined, []);
+        if (!originalMaterial || typeof originalMaterial !== 'object' || nodeTypes.isProxy(originalMaterial)) {
+          fail('InvalidInstalledSecretMaterial');
+        }
+        const fields = Object.getOwnPropertyDescriptors(originalMaterial);
+        if (Object.hasOwn(fields.close ?? {}, 'value') && typeof fields.close.value === 'function' &&
+            !nodeTypes.isAsyncFunction(fields.close.value)) materialClose = fields.close.value;
+        if (!Object.hasOwn(fields.close ?? {}, 'value') || typeof fields.close.value !== 'function' ||
+            !Object.hasOwn(fields.resolveSecret ?? {}, 'value') || typeof fields.resolveSecret.value !== 'function' ||
+            nodeTypes.isAsyncFunction(fields.close.value) || Object.hasOwn(fields, 'then')) fail('InvalidInstalledSecretMaterial');
+        materialClose = fields.close.value; materialResolve = fields.resolveSecret.value;
+        resolveSecret = materialOwner.resolveSecret;
+        current();
+      }
+      site = await openRowSourceCredentialSite({root, profile, principalId, authorization,
+        connection, connectorRegistration: registration, connectorRevision: revision,
+        runtimeBundleCid, commonMoon, resolveSecret, ca, responseHeaders: headers,
+        configurationReader, openCredentialJournal, secretMaterial: materialOwner,
+        admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits: acquisition,
+        ownAuthorization: true, ...(secretPresentation === undefined ? {} : {secretPresentation})});
+      current();
+      return Object.freeze({authorization, site});
+    } catch (cause) {
+      if (authorization === undefined) throw cause;
+      if (originalMaterial === undefined) materialOwner = undefined;
+      throw await retainInstalledHostInitializationFailure(cause,
+        site === undefined ? {authorization, secretMaterial: materialOwner} : {sourceProfile: site});
+    }
+  }
+
   return {installedRowCredentialOperationSite, loadRowSourceCredentialCustody,
-    openRowSourceCredentialCustody, openRowSourceCredentialSite};
+    openRowSourceCredentialCustody, openRowSourceCredentialSite, openInstalledRowSite};
 }
