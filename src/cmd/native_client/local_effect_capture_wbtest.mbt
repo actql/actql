@@ -29,6 +29,7 @@ test "Native Work capture exposes the original owner method without a supplied j
 fn with_native_mock_capture_construction(
   check : (LocalNativeMockEffectImportConstruction) -> Unit raise,
   max_retained? : Int64 = 10000L,
+  max_execution? : Int64 = 20000L,
 ) -> Unit raise {
   let facility = native_mock_readme_request_facility()
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
@@ -78,7 +79,7 @@ fn with_native_mock_capture_construction(
   let future = initial.copy()
   future[0] = @execution.execution_capacity(30L, 50L).unwrap()
   let maximum = initial.copy()
-  maximum[0] = @execution.execution_capacity(max_retained, 20000L).unwrap()
+  maximum[0] = @execution.execution_capacity(max_retained, max_execution).unwrap()
   let capture = @local_values.prepare_installed_effect_staged_extent(
     @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.capture", initial,
@@ -210,6 +211,74 @@ test "Native first member retains one original capture before input and full rec
     assert_eq(construction.retained, 0L)
     construction.source_copy = None
   })
+}
+
+///|
+test "Native returned import funds next Model body on the exact original reservation" {
+  let frame = @local_values.installed_effect_imported_model_evidence_frame_capacity(
+    2L, 64, 8,
+  ).unwrap()
+  let writer = @encode.construction_measuring_writer(512, 64, 8)
+  @encode.begin_object(writer)
+  @encode.key(writer, "sources")
+  @encode.begin_array(writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-acquisition-scope/0.1")
+  @encode.end_object(writer)
+  let shape = @encode.finish_construction_measurement(writer)
+  let frame_r = @execution.execution_capacity_retained_bytes(frame)
+  let frame_scratch = @execution.execution_capacity_execution_bytes(frame) -
+    frame_r
+  let cid = "sha256:" + "1".repeat(64)
+  let body = @local_values.installed_effect_imported_model_evidence_body_capacity(
+    "acquisition_scope", shape, cid, frame_scratch,
+  ).unwrap()
+  let unshared_body = @local_values.installed_effect_imported_model_evidence_body_capacity(
+    "acquisition_scope", shape, cid, 0L,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(body) -
+    @execution.execution_capacity_execution_bytes(unshared_body),
+    frame_scratch,
+  )
+  let body_r = @execution.execution_capacity_retained_bytes(body)
+  let body_scratch = @execution.execution_capacity_execution_bytes(body) -
+    body_r
+  // Original fixed 30 bytes, adopted import 10, then both new owners.
+  let retained = 40L + frame_r + body_r
+  let required = retained + body_scratch
+  for max_execution in [required - 1L, required] {
+    with_native_mock_capture_construction(
+      max_retained=retained,
+      max_execution~,
+      fn(construction) raise {
+        let operation = construction.operation
+        construction
+        .prepare_body_result(@execution.execution_capacity(10L, 40L))
+        .unwrap()
+        construction.yield_source_import_workspace().unwrap()
+        assert_eq(construction.retained, 10L)
+        assert_eq(construction.workspace, 0L)
+        assert_eq(
+          @execution.execution_capacity_execution_bytes(construction.recipe[0]),
+          30L,
+        )
+        construction.prepare_body_result(Some(frame)).unwrap()
+        let entered = construction.prepare_body_result(Some(body))
+        assert_true(physical_equal(construction.operation, operation))
+        if max_execution < required {
+          assert_true(entered is Err(Managed(InsufficientCapacity)))
+          assert_eq(construction.retained, 10L + frame_r)
+          assert_eq(construction.workspace, frame_scratch)
+        } else {
+          entered.unwrap()
+          assert_eq(construction.retained, 10L + frame_r + body_r)
+          assert_eq(construction.workspace, body_scratch)
+        }
+      },
+    )
+  }
 }
 
 ///|

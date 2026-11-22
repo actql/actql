@@ -609,6 +609,10 @@ pub fn installed_effect_funded_model_selection_count(ClientInstalledManagedRun, 
 
 pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_effect_imported_model_evidence_body_capacity(String, @encode_core.EncodingConstructionGeometry, String, Int64) -> @execution_relation.ExecutionCapacity?
+
+pub fn installed_effect_imported_model_evidence_frame_capacity(Int64, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_effect_keyed_input_work_limit(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_keyed_lookup_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput) -> Result[@run_publication_host.ClientKeyedLookupInput, ClientInstalledManagedRunIssue]

@@ -347,11 +347,57 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .map_err(issue => LocalNativeMockEffectProposalIssue::Materials(issue))
           .native_effect_proposal(self.original),
         )
-        self.prepare_mock_effect_source_imports(
-          state,
-          held,
-          staged_rows is Some(_),
-        )
+        self.prepare_mock_effect_source_imports(state, held)
+        let construction = held.construction.unwrap()
+        let measured = staged_rows is Some(_) && held.imports is Some(_)
+        if measured {
+          construction
+          .yield_source_import_workspace()
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+          .native_effect_proposal(self.original)
+        } else if held.imports is Some(_) {
+          if !construction.finish(
+              self.original,
+              state._retained_import_recipes[1],
+            ) {
+            stop("LocalOriginalEffectProposalsUnavailable")
+          }
+        }
+        let mut inventory_workspace = 0L
+        let before_inventory = if measured {
+          Some(source_slots => {
+            let frame = @local_values.installed_effect_imported_model_evidence_frame_capacity(
+              source_slots, 1024, 20,
+            )
+            if construction.prepare_body(self.original, frame) {
+              let capacity = frame.unwrap()
+              inventory_workspace = @execution.execution_capacity_execution_bytes(
+                  capacity,
+                ) -
+                @execution.execution_capacity_retained_bytes(capacity)
+              true
+            } else {
+              false
+            }
+          })
+        } else {
+          None
+        }
+        let before_body = if measured {
+          let cid = @publication.publication_contract_identity(
+            state.first.definition,
+          )
+          Some((kind, geometry) => {
+            construction.prepare_body(
+              self.original,
+              @local_values.installed_effect_imported_model_evidence_body_capacity(
+                kind, geometry, cid, inventory_workspace,
+              ),
+            )
+          })
+        } else {
+          None
+        }
         let acquired = business.model_work[0]
           .local_effect_model_acquired_evidence(
             retention,
@@ -359,6 +405,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             1024,
             20,
             imports=held.imports,
+            before_inventory~,
+            before_body~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
           .native_effect_proposal(self.original)
@@ -371,6 +419,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         held._retained_direct_evidence = @run_host.client_effect_model_acquired_direct_sources(
           acquired,
         )
+
+        // The subsequent proposal still needs its original unmetered fixed
+        // allowance. Do not use that allowance for the measured Model evidence.
+        if measured {
+          let capture = state._retained_import_recipes[1].copy()
+          capture[1] = @execution.execution_capacity(0L, 0L).unwrap()
+          if !construction.finish(self.original, capture) {
+            stop("LocalOriginalEffectProposalsUnavailable")
+          }
+        }
 
         if state.lookup is Some(lookup) {
           guard self.original.project is Some(project) &&

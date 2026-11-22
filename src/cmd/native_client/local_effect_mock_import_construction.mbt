@@ -410,6 +410,23 @@ fn LocalNativeMockEffectImportConstruction::yield_returned_workspace(
 }
 
 ///|
+// The Source-import frame has returned. Keep its retained basis and all
+// additional issued bodies. Do not reacquire the cold issuer's fixed scratch
+// when the next original measures its own construction.
+fn LocalNativeMockEffectImportConstruction::yield_source_import_workspace(
+  self : Self,
+) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
+  let retained = @execution.execution_capacity_retained_bytes(self.recipe[0])
+  self
+  .yield_returned_workspace()
+  .map(_ => {
+    let recipe = self.recipe.copy()
+    recipe[0] = @execution.execution_capacity(retained, retained).unwrap()
+    self.recipe = recipe
+  })
+}
+
+///|
 fn LocalNativeMockEffectImportConstruction::finish(
   self : Self,
   original : LocalCommandPreparationOriginal,

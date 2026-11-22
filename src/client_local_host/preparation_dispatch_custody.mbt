@@ -484,6 +484,104 @@ fn installed_effect_direct_publication_control(
 }
 
 ///|
+/// Constructor frames for the original imported Model provenance. The union
+/// census can visit at most max_nodes entries, including discarded duplicates.
+/// Its keys and measuring writer are temporary; the returned provenance and
+/// Source wrappers and their two direct-source views stay charged separately.
+pub fn installed_effect_imported_model_evidence_frame_capacity(
+  source_slots : Int64,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  if source_slots < 0L ||
+    max_nodes <= 0 ||
+    source_slots >= 2147483647L - max_nodes.to_int64() {
+    return None
+  }
+  guard installed_effect_direct_publication_control(
+      (source_slots + max_nodes.to_int64()).to_int(),
+      max_nodes,
+      max_depth,
+    )
+    is Some(control) &&
+    @execution.preparation_array_representation(4L, 2L * source_slots, false)
+    is Some(arrays) &&
+    @execution.preparation_representation_cost({
+      ..arrays,
+      // Acquired evidence and Invocation records, the Invocation CID,
+      // optional lookup pair, and one acquisition wrapper per direct Source.
+      record_headers: arrays.record_headers + 5L + source_slots,
+      reference_slots: arrays.reference_slots + 22L + 14L * source_slots,
+      scalar_words: arrays.scalar_words + 4L,
+      owned_utf16_units: 71L,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      // Scope key: three admitted CIDs and two commas. Count intermediate
+      // concatenations as well as the key stored in the temporary Map.
+      owned_utf16_units: 3L * (3L * 71L + 2L) * max_nodes.to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(keys) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(control),
+      keys,
+      1L,
+    )
+    is Some(workspace) &&
+    @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+/// The existing publication body layout for one Model provenance emitter.
+/// Its shape precedes the optional self-CID sealing step, just as in the
+/// existing Source Unit issuer. The returned body stays on the caller's loan.
+/// The Model census workspace can still be live during each body constructor.
+pub fn installed_effect_imported_model_evidence_body_capacity(
+  kind : String,
+  geometry : @encode.EncodingConstructionGeometry,
+  original_cid : String,
+  coheld_workspace : Int64,
+) -> @execution.ExecutionCapacity? {
+  guard coheld_workspace >= 0L else { return None }
+  let planned = effect_unit_publication_capacity(
+    [(kind, geometry)],
+    original_cid,
+  )
+  // The Core body fold prices the underlying tree/wire. Include the
+  // PublicationContract carrier and retained CID when a body is sealed.
+  // Its bound also covers the observation wrapper on the non-contract path.
+  let wrapper = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 8L,
+    scalar_words: 4L,
+    owned_utf16_units: 71L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(bytes, bytes))
+  guard planned is Some(body) && wrapper is Some(wrapper) else { return None }
+  guard @execution.add_execution_capacity(body, wrapper) is Some(capacity) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(capacity),
+      coheld_workspace,
+      1L,
+    )
+    is Some(peak) else {
+    return None
+  }
+  @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(capacity),
+    peak,
+  )
+}
+
+///|
 // The measuring frame is synchronous and returns only its immutable quote.
 // Preserve the execution floor that was already live before opening it;
 // failed measurement or a failed current check keeps the original debit.
