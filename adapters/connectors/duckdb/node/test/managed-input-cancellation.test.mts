@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as manifestControl from
-  '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const manifestControl: Parameters<typeof createManagedPhysicalRepresentation>[5] =
+  await import(new URL('../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 import {mkdtemp, rmdir, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
+import {createLocalRetainedStore, type LocalRetainedStore} from '../../../../store-local/files.mjs';
 import {
   registerManagedInput,
   withManagedInputFile,
@@ -14,6 +14,14 @@ import {
 import {managedPhysicalRepresentation as createManagedPhysicalRepresentation} from
   '../../../../store-local/managed-physical-representation.mjs';
 import {withComputeDatabase} from '../session.mjs';
+
+type ManagedRepresentation = Parameters<typeof createManagedPhysicalRepresentation>;
+type SealedBody = Awaited<ReturnType<ReturnType<LocalRetainedStore['reserve']>['sealPhysical']>>;
+type ManagedOccurrence = Parameters<typeof withManagedInputFiles>[0][number];
+type CancellationFailure = Readonly<{
+  code: string;
+  cleanupHandle: Readonly<{status(): {pending: boolean}; retry(): Promise<{pending: boolean}>}>;
+}>;
 
 const limits = Object.freeze({
   maxRows: 10,
@@ -29,7 +37,10 @@ const limits = Object.freeze({
   cancelWaitMs: 0,
 });
 const codec = `sha256:${'1'.repeat(64)}`;
-const managedPhysicalRepresentation = (...arguments_) =>
+const managedPhysicalRepresentation = (...arguments_: [
+  ManagedRepresentation[0], ManagedRepresentation[1], ManagedRepresentation[2],
+  ManagedRepresentation[3], ManagedRepresentation[4],
+]) =>
   createManagedPhysicalRepresentation(...arguments_, manifestControl);
 
 test('DuckDB cancellation deadline retains input pin until actual session stop', async () => {
@@ -39,11 +50,11 @@ test('DuckDB cancellation deadline retains input pin until actual session stop',
     capacityBytes: 1024,
     maxFrameBytes: 1024,
   });
-  let body;
-  let resume;
-  const gate = new Promise(resolve => { resume = resolve; });
-  let entered;
-  const started = new Promise(resolve => { entered = resolve; });
+  let body: SealedBody | undefined;
+  let resume!: () => void;
+  const gate = new Promise<void>(resolve => { resume = resolve; });
+  let entered!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; });
   try {
     const writer = store.reserve(1024);
     await writer.start();
@@ -89,9 +100,9 @@ test('DuckDB cancellation deadline retains input pin until actual session stop',
     );
     await started;
     controller.abort(new Error('deadline cancellation'));
-    let failure;
+    let failure!: CancellationFailure;
     try { await pending; }
-    catch (error) { failure = error; }
+    catch (error) { failure = error as CancellationFailure; }
     assert.equal(failure.code, 'Cancelled');
     assert.equal(failure.cleanupHandle.status().pending, true);
     assert.equal(store.status().activeReaders, 1);
@@ -120,14 +131,14 @@ test('DuckDB cancellation retains two distinct input pins until session stop',
       capacityBytes: 2048,
       maxFrameBytes: 1024,
     });
-    const bodies = [];
-    let resume;
-    const gate = new Promise(resolve => { resume = resolve; });
-    let entered;
-    const started = new Promise(resolve => { entered = resolve; });
-    let failure;
+    const bodies: SealedBody[] = [];
+    let resume!: () => void;
+    const gate = new Promise<void>(resolve => { resume = resolve; });
+    let entered!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    let failure!: CancellationFailure;
     try {
-      const occurrences = [];
+      const occurrences: ManagedOccurrence[] = [];
       for (const id of [1, 2]) {
         const writer = store.reserve(1024);
         await writer.start();
@@ -179,7 +190,7 @@ test('DuckDB cancellation retains two distinct input pins until session stop',
       await started;
       controller.abort(new Error('two-input deadline cancellation'));
       try { await pending; }
-      catch (error) { failure = error; }
+      catch (error) { failure = error as CancellationFailure; }
       assert.equal(failure.code, 'Cancelled');
       assert.equal(store.status().activeReaders, 2);
       for (const body of bodies) {

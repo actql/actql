@@ -988,7 +988,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/connectors/duckdb/node/test/resident-session.test.mjs",
+                "path": "adapters/connectors/duckdb/node/test/resident-session.test.mts",
                 "anchor": "test("
               }
             ]

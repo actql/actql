@@ -16,6 +16,8 @@ export declare class DuckDBInstance {
   closeSync(): void;
 }
 
+export declare const DuckDBConnection: Readonly<{prototype: DuckDBConnection}>;
+
 export interface DuckDBConnection {
   closeSync(): void;
   interrupt(): void;
@@ -33,6 +35,8 @@ export interface DuckDBConnection {
     prepare(index: number): Promise<DuckDBPreparedStatement>;
   }>;
 }
+
+export declare const DuckDBAppender: Readonly<{prototype: DuckDBAppender}>;
 
 export interface DuckDBAppender {
   closeSync(): void;

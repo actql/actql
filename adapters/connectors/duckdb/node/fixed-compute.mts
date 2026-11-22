@@ -32,13 +32,20 @@ type FixedPort = Readonly<{
   querySql(): string;
   queryParameters(): ParametersRow;
 }>;
+type ResidentPhase = 'inputVerificationMilliseconds' | 'viewPreparationMilliseconds'
+  | 'materializationMilliseconds' | 'receiveMilliseconds' | 'finalizationMilliseconds'
+  | 'temporaryCleanupMilliseconds';
+
 type ResidentInputEvidence = Readonly<{
   valuesReused?: boolean;
   demandColumnScan?: boolean;
   demandReused?: boolean;
   identityReused?: boolean;
 }>;
-type ResidentPort = Pick<FixedPort, 'importCount' | 'consumeInput' | 'queryParameters'> &
+type ResidentPort = Pick<FixedPort, 'queryParameters'> & (
+  | Pick<FixedPort, 'importCount' | 'consumeInput'>
+  | Readonly<{importCount?: undefined; consumeInput?: undefined}>
+) &
   Readonly<{verifyResidentInput?(input: number, session: Session):
     ResidentInputEvidence | false | undefined | Promise<ResidentInputEvidence | false | undefined>}>;
 type Resident = Readonly<{
@@ -219,14 +226,14 @@ export async function runResidentFixedCompute(
     // receive-callback timings (which are nested within these intervals).
     const workStarted = performance.now();
     let boundary = workStarted;
-    const phases: Record<string, number> = {};
+    const phases: Partial<Record<ResidentPhase, number>> = {};
     const callbackStart = session.usage().receiveCallbackMilliseconds;
     let directInputScans = 0;
     let reusedInputIdentities = 0;
     let reusedInputValues = 0;
     let demandColumnScans = 0;
     let reusedDemandMeasurements = 0;
-    const endPhase = (name: string) => {
+    const endPhase = (name: ResidentPhase) => {
       const now = performance.now();
       phases[name] = now - boundary;
       boundary = now;
@@ -270,7 +277,7 @@ export async function runResidentFixedCompute(
     }
     endPhase('temporaryCleanupMilliseconds');
     return Object.freeze({ fields, importedRows: 0, importedCells: 0,
-      diagnostics: Object.freeze({...phases, inputCallbackMilliseconds,
+      diagnostics: Object.freeze({...phases as Record<ResidentPhase, number>, inputCallbackMilliseconds,
         outputCallbackMilliseconds, directInputScans, reusedInputIdentities,
         reusedInputValues, demandColumnScans, reusedDemandMeasurements,
         workMilliseconds: boundary - workStarted}) });

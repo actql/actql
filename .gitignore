@@ -1898,3 +1898,7 @@ target/
 /adapters/connectors/duckdb/node/test/chunk-limits.test.d.mts
 /adapters/connectors/duckdb/node/test/fixtures/hold-writer.mjs
 /adapters/connectors/duckdb/node/test/fixtures/hold-writer.d.mts
+/adapters/connectors/duckdb/node/test/resident-session.test.mjs
+/adapters/connectors/duckdb/node/test/resident-session.test.d.mts
+/adapters/connectors/duckdb/node/test/managed-input-cancellation.test.mjs
+/adapters/connectors/duckdb/node/test/managed-input-cancellation.test.d.mts
