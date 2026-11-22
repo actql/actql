@@ -9,7 +9,7 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 // Actual source-checkout Common/Host/Resource/SQLite/Store and SDK/Undici.
 // The server is a deterministic HTTP provider, not a real OpenAI acceptance.
 async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport = 'response', cancelEntered = false,
-  tls = false, alias = false, approvedAlias, historicalSaved = false} = {}) {
+  tls = false, alias = false, approvedAlias, historicalSaved = false, invalidBinding = null} = {}) {
   const responseLost = transport === 'response-lost';
   const unknown = responseLost || cancelEntered;
   const count = httpStatus === 200 && !unknown && !alias && !approvedAlias ? 2 : 1;
@@ -74,6 +74,7 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     import {createServer as createTlsServer} from 'node:https';
     import {getCACertificates,setDefaultCACertificates} from 'node:tls';
     import {generateKeyPairSync} from 'node:crypto';
+    import {DatabaseSync} from 'node:sqlite';
     import {writeFile,readFile,access} from 'node:fs/promises';
     import {resolve} from 'node:path';
     import {observeOwnScopedStateFds} from ${JSON.stringify(fdObserver)};
@@ -148,19 +149,31 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       transportTimeouts:${projectTimeouts}}) : createOpenAIChatProvider({...providerOptions,providerId:'models/http',
       apiKeyFile:'api-key.fixture',baseURL:'${tls ? 'https' : 'http'}://127.0.0.1:'+server.address().port+'/v1'});
     const registerModelProviders=async(moon,context)=>{
-      const contextOriginal=context;
       try{
-        // Restore the old writer's exact field set for the historical control.
-        // The real Common constructor still issues the original binding.
-        if(approvedAlias==='unbound' || ${historicalSaved}) context={...context,prepareBindingOriginals(project){
-          return contextOriginal.prepareBindingOriginals(()=>{
+        const legacySeed=approvedAlias==='unbound' || ${historicalSaved};
+        const invalidBinding=${JSON.stringify(invalidBinding)};
+        assert(!legacySeed || invalidBinding===null);
+        if(legacySeed || invalidBinding!==null) {
+          const originalContext=context;
+          const rewriteBinding=project=>originalContext.prepareBindingOriginals(()=>{
             const [revision,contractWire,configurationWire]=project();
             const contract=JSON.parse(contractWire),configuration=JSON.parse(configurationWire);
-            contract.required=['endpoint','selector','model_defaults'];
-            delete configuration.model_id;delete configuration.adapter_kind;delete configuration.api_mode;
+            if(invalidBinding==='different-model') configuration.model_id='different-physical-model';
+            else {
+              contract.required=['endpoint','selector','model_defaults'];
+              delete configuration.model_id;delete configuration.adapter_kind;delete configuration.api_mode;
+            }
             return [revision,JSON.stringify(contract),JSON.stringify(configuration)];
           });
-        }};
+          context={...originalContext,prepareBindingOriginals:rewriteBinding};
+          // Test-only old writer, in the seed subprocess only. The old writer
+          // hashed the selector-only configuration and had no route check.
+          // The negative and every reopen use the actual current check.
+          if(legacySeed) context.prepareTasks=async(...args)=>{
+            const prepared=await originalContext.prepareTasks(...args);
+            return {...prepared,verifyChatConfiguration() {}};
+          };
+        }
         return await configureModelProvider(moon,context);
       }
       catch(cause){console.error('Original Model configuration failure',inspect(cause,{depth:8}));throw cause;}
@@ -172,10 +185,35 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
         {infer:{contract:task,key:'id',input:{[field]:{field}}},as:'inferred'}],
         results:{answer:{from:'inferred',fields:['id','outcome','value']}}}],
       results:{answer:{from:{stage:'main',result:'answer'}}}});
+    const open=()=>connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
+      registerModelProviders,authorization}});
+    if(${invalidBinding !== null}) {
+      try {
+        await assert.rejects(open, failure=>{
+          for(let cause=failure;cause;cause=cause.cause) {
+            if(cause.code==='InstalledModelResolvedConfigurationMismatch') return true;
+          }
+          return false;
+        });
+        const path='.state/checkpoints/journal/checkpoint-journal.sqlite3';
+        const exists=await access(path).then(()=>true,error=>{
+          assert.equal(error.code,'ENOENT');return false;
+        });
+        if(exists) {
+          const journal=new DatabaseSync(path,{readOnly:true});
+          try { assert.equal(journal.prepare('SELECT COUNT(*) AS n FROM resume_model_attempts').get().n,0); }
+          finally { journal.close(); }
+        }
+        assert.equal(received.length,0);
+        assert.equal(observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0,true);
+        console.log(JSON.stringify({calls:0,tasks:0,firstCloseReturned:false,aliveScopedFD0:true}));
+      } finally {
+        server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
+      }
+    } else {
     let client,primary;
     try{
-      client=await connectEmbeddedLocal({mode:'local',owner:'local',installation:{directory:'.state',
-        registerModelProviders,authorization}});
+      client=await open();
       const cases=[
         [0,['model-task:first','text','first','string'],{id:'original-text',outcome:'ok',value:{answer:true}}],
         [1,['model-task:second','quantity',7,'number'],{id:'original-quantity',outcome:'ok',value:{label:'exact-label'}}]];
@@ -238,14 +276,15 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
     await assert.rejects(access('.state/publication/owner/owner.json'),{code:'ENOENT'});
     console.log(JSON.stringify({calls:received.length,tasks:${count},
       firstCloseReturned:true,aliveScopedFD0:true}));
+    }
   `;
   const child = spawnSync(process.execPath, ['--input-type=module', '-e', script],
     {cwd: scratch.path, encoding: 'utf8', timeout: 180000, maxBuffer: 4 * 1024 * 1024});
   assert.ifError(child.error);
   assert.equal(child.status, 0, child.stderr + '\n' + child.stdout);
   assert.deepEqual(JSON.parse(child.stdout.trim().split('\n').at(-1)),
-    {calls: approvedAlias ? 0 : count, tasks: count,
-      firstCloseReturned: true, aliveScopedFD0: true});
+    {calls: approvedAlias || invalidBinding !== null ? 0 : count, tasks: invalidBinding === null ? count : 0,
+      firstCloseReturned: invalidBinding === null, aliveScopedFD0: true});
   if (approvedAlias) {
     const reopen = `
       import assert from 'node:assert/strict';
@@ -552,3 +591,9 @@ test('an approved matching Project alias cannot dispatch under an independent Ra
 
 test('an approved original Model claim that expires during the parked Store write cannot enter',
   () => normalHttpFixture({approvedAlias: 'lease-expired'}));
+
+test('normal OpenAI rejects a different original model before Entry or HTTP',
+  () => normalHttpFixture({invalidBinding:'different-model'}));
+
+test('normal OpenAI rejects a new selector-only binding before Entry or HTTP',
+  () => normalHttpFixture({invalidBinding:'missing-route'}));
