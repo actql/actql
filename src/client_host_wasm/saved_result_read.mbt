@@ -480,7 +480,7 @@ fn reobserve_saved_result_read(
     Ok(_) => ()
   }
   if incremental {
-    let observed = physical_journal_schema(current.physical)
+    let schema = physical_journal_schema(current.physical)
     let read = (table, key) => {
       physical_journal_row(current.physical, check, 1, table, key)
     }
@@ -489,14 +489,10 @@ fn reobserve_saved_result_read(
     }
     return rebind_saved_result_originals(
       retained,
-      journal_schema_without_saved_census(observed),
+      schema,
       scan,
       read,
-      census_ticket=if same_reader_census && (observed == 2 || observed == 3) {
-        current.physical
-      } else {
-        0
-      },
+      census_ticket=if same_reader_census { current.physical } else { 0 },
     )
   }
   match

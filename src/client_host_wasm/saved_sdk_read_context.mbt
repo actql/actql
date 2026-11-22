@@ -58,24 +58,37 @@ fn saved_sdk_read_context(
     check_saved_sdk_read_context(
       value, record, parent, saved, current, source, false,
     ) {
-    Err(code) => Err(code)
-    Ok(_) =>
-      Ok({
-        source,
-        finite,
-        sdk,
-        current,
-        owner,
-        view,
-        result_name,
-        format,
-        check_current: () => {
-          check_saved_sdk_read_context(
-            value, record, parent, saved, current, source, same_reader_census,
-          )
-        },
-      })
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
+  let same_reader_census = if same_reader_census &&
+    parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
+    // Ticket zero cannot name a physical loan. The original suppliers
+    // refuse this discovery request without observing Store currentness.
+    // Only a positive opt-in enables the subsequent real-ticket proof.
+    match physical_journal_current_operation(0) {
+      1L => true
+      0L | -41L => false
+      _ => return Err(-41)
+    }
+  } else {
+    false
+  }
+  Ok({
+    source,
+    finite,
+    sdk,
+    current,
+    owner,
+    view,
+    result_name,
+    format,
+    check_current: () => {
+      check_saved_sdk_read_context(
+        value, record, parent, saved, current, source, same_reader_census,
+      )
+    },
+  })
 }
 
 ///|

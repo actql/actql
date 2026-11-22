@@ -9,17 +9,6 @@ fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "jou
 fn physical_journal_schema(ticket : Int) -> Int = "actql_host" "journal_schema"
 
 ///|
-// The closed Saved input export can advertise its optional unchanged-reader
-// query alongside either existing schema value. Other suppliers use 0 or 1.
-fn journal_schema_without_saved_census(observed : Int) -> Int {
-  match observed {
-    2 => 0
-    3 => 1
-    _ => observed
-  }
-}
-
-///|
 // Literal little-endian u32 key length, u32 body length and i64 revision.
 // The original ticket retains the row until the second bounded import succeeds.
 // Borrow the buffers through the actual import, not an earlier offset extractor.

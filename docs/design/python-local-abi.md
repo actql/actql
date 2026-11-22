@@ -4076,19 +4076,24 @@ for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
 
 Incremental Saved payload input preparation begins every Core export with the
-complete cancellation census. Its exact closed Wasmtime reader can advertise
-unchanged-reader proof support through the existing schema query. Values 2
-and 3 advertise support for physical schema 0 and 1 respectively. The
-optional negative-ticket current query returns 1 for the same unchanged read,
-0 when proof is unavailable, or the original refusal. A supplier that returns
-schema 0 or 1 receives no additional query and keeps full validation.
+complete cancellation census. A guest can then ask the existing current
+operation import about optional unchanged-reader proof support using ticket
+zero, which cannot name a loan. Result 1 opts in. Result 0 or the original
+unallocated-ticket refusal leaves full validation active. The schema query
+continues to return physical schema 0 or 1 unchanged, and previous guests
+keep their existing positive-ticket calls.
+
+Only after opt-in does the guest ask for proof with its negated live ticket.
+This query returns 1 for the same unchanged read, 0 after proof becomes
+unavailable, or the original refusal. The fallback applies to unavailable
+proof. The live-ticket query preserves any actual current or storage failure.
 
 Subsequent checks can skip only the census already accepted inside this
 export. Selected physical rows, current, schema, policy, binding, and receipt
 checks still run. The proof expires at any effect import or export return.
 Nothing crosses a SQLite reader, chunk, operation, or await. The optimization
-adds no retained census rows. An advertised query requires a matching Host
-and module. A physical error keeps its original failure and cleanup.
+adds no retained census rows. Existing current and cleanup ownership remain
+with the original invocation.
 
 
 ### Original Source carrier during Run restoration

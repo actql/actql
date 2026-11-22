@@ -1023,8 +1023,9 @@ class LocalCore:
                                           'journal_query_header', 'journal_copy_row') else 0
                     ticket = abs(args[index]) if name == 'journal_current_operation' else args[index]
                     journal = self._journal_callbacks(ticket)
-                    pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
-                            and journal.current is span.binding._current_observer)
+                    pure = ((name == 'journal_current_operation' and ticket == 0)
+                            or (type(journal) is _JournalCallbacks and journal.reader is span.reader
+                                and journal.current is span.binding._current_observer))
                 elif name in ('publisher_current', 'publisher_begin', 'publisher_copy', 'publisher_finish'):
                     from ._local_host_binding import _OriginalPublisherPort
                     index = 1 if name == 'publisher_copy' else 0
@@ -1618,19 +1619,8 @@ class LocalCore:
         return -41 if callbacks is None else callbacks.check_current()
 
     def _journal_schema(self, ticket: int) -> int:
-        from ._local_host_binding import _InvocationObservation
         callbacks = self._journal_callbacks(ticket)
-        if callbacks is None:
-            return -41
-        schema = callbacks.schema()
-        span = getattr(self, '_invocation_observation', None)
-        # Only the original closed Saved input export advertises the optional
-        # query. Existing suppliers return 0 or 1 and take the full census.
-        if (schema in (0, 1) and type(span) is _InvocationObservation
-                and span.supports_saved_census_read() and span.current.ticket == ticket
-                and callbacks.reader is span.reader):
-            return schema + 2
-        return schema
+        return -41 if callbacks is None else callbacks.schema()
 
     def _journal_current_operation(self, ticket: int) -> int:
         """Original current observation plus this Host operation's DATA.
@@ -1639,11 +1629,16 @@ class LocalCore:
         return and effect boundaries; every import still validates original
         lifetime and the same SQL snapshot. Other suppliers keep full checks.
 
-        Zero selects complete original observation for raw/cleanup callers.
+        A zero result on a real positive ticket selects full raw/cleanup
+        observation. An input ticket of zero only asks about optional support.
         It is not an Allow, permission cache, reader handle or continuation.
         """
         if ticket < 0:
             return self._journal_saved_census_read(-ticket)
+        if ticket == 0:
+            from ._local_host_binding import _InvocationObservation
+            span = getattr(self, '_invocation_observation', None)
+            return int(type(span) is _InvocationObservation and span.supports_saved_census_read())
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
