@@ -1,8 +1,8 @@
 ///|
 // The erased TextBound view became one retained record (header/two references).
-// A Timestamp also retains Some(original pattern), including its scalar tag.
+// A patterned call also retains Some(original PatternResolution), including its tag.
 // Price that closed maximum for every original Envelope, including the
-// non-Timestamp record. Each actual
+// unpatterned record. Each actual
 // Task may retain its complete sequence; no source walk or policy count is used.
 fn installed_text_bound_views_layout(
   graph : @strategy.CheckedDAG,

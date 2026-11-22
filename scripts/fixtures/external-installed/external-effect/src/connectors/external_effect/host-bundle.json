@@ -3,7 +3,7 @@
     "registration": "external_effect",
     "revision": "external_effect/0.1",
     "providerBundle": "connectors/external_effect/host_node",
-    "assets": ["src/connectors/external_effect/catalog-views.json", "src/connectors/external_effect/writes.json"],
+    "assets": ["src/connectors/external_effect/catalog-views.json", "src/connectors/external_effect/writes.json", "src/connectors/external_effect/updates.json"],
     "responseHeaders": [],
     "effect": {
       "profileVersion": "actql-installed-external-effect/0.1",

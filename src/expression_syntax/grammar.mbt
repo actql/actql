@@ -42,7 +42,7 @@ fn expression_role(
   origin : Origin,
 ) -> Role raise Stop {
   match tag {
-    "field" | "$param" | "literal" | "template" => Data
+    "field" | "$param" | "literal" | "date_literal" | "template" => Data
     "to_number"
     | "to_string"
     | "to_boolean"
@@ -55,7 +55,10 @@ fn expression_role(
     | "is_false"
     | "is_unknown"
     | "len"
+    | "array_length"
+    | "unix_seconds"
     | "byte_length"
+    | "farm_fingerprint"
     | "unicode"
     | "chr"
     | "reverse"
@@ -143,14 +146,28 @@ fn expression_role(
     | "rpad"
     | "concat"
     | "date_trunc"
+    | "date_boundary_trunc"
+    | "timestamp_trunc"
+    | "extract_timestamp"
     | "date_add"
+    | "date_interval_add"
+    | "date_boundary_diff"
     | "timestamp_add"
     | "timestamp_sub"
     | "date_diff"
+    | "make_date"
+    | "timestamp_diff"
     | "array"
     | "split"
+    | "generate_array"
+    | "array_to_string"
+    | "format_strings"
+    | "to_json_string"
+    | "json_value"
+    | "array_concat"
     | "vector_concat"
-    | "current_timestamp" => Arguments(tag)
+    | "current_timestamp"
+    | "current_date" => Arguments(tag)
     "to_decimal"
     | "typed_literal"
     | "join_field"
@@ -188,17 +205,21 @@ fn arity(
   origin : Origin,
 ) -> Unit raise Stop {
   let valid = match tag {
-    "current_timestamp" => size == 0
+    "current_timestamp" | "current_date" => size == 0
     "array" => true
     "instr" => size >= 2 && size <= 4
     "translate" => size == 3
     "split" => size == 1 || size == 2
+    "generate_array" | "array_to_string" => size == 2 || size == 3
+    "to_json_string" | "json_value" => size == 1 || size == 2
     "lpad" | "rpad" => size == 2 || size == 3
     "and"
     | "or"
     | "concat_strict"
     | "coalesce"
     | "concat"
+    | "array_concat"
+    | "format_strings"
     | "greatest"
     | "least" => size >= 1
     "vector_concat" => size >= 2
@@ -206,7 +227,11 @@ fn arity(
     | "between"
     | "replace"
     | "date_add"
+    | "date_interval_add"
+    | "date_boundary_diff"
     | "date_diff"
+    | "make_date"
+    | "timestamp_diff"
     | "timestamp_add"
     | "timestamp_sub" => size == 3
     _ => size == 2
@@ -234,9 +259,8 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     "utf8_truncate" => ["value", "max_bytes"]
     "try_number" => ["value"]
     "try_timestamp" => ["value"]
-    "parse_timestamp" | "format_timestamp" | "regex_match" =>
+    "parse_timestamp" | "format_timestamp" | "regex_match" | "regex_extract" =>
       ["value", "pattern"]
-    "regex_extract" => ["value", "pattern", "capture"]
     "regex_replace" => ["value", "pattern", "replacement"]
     "vector_score" => ["left", "right", "metric"]
     _ => []
@@ -247,6 +271,12 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
   }
   if tag == "try_timestamp" {
     allowed.push("pattern")
+  }
+  if tag == "regex_extract" {
+    allowed.push("capture")
+  }
+  if tag == "regex_replace" {
+    allowed.push("dialect")
   }
   if tag == "case" {
     allowed.push("else")
@@ -266,6 +296,7 @@ fn body_role(tag : String, name : String) -> Role {
     ("empty_array", "items") => ItemContract
     ("case", "when") => Branches
     ("case", "else" | "operand") => Expr
+    ("regex_replace", "dialect") => Data
     (
       _,
       "precision"

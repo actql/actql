@@ -26,8 +26,8 @@ const expectedColumns = [{name: 'id', contract: {type: 'number', nullable: false
 // Independently reconstructed from the complete authored identity preimages,
 // then checked against the pure owner; never derived from an executed Result.
 export const plannerSelectionRequirementCids = Object.freeze({
-  normal: 'sha256:6336dcb725c6ed3dbf9f48a38063300c67cd4ef593ec6221b0000299d24602ed',
-  unsupportedPredicate: 'sha256:507c96363803b42ec631e0df93fceca38f8d114966baa2cca796b44cd12d878d',
+  normal: 'sha256:2c62176cc33c516b468a316fb134ba34417f83df4fcb4c70975cbdcd0008e212',
+  unsupportedPredicate: 'sha256:ce756fa510ac1a38fd8f6fe0f8da4bf355556764c311cdfe422cf8c38d068886',
 });
 const requirementCidFor = item => item.filter === undefined
   ? plannerSelectionRequirementCids.normal : plannerSelectionRequirementCids.unsupportedPredicate;

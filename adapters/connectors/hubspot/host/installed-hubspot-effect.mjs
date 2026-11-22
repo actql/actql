@@ -251,17 +251,17 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
         inputLimits: {body: ownerLimits.body, preview: ownerLimits.preview}, maxRecoveryBytes});
       const requestRecheckCapacity = runtimeUnboxedReferenceOption(quantity(8, [mappingLimits.maxProperties], [], []));
       if (!requestRecheckCapacity) fail('HubSpotEffectConstructionUnavailable');
-      const driver = hubspotUpdateDriver({moon: providerMoon, site, authorization, connection, requestRecheckCapacity,
+      const write = hubspotUpdateDriver({moon: providerMoon, site, authorization, connection, requestRecheckCapacity,
         origin: siteProfile.apiOrigin, portalId: source.portalId, connectorId: source.connectorId,
         siteBindingCid, generationCid, installedFor, metadataResources: source.metadataResources,
         requestLimits: Object.freeze({maxProperties: mappingLimits.maxProperties, body: bodyLimits,
           request: limits.request, maxRecoveryBytes}), readLimits: limits.read, writeLimits: limits.write,
         maxRows: ownerLimits.maxRows, maxMembers: ownerLimits.maxMembers, maxRecoveryBytes});
-      return Object.freeze({driver, managedPlanRecipes: Object.freeze({update: recipe})});
+      return Object.freeze({write, managedPlanRecipes: Object.freeze({update: recipe})});
     },
   }));
   const rowEffect = await construction.createRowEffect({connection, runtimeBundleCid, bindingCid: siteBindingCid,
-    continuationBinding: generationCid, ledgerRoot, driver: constructed.driver,
+    continuationBinding: generationCid, ledgerRoot, write: constructed.write,
     managedPlanRecipes: constructed.managedPlanRecipes, limits: ownerLimits});
   const targetReadInventory = installedHubSpotTargetReadInventory({moon, mappings, connection,
     siteBindingCid, generationCid, rowEffect});

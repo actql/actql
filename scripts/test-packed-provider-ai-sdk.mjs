@@ -18,7 +18,11 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   assert.equal(value.phase, phase);
   assert(Number.isSafeInteger(pid) && pid > 0);
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
-  if (caseId === 'usage-reported') assert.equal(value.maxCalls, 1);
+  if (caseId === 'usage-reported' || caseId === 'project-key') assert.equal(value.maxCalls, 1);
+  if (caseId === 'project-key') {
+    assert.equal(value.projectCredential, true);
+    assert.equal(value.projectTlsConnects, phase === 'cold' ? 0 : 1);
+  }
   if (phase === 'warm') {
     assert.equal(value.tasks, 2); assert.equal(value.requests, 2); assert.equal(value.calls, 2);
   } else if (phase === 'cold') {
@@ -43,7 +47,7 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
   } else if (phase === 'missing-key') {
     assert.equal(value.requests, 1); assert.equal(value.calls, 0); assert.equal(value.credentialRefused, true);
   } else {
-    assert.equal(value.usageMode, phase.slice('usage-'.length));
+    assert.equal(value.usageMode, caseId === 'project-key' ? 'reported' : phase.slice('usage-'.length));
     for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
   }
 }
@@ -75,7 +79,8 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   await mkdir(raw); await mkdir(casesRoot);
   // Each timeout cold read observes its own entered original, never a Saved
   // success or a replacement request. Its state and profile stay in that case.
-  const available = [['warm', 'cold'], ['missing-key'], ['rate-limit', 'cold'], ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
+  const available = [['warm', 'cold'], ['missing-key'], ['project-key', 'cold'], ['rate-limit', 'cold'],
+    ['usage-reported', 'cold'], ['usage-zero'], ['usage-absent'],
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : available.filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,

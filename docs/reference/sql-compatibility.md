@@ -109,6 +109,7 @@ propagation is not supported.
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| INT64 \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
+| Timestamp to epoch | `UNIX_SECONDS(timestamp)` returns exact `INT64` seconds rounded down. NULL input returns NULL. |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
 | Exact integers | `CAST(value AS INT64)`, `MOD`, `DIV`; signed 64-bit integers remain distinct from `NUMBER`. Integer/decimal `MOD` and `DIV` preserve exact arithmetic and NULL propagation. |
 | Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep' ORDER BY …)`, filtered aggregates (`… WHERE …` inside the call) |
@@ -156,6 +157,131 @@ SELECT FORMAT_TIMESTAMP('yyyy',
   CAST('2026-01-02T03:04:05.123456789Z' AS TIMESTAMP)) AS year;
 ```
 
+`DATE '2026-01-02'` returns a non-null Date. One-digit months and days are
+accepted and the Result uses the canonical padded spelling. Invalid Gregorian
+dates are refused before execution.
+
+`TIMESTAMP '2026-01-02 03:04:05+00'` returns the Timestamp instant
+`2026-01-02T03:04:05.000Z`. Literals support UTC, fixed numeric offsets and up to
+six subsecond digits using the [SQL literal profile](../spec/query-text.md).
+The explicit `CAST(... AS TIMESTAMP)` path continues to require canonical UTC
+input as described above.
+
+`DATE(year, month, day)` constructs a Date from three INT64 values. It
+supports years 0001 through 9999 and checks the actual number of days in the
+month. An out-of-range or impossible date fails evaluation.
+
+`DATE_ADD(date, INTERVAL n DAY)` adds signed INT64 days. `DATE_DIFF(end, start, DAY)`
+counts signed day boundaries and returns INT64. `DATE_TRUNC(date, MONTH)` returns
+the first day of that month as a Date. These forms require Date operands and
+propagate NULL after the original operands are evaluated.
+
+`ARRAY_LENGTH(array)` returns an exact `INT64` count, including NULL and
+duplicate entries. An empty array returns zero and a NULL array returns NULL.
+
+`ARRAY_CONCAT(array, ...)` joins one or more arrays with compatible item
+types. It preserves order and duplicates and returns NULL for a NULL array
+operand. The function uses the existing array value bounds.
+[GoogleSQL ARRAY_CONCAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_concat)
+
+`FARM_FINGERPRINT(value)` accepts String and returns the stable signed
+INT64 fingerprint of its UTF-8 bytes. NULL returns NULL.
+[GoogleSQL FARM_FINGERPRINT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/hash_functions#farm_fingerprint)
+
+`REGEXP_CONTAINS(value, pattern)` searches a String with the checked Common
+regular-expression profile. It uses the ActQL regex grammar, accepts a literal
+or bound String pattern, and returns nullable Boolean when the input may be
+NULL. Anchors can constrain a search to the whole input.
+[GoogleSQL REGEXP_CONTAINS](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#regexp_contains)
+
+`REGEXP_EXTRACT(value, pattern)` returns the first whole match or the first
+match's sole capturing group. It uses the same checked String and pattern
+profile. No match, a nonparticipating group or a NULL input returns NULL.
+Check rejects patterns with multiple capturing groups.
+[GoogleSQL REGEXP_EXTRACT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#regexp_extract)
+
+`REGEXP_REPLACE(value, pattern, replacement)` replaces nonoverlapping
+matches in a String. The checked literal or bound replacement supports
+backslash references to the whole match and captures zero through nine,
+and doubled backslashes for a literal backslash. It uses the admitted
+ActQL pattern grammar.
+[GoogleSQL REGEXP_REPLACE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#regexp_replace)
+
+`JSON_VALUE(input[, path])` extracts a scalar from String or admitted Json.
+The default path is `$`. Dot members, double-quoted members and bracket
+indexes select one value. A missing or nonscalar selection returns NULL.
+When the input is String, a successfully selected scalar is independent
+of unread suffix bytes.
+[GoogleSQL JSON_VALUE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/json_functions#json_value)
+
+`TO_JSON_STRING(value[, pretty_print])` serializes an admitted Value
+as JSON text. It distinguishes an input NULL, which produces the String
+`null`, from a NULL pretty flag, which produces SQL NULL. Objects use
+Common field order. Opaque references do not serialize.
+[GoogleSQL TO_JSON_STRING](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/json_functions#to_json_string)
+
+`FORMAT(template[, argument ...])` accepts String inputs, `%s` and
+`%%`. Width and precision can be written directly in the template.
+Other conversion specifiers and runtime width or precision operands are
+outside this signature. [GoogleSQL FORMAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#format_string)
+
+`ARRAY_TO_STRING(array, delimiter[, null_text])` joins STRING items in order.
+It omits NULL elements when `null_text` is left out and substitutes it when
+provided. A NULL argument returns NULL. The selected signature uses the
+existing String domain. [GoogleSQL ARRAY_TO_STRING](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/array_functions#array_to_string)
+
+`LOGICAL_AND(expression)` and `LOGICAL_OR(expression)` aggregate Boolean values.
+Each ignores NULL observations and returns NULL for an empty or all-NULL group.
+A per-call `WHERE` filters the input to that call. The selected forms are
+grouped aggregates. [GoogleSQL Boolean aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#logical_and)
+
+`ANY_VALUE(expression)` returns one non-NULL value from the group or NULL if
+none qualifies. It allows the grouped aggregate's per-call `WHERE` filter.
+`HAVING MAX/MIN` and `OVER` are outside the selected signature.
+[GoogleSQL ANY_VALUE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#any_value)
+
+`LAG(value, offset, default)` and `LEAD(value, offset, default)` use a
+row-independent default of the same checked value domain when the requested
+row is absent. The referenced value may itself be NULL.
+[GoogleSQL navigation functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/navigation_functions#lag)
+
+`NTILE(buckets) OVER (... ORDER BY ...)` returns a one-based INT64 bucket;
+the positive bucket count is a safe-integer literal or bound parameter.
+`PERCENT_RANK() OVER (... ORDER BY ...)` uses authored order peers and returns
+zero for a singleton partition. [GoogleSQL numbering functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/numbering_functions#ntile)
+
+Ordered `FIRST_VALUE(value)` and `LAST_VALUE(value)` with no explicit frame
+use the prefix through the last peer with the current order keys.
+[GoogleSQL window frames](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
+With no explicit frame, analytic `SUM`, `COUNT`, `AVG` and `MIN` include all
+rows through the current order-key peers when ordered, or the entire
+partition when unordered. Numeric operations require the selected numeric
+profile. [GoogleSQL aggregate window defaults](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls)
+
+`CURRENT_DATE()` and bare `CURRENT_DATE` return the non-null UTC Date of the
+original query invocation. Repeated occurrences and Saved reads use that same
+original. Time-zone arguments are outside this selected signature.
+
+`EXTRACT(YEAR FROM value)` reads the UTC year of a Timestamp and returns INT64.
+The same form supports QUARTER, MONTH, DAY, DAYOFWEEK, DAYOFYEAR, HOUR, MINUTE,
+SECOND, MILLISECOND and MICROSECOND.
+
+`TIMESTAMP_DIFF(end, start, HOUR)` returns whole hours as INT64. Both arguments
+must be Timestamp values. Negative durations truncate toward zero. The static
+unit can be MICROSECOND, MILLISECOND, SECOND, MINUTE, HOUR or DAY.
+
+`TIMESTAMP_TRUNC(value, DAY)` returns the Timestamp at the start of its UTC
+day. The same unquoted six unit keywords are available as for
+`TIMESTAMP_DIFF`. The operation preserves Timestamp nullability.
+
+`GENERATE_ARRAY(1, 3)` returns an array of INT64 values. The same expression
+can be used in `FROM UNNEST(GENERATE_ARRAY(1, 3)) AS x`. The default step is 1.
+With a signed step, the result includes every reached endpoint, preserves
+descending order for negative steps, and is empty for the wrong direction.
+NULL input yields a NULL array and zero step is refused. Array output is
+subject to the selected resource limits.
+
 Ordinary collection aggregates require their own `ORDER BY`; an enclosing
 query's order is not a substitute. `STRING_AGG(s, ',' ORDER BY n)` is the
 supported spelling. `ARRAY_AGG` uses ActQL's existing NULL exclusion with or
@@ -194,6 +320,11 @@ declared `NUMBER` columns are not implicitly promoted. Explicit FLOAT64/NUMBER
 to INT64 casts round to nearest with ties away from zero and reject overflow.
 INT64 Result values use canonical decimal strings on the existing wire.
 
+SQL `GROUP BY ROLLUP` returns each prefix subtotal and the grand total with typed NULLs for omitted grouping keys.
+
+A comma in the initial FROM list uses the bounded CROSS JOIN operation.
+A comma before UNNEST supports correlated expansion and offsets.
+
 ## Not accepted
 
 These are refused at check time with a named reason. They are either outside
@@ -210,15 +341,15 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
-| `TIMESTAMP '…'` and `DATE '…'` typed literals | Not selected literal spellings. Timestamp conversion uses the canonical `CAST` grammar above; this does not add a Date cast. |
+| `TIMESTAMP '…'` with a named zone other than UTC or Etc/UTC | The literal profile supports fixed offsets without zone-rule lookup. |
 | Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
-| Unaliased computed SELECT items | Use explicit output names. Direct field projections keep their documented names. |
-| Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
-| `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
-| `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
-| `GENERATE_ARRAY`, `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
-| `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `ANY_VALUE`, `JSON_VALUE`, `FORMAT`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `FARM_FINGERPRINT`, `CURRENT_DATE`, `LOGICAL_AND`, `LOGICAL_OR` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
-| Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
+| `DATE` conversion overloads and other `DATE_* … INTERVAL/unit` parts | The interval addition and boundary difference forms select DAY. Boundary truncation selects MONTH. Documented quoted-unit and Number-duration forms retain their existing signatures. |
+| `TIMESTAMP_DIFF` with non-Timestamp arguments or a non-fixed unit | The selected Timestamp signature accepts MICROSECOND through DAY and returns whole units as INT64. |
+| `EXTRACT` with a week or ISO-year part, a nonnumeric part, a non-Timestamp input or a timezone clause | The selected numeric Timestamp parts use UTC. |
+| `TIMESTAMP_TRUNC` with a timezone argument or a calendar unit beyond DAY | The selected Timestamp signature uses fixed UTC buckets from MICROSECOND through DAY. |
+| `GENERATE_ARRAY` with FLOAT64 or decimal operands | The selected signature generates exact INT64 progressions. |
+| `REGEXP_EXTRACT` with position or occurrence arguments | The selected two-argument String signature uses the first match. |
+| `SHA256`, `CURRENT_DATE(time_zone)` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
 | Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
 | String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |

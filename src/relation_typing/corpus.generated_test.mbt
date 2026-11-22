@@ -466,6 +466,11 @@ test "relation type corpus accepted: 93" {
 }
 
 ///|
+test "relation type corpus accepted: 94" {
+  corpus_accepted(Analytic, "{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"a\":{\"fn\":\"count\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false},\"a\":{\"type\":\"number\",\"nullable\":false}}", None)
+}
+
+///|
 test "relation type corpus rejected: 1" {
   corpus_rejected(TopK, "{\"k\":0,\"by\":[{\"id\":\"asc\"}]}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidCount")
 }
@@ -497,450 +502,445 @@ test "relation type corpus rejected: 6" {
 
 ///|
 test "relation type corpus rejected: 7" {
-  corpus_rejected(Analytic, "{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"a\":{\"fn\":\"count\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidFrame")
-}
-
-///|
-test "relation type corpus rejected: 8" {
   corpus_rejected(Analytic, "{\"partition_by\":[],\"order_by\":[],\"functions\":{\"r\":{\"fn\":\"rank\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidOrder")
 }
 
 ///|
-test "relation type corpus rejected: 9" {
+test "relation type corpus rejected: 8" {
   corpus_rejected(Analytic, "{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 10" {
+test "relation type corpus rejected: 9" {
   corpus_rejected(Pivot, "{\"index\":[],\"column\":\"id\",\"values\":[],\"value\":\"amount\",\"aggregate\":\"count\",\"fill\":null}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidFill")
 }
 
 ///|
-test "relation type corpus rejected: 11" {
+test "relation type corpus rejected: 10" {
   corpus_rejected(Pivot, "{\"index\":[],\"column\":\"id\",\"values\":[\"a\",\"a\"],\"value\":\"amount\",\"aggregate\":\"sum\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 12" {
+test "relation type corpus rejected: 11" {
   corpus_rejected(Pivot, "{\"index\":[\"id\"],\"column\":\"id\",\"values\":[\"id\"],\"value\":\"amount\",\"aggregate\":\"sum\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 13" {
+test "relation type corpus rejected: 12" {
   corpus_rejected(Pivot, "{\"index\":[],\"column\":\"amount\",\"values\":[],\"value\":\"amount\",\"aggregate\":\"sum\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidAggregateArgument")
 }
 
 ///|
-test "relation type corpus rejected: 14" {
+test "relation type corpus rejected: 13" {
   corpus_rejected(Pivot, "{\"index\":[],\"column\":\"id\",\"values\":[\"a\"],\"value\":\"amount\",\"aggregate\":\"sum\",\"fill\":\"0\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "FillValue")
 }
 
 ///|
-test "relation type corpus rejected: 15" {
+test "relation type corpus rejected: 14" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"count\",\"distinct\":true}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidAggregateOption")
 }
 
 ///|
-test "relation type corpus rejected: 16" {
+test "relation type corpus rejected: 15" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"sum\",\"field\":\"amount\",\"expr\":\"amount\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidAggregateArgument")
 }
 
 ///|
-test "relation type corpus rejected: 17" {
+test "relation type corpus rejected: 16" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"sum\",\"expr\":\"NULL\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "NullTypeUnresolved")
 }
 
 ///|
-test "relation type corpus rejected: 18" {
+test "relation type corpus rejected: 17" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"count_if\",\"expr\":\"flag\",\"distinct\":false}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidAggregateOption")
 }
 
 ///|
-test "relation type corpus rejected: 19" {
+test "relation type corpus rejected: 18" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"percentile_disc\",\"field\":\"amount\",\"fraction\":2}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidAggregateOption")
 }
 
 ///|
-test "relation type corpus rejected: 20" {
+test "relation type corpus rejected: 19" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"array_agg\",\"field\":\"x\",\"order_by\":[{\"id\":\"asc\"}]}}}", "{\"x\":{\"type\":\"json\",\"nullable\":false},\"id\":{\"type\":\"string\",\"nullable\":false}}", "ForbiddenAggregateValue")
 }
 
 ///|
-test "relation type corpus rejected: 21" {
+test "relation type corpus rejected: 20" {
   corpus_rejected(Group, "{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"count_if\",\"where\":\"flag\"}}}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 22" {
+test "relation type corpus rejected: 21" {
   corpus_rejected(Unpivot, "{\"columns\":[],\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 23" {
+test "relation type corpus rejected: 22" {
   corpus_rejected(Unpivot, "{\"columns\":[\"amount\"],\"keep\":[\"id\",\"id\"],\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 24" {
+test "relation type corpus rejected: 23" {
   corpus_rejected(Unpivot, "{\"columns\":[\"amount\"],\"keep\":[\"id\"],\"name_column\":\"id\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 25" {
+test "relation type corpus rejected: 24" {
   corpus_rejected(Unpivot, "{\"columns\":[\"amount\"],\"name_column\":\"v\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 26" {
+test "relation type corpus rejected: 25" {
   corpus_rejected(Unpivot, "{\"columns\":[\"amount\",\"id\"],\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "IncompatibleColumn")
 }
 
 ///|
-test "relation type corpus rejected: 27" {
+test "relation type corpus rejected: 26" {
   corpus_rejected(Unpivot, "{\"columns\":[\"a\",\"b\"],\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"a\":{\"type\":\"number\",\"nullable\":false},\"b\":{\"type\":\"number\",\"nullable\":true}}", "IncompatibleColumn")
 }
 
 ///|
-test "relation type corpus rejected: 28" {
+test "relation type corpus rejected: 27" {
   corpus_rejected(Unpivot, "{\"columns\":[\"amount\"],\"keep\":null,\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 29" {
+test "relation type corpus rejected: 28" {
   corpus_rejected(Unpivot, "{\"columns\":[\"missing\"],\"name_column\":\"k\",\"value_column\":\"v\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 30" {
+test "relation type corpus rejected: 29" {
   corpus_rejected(AssertRows, "{\"unique_by\":[]}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 31" {
+test "relation type corpus rejected: 30" {
   corpus_rejected(AssertRows, "{\"unique_by\":[\"id\",\"id\"]}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 32" {
+test "relation type corpus rejected: 31" {
   corpus_rejected(AssertRows, "{\"unique_by\":[\"x\"]}", "{\"x\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 33" {
+test "relation type corpus rejected: 32" {
   corpus_rejected(AssertRows, "{\"unique_by\":[\"x\"]}", "{\"x\":{\"type\":\"object\",\"nullable\":false,\"fields\":{}}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 34" {
+test "relation type corpus rejected: 33" {
   corpus_rejected(AssertRows, "{\"unique_by\":[\"x\"]}", "{\"x\":{\"type\":\"vector\",\"nullable\":false,\"dimensions\":3}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 35" {
+test "relation type corpus rejected: 34" {
   corpus_rejected(AssertRows, "{\"where\":\"NULL\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "NullTypeUnresolved")
 }
 
 ///|
-test "relation type corpus rejected: 36" {
+test "relation type corpus rejected: 35" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[],\"output\":\"x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 37" {
+test "relation type corpus rejected: 36" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[0],\"output\":\"x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 38" {
+test "relation type corpus rejected: 37" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"raw\",\"x\"],\"output\":\"x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "ShapeEvidenceRequired")
 }
 
 ///|
-test "relation type corpus rejected: 39" {
+test "relation type corpus rejected: 38" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"x\",\"more\"],\"output\":\"x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "ExpectedObject")
 }
 
 ///|
-test "relation type corpus rejected: 40" {
+test "relation type corpus rejected: 39" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"missing\"],\"output\":\"x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 41" {
+test "relation type corpus rejected: 40" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"x\"],\"output\":\"p\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "InputCollision")
 }
 
 ///|
-test "relation type corpus rejected: 42" {
+test "relation type corpus rejected: 41" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"x\"],\"output\":\"left.x\"}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "InvalidName")
 }
 
 ///|
-test "relation type corpus rejected: 43" {
+test "relation type corpus rejected: 42" {
   corpus_rejected(JsonPick, "{\"column\":\"p\",\"path\":[\"x\"],\"output\":\"x\",\"default\":0}", "{\"p\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"raw\":{\"type\":\"json\",\"nullable\":false}}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 44" {
+test "relation type corpus rejected: 43" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\"}", "{\"a\":{\"type\":\"json\",\"nullable\":false}}", "ExpectedArray")
 }
 
 ///|
-test "relation type corpus rejected: 45" {
+test "relation type corpus rejected: 44" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"with_index\":false}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 46" {
+test "relation type corpus rejected: 45" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"with_index\":null}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 47" {
+test "relation type corpus rejected: 46" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"outer\":null}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 48" {
+test "relation type corpus rejected: 47" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"with_index\":\"v\"}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 49" {
+test "relation type corpus rejected: 48" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"with_index\":\"a\"}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InputCollision")
 }
 
 ///|
-test "relation type corpus rejected: 50" {
+test "relation type corpus rejected: 49" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"__cid\"}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InvalidName")
 }
 
 ///|
-test "relation type corpus rejected: 51" {
+test "relation type corpus rejected: 50" {
   corpus_rejected(Unnest, "{\"column\":\"a\",\"as\":\"v\",\"extra\":true}", "{\"a\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 52" {
+test "relation type corpus rejected: 51" {
   corpus_rejected(Sort, "[{\"ref\":\"asc\"}]", "{\"ref\":{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}}", "NotAuthorOrderable")
 }
 
 ///|
-test "relation type corpus rejected: 53" {
+test "relation type corpus rejected: 52" {
   corpus_rejected(Distinct, "[\"x\"]", "{\"x\":{\"type\":\"json\",\"nullable\":false}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 54" {
+test "relation type corpus rejected: 53" {
   corpus_rejected(Distinct, "[\"x\"]", "{\"x\":{\"type\":\"object\",\"nullable\":false,\"fields\":{}}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 55" {
+test "relation type corpus rejected: 54" {
   corpus_rejected(Distinct, "[\"x\"]", "{\"x\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 56" {
+test "relation type corpus rejected: 55" {
   corpus_rejected(Distinct, "[\"x\"]", "{\"x\":{\"type\":\"vector\",\"nullable\":false,\"dimensions\":3}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 57" {
+test "relation type corpus rejected: 56" {
   corpus_rejected(DedupeRows, "{\"by\":[\"x\"],\"order_by\":[{\"id\":\"asc\"}]}", "{\"x\":{\"type\":\"json\",\"nullable\":false},\"id\":{\"type\":\"string\",\"nullable\":false}}", "NotKeyComparable")
 }
 
 ///|
-test "relation type corpus rejected: 58" {
+test "relation type corpus rejected: 57" {
   corpus_rejected(DedupeRows, "{\"by\":[],\"order_by\":[{\"ref\":\"asc\"}]}", "{\"ref\":{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}}", "NotAuthorOrderable")
 }
 
 ///|
-test "relation type corpus rejected: 59" {
+test "relation type corpus rejected: 58" {
   corpus_rejected(Sort, "{}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 60" {
+test "relation type corpus rejected: 59" {
   corpus_rejected(Sort, "[{\"field\":\"id\",\"dir\":\"asc\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidOrder")
 }
 
 ///|
-test "relation type corpus rejected: 61" {
+test "relation type corpus rejected: 60" {
   corpus_rejected(Sort, "[{\"id\":\"up\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidOrder")
 }
 
 ///|
-test "relation type corpus rejected: 62" {
+test "relation type corpus rejected: 61" {
   corpus_rejected(Sort, "[{\"missing\":\"asc\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 63" {
+test "relation type corpus rejected: 62" {
   corpus_rejected(Take, "0", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidCount")
 }
 
 ///|
-test "relation type corpus rejected: 64" {
+test "relation type corpus rejected: 63" {
   corpus_rejected(Take, "9007199254740992", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidCount")
 }
 
 ///|
-test "relation type corpus rejected: 65" {
+test "relation type corpus rejected: 64" {
   corpus_rejected(Take, "{\"count\":1,\"offset\":-1}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidCount")
 }
 
 ///|
-test "relation type corpus rejected: 66" {
+test "relation type corpus rejected: 65" {
   corpus_rejected(Take, "{\"count\":1,\"offset\":0.5}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidCount")
 }
 
 ///|
-test "relation type corpus rejected: 67" {
+test "relation type corpus rejected: 66" {
   corpus_rejected(Take, "{\"limit\":1}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 68" {
+test "relation type corpus rejected: 67" {
   corpus_rejected(Take, "{\"$param\":\"n\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownParameter")
 }
 
 ///|
-test "relation type corpus rejected: 69" {
+test "relation type corpus rejected: 68" {
   corpus_rejected(Distinct, "[]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 70" {
+test "relation type corpus rejected: 69" {
   corpus_rejected(Distinct, "false", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 71" {
+test "relation type corpus rejected: 70" {
   corpus_rejected(Distinct, "[\"id\",\"id\"]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 72" {
+test "relation type corpus rejected: 71" {
   corpus_rejected(Distinct, "[\"missing\"]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 73" {
+test "relation type corpus rejected: 72" {
   corpus_rejected(DedupeRows, "{\"by\":[],\"order_by\":[]}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 74" {
+test "relation type corpus rejected: 73" {
   corpus_rejected(DedupeRows, "{\"by\":[\"missing\"],\"order_by\":[{\"id\":\"asc\"}]}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 75" {
+test "relation type corpus rejected: 74" {
   corpus_rejected(DedupeRows, "{\"by\":[\"id\"],\"order_by\":[{\"id\":\"asc\"}],\"keep\":\"first\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 76" {
+test "relation type corpus rejected: 75" {
   corpus_rejected(Filter, "\"amount\"", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "ExpectedBoolean")
 }
 
 ///|
-test "relation type corpus rejected: 77" {
+test "relation type corpus rejected: 76" {
   corpus_rejected(Filter, "\"missing > 0\"", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 78" {
+test "relation type corpus rejected: 77" {
   corpus_rejected(Filter, "\"NULL\"", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "NullTypeUnresolved")
 }
 
 ///|
-test "relation type corpus rejected: 79" {
+test "relation type corpus rejected: 78" {
   corpus_rejected(Derive, "[]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 80" {
+test "relation type corpus rejected: 79" {
   corpus_rejected(Derive, "[{}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 81" {
+test "relation type corpus rejected: 80" {
   corpus_rejected(Derive, "[{\"x\":\"amount\",\"y\":\"id\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 82" {
+test "relation type corpus rejected: 81" {
   corpus_rejected(Derive, "{\"amount\":\"amount * 2\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InputCollision")
 }
 
 ///|
-test "relation type corpus rejected: 83" {
+test "relation type corpus rejected: 82" {
   corpus_rejected(Derive, "{\"a\":\"amount\",\"b\":\"a\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 84" {
+test "relation type corpus rejected: 83" {
   corpus_rejected(Derive, "[{\"a\":\"b\"},{\"b\":\"amount\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 85" {
+test "relation type corpus rejected: 84" {
   corpus_rejected(Derive, "[{\"a\":\"a\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 86" {
+test "relation type corpus rejected: 85" {
   corpus_rejected(Derive, "[{\"a\":\"amount\"},{\"a\":\"id\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 87" {
+test "relation type corpus rejected: 86" {
   corpus_rejected(Derive, "{\"__cid\":\"amount\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidName")
 }
 
 ///|
-test "relation type corpus rejected: 88" {
+test "relation type corpus rejected: 87" {
   corpus_rejected(Select, "[]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 89" {
+test "relation type corpus rejected: 88" {
   corpus_rejected(Select, "{\"x\":\"id\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 90" {
+test "relation type corpus rejected: 89" {
   corpus_rejected(Select, "[\"id\",{\"id\":\"amount\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 91" {
+test "relation type corpus rejected: 90" {
   corpus_rejected(Select, "[\"missing\"]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 92" {
+test "relation type corpus rejected: 91" {
   corpus_rejected(Select, "[{\"from\":\"id\",\"to\":\"x\"}]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "InvalidBody")
 }
 
 ///|
-test "relation type corpus rejected: 93" {
+test "relation type corpus rejected: 92" {
   corpus_rejected(Rename, "{\"id\":\"amount\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "DuplicateOutput")
 }
 
 ///|
-test "relation type corpus rejected: 94" {
+test "relation type corpus rejected: 93" {
   corpus_rejected(Rename, "{\"missing\":\"x\"}", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }
 
 ///|
-test "relation type corpus rejected: 95" {
+test "relation type corpus rejected: 94" {
   corpus_rejected(Drop, "[\"id\",\"flag\",\"amount\"]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "EmptyBody")
 }
 
 ///|
-test "relation type corpus rejected: 96" {
+test "relation type corpus rejected: 95" {
   corpus_rejected(Drop, "[\"missing\"]", "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"id\":{\"type\":\"string\",\"nullable\":false}}", "UnknownField")
 }

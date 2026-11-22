@@ -39,6 +39,11 @@ export function checkpointAnswerContract(registry, protocol) {
   if (recipe.summary_schema !== '#/schemas/checkpoint_summary' ||
       recipe.checkpoint_profile_source.contract !== 'actql-protocol-schemas.json' ||
       recipe.checkpoint_profile_source.schema !== 'artifact_schemas.execution_checkpoint.oneOf') fail('source');
+  closed(recipe.proof, ['scheme', 'key_id', 'signature']);
+  if (recipe.proof.scheme !== 'ed25519-v1' ||
+      recipe.proof.signature !== 'actual external callback output; canonical Base64 exact64bytes/88characters; reject nonzero padbits') fail('proof-encoding');
+  // Transport the fixed Ed25519 byte demand and canonical pad bits to both SDKs.
+  const signatureEncoding = {byteLength: 64, pattern: '[A-Za-z0-9+/]{85}[AQgw]=='};
   const branches = protocol.artifact_schemas.execution_checkpoint.oneOf;
   if (!Array.isArray(branches) || branches.length === 0) fail('profiles');
   const profiles = [];
@@ -116,7 +121,7 @@ export function checkpointAnswerContract(registry, protocol) {
         schema.properties.review_projection_cid?.pattern !== '^sha256:[0-9a-f]{64}$') fail('review-profile');
     return {version, selfField: 'review_projection_cid', dataKeys: name === 'review_projection'};
   });
-  return {profiles, candidates, recipe, summary, cidPaths: [...cidPaths.values()], reviews};
+  return {profiles, candidates, recipe, summary, cidPaths: [...cidPaths.values()], reviews, signatureEncoding};
 }
 
 export function commonCheckpointProfileSource(contract) {

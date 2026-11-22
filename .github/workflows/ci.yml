@@ -1701,6 +1701,8 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/optional-provider/raw/*/*
             ${{ runner.temp }}/client-readme-packed/optional-provider/cases/usage-*/consumer/usage-original.json
             ${{ runner.temp }}/client-readme-packed/optional-provider/cases/usage-*/consumer/usage-receipt.json
+            ${{ runner.temp }}/client-readme-packed/optional-provider/cases/project-key/consumer/usage-original.json
+            ${{ runner.temp }}/client-readme-packed/optional-provider/cases/project-key/consumer/usage-receipt.json
             ${{ runner.temp }}/client-readme-packed/packages/*packages.json
             ${{ runner.temp }}/client-readme-packed/*-mock-*.json
             ${{ runner.temp }}/client-readme-packed/raw/*

@@ -72,13 +72,12 @@ test "analytic STRING_AGG preserves the caller's collection byte ceiling" {
 }
 
 ///|
-test "analytic STRING_AGG refuses aggregate modifiers and missing frames" {
+test "analytic STRING_AGG refuses aggregate-local modifiers" {
   for
     text in [
       "SELECT STRING_AGG(DISTINCT name, '|') OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names FROM objects",
       "SELECT STRING_AGG(name WHERE id > 0) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names FROM objects",
       "SELECT STRING_AGG(name ORDER BY id) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names FROM objects",
-      "SELECT STRING_AGG(name) OVER (ORDER BY id) AS names FROM objects",
     ] {
     assert_true(
       compile(
@@ -89,6 +88,25 @@ test "analytic STRING_AGG refuses aggregate modifiers and missing frames" {
       is Err(UnsupportedAnalytic),
       msg=text,
     )
+  }
+}
+
+///|
+test "analytic STRING_AGG admits the original ordered default frame" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT STRING_AGG(name) OVER (ORDER BY id) AS names FROM objects",
+      syntax_limits(),
+    ).unwrap(),
+    aggregate_property_order_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(program).contains("\"frame\":"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("the authored default frame is closed")
   }
 }
 

@@ -191,7 +191,12 @@ fn prepare_ordered_reference_material(
               bytes -= size
               entries.push({ at: path, target, })
             }
-            Literal(_) | TypedNull | EmptyArray | CurrentTimestamp => ()
+            Literal(_)
+            | DateLiteral(_)
+            | TypedNull
+            | EmptyArray
+            | CurrentTimestamp
+            | CurrentDate => ()
             Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)
@@ -250,6 +255,24 @@ fn prepare_ordered_reference_material(
                 return Err(ReferenceLimit)
               }
               if !push(Children(children, 0, body)) {
+                return Err(ReferenceLimit)
+              }
+            }
+            Many(SplitPart, children) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(
+                  ObjectFields(
+                    [
+                      ("value", children[0]),
+                      ("delimiter", children[1]),
+                      ("index", children[2]),
+                    ],
+                    0,
+                    body,
+                  ),
+                ) {
                 return Err(ReferenceLimit)
               }
             }

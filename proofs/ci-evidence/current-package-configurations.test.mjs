@@ -381,21 +381,19 @@ test('the prior Local descriptor stays historical without admitting it as curren
   }
 });
 
-test('current timestamp dependency review binds both literal imports and complete original child sources', () => {
+test('archived timestamp dependency review binds both literal imports and complete child sources', () => {
   const review = JSON.parse(readFileSync(new URL(
     '../../docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json', import.meta.url)));
   const reviewed = gitTree(root, review.source), previous = gitTree(root, review.previousRevision);
   execFileSync('git', ['merge-base', '--is-ancestor', review.source, 'HEAD'], {cwd: root});
-  const entry = currentPackageConfigurations[review.path];
-  assert.equal(entry.revision, review.source);
-  assert.equal(entry.digest, review.sha256);
+  assert.equal(currentPackageConfigurationReviewFor(request(review.path, review.sha256)), null,
+    'The timestamp preimage is historical after the regex imports');
   const body = reviewed.read(review.path).toString(), prior = previous.read(review.path).toString();
   assert.equal(hash(body), review.sha256);
   assert.equal(hash(prior), review.previousSha256);
   assert.equal(Buffer.byteLength(body), review.bytes);
   assert.equal(Buffer.byteLength(prior), review.previousBytes);
   assert.equal(reviewed.entries.get(review.path)?.mode, review.mode);
-  assert.equal(currentTree.read(review.path).toString(), body);
   for (const path of [review.path, review.companion.path]) {
     const after = reviewed.read(path).toString(), before = previous.read(path).toString();
     assert.equal(after.split(review.addedImport).length, 2);
@@ -429,6 +427,86 @@ test('current timestamp dependency review binds both literal imports and complet
     const changedTree = {...currentTree, read: path => path === review.path ? Buffer.from(changed) : currentTree.read(path)};
     assert(packageSourceInputs({tree: changedTree, packages: ['src/execution_relation'], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + review.path));
+  }
+});
+
+test('current regex imports bind both literal aliases and complete pattern and replacement package inputs', () => {
+  const prior = gitTree(root, 'eb441ff1ed3c42bd243730306d883d1ddee41d45');
+  const revision = '9c50dd42067fb1298123c07e751070cf13222f43';
+  const reviewed = gitTree(root, revision);
+  const relation = 'src/execution_relation';
+  const lowering = 'src/lowering_relation';
+  const path = relation + '/moon.pkg';
+  const entry = currentPackageConfigurations[path];
+  const packages = {
+    regex_pattern: {alias: 'regex', members: [
+      'emit.mbt', 'matcher.mbt', 'matcher_test.mbt', 'moon.pkg', 'parser.mbt',
+      'pattern_test.mbt', 'pkg.generated.mbti', 'types.mbt', 'vectors.generated_test.mbt',
+    ]},
+    regex_replacement: {alias: 'replacement', members: [
+      'moon.pkg', 'pkg.generated.mbti', 'replacement.mbt', 'replacement_test.mbt',
+      'sql_replacement_test.mbt', 'vectors.generated_test.mbt',
+    ]},
+  };
+  assert.equal(entry.revision, revision);
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const body = reviewed.read(path).toString();
+  assert.equal(hash(body), entry.digest);
+  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(reviewed.entries.get(path)?.mode, '100644');
+
+  for (const directory of [relation, lowering]) {
+    const manifest = directory + '/moon.pkg';
+    const before = prior.read(manifest).toString(), after = reviewed.read(manifest).toString();
+    let reconstructed = after;
+    for (const [name, {alias}] of Object.entries(packages)) {
+      const line = `  "actql/actql/${name}" @${alias},\n`;
+      assert.equal(reconstructed.split(line).length, 2, manifest);
+      reconstructed = reconstructed.replace(line, '');
+    }
+    assert.equal(reconstructed, before, manifest);
+    assert.deepEqual(packageImports(after).imports, [
+      ...packageImports(before).imports, ...Object.keys(packages).map(name => 'actql/actql/' + name),
+    ].sort());
+  }
+  const loweringManifest = currentTree.read(lowering + '/moon.pkg').toString();
+  assert.equal(loweringManifest, reviewed.read(lowering + '/moon.pkg').toString());
+  assert.equal(packageImports(loweringManifest).unknown, null);
+  assert.equal(currentPackageConfigurations[lowering + '/moon.pkg'], undefined);
+
+  const selected = packageSourceInputs({tree: currentTree, packages: [relation, lowering], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  const mutation = mutationSourceInputs(currentTree);
+  assert.deepEqual(mutation.unresolved, []);
+  assert(!mutation.directories.some(row => row.path === 'src/**'));
+  for (const [name, {members}] of Object.entries(packages)) {
+    const directory = 'src/' + name;
+    const manifest = directory + '/moon.pkg';
+    assert.equal(packageImports(reviewed.read(manifest).toString()).unknown, null);
+    assert.equal(currentPackageConfigurations[manifest], undefined);
+    const reviewedMembers = [...reviewed.entries.keys()].filter(member =>
+      member.startsWith(directory + '/') && !member.slice(directory.length + 1).includes('/')).sort();
+    assert.deepEqual(reviewedMembers, members.map(member => directory + '/' + member));
+    const currentMembers = [...currentTree.entries.keys()].filter(member =>
+      member.startsWith(directory + '/') && !member.slice(directory.length + 1).includes('/')).sort();
+    for (const selection of [selected, mutation]) {
+      assert.deepEqual(selection.directories.find(row => row.path === directory + '/*')?.members, currentMembers);
+      for (const member of currentMembers) {
+        assert(selection.paths.includes(member), member);
+        assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+        assert.equal(currentTree.entries.get(member)?.mode, '100644');
+      }
+    }
+  }
+  for (const changed of [prior.read(path).toString(), body.replace('@regex', '@unreviewed'),
+    body.replace('regex_replacement', 'unreviewed_replacement'),
+    body.replace('[ "not", "js" ]', '[ "native" ]'),
+    body + '\noptions(pre_build: "unreviewed-hook")\n']) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const changedTree = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+    assert(packageSourceInputs({tree: changedTree, packages: [relation], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
   }
 });
 

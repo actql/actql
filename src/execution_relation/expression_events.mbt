@@ -159,10 +159,13 @@ fn expression_event_binary(
       Err(issue) => return Err(issue)
     }
   } else {
-    let result = if op == @lower.DateTruncate {
-      temporal_truncation(expr, left, right)
-    } else {
-      binary(op, left, right)
+    let result = match op {
+      DateTruncate => temporal_truncation(expr, left, right)
+      TimestampTruncate =>
+        temporal_truncation(expr, right, left, timestamp_only=true)
+      DateBoundaryTruncate => date_boundary_truncate(expr, left, right)
+      ExtractTimestamp => extract_timestamp(left, right)
+      _ => binary(op, left, right)
     }
     match result {
       Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })

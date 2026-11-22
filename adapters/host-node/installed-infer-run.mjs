@@ -990,7 +990,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             // origin and codec for its saved Resource cut. A common managed
             // Read retains its own same-parent consumer/current/Entry gates;
             // it cannot serialize a Node installation it never selected.
-            await continuation.prepareOriginalResourcesForDispatch();
+            if (modelClaim !== undefined) assertCurrent('begin-model-journal-cut');
+            try { await continuation.prepareOriginalResourcesForDispatch(); }
+            finally { if (modelClaim !== undefined) assertCurrent('end-model-journal-cut'); }
             assertOriginalRuntime();
           }
           continue;

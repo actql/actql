@@ -146,7 +146,7 @@ const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-m
   ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql']
     .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
   ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
-    'installed.fixture.mjs', 'installed-child.mjs']
+    'installed.fixture.mjs', 'installed-child.mjs', 'provider-state.mjs']
     .map(name => 'scripts/fixtures/record-approval/' + name),
   'adapters/host-node/fixtures/work-observation.fixture.mjs',
   ...(approvalConnector === 'kintone' ? ['adapters/connectors/kintone/test/kintone-update-form.fixture.mjs'] : []),

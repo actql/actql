@@ -5,6 +5,7 @@ fn temporal_truncation(
   expression : @lower.Expression,
   unit_value : Value,
   value : Value,
+  timestamp_only? : Bool = false,
 ) -> Result[Value, ScalarIssue] {
   if unit_value is Null || value is Null {
     return Ok(Null)
@@ -12,7 +13,8 @@ fn temporal_truncation(
   guard unit_value is Text(unit) else { return Err(InvalidOperand) }
   match value {
     Captured(@admitted.Date(text)) => {
-      if unit != "d" ||
+      if timestamp_only ||
+        unit != "d" ||
         text.length() != 10 ||
         @admitted.timestamp_instant(text + "T00:00:00.000Z") is None {
         return Err(InvalidOperand)
@@ -23,8 +25,16 @@ fn temporal_truncation(
       guard @admitted.timestamp_instant(text) is Some(instant) else {
         return Err(InvalidOperand)
       }
-      let (seconds, nanoseconds) = if unit == "ms" {
-        (instant.seconds, instant.nanoseconds / 1000000 * 1000000)
+      let fractional_step = match unit {
+        "us" if timestamp_only => 1000
+        "ms" => 1000000
+        _ => 0
+      }
+      let (seconds, nanoseconds) = if fractional_step > 0 {
+        (
+          instant.seconds,
+          instant.nanoseconds / fractional_step * fractional_step,
+        )
       } else {
         let width = match unit {
           "s" => 1L
