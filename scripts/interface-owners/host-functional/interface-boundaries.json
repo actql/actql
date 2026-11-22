@@ -126477,11 +126477,11 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('actual target output wire stays bound to its same closed immutable observation'"
               }
             ]

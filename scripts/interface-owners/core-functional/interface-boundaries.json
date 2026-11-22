@@ -65225,7 +65225,7 @@
                 "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
@@ -98580,7 +98580,7 @@
                 "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]

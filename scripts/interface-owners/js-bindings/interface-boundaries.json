@@ -90462,7 +90462,7 @@
                 "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               },
               {
@@ -92024,7 +92024,7 @@
                 "anchor": "test('create original occurrence reaches synchronous provider"
               },
               {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               },
               {
