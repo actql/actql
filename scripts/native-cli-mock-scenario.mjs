@@ -148,7 +148,7 @@ function checkpointId(state) {
 
 // One read-only presentation of the SAME saved Checkpoint. The independent
 // template rows supply the expected changes, never parsed product output.
-function waitingHuman(record, original, before, change) {
+function waitingHuman(record, original, before, change, {completeBefore = false} = {}) {
   const lines = record.stdout.trimEnd().split('\n');
   for (const [prefix, expected] of [
     ['Run: ', `Run: ${JSON.stringify(original.run_id)}`],
@@ -176,6 +176,7 @@ function waitingHuman(record, original, before, change) {
     const fields = Object.fromEntries(Object.entries(expected).filter(([name]) => name !== 'id'));
     assert.equal(previous[index].state, 'present', 'Human Preview must retain observed before evidence');
     assert.equal(next[index].state, 'present', 'Human Preview must retain the original intended change');
+    if (completeBefore) assert.deepEqual(previous[index].value, source);
     for (const field of Object.keys(fields)) assert.deepEqual(previous[index].value[field], source[field],
       `Human Preview must retain original before ${field}`);
     assert.deepEqual(next[index].value, fields, 'Human Preview must retain the exact intended after fields');
@@ -416,4 +417,64 @@ export async function runNativeSharedFileMockScenario({root, run, launcherTiming
   return {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
     beforeSha256: before.sha256, afterSha256: after.sha256, resultRows: rows.length,
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), lockPathAbsent: true, commands};
+}
+
+export async function runNativeNullableMockScenarios({root, run, launcherTimings}) {
+  const {definition, files, before: expectedBefore, after: expectedAfter} =
+    await import('../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs');
+  const results = [];
+  for (const decision of ['approve', 'reject']) {
+    const project = join(root, 'native-nullable-' + decision), file = join(project, 'mock/data.json');
+    const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings, rows: 1, work: {modelRows: 0}});
+    await mkdir(project, {mode: 0o700});
+    const parameters = Object.fromEntries(['effect', 'read'].flatMap(kind => [
+      [kind + '-declarations.json', JSON.stringify(definition[kind].parameterDeclarations)],
+      [kind + '-parameters.json', JSON.stringify(definition[kind].parameters)],
+    ]));
+    for (const [name, contents] of Object.entries({...files, ...parameters})) {
+      const path = join(project, name);
+      await mkdir(dirname(path), {recursive: true, mode: 0o700});
+      await writeFile(path, contents, {flag: 'wx', mode: 0o600});
+    }
+    const before = await targetSnapshot(file);
+    assert.equal(before.bytes, expectedBefore);
+    await invoke('adoption', projectInitialAdoptionArguments({configuration: join(project, 'actql.config.json'),
+      stateDirectory: join(project, '.actql')}));
+    const runInput = (kind, filename, ...options) => ['run', filename, '--parameter-declarations-file',
+      kind + '-declarations.json', '--params', kind + '-parameters.json', ...options, '--json'];
+    const resultInput = (id, name) => ['result', id, '--result', name, '--format', 'jsonl'];
+    const requireRows = (record, expected) => assert.deepEqual(record.stdout.trimEnd().split('\n').map(line => JSON.parse(line)), expected);
+    async function readAll(phase, rows) {
+      const scoped = runState(await invoke(phase + '-read', runInput('read', 'nullable-read.aql')), 'succeeded');
+      requireRows(await invoke(phase + '-read-result', resultInput(scoped.run_id, definition.read.resultName)), rows);
+    }
+    const original = runState(await invoke('prepare',
+      runInput('effect', 'nullable-update.aql', '--stop-before', 'commit')), 'waiting_checkpoint');
+    const runId = original.run_id, checkpoint = checkpointId(original);
+    await unlink(join(project, 'nullable-update.aql'));
+    const humanWaiting = waitingHuman(await invoke('waiting-review', ['status', runId]), original, before,
+      {resource: 'Account', rows: [{id: definition.review.identity, ...definition.review.changes}]},
+      {completeBefore: true});
+    await readAll('before', definition.read.beforeRows);
+    assert.deepEqual(await targetSnapshot(file), before, 'Preview and Read must leave all original bytes unchanged');
+
+    await invoke('decision', [decision, checkpoint, ...(decision === 'approve' ? ['--wait'] : []), '--json']);
+    await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'});
+    const after = await targetSnapshot(file);
+    if (decision === 'approve') {
+      assert.equal(after.bytes, expectedAfter, 'Only the explicit NULL and empty Text fields may change');
+      const result = resultInput(runId, definition.effect.resultName);
+      const first = await invoke('result', result);
+      requireRows(first, definition.effect.expectedRows);
+      const saved = await invoke('saved-result', result);
+      assert.equal(saved.stdout, first.stdout, 'Separate-process Saved must reuse the original Result');
+      await readAll('after', definition.read.afterRows);
+    } else assert.deepEqual(after, before, 'Rejection must not replace the original file');
+    runState(await invoke('saved-status', ['status', runId, '--json']),
+      decision === 'approve' ? 'succeeded' : 'cancelled', runId);
+    assert.deepEqual(await targetSnapshot(file), after, 'Saved reads must never replay a write');
+    results.push({decision, runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
+      beforeSha256: before.sha256, afterSha256: after.sha256, humanWaiting, lockPathAbsent: true, commands});
+  }
+  return results;
 }
