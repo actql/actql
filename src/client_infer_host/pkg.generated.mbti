@@ -401,7 +401,7 @@ pub struct Execution {
   mut cancelled : Bool
   mut advancing : Bool
   mut reclaimed : Bool
-  mut local_component_bound : Bool
+  mut local_component_binding : LocalComponentBinding
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
@@ -467,6 +467,8 @@ pub(all) struct Limits {
   output_workspace : Int
   identity : IdentityLimits
 }
+
+type LocalComponentBinding
 
 pub struct LocalModelObservation {
   held : OutputUse

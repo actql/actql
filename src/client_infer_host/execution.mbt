@@ -66,6 +66,13 @@ pub enum Poll {
 }
 
 ///|
+enum LocalComponentBinding {
+  Unbound
+  Synchronous
+  WithHostIo
+}
+
+///|
 /// One physical owner composes existing bounded children. It is neither a
 /// Run state machine nor a retry engine. The installing Host supplies an
 /// admitted fixed request identity, provider and envelope before dispatch.
@@ -100,7 +107,7 @@ pub struct Execution {
   mut cancelled : Bool
   mut advancing : Bool
   mut reclaimed : Bool
-  mut local_component_bound : Bool
+  mut local_component_binding : LocalComponentBinding
   priv entry_work : Int64
   mut work : Int64
   mut child_work : Int64
@@ -778,7 +785,7 @@ fn start_occurrence(
     physical_preflight: None,
     egress_admission: None,
     final_quantity_usage: None,
-    local_component_bound: false,
+    local_component_binding: Unbound,
   })
 }
 
@@ -892,7 +899,7 @@ pub fn start_keyed(
 /// exclusive. The existing execution retains the binding; no adapter flag can
 /// grant a second driver authority over a component already bound to Local.
 pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
-  if active.local_component_bound {
+  if !(active.local_component_binding is Unbound) {
     return Err(InvalidAdvance)
   }
   advance(active, quantum)

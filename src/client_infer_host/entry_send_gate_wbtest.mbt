@@ -13,6 +13,9 @@ fn entry_gate_fixture(
   slots? : Int = 2,
   current_observations? : Ref[Int]? = None,
   provider_original? : (@publication.RunEvidenceValue, String, String, String),
+  prepare_for_entry? : (Execution) -> Poll raise = active => {
+    fixture_finish(active)
+  },
 ) -> (
   Execution,
   @model.ModelPreparedCallSet,
@@ -49,7 +52,7 @@ fn entry_gate_fixture(
     Some(original) => (original.compiled, original.definition)
     None => invocation_fixture_compiled(active)
   }
-  let prefix_work = match fixture_finish(active) {
+  let prefix_work = match prepare_for_entry(active) {
     Waiting(work~) => work
     Failed(Model(issue), ..) => {
       assert_eq(Some(issue), None)

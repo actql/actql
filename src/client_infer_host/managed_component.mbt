@@ -15,10 +15,14 @@ pub fn local_component(
     active.advancing ||
     !(active.phase is Input) ||
     !execution_input_unadvanced(active) ||
-    active.local_component_bound {
+    !(active.local_component_binding is Unbound) {
     return Err(InvalidAdvance)
   }
-  active.local_component_bound = true
+  active.local_component_binding = if host_await_io {
+    WithHostIo
+  } else {
+    Synchronous
+  }
   // The original producer's completed work stays in the cumulative report.
   // Local owns only new deltas from this fresh component entrance onward.
   let charged = Ref(active.entry_work)
@@ -47,7 +51,7 @@ pub fn local_component(
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
           // Only the installed Host that owns the physical wake can wait.
           AwaitIo(_) =>
-            if host_await_io {
+            if active.local_component_binding is WithHostIo {
               Ok(@local.managed_provider_await_io(delta, delta))
             } else {
               Err(project_issue(InvalidAdvance))
@@ -99,7 +103,7 @@ pub fn local_component(
 // their backing alive. Local can detach only its temporary driver roots; this
 // does not reclaim the Model or settle evidence, publication or physical IO.
 fn completed_original_component_scratch_retained(active : Execution) -> Bool {
-  active.local_component_bound &&
+  !(active.local_component_binding is Unbound) &&
   active.output_uses > 0 &&
   original_infer_publication_owner_current(active)
 }
