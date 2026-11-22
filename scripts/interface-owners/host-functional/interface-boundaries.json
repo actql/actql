@@ -82291,7 +82291,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ace37185e11109afdf2e0341b787d49b82987f8e4ef1347222389238a7bce5b7",
+      "sha256": "adb4c767b48ed2216e4da1bad2ffe629747c1569075b38f9e3b566cdd2fa29c4",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -82310,14 +82310,6 @@
         "publishInstalledSourceProfile"
       ],
       "operations": [
-        {
-          "name": "assertInstalledSourcePublicationRequest",
-          "parameters": [
-            "request",
-            "originals"
-          ],
-          "async": false
-        },
         {
           "name": "constructAliasIdentity/constructAliasIdentity",
           "parameters": [],
@@ -82397,13 +82389,6 @@
           "name": "installedSourcePublicationFacts",
           "parameters": [
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSourcePublicationRequestId",
-          "parameters": [
-            "request"
           ],
           "async": false
         },
@@ -82532,14 +82517,6 @@
           "async": false
         },
         {
-          "name": "observeInstalledSourcePublicationCurrent",
-          "parameters": [
-            "request",
-            "originals"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareInstalledSourceCheckpointInventory",
           "parameters": [
             "profile",
@@ -82582,6 +82559,14 @@
           "async": false
         },
         {
+          "name": "readProfile",
+          "parameters": [
+            "path",
+            "read"
+          ],
+          "async": true
+        },
+        {
           "name": "validPluralSourcePaths/validPluralSourcePaths",
           "parameters": [
             "path"
@@ -82620,7 +82605,8 @@
             "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
             "publishInstalledSourceProfile",
             "readAliasProfile/construction/construction",
-            "validPluralSourcePaths/validPluralSourcePaths"
+            "validPluralSourcePaths/validPluralSourcePaths",
+            "readProfile"
           ],
           "exports": [
             "installedSourceFor",
@@ -82871,9 +82857,6 @@
         },
         {
           "operations": [
-            "assertInstalledSourcePublicationRequest",
-            "installedSourcePublicationRequestId",
-            "observeInstalledSourcePublicationCurrent",
             "publishInstalledSourceProfile/retire/retire"
           ],
           "exports": [
@@ -82890,26 +82873,26 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function installedSourcePublicationRequestId(request)"
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "function installedSourcePublicationRequestId(request: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export function assertInstalledSourcePublicationRequest(request, originals)"
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "function assertInstalledSourcePublicationRequest(request: unknown, originals: unknown)"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "export async function observeInstalledSourcePublicationCurrent(request, originals)"
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "async function observeInstalledSourcePublicationCurrent(request: unknown, originals: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "const publicationRequests = new WeakMap();"
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "const publicationRequests = new WeakMap<object, OriginalPublication>();"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "descriptor.value !== original.bindings[name]"
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "descriptor.value !== original.bindings![name]"
               },
               {
                 "path": "adapters/host-node/installed-source-publication-original.test.mjs",
@@ -82928,7 +82911,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source-publication.mts",
                 "anchor": "const descriptors = Object.getOwnPropertyDescriptors(originals);"
               },
               {
@@ -82942,11 +82925,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source-publication.mts",
                 "anchor": "publicationFailure('ForeignInstalledSourcePublication')"
               },
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source-publication.mts",
                 "anchor": "publicationFailure('InstalledSourcePublicationChanged')"
               },
               {
@@ -82956,7 +82939,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-source.mjs",
+                "path": "adapters/host-node/installed-source-publication.mts",
                 "anchor": "original.signal?.throwIfAborted();"
               },
               {
@@ -83405,8 +83388,10 @@
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
+        "./installed-host-cleanup.mjs",
         "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
+        "./installed-source-publication.mjs",
         "./local-account-config.mjs",
         "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
@@ -83416,9 +83401,189 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-source-publication.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "74c36a45c5ca7caadb1da3cce71c7a401f50d32167621143b47d99b8c6dd7085",
+      "role": "physical-io",
+      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
+      "exports": [
+        "createInstalledSourcePublicationRequests"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledSourcePublicationRequests",
+          "parameters": [
+            "readProfile"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePublicationRequests/assertInstalledSourcePublicationRequest",
+          "parameters": [
+            "request",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePublicationRequests/installedSourcePublicationRequestId",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourcePublicationRequests/observeInstalledSourcePublicationCurrent",
+          "parameters": [
+            "request",
+            "originals"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledSourcePublicationRequests",
+            "createInstalledSourcePublicationRequests/assertInstalledSourcePublicationRequest",
+            "createInstalledSourcePublicationRequests/installedSourcePublicationRequestId",
+            "createInstalledSourcePublicationRequests/observeInstalledSourcePublicationCurrent"
+          ],
+          "exports": [
+            "createInstalledSourcePublicationRequests"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The explicit installed Source publication call issues its own process-local"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "function installedSourcePublicationRequestId(request: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "function assertInstalledSourcePublicationRequest(request: unknown, originals: unknown)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "async function observeInstalledSourcePublicationCurrent(request: unknown, originals: unknown)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "const publicationRequests = new WeakMap<object, OriginalPublication>();"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "descriptor.value !== original.bindings![name]"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "anchor": "publication equal configuration and runtime do not replace another original request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "failure with pending child cleanup retains that same request and all original"
+              },
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "throw retainInstalledHostRuntimeFailure(cause, retire);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "const descriptors = Object.getOwnPropertyDescriptors(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "original.phase = 'active';"
+              },
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "await observeInstalledSourcePublicationCurrent(request, original.bindings);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "publicationFailure('ForeignInstalledSourcePublication')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "publicationFailure('InstalledSourcePublicationChanged')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "anchor": "publication missing original profile remains failed rather than authorizing equal later data"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-source-publication.mts",
+                "anchor": "original.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "references behind the existing Host reference finalizer."
+              },
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "original.profileWire = JSON.stringify(profile);"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "release, numerical funding or permission."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "consume this private seam retain their former publication behavior."
+              },
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "if (original.used) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "anchor": "publication actual selected callback binds the same request to Common metadata DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "anchor": "publication failed physical cleanup holds the request but never reopens send admission"
+              },
+              {
+                "path": "adapters/host-node/installed-source-publication-original.test.mjs",
+                "anchor": "publication cleanup without an original status cannot retire or manufacture an ACK"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "The original explicit Source publication request and its profile reader remain under the same installed Source owner.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-table-source.mjs",
