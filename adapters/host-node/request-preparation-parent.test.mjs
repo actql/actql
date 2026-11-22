@@ -2328,7 +2328,8 @@ async function restoredModelRecoveryFixture(options) {
     return ok(selected);
   };
   const recovery = f.view.retainModelRecovery(request, identity, definition,
-    () => {events.push('original recovery current'); options?.assertRecoveryCurrent?.();}, () => false);
+    () => {events.push('original recovery current'); options?.assertRecoveryCurrent?.();},
+    options?.childrenPending ?? (() => false));
   try {assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);}
   catch (cause) {f.view.finishSourceProducer(recovery.receipt,'failed');await f.view.close();throw cause;}
   return {...f, moon, recovery, request, identity, definition, nativeDefinition, control, prepared, compiled, graph, selected, original, restored, events};
@@ -2345,8 +2346,8 @@ test('cold Model Source selection consumes the same restored Request without an 
   await f.view.close();
 });
 
-async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, validateRetained, assertRecoveryCurrent, finishScope, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
-  const f = await restoredModelRecoveryFixture({validate, validateRetained, assertRecoveryCurrent}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
+async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, validateRetained, assertRecoveryCurrent, finishScope, childrenPending, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
+  const f = await restoredModelRecoveryFixture({validate, validateRetained, assertRecoveryCurrent, childrenPending}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
   const budget = Object.freeze({modelRetainedBytes: 11n, modelExecutionBytes: 13n,
     readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
   f.moon.clientProgramComposedInferModelLedgerBytes = original => {assert.equal(original,bounds);return ledgerFloor;};
@@ -2398,6 +2399,24 @@ test('cold Model recovery view retains original Scope before current and restore
   assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
   assert.deepEqual(f.readEvents, ['same parent Scope', 'same Scope Read', 'stop original Read', 'settle original Read', 'finish original Scope']);
   f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();
+});
+
+test('failed cold Model finish refuses new work while allowing its exact Read to retire', async () => {
+  let pending = true;
+  const f = await recoveryReadFixture({childrenPending: () => pending});
+  const original = f.prepare();
+  original.retain();
+  original.restoreRead({savedScope: f.savedScope});
+  assert.throws(() => f.view.finishSourceProducer(f.recovery.receipt, 'failed'),
+    {code: 'InstalledSourceRunCleanupPending'});
+  assert.throws(() => original.assertRuntimeCurrent(), {code: 'ForeignInstalledSourceProducer'});
+  assert.throws(() => original.prepareRead(), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(await original.retire(), true);
+  pending = false;
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed');
+  assert.deepEqual(f.readEvents, ['same parent Scope', 'same Scope Read', 'stop original Read',
+    'settle original Read', 'finish original Scope']);
+  assert.deepEqual(await f.view.close(), {pending: false});
 });
 
 test('cancelled cold Model retains only same Read retirement through ingress closure and pending Scope cleanup', async () => {

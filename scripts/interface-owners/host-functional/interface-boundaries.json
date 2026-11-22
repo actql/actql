@@ -1404,14 +1404,41 @@
     {
       "module": "adapters/host-common/checkpoint-approval.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a140ed7ef49554eda56412cd239e02b64274fcc36362fe629fdcc3b6f7c97566",
+      "sha256": "a63bc8c864424b94da713d47c92a51ca385b0852c22e65cd529dfd7992bf0432",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
+        "admitCheckpointPhysicalRead",
         "checkpointApprovalFacts",
         "recordCheckpointApproval"
       ],
       "operations": [
+        {
+          "name": "admitCheckpointPhysicalRead",
+          "parameters": [
+            "decision",
+            "expected",
+            "operation",
+            "admit",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitCheckpointPhysicalRead/matched/matched/matched",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
         {
           "name": "checkpointApprovalFacts",
           "parameters": [
@@ -1431,10 +1458,14 @@
       "contracts": [
         {
           "operations": [
+            "admitCheckpointPhysicalRead",
+            "admitCheckpointPhysicalRead/matched/matched",
+            "admitCheckpointPhysicalRead/matched/matched/matched",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
           "exports": [
+            "admitCheckpointPhysicalRead",
             "checkpointApprovalFacts",
             "recordCheckpointApproval"
           ],
@@ -1479,6 +1510,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/host-common/checkpoint-approval.mjs",
+                "anchor": "return admit(decision, matched, operation);"
               }
             ],
             "ownership": [
@@ -1573,6 +1608,10 @@
               {
                 "path": "src/execution_authorization/pkg.generated.mbti",
                 "anchor": "pub const ACCOUNT_CONFIG_INVALID_CODE : String = \"ACTQL_E_ACCOUNT_CONFIG_INVALID\""
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-update-driver.test.mjs",
+                "anchor": "test('kintone driver delegates only the actual matching original Checkpoint physical binding'"
               }
             ]
           }
@@ -1723,7 +1762,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "../../packages/sdk/host-port.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -5907,7 +5948,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9bafc3a2dafd66a446cc6bf9f1f5e77dfc80160ea869208c4e215df90e96c6e3",
+      "sha256": "ed87a5341bfd81d029006d57453ff1a75e9da3acbca17814cba67b88c19ff65b",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -6006,7 +6047,8 @@
           "parameters": [
             "path",
             "query",
-            "maxQueryBytes"
+            "maxQueryBytes",
+            "maxTargetBytes"
           ],
           "async": false
         },
@@ -7345,6 +7387,216 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-common/installed-row-update-recovery.mjs",
+      "sha256": "897c802a4b037d029e970791b177483028045c4e146508d8956e6d667666f6bf",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Row Effect saved update member selection",
+      "referenceQualification": "Source and retained-codec component references for exact original member selection",
+      "exports": [
+        "assertInstalledRowUpdateClaim",
+        "installedRowUpdateRequestWires",
+        "packInstalledRowUpdateRecovery",
+        "restoreInstalledRowUpdateMembers",
+        "unpackInstalledRowUpdateRecovery"
+      ],
+      "operations": [
+        {
+          "name": "assertInstalledRowUpdateClaim",
+          "parameters": [
+            "rebuilt",
+            "facts",
+            "claims",
+            "changes",
+            "row",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires",
+          "parameters": [
+            "entries",
+            "maxRows",
+            "requests",
+            "invalidCode",
+            "foreignCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "packInstalledRowUpdateRecovery",
+          "parameters": [
+            "kind",
+            "recovery",
+            "maxRecoveryBytes",
+            "limitCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "context",
+            "maxMembers",
+            "invalidCode",
+            "restoreMember"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+          "parameters": [
+            "index",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "unpackInstalledRowUpdateRecovery",
+          "parameters": [
+            "saved",
+            "kind",
+            "maxRecoveryBytes",
+            "changes",
+            "claims",
+            "maxRows",
+            "invalidCode"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertInstalledRowUpdateClaim",
+            "installedRowUpdateRequestWires",
+            "installedRowUpdateRequestWires/installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
+            "restoreInstalledRowUpdateMembers",
+            "restoreInstalledRowUpdateMembers/indexes/indexes",
+            "restoreInstalledRowUpdateMembers/restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
+          ],
+          "exports": [
+            "assertInstalledRowUpdateClaim",
+            "installedRowUpdateRequestWires",
+            "packInstalledRowUpdateRecovery",
+            "restoreInstalledRowUpdateMembers",
+            "unpackInstalledRowUpdateRecovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "export function restoreInstalledRowUpdateMembers("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const {durable, recorded, members, memberIndexes} = context;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "byIndex.has(entry.memberIndex)) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "rebuilt.requestCid !== claims[row].canonicalRequestCid"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "wireCid(saved.wire) !== saved.observationCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "index <= indexes[offset - 1])) fail(invalidCode);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "encode(facts.target) !== encode(changes[row].target_row_identity)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "restoreMember(context, index, byIndex.get(index))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "const requests = new Array(indexes.length);"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Buffer.byteLength(wire) > maxRecoveryBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "anchor": "Only a connector's retained request codec can restore a row."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery retains original global indexes"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
+                "anchor": "test('HubSpot cold row driver refuses changed approved value target dispatch binding and claim rather than sending'"
+              },
+              {
+                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "anchor": "test('update recovery keeps the exact bounded provider wire"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-common/managed-failure.mjs",
@@ -81468,7 +81720,7 @@
     {
       "module": "adapters/host-node/model-resume-state.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4fe29e4bf4423e19272daf6af610c44d9b5e619a762ad74ceaf3c291d7b8b843",
+      "sha256": "ff959caf4103846ad5e5f698a7df70270d3670f84d6ce32a2e70f1d6cf57f86c",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -81507,6 +81759,7 @@
             "fault",
             "admissionLocked",
             "confirmEntryGrant",
+            "fenced",
             "checkpoint",
             "run"
           ],
@@ -81588,7 +81841,8 @@
         {
           "name": "createModelResumeState/init:commitOriginalModelCurrentCut/init:commitOriginalModelCurrentCut",
           "parameters": [
-            "reference"
+            "reference",
+            "claim"
           ],
           "async": false
         },
@@ -93361,7 +93615,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d48aa8479ef4bebc14ae300928db71a8bac9fa06c5b8036acde05f7941541edf",
+      "sha256": "05a6d1aea333cd9e3de88c3f74ec7ae40c95657eb25d581ca75f1fb8c60a8990",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -93458,6 +93712,14 @@
           "async": false
         },
         {
+          "name": "openSqliteCheckpointJournal/fenced",
+          "parameters": [
+            "claim",
+            "at"
+          ],
+          "async": false
+        },
+        {
           "name": "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
           "parameters": [
             "table"
@@ -93502,6 +93764,18 @@
         },
         {
           "name": "openSqliteCheckpointJournal/init:admitResume/init:admitResume/init:admitResume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
           "parameters": [],
           "async": false
         },
@@ -94090,6 +94364,7 @@
             "openSqliteCheckpointJournal/confirmEntryGrant",
             "openSqliteCheckpointJournal/confirmModelGrant/confirmModelGrant",
             "openSqliteCheckpointJournal/fault/fault",
+            "openSqliteCheckpointJournal/fenced",
             "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint/init:activeRunCheckpoint",
@@ -94148,6 +94423,8 @@
             "openSqliteCheckpointJournal/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet",
             "openSqliteCheckpointJournal/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet/init:registerImmediateModelCallSet",
             "openSqliteCheckpointJournal/init:registerResumeCallSet/init:registerResumeCallSet",
+            "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
+            "openSqliteCheckpointJournal/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent/init:assertResumeClaimCurrent",
             "openSqliteCheckpointJournal/init:renewResume/init:renewResume",
             "openSqliteCheckpointJournal/init:renewResume/init:renewResume/init:renewResume",
             "openSqliteCheckpointJournal/init:requestPreparationCancellation/init:requestPreparationCancellation",
@@ -115598,6 +115875,7 @@
         "./client-program-preparation.mjs",
         "./client-request-journal.mjs",
         "./infer-operation.mjs",
+        "./infer-original-installation.mjs",
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
@@ -115609,7 +115887,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2b00e1e52d108e49f53fa7d75fc43ff1c24ec3fe907fbf59cb811014a74fdc5b"
+      "sha256": "ffc40a1c5f06470b219dca2fd2b596a0bed1551198e7fda87e08490a01a47111"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

@@ -5,8 +5,9 @@ import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
-import {invocationScopeFields, invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+import {admitCheckpointPhysicalRead} from '../../../host-common/checkpoint-approval.mjs';
+import {assertInstalledRowUpdateClaim, installedRowUpdateRequestWires, packInstalledRowUpdateRecovery,
+  restoreInstalledRowUpdateMembers, unpackInstalledRowUpdateRecovery} from '../../../host-common/installed-row-update-recovery.mjs';
 import {createHubSpotUpdateRequestAdapter} from './hubspot-update-request.mjs';
 import {createHubSpotUpdateObservationAdapter} from './hubspot-update-observations.mjs';
 import {projectHubSpotRecordWriteObservation} from '../site/hubspot-record-write.mjs';
@@ -16,6 +17,9 @@ import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.m
 
 export const HUBSPOT_INSTALLED_UPDATE_OPERATION = 'hubspot:objects:batch-update';
 export const HUBSPOT_UPDATE_TARGET_VERSION = 'actql-installed-hubspot-effect-target-read/0.1';
+const updatePathPrefix = '/crm/v3/objects/';
+const updatePathSuffix = '/batch/update';
+export const hubspotUpdatePathFixedBytes = updatePathPrefix.length + updatePathSuffix.length;
 const recoveryKind = 'hubspot-update-requests';
 const recoveryVersion = 'actql-installed-hubspot-update-recovery/0.1';
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -139,29 +143,13 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       },
     });
   };
-  const restore = ({durable, recorded, members, memberIndexes, body, requestTags}) => {
-    if (!Array.isArray(members) || members.length < 1 || members.length > maxMembers ||
-        !Array.isArray(durable?.connectorRecovery) || durable.connectorRecovery.length > members.length ||
-        !Array.isArray(recorded?.members) || recorded.members.length !== members.length) fail('InvalidHubSpotUpdateRecovery');
-    const indexes = memberIndexes ?? members.map((_, index) => index);
-    if (!Array.isArray(indexes) || indexes.length < 1 || indexes.length > members.length ||
-        indexes.some((index, offset) => !Number.isSafeInteger(index) || index < 0 || index >= members.length ||
-          offset > 0 && index <= indexes[offset - 1])) fail('InvalidHubSpotUpdateRecovery');
-    const byIndex = new Map();
-    for (const entry of durable.connectorRecovery) {
-      if (!Number.isSafeInteger(entry?.memberIndex) || entry.memberIndex < 0 || entry.memberIndex >= members.length ||
-          byIndex.has(entry.memberIndex)) fail('InvalidHubSpotUpdateRecovery');
-      byIndex.set(entry.memberIndex, entry);
-    }
-    return Object.freeze({requests: Object.freeze(indexes.map(index => {
+  const restore = context => restoreInstalledRowUpdateMembers(context, maxMembers,
+    'InvalidHubSpotUpdateRecovery', ({recorded, members, body, requestTags}, index, saved) => {
       const member = members[index]; selected(member);
-      const saved = byIndex.get(index), changes = body?.effects?.[index]?.changes,
+      const changes = body?.effects?.[index]?.changes,
         claims = recorded.members[index]?.claims;
-      if (saved?.kind !== recoveryKind || typeof saved.wire !== 'string' ||
-          Buffer.byteLength(saved.wire) > maxRecoveryBytes || wireCid(saved.wire) !== saved.observationCid ||
-          !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
-          claims.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
-      const value = JSON.parse(saved.wire);
+      const value = unpackInstalledRowUpdateRecovery(saved, recoveryKind, maxRecoveryBytes,
+        changes, claims, maxRows, 'InvalidHubSpotUpdateRecovery');
       if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
           Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
           encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
@@ -169,17 +157,15 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       return Object.freeze(value.requests.map((wire, row) => {
         const rebuilt = requests.restore({member, wire, requestTag: requestTags?.[index]?.[row]});
         const facts = requests.requestFacts(rebuilt.request);
-        if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
-            encode(facts.value) !== encode(changes[row].after?.value) ||
-            encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignHubSpotUpdateRecovery');
+        assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, 'ForeignHubSpotUpdateRecovery');
         requests.prepareTargetRead(rebuilt.request, targetReadLimits);
         return rebuilt.request;
       }));
-    }))});
-  };
+    });
+
   return Object.freeze({
-    kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
-    writeOperation: () => HUBSPOT_INSTALLED_UPDATE_OPERATION,
+    kind: 'update', targetRead: Object.freeze({operation: HUBSPOT_OBJECT_BATCH_READ_OPERATION}),
+    operation: HUBSPOT_INSTALLED_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
     async describe(options) {
@@ -214,10 +200,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         site_binding_cid: siteBindingCid, generation_cid: generationCid, effect_id: member.effectId,
         member_index: member.memberIndex, mapping_ref: original.mappingRef, mapping_cid: original.mappingCid,
         resource: original.resource, effect_kind: 'update', key: 'id', fields: original.fields};
-      const matched = checkpointApprovalFacts(decision)?.physicalBindings?.find(value =>
-        Object.entries(expected).every(([key, item]) => encode(value[key]) === encode(item)));
-      if (!matched) fail('HubSpotTargetReadApprovalNotAdmitted');
-      return physical.admitCheckpointEffectTargetRead(decision, matched, HUBSPOT_OBJECT_BATCH_READ_OPERATION);
+      return admitCheckpointPhysicalRead(decision, expected, HUBSPOT_OBJECT_BATCH_READ_OPERATION,
+        physical.admitCheckpointEffectTargetRead, 'HubSpotTargetReadApprovalNotAdmitted');
     },
     footprint({member}) {
       const original = selected(member);
@@ -226,32 +210,24 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     },
     recoveryEntry({member, entries}) {
       selected(member);
-      if (!Array.isArray(entries) || entries.length > maxRows) fail('InvalidHubSpotUpdateRecovery');
-      const wires = entries.map(entry => {
-        if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignHubSpotUpdateRequest');
-        return requests.savedWire(entry.request);
-      });
-      const wire = encode({version: recoveryVersion, binding, member: memberFacts(member), requests: wires});
-      if (Buffer.byteLength(wire) > maxRecoveryBytes) fail('HubSpotUpdateRecoveryLimit');
-      return Object.freeze({kind: recoveryKind, observationCid: wireCid(wire), wire});
+      const wires = installedRowUpdateRequestWires(entries, maxRows, requests,
+        'InvalidHubSpotUpdateRecovery', 'ForeignHubSpotUpdateRequest');
+      return packInstalledRowUpdateRecovery(recoveryKind, {version: recoveryVersion, binding,
+        member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'HubSpotUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    async send({member, request, current, authorization, credential, signal, callResource}) {
+    prepareUpdateWrite(member, request, current, resourceOrigin, _registration, signal) {
       frame(member, current);
-      if (invocationScopeFields(authorization?.scope, credential?.control)?.resourceOrigin !== origin) {
+      if (resourceOrigin !== origin) {
         fail('ForeignHubSpotUpdateOrigin');
       }
       checked(native.hubspotRecheckRecordBatch(requests.nativeRequest(request), current.catalog, maxProperties));
       const body = native.hubspotRecordBatchBody(requests.nativeRequest(request));
       if (Buffer.byteLength(body) > responsePolicy.maxRequestBytes) fail('HubSpotUpdateRequestLimit');
       signal?.throwIfAborted();
-      const response = await invokeScopedCredentialOperation({authorization, credential, callResource,
-        operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, method: 'POST',
-        path: '/crm/v3/objects/' + segment(requests.objectType(request)) + '/batch/update',
-        query: [], headers: [['accept', 'application/json']], body, responseHeaders: [],
-        maxRequestBytes: responsePolicy.maxRequestBytes, maxResponseBytes: responsePolicy.maxResponseBytes, signal});
-      return Object.freeze({observation: Object.freeze({useCid: response.useCid,
-        statusCode: response.statusCode, body: response.body})});
+      return {method: 'POST',
+        path: updatePathPrefix + segment(requests.objectType(request)) + updatePathSuffix,
+        query: [], headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
     project({request, observation}) {
       const result = projectHubSpotRecordWriteObservation({moon: native,

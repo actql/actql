@@ -422,8 +422,12 @@ test('stale claimants cannot renew or complete', async t => {
     {claimant: 'worker-a', leaseMs: 1000, binding}).claim;
   const renewed = journal.renewResume(first, 5000);
   assert.equal(renewed.leaseExpiresMs, clock.ms + 5000);
-  clock.ms += 5000;
+  clock.ms += 1000;
+  journal.assertResumeClaimCurrent(first);
+  assert.equal(journal.currentResume(waiting.checkpointCid).leaseExpiresMs, renewed.leaseExpiresMs);
+  clock.ms += 4000;
   // Expired lease: the holder is stale even before anyone re-claims.
+  assert.throws(() => journal.assertResumeClaimCurrent(first), {code: 'ResumeClaimStale'});
   assert.throws(() => journal.renewResume(first, 1000),
     {code: 'ResumeClaimStale'});
   assert.throws(() => journal.completeResume(first, {status: 'failed'}),
@@ -431,6 +435,8 @@ test('stale claimants cannot renew or complete', async t => {
   const second = journal.claimResume('run-1',
     {claimant: 'worker-b', leaseMs: 1000, binding}).claim;
   assert.equal(second.generation, 2);
+  journal.assertResumeClaimCurrent(second);
+  assert.throws(() => journal.assertResumeClaimCurrent(first), {code: 'ResumeClaimStale'});
   assert.throws(() => journal.completeResume({...first, generation: 2},
     {status: 'failed'}), {code: 'ResumeClaimStale'});
   assert.throws(() => journal.completeResume(first, {status: 'failed'}),
