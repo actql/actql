@@ -42996,168 +42996,6 @@
           }
         },
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              },
-              {
-                "path": "adapters/local-node/managed-advance-diagnostic.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "function retainDispatchPreparationHost("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/preparation-host-custody.test.mjs",
-                "anchor": "Host holder uses exact original and returns once after clearing local aliases"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Required installed Request preparation"
-              },
-              {
-                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
-                "anchor": "required dispatch preparation never skips a missing or legacy None borrow"
-              },
-              {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
-                "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
-              },
-              {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
-                "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
-              },
-              {
-                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
-                "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "installNodeClientDispatchOwner",
             "installNodeClientDispatchOwner/keyOf/keyOf",
@@ -44769,7 +44607,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "7c0eea5af6d68d84785cee3bdfc4272187b0f03f88d0c3625e6458c2f0b51970",
+      "sha256": "a9a6c435a843f71428403e4bec4cbf7dd380f2e891d4be06bbfd64be1724df73",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -44778,7 +44616,9 @@
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
-        "createClientDispatchCleanup"
+        "createClientDispatchCleanup",
+        "releaseDispatchPreparationHost",
+        "retainDispatchPreparationHost"
       ],
       "operations": [
         {
@@ -44841,6 +44681,25 @@
         {
           "name": "createClientDispatchCleanup/settleRetainedEntry/settleRetainedEntry#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseDispatchPreparationHost",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainDispatchPreparationHost",
+          "parameters": [
+            "entry",
+            "moon",
+            "managedRun",
+            "prepared",
+            "request",
+            "hasCustody"
+          ],
           "async": false
         }
       ],
@@ -45082,17 +44941,186 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "releaseDispatchPreparationHost",
+            "retainDispatchPreparationHost"
+          ],
+          "exports": [
+            "releaseDispatchPreparationHost",
+            "retainDispatchPreparationHost"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-host-custody.test.mjs",
+                "anchor": "Host holder uses exact original and returns once after clearing local aliases"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "required dispatch preparation never skips a missing or legacy None borrow"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
+                "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
+                "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mts",
+                "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/ledger-usage.mjs",
         "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-result.mjs",
         "./client-dispatch-diagnostic.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current emitted syntax and existing physical dispatch ownership with the original settlement and retry ports.",
-      "sha256": "8e37abe45c68aca65228bb3e90e670ad5367499c5a182499443a4df6b217eb7a"
+      "sha256": "c737c42b1eb0652bd9ae4321dd30c7a79c38a2053e04db39f6928dfcee6d9f23"
     },
     {
       "module": "adapters/host-node/client-dispatch-stop.mjs",

@@ -1,7 +1,20 @@
 import {ledgerUsageHasPendingResources} from '../host-common/ledger-usage.mjs';
 import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
 import {publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type PreparationHostReturn = (holder: unknown) => unknown;
+type PreparationHostRuntime = Readonly<{
+  clientProgramInstalledManagedPreparationBorrow?: (managedRun: unknown, prepared: unknown, request: unknown) => unknown;
+  clientProgramPreparationBorrowRead?: (holder: unknown) => unknown;
+  clientProgramPreparationBorrowReturn?: PreparationHostReturn;
+}>;
+type DispatchPreparationCustody = {
+  preparationHostBorrow?: unknown;
+  preparationHostReturn?: PreparationHostReturn;
+  preparationHostRuntime?: PreparationHostRuntime;
+};
 
 type CleanupExecution = Readonly<{
   close: () => unknown;
@@ -12,7 +25,7 @@ type CleanupHandle = Readonly<{
   status: () => Readonly<{pending: boolean}> | undefined;
   retry: () => unknown;
 }>;
-type CleanupEntry<Ref> = {
+type CleanupEntry<Ref> = DispatchPreparationCustody & {
   ref: Ref;
   settled?: boolean;
   cleanupOwner?: CleanupExecution;
@@ -41,7 +54,6 @@ type CleanupEntry<Ref> = {
   borrowedSources?: boolean;
   closeFailure?: unknown;
   computeStartAttempted?: boolean;
-  preparationHostBorrow?: unknown;
   finished?: () => unknown;
   requestId?: string;
   retainedCleanup?: Promise<void>;
@@ -89,6 +101,40 @@ type CleanupPorts<Ref, Frame extends BudgetFrame> = Readonly<{
   resourceUsage: (ledger: unknown) => unknown;
   diagnostic: (name: 'dispatch_cleanup_completed', detail: Readonly<{ref: Ref; resourceUsage: unknown}>) => void;
 }>;
+
+// One original Core holder covers the ordinary configured Host and its
+// transitive outputs through confirmed cleanup. This is not a numeric grant.
+export function releaseDispatchPreparationHost(entry: DispatchPreparationCustody) {
+  const holder = entry.preparationHostBorrow;
+  if (holder === undefined) return;
+  const release = entry.preparationHostReturn, runtime = entry.preparationHostRuntime;
+  entry.preparationHostBorrow = entry.preparationHostReturn = entry.preparationHostRuntime = undefined;
+  // A valid Core return consumes its token before any settlement failure;
+  // the original retirement receipt retains a failed debit for cleanup retry.
+  checked(Reflect.apply(release!, runtime, [holder]));
+}
+export function retainDispatchPreparationHost(entry: DispatchPreparationCustody,
+  moon: PreparationHostRuntime, managedRun: unknown, prepared: unknown, request: unknown,
+  hasCustody: boolean) {
+  const acquire = moon.clientProgramInstalledManagedPreparationBorrow;
+  if (typeof acquire !== 'function') throw new Error('PreparationHostCustodyUnavailable');
+  if (entry.preparationHostBorrow !== undefined) throw new Error('DuplicatePreparationHostBorrow');
+  const release = moon.clientProgramPreparationBorrowReturn, read = moon.clientProgramPreparationBorrowRead;
+  if (typeof release !== 'function' || typeof read !== 'function') throw new Error('PreparationHostCustodyUnavailable');
+  const holder = checked(Reflect.apply(acquire, moon, [managedRun, prepared, request]));
+  if (holder === undefined) throw new Error('PreparationHostCustodyUnavailable');
+  entry.preparationHostBorrow = holder;
+  entry.preparationHostReturn = release;
+  entry.preparationHostRuntime = moon;
+  try {
+    if (!hasCustody || Reflect.apply(read, moon, [holder]) !== prepared) {
+      throw new Error('ForeignPreparationHostCustody');
+    }
+  } catch (error) {
+    releaseDispatchPreparationHost(entry);
+    throw error;
+  }
+}
 
 // This supervisor settles the resources retained by the original dispatch.
 // The supplied stop observer and Journal still own terminal observations.

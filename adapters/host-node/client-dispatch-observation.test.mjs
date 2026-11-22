@@ -1,5 +1,6 @@
 import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
-import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
+import {createClientDispatchCleanup, retainDispatchPreparationHost, releaseDispatchPreparationHost}
+  from './client-dispatch-cleanup.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -802,18 +803,6 @@ test('restored local stop refuses changed originals and permits only nominal bou
 });
 
 
-// These execute the original private helper declarations with explicit Core
-// ports. They do not construct a Host, issue capacity or certify physical stop.
-function requiredDispatchBorrowFixture() {
-  const selected = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
-    ['retainDispatchPreparationHost', 'releaseDispatchPreparationHost'].includes(node.id.name));
-  assert.equal(selected.length, 2);
-  const {checked} = awaitResultReader;
-  return compileFunction(selected.map(node => source.slice(node.start, node.end)).join('\n') +
-    '\nreturn retainDispatchPreparationHost;', ['checked'])(checked);
-}
-const awaitResultReader = await import('../host-common/runtime-result.mjs');
-
 test('required dispatch preparation never skips a missing or legacy None borrow', () => {
   for (const mode of ['missing', 'legacy-none']) {
     const moon = mode === 'missing' ? {} : {
@@ -821,7 +810,7 @@ test('required dispatch preparation never skips a missing or legacy None borrow'
       clientProgramPreparationBorrowRead: () => assert.fail('No holder to read'),
       clientProgramPreparationBorrowReturn: () => assert.fail('No holder to return'),
     };
-    assert.throws(() => requiredDispatchBorrowFixture(moon)({}, moon, {}, {}, {}, true),
+    assert.throws(() => retainDispatchPreparationHost({}, moon, {}, {}, {}, true),
       /PreparationHostCustodyUnavailable/u);
   }
 });
@@ -860,16 +849,14 @@ test('required preparation borrow keeps exact originals and returns a foreign ho
       clientProgramPreparationBorrowReturn(actual) {assert.strictEqual(this, moon); assert.strictEqual(actual, holder);
         returns++; return {$tag: 1, _0: undefined};},
     };
-    const retain = requiredDispatchBorrowFixture(moon), entry = {};
+    const entry = {};
     if (foreign) {
-      assert.throws(() => retain(entry, moon, run, prepared, request, true), /ForeignPreparationHostCustody/u);
+      assert.throws(() => retainDispatchPreparationHost(entry, moon, run, prepared, request, true), /ForeignPreparationHostCustody/u);
       assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
     } else {
-      retain(entry, moon, run, prepared, request, true);
+      retainDispatchPreparationHost(entry, moon, run, prepared, request, true);
       assert.strictEqual(entry.preparationHostBorrow, holder); assert.equal(returns, 0);
-      const node = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'releaseDispatchPreparationHost');
-      const release = compileFunction('return (' + source.slice(node.start, node.end) + ');', ['checked'])(awaitResultReader.checked);
-      release(entry); release(entry);
+      releaseDispatchPreparationHost(entry); releaseDispatchPreparationHost(entry);
       assert.equal(returns, 1); assert.equal(entry.preparationHostBorrow, undefined);
     }
   }

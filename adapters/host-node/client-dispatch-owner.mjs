@@ -18,7 +18,8 @@ import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {isModelCredentialRefusal} from './infer-operation.mjs';
-import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
+import {createClientDispatchCleanup, releaseDispatchPreparationHost, retainDispatchPreparationHost}
+  from './client-dispatch-cleanup.mjs';
 import {confirmNodeRunCancellation, observeNodeRunStop, recordNodeRunPhysicalStop}
   from './client-dispatch-stop.mjs';
 export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestoredLocalStop,
@@ -48,38 +49,6 @@ function retainDispatchPrimaryFailure(entry, result) {
       entry.primaryFailure = primary.value;
     }
   } catch { /* Optional failure DATA cannot interrupt the original cleanup. */ }
-}
-
-// One original Core holder covers the ordinary configured Host and its
-// transitive outputs through confirmed cleanup. This is not a numeric grant.
-function releaseDispatchPreparationHost(entry) {
-  const holder = entry.preparationHostBorrow;
-  if (holder === undefined) return;
-  const release = entry.preparationHostReturn, runtime = entry.preparationHostRuntime;
-  entry.preparationHostBorrow = entry.preparationHostReturn = entry.preparationHostRuntime = undefined;
-  // A valid Core return consumes its token before any settlement failure;
-  // the original retirement receipt retains a failed debit for cleanup retry.
-  checked(Reflect.apply(release, runtime, [holder]));
-}
-function retainDispatchPreparationHost(entry, moon, managedRun, prepared, request, hasCustody) {
-  const acquire = moon.clientProgramInstalledManagedPreparationBorrow;
-  if (typeof acquire !== 'function') throw new Error('PreparationHostCustodyUnavailable');
-  if (entry.preparationHostBorrow !== undefined) throw new Error('DuplicatePreparationHostBorrow');
-  const release = moon.clientProgramPreparationBorrowReturn, read = moon.clientProgramPreparationBorrowRead;
-  if (typeof release !== 'function' || typeof read !== 'function') throw new Error('PreparationHostCustodyUnavailable');
-  const holder = checked(Reflect.apply(acquire, moon, [managedRun, prepared, request]));
-  if (holder === undefined) throw new Error('PreparationHostCustodyUnavailable');
-  entry.preparationHostBorrow = holder;
-  entry.preparationHostReturn = release;
-  entry.preparationHostRuntime = moon;
-  try {
-    if (!hasCustody || Reflect.apply(read, moon, [holder]) !== prepared) {
-      throw new Error('ForeignPreparationHostCustody');
-    }
-  } catch (error) {
-    releaseDispatchPreparationHost(entry);
-    throw error;
-  }
 }
 
 export function installNodeClientDispatchOwner({moon, control, journal,
