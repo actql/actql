@@ -128,6 +128,8 @@ pub fn record_delete_form_construction_capacity(RecordDeleteMapping, Int, @catal
 
 pub fn record_delete_mapping(RecordDeleteMapping) -> @client_row_source_host.RowMapping
 
+pub fn record_delete_mapping_construction_capacity(RecordDeclaration, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_delete_mapping_is_original(RecordDeleteMapping) -> Bool
 
 pub fn record_delete_mapping_matches_declaration(RecordDeleteMapping, RecordDeclaration) -> Bool
@@ -151,6 +153,8 @@ pub fn record_delete_preview_outcome_row_cid(RecordDeletePreviewOutcome) -> Stri
 pub fn record_delete_preview_outcome_wire(RecordDeletePreviewOutcome) -> String
 
 pub fn record_delete_preview_version_cid(RecordDeletePreview) -> String
+
+pub fn record_delete_response_construction_capacity(RecordDeleteMapping, Int, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_delete_target_construction_capacity(RecordDeleteMapping, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 

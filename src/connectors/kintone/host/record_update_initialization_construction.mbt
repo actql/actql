@@ -10,8 +10,35 @@ pub fn record_update_mapping_construction_capacity(
   input_units : Int64,
   limits : @rows.RowDeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
-  if source_count < 1 ||
-    source_count > limits.max_fields ||
+  if source_count < 1 {
+    return None
+  }
+  record_mutation_mapping_construction_capacity(
+    original, source_count, input_units, limits,
+  )
+}
+
+///|
+/// DELETE selects the same Relation and emits the same identity families
+/// without constructing any writable source entries.
+pub fn record_delete_mapping_construction_capacity(
+  original : RecordDeclaration,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  record_mutation_mapping_construction_capacity(
+    original, 0, input_units, limits,
+  )
+}
+
+///|
+fn record_mutation_mapping_construction_capacity(
+  original : RecordDeclaration,
+  source_count : Int,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  if source_count > limits.max_fields ||
     input_units < 0L ||
     limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||

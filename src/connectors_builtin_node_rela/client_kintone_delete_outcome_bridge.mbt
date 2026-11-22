@@ -3,6 +3,18 @@
 // Thin same-runtime projection. This neither issues authority nor settles a claim.
 
 ///|
+#export_name("clientProgramKintoneDeleteMappingConstructionCapacity")
+pub fn client_program_kintone_delete_mapping_construction_capacity(
+  original : @kintone_host.RecordDeclaration,
+  input_units : Int64,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_mapping_construction_capacity(
+    original, input_units, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneDeleteTargetReadConstructionCapacity")
 pub fn client_program_kintone_delete_target_read_construction_capacity(
   mapping : @kintone_host.RecordDeleteMapping,
@@ -37,6 +49,18 @@ pub fn client_program_kintone_delete_target_construction_capacity(
 ) -> @execution.ExecutionCapacity? {
   @kintone_host.record_delete_target_construction_capacity(
     mapping, body_bytes, pages, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteResponseConstructionCapacity")
+pub fn client_program_kintone_delete_response_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_response_construction_capacity(
+    mapping, body_bytes, limits,
   )
 }
 

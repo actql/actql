@@ -2764,6 +2764,8 @@ pub fn client_program_kintone_delete_form_construction_capacity(@actql/actql/con
 
 pub fn client_program_kintone_delete_mapping_body(@actql/actql/connectors/kintone/host.RecordDeleteMapping) -> String
 
+pub fn client_program_kintone_delete_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_delete_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
 
 pub fn client_program_kintone_delete_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Bool
@@ -2799,6 +2801,8 @@ pub fn client_program_kintone_delete_recheck_records(@actql/actql/connectors/kin
 pub fn client_program_kintone_delete_request(Array[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_response_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
 

@@ -6,9 +6,7 @@ import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import * as originalMoon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {checked} from '../../../host-common/runtime-result.mjs';
-import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
-import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {createInstalledLoaderParent, installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {loadInstalledEffect, installedEffectIdentity} from '../../../host-node/installed-effect.mjs';
 import {installedSourceConfigurationReader, retireInstalledSourceInitialization} from '../../../host-node/installed-host-services.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
@@ -18,32 +16,12 @@ import {form} from './kintone-update-form.fixture.mjs';
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const base = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
 
-async function fixture(t, {field = 'Subject'} = {}) {
-  const events = [], completions = [], dependentCleanup = [];
+async function fixture(t, {field = 'Subject', kind = 'update'} = {}) {
+  const dependentCleanup = [];
   let parent, secretReads = 0;
-  const quoteBytes = quote => {
-    const pair = originalMoon.clientProgramSerializationCapacityBytes(quote);
-    return {retained: runtimeField(pair, 0), peak: runtimeField(pair, 1)};
-  };
-  // Observe the SAME real reserve/reconcile Result without granting capacity,
-  // replacing current callbacks or changing either returned value or failure.
-  const observe = name => function(...args) {
-    let returned = false, accepted = false;
-    try {
-      const result = Reflect.apply(originalMoon[name], originalMoon, args);
-      returned = true;
-      try {checked(result); accepted = true;} catch { /* Preserve original Result. */ }
-      return result;
-    } finally {events.push({operation: name, ...quoteBytes(args[2]), returned, accepted});}
-  };
-  const moon = Object.freeze({...originalMoon,
-    clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
-    clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction'),
-    clientProgramInstalledSourceRetainedConstructionCapacity(quantity) {
-      const result = originalMoon.clientProgramInstalledSourceRetainedConstructionCapacity(quantity);
-      completions.push({original: quoteBytes(quantity), retained: quoteBytes(checked(result)), eventIndex: events.length});
-      return result;
-    }});
+  // Site and Account must see the same runtime namespace as initialization.
+  // The quantity controls exercise the native quote separately from loading.
+  const moon = originalMoon;
   const directory = new URL('../../../../_build/kintone-effect-initialization/', import.meta.url);
   await mkdir(directory, {recursive: true});
   const root = await mkdtemp(join(directory.pathname, 'fresh-'));
@@ -51,8 +29,6 @@ async function fixture(t, {field = 'Subject'} = {}) {
     const failures = [];
     try {await parent?.close();} catch (cause) {failures.push(cause);}
     for (const close of dependentCleanup.toReversed()) try {await close();} catch (cause) {failures.push(cause);}
-    await writeFile(join(root, 'initialization-quantities.json'), JSON.stringify({events, completions, secretReads},
-      (_name, value) => typeof value === 'bigint' ? String(value) : value, 2) + '\n', {mode: 0o600});
     t.diagnostic(`Retained original kintone initialization: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'KintoneInitializationCleanupPending');
   });
@@ -68,7 +44,8 @@ async function fixture(t, {field = 'Subject'} = {}) {
     appId: '12', apiOrigin: tls.origin, formBody: Buffer.from(JSON.stringify(form)).toString('base64')}));
   const accountConfigurationWire = canonicalJson({version: 'actql-execution-account-config/0.1', account_id: 'kintone-component',
     entries: [{entry_id: 'records', outcome: 'allow', principal: {all: true}, connection: {any_of: ['kintone:kintone']},
-      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', 'update']}, exclusions: []}]}, {dataKeys: true});
+      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', kind === 'delete' ? 'write' : 'update']},
+      exclusions: []}]}, {dataKeys: true});
   const limits = {maxResponseBytes: 16384, maxNodes: 8000, maxDepth: 32, maxFields: 16, maxNameUnits: 512,
     maxColumns: 8, maxCells: 32, maxTableRows: 16, maxValueNodes: 8000, maxValueDepth: 32,
     maxValueTextBytes: 16384, maxContractPairs: 100, maxRequestBytes: 2048, maxRequests: 6,
@@ -78,7 +55,8 @@ async function fixture(t, {field = 'Subject'} = {}) {
     metadataPath, siteProfilePath: sitePath, accountConfigurationWire, limits}));
   const path = join(root, 'effect.json');
   await writeFile(path, JSON.stringify({version: 'actql-installed-kintone-effect/0.1', connectorId: 'kintone',
-    sourceProfilePath: sourcePath, writes: [{resource: 'inquiries', fields: [field]}]}));
+    sourceProfilePath: sourcePath, writes: [kind === 'delete' ? {resource: 'inquiries', kind} :
+      {resource: 'inquiries', fields: [field]}]}));
   parent = createInstalledLoaderParent({root, moon}); parent.open();
   const load = async () => {
     try {
@@ -98,11 +76,34 @@ async function fixture(t, {field = 'Subject'} = {}) {
       throw failure;
     }
   };
-  return {parent, moon, root, path, load, events, completions, tls,
+  return {parent, root, path, load, tls,
     secretReads: () => secretReads, close: () => parent.close()};
 }
 
-test('standard kintone UPDATE initialization uses real parent reservations and retires ended workspace', async t => {
+test('standard kintone DELETE installs the exact guarded Mapping and closes without any provider call', async t => {
+  const f = await fixture(t, {kind: 'delete'});
+  const identity = await installedEffectIdentity(f.path, {
+    configurationReader: installedSourceConfigurationReader(f.parent.services)});
+  assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
+  const effect = await f.load(), environment = JSON.parse(effect.environmentWire);
+  assert.equal(effect.mappings.length, 1);
+  const original = effect.mappings[0];
+  assert.equal(original.kind, 'delete');
+  const mapping = environment.mapping_contracts.find(value => value.mapping_contract_cid === original.mappingCid);
+  assert.equal(mapping.primary_identity, '$id');
+  assert.equal(mapping.target_ref, original.target);
+  assert.equal(mapping.minimum_approval, 'required');
+  assert.deepEqual(mapping.writable_fields, []);
+  assert.deepEqual(mapping.permission_rules, [{effect_kind: 'delete', selector_class: 'id',
+    write_fields: [], permissions: ['kintone:records:delete']}]);
+  assert.deepEqual(Object.keys(mapping.target_schema.fields).sort(), ['$id', 'Computed', 'Subject', 'Tags']);
+  assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), false);
+  await f.close();
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
+});
+
+test('standard kintone UPDATE initialization retains the original Mapping until actual close', async t => {
   const f = await fixture(t);
   const identity = await installedEffectIdentity(f.path, {
     configurationReader: installedSourceConfigurationReader(f.parent.services)});
@@ -117,14 +118,6 @@ test('standard kintone UPDATE initialization uses real parent reservations and r
   assert.deepEqual(mapping.writable_fields, ['Subject']);
   assert.deepEqual(Object.keys(mapping.target_schema.fields).sort(), ['$id', 'Computed', 'Subject', 'Tags']);
   assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
-  assert(f.events.length > 0 && f.events.every(event => event.returned && event.accepted));
-  assert.equal(f.completions.length, 2, 'the existing native owner completes declaration and Mapping construction');
-  assert.equal(f.completions.filter(value => value.retained.peak < value.original.peak).length, 1,
-    'Mapping removes ended workspace; the existing declaration and generic driver keep their complete original quotes');
-  for (const completion of f.completions) {
-    assert(completion.retained.peak <= completion.original.peak, 'only ended workspace can be removed');
-    assert(completion.retained.retained > 0n, 'actual output remains held');
-  }
   assert.equal(retireInstalledSourceInitialization(f.parent.services), false, 'live original Site is still owned');
   await f.close();
   assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
@@ -132,9 +125,8 @@ test('standard kintone UPDATE initialization uses real parent reservations and r
 
 test('standard kintone UPDATE initialization refuses a computed write before Site or secret use', async t => {
   const f = await fixture(t, {field: 'Computed'});
-  await assert.rejects(f.load());
+  await assert.rejects(f.load(), installedFailureCode('MoonBitHostFailure'));
   assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
-  assert.equal(f.completions.length, 1, 'only the successfully completed original declaration shrinks');
   await f.close();
   assert.equal(retireInstalledSourceInitialization(f.parent.services), true);
 });

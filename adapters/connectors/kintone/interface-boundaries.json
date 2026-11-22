@@ -4638,12 +4638,16 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_delete_outcome_bridge.mbt",
-      "sha256": "01e25e3431deabb98eb35b6742b44098a94a10ceebd6f6b6cf76e81c18f644e5",
+      "sha256": "0b79440988bc6715c3ea1a983cdf398653491f273c876741f355b45e36bc3ec9",
       "exports": [],
       "operations": [
         {
           "name": "client_program_kintone_delete_form_construction_capacity",
           "declaration": "client_program_kintone_delete_form_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_delete_mapping_construction_capacity",
+          "declaration": "client_program_kintone_delete_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_delete_mapping_recheck_form",
@@ -4674,6 +4678,10 @@
           "declaration": "client_program_kintone_delete_preview_outcome_wire ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_delete_response_construction_capacity",
+          "declaration": "client_program_kintone_delete_response_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_delete_target_construction_capacity",
           "declaration": "client_program_kintone_delete_target_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -4698,6 +4706,7 @@
           "operations": [
             "<module>",
             "client_program_kintone_delete_form_construction_capacity",
+            "client_program_kintone_delete_mapping_construction_capacity",
             "client_program_kintone_delete_mapping_recheck_form",
             "client_program_kintone_delete_observed_outcome",
             "client_program_kintone_delete_preview_outcome",
@@ -4705,6 +4714,7 @@
             "client_program_kintone_delete_preview_outcome_response_sha256",
             "client_program_kintone_delete_preview_outcome_row_cid",
             "client_program_kintone_delete_preview_outcome_wire",
+            "client_program_kintone_delete_response_construction_capacity",
             "client_program_kintone_delete_target_construction_capacity",
             "client_program_kintone_delete_target_read_body",
             "client_program_kintone_delete_target_read_construction_capacity",
@@ -4790,6 +4800,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
                 "anchor": "DELETE response projection requires the retained original target observation"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }
@@ -4798,12 +4812,16 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_delete_outcome_bridge.mbt",
-      "sha256": "65d7e4b0fbfd46d6538642807d7d606a403cd9dadeebc09ff992a8640211999b",
+      "sha256": "69fb29887c911ed628261102dcf8c550e14c11c1b5e535e3b5165fc2f8e0a91c",
       "exports": [],
       "operations": [
         {
           "name": "client_program_kintone_delete_form_construction_capacity",
           "declaration": "client_program_kintone_delete_form_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_delete_mapping_construction_capacity",
+          "declaration": "client_program_kintone_delete_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_delete_mapping_recheck_form",
@@ -4834,6 +4852,10 @@
           "declaration": "client_program_kintone_delete_preview_outcome_wire ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
         },
         {
+          "name": "client_program_kintone_delete_response_construction_capacity",
+          "declaration": "client_program_kintone_delete_response_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_delete_target_construction_capacity",
           "declaration": "client_program_kintone_delete_target_construction_capacity ( mapping : @ kintone_host . RecordDeleteMapping , body_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -4858,6 +4880,7 @@
           "operations": [
             "<module>",
             "client_program_kintone_delete_form_construction_capacity",
+            "client_program_kintone_delete_mapping_construction_capacity",
             "client_program_kintone_delete_mapping_recheck_form",
             "client_program_kintone_delete_observed_outcome",
             "client_program_kintone_delete_preview_outcome",
@@ -4865,6 +4888,7 @@
             "client_program_kintone_delete_preview_outcome_response_sha256",
             "client_program_kintone_delete_preview_outcome_row_cid",
             "client_program_kintone_delete_preview_outcome_wire",
+            "client_program_kintone_delete_response_construction_capacity",
             "client_program_kintone_delete_target_construction_capacity",
             "client_program_kintone_delete_target_read_body",
             "client_program_kintone_delete_target_read_construction_capacity",
@@ -4950,6 +4974,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_outcome_wbtest.mbt",
                 "anchor": "DELETE response projection requires the retained original target observation"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }
@@ -9467,12 +9495,16 @@
     },
     {
       "module": "src/connectors/kintone/host/record_delete_construction.mbt",
-      "sha256": "0d3e147c4bb63aaa5757e699637df77d722f87b0f422a9a2953ff73c2fbe4070",
+      "sha256": "e4ea590356d93a996bf57e95a24e613e9b51866eff27e55e2c8d33e9c549d32f",
       "exports": [],
       "operations": [
         {
           "name": "record_delete_form_construction_capacity",
           "declaration": "record_delete_form_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_delete_response_construction_capacity",
+          "declaration": "record_delete_response_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "record_delete_target_construction_capacity",
@@ -9491,6 +9523,7 @@
           "operations": [
             "<module>",
             "record_delete_form_construction_capacity",
+            "record_delete_response_construction_capacity",
             "record_delete_target_construction_capacity",
             "record_delete_target_read_construction_capacity"
           ],
@@ -9554,6 +9587,10 @@
               {
                 "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
                 "anchor": "kintone DELETE construction charges the original target once and keeps form scratch temporary"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }
@@ -9716,7 +9753,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "27a272c3df5b1bbe05f045bf8d5c5ce18a4272fd5d43a8debf64547cd3768d17",
+      "sha256": "defbe648239c2d3d6e9a35f93e7ca6f6c0e5366d912701bd0dca62928174906b",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
@@ -10072,6 +10109,10 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Installation verification:"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-effect.actual.test.mjs",
+                "anchor": "standard kintone DELETE installs the exact guarded Mapping and closes without any provider call"
               }
             ]
           }
@@ -10084,7 +10125,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "5473e58234a1e95f1e879ba312a57e4264f1b77fa2bd09a1ebbadef0cb6b8f9c",
+      "sha256": "3c5d190282d18b4f3207dd945f007b9bfab1aec53f3305fc8900c945c247a594",
       "exports": [
         "captureKintoneEffectPlanRecipeBuilder"
       ],
@@ -10092,7 +10133,8 @@
         {
           "name": "captureKintoneEffectPlanRecipeBuilder",
           "parameters": [
-            "moon"
+            "moon",
+            "kind"
           ],
           "async": false
         },
@@ -10253,6 +10295,10 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Installation verification:"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }
@@ -10265,9 +10311,17 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "ae5c1cdbdef529a871a9d66192eec4026fd94b09bac0f4023501d5768a260a52",
+      "sha256": "7a9f10dda3abfb7e1315836d9d8bf4697d451ec206fb84c71c1dd40a6669febd",
       "exports": [],
       "operations": [
+        {
+          "name": "record_delete_mapping_construction_capacity",
+          "declaration": "record_delete_mapping_construction_capacity ( original : RecordDeclaration , input_units : Int64 , limits : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_mutation_mapping_construction_capacity",
+          "declaration": "record_mutation_mapping_construction_capacity ( original : RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "record_update_installation_construction_capacity",
           "declaration": "record_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -10281,6 +10335,8 @@
         {
           "operations": [
             "<module>",
+            "record_delete_mapping_construction_capacity",
+            "record_mutation_mapping_construction_capacity",
             "record_update_installation_construction_capacity",
             "record_update_mapping_construction_capacity"
           ],
@@ -10344,6 +10400,10 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Installation verification:"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }

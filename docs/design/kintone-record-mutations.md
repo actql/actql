@@ -337,6 +337,13 @@ through that scoped credential, using the existing POST method override.
 Recovery requires the approved absent state, exact target and original claim
 CID before returning reconstructed request data to the Host.
 
+An installed effect profile selects deletion with one write entry containing
+`resource` and `kind: "delete"`. The selected source supplies all before
+fields. The loader admits the DELETE Mapping with required approval and
+registers its request, finalization, Form, target and write slots on the
+existing managed plan. The prior `resource` and `fields` entry continues to
+select UPDATE.
+
 ### Original key lookup physical boundary
 
 - Responsibility: `kintone-key-lookup.mjs` borrows the existing Account,
