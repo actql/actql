@@ -1,4 +1,6 @@
 import {types as nodeTypes} from 'node:util';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 
 type Amounts = {nodes: bigint; text: bigint; wire: bigint};
 type CapacityAmounts = readonly [retainedNodes: bigint, retainedText: bigint, retainedWire: bigint,
@@ -16,7 +18,14 @@ type SourceIo = Readonly<{
   finish(operation: unknown): unknown;
 }>;
 type Material = Amounts & {
-  methods: Readonly<{ComposeInstalledSourceConstructionCapacity?: unknown}>;
+  methods: Readonly<Record<MaterialMethod, unknown>>;
+  busy: boolean;
+  unit: unknown;
+  constructors: number;
+  contexts: unknown[];
+  environment: unknown;
+  sourceOriginal: unknown;
+  environmentWire: string | undefined;
   phase: 'opening' | 'working' | 'failed' | 'ready' | 'retiring' | 'retired';
   workspaces: Set<Workspace>;
   providers: unknown[];
@@ -36,16 +45,147 @@ type Calls = Readonly<{
   ComposeInstalledSourceConstructionCapacity: readonly [capacity: unknown, providers: readonly unknown[]];
   ReserveInstalledSourceConstruction: readonly [capacity: unknown, input: unknown, quote: unknown];
   ReconcileInstalledSourceConstruction: readonly [capacity: unknown, input: unknown, quote: unknown];
+  InstalledTableConstructionInventory: readonly [nodes: bigint, wire: bigint, strings: bigint, serializerText: bigint];
+  InstalledProfileConstructionCapacities: readonly [nodes: bigint, units: bigint];
+  InstalledSourceJsonConstructionCapacity: readonly [wireNodes: bigint, wireUnits: bigint, bufferBytes: bigint,
+    returnedNodes: bigint, returnedTextBytes: bigint];
+  InstalledSourceRetainedConstructionCapacity: readonly [original: unknown];
+  InstalledSourceInspectionConstructionCapacity: readonly [parsed: unknown];
+  CompleteInstalledSourceMaterial: readonly [capacity: unknown, input: unknown, sourceOriginal: unknown,
+    environment: unknown, quote: unknown];
+  BorrowInstalledSourceMaterial: readonly [capacity: unknown];
+  BorrowedInstalledSourceEnvironment: readonly [holder: unknown, sourceOriginal: unknown];
+  ReturnInstalledSourceMaterial: readonly [holder: unknown];
+  RetireInstalledSourceMaterial: readonly [capacity: unknown, input: unknown];
+  AbortUncontinuedSourceMaterial: readonly [unit: unknown, input: unknown];
 }>;
-type MaterialPorts<Owner> = Readonly<{
+type CallResults = Readonly<Record<keyof Calls, unknown>> & Readonly<{
+  InstalledTableConstructionInventory: readonly [nodes: bigint, text: bigint, wire: bigint];
+  InstalledProfileConstructionCapacities: readonly [parsed: unknown, projected: unknown];
+  ReturnInstalledSourceMaterial: boolean;
+  RetireInstalledSourceMaterial: boolean;
+  AbortUncontinuedSourceMaterial: boolean;
+}>;
+type MaterialMethod = keyof Calls | 'TakeHostInitializationSourceCapacity' | 'ContinueInstalledSourceMaterial';
+type CoreMethod = (...args: unknown[]) => unknown;
+type Runtime = Readonly<Partial<Record<`clientProgram${MaterialMethod}`, unknown>>> & Readonly<{
+  clientProgramSerializationCapacityBytes?: unknown;
+}>;
+type Owner = {
+  readonly moon: Runtime;
+  readonly initialPreparation?: unknown;
+  readonly restoreDeclaration?: unknown;
+  readonly restoreAuthoredDeclaration?: unknown;
+  readonly declarationJson?: unknown;
+  material?: Material;
+};
+type MaterialPorts = Readonly<{
   fail(code: string): never;
-  sourceCall<Name extends keyof Calls>(original: Owner, material: Material, name: Name, args: Calls[Name]): unknown;
   sourceNativeThen: typeof Promise.prototype.then;
 }>;
 
-export function createInstalledSourceMaterialAccounting<Owner>(
-  {fail: reject, sourceCall, sourceNativeThen}: MaterialPorts<Owner>) {
+export function createInstalledSourceMaterialAccounting(
+  {fail: reject, sourceNativeThen}: MaterialPorts) {
   const fail: (code: string) => never = reject;
+
+  // Native initialization uses the SAME initial Resource reservation. These are
+  // material quantities for existing shared node/text/byte allowances, not a JS
+  // Ledger, a profile limit or a second permission/cleanup decision. Small fixed
+  // methods and control frames belong to the trusted Host baseline.
+  function sourceMaterial(original: Owner): Material | undefined {
+    if (original.material !== undefined) return original.material;
+    if (original.initialPreparation === undefined) return undefined;
+    if (typeof original.restoreDeclaration !== 'function' && typeof original.restoreAuthoredDeclaration !== 'function' ||
+        typeof original.declarationJson !== 'function') {
+      fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
+    const methods = Object.freeze({
+      TakeHostInitializationSourceCapacity: original.moon.clientProgramTakeHostInitializationSourceCapacity,
+      ContinueInstalledSourceMaterial: original.moon.clientProgramContinueInstalledSourceMaterial,
+      InstalledSourceConstructionCapacity: original.moon.clientProgramInstalledSourceConstructionCapacity,
+      ComposeInstalledSourceConstructionCapacity: original.moon.clientProgramComposeInstalledSourceConstructionCapacity,
+      InstalledSourceRetainedConstructionCapacity: original.moon.clientProgramInstalledSourceRetainedConstructionCapacity,
+      InstalledSourceJsonConstructionCapacity: original.moon.clientProgramInstalledSourceJsonConstructionCapacity,
+      InstalledProfileConstructionCapacities: original.moon.clientProgramInstalledProfileConstructionCapacities,
+      InstalledSourceInspectionConstructionCapacity: original.moon.clientProgramInstalledSourceInspectionConstructionCapacity,
+      InstalledTableConstructionInventory: original.moon.clientProgramInstalledTableConstructionInventory,
+      ReserveInstalledSourceConstruction: original.moon.clientProgramReserveInstalledSourceConstruction,
+      ReconcileInstalledSourceConstruction: original.moon.clientProgramReconcileInstalledSourceConstruction,
+      CompleteInstalledSourceMaterial: original.moon.clientProgramCompleteInstalledSourceMaterial,
+      BorrowInstalledSourceMaterial: original.moon.clientProgramBorrowInstalledSourceMaterial,
+      BorrowedInstalledSourceEnvironment: original.moon.clientProgramBorrowedInstalledSourceEnvironment,
+      ReturnInstalledSourceMaterial: original.moon.clientProgramReturnInstalledSourceMaterial,
+      RetireInstalledSourceMaterial: original.moon.clientProgramRetireInstalledSourceMaterial,
+      AbortUncontinuedSourceMaterial: original.moon.clientProgramAbortUncontinuedSourceMaterial,
+      BeginInstalledSourceIo: original.moon.clientProgramBeginInstalledSourceIo,
+      ChargeInstalledSourceIo: original.moon.clientProgramChargeInstalledSourceIo,
+      MarkInstalledSourceIoTransferUncertain: original.moon.clientProgramMarkInstalledSourceIoTransferUncertain,
+      FinishInstalledSourceIoAfterCleanup: original.moon.clientProgramFinishInstalledSourceIoAfterCleanup,
+    });
+    for (const [name, fn] of Object.entries(methods)) {
+      if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity' ||
+          name === 'InstalledSourceJsonConstructionCapacity' || name === 'InstalledProfileConstructionCapacities' ||
+          name === 'InstalledSourceInspectionConstructionCapacity' || name === 'InstalledTableConstructionInventory') && fn === undefined) continue;
+      if (typeof fn !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
+    const material: Material = {methods, input: undefined, unit: undefined, capacity: undefined,
+      phase: 'opening', busy: false, ioPending: 0, constructors: 0,
+      nodes: 0n, text: 0n, wire: 0n, inputs: [], providers: [], contexts: [], cleanup: [], workspaces: new Set(),
+      environment: undefined, sourceOriginal: undefined, environmentWire: undefined};
+    // Retain before the one-shot take or continuation can call the original
+    // current fence. A failed continuation still owns the uncontinued pair.
+    original.material = material;
+    try {
+      const pair = checked(Reflect.apply(methods.TakeHostInitializationSourceCapacity as CoreMethod,
+        original.moon, [original.initialPreparation]));
+      material.input = runtimeField(pair, 0); material.unit = runtimeField(pair, 1);
+      material.capacity = checked(Reflect.apply(methods.ContinueInstalledSourceMaterial as CoreMethod,
+        original.moon, [material.unit, material.input]));
+      material.phase = 'working';
+    } catch (cause) {material.phase = 'failed'; throw cause;}
+    return material;
+  }
+
+  function sourceCall<Name extends keyof Calls>(original: Owner, material: Material, name: Name,
+    args: Calls[Name]): CallResults[Name] {
+    if (material.busy) fail('InstalledSourceInitializationReentry');
+    if (typeof material.methods?.[name] !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+    material.busy = true;
+    try {return checked(Reflect.apply(material.methods[name], original.moon, args)) as CallResults[Name];}
+    catch (cause) {
+      // This fixed method name identifies the failed constructor, not its DATA.
+      // Preserve the original failure and cleanup carrier even when diagnostics
+      // cannot be attached to a frozen/non-Error thrown value.
+      try {
+        if (cause instanceof Error && !Object.hasOwn(cause, 'installedSourcePhase')) {
+          Object.defineProperty(cause, 'installedSourcePhase', {value: name, enumerable: true});
+          const issue = Object.getOwnPropertyDescriptor(cause, 'cause')?.value;
+          const tag = runtimeTag(issue);
+          if (Number.isSafeInteger(tag)) {
+            Object.defineProperty(cause, 'installedSourceIssueTag', {value: tag, enumerable: true});
+          }
+          if (name === 'ReserveInstalledSourceConstruction' && tag === 7) {
+            const resource = runtimeField(issue, 0);
+            if (Number.isSafeInteger(resource)) {
+              Object.defineProperty(cause, 'installedSourceResourceIssue', {value: resource, enumerable: true});
+            }
+          }
+          if (name === 'ReserveInstalledSourceConstruction' &&
+              typeof original.moon.clientProgramSerializationCapacityBytes === 'function') {
+            const amounts = original.moon.clientProgramSerializationCapacityBytes(args[2]);
+            for (const [key, index] of ([['installedSourceRetainedBytes', 0], ['installedSourceExecutionBytes', 1]] as const)) {
+              const amount = runtimeField(amounts, index);
+              if (typeof amount === 'bigint' && amount >= 0n) {
+                Object.defineProperty(cause, key, {value: String(amount), enumerable: true});
+              }
+            }
+          }
+        }
+      } catch { /* Diagnostics never replace the original failure. */ }
+      throw cause;
+    }
+    finally {material.busy = false;}
+  }
 
   // This is only a bound view of the SAME original Core material. The existing
   // file owner retains its operation tokens and sole physical close/retry duty.
@@ -188,6 +328,6 @@ export function createInstalledSourceMaterialAccounting<Owner>(
     fail('InstalledSourceConstructorNotSynchronous');
   }
 
-  return {sourceIo, sourceQuote, releaseFinishedSourceWorkspaces, reserveSource, reconcileSource,
+  return {sourceMaterial, sourceCall, sourceIo, sourceQuote, releaseFinishedSourceWorkspaces, reserveSource, reconcileSource,
     retainSourceFailure, requireSynchronousSourceConstruction};
 }

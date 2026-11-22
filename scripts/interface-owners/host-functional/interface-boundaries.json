@@ -134207,7 +134207,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "3cf434ce75d988cc84905902bcf5cf581b3800f29c4ab4a3f62ab4478c4ad4a9",
+      "sha256": "ac4e68ea7d1d1d4a291b3c4bde8ff02d256afd766ea19f0a7733a21c9392f632",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -135392,16 +135392,6 @@
           "async": false
         },
         {
-          "name": "sourceCall",
-          "parameters": [
-            "original",
-            "material",
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceProjectionMethods/sourceProjectionMethods",
           "parameters": [
             "name"
@@ -136139,8 +136129,7 @@
             "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
             "sourceProjectionMethods/sourceProjectionMethods",
             "withInstalledSourceLoading",
-            "fail/fail",
-            "sourceCall"
+            "fail/fail"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -137140,7 +137129,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-material-accounting.mjs",
-      "sha256": "be81a0088db3e4660bf9c2ea7b3ccb0c685bac1c296fe0c4504c174fc4bec548",
+      "sha256": "e299e5b239502865ac14c10c0fba08c5c517594d898d2a0955884dfbdaf4b5bb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -137152,7 +137141,6 @@
           "name": "createInstalledSourceMaterialAccounting",
           "parameters": [
             "reject",
-            "sourceCall",
             "sourceNativeThen"
           ],
           "async": false
@@ -137218,6 +137206,16 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceMaterialAccounting/sourceCall",
+          "parameters": [
+            "original",
+            "material",
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceMaterialAccounting/sourceIo",
           "parameters": [
             "original",
@@ -137255,6 +137253,13 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceMaterialAccounting/sourceMaterial",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceMaterialAccounting/sourceQuote",
           "parameters": [
             "original",
@@ -137267,6 +137272,8 @@
         }
       ],
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -137283,11 +137290,13 @@
             "createInstalledSourceMaterialAccounting/requireSynchronousSourceConstruction/joined/joined#2",
             "createInstalledSourceMaterialAccounting/reserveSource",
             "createInstalledSourceMaterialAccounting/retainSourceFailure",
+            "createInstalledSourceMaterialAccounting/sourceCall",
             "createInstalledSourceMaterialAccounting/sourceIo",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:begin/init:begin",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:charge/init:charge",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:finish/init:finish",
             "createInstalledSourceMaterialAccounting/sourceIo/io/init:uncertain/init:uncertain",
+            "createInstalledSourceMaterialAccounting/sourceMaterial",
             "createInstalledSourceMaterialAccounting/sourceQuote"
           ],
           "exports": [
@@ -137316,6 +137325,14 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "function reserveSource"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function sourceMaterial"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "function sourceCall"
               }
             ],
             "identity": [
@@ -137325,7 +137342,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceCall, sourceNativeThen})"
+                "anchor": "createInstalledSourceMaterialAccounting({fail, sourceNativeThen})"
               }
             ],
             "ownership": [
@@ -137336,6 +137353,10 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "original.material = material;"
               }
             ],
             "synchronization": [
@@ -137356,6 +137377,10 @@
               {
                 "path": "adapters/host-node/installed-source-material-accounting.mts",
                 "anchor": "fail('InstalledSourceConstructorNotSynchronous');"
+              },
+              {
+                "path": "adapters/host-node/installed-source-material-accounting.mts",
+                "anchor": "Diagnostics never replace the original failure."
               }
             ],
             "cancellation": {
@@ -137385,6 +137410,10 @@
               {
                 "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
                 "anchor": "JSON configuration construction admits a large String on the unchanged original parent"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect initial material reservation refusal precedes profile I/O and preserves the original failure"
               }
             ]
           }
