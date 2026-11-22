@@ -5,6 +5,7 @@ import {withLocalExecutionPauseHandler} from './retained-store.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {createExecutionSiteControlFixture} from '../host-common/execution-site-control.fixture.mjs';
+import {claimInferIoNotification, createInferIoNotification} from '../host-node/infer-io-notification.mjs';
 import * as runtime from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const ok = value => ({$tag: 1, _0: value});
@@ -67,6 +68,60 @@ test('Local waits for authority and Store custody without polling or replay', as
     assert.equal(f.advances(), 2);
     assert.equal(f.completed(), 1);
   }
+});
+
+test('Local waits for the original physical notification without another advance', async () => {
+  const notification = createInferIoNotification();
+  const wake = claimInferIoNotification(notification);
+  const f = fixture({...pause(false), await_io: true}, async observation => {
+    assert.equal(observation.status, 'await_io');
+    assert.equal(observation.task, 1);
+    assert.equal(observation.slot, undefined);
+    const ticket = wake.arm();
+    try { await ticket.promise; }
+    finally { ticket.dispose(); }
+    return {action: 'resume'};
+  });
+  const running = f.entry.run(f.task);
+  await tick();
+  await tick();
+  assert.equal(f.advances(), 1);
+  assert.equal(f.completed(), 0);
+  assert.equal(notification.notify(), true);
+  await running;
+  assert.equal(f.advances(), 2);
+  assert.equal(f.completed(), 1);
+  wake.close();
+});
+
+test('Local cannot convert a physical I/O pause to a checkpoint', async () => {
+  const f = fixture({...pause(false), await_io: true},
+    () => ({action: 'waiting_checkpoint', checkpoint: {persisted: true}}));
+  await assert.rejects(f.entry.run(f.task), {message: 'InvalidLocalExecutionPauseDecision'});
+  assert.equal(f.completed(), 0);
+  assert.equal(f.stopped(), true);
+});
+
+test('abort at the physical I/O pause stops the same execution without completing it', async () => {
+  const controller = new AbortController();
+  const notification = createInferIoNotification();
+  const wake = claimInferIoNotification(notification);
+  controller.signal.addEventListener('abort', notification.notify, {once: true});
+  const f = fixture({...pause(false), await_io: true}, async observation => {
+    assert.equal(observation.status, 'await_io');
+    const ticket = wake.arm();
+    try { await ticket.promise; }
+    finally { ticket.dispose(); }
+    return {action: 'resume'};
+  });
+  const running = f.entry.run(f.task, controller.signal);
+  await tick();
+  assert.equal(f.advances(), 1);
+  controller.abort();
+  await assert.rejects(running, {name: 'AbortError'});
+  assert.equal(f.completed(), 0);
+  assert.equal(f.stopped(), true);
+  wake.close();
 });
 
 test('Local checkpoint pause skips success and keeps the original cleanup owner', async () => {

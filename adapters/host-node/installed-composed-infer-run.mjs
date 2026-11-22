@@ -413,6 +413,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const local = withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
     const child = children.find(value => runtimeField(moon.clientProgramInferPlanBoundary(value.selection.graph), 0) === boundary.task);
     if (child?.operation === undefined || child.capture === undefined) throw new Error('ModelPauseOwnerMissing');
+    if (boundary.status === 'await_io') {
+      if (typeof child.operation.waitForIo !== 'function') throw new Error('InferIoNotificationUnavailable');
+      await child.operation.waitForIo();
+      assertCurrent();
+      return {action: 'resume'};
+    }
     if (boundary.status === 'settling') {
       const settlement = child.operation.pendingSettlement();
       const slot = child.operation.settlementSlot(settlement);

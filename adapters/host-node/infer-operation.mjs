@@ -223,7 +223,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
   ioNotification, originalPreparation, restoredPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
-  assertRuntimeCurrent, bindComputeSuffix}) {
+  assertRuntimeCurrent, bindComputeSuffix, managedIo = false}) {
   const restoringOriginal = restoredPreparation !== undefined;
   if (restoringOriginal) {
     if (originalPreparation !== undefined || restoredInput?.savedScope === undefined ||
@@ -431,8 +431,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : 'startCheckedClientRestoredGeneratedInferExecution'] !== 'function')) {
     throw new TypeError('InvalidSerializedInferInput');
   }
-  if (ioNotification !== undefined && (provider === undefined ||
-      composedInput !== undefined && !originalComposedRun && !restoringOriginal)) {
+  if (typeof managedIo !== 'boolean' || managedIo && (ioNotification === undefined ||
+      composedInput === undefined || originalComposedRun || restoringOriginal ||
+      originalPreparation?.nodeInstallation === undefined || typeof assertRuntimeCurrent !== 'function') ||
+      ioNotification !== undefined && (provider === undefined ||
+        composedInput !== undefined && !originalComposedRun && !restoringOriginal && !managedIo)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
@@ -768,6 +771,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       cleanupSettlement = callback;
     },
     cleanupPending: () => !reclaimed,
+    ...(managedIo ? {async waitForIo() {
+      if (closing || reclaimed || io === undefined) throw new Error('InferIoNotificationUnavailable');
+      signal?.throwIfAborted();
+      assertRuntimeCurrent();
+      // A notification emitted by the just-completed Common poll remains
+      // pending on this original wake port until this one wait claims it.
+      const ticket = io.arm();
+      try { await ticket.promise; }
+      finally { ticket.dispose(); }
+      signal?.throwIfAborted();
+      assertRuntimeCurrent();
+    }} : {}),
     cleanupProgress: () => moon.clientProgramInferCleanupProgress?.(active),
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
@@ -1511,9 +1526,13 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
   deferredGeneratedInput = false, capturedInput,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments,
+  managedIo = false}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
+      typeof managedIo !== 'boolean' || managedIo && (!deferred || deferredGeneratedInput ||
+        selected.originalReadInstallation === undefined || selected.entryPersistence !== 'async' ||
+        typeof selected.physicalPreflight !== 'function') ||
       deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
@@ -1555,7 +1574,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let computeSuffix = selected.computeSuffix;
   const generated = generatedInput !== undefined || deferredGeneratedInput;
   const selectProvider = generated
-    ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
+    ? moon.clientProgramGeneratedInferLocalProvider
+    : managedIo ? moon.clientProgramComposedInferLocalProviderWithIo
+      : moon.clientProgramComposedInferLocalProvider;
   const openOriginal = (inputs, ioNotification) => {
       try {
         if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
@@ -1615,8 +1636,17 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: !generated && bindComputeSuffix === undefined
             ? computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
-          physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,
+          physicalPreflight: managedIo ? (request, notification, retainRawBinder) => {
+            try { return selected.physicalPreflight(request, notification, retainRawBinder); }
+            catch (cause) {
+              // Keep the original refusal and let Common unwind its own
+              // advance and retained startup through the typed None path.
+              recordFailure(cause);
+              return undefined;
+            }
+          } : selected.physicalPreflight,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          ioNotification: managedIo ? createInferIoNotification() : ioNotification, managedIo,
           ...(restoredInput === undefined ? {originalPreparation: preparation}
             : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});

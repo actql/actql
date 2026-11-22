@@ -811,7 +811,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
           throw clientOperationError('ForeignInstalledModelPreparation');
         }
         const component = openNodeComposedInferProvider({moon, selected: member.selection,
-          inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+          inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true, managedIo: nodePhysicalGroup});
         if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
             originals.installation.computeRuns?.get(run.prepared) !== run) {
           throw clientOperationError('ForeignInstalledModelPreparation');

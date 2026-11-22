@@ -69164,7 +69164,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "6b0e87adfb81bae57b0d4800bc60fc0f52ee45296cf8aa36d3a7ba7a7ca21f40"
+      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -71610,6 +71610,7 @@
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
+            "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
@@ -71976,6 +71977,7 @@
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:installSettlementCleanup/init:installSettlementCleanup",
+            "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
             "openNodeInferOperation/operation/init:originalCurrentStateMatchCurrent/init:originalCurrentStateMatchCurrent",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition/current/current",
@@ -74180,7 +74182,8 @@
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent",
-            "prepareInputSegments"
+            "prepareInputSegments",
+            "managedIo"
           ],
           "async": false
         },
@@ -74236,6 +74239,15 @@
         {
           "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal#2",
+          "parameters": [
+            "request",
+            "notification",
+            "retainRawBinder"
+          ],
           "async": false
         },
         {
@@ -74300,7 +74312,8 @@
             "serializedInput",
             "restoredReferenceIssuer",
             "assertRuntimeCurrent",
-            "bindComputeSuffix"
+            "bindComputeSuffix",
+            "managedIo"
           ],
           "async": false
         },
@@ -74681,6 +74694,11 @@
             "limits"
           ],
           "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:waitForIo/init:waitForIo",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "openNodeInferOperation/operation/operation",
@@ -75346,7 +75364,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "17044867d6334270a82e27e38cbd0fcc280ff4b89d63a940870a46857d4d29c3"
+      "sha256": "d7c2b9f3b3efb3cedb92a975da7c22f6742375c468e2b648025392dbdfe6b87b"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -76575,7 +76593,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0dce9245325653e3081c56b3c3c11005443b514b924c8a2ae7a16ae2e4df1492",
+      "sha256": "95800b9c2139a1a1f233b89ba47f46619111b0247690d5cebe250dd920cf75de",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -109907,7 +109925,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
+      "sha256": "6182535c3e96d660916eaec82f9ca0062dfdcb11af32b1844b3574e9d6552833",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

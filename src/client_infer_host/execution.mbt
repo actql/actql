@@ -1480,6 +1480,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       let work = match poll {
         @local.Continue(work~, ..)
+        | @local.AwaitIo(work~, ..)
         | @local.Waiting(work~, ..)
         | @local.Settling(_, work~, ..)
         | @local.Complete(_, work~, ..)
@@ -1496,7 +1497,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
         @local.Continue(..) => Continue(work=active.work)
         // A Compute-only suffix has no approval/custody boundary. Preserve
         // its owner for cancellation and cleanup if an invalid provider pauses.
-        @local.Waiting(..) | @local.Settling(_, ..) =>
+        @local.AwaitIo(..) | @local.Waiting(..) | @local.Settling(_, ..) =>
           fail(active, InvalidAdvance)
         @local.Complete(output, ..) => {
           if active.cancelled {

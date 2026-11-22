@@ -904,6 +904,8 @@ pub fn client_program_compose_installed_source_construction_capacity(@execution_
 
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider
 
+pub fn client_program_composed_infer_local_provider_with_io(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider
+
 pub fn client_program_composed_infer_model_ledger_bytes(@client_infer_host.Limits) -> Array[Int64]
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]

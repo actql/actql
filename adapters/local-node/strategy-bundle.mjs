@@ -22,17 +22,19 @@ const managedFinalizationQuantum = 32;
 
 const validateManagedAdvance = (observation, quantum, errorName, allowPause = false) => {
   const waiting = observation?.waiting === true;
+  const awaitingIo = observation?.await_io === true;
   const settlement = observation?.settlement;
   const settling = settlement !== undefined && settlement !== null;
-  const paused = waiting || settling;
+  const paused = waiting || settling || awaitingIo;
   if (observation == null || typeof observation !== 'object' ||
       typeof observation.complete !== 'boolean' ||
       typeof observation.progress !== 'bigint' ||
       typeof observation.work !== 'bigint' || observation.progress < 0n ||
       observation.work < 0n || observation.work > BigInt(quantum) ||
       (observation.waiting !== undefined && typeof observation.waiting !== 'boolean') ||
+      (observation.await_io !== undefined && typeof observation.await_io !== 'boolean') ||
       (settling && (!Number.isSafeInteger(settlement) || settlement < 0)) ||
-      (paused && (!allowPause || observation.complete || waiting && settling)) ||
+      (paused && (!allowPause || observation.complete || waiting && settling || awaitingIo && (waiting || settling))) ||
       (!observation.complete && !paused && observation.work === 0n)) {
     throw new Error(errorName);
   }
@@ -93,7 +95,7 @@ const runManagedExecution = async (
       signal.throwIfAborted();
     }
     if (observation.complete) return;
-    if (observation.waiting === true || observation.settlement != null) {
+    if (observation.await_io === true || observation.waiting === true || observation.settlement != null) {
       if (typeof handlePause !== 'function') {
         throw new Error('MissingLocalExecutionPauseHandler');
       }
@@ -104,12 +106,12 @@ const runManagedExecution = async (
         // No timer or further advance runs while the physical Store or the
         // existing authority owner handles this explicit pause.
         decision = await handlePause(Object.freeze({task,
-          status: observation.waiting === true ? 'waiting' : 'settling',
+          status: observation.await_io === true ? 'await_io' : observation.waiting === true ? 'waiting' : 'settling',
           ...(observation.settlement == null ? {} : {slot: observation.settlement}),
           signal}));
       } finally { signal?.removeEventListener('abort', onAbort); }
       signal?.throwIfAborted();
-      if (decision?.action === 'waiting_checkpoint' && decision.checkpoint != null) {
+      if (observation.await_io !== true && decision?.action === 'waiting_checkpoint' && decision.checkpoint != null) {
         checkpointPause(decision);
         // Unwind representation uses before handing physical cleanup to the
         // caller. This private control signal is never a Run failure.

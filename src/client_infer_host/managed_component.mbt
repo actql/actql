@@ -8,6 +8,7 @@ pub fn local_component(
   project_issue : (Issue) -> @connector.FixedComputeIssue,
   retain_completed? : (Execution) -> Bool = _ => true,
   allow_cleanup? : (Execution) -> Bool = _ => true,
+  host_await_io? : Bool = false,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -44,9 +45,13 @@ pub fn local_component(
         charged.val = total
         match poll {
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
-          // This installed managed profile does not admit persistence polls.
-          // Never disguise I/O suspension as a checkpoint or zero-work loop.
-          AwaitIo(_) => Err(project_issue(InvalidAdvance))
+          // Only the installed Host that owns the physical wake can wait.
+          AwaitIo(_) =>
+            if host_await_io {
+              Ok(@local.managed_provider_await_io(delta, delta))
+            } else {
+              Err(project_issue(InvalidAdvance))
+            }
           Waiting(_) => Ok(@local.managed_provider_waiting(delta, delta))
           Settling(slot, ..) =>
             Ok(@local.managed_provider_settling(slot, delta, delta))
