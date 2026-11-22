@@ -1785,22 +1785,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   let connect_body = request_body(
     "connect", child, root, connection, request_max,
   )
-  let library = match @http.load_library(required(matches, "http-library")) {
-    Ok(value) => value
-    Err(_) => stop("native HTTPS library unavailable")
-  }
-  let client = match
-    library.create_client(
-      required(matches, "ca"),
-      required(matches, "cert"),
-      required(matches, "key"),
-      response_max.to_int64(),
-      5000,
-      30000,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("native HTTPS client unavailable")
-  }
+  let transport = begin_remote_http_transport(matches, response_max)
   let route = if operation == "aql" || operation == "start" {
     "submit-intent"
   } else {
@@ -1810,26 +1795,25 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     { name: "authorization", value: "Bearer " + token, },
     { name: "content-type", value: "application/json", },
   ]
-  let negotiation = client.request(
-    @http.Post,
+  let negotiation = transport.post(
     endpoint + "actql/client/0.1/connect",
     headers,
     connect_body,
   )
   let confirmed = match negotiation {
-    Ok(value) if value.status >= 200 && value.status < 300 => {
+    Some(value) if value.status >= 200 && value.status < 300 => {
       let text = @utf8.decode(value.body) catch {
         _ => stop("invalid Client Host profile")
       }
       ignore(confirmed_profile(text, connection))
       if operation == "connect" {
-        ignore(client.close())
+        transport.finish_compatibility()
         return text
       }
       text
     }
-    Ok(value) => stop("ClientHostHTTP" + value.status.to_string())
-    Err(_) => stop("ClientTransportUnknown")
+    Some(value) => stop("ClientHostHTTP" + value.status.to_string())
+    None => stop("ClientTransportUnknown")
   }
   if operation == "new-submission" {
     let profile = @json.parse(confirmed) catch {
@@ -1848,27 +1832,26 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     if !valid_submission_ref(reference) {
       stop("InvalidSubmissionRef")
     }
-    ignore(client.close())
+    transport.finish_compatibility()
     return encode_request_json(reference, response_max)
   }
-  let response = client.request(
-    @http.Post,
+  let response = transport.post(
     endpoint + "actql/client/0.1/" + route,
     headers,
     body,
   )
-  ignore(client.close())
+  transport.finish_compatibility()
   let result = match response {
-    Ok(value) => value
-    Err(_) if route == "submit-intent" =>
+    Some(value) => value
+    None if route == "submit-intent" =>
       stop(
         "SubmissionUnknown submission-ref-file=" +
         required(child, "submission-ref-file"),
       )
-    Err(_) if route == "read" =>
+    None if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
-    Err(_) if route == "cancel" => stop(cancellation_unknown(body))
-    Err(_) => stop("ClientTransportUnknown")
+    None if route == "cancel" => stop(cancellation_unknown(body))
+    None => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
     if route == "submit-intent" {
@@ -2076,6 +2059,12 @@ fn execute_and_write_native_reply(
     return
   }
   if command_preparation_invocation.val is Some(original) {
+    if original.remote_http is Some(_) {
+      // Remote response parsing uses only detached DATA. Main publishes
+      // it only after the original HTTP child and Read close.
+      pending_reply.val = Some(value)
+      return
+    }
     // Static metadata is copied only after leaving its original Read. Keep the
     // same physical carrier and all aliases until main confirms every cleanup;
     // a partial close must never publish an adoption/check success beforehand.
@@ -2170,6 +2159,10 @@ fn main {
   if local_finish_result_receipt() is Err(_) {
     fail_cleanup_command("ResultReceiptCleanupPending")
   }
+  let pending_jsonl = command_preparation_invocation.val
+    .bind(original => original.remote_http)
+    .map(remote => remote.raw_reply)
+    .unwrap_or(false)
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
@@ -2207,7 +2200,7 @@ fn main {
     exit_failure_ffi()
   }
   if pending_reply.val is Some(body) {
-    let bytes = @utf8.encode(body + "\n")
+    let bytes = @utf8.encode(if pending_jsonl { body } else { body + "\n" })
     if !write_stdout_ffi(bytes, bytes.length()) {
       fail_command("stdout write failed")
     }
