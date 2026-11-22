@@ -23018,7 +23018,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "353b51f373852e6c0631057219926346f0c8446307285cd62408d9a046ac5aac"
+      "sha256": "17044867d6334270a82e27e38cbd0fcc280ff4b89d63a940870a46857d4d29c3"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -24543,7 +24543,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "0aedc629af803fe86fd0cac8783df443eb76d3bbefb5122bf2b06410c620972f",
+      "sha256": "39af3cdfa363a26a5dc03d435d8bfffe2f1d1842e5f46293c0c8247bdf6a75af",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -25585,7 +25585,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+                "anchor": "model.originalReadInstallation !== installation || model.managed !== managed"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -25635,7 +25635,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+                "anchor": "readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",

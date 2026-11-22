@@ -4314,6 +4314,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         compiled: undefined, runDefinition: undefined, graph: member.graph, occurrence: member.occurrence,
         serializationGraph: member.serializationGraph, originalReadInstallation: member.originalReadInstallation,
         selection: member, group: model, scope: undefined, read: undefined, component: undefined,
+        runtimeBorrow: undefined,
         publicationCapacity: model.publicationCapacity})));
     }
     early.model = model;

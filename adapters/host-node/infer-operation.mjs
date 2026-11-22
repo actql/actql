@@ -69,15 +69,24 @@ export function finishNodeInferOriginalReadScopes(model) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
     }
   };
+  function finishMember(index) {
+    const member = members[index], borrow = member.runtimeBorrow;
+    if (borrow === undefined) return Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    if (member.selection.finishTrustedRuntimeScope(scopes[index], borrow, compiled, definition, graph[index]) !== true) return false;
+    current();
+    if (member.runtimeBorrow !== borrow) throw new TypeError('InvalidInstalledRequestModelPreparation');
+    member.runtimeBorrow = undefined;
+    return true;
+  }
   current();
   // The last actual Scope can close the group. Earlier pending members must not
   // prevent reaching it. A second closed observation is callback-free in Core.
   for (let index = 0; index < members.length; index++) {
-    Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    finishMember(index);
     current();
   }
   for (let index = 0; index < members.length; index++) {
-    const closed = Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    const closed = finishMember(index);
     current();
     if (closed !== true) return false;
   }
