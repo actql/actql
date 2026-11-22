@@ -47,6 +47,7 @@ import {valueCid} from './installed-row-source-environment.mjs';
 import {installRowSourceAuthorization} from './installed-row-source-authorization.mjs';
 import {encodeTypedResponseJson} from './typed-response-json-codec.mjs';
 import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
+import {ownCredentialAcquisitionLimits, ownCredentialSecretPresentation} from './installed-row-source-credential-options.mjs';
 
 export {rowSourceMapping} from './installed-row-source-mapping.mjs';
 export {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
@@ -108,42 +109,6 @@ export async function loadRowSourceCredentialCustody({
   }
   return openRowSourceCredentialCustody({...options,
     privateKey, ca, resolveSecret, openCredentialJournal});
-}
-
-// One physical credential-journal/signing implementation for installed Row
-// Sites. The existing Site validates its selected profile/key and authorizes
-// each operation before calling sign; this private Host port is not a grant.
-// Preserve the original scope members/task attempt and same journal custody.
-function ownCredentialAcquisitionLimits(input) {
-  if (input === undefined) return undefined;
-  if (input === null || typeof input !== 'object' || nodeTypes.isProxy(input)) {
-    fail('InvalidRowSourceCredentialAcquisitionLimits');
-  }
-  const descriptors = Object.getOwnPropertyDescriptors(input);
-  if (Reflect.ownKeys(descriptors).length !== 2 ||
-      ['maxBindings', 'maxSecretBytes'].some(name => {
-        const field = descriptors[name];
-        return !field || !Object.hasOwn(field, 'value') ||
-          !Number.isSafeInteger(field.value) || field.value <= 0 || field.value > 2147483647;
-      })) fail('InvalidRowSourceCredentialAcquisitionLimits');
-  return Object.freeze({maxBindings: descriptors.maxBindings.value,
-    maxSecretBytes: descriptors.maxSecretBytes.value});
-}
-
-// Trusted installing code selects only an existing physical presentation.
-// This is not profile DATA, a header name, an auth provider or a grant. The
-// physical binding still validates its original registration/auth dependency.
-function ownCredentialSecretPresentation(options) {
-  if (options === null || typeof options !== 'object' || nodeTypes.isProxy(options)) {
-    fail('InvalidRowSourceSecretPresentation');
-  }
-  const field = Object.getOwnPropertyDescriptor(options, 'secretPresentation');
-  if (field === undefined) return undefined;
-  if (!Object.hasOwn(field, 'value') ||
-      !['bearer', 'kintone-api-token'].includes(field.value)) {
-    fail('InvalidRowSourceSecretPresentation');
-  }
-  return field.value;
 }
 
 // Internal operation assembly recognizes the exact credential returned by

@@ -98562,7 +98562,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ead53f0d7609720bacb17fc5d8a768de5113a4e1a2c0e7593c9713a3908dfb8f",
+      "sha256": "5a5dd54071c6edb786dac1cc2237a6a51eedb0d69937b58d733983e955e1b9d6",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -99784,13 +99784,6 @@
           "async": false
         },
         {
-          "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/account/account",
           "parameters": [
             "name"
@@ -100014,6 +100007,7 @@
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
         "./installed-row-source-authorization.mjs",
+        "./installed-row-source-credential-options.mjs",
         "./installed-row-source-environment.mjs",
         "./installed-row-source-mapping.mjs",
         "./installed-row-source-targets.mjs",
@@ -101732,7 +101726,6 @@
             "openInstalledRowSite/openInstalledRowSite",
             "openRowSourceCredentialCustody/authorizationPurpose",
             "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
-            "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
             "retainCredentialOperationSite/retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite#2"
           ],
@@ -101793,7 +101786,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
                 "anchor": "fail('InvalidRowSourceSecretPresentation')"
               },
               {
@@ -101803,7 +101796,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
                 "anchor": "fail('InvalidRowSourceSecretPresentation')"
               },
               {
@@ -103540,6 +103533,126 @@
         }
       ],
       "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
+    },
+    {
+      "module": "adapters/host-node/installed-row-source-credential-options.mjs",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "ownCredentialAcquisitionLimits",
+        "ownCredentialSecretPresentation"
+      ],
+      "operations": [
+        {
+          "name": "ownCredentialAcquisitionLimits",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialSecretPresentation",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installed-row-source-mapping.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "8b6160feca48949839e65392f7dfbe7479a3c824e18179fe605c8ec5a22ce00c",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "ownCredentialAcquisitionLimits",
+            "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
+            "ownCredentialSecretPresentation"
+          ],
+          "exports": [
+            "ownCredentialAcquisitionLimits",
+            "ownCredentialSecretPresentation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "export function ownCredentialAcquisitionLimits("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "export function ownCredentialSecretPresentation(options: unknown)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "Object.getOwnPropertyDescriptor(options, 'secretPresentation')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "return Object.freeze({maxBindings:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "const descriptors = Object.getOwnPropertyDescriptors(input);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "fail('InvalidRowSourceSecretPresentation')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "if (input === undefined) return undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "field.value <= 0 || field.value > 2147483647"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source-credential-options.mts",
+                "anchor": "!['bearer', 'kintone-api-token'].includes(field.value)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "test('run acquisition custody has no implicit capacity or current certificate'"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "test('run acquisition custody uses explicit retained capacity and does not replenish it from a close ACK'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/installed-row-source-targets.mjs",
