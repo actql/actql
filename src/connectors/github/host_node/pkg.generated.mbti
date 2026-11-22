@@ -40,6 +40,10 @@ pub fn github_issue_comments_read_next_request_json(@catalog.IssueCommentsRead, 
 
 pub fn github_issue_comments_read_page_json(@catalog.IssueCommentsRead) -> Result[String, @catalog.GraphqlResponseIssue]
 
+pub fn github_issue_list_filter_allowed(String) -> Bool
+
+pub fn github_issue_list_start_json(String, String, Int) -> String
+
 pub fn github_issue_page_json(Bytes, Int, Int, Int, Int) -> String
 
 pub fn github_issue_page_read_accept(@catalog.IssuePageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]

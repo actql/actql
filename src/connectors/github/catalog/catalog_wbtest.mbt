@@ -85,6 +85,26 @@ test "rate limits are 429, or 403 with a rate-limit basis; other 403 is denial" 
 }
 
 ///|
+test "REST Issue first locator keeps provider path, page size and filter names" {
+  assert_eq(
+    issue_list_start("Octo", "hello.js", 2),
+    Ok({
+      path: "/repos/Octo/hello.js/issues",
+      query: [("per_page", "2")],
+      page: 1,
+    }),
+  )
+  assert_eq(issue_list_start("Octo", "hello.js", 101), Err(InvalidPageSize))
+  assert_eq(issue_list_start("Octo", "hello%2Fjs", 2), Err(InvalidRepository))
+  for name in ["state", "since", "labels", "sort", "direction"] {
+    assert_true(issue_list_filter_allowed(name))
+  }
+  for name in ["", "State", "page", "per_page", "q"] {
+    assert_false(issue_list_filter_allowed(name))
+  }
+}
+
+///|
 test "next page stays on the listing, advances, and refuses malformed links" {
   let origin = "https://api.github.com"
   let path = "/repos/o/r/issues"

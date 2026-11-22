@@ -6988,23 +6988,14 @@
     {
       "module": "adapters/connectors/github/site/github-issue-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de1e253e2db38b9c5e7376e482001789e8b2cb0a356ad7a7c48580c27a96c345",
+      "sha256": "827bb5551d412fca5598541c45f324c755f17713480cc0e4f6646a6077b5bc08",
       "role": "physical-io",
-      "owner": "REST Issue pagination and scoped exchange; provider MoonBit owns projection, Link and failure classification",
+      "owner": "REST Issue scoped exchange; provider MoonBit owns the first locator, filter names, projection, Link and failure classification",
       "exports": [
         "GITHUB_ISSUE_LIST_OPERATION",
-        "githubIssueListPath",
         "readGitHubIssues"
       ],
       "operations": [
-        {
-          "name": "githubIssueListPath",
-          "parameters": [
-            "owner",
-            "repo"
-          ],
-          "async": false
-        },
         {
           "name": "pairs/pairs/pairs",
           "parameters": [
@@ -7056,7 +7047,6 @@
         {
           "operations": [
             "<module>",
-            "githubIssueListPath",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssues",
@@ -7065,7 +7055,6 @@
           ],
           "exports": [
             "GITHUB_ISSUE_LIST_OPERATION",
-            "githubIssueListPath",
             "readGitHubIssues"
           ],
           "attributes": {
@@ -7083,8 +7072,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
-                "anchor": "githubIssueListPath"
+                "path": "src/connectors/github/catalog/issue_list_request.mbt",
+                "anchor": "pub fn issue_list_start("
               }
             ],
             "ownership": [

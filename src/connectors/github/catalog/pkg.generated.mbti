@@ -50,6 +50,10 @@ pub fn issue_comments_read_take_page(IssueCommentsRead) -> Result[GraphqlIssueCo
 
 pub fn issue_comments_request(IssueCommentSubject, Int, String?) -> Result[String, GraphqlRequestIssue]
 
+pub fn issue_list_filter_allowed(String) -> Bool
+
+pub fn issue_list_start(String, String, Int) -> Result[NextPage, IssueListStartIssue]
+
 pub fn issue_page_read_accept(IssuePageRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
 
 pub fn issue_page_read_close(IssuePageRead) -> Unit
@@ -272,6 +276,11 @@ pub(all) struct IssueFilters {
   state : String
   labels : Array[String]
   since : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueListStartIssue {
+  InvalidRepository
+  InvalidPageSize
 } derive(Eq, @debug.Debug)
 
 pub(all) struct IssuePage {
