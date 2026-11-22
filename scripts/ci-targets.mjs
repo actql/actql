@@ -52,7 +52,8 @@ export const maintenanceFiles = Object.freeze([
   'examples/infer-evaluation/compare-source-instructions.test.mjs',
   // Pure report assessment and synthetic oracle tests, all owned by lint.
   // No runtime, compiler, normal producer or proof imports this implementation.
-  'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs',
+  'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts',
+  'scripts/operation-performance.test.mjs',
   'scripts/operation-performance-policy.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);

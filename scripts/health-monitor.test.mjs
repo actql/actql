@@ -685,9 +685,9 @@ test('Release methodology identity binds actual cold and Native Python collector
     'adapters/host-node/fixtures/mock-project-effect-public.mjs',
     'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
-    'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mts',
+    'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mts', 'scripts/measure-distribution-artifacts.mts',
     'scripts/package-release.mjs', 'scripts/package-inventory.mts', 'scripts/installed-connector-bin.mts',
-    'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
+    'scripts/connector-authoring-toolkit.mts', 'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts', 'scripts/ordinary-operation-packages.mjs'];
   const releaseOnly = ['scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
     'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs'];
   const files = [...quickFiles, ...releaseOnly];

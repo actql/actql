@@ -2038,3 +2038,7 @@ target/
 /scripts/measure-distribution-artifacts.d.mts
 /scripts/npm-pack-json.test.mjs
 /scripts/npm-pack-json.test.d.mts
+/scripts/health-monitor-report.mjs
+/scripts/health-monitor-report.d.mts
+/scripts/operation-performance-sample-summary.mjs
+/scripts/operation-performance-sample-summary.d.mts
