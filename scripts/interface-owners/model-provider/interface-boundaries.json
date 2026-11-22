@@ -3775,7 +3775,7 @@
     },
     {
       "module": "src/check_environment/public_model_task_normalization.mbt",
-      "sha256": "9fd1186cb309f81a3044d3dae7a53bc41da9147fe21e3665d734be030ea5d0db",
+      "sha256": "3c809ba68be38d292291f60d69effbf9c3b8358982ba568531b42814d4cd4b30",
       "exports": [],
       "operations": [
         {
@@ -3789,6 +3789,10 @@
         {
           "name": "emit_public_task_prompt",
           "declaration": "emit_public_task_prompt ( value : PublicModelTaskDeclaration , self_cid : String ? , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_public_task_prompt_payload",
+          "declaration": "emit_public_task_prompt_payload ( value : PublicModelTaskDeclaration , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
         },
         {
           "name": "normalize_public_model_task",
@@ -3823,6 +3827,7 @@
           "operations": [
             "<module>",
             "emit_normalized_public_task",
+            "emit_public_task_prompt_payload",
             "emit_public_task_checked_contract",
             "emit_public_task_prompt",
             "normalize_public_model_task",
@@ -3852,6 +3857,10 @@
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "emit_public_task_prompt_payload"
               }
             ],
             "identity": [
