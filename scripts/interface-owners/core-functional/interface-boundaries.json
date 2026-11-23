@@ -7176,6 +7176,7 @@
             "inferQuantityCapacity/inferQuantityCapacity",
             "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
             "publicationControl",
+            "publicationControl/admissionToken/admissionToken",
             "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
             "publicationControl/contentCaptures/contentCaptures/contentCaptures",
             "publicationControl/effectSourceToken/effectSourceToken",
@@ -7334,7 +7335,6 @@
             "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
             "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
             "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
-            "publicationControl/init:issueDurableResultBinding/init:issueDurableResultBinding",
             "publicationControl/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
@@ -7367,12 +7367,7 @@
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
-            "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
-            "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
-            "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
-            "publicationControl/init:issueResultManifest/init:issueResultManifest",
             "publicationControl/init:issueRunDefinition/init:issueRunDefinition",
             "publicationControl/init:issueRunInvocation/init:issueRunInvocation",
             "publicationControl/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
@@ -7443,13 +7438,6 @@
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
-            "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -7460,8 +7448,6 @@
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
-            "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
-            "publicationControl/init:recordTransition/init:recordTransition",
             "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
             "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
@@ -7475,7 +7461,6 @@
             "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
             "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
             "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
-            "publicationControl/init:runChainValid/init:runChainValid",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
             "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
@@ -9722,117 +9707,6 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
-            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
-            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
-            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
-            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
-            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
-            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
-            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
-              },
-              {
-                "path": "docs/design/local-capacity-plan.md",
-                "anchor": "## Shared publication encoders"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-publication-capacity.test.mjs",
-                "anchor": "test('public Local publishes every one of 100 aliases including distinct projections and empty rows',async()=>{"
               }
             ]
           }
@@ -15008,6 +14882,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/admissionToken/admissionToken",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/captureContractLimits/captureContractLimits",
           "parameters": [
             "limits",
@@ -17316,15 +17197,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueDurableResultBinding/init:issueDurableResultBinding",
-          "parameters": [
-            "chain",
-            "physical",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
           "parameters": [
             "chain",
@@ -17634,61 +17506,11 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
-          "parameters": [
-            "request",
-            "runDefinition",
-            "attempt",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
-          "parameters": [
-            "attempt",
-            "previous",
-            "update",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
-          "parameters": [
-            "runDefinition",
-            "definitions",
-            "intent",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
-          "parameters": [
-            "chain",
-            "committedAt",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
           "parameters": [
             "exportHandle",
             "invocation",
             "retention",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueResultManifest/init:issueResultManifest",
-          "parameters": [
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "artifacts",
             "limits"
           ],
           "async": false
@@ -17951,45 +17773,6 @@
             "fragment",
             "ordered",
             "providers"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
-          "parameters": [
-            "request",
-            "resultCount",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
-          "parameters": [
-            "plan",
-            "request",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
-          "parameters": [
-            "binding"
           ],
           "async": false
         },
@@ -19141,64 +18924,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
-          "parameters": [
-            "admission",
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "retentions",
-            "evidenceContexts",
-            "request",
-            "attempt",
-            "programDefinitionCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
-          "parameters": [
-            "committed",
-            "candidate"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
           "parameters": [
             "compiled",
@@ -19318,22 +19043,6 @@
             "retention",
             "policy",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recordTransition/init:recordTransition",
-          "parameters": [
-            "previous",
-            "next",
-            "uncommittedConfirmed"
           ],
           "async": false
         },
@@ -19644,29 +19353,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
-          "parameters": [
-            "inputRelationCids",
-            "maxSchemaBytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
           "parameters": [
             "run",
@@ -19737,18 +19423,6 @@
           "name": "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
           "parameters": [
             "artifact"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:runChainValid/init:runChainValid",
-          "parameters": [
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "artifacts",
-            "manifest",
-            "limits"
           ],
           "async": false
         },
@@ -20279,6 +19953,7 @@
         "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
         "./runtime-execution-control.mjs",
+        "./runtime-publication-contract-control.mjs",
         "./runtime-result-delivery-control.mjs",
         "./runtime-result.mjs",
         "./runtime-run-state-control.mjs",
@@ -20287,7 +19962,455 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1fe0edb6c67b99da0a6f2d77449ea8a766d53fa678486cf60430cf93fb41f02d"
+      "sha256": "aa08e6b2110579d79277ac98e9f0d42fff5a75a1336bdc3e582c93e6db30c7eb"
+    },
+    {
+      "module": "adapters/host-common/runtime-publication-contract-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common publication contract issuance, transition and capacity projection",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationContractControls",
+            "createPublicationContractControls/init:issueDurableResultBinding/init:issueDurableResultBinding",
+            "createPublicationContractControls/init:issuePublicationAttempt/init:issuePublicationAttempt",
+            "createPublicationContractControls/init:issuePublicationRecord/init:issuePublicationRecord",
+            "createPublicationContractControls/init:issuePublicationRequest/init:issuePublicationRequest",
+            "createPublicationContractControls/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
+            "createPublicationContractControls/init:issueResultManifest/init:issueResultManifest",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
+            "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
+            "createPublicationContractControls/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
+            "createPublicationContractControls/init:recordAllowsCommit/init:recordAllowsCommit",
+            "createPublicationContractControls/init:recordTransition/init:recordTransition",
+            "createPublicationContractControls/init:runChainValid/init:runChainValid"
+          ],
+          "exports": [
+            "createPublicationContractControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "export function createPublicationContractControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "strategyIssuePublicationRequest("
+              },
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "strategyIssuePublicationRecord("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "token(committed), token(candidate)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const admissionTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "return moon.strategyPublicationRecordTransition("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "throw new TypeError('Invalid Publication Record update');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "update.uncommittedConfirmed,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "captureContractLimits(limits, 'Result Manifest');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...contractControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/publication-capacity-common.test.mjs",
+                "anchor": "shared durable emitter preserves pre-refactor wire and CID"
+              },
+              {
+                "path": "adapters/host-common/publication-global-capacity.test.mjs",
+                "anchor": "shared index emitter retains original canonical wire and CID"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPublicationContractControls/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "createPublicationContractControls/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+            "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+            "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+            "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-publication-contract-control.mts",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids: unknown, maxSchemaBytes: number, limits: Limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('public Local publishes every one of 100 aliases including distinct projections and empty rows',async()=>{"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createPublicationContractControls"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationContractControls",
+          "parameters": [
+            "moon",
+            "token",
+            "admissionToken",
+            "evidenceToken",
+            "inspect",
+            "captureContractLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issueDurableResultBinding/init:issueDurableResultBinding",
+          "parameters": [
+            "chain",
+            "physical",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issuePublicationAttempt/init:issuePublicationAttempt",
+          "parameters": [
+            "request",
+            "runDefinition",
+            "attempt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issuePublicationRecord/init:issuePublicationRecord",
+          "parameters": [
+            "attempt",
+            "previous",
+            "update",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issuePublicationRequest/init:issuePublicationRequest",
+          "parameters": [
+            "runDefinition",
+            "definitions",
+            "intent",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
+          "parameters": [
+            "chain",
+            "committedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:issueResultManifest/init:issueResultManifest",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "request",
+            "resultCount",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+          "parameters": [
+            "plan",
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid",
+          "parameters": [
+            "admission",
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "retentions",
+            "evidenceContexts",
+            "request",
+            "attempt",
+            "programDefinitionCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
+          "parameters": [
+            "committed",
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:recordAllowsCommit/init:recordAllowsCommit",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:recordTransition/init:recordTransition",
+          "parameters": [
+            "previous",
+            "next",
+            "uncommittedConfirmed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "inputRelationCids",
+            "maxSchemaBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationContractControls/init:runChainValid/init:runChainValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "manifest",
+            "limits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "88cf3046ddd5ef9e741aa4183fdbb39f824bea2bfd9cd5161e45293f99a50a50"
     },
     {
       "module": "adapters/host-common/runtime-run-state-control.mjs",

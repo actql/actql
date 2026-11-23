@@ -2544,3 +2544,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/connector-conformance-input.d.mts
 /scripts/connector-authoring.cli.test.mjs
 /scripts/connector-authoring.cli.test.d.mts
+/adapters/host-common/runtime-publication-contract-control.mjs
+/adapters/host-common/runtime-publication-contract-control.d.mts

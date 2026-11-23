@@ -18,6 +18,7 @@ import {createInstallationPreparationMetadata} from './installation-preparation-
 import {publicationProgressControl} from './publication-progress-control.mjs';
 import {createResultDeliveryControls} from './runtime-result-delivery-control.mjs';
 import {createRunStateControls} from './runtime-run-state-control.mjs';
+import {createPublicationContractControls} from './runtime-publication-contract-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -557,6 +558,9 @@ function publicationControl(moon) {
   const {effectRunStateControls, runIdentityControls, publicationStateControls} =
     createRunStateControls(moon, {token, issuanceLimits,
       computationPreviewTokens, modelOriginalDocumentTokens});
+  const {transitionControls, contractControls} = createPublicationContractControls(moon, {
+    token, admissionToken, evidenceToken, inspect, captureContractLimits,
+  });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -5106,239 +5110,9 @@ function publicationControl(moon) {
       ), limits);
     },
     ...effectRunStateControls,
-    recordTransition(previous, next, uncommittedConfirmed) {
-      return moon.strategyPublicationRecordTransition(
-        previous === undefined ? undefined : token(previous),
-        token(next),
-        uncommittedConfirmed,
-      );
-    },
-    recordAllowsCommit(record) {
-      return moon.strategyPublicationRecordAllowsCommit(token(record));
-    },
+    ...transitionControls,
     ...publicationProgressControl(moon, token),
-    runChainValid(runDefinition, invocation, definitions, artifacts,
-      manifest, limits) {
-      return moon.strategyRunPublicationChainValid(
-        token(runDefinition),
-        token(invocation),
-        definitions.map(token),
-        artifacts.map(token),
-        token(manifest),
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      );
-    },
-    issueResultManifest(runDefinition, invocation, definitions, artifacts,
-      limits) {
-      limits = captureContractLimits(limits, 'Result Manifest');
-      return inspect(checked(moon.strategyIssueResultManifest(
-        token(runDefinition),
-        token(invocation),
-        definitions.map(token),
-        artifacts.map(token),
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    issueDurableResultBinding(chain, physical, limits) {
-      limits = captureContractLimits(limits, 'durable Result binding');
-      if (chain === null || typeof chain !== 'object' ||
-          physical === null || typeof physical !== 'object') {
-        throw new TypeError('Invalid durable Result binding request');
-      }
-      return inspect(checked(moon.strategyIssueDurableResultBinding(
-        token(chain.runDefinition),
-        token(chain.definition),
-        token(chain.invocation),
-        token(chain.artifact),
-        token(chain.ordering),
-        token(chain.retention),
-        physical.codecContractCid,
-        physical.resultFields,
-        physical.resultSchemaWire,
-        physical.materialGenerationCid,
-        physical.storeAuthorityCid,
-        physical.rowCount,
-        physical.byteCount,
-        physical.physicalSha256,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits) {
-      limits = captureContractLimits(limits, 'Result publication capacity');
-      if (!Array.isArray(inputRelationCids) ||
-          !inputRelationCids.every(value => typeof value === 'string' &&
-            /^sha256:[0-9a-f]{64}$/u.test(value)) ||
-          !Number.isSafeInteger(maxSchemaBytes) || maxSchemaBytes < 0) {
-        throw new TypeError('Invalid Result publication capacity');
-      }
-      const values = moon.strategyResultPublicationContractByteBounds(
-        inputRelationCids, maxSchemaBytes, limits.maxWireBytes,
-        limits.maxNodes, limits.maxDepth,
-      );
-      if (!Array.isArray(values) || values.length !== 4 ||
-          !values.every(value => Number.isSafeInteger(value) && value >= 0 &&
-            value <= limits.maxWireBytes)) {
-        throw new TypeError('Invalid Result publication capacity projection');
-      }
-      return Object.freeze([...values]);
-    },
-    ordinaryPublicationReceiptByteBound(plan, request, limits) {
-      limits = captureContractLimits(limits, 'Publication receipt capacity');
-      const provenance = plan.receiptEvidence;
-      const value = moon.strategyOrdinaryPublicationReceiptByteBound(
-        admissionToken(plan.admission), token(request), token(plan.invocation),
-        evidenceToken(plan.observation), evidenceToken(plan.normalizationJournal),
-        provenance.bindings.map(binding => binding.name),
-        provenance.bindings.map(binding => binding.sha256),
-        provenance.sourceEvidence.map(evidenceToken),
-        provenance.modelEvidence.map(evidenceToken), provenance.barrierAttemptReceiptCids,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-      );
-      if (!Number.isSafeInteger(value) || value < 0 || value > limits.maxWireBytes) {
-        throw new TypeError('Invalid publication receipt capacity projection');
-      }
-      return value;
-    },
-    ordinaryPublicationFrontierByteBounds(request, resultCount, limits) {
-      limits = captureContractLimits(limits, 'Publication frontier capacity');
-      if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 2147483647) {
-        throw new TypeError('Invalid publication frontier inventory');
-      }
-      const values = moon.strategyOrdinaryPublicationFrontierByteBounds(
-        token(request), resultCount, limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-      );
-      if (!Array.isArray(values) || values.length !== 6 ||
-          !values.every(value => Number.isSafeInteger(value) && value >= 0 &&
-            value <= limits.maxWireBytes)) {
-        throw new TypeError('Invalid publication frontier capacity projection');
-      }
-      const manifest = moon.strategyOrdinaryPublicationManifestByteBound(
-        token(request), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-      );
-      if (!Number.isSafeInteger(manifest) || manifest < 0 || manifest > limits.maxWireBytes) {
-        throw new TypeError('Invalid publication manifest capacity projection');
-      }
-      return Object.freeze({
-        manifest,
-        index: values[0],
-        current: Object.freeze({preparing: values[1], committing: values[2],
-          publicationUnknown: values[3], terminal: values[4]}),
-        possibleForeignWinnerTerminal: values[5],
-      });
-    },
-    issuePublicationRequest(runDefinition, definitions, intent, limits) {
-      limits = captureContractLimits(limits, 'Publication Request');
-      if (intent === null || typeof intent !== 'object') {
-        throw new TypeError('Invalid Publication Request intent');
-      }
-      return inspect(checked(moon.strategyIssuePublicationRequest(
-        token(runDefinition),
-        definitions.map(token),
-        intent.namespaceId,
-        intent.authorityScopeCid,
-        intent.publicationPolicyCid,
-        intent.publicationTargetCid,
-        intent.requestedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    issuePublicationAttempt(request, runDefinition, attempt, limits) {
-      limits = captureContractLimits(limits, 'Publication Attempt');
-      if (attempt === null || typeof attempt !== 'object') {
-        throw new TypeError('Invalid Publication Attempt');
-      }
-      return inspect(checked(moon.strategyIssuePublicationAttempt(
-        token(request),
-        token(runDefinition),
-        attempt.attemptId,
-        attempt.fenceCid,
-        attempt.externalIdempotencyKey,
-        attempt.startedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    publicationPreflightValid(
-      admission,
-      runDefinition,
-      invocation,
-      definitions,
-      retentions,
-      evidenceContexts,
-      request,
-      attempt,
-      programDefinitionCid,
-    ) {
-      return moon.strategyPublicationPreflightValid(
-        admissionToken(admission),
-        token(runDefinition),
-        token(invocation),
-        definitions.map(token),
-        retentions.map(token),
-        evidenceContexts.map(value => value.computationContractCid),
-        evidenceContexts.map(value => value.inputRelationCids),
-        evidenceContexts.map(value => value.scopeCid),
-        evidenceContexts.map(value => value.effectiveDataPolicyCid),
-        evidenceContexts.map(value => value.authorityScopeCid),
-        token(request),
-        token(attempt),
-        programDefinitionCid,
-      );
-    },
-    issuePublicIndexEntry(chain, committedAt, limits) {
-      limits = captureContractLimits(limits, 'Public Index Entry');
-      if (chain === null || typeof chain !== 'object' ||
-          !Array.isArray(chain.durableBindings)) {
-        throw new TypeError('Invalid publication chain');
-      }
-      return inspect(checked(moon.strategyIssuePublicIndexEntry(
-        token(chain.runDefinition),
-        token(chain.invocation),
-        token(chain.manifest),
-        token(chain.receipt),
-        token(chain.capturedRun),
-        chain.durableBindings.map(token),
-        token(chain.request),
-        token(chain.attempt),
-        committedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    publicIndexSameCommittedContent(committed, candidate) {
-      return moon.strategyPublicIndexSameCommittedContent(
-        token(committed), token(candidate));
-    },
-    issuePublicationRecord(attempt, previous, update, limits) {
-      limits = captureContractLimits(limits, 'Publication Record');
-      if (update === null || typeof update !== 'object') {
-        throw new TypeError('Invalid Publication Record update');
-      }
-      return inspect(checked(moon.strategyIssuePublicationRecord(
-        token(attempt),
-        previous === undefined ? undefined : token(previous),
-        update.state,
-        update.observedAt,
-        update.publicIndexEntry === undefined
-          ? undefined : token(update.publicIndexEntry),
-        update.failureCid,
-        update.cleanupOwnerCids,
-        update.uncommittedConfirmed,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
+    ...contractControls,
     async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, receipt, capturedRun, limits, signal) {
       issuanceLimits(limits, 'Effect-free chain validation');
