@@ -3,6 +3,12 @@ import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {propertyReadFixture} from './property-item-read.fixture.mjs';
 import {createNotionPageReader,NOTION_PAGE_READ_OPERATION as operation} from '../site/page-read.mjs';
+import type {NotionPageReadFailure} from '../site/page-read.mjs';
+import type {NotionPropertyFixtureOptions,NotionFixtureCause} from './property-item-read.fixture.mjs';
+import type {TestContext} from 'node:test';
+
+type PageOptions = Parameters<typeof createNotionPageReader>[0];
+type Failure = NotionPageReadFailure & {cause:NotionFixtureCause};
 
 const limits=Object.freeze({maxRequestBytes:1024,maxResponseBytes:16384,maxTargetBytes:1024,
   maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:16,maxIdentityBytes:128,
@@ -11,13 +17,13 @@ function originalPage(){return{object:'page',id:'page',parent:{type:'data_source
   url:'https://notion.example/page',created_by:{object:'user',id:'creator'},last_edited_by:{object:'user',id:'editor'},
   created_time:'2026-10-17T10:00:00+09:00',last_edited_time:'2026-10-17T00:00:00.123000Z',in_trash:false,
   properties:{title:{id:'title',type:'title',title:[]}}};}
-async function fixture(t,options){
+async function fixture(t:TestContext,options?:NotionPropertyFixtureOptions){
   const f=await propertyReadFixture(t,{...options,additionalOperations:[operation]});
   f.state.respond=()=>originalPage();
   const original={moon:f.options.moon,pageId:'page',initialAuthorization:f.authorize(operation,'original-page'),
     credential:f.options.credential,current:f.current,chargeResponse:f.options.chargeResponse,
     consumeObservation:f.options.consumeObservation,limits};
-  return{...f,original,page:overrides=>createNotionPageReader({...original,...overrides})};
+  return{...f,original,page:(overrides?:Partial<PageOptions>)=>createNotionPageReader({...original,...overrides})};
 }
 
 test('actual Notion exact-page GET retains the original response parent version and checked UTC metadata',async t=>{
@@ -47,19 +53,19 @@ test('actual Notion rejected page identity malformed response and output exhaust
   for(const kind of ['identity','malformed','wire']){
     const f=await fixture(t),wire=kind==='identity'?JSON.stringify({...originalPage(),id:'foreign'}):
       kind==='malformed'?'{not-json':JSON.stringify(originalPage());f.state.respond=()=>wire;
-    const reader=f.page(kind==='wire'?{limits:{...limits,maxWireBytes:1}}:{});let failure;
-    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionPageReadFailed'&&error.cause.code==='MoonBitHostFailure';});
-    assert.equal(failure.observation.body.toString(),wire);assert.equal(failure.responseCharge,f.state.charges[0]);
+    const reader=f.page(kind==='wire'?{limits:{...limits,maxWireBytes:1}}:{});let failure:Failure|undefined;
+    await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionPageReadFailed'&&error.cause.code==='MoonBitHostFailure';});
+    assert.equal(failure!.observation!.body.toString(),wire);assert.equal(failure!.responseCharge,f.state.charges[0]);
     assert.equal(f.state.observations.length,0);assert.equal(reader.observe().cleanupConfirmed,false);
     await assert.rejects(reader.read(),{code:'NotionPageAlreadyStarted'});assert.equal(f.state.requests.length,1);
   }
 });
 
 test('actual Notion page authorization stays current before I/O and after original secret resolution',async t=>{
-  const denied=await fixture(t,{account:'deny'});await assert.rejects(denied.page().read(),error=>error.cause.code==='NotionPropertyDenied');
+  const denied=await fixture(t,{account:'deny'});await assert.rejects(denied.page().read(),(error:Failure)=>error.cause.code==='NotionPropertyDenied');
   assert.equal(denied.state.requests.length,0);assert.equal(denied.state.resolutions,0);
   const changed=await fixture(t);changed.state.resolved=()=>changed.writeAccount('deny');
-  await assert.rejects(changed.page().read(),error=>error.cause.code==='AuthorizationCurrentAccountChanged');
+  await assert.rejects(changed.page().read(),(error:Failure)=>error.cause.code==='AuthorizationCurrentAccountChanged');
   assert.equal(changed.state.requests.length,0);assert.equal(changed.state.resolutions,1);
 });
 
@@ -68,10 +74,10 @@ test('actual Notion page current or stop refusal after response retains raw cust
     const f=await fixture(t),stop=new AbortController();
     const reader=f.page({signal:stop.signal,chargeResponse:async body=>{
       const charge=f.options.chargeResponse(body);if(kind==='account')await f.writeAccount('deny');else stop.abort();return charge;
-    }});let failure;await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionPageReadFailed';});
-    assert.equal(failure.observation.body.toString(),JSON.stringify(originalPage()));assert.equal(failure.responseCharge,f.state.charges[0]);
+    }});let failure:Failure|undefined;await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionPageReadFailed';});
+    assert.equal(failure!.observation!.body.toString(),JSON.stringify(originalPage()));assert.equal(failure!.responseCharge,f.state.charges[0]);
     assert.equal(f.state.observations.length,0);assert.equal(f.state.requests.length,1);assert.equal(reader.observe().cleanupConfirmed,false);
-    if(kind==='account')assert.equal(failure.cause.code,'AuthorizationCurrentAccountChanged');else assert.equal(failure.cause.name,'AbortError');
+    if(kind==='account')assert.equal(failure!.cause.code,'AuthorizationCurrentAccountChanged');else assert.equal(failure!.cause.name,'AbortError');
   }
 });
 
@@ -79,8 +85,8 @@ test('actual Notion lost page reply keeps the original use Unknown across anothe
   const f=await fixture(t);f.state.beforeResponse=request=>request.socket.destroy();
   const reader=f.page();await assert.rejects(reader.read(),{code:'NotionPageReadFailed'});
   const original=f.journal.recover().find(x=>x.outcome==='unknown');assert(original);
-  const resolutions=f.state.resolutions;await assert.rejects(f.page().read(),error=>error.cause.code==='RemoteCredentialUseAlreadyClaimed');
+  const resolutions=f.state.resolutions;await assert.rejects(f.page().read(),(error:Failure)=>error.cause.code==='RemoteCredentialUseAlreadyClaimed');
   await assert.rejects(reader.read(),{code:'NotionPageAlreadyStarted'});
-  assert.equal(f.journal.inspect(original.useCid).outcome,'unknown');assert.equal(f.state.requests.length,1);
+  assert.equal(f.journal.inspect(original.useCid)!.outcome,'unknown');assert.equal(f.state.requests.length,1);
   assert.equal(f.state.resolutions,resolutions);assert.equal(reader.observe().cleanupConfirmed,false);
 });

@@ -2826,5 +2826,15 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/public-connection.test.d.mts
 /adapters/connectors/notion/test/project-connection.test.mjs
 /adapters/connectors/notion/test/project-connection.test.d.mts
+/adapters/connectors/notion/test/property-item-read.fixture.mjs
+/adapters/connectors/notion/test/property-item-read.fixture.d.mts
+/adapters/connectors/notion/test/property-item-read.test.mjs
+/adapters/connectors/notion/test/property-item-read.test.d.mts
+/adapters/connectors/notion/test/page-read.test.mjs
+/adapters/connectors/notion/test/page-read.test.d.mts
+/adapters/connectors/notion/test/page-title-read.test.mjs
+/adapters/connectors/notion/test/page-title-read.test.d.mts
+/adapters/connectors/notion/test/page-properties-read.test.mjs
+/adapters/connectors/notion/test/page-properties-read.test.d.mts
 /adapters/connectors/notion/test/read-declarations.test.mjs
 /adapters/connectors/notion/test/read-declarations.test.d.mts

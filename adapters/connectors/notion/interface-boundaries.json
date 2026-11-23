@@ -504,7 +504,7 @@
                 "anchor": "test \"Notion property item chain admits only complete ordered original rich text\""
               },
               {
-                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "path": "adapters/connectors/notion/test/property-item-read.test.mts",
                 "anchor": "actual property lost reply remains original journal Unknown with no resend or replacement token resolution"
               },
               {
@@ -516,23 +516,23 @@
                 "anchor": "actual Notion query and property operations retain typed rows and original response charges across both cursors"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual original Page GET and separately scoped title pages complete without a synthetic data-source row"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual title lost terminal reply stays original Unknown and cannot resend or refresh secret"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "actual title compiled callbacks and their original receiver are captured once across awaits"
               },
               {
-                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-title-read.test.mts",
                 "anchor": "after partial observation refuses the next Common request"
               },
               {
-                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "path": "adapters/connectors/notion/test/property-item-read.test.mts",
                 "anchor": "after partial observation refuses the next Common request"
               }
             ]
@@ -2049,7 +2049,7 @@
                 "anchor": "state.failure=new NotionPageReadFailure(cause,state.observation,state.charge);throw state.failure;"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion lost page reply keeps the original use Unknown across another reader without resend"
               }
             ],
@@ -2059,7 +2059,7 @@
                 "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion page current or stop refusal after response retains raw custody without publication"
               }
             ],
@@ -2089,11 +2089,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion exact-page GET retains the original response parent version and checked UTC metadata"
               },
               {
-                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-read.test.mts",
                 "anchor": "actual Notion rejected page identity malformed response and output exhaustion retain the original body and charge"
               },
               {
@@ -2331,7 +2331,7 @@
                 "anchor": "state.failure=new NotionPagePropertiesReadFailure(cause,state.page,state.row,state.children,state.charges);"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion lost dependent property reply stays Unknown across an explicit new reader without resend"
               }
             ],
@@ -2341,7 +2341,7 @@
                 "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion dependent authorization await rechecks current Account and abort before property send"
               }
             ],
@@ -2371,11 +2371,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual Notion exact GET completes the same checked row and paginated property under separate original uses"
               },
               {
-                "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
+                "path": "adapters/connectors/notion/test/page-properties-read.test.mts",
                 "anchor": "actual scalar-only Notion GET supplies its original ticket with the complete row without property authorization"
               },
               {
