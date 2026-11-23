@@ -81086,9 +81086,13 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "7275ee4ce2974bfbbba5b587c682715830bce442f886a8f96ff383f4cbed6e9c",
+      "sha256": "61b7402075e5a489913f1b9df97d4563ea0d2fbc4a8fff04ba0569b437ae1fab",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_python_local_source_free_environment",
+          "declaration": "admit_python_local_source_free_environment ( body : String , cid : String , ) - > @ checked . CheckEnvironment ?"
+        },
         {
           "name": "bind_restored_preparation",
           "declaration": "bind_restored_preparation ( nonce : Int64 , handle : Int , restoration_handle : Int , ) - > Int"
@@ -81182,7 +81186,8 @@
             "prepared_results",
             "prepared_tasks",
             "reserve_preparation",
-            "stored_preparation_input"
+            "stored_preparation_input",
+            "admit_python_local_source_free_environment"
           ],
           "exports": [],
           "attributes": {
@@ -81328,6 +81333,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/client_check_wbtest.mbt",
+                "anchor": "test \"Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT\""
               }
             ]
           }
@@ -90422,7 +90431,7 @@
           }
         }
       ],
-      "sha256": "90da607a5b7342e62b9d92f3c6db96a9a87356379fb35fdb17bb16a225d4ded7",
+      "sha256": "74720506d098afa37293bdfba917c8754b10217f373352d5d118be4dab948334",
       "exports": [],
       "operations": [
         {

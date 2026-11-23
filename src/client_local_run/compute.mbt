@@ -280,6 +280,7 @@ pub fn start_local_compute_task(
   current : @authorization.AdmittedAccountConfiguration,
   tuple : @authorization.AccessTuple,
   context_cid : String,
+  canonical_managed_rows? : Bool = false,
 ) -> Result[@managed.LocalManagedDispatchOperations[Int]?, LocalComputeIssue] {
   if !physical_equal(start.host, host) {
     return Err(AuthorizationMismatch)
@@ -356,7 +357,10 @@ pub fn start_local_compute_task(
     Ok(_) => ()
     Err(issue) => return Err(Task(issue))
   }
-  @managed.start_local_managed_dispatch_node(configuration)
+  @managed.start_local_managed_dispatch_node(
+    configuration,
+    canonical_managed_rows~,
+  )
   .map(value => Some(value))
   .map_err(issue => Managed(issue))
 }

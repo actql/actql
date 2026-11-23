@@ -10,6 +10,9 @@ pub fn Journal::has_effect_checkpoint_reports(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.database.scan_after("site_effect_checkpoint_report", "") {
     Ok(_) => Ok(true)
     Err(@sqlite.NotFound) => Ok(false)
@@ -33,6 +36,9 @@ pub fn Journal::effect_checkpoint_report(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.require(request) {
     Ok(_) => ()
@@ -80,6 +86,9 @@ pub fn Journal::retain_effect_checkpoint_report(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let request = @remote.remote_effect_checkpoint_report_dispatch(report)
   match @remote.prepare_dispatch_acceptance(self.control, request) {
     Ok(_) => ()
@@ -126,17 +135,11 @@ fn Journal::finish_effect_checkpoint_mutation(
   result : Result[Unit, NativeRemoteJournalIssue],
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(issue)
-    }
+    Err(issue) => self.abort_write(Err(issue))
     Ok(_) =>
-      match self.database.commit() {
+      match self.database.commit_journal_write() {
         Ok(_) => Ok(())
-        Err(issue) => {
-          ignore(self.database.rollback())
-          Err(Physical(issue))
-        }
+        Err(issue) => Err(TransactionCommit(issue))
       }
   }
 }
@@ -155,6 +158,9 @@ pub fn Journal::record_effect_checkpoint_reply(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
