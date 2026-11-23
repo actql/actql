@@ -27528,7 +27528,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27691,7 +27691,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28323,7 +28323,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -124795,10 +124795,10 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
+      "sha256": "c17076421bb7e3cec0df369cf5c682259ddc5876abf91162879b0a7994ffcfa4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -124841,6 +124841,11 @@
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
           "parameters": [],
           "async": false
         },
@@ -124888,6 +124893,18 @@
           "parameters": [
             "initialAuthorization"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [],
           "async": true
         },
         {
@@ -125093,7 +125110,8 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
             "createInstalledCredentialSourceReader/init:retire/init:retire",
-            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader"
+            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport"
           ],
           "exports": [
             "createInstalledCredentialSourceReader",
@@ -125466,7 +125484,9 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/sync/settled/settled",
             "createInstalledCredentialSourceReader/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues"
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse"
           ],
           "exports": [],
           "attributes": {
@@ -125929,7 +125949,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -127138,7 +127158,7 @@
       "sha256": "90768f355b49d6fc4a4ab9e10f4424dd9db3ce647b698aea16cb4222777550d4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -134311,7 +134331,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134614,7 +134634,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -135249,7 +135269,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

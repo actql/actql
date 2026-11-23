@@ -180,12 +180,8 @@ pub fn prepare_statement_read(
   }
   let mut date_output = false
   let mut utc_output = false
-  for index, _ in @rows.row_acquisition_columns(read.prepared.acquisition) {
-    guard @rows.row_acquisition_column_contract(
-        read.prepared.acquisition,
-        index,
-      )
-      is Some(contract) else {
+  for index, _ in @description.read_projection_fields(read.projection) {
+    guard read_column_contract(read, index) is Some(contract) else {
       return Err(InvalidSettings)
     }
     match contract.shape {
@@ -220,7 +216,7 @@ pub fn prepare_statement_read(
     @encode.ordered_key(writer, "statement")
     @encode.string_value(
       writer,
-      @description.read_projection_statement(read.prepared.projection),
+      @description.read_projection_statement(read.projection),
     )
     @encode.ordered_key(writer, "timeout")
     @encode.number_value(writer, timeout_seconds.to_double())
@@ -382,6 +378,42 @@ pub fn charge_statement_response(
   status_code : Int,
   wire_body : Bytes,
 ) -> Result[StatementResponse, StatementIssue] {
+  if value.read.custody is ManagedBorrow(_) {
+    return Err(WrongResponse)
+  }
+  match check_statement_response_request(value, request) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let charge = match @rows.charge_row_run_page(value.read.run, wire_body) {
+    Ok(value) => value
+    Err(issue) => return fail_statement(value, Read(Host(issue)))
+  }
+  Ok(bind_statement_response(value, request, status_code, charge))
+}
+
+///|
+/// Bind the exact response that the shared credential reader already charged.
+pub fn adopt_statement_response(
+  value : StatementRead,
+  request : StatementRequest,
+  status_code : Int,
+  charge : @rows.RowPageCharge,
+) -> Result[StatementResponse, StatementIssue] {
+  guard value.read.custody is ManagedBorrow(borrow) &&
+    @rows.row_run_response_charge_current(borrow, charge) else {
+    return Err(WrongResponse)
+  }
+  check_statement_response_request(value, request).map(_ => {
+    bind_statement_response(value, request, status_code, charge)
+  })
+}
+
+///|
+fn check_statement_response_request(
+  value : StatementRead,
+  request : StatementRequest,
+) -> Result[Unit, StatementIssue] {
   if !statement_live(value) {
     return Err(Closed)
   }
@@ -394,12 +426,18 @@ pub fn charge_statement_response(
   if !request.attempted {
     return Err(NotAttempted)
   }
+  Ok(())
+}
+
+///|
+fn bind_statement_response(
+  value : StatementRead,
+  request : StatementRequest,
+  status_code : Int,
+  charge : @rows.RowPageCharge,
+) -> StatementResponse {
   request.observed = true
   value.pending = None
-  let charge = match @rows.charge_row_run_page(value.read.run, wire_body) {
-    Ok(value) => value
-    Err(issue) => return fail_statement(value, Read(Host(issue)))
-  }
   let response = {
     owner: value,
     request,
@@ -408,7 +446,7 @@ pub fn charge_statement_response(
     consumed: false,
   }
   value.pending_response = Some(response)
-  Ok(response)
+  response
 }
 
 ///|
@@ -506,7 +544,7 @@ pub fn accept_charged_statement_response(
           Ok(_) => ()
           Err(issue) => return fail_statement(value, Read(issue))
         }
-      InstalledBorrow(_) => {
+      ManagedBorrow(_) => {
         // Provider completeness is not Common finish, capture or cleanup.
         // Every partition count was admitted against the original metadata.
         if read.rows != @response.result_set_total_rows(original) {
