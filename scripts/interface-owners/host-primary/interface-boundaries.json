@@ -3145,28 +3145,6 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeClientDispatchOwner/cancel/cancel",
           "parameters": [
             "ref"
@@ -3534,10 +3512,6 @@
         {
           "operations": [
             "installNodeClientDispatchOwner",
-            "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
-            "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
-            "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
-            "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
             "installNodeClientDispatchOwner/cancel/cancel",
             "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
             "installNodeClientDispatchOwner/current/current",
@@ -4814,15 +4788,70 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5442af365287b6e0d22d8c280cc020a6c218bf5e0aaae7b263be77c417a388cb",
+      "sha256": "d95863e2caefabd6e92e7693912f03a3e15d3413b907970039e76f8807709239",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
       "module": "adapters/host-node/client-dispatch-source-acquisition.mjs",
       "exports": [
+        "createClientDispatchKeyedAcquisition",
         "createClientDispatchSourceAcquisition"
       ],
       "operations": [
+        {
+          "name": "createClientDispatchKeyedAcquisition",
+          "parameters": [
+            "moon",
+            "control",
+            "runContent",
+            "store",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "step",
+            "resourceUsage",
+            "now",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "retainedRelationOutput"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchKeyedAcquisition/acquireKeyedSources",
+          "parameters": [
+            "entry",
+            "preparedProgram",
+            "selected",
+            "acquired",
+            "principalId"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchKeyedAcquisition/acquireKeyedSources/captured/captured",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchKeyedAcquisition/acquireKeyedSources/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchKeyedAcquisition/acquireKeyedSources/keyedContent/keyedContent",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchKeyedAcquisition/acquireKeyedSources/lookup/lookup",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createClientDispatchSourceAcquisition",
           "parameters": [
@@ -4936,18 +4965,107 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createClientDispatchKeyedAcquisition",
+            "createClientDispatchKeyedAcquisition/acquireKeyedSources",
+            "createClientDispatchKeyedAcquisition/acquireKeyedSources/captured/captured",
+            "createClientDispatchKeyedAcquisition/acquireKeyedSources/init:close/init:close",
+            "createClientDispatchKeyedAcquisition/acquireKeyedSources/keyedContent/keyedContent",
+            "createClientDispatchKeyedAcquisition/acquireKeyedSources/lookup/lookup"
+          ],
+          "exports": [
+            "createClientDispatchKeyedAcquisition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "export function createClientDispatchKeyedAcquisition<Ref>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "return {plan: acquired, acquiredContent: {captured, ledger, sourceEvidenceWire,"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "return {plan, setup};"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "originalCapture: captured.capture, keyedContent,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "entry.sourceCapture = Object.freeze({async close() {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "for (const child of [...children].reverse())"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "if (failures.length) throw new AggregateError(failures, 'ClientSourceCleanupPending');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "retainExecution: child => children.push(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "test('installed dispatch owns original keyed acquisition through committed Store cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "test('installed keyed dispatch retains left custody while unknown child cleanup is pending'"
+              },
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "'original dispatch supplies Run-bound Content custody and preserves committed bytes after Source cleanup'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/acquisition-outcome.mjs",
+        "../host-common/runtime-result.mjs",
         "./client-source-operation.mjs",
-        "./installed-source.mjs"
+        "./installed-source.mjs",
+        "./local-values-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d48304c33966988bf1938d5e959b45b37ea64421ba991fa49d1eb9857efac31f",
-      "rationale": "Single Source acquisition keeps the original opened capture, Source evidence, and same Run cleanup under the existing Client Dispatch owner."
+      "sha256": "a2a58aa0cc35f0da6c52aad7b7b2f0cbaa3a2e9937e3abcacb13dd9f0fef3331",
+      "rationale": "Direct and keyed Source acquisition retain original captures, Source evidence, and cleanup under the existing Client Dispatch owner."
     },
     {
       "module": "adapters/host-node/client-dispatch-tracking.mjs",

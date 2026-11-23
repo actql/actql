@@ -7,7 +7,7 @@ import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/com
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
-  acquiredKeyedTaskPublicationPlan, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
+  sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
@@ -21,7 +21,7 @@ import {isModelCredentialRefusal} from './infer-operation.mjs';
 import {createClientDispatchCleanup, releaseDispatchPreparationHost, retainDispatchPreparationHost}
   from './client-dispatch-cleanup.mjs';
 import {createClientDispatchTracking} from './client-dispatch-tracking.mjs';
-import {createClientDispatchSourceAcquisition} from './client-dispatch-source-acquisition.mjs';
+import {createClientDispatchKeyedAcquisition, createClientDispatchSourceAcquisition} from './client-dispatch-source-acquisition.mjs';
 import {confirmNodeRunCancellation, observeNodeRunStop, recordNodeRunPhysicalStop}
   from './client-dispatch-stop.mjs';
 export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestoredLocalStop,
@@ -98,110 +98,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     journal, retainedRelationOutput, authorityScopeCid, control,
   });
 
-  async function acquireKeyedSources(entry, preparedProgram, selected, acquired, principalId) {
-    const {directAdapter, keyedAdapter, preparedSource, directOccurrence,
-      directAccess, keyedAccess, preparedKeyed, acquisition, capacity, ledger, capturedContent,
-      managedRun, requestIdentity} = selected;
-    // Retain the aggregate before the first await. Compute borrows these
-    // inputs; its confirmed close must precede reclamation of either source.
-    entry.borrowedSources = true;
-    const children = [];
-    const closed = new Set();
-    entry.sourceCapture = Object.freeze({async close() {
-      const failures = [];
-      for (const child of [...children].reverse()) {
-        if (closed.has(child)) continue;
-        try {
-          await child.close();
-          if (typeof child.cleanup === 'function' &&
-              (await child.cleanup() === false || child.cleanupPending() !== false)) {
-            throw new Error('ClientSourceCleanupPending');
-          }
-          closed.add(child);
-        } catch (error) {
-          failures.push(error);
-          // The lookup can still borrow its left capture while stopping.
-          // Keep earlier children until that dependent custody is reclaimed.
-          break;
-        }
-      }
-      if (failures.length) throw new AggregateError(failures, 'ClientSourceCleanupPending');
-    }});
-    const open = async (kind, operation) => {
-      let returned = false;
-      entry.abort.signal.throwIfAborted();
-      await step('acquisition_started', {ref: entry.ref, kind,
-        resourceUsage: resourceUsage(ledger)});
-      entry.physicalWorkMayHaveStarted = true;
-      try {
-        const child = await operation();
-        children.push(child);
-        returned = true;
-        await step('acquisition_completed', {ref: entry.ref, kind,
-          resourceUsage: resourceUsage(ledger)});
-        return child;
-      } catch (error) {
-        if (returned) throw error;
-        const ended = acquisitionEndHandoff().outcome(error);
-        if (ended.outcome === 'unknown') {
-          // A lookup's failed child is source custody, not an execution owner.
-          // Keep it alongside the already acquired Direct input for retry.
-          if (ended.recovery !== undefined) children.push(ended.recovery);
-          else entry.unresolvedCleanup = true;
-        }
-        throw error;
-      }
-    };
-    const captureStartedAt = now();
-    const captured = await open('direct', () => directAdapter.openCapture({preparedProgram,
-      registry, values, fragment, ordered, preparedSource,
-      occurrence: directOccurrence, sourceAccess: directAccess,
-      signal: entry.abort.signal, ledger}));
-    const left = checked(moon.clientProgramKeyedCaptureLeftRead(acquisition,
-      captured.capture.source()));
-    const keyedContent = !capturedContent ? undefined : runContent.captureKeyed({
-      preparedProgram, plan: acquired, acquisition, ledger, maxBytes: capacity.maxBytes, maxWork: capacity.maxWork,
-      sourceBinding: keyedAdapter.keyedRecoveryBinding(preparedKeyed),
-      store, principalId, signal: entry.abort.signal, retainExecution: child => children.push(child)});
-    const lookup = await open('keyed', () => keyedAdapter.openKeyedLookup({preparedProgram,
-      keyedAcquisition: acquisition, left, ledger, signal: entry.abort.signal,
-      originalCapture: captured.capture, keyedContent,
-      sourceAccess: keyedAccess, preparedKeyed, maxWork: capacity.maxWork}));
-    const evidenceOptions = {authorityScopeCid,
-      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
-    const contentOrInfer = acquired.serializationGraph !== undefined || acquired.kind === 'infer';
-    let sourceEvidence, sourceEvidenceWire;
-    if (contentOrInfer) sourceEvidenceWire = await captured.issueSourceEvidence(evidenceOptions);
-    else {
-      await captured.prepareSourceEvidenceOriginal(evidenceOptions);
-      sourceEvidence = control.takeSourceEvidenceOriginal(captured.capture);
-    }
-    const keyedObservation = await lookup.issueObservation({authorityScopeCid, observedAt: now()});
-    const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
-    if (effectiveDataPolicyCid === undefined) throw new Error('InstalledKeyedSourcePolicyUnavailable');
-    if (contentOrInfer) {
-      // Both acquisition children remain in this supervisor's custody. The
-      // Content provider borrows their exact sealed inputs; cleanup stops that
-      // dependent before closing lookup and its left capture in reverse order.
-      return {plan: acquired, acquiredContent: {captured, ledger, sourceEvidenceWire,
-        authorityScopeCid, captureStartedAt, captureCompletedAt: now(), keyedObservation,
-        keyedLookup: await lookup.borrowSerializationInput(), keyedContent,
-        sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire,
-          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
-        keyedSourceEvidence: control.admitRunEvidence('source_evidence', keyedObservation.sourceEvidenceWire,
-          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})}};
-    }
-    const plan = acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-      publicationOriginal: managedRun === undefined ? undefined
-        : {kind: 'installed_run', value: managedRun},
-      preparedProgram, captured, sourceEvidence, keyedObservation,
-      authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt: now(),
-      namespaceId, storeAuthorityCid, now});
-    const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput,
-      managedRun, requestIdentity});
-    entry.pendingSetup = setup;
-    return {plan, setup};
-  }
+  const acquireKeyedSources = createClientDispatchKeyedAcquisition({
+    moon, control, runContent, store, registry, values, fragment, ordered,
+    step, resourceUsage, now, authorityScopeCid, namespaceId, storeAuthorityCid, retainedRelationOutput,
+  });
 
   async function observeStop(entry) {
     if (entry.terminalOutcome === 'cancelled' &&
