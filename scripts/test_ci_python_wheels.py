@@ -24,6 +24,37 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class InstalledNumericReductionTests(unittest.TestCase):
+    def test_same_cohort_numeric_saved_requires_a_distinct_process(self):
+        source, module = 'a' * 40, 'b' * 64
+        cases = ['pivot', 'sum', 'count']
+        consumer = Path('/consumer/python')
+        env = {'ACTUAL_INSTALLED': 'yes'}
+        for saved_pid in (42, 41):
+            calls = []
+
+            def run(name, args, **options):
+                phase = args[-3]
+                calls.append((name, phase))
+                self.assertEqual(args[:3], [consumer, '-I', '-B'])
+                self.assertEqual(args[-2:], [source, module])
+                self.assertEqual(args[-4].read_bytes(),
+                                 (ci.ROOT / 'packages/python-sdk/tests/installed_numeric_reductions.py').read_bytes())
+                self.assertEqual(options, {'cwd': Path(tmp) / 'numeric-reductions', 'env': env,
+                                           'timeout': 180})
+                return json.dumps({'phase': phase, 'pid': 41 if phase == 'initial' else saved_pid,
+                                   'source': source, 'module': module, 'cases': cases, 'first_close': True})
+
+            with self.subTest(saved_pid=saved_pid), tempfile.TemporaryDirectory() as tmp:
+                if saved_pid == 41:
+                    with self.assertRaisesRegex(ValueError, 'original Saved'):
+                        ci.accept_installed_numeric_reductions(run, consumer, Path(tmp), source, module, env)
+                else:
+                    ci.accept_installed_numeric_reductions(run, consumer, Path(tmp), source, module, env)
+            self.assertEqual(calls, [('installed-linux-numeric-initial', 'initial'),
+                                     ('installed-linux-numeric-saved', 'saved')])
+
+
 class InstalledFuelControlTests(unittest.TestCase):
     def initial(self):
         return {'phase': 'initial', 'pid': 41, 'firstClose': True, 'replayed': False,

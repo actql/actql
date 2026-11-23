@@ -12,7 +12,9 @@ pub fn configure_source_free_local_compute_on_ledger(
   if !source_free_profile(plan.prepared) {
     return Err(UnsupportedCapability)
   }
-  guard @local.prepare_source_free_local_requirements(
+  // The installed root already bounds actual provider, import and output
+  // admission. A simultaneous whole-graph estimate is not a start condition.
+  guard @local.prepare_source_free_runtime_requirements(
       plan.prepared,
       installed_contracts,
       values_body,
