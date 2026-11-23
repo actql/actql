@@ -3,15 +3,31 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {createFixtureFileSupplier} from './fixture-file-source.mjs';
 
+type FixtureRow = {id: string; title: string; revision: string; mime: string; body: string};
+type FixtureRead = {originalRead?: object; originalKeyedRead?: object};
+type FixtureCharge = {bytes: Uint8Array};
+type FixtureResource = Readonly<Record<string, string>>;
+type FixtureContent = Readonly<{$fixtureContent: string}>;
+type FixtureCapture = Readonly<{bytes: Uint8Array; mediaType: string; contentCid: string}>;
+type FixturePage = {items: {resource: FixtureResource; version: string; name: string}[]};
+type FixtureContentRow = Readonly<{resource: FixtureResource; version: string; content: FixtureContent;
+  name?: string; path?: string | null; media_type?: string}>;
+type Setup = Parameters<typeof createFixtureFileSupplier<FixtureRead>>[0];
+type Mutable<T> = {-readonly [Key in keyof T]: T[Key]};
+type FixtureInputs = {rows?: FixtureRow[]; maxContentBytes?: number; failAdmit?: boolean; scope?: string};
+type FixtureState = {events: string[]; issued: Map<string, string>; pending?: FixtureCharge; page?: FixturePage;
+  captures: FixtureCapture[]; contentRows?: readonly FixtureContentRow[]; current: boolean;
+  bytesCalls: number; reads: number; admissions: number};
+
 // Callback-order tests only. Core document admission and real Store-backed
 // Content issuance have their own actual-runtime tests; these ports claim
 // neither a real ResourceRef nor a physical cleanup acknowledgement.
-const rowDigest = row => 'sha256:' + createHash('sha256').update(JSON.stringify(row)).digest('hex');
-const fixtureVersion = row => 'sha256:' + createHash('sha256').update(JSON.stringify({
+const rowDigest = (row: FixtureRow) => 'sha256:' + createHash('sha256').update(JSON.stringify(row)).digest('hex');
+const fixtureVersion = (row: FixtureRow) => 'sha256:' + createHash('sha256').update(JSON.stringify({
   declared_version: row.revision, row_version_cid: rowDigest(row),
 })).digest('hex');
 
-function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope} = {}) {
+function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope}: FixtureInputs = {}) {
   rows ??= [
     {id: 'one', title: 'Repeated name', revision: 'r1', mime: 'text/plain', body: 'e\u0301\n"line"\n'},
     {id: 'two', title: 'Repeated name', revision: 'r2', mime: 'text/plain', body: ''},
@@ -21,35 +37,35 @@ function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope} = {}) 
     documents: {key: ['id'], rows}, unrelated: {literal: 9007199254740991},
   }));
   let raw = encode();
-  const state = {events: [], issued: new Map(), pending: undefined, page: undefined,
+  const state: FixtureState = {events: [], issued: new Map(), pending: undefined, page: undefined,
     captures: [], current: true, bytesCalls: 0, reads: 0, admissions: 0};
-  const documents = new Map(), cells = new Map();
-  const resourceFor = identity => Object.freeze({$actql_ref: 'resource', identity,
+  const documents = new Map<unknown, FixtureRow[]>(), cells = new Map<unknown, FixtureRow>();
+  const resourceFor = (identity: string) => Object.freeze({$actql_ref: 'resource', identity,
     ...(scope === undefined ? {} : {scope})});
   const physical = {declaration, resource: 'documents', itemsPath: ['documents', 'rows'],
     keyPath: ['documents', 'key'], primaryIdentity: 'id', writableFields: []};
   const fields = {identity: 'id', name: 'title', version: 'revision', mediaType: 'mime', contentUtf8: 'body'};
   const limits = {maxBytes: 4096, maxNodes: 128, maxDepth: 8, maxRows: 4,
     maxWork: 16384, maxPageBytes: 4096, maxContentBytes};
-  const moon = {
+  const moon: Mutable<Setup['moon']> = {
     clientProgramRelationObserveTarget(d, selected, identity) {
       if (!documents.has(d) || selected !== declaration) return {$tag: 0, _0: 'ForeignSource'};
-      const value = documents.get(d).find(row => row.id === identity);
+      const value = documents.get(d)!.find(row => row.id === identity);
       if (value === undefined) return {$tag: 0, _0: 'InvalidPage'};
       const row = Object.freeze({}); cells.set(row, value);
       return {$tag: 1, _0: row};
     },
     clientProgramRelationTargetRowCount(d) {return documents.get(d)?.length;},
     clientProgramRelationTargetRowIdentity(d, index) {return documents.get(d)?.[index]?.id;},
-    clientProgramRelationTargetText(row, field) {return cells.get(row)?.[field];},
-    clientProgramRelationTargetVersion(row) {return cells.has(row) ? rowDigest(cells.get(row)) : undefined;},
+    clientProgramRelationTargetText(row, field) {return cells.get(row)?.[field as keyof FixtureRow];},
+    clientProgramRelationTargetVersion(row) {return cells.has(row) ? rowDigest(cells.get(row)!) : undefined;},
     clientProgramRelationTargetTextBytes(row, field) {
       state.bytesCalls++; state.events.push('utf8');
-      const text = cells.get(row)?.[field];
+      const text = cells.get(row)?.[field as keyof FixtureRow];
       return text === undefined ? undefined : Buffer.from(text, 'utf8');
     },
   };
-  const setup = {moon, physical, fields, limits,
+  const setup: Mutable<Setup> & {moon: typeof moon; limits: typeof limits; fields: typeof fields} = {moon, physical, fields, limits,
     async readOriginalBytes(options) {
       assert.strictEqual(options.rowRun.originalRead ?? options.rowRun.originalKeyedRead, originalRead);
       state.reads++; state.events.push('read');
@@ -63,11 +79,11 @@ function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope} = {}) 
       if (failAdmit) throw Object.assign(new Error('MoonBitHostFailure', {cause: 'InvalidPage'}),
         {code: 'MoonBitHostFailure'});
       const document = Object.freeze({});
-      documents.set(document, structuredClone(rows));
+      documents.set(document, structuredClone(rows!));
       return document;
     },
     issueResource(identity) {
-      assert(rows.some(row => row.id === identity));
+      assert(rows!.some(row => row.id === identity));
       const resource = resourceFor(identity);
       state.issued.set(JSON.stringify(resource), identity);
       state.events.push('issue:' + identity);
@@ -78,26 +94,28 @@ function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope} = {}) 
   };
   const supplier = createFixtureFileSupplier(setup);
   const verifyRead = async () => {state.events.push('verify');};
-  const chargePage = bytes => {
+  const chargePage = (bytes: Uint8Array) => {
     assert.strictEqual(bytes, raw, 'only the actual document is received transport DATA');
     assert.equal(state.pending, undefined);
     state.events.push('charge');
     state.pending = {bytes};
     return state.pending;
   };
-  const listingOptions = {rowRun: {originalRead}, verifyRead, chargePage,
+  type ListingOptions = Mutable<Parameters<typeof supplier.readListing<FixtureCharge>>[0]>;
+  type ContentOptions = Mutable<Parameters<typeof supplier.readContent<FixtureCharge, FixtureContent>>[0]>;
+  const listingOptions: ListingOptions = {rowRun: {originalRead}, verifyRead, chargePage,
     listing: {
       async beginRequest(token) {assert.equal(token, undefined); state.events.push('begin-list');},
       async consumePage(body, {charge}) {
         assert.strictEqual(charge, state.pending); state.pending = undefined;
-        state.page = JSON.parse(body); state.events.push('list-page');
+        state.page = JSON.parse(body as unknown as string) as FixturePage; state.events.push('list-page');
       },
     }};
-  const contentOptions = (identity = 'one', version = state.page?.items.find(item => item.resource.identity === identity)?.version ?? 'unlisted') => ({
+  const contentOptions = (identity = 'one', version = state.page?.items.find(item => item.resource.identity === identity)?.version ?? 'unlisted'): ContentOptions => ({
     rowRun: {originalKeyedRead: originalRead}, verifyRead, chargePage,
     requestWire: JSON.stringify({resource: resourceFor(identity), version}),
     async beginRequest(bytes) {
-      assert.deepEqual(JSON.parse(bytes), JSON.parse(this.requestWire)); state.events.push('begin-content');
+      assert.deepEqual(JSON.parse(bytes as unknown as string), JSON.parse(this.requestWire)); state.events.push('begin-content');
     },
     consumeObservation(charge) {
       assert.strictEqual(charge, state.pending); state.pending = undefined; state.events.push('consume-raw');
@@ -110,15 +128,15 @@ function fixture({rows, maxContentBytes = 1024, failAdmit = false, scope} = {}) 
   });
   // Installed callbacks are receiver-independent. Avoid making the fixture's
   // request check depend on `this`, which the real RowRun callbacks do not use.
-  const content = (...args) => {
+  const content = (...args: Parameters<typeof contentOptions>) => {
     const options = contentOptions(...args), wire = options.requestWire;
     options.beginRequest = async bytes => {
-      assert.deepEqual(JSON.parse(bytes), JSON.parse(wire)); state.events.push('begin-content');
+      assert.deepEqual(JSON.parse(bytes as unknown as string), JSON.parse(wire)); state.events.push('begin-content');
     };
     return options;
   };
-  return {supplier, setup, state, get raw() {return raw;}, get rows() {return rows;}, listingOptions, content,
-    replaceRows(next) {rows = structuredClone(next); raw = encode();}};
+  return {supplier, setup, state, get raw() {return raw;}, get rows() {return rows!;}, listingOptions, content,
+    replaceRows(next: FixtureRow[]) {rows = structuredClone(next); raw = encode();}};
 }
 
 test('fixture files use original charged document and Source-issued IDs, not nonunique names or invented paths', async () => {
@@ -155,7 +173,7 @@ test('fixture empty UTF8 content is real zero-byte data, and declared metadata c
   await f.supplier.readContent(options);
   assert.equal(f.state.captures[0].bytes.byteLength, 0);
   assert.equal(f.state.captures[0].contentCid, 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
-  assert.deepEqual(f.state.contentRows[0], {resource: {$actql_ref: 'resource', identity: 'two'},
+  assert.deepEqual(f.state.contentRows![0], {resource: {$actql_ref: 'resource', identity: 'two'},
     version: fixtureVersion(f.rows[1]), content: {$fixtureContent: '1'}, name: 'Repeated name', media_type: 'text/plain', path: null});
 });
 
@@ -178,8 +196,8 @@ test('fixture replacement with unchanged declared version rejects the old expose
   assert.equal(f.state.bytesCalls, 0); assert.equal(f.state.captures.length, 0);
   assert.equal(f.state.pending, undefined);
   await f.supplier.readListing(f.listingOptions);
-  assert.notEqual(f.state.page.items[0].version, oldVersion);
-  assert.equal(f.state.page.items[0].version, fixtureVersion(changed[0]));
+  assert.notEqual(f.state.page!.items[0].version, oldVersion);
+  assert.equal(f.state.page!.items[0].version, fixtureVersion(changed[0]));
   await f.supplier.readContent(f.content());
   assert.deepEqual(f.state.captures[0].bytes, Buffer.from('Replacement bytes\n'));
 });
@@ -188,7 +206,7 @@ test('fixture equal rows in a different Source inventory do not authorize a fore
   const first = fixture({scope: 'source-a'}), second = fixture({scope: 'source-b'});
   await first.supplier.readListing(first.listingOptions);
   await second.supplier.readListing(second.listingOptions);
-  assert.equal(first.state.page.items[0].version, second.state.page.items[0].version,
+  assert.equal(first.state.page!.items[0].version, second.state.page!.items[0].version,
     'equal physical data is not Source authority');
   const foreign = {...second.content(), requestWire: first.content().requestWire};
   second.state.events.length = 0;
@@ -214,7 +232,7 @@ test('fixture content bound rejects before UTF8 allocation, even when the origin
 test('fixture admission refusal retains the original pending ticket and issues no references', async () => {
   const f = fixture({failAdmit: true});
   await assert.rejects(f.supplier.readListing(f.listingOptions), {code: 'MoonBitHostFailure'});
-  assert.strictEqual(f.state.pending.bytes, f.raw);
+  assert.strictEqual(f.state.pending!.bytes, f.raw);
   assert.equal(f.state.issued.size, 0); assert.equal(f.state.page, undefined);
 });
 
@@ -223,7 +241,7 @@ test('fixture oversized original is charged but rejected before the parent proje
   const supplier = createFixtureFileSupplier({...f.setup,
     limits: {...f.setup.limits, maxBytes: 1, maxContentBytes: 0}});
   await assert.rejects(supplier.readListing(f.listingOptions), {code: 'FixtureFileOriginalBytesLimit'});
-  assert.strictEqual(f.state.pending.bytes, f.raw);
+  assert.strictEqual(f.state.pending!.bytes, f.raw);
   assert.equal(f.state.admissions, 0); assert.equal(f.state.issued.size, 0);
 });
 
@@ -234,7 +252,7 @@ test('fixture post-read current refusal charges received bytes but never admits 
     const bytes = await original(options); f.state.current = false; return bytes;
   }});
   await assert.rejects(supplier.readListing(f.listingOptions), /OriginalSourceNotCurrent/u);
-  assert.strictEqual(f.state.pending.bytes, f.raw);
+  assert.strictEqual(f.state.pending!.bytes, f.raw);
   assert.equal(f.state.admissions, 0); assert.equal(f.state.issued.size, 0);
 });
 
@@ -253,17 +271,17 @@ test('fixture supplier snapshots roles, limits and original Core/projection meth
   f.setup.moon.clientProgramRelationObserveTarget = () => assert.fail('No replaced Core method');
   f.setup.projectOriginalDocument = () => assert.fail('No replaced parent projection');
   await f.supplier.readListing(f.listingOptions);
-  assert.equal(f.state.page.items.length, 2); assert.equal(f.state.page.items[0].name, 'Repeated name');
+  assert.equal(f.state.page!.items.length, 2); assert.equal(f.state.page!.items[0].name, 'Repeated name');
 });
 
 test('fixture supplier requires declared physical identity/key path and valid bounded configuration', () => {
   const f = fixture();
   for (const physical of [{...f.setup.physical, keyPath: undefined}, {...f.setup.physical, primaryIdentity: 'name'}]) {
-    assert.throws(() => createFixtureFileSupplier({...f.setup, physical}), {code: 'InvalidFixtureFileSupplier'});
+    assert.throws(() => createFixtureFileSupplier({...f.setup, physical: physical as Setup['physical']}), {code: 'InvalidFixtureFileSupplier'});
   }
   assert.throws(() => createFixtureFileSupplier({...f.setup, limits: {...f.setup.limits, maxContentBytes: 4097}}),
     {code: 'InvalidFixtureFileLimits'});
-  assert.throws(() => createFixtureFileSupplier({...f.setup, projectOriginalDocument: undefined}),
+  assert.throws(() => createFixtureFileSupplier({...f.setup, projectOriginalDocument: undefined as unknown as Setup['projectOriginalDocument']}),
     {code: 'InvalidFixtureFileSupplier'});
 });
 
@@ -271,7 +289,7 @@ test('fixture foreign parent projection cannot issue a Resource or capture Conte
   const f = fixture();
   const supplier = createFixtureFileSupplier({...f.setup, projectOriginalDocument() {return Object.freeze({});}});
   await assert.rejects(supplier.readListing(f.listingOptions), {code: 'FixtureFileRowsUnavailable'});
-  assert.equal(f.state.issued.size, 0); assert.strictEqual(f.state.pending.bytes, f.raw);
+  assert.equal(f.state.issued.size, 0); assert.strictEqual(f.state.pending!.bytes, f.raw);
   const keyed = fixture(); await keyed.supplier.readListing(keyed.listingOptions);
   const foreign = createFixtureFileSupplier({...keyed.setup, projectOriginalDocument() {return Object.freeze({});}});
   await assert.rejects(foreign.readContent(keyed.content()), {code: 'MoonBitHostFailure'});
@@ -285,7 +303,7 @@ test('fixture physical failure keeps the same parent cleanup carrier without ret
   });
   const supplier = createFixtureFileSupplier({...f.setup, async readOriginalBytes() {throw failure;}});
   await assert.rejects(supplier.readListing(f.listingOptions), error => error === failure);
-  assert.equal(retries, 0); assert.equal(supplier.close, undefined);
+  assert.equal(retries, 0); assert.equal((supplier as typeof supplier & {close?: unknown}).close, undefined);
   assert.equal(f.state.admissions, 0); assert.equal(f.state.issued.size, 0);
 });
 
@@ -296,16 +314,16 @@ test('fixture raw retention awaits the same charged bytes before listing or cont
     if (kind === 'content') await f.supplier.readListing(f.listingOptions);
     f.state.events.length = 0;
     const before = f.state.admissions, reads = f.state.reads;
-    const gate = Promise.withResolvers();
+    const gate = Promise.withResolvers<void>();
     const options = kind === 'listing' ? f.listingOptions : f.content();
     options.retainRawResponse = async bytes => {
       assert.strictEqual(bytes, f.raw);
-      assert.strictEqual(f.state.pending.bytes, bytes);
+      assert.strictEqual(f.state.pending!.bytes, bytes);
       f.state.events.push('retain');
       await gate.promise;
       f.state.events.push('retained');
     };
-    const pending = kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options);
+    const pending = kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>);
     try {
       await new Promise(setImmediate);
       assert.equal(f.state.events.at(-1), 'retain');
@@ -334,7 +352,7 @@ test('fixture raw retention snapshots the own callback before the first await', 
       options.retainRawResponse = () => assert.fail('replacement callback must not be selected');
       await verify();
     };
-    await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options));
+    await (kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>));
     assert.equal(retained, 1);
   }
 });
@@ -345,7 +363,7 @@ test('fixture raw retention rechecks cancellation and original current after the
     if (kind === 'content') await f.supplier.readListing(f.listingOptions);
     const before = f.state.admissions, reads = f.state.reads;
     const options = kind === 'listing' ? f.listingOptions : f.content();
-    const gate = Promise.withResolvers(), controller = new AbortController();
+    const gate = Promise.withResolvers<void>(), controller = new AbortController();
     const stopped = new Error('OriginalReadStopped');
     let retained = false, settled = false, finished = false;
     options.signal = controller.signal;
@@ -355,8 +373,8 @@ test('fixture raw retention rechecks cancellation and original current after the
       assert.strictEqual(bytes, f.raw); retained = true;
       await gate.promise; finished = true;
     };
-    const result = (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options))
-      .then(() => ({ok: true}), reason => ({ok: false, reason})).finally(() => {settled = true;});
+    const result = (kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>))
+      .then(() => ({ok: true} as const), (reason: unknown) => ({ok: false, reason} as const)).finally(() => {settled = true;});
     try {
       await new Promise(setImmediate);
       assert.equal(retained, true);
@@ -368,11 +386,11 @@ test('fixture raw retention rechecks cancellation and original current after the
     } finally {gate.resolve();}
     const outcome = await result;
     assert.equal(outcome.ok, false);
-    if (stop === 'current') assert.equal(outcome.reason.message, 'OriginalSourceNotCurrent');
+    if (stop === 'current') assert.equal((outcome.reason as Error).message, 'OriginalSourceNotCurrent');
     else assert.strictEqual(outcome.reason, stopped);
     assert.equal(f.state.admissions, before);
     assert.equal(f.state.reads, reads + 1);
-    assert.strictEqual(f.state.pending.bytes, f.raw);
+    assert.strictEqual(f.state.pending!.bytes, f.raw);
     assert.equal(f.state.captures.length, 0);
   }
 });
@@ -390,13 +408,13 @@ test('fixture raw retention preserves synchronous and rejected reasons including
         if (asyncFailure) return Promise.reject(reason);
         throw reason;
       };
-      const outcome = await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options))
-        .then(() => ({ok: true}), error => ({ok: false, error}));
+      const outcome = await (kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>))
+        .then(() => ({ok: true} as const), (error: unknown) => ({ok: false, error} as const));
       assert.equal(outcome.ok, false);
       assert.strictEqual(outcome.error, reason);
       assert.equal(calls, 1); assert.equal(f.state.reads, reads + 1);
       assert.equal(f.state.admissions, before); assert.equal(f.state.issued.size, issued);
-      assert.strictEqual(f.state.pending.bytes, f.raw);
+      assert.strictEqual(f.state.pending!.bytes, f.raw);
       assert.equal(f.state.bytesCalls, 0); assert.equal(f.state.captures.length, 0);
     }
   }
@@ -417,8 +435,8 @@ test('fixture raw retention never runs before synchronous charge, current or byt
     const options = {...f.listingOptions, retainRawResponse() {retained++;}};
     if (refusal === 'charge') options.chargePage = () => {throw stopped;};
     await assert.rejects(supplier.readListing(options), error => refusal === 'charge' ? error === stopped
-      : refusal === 'current' ? error.message === 'OriginalSourceNotCurrent'
-      : error.code === 'FixtureFileOriginalBytesLimit');
+      : refusal === 'current' ? (error as Error).message === 'OriginalSourceNotCurrent'
+      : (error as NodeJS.ErrnoException).code === 'FixtureFileOriginalBytesLimit');
     assert.equal(retained, 0); assert.equal(f.state.reads, 1); assert.equal(f.state.admissions, 0);
     assert.equal(f.state.issued.size, 0);
   }
@@ -426,26 +444,26 @@ test('fixture raw retention never runs before synchronous charge, current or byt
 
 test('fixture raw retention accepts only an optional own DATA method and leaves absent legacy events exact', async () => {
   for (const kind of ['listing', 'content']) {
-    const run = async configure => {
+    const run = async (configure: (options: {retainRawResponse?: (bytes: Uint8Array) => unknown}) => unknown) => {
       const f = fixture();
       if (kind === 'content') await f.supplier.readListing(f.listingOptions);
       f.state.events.length = 0;
       const options = kind === 'listing' ? f.listingOptions : f.content();
       configure(options);
-      await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options));
+      await (kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>));
       return f.state.events;
     };
     const baseline = await run(() => {});
     assert.equal(baseline.filter(event => event === 'verify').length, kind === 'listing' ? 7 : 6);
     assert.deepEqual(await run(options => {options.retainRawResponse = undefined;}), baseline);
     assert.deepEqual(await run(options => Object.setPrototypeOf(options, {
-      get retainRawResponse() {assert.fail('inherited callback must not be read');},
+      get retainRawResponse(): never {return assert.fail('inherited callback must not be read');},
     })), baseline);
     for (const descriptor of [{get() {assert.fail('own accessor must not run');}}, {value: null}, {value: 1}]) {
       const f = fixture();
       const options = kind === 'listing' ? f.listingOptions : f.content();
       Object.defineProperty(options, 'retainRawResponse', descriptor);
-      await assert.rejects(kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options),
+      await assert.rejects(kind === 'listing' ? f.supplier.readListing(options as typeof f.listingOptions) : f.supplier.readContent(options as ReturnType<typeof f.content>),
         {code: 'FixtureFileCallbacksUnavailable'});
       assert.equal(f.state.reads, 0); assert.equal(f.state.events.length, 0);
     }

@@ -224,75 +224,75 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture files use original charged document and Source-issued IDs, not nonunique names or invented paths'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture content consumes raw ticket before exact UTF8 Store capture and preserves the request correlation'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture content bound rejects before UTF8 allocation, even when the original document fits'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture admission refusal retains the original pending ticket and issues no references'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture post-read current refusal charges received bytes but never admits or captures'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture pre-abort and malformed keyed request never enter physical I/O'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture replacement with unchanged declared version rejects the old exposed version before capture'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture equal rows in a different Source inventory do not authorize a foreign ResourceRef'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture provider version refuses an unavailable original row digest before reference issuance'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture foreign parent projection cannot issue a Resource or capture Content'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture physical failure keeps the same parent cleanup carrier without retry or close acknowledgement'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture oversized original is charged but rejected before the parent projection'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention awaits the same charged bytes before listing or content decode'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention snapshots the own callback before the first await'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention rechecks cancellation and original current after the pending await'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention preserves synchronous and rejected reasons including undefined without decode or retry'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention never runs before synchronous charge, current or byte-limit refusal'"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "path": "adapters/local-node/fixture-file-source.test.mts",
                 "anchor": "test('fixture raw retention accepts only an optional own DATA method and leaves absent legacy events exact'"
               }
             ]

@@ -2916,3 +2916,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/ordinary-local-account.test.d.mts
 /adapters/local-node/fixture-file-source.mjs
 /adapters/local-node/fixture-file-source.d.mts
+/adapters/local-node/fixture-file-source.test.mjs
+/adapters/local-node/fixture-file-source.test.d.mts
