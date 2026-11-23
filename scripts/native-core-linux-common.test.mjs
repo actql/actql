@@ -227,21 +227,22 @@ test('reviewed Native entry uses the existing finite supervisor and preserves ca
 });
 
 test('Native platform classes separate original FFI owners from every source and test importer', () => {
-  const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker'];
+  const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker', 'linking_caller'];
   const packages = names.map(name => ({name: 'actql/actql/' + name, path: 'src/' + name}));
   const edge = (from, to, kinds) => ({from: packages[from].name, to: packages[to].name, kinds});
   const graph = {packages, digest: 'd'.repeat(64), edges: [
     edge(1, 0, ['source']), edge(4, 3, ['whitebox-test']),
-    edge(5, 4, ['blackbox-test']), edge(3, 2, ['source']),
+    edge(5, 4, ['blackbox-test']), edge(3, 2, ['source']), edge(8, 2, ['source']),
   ]};
   const original = JSON.stringify(graph);
   const selected = partitionNativeCorePlatformPackages(graph, path => path.endsWith('/native_fixture')
-    ? 'options("native-stub": ["actual.c"])' : path.endsWith('/linker')
+    ? 'options("native-stub": ["actual.c"])' : /\/link(?:er|ing_caller)$/u.test(path)
       ? 'options(link: {"native": {"cc": "./original-driver"}})' : 'supported_targets = "+js+wasm+native"');
-  assert.deepEqual(selected.common, ['src/scalar', 'src/canonical']);
-  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive']);
+  // A linker override alone owns no platform code; its imports classify it.
+  assert.deepEqual(selected.common, ['src/scalar', 'src/canonical', 'src/linker']);
+  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive', 'src/linking_caller']);
   assert.deepEqual(selected.darwin, ['src/platform_native/sqlite', 'src/native_fixture',
-    'src/cmd/native_client', 'src/linker']);
+    'src/cmd/native_client']);
   assert.equal(selected.graphSha256, graph.digest);
   assert.equal(JSON.stringify(graph), original);
 });
