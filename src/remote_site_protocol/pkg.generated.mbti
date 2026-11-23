@@ -326,6 +326,8 @@ pub fn durable_dispatch_record_journal_key(DurableDispatchRecord) -> Array[Strin
 
 pub fn durable_dispatch_record_json(DurableDispatchRecord) -> String
 
+pub fn durable_dispatch_record_released(DurableDispatchRecord) -> Bool
+
 pub fn durable_dispatch_record_request_identity(DurableDispatchRecord) -> String
 
 pub fn durable_dispatch_record_revision(DurableDispatchRecord) -> Int

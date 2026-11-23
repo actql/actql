@@ -34,6 +34,12 @@ allocations are released. Closing a pool blocks further admission immediately.
 
 ## Public Local Check reporting
 
+The source-free Python Local installation selects the pinned Common numeric
+reduction profile for Check and submitted preparation. Its existing Wasm
+runtime executes the same numeric reductions as the other installed Local
+Hosts. Other profile and Source requirements remain at their original
+admission boundaries.
+
 The ordinary Local transport routes `Client.check` to the existing Common
 authoring checker. It does not infer a public verdict from preparation counts,
 exceptions, a Run admission or physical execution. A Check never reserves a

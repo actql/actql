@@ -4,6 +4,12 @@ pub(all) enum NativeRemoteTransferJournalIssue {
   Closed
   CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
+  TransactionFenced
+  TransactionCommit(@sqlite.NativeSqliteJournalCommitFailure)
+  TransactionStop(
+    NativeRemoteTransferJournalIssue?,
+    @sqlite.NativeSqliteTransactionStopFailure
+  )
   Protocol(@transfer.RemoteTransferIssue)
   StateCollision
   RecoveryRequired

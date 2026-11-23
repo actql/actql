@@ -559,7 +559,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "12d9ff23046260eed355aeacd0f606bceba530fb0a93ddff17f90d3195f26010",
+      "sha256": "3b9bbb4a630ca7d85006342924eb60c5b36021c143384b24133d553ff9e3a757",
       "exports": [
         "createAdmittedRegisteredSdkPreflight",
         "createSdkModelPreflight",
@@ -782,7 +782,8 @@
           "parameters": [
             "options",
             "admission",
-            "readReportedUsage"
+            "readReportedUsage",
+            "readReportedResponse"
           ],
           "async": false
         },
@@ -1525,7 +1526,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a7e62909a50e5cb8eba4a3febe67c06f64e313cca0e2f388aa660c5f9699bdb2",
+      "sha256": "a98a689072493029e4541c00049bdc0b11e636b85f8aaf7be1a3da04d0b83a61",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",

@@ -76,10 +76,9 @@ test "dependency extent refusal keeps its constructor backing until original cle
 test "serial dependency admission retains adopted extent and reuses completed workspace at exact and one short" {
   for (deeper, short) in [(false, 0L), (false, 1L), (true, 0L), (true, 1L)] {
     let (lookup, cleanup) = keyed_wire_usage_fixture()
-    reserve_keyed_dependency_serial_controls(lookup).unwrap()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
     let r = lookup.retained_bytes
     let e = lookup.execution_bytes
-    let cursor = new_keyed_dependency_serial_cursor()
     let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
     let prepare = Some((bytes, nodes, depth) => {
       match
@@ -121,7 +120,7 @@ test "serial dependency admission retains adopted extent and reuses completed wo
       is Err(Assembly("live_dependency_cursor")),
     )
     let bodies = [first]
-    cursor.record_body(bodies, 32).unwrap()
+    cursor.record_body(lookup, bodies, 32).unwrap()
     // Body/node, usage and empty edge Array (9H/9R/7W), plus the
     // two-node object, two strings and its one backing pair (8H/7R/6W).
     let first_extent = 17L * 16L + 16L * 8L + 13L * 8L + 96L * 2L
@@ -190,7 +189,7 @@ test "serial dependency admission retains adopted extent and reuses completed wo
         is Err(Assembly("live_dependency_cursor")),
       )
       bodies.push(body)
-      cursor.record_body(bodies, 32).unwrap()
+      cursor.record_body(lookup, bodies, 32).unwrap()
       let ReturnedKeyedDependencyRange(end~, ..) = cursor.measured.unwrap()
       assert_eq(end, 2)
       assert_eq(cursor.extent_workspace_depth, if deeper { 3 } else { 2 })
@@ -222,8 +221,7 @@ test "measured dependency extent binds the adopted collector Array before settle
     let basis_r = lookup.retained_bytes
     let basis_e = lookup.execution_bytes
     let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
-    reserve_keyed_dependency_serial_controls(lookup).unwrap()
-    let cursor = new_keyed_dependency_serial_cursor()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
     let body = admit_client_effect_dependency_capture_body(
         "request_values",
         Some(
@@ -241,7 +239,7 @@ test "measured dependency extent binds the adopted collector Array before settle
         wire_extent=Some((10, 2)),
       ).unwrap().0
     let bodies = [body]
-    cursor.record_body(bodies, 32).unwrap()
+    cursor.record_body(lookup, bodies, 32).unwrap()
     let adopted = if foreign { [body] } else { bodies }
     let peak_r = lookup.retained_bytes
     let peak_e = lookup.execution_bytes
@@ -251,7 +249,7 @@ test "measured dependency extent binds the adopted collector Array before settle
       32,
       8,
       [],
-      dependencies=Measured(adopted, cursor.measured.unwrap()),
+      dependencies=Measured(adopted, cursor.seal(lookup).unwrap().unwrap()),
     )
     if foreign {
       assert_true(done is Err(Assembly("foreign_dependency_body_extent")))
@@ -284,8 +282,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
   let basis_r = lookup.retained_bytes
   let basis_e = lookup.execution_bytes
   let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
-  reserve_keyed_dependency_serial_controls(lookup).unwrap()
-  let cursor = new_keyed_dependency_serial_cursor()
+  let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
   let serial = Some(cursor)
   let bodies = Array(capacity=3)
   fn collect(
@@ -314,7 +311,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
     "{}", "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     2, 1, serial,
   )
-  cursor.record_body(bodies, 32).unwrap()
+  cursor.record_body(lookup, bodies, 32).unwrap()
   collect(
     "{\"x\":\"é\"}",
     "sha256:97f06f396a709c3a29824e1cc794eeb98e2d1a262d7d455439d286d42803f0fe",
@@ -322,7 +319,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
     2,
     None,
   )
-  cursor.begin_batch(bodies.length()).unwrap()
+  cursor.begin_batch(lookup, bodies.length()).unwrap()
   grow_keyed_dependency_body(lookup, 16, 3, 3, serial).unwrap()
   // The writer offers immutable text to admission. Keep both peaks until the
   // external policy invocation returns and the body belongs to the collector.
@@ -338,7 +335,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
   assert_eq(end, 1)
   assert_eq(cursor.available_retained, 0L)
   assert_eq(cursor.available_execution, 0L)
-  cursor.record_body(bodies, 32).unwrap()
+  cursor.record_body(lookup, bodies, 32).unwrap()
   let measured = cursor.measured.unwrap()
   let ReturnedKeyedDependencyRange(start~, end~, previous~, ..) = measured
   assert_eq((start, end), (2, 3))
@@ -351,11 +348,154 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
     32,
     8,
     [],
-    dependencies=Measured(bodies, measured),
+    dependencies=Measured(bodies, cursor.seal(lookup).unwrap().unwrap()),
   ).unwrap()
   // Two measured bodies and the unmeasured gap, independently priced.
   // The outer Array is H3/R6/W3, including its adopted alias.
   let keep = 16L * 128L + 3L * 16L + 6L * 8L + 3L * 8L + 566L + 696L + 886L
   assert_eq(lookup.retained_bytes, basis_r + keep)
   assert_eq(lookup.execution_bytes, basis_e + keep)
+}
+
+///|
+test "a foreign cursor and its completed proof cannot use another live lookup" {
+  let (original, close_original) = keyed_wire_usage_fixture()
+  defer assert_true(close_original())
+  let (foreign, close_foreign) = keyed_wire_usage_fixture()
+  defer assert_true(close_foreign())
+  let cursor = begin_keyed_dependency_serial_cursor(original).unwrap()
+  let body = admit_client_effect_dependency_capture_body(
+      "request_values",
+      Some(
+        "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      ),
+      "{}",
+      1024,
+      32,
+      8,
+      Some((bytes, nodes, depth) => {
+        grow_keyed_dependency_body(original, bytes, nodes, depth, Some(cursor))
+        is Ok(_)
+      }),
+      () => true,
+      wire_extent=Some((2, 1)),
+    ).unwrap().0
+  let bodies = [body]
+  cursor.record_body(original, bodies, 32).unwrap()
+  assert_true(cursor.available_retained > 0L && cursor.available_execution > 0L)
+  let reusable = (cursor.available_retained, cursor.available_execution)
+  let original_usage = @resources.ledger_usage(original.ledger)
+  let phase = grow_keyed_lookup_protocol_metadata(foreign, 8192, 16L).unwrap()
+  let foreign_usage = @resources.ledger_usage(foreign.ledger)
+  let foreign_bytes = (foreign.retained_bytes, foreign.execution_bytes)
+  assert_true(
+    grow_keyed_dependency_body(foreign, 2, 1, 1, Some(cursor))
+    is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_true(
+    cursor.begin_batch(foreign, 1) is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_true(
+    cursor.record_body(foreign, bodies, 32)
+    is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_true(
+    cursor.seal(foreign) is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_eq(cursor.batch_start, -1)
+  assert_eq((cursor.available_retained, cursor.available_execution), reusable)
+  assert_eq(@resources.ledger_usage(original.ledger), original_usage)
+  let proof = cursor.seal(original).unwrap().unwrap()
+  assert_true(
+    cursor.seal(original) is Err(Assembly("retired_dependency_cursor")),
+  )
+  assert_true(
+    finish_keyed_lookup_protocol_metadata(
+      foreign,
+      phase,
+      32,
+      8,
+      [],
+      dependencies=Measured(bodies, proof),
+    )
+    is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_false(phase.finished)
+  assert_eq((foreign.retained_bytes, foreign.execution_bytes), foreign_bytes)
+  assert_eq(@resources.ledger_usage(foreign.ledger), foreign_usage)
+  assert_eq(@resources.ledger_usage(original.ledger), original_usage)
+}
+
+///|
+test "a stopped lookup keeps its original reservation but refuses cursor use" {
+  let (lookup, cleanup) = keyed_wire_usage_fixture()
+  defer assert_true(cleanup())
+  let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
+  grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor)).unwrap()
+  let original = (lookup.retained_bytes, lookup.execution_bytes)
+  let usage = @resources.ledger_usage(lookup.ledger)
+  let pending = cursor.pending_retained
+  stop_client_keyed_lookup_input(lookup)
+  assert_true(@resources.reservation_open(lookup.reservation))
+  assert_true(
+    begin_keyed_dependency_serial_cursor(lookup)
+    is Err(Assembly("retired_dependency_cursor")),
+  )
+  assert_true(
+    grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor))
+    is Err(Assembly("retired_dependency_cursor")),
+  )
+  assert_true(
+    cursor.begin_batch(lookup, 0) is Err(Assembly("retired_dependency_cursor")),
+  )
+  assert_true(
+    cursor.record_body(lookup, [], 32)
+    is Err(Assembly("retired_dependency_cursor")),
+  )
+  assert_true(cursor.seal(lookup) is Err(Assembly("retired_dependency_cursor")))
+  assert_eq(cursor.pending_retained, pending)
+  assert_eq((lookup.retained_bytes, lookup.execution_bytes), original)
+  assert_eq(@resources.ledger_usage(lookup.ledger), usage)
+}
+
+///|
+test "the cursor factory funds control backing exactly or refuses before issuing" {
+  // Original 43H/67R/71W, plus ownership and overlapping Result carriers:
+  // four new headers, eight references and four scalar words.
+  let required = 43L * 16L + (67L + 71L) * 8L + 4L * 16L + (8L + 4L) * 8L
+  for short in [0L, 1L] {
+    let (lookup, cleanup) = keyed_wire_usage_fixture()
+    defer assert_true(cleanup())
+    let before = @resources.ledger_usage(lookup.ledger)
+    let limit = @resources.ledger_limits(lookup.ledger).execution_bytes
+    let blocker = @resources.reserve_capacity(
+      lookup.ledger,
+      0L,
+      limit - before.reserved_execution_bytes - required + short,
+    ).unwrap()
+    defer @resources.settle_capacity(lookup.ledger, blocker).unwrap()
+    let charged = @resources.ledger_usage(lookup.ledger)
+    let retained = lookup.retained_bytes
+    let execution = lookup.execution_bytes
+    let cursor = begin_keyed_dependency_serial_cursor(lookup)
+    if short == 0L {
+      let cursor = cursor.unwrap()
+      assert_true(physical_equal(cursor.lookup, lookup))
+      assert_true(physical_equal(cursor.reservation, lookup.reservation))
+      assert_eq(lookup.retained_bytes, retained + required)
+      assert_eq(lookup.execution_bytes, execution + required)
+      assert_eq(
+        @resources.ledger_usage(lookup.ledger).reserved_execution_bytes,
+        limit,
+      )
+    } else {
+      assert_true(cursor is Err(Physical(@resources.ExecutionLimit)))
+      assert_eq(
+        (lookup.retained_bytes, lookup.execution_bytes),
+        (retained, execution),
+      )
+      assert_eq(@resources.ledger_usage(lookup.ledger), charged)
+      assert_true(@resources.reservation_open(lookup.reservation))
+    }
+  }
 }

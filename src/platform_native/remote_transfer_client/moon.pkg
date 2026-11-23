@@ -19,6 +19,7 @@ import {
 options(
   "native-stub": [ "retry_wait_stub.c" ],
   targets: {
+    "destination_receipt_recovery_native_wbtest.mbt": [ "native" ],
     "reconciliation_native_wbtest.mbt": [ "native" ],
     "retry_wait_native.mbt": [ "native" ],
     "retry_wait_unsupported.mbt": [ "not", "native" ],

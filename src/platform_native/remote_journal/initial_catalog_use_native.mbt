@@ -11,7 +11,16 @@ struct NativeInitialCatalogUseCustody {
   request : @remote.DispatchRequest
   mut accepted : Bool
   mut cleanup_started : Bool
-  mut removal_confirmed : Bool
+  mut removal : NativeInitialCatalogRemoval
+}
+
+///|
+/// The same custody retains its lookup child until physical stop. A failed
+/// stop never promotes the observation to a confirmed removal.
+priv enum NativeInitialCatalogRemoval {
+  RemovalUnconfirmed
+  RemovalLookupPending(@sqlite.NativeLookupRead)
+  RemovalConfirmed
 }
 
 ///|
@@ -95,7 +104,7 @@ pub fn Journal::accept_with_initial_catalog_use(
         envelope.workspace_bytes,
       ) ||
       original.cleanup_started ||
-      original.removal_confirmed {
+      original.removal is (RemovalConfirmed | RemovalLookupPending(_)) {
       return Err({ issue: Journal(StateCollision), custody: original_custody, })
     }
     let original_wire = match @remote.dispatch_request_json(original.request) {
@@ -152,7 +161,7 @@ pub fn Journal::accept_with_initial_catalog_use(
             request,
             accepted: false,
             cleanup_started: false,
-            removal_confirmed: false,
+            removal: RemovalUnconfirmed,
           }
           custody
         }
@@ -263,6 +272,9 @@ pub fn Journal::claim_initial_catalog_use(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -322,6 +334,9 @@ pub fn Journal::retain_initial_catalog_use(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   if !physical_equal(claim.journal, self) ||
     !catalog_use_matches_dispatch(claim.request, original_grant, original_use) {
     return Err(StateCollision)
@@ -331,6 +346,76 @@ pub fn Journal::retain_initial_catalog_use(
     Err(issue) => return Err(issue)
   }
   self.retain_effect_catalog_use(claim.request, original_grant, original_use)
+}
+
+///|
+fn Journal::observe_fenced_catalog_removal(
+  self : Journal,
+  custody : NativeInitialCatalogUseCustody,
+  read : @sqlite.NativeLookupRead,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  let key = match @remote.dispatch_request_attempt_identity(custody.request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let value = match
+    read.read_with_body_limit("site_dispatch", key, self.max_record_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match @remote.admit_durable_dispatch_record(value.body) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if value.revision !=
+    @remote.durable_dispatch_record_revision(durable).to_int64() ||
+    @remote.durable_dispatch_record_request_identity(durable) !=
+    custody.dispatch_cid ||
+    !@remote.durable_dispatch_record_released(durable) {
+    return Err(StateCollision)
+  }
+  match read.read_header("site_initial_catalog_use", custody.dispatch_cid) {
+    Err(@sqlite.NotFound) => Ok(())
+    Ok(_) => Err(StateCollision)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn Journal::confirm_fenced_catalog_removal(
+  self : Journal,
+  custody : NativeInitialCatalogUseCustody,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  // Only the original exact removal attempt may use absence as one part of
+  // release confirmation. An uncertain initial acceptance never reaches this.
+  if !custody.cleanup_started {
+    return Err(TransactionFenced)
+  }
+  let read = match self.database.prepare_lookup_read() {
+    Ok(@sqlite.ReadyLookupRead(read)) => read
+    Ok(@sqlite.PendingLookupRead(read, issue)) => {
+      custody.removal = RemovalLookupPending(read)
+      return Err(Physical(issue))
+    }
+    Err(issue) => return Err(Physical(issue))
+  }
+  custody.removal = RemovalLookupPending(read)
+  let observation = self.observe_fenced_catalog_removal(custody, read)
+  match read.finish() {
+    Ok(_) => custody.removal = RemovalUnconfirmed
+    Err(issue) =>
+      return match observation {
+        Err(primary) => Err(primary)
+        Ok(_) => Err(Physical(issue))
+      }
+  }
+  match observation {
+    Ok(_) => {
+      custody.removal = RemovalConfirmed
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -347,7 +432,7 @@ pub fn Journal::cleanup_initial_catalog_use(
     return Err(Journal(StateCollision))
   }
   if !@resources.capacity_reservation_open(custody.reservation) {
-    return if custody.removal_confirmed {
+    return if custody.removal is RemovalConfirmed {
       Ok(())
     } else {
       Err(Journal(StateCollision))
@@ -356,8 +441,26 @@ pub fn Journal::cleanup_initial_catalog_use(
   if self.closed {
     return Err(Journal(Closed))
   }
+  if custody.removal is RemovalLookupPending(read) {
+    match read.retry_cleanup() {
+      Ok(_) => custody.removal = RemovalUnconfirmed
+      Err(issue) => return Err(Journal(Physical(issue)))
+    }
+  }
   if self.retiring {
     return Err(Journal(CleanupPending))
+  }
+  if custody.removal is RemovalConfirmed || self.database.transaction_fenced() {
+    if !(custody.removal is RemovalConfirmed) {
+      match self.confirm_fenced_catalog_removal(custody) {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
+      }
+    }
+    return @resources.settle_capacity(custody.ledger, custody.reservation).map_err(issue => {
+        Capacity(issue)
+      },
+    )
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -377,7 +480,7 @@ pub fn Journal::cleanup_initial_catalog_use(
     }
     match self.database.read("site_initial_catalog_use", custody.dispatch_cid) {
       Ok(value) => {
-        if custody.removal_confirmed ||
+        if custody.removal is RemovalConfirmed ||
           !initial_catalog_use_cleanup_row_matches(
             expected,
             value.body,
@@ -411,7 +514,7 @@ pub fn Journal::cleanup_initial_catalog_use(
   }
   match self.database.read("site_initial_catalog_use", custody.dispatch_cid) {
     Err(@sqlite.NotFound) if custody.cleanup_started =>
-      custody.removal_confirmed = true
+      custody.removal = RemovalConfirmed
     Ok(_) => return Err(Journal(StateCollision))
     Err(issue) => return Err(Journal(Physical(issue)))
   }
