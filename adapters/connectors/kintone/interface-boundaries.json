@@ -407,7 +407,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mts",
                 "anchor": "managed Kintone loader keeps one original Form grant and current callback through final recheck"
               }
             ]
@@ -7391,7 +7391,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mts",
                 "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
               }
             ]
@@ -7701,7 +7701,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mts",
                 "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
               }
             ]

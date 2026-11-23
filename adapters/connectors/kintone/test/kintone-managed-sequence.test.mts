@@ -1,24 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createKintoneManagedSequence} from '../site/kintone-managed-sequence.mjs';
-const ok=value=>({$tag:1,_0:value});
+
+type Prepare = ReturnType<typeof createKintoneManagedSequence>;
+type Sequence = ReturnType<Prepare>;
+type ReadContext = Parameters<Sequence['read']>[0];
+type Input = Parameters<Prepare>[0];
+
+const ok=<Value,>(value: Value)=>({$tag:1,_0:value});
 // Native projection and Account are explicit ports here. Real native originals
 // are exercised by kintone_managed_read_wbtest; no capacity/physical claim here.
 function fixture({complete=true,finalFormFailure=false}={}){
-  const events=[],borrow={},declaration={},read={},formGrant={},verifyCurrent=async()=>{};
+  const events: string[]=[],borrow={},declaration={},read={},formGrant={},verifyCurrent=async()=>{};
   const columns=Object.freeze(['$id']),rows=Object.freeze([Object.freeze([{}])]);
-  let forms=0,pages=0,retired=0,previous={},sequence;
+  let forms=0,pages=0,retired=0,previous: object={},sequence: Sequence;
   const initial=previous;
   const moon={
-    clientProgramKintoneAdoptManagedBorrow(original,value){assert.equal(original,declaration);assert.equal(value,borrow);return ok(read);},
-    clientProgramKintoneManagedColumns(value){assert.equal(value,read);return columns;},
-    clientProgramKintoneManagedFormRequest(value){assert.equal(value,read);return ok('{"app":"12"}');},
-    clientProgramKintoneManagedPageRequest(value){assert.equal(value,read);return ok('{"fields":["$id"]}');},
-    clientProgramKintoneManagedRecheckForm(value){assert.equal(value,read);forms++;events.push('form');
+    clientProgramKintoneAdoptManagedBorrow(original: unknown,value: unknown){assert.equal(original,declaration);assert.equal(value,borrow);return ok(read);},
+    clientProgramKintoneManagedColumns(value: unknown){assert.equal(value,read);return columns;},
+    clientProgramKintoneManagedFormRequest(value: unknown){assert.equal(value,read);return ok('{"app":"12"}');},
+    clientProgramKintoneManagedPageRequest(value: unknown){assert.equal(value,read);return ok('{"fields":["$id"]}');},
+    clientProgramKintoneManagedRecheckForm(value: unknown){assert.equal(value,read);forms++;events.push('form');
       if(finalFormFailure&&forms>1)throw new Error('FormDrift');return ok(undefined);},
-    clientProgramKintoneManagedProjectPage(value){assert.equal(value,read);pages++;events.push('page');return ok(rows);},
-    clientProgramKintoneManagedComplete(value){assert.equal(value,read);return complete&&pages>0&&forms>pages;},
-    clientProgramKintoneManagedRetire(value){assert.equal(value,read);retired++;},
+    clientProgramKintoneManagedProjectPage(value: unknown){assert.equal(value,read);pages++;events.push('page');return ok(rows);},
+    clientProgramKintoneManagedComplete(value: unknown){assert.equal(value,read);return complete&&pages>0&&forms>pages;},
+    clientProgramKintoneManagedRetire(value: unknown){assert.equal(value,read);retired++;},
   };
   const prepare=createKintoneManagedSequence({moon,original:declaration,bounds:{page:{},values:{},form:{}},
     limits:{maxPages:1,perPage:2,maxRequestBytes:4096,maxContractPairs:100},baseCapacity:initial,
@@ -27,7 +33,7 @@ function fixture({complete=true,finalFormFailure=false}={}){
     capacityForResponse(value,kind,bytes,prior){assert.equal(value,read);assert.equal(prior,previous);assert.equal(bytes,2);
       events.push('quote-'+kind);previous={};return previous;},
   });
-  const context={signal:new AbortController().signal,
+  const context: ReadContext={signal:new AbortController().signal,
     async readChild(input){const request=input.prepare();assert.equal(request.request.method,'POST');
       assert.deepEqual(request.request.headers,[['x-http-method-override','GET']]);
       if(input.operation==='kintone:form:read'){
@@ -38,7 +44,7 @@ function fixture({complete=true,finalFormFailure=false}={}){
     async consumeObservation(){events.push('observation');},
     async consumeValues(actualColumns,actualRows){assert.equal(actualColumns,columns);assert.equal(actualRows,rows);events.push('values');},
   };
-  sequence=prepare({responseBorrow:borrow,originalAuthorization:{},columns,resource:'inquiries'});
+  sequence=prepare({responseBorrow:borrow,originalAuthorization:{} as NonNullable<Input['originalAuthorization']>,columns,resource:'inquiries'});
   return {prepare,sequence,context,events,counts:()=>({forms,pages,retired})};
 }
 test('managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form',async()=>{
@@ -56,6 +62,7 @@ test('managed Kintone cannot complete after final Form drift or invent another p
   assert.equal(limit.counts().pages,1);assert.equal(limit.sequence.retire(),true);
 });
 test('managed Kintone preparer requires the genuine private borrow handoff, not only columns',()=>{
-  const f=fixture();assert.throws(()=>f.prepare({columns:['$id'],originalAuthorization:{}}),{code:'KintoneManagedBorrowUnavailable'});
+  // Deliberately incomplete: plain columns and an empty authorization carry no original borrow.
+  const f=fixture();assert.throws(()=>f.prepare({columns:['$id'],originalAuthorization:{}} as unknown as Input),{code:'KintoneManagedBorrowUnavailable'});
   assert.equal(f.sequence.retire(),true);
 });
