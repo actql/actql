@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-const source=readFileSync(process.env.CAPTURE_RELAY_SOURCE_ROOT?`${process.env.CAPTURE_RELAY_SOURCE_ROOT}/adapters/host-common/runtime-core.mjs`:new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
+const source=readFileSync(process.env.CAPTURE_RELAY_SOURCE_ROOT?`${process.env.CAPTURE_RELAY_SOURCE_ROOT}/adapters/host-common/runtime-captured-publication-control.mjs`:new URL('../host-common/runtime-captured-publication-control.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let selected,projectionNode;
 function walk(n){if(!n||typeof n!=='object')return;if(n.type==='VariableDeclarator'&&n.id?.name==='finishCapturedPreparation')selected=n.init;if(n.type==='VariableDeclarator'&&n.id?.name==='capturedPreparationLimits')projectionNode=n.init;for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(ast);assert(selected);
 function harness(vector=[2000003,300007,73]){

@@ -2614,6 +2614,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-common/runtime-content-publication-control.d.mts
 /adapters/host-common/runtime-content-inference-control.mjs
 /adapters/host-common/runtime-content-inference-control.d.mts
+/adapters/host-common/runtime-captured-publication-control.mjs
+/adapters/host-common/runtime-captured-publication-control.d.mts
 /adapters/host-common/runtime-effect-capture-control.mjs
 /adapters/host-common/runtime-effect-capture-control.d.mts
 /adapters/host-node/effect-capture-resources.mjs

@@ -24012,7 +24012,7 @@
         {
           "operations": [
             "publicationControl",
-            "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+            "publicationControl/contentCaptures/contentCaptures",
             "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
             "publicationControl/inspectSnapshot/inspectSnapshot",
             "publicationControl/inspectAdmission/inspectAdmission",
@@ -24025,12 +24025,9 @@
             "publicationControl/contentCaptures/contentCaptures/contentCaptures",
             "publicationControl/effectSourceToken/effectSourceToken",
             "publicationControl/evidenceToken/evidenceToken",
-            "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
-            "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
-            "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
             "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
             "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
             "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
@@ -24113,7 +24110,6 @@
             "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
             "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
             "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
-            "publicationControl/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
@@ -24122,10 +24118,6 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
@@ -24217,7 +24209,6 @@
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
             "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
-            "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
             "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
             "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
             "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
@@ -24281,8 +24272,8 @@
                 "anchor": "That setup can pass the original immutable contracts from the same publication"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "retireCapturedComputation(capturedRun) {"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "retireCapturedComputation(capturedRun: unknown): undefined {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24343,7 +24334,7 @@
                 "anchor": "admitOriginal(original, limits) {"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
               },
               {
@@ -24405,8 +24396,8 @@
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun as object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24657,7 +24648,7 @@
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "moon.strategyCapturedRunCancel(original);"
               },
               {
@@ -24727,8 +24718,8 @@
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "capturedComputationPreparations.delete(capturedRun as object);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24937,119 +24928,6 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "publication metadata is bounded by its original Read before token-array construction"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
-            "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Scope and responsibility"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Original identity"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Ownership and handoff"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Synchronization and currentness"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Failure and uncertainty"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Cancellation and retirement"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Resources and scratch cut"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Extension and pending work"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "docs/design/typed-publication-resource.md",
-                "anchor": "## JS representation"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
               }
             ]
           }
@@ -27795,111 +27673,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-effect-capture-control.mts",
-                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
-              },
-              {
-                "path": "adapters/host-common/installed-effect-dependency-original.mts",
-                "anchor": "original.current();"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
-                "anchor": "original cold admission refusal has no legacy parse fallback or prepared projection"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:adoptCheckedClientEffectKeyedRun/init:adoptCheckedClientEffectKeyedRun",
             "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
             "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
@@ -28585,8 +28358,8 @@
                 "anchor": "That setup can pass the original immutable contracts from the same publication"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "retireCapturedComputation(capturedRun) {"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "retireCapturedComputation(capturedRun: unknown): undefined {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28651,7 +28424,7 @@
                 "anchor": "admitOriginal(original, limits) {"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
               },
               {
@@ -28713,8 +28486,8 @@
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun as object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28969,7 +28742,7 @@
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "moon.strategyCapturedRunCancel(original);"
               },
               {
@@ -29039,8 +28812,8 @@
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "capturedComputationPreparations.delete(capturedRun as object);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29289,8 +29062,8 @@
                 "anchor": "That setup can pass the original immutable contracts from the same publication"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "retireCapturedComputation(capturedRun) {"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "retireCapturedComputation(capturedRun: unknown): undefined {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29355,7 +29128,7 @@
                 "anchor": "admitOriginal(original, limits) {"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
               },
               {
@@ -29417,8 +29190,8 @@
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun as object)"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29673,7 +29446,7 @@
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
                 "anchor": "moon.strategyCapturedRunCancel(original);"
               },
               {
@@ -29743,8 +29516,8 @@
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "capturedComputationPreparations.delete(capturedRun as object);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -30467,13 +30240,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
-          "parameters": [
-            "preparation"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/compiledContent/compiledContent",
           "parameters": [
             "compiled"
@@ -30496,6 +30262,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/contentCaptures/contentCaptures",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/contentCaptures/contentCaptures/contentCaptures",
           "parameters": [
             "value"
@@ -30513,27 +30286,6 @@
           "name": "publicationControl/evidenceToken/evidenceToken",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
-          "parameters": [
-            "resolve"
           ],
           "async": false
         },
@@ -30565,23 +30317,6 @@
             "prepared",
             "authorization",
             "compiledPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
-          "parameters": [
-            "exportHandle",
-            "outputLimits",
-            "signal",
-            "publicationResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
-          "parameters": [
-            "resolve"
           ],
           "async": false
         },
@@ -32093,17 +31828,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
-          "parameters": [
-            "chain",
-            "evidence",
-            "limits",
-            "signal",
-            "publicationResource"
-          ],
-          "async": true
-        },
-        {
           "name": "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
           "parameters": [
             "chain",
@@ -32123,53 +31847,6 @@
           "name": "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
           "parameters": [
             "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-          "parameters": [
-            "chain",
-            "evidence",
-            "preview",
-            "plans",
-            "limits",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -34002,13 +33679,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
-          "parameters": [
-            "capturedRun"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
           "parameters": [
             "retained"
@@ -34468,6 +34138,7 @@
         "./remote-standard-source-control.mjs",
         "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
+        "./runtime-captured-publication-control.mjs",
         "./runtime-content-inference-control.mjs",
         "./runtime-content-publication-control.mjs",
         "./runtime-effect-capture-control.mjs",
@@ -34478,12 +34149,466 @@
         "./runtime-result-delivery-control.mjs",
         "./runtime-result.mjs",
         "./runtime-run-state-control.mjs",
-        "./runtime-tuple.mjs",
         "./site-control.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3b0af8dbe4a62e3c2f7eed11d7843fda0eb9adac06a198e79ef27c200bb7bf44"
+      "sha256": "fe01a25d1bb08e4e92b75e9d80d58d490293c70e49c6cb6b2222ed780e2ac0a5"
+    },
+    {
+      "module": "adapters/host-common/runtime-captured-publication-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Result snapshot and captured publication",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCapturedPublicationControls",
+            "createCapturedPublicationControls/capturedPreparationLimits/capturedPreparationLimits",
+            "createCapturedPublicationControls/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
+            "createCapturedPublicationControls/snapshotControls/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+            "createCapturedPublicationControls/snapshotControls/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+            "createCapturedPublicationControls/effectFreeCaptureControls/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "createCapturedPublicationControls/effectFreeCaptureControls/init:retireCapturedComputation/init:retireCapturedComputation"
+          ],
+          "exports": [
+            "createCapturedPublicationControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "export function createCapturedPublicationControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "limits = captureContractLimits(limits, 'Captured Run');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "capturedComputationPreparations.set(captured, preparation);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const computationPreviewTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "dependencyOriginal?.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "throw new TypeError('Invalid original capture progress');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "if (!finished) moon.clientProgramCancelCapture(capture);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-captured-publication-control.mts",
+                "anchor": "moon.clientProgramInstalledEffectDependencyCaptureReserve(original.parent"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectfulCaptureControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "retirement is exact-wrapper local despite equal visible capture identities"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCapturedPublicationControls/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+            "createCapturedPublicationControls/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
+            "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "original cold admission refusal has no legacy parse fallback or prepared projection"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createCapturedPublicationControls"
+      ],
+      "operations": [
+        {
+          "name": "createCapturedPublicationControls",
+          "parameters": [
+            "moon",
+            "capturedComputationPreparations",
+            "computationPreviewTokens",
+            "token",
+            "evidenceToken",
+            "snapshotToken",
+            "sourceAdvanceToken",
+            "contentCaptures",
+            "effectSourceToken",
+            "localEffectSourceToken",
+            "inspect",
+            "inspectSnapshot",
+            "inspectPreparedEffectCapturedRun",
+            "captureContractLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/capturedPreparationLimits/capturedPreparationLimits",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectFreeCaptureControls/init:issueEffectFreeCapturedRun/init:issueEffectFreeCapturedRun",
+          "parameters": [
+            "chain",
+            "evidence",
+            "limits",
+            "signal",
+            "publicationResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCapturedPublicationControls/effectFreeCaptureControls/init:retireCapturedComputation/init:retireCapturedComputation",
+          "parameters": [
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+          "parameters": [
+            "chain",
+            "evidence",
+            "preview",
+            "plans",
+            "limits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/effectfulCaptureControls/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCapturedPublicationControls/snapshotControls/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+          "parameters": [
+            "exportHandle",
+            "outputLimits",
+            "signal",
+            "publicationResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCapturedPublicationControls/snapshotControls/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./installed-effect-dependency-original.mjs",
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "d637f5fc0f880bd534c3d42eac3299b4312fb48a1652257a741c151b56e1dff6"
     },
     {
       "module": "adapters/host-common/runtime-publication-validation-control.mjs",

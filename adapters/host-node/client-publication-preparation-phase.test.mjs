@@ -172,8 +172,9 @@ test('unfunded source-free Tasks invocation retains its original legacy issuer',
  assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
+const captureSource='../host-common/runtime-captured-publication-control.mjs';
 const validationSource='../host-common/runtime-publication-validation-control.mjs';
-function captureFinisher(context,name='finishProgramCapture',path='../host-common/runtime-core.mjs') {
+function captureFinisher(context,name='finishProgramCapture',path=captureSource) {
  const source=readFileSync(new URL(path,import.meta.url),'utf8');
  const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let initializer;
  function walk(n){if(!n||typeof n!=='object')return;if(n.type==='VariableDeclarator'&&n.id.name===name)initializer=n.init;for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(initializer);
@@ -198,7 +199,7 @@ test('typed capture rejects malformed generated progress and cancels the same ha
 
 test('funded capture maps original inventory once and never invokes raw-limit issuer',async()=>{
  const owner={},capture={},definition={},invocation={},artifact={},snapshot={},authoring={},manifest={},receipt={},calls=[];
- const invoke=get('../host-common/runtime-core.mjs','issueEffectFreeCapturedRun',{captureContractLimits:x=>x,checked:x=>x,token:x=>x,snapshotToken:x=>x,evidenceToken:x=>x,finishProgramCapture:(original,signal)=>{assert.equal(original,capture);return 'captured';},moon:{clientProgramPrepareCapture(...args){calls.push(args);return capture;},strategyBeginOriginalEffectFreeCapturedRun(){assert.fail('raw issuer bypass');}}},true);
+ const invoke=get(captureSource,'issueEffectFreeCapturedRun',{captureContractLimits:x=>x,checked:x=>x,token:x=>x,snapshotToken:x=>x,evidenceToken:x=>x,finishProgramCapture:(original,signal)=>{assert.equal(original,capture);return 'captured';},moon:{clientProgramPrepareCapture(...args){calls.push(args);return capture;},strategyBeginOriginalEffectFreeCapturedRun(){assert.fail('raw issuer bypass');}}},true);
  const chain={runDefinition:definition,invocation,definitions:[definition],artifacts:[artifact],manifest,receipt};
  const evidence={snapshots:[snapshot],pendingSourceStateAdvances:[],authoringContext:authoring,modelEvidence:[]};
  assert.equal(await invoke(chain,evidence,{maxWireBytes:1,maxNodes:2,maxDepth:3},undefined,owner),'captured');
@@ -207,7 +208,7 @@ test('funded capture maps original inventory once and never invokes raw-limit is
 });
 test('captured publication retirement cancels the tracked typed handle rather than its private issuer',()=>{
  const captured={},handle={},map=new WeakMap([[captured,{program:handle}]]),seen=[];
- const retire=get('../host-common/runtime-core.mjs','retireCapturedComputation',{token:x=>x,capturedComputationPreparations:map,moon:{clientProgramCancelCapture:x=>seen.push(x),strategyCapturedRunCancel:()=>assert.fail('raw cancellation')}},true);
+ const retire=get(captureSource,'retireCapturedComputation',{token:x=>x,capturedComputationPreparations:map,moon:{clientProgramCancelCapture:x=>seen.push(x),strategyCapturedRunCancel:()=>assert.fail('raw cancellation')}},true);
  retire(captured);retire(captured);assert.deepEqual(seen,[handle]);assert.equal(map.has(captured),false);
 });
 
@@ -241,7 +242,7 @@ test('typed snapshot begins from original publication and export, never caller B
  const publication={},output={},snapshot={},captured={},seen=[];
  const run=captureFinisher({checked:x=>x,tuplePair:x=>x,inspectSnapshot:x=>x,moon:{clientProgramBeginSnapshot:(p,o)=>{assert.equal(p,publication);assert.equal(o,output);seen.push('begin');return snapshot;},clientProgramAdvanceSnapshot:(s,q)=>{assert.equal(s,snapshot);assert.equal(q,256);return [true,2];},clientProgramFinishSnapshot:s=>{assert.equal(s,snapshot);seen.push('finish');return captured;},clientProgramCancelSnapshot:()=>assert.fail('successful snapshot cancelled')}},'finishProgramSnapshot');
  assert.equal(await run(publication,output),captured);assert.deepEqual(seen,['begin','finish']);
- const invoke=get('../host-common/runtime-core.mjs','admitCompletedResultSnapshot',{finishProgramSnapshot:(p,o,signal)=>{assert.equal(p,publication);assert.equal(o,output);return captured;}},true);
+ const invoke=get(captureSource,'admitCompletedResultSnapshot',{finishProgramSnapshot:(p,o,signal)=>{assert.equal(p,publication);assert.equal(o,output);return captured;}},true);
  assert.equal(await invoke(output,{maxLogicalWireBytes:-1},undefined,publication),captured);
 });
 test('snapshot failure cancels exact typed continuation without clearing unrelated holders',async()=>{

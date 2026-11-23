@@ -10,7 +10,7 @@ import {checkedLocalManagedAdvance} from '../local-node/managed-advance-diagnost
 
 // Execute the actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
-const sources=['./runtime-core.mjs','./runtime-publication-validation-control.mjs'];
+const sources=['./runtime-captured-publication-control.mjs','./runtime-publication-validation-control.mjs'];
 const wanted=new Set(['capturedPreparationLimits','finishCapturedPreparation','finishPublicationValidation',
   'finishProgramSnapshot']);
 const declarations=new Map();

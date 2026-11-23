@@ -7,7 +7,13 @@ function source(name){return readFileSync(root?`${root}/adapters/host-common/${n
 function find(source,predicate){const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let found;function walk(n){if(!n||typeof n!=='object')return;if(predicate(n))found=n;for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(ast);assert(found);return found;}
 const checked=value=>{if(value.$tag===0)throw value._0;return value._0;};
 const ok=value=>({$tag:1,_0:value});
-function snapshot(moon){const text=source('runtime-core.mjs'),node=find(text,n=>n.type==='Property'&&n.key?.name==='admitCompletedResultSnapshot');return new Function('moon','checked','inspectSnapshot','issuanceLimits',`return async function(${node.value.params.map(p=>p.name).join(',')})${text.slice(node.value.body.start,node.value.body.end)}`)(moon,checked,x=>x,new Function(`return ${text.slice(find(text,n=>n.type==='VariableDeclarator'&&n.id?.name==='issuanceLimits').init.start,find(text,n=>n.type==='VariableDeclarator'&&n.id?.name==='issuanceLimits').init.end)}`)());}
+function snapshot(moon) {
+ const text=source('runtime-captured-publication-control.mjs');
+ const node=find(text,n=>n.type==='Property'&&n.key?.name==='admitCompletedResultSnapshot');
+ const args=node.value.params.map(parameter=>parameter.name).join(',');
+ const body=text.slice(node.value.body.start,node.value.body.end);
+ return new Function('moon','checked','inspectSnapshot',`return async function(${args})${body}`)(moon,checked,x=>x);
+}
 const policy=()=>({maxWireBytes:101,maxWireNodes:103,maxWireDepth:107,maxNodes:109,maxDepth:113,maxLogicalWireBytes:2000003,maxLogicalWireNodes:300007,maxLogicalWireDepth:73});
 test('snapshot writer uses distinct original logical byte/node/depth fields, not payload or contract bounds',async()=>{
  const handle={},prep={},result={},calls=[];const run=snapshot({strategyHostOutputSnapshotBegin(...args){calls.push(args);return ok(prep);},strategyHostOutputSnapshotAdvance(value,q){assert.equal(value,prep);assert.equal(q,256);return ok(true);},strategyHostOutputSnapshotFinish(value){assert.equal(value,prep);return ok(result);},strategyHostOutputSnapshotCancel(){assert.fail('unexpected cancel');}});
