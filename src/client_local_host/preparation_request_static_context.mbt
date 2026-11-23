@@ -11,18 +11,19 @@ pub(all) enum ClientRequestStaticContextIssue {
 ///|
 // The deepest Context branch is root/items/Effect set/members/member/
 // declaration/contract. Its simultaneous object keys are bounded by the
-// complete records: root(4), set(3), member(2), declaration(8), contract(4).
+// complete records: root(5), set(3), member(2), declaration(8), contract(4).
 // Siblings reuse the frames. Ordinary measuring output still uses key Maps.
 let static_context_measurement_bytes : Int64 = {
-  let writer = @encode.measuring_writer_construction_extent(21, 7).unwrap()
+  let writer = @encode.measuring_writer_construction_extent(22, 7).unwrap()
   @execution.preparation_representation_cost({
     // Geometry sink and its counters, the nine-word result, and live original
     // source/step/port and output/Effect lookup frames. Include the bound
     // measurement call, remaining-work Ref, typed Options and Result carriers.
-    // Loops borrow each checked item in order; no traversal vector is built.
-    record_headers: writer.record_headers + 28L,
-    reference_slots: writer.reference_slots + 56L,
-    scalar_words: writer.scalar_words + 44L,
+    // Include the import, predecessor and exact output lookup frames.
+    // Loops borrow each checked item in order.
+    record_headers: writer.record_headers + 40L,
+    reference_slots: writer.reference_slots + 84L,
+    scalar_words: writer.scalar_words + 60L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

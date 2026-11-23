@@ -47,6 +47,29 @@ export function flowPresentation(model) {
     seen.add(input.inputPortId);
   }
   if ([...ports.values()].some(({port}) => port.role === 'input' && !seen.has(port.port_id))) refuse();
+  if (model.stageResultLinks !== undefined) {
+    const links = model.stageResultLinks;
+    if (!Array.isArray(links) || links.length > model.inputs.length) refuse();
+    const used = new Set();
+    for (const link of links) {
+      const source = ports.get(link?.producer?.port_id), target = ports.get(link?.consumer?.port_id);
+      if (!source || !target || source.node.id !== link.producer.step_id ||
+          target.node.id !== link.consumer.step_id || source.port.role !== 'output' ||
+          target.port.role !== 'input' || target.port.source.kind !== 'stage_input' ||
+          !Number.isSafeInteger(source.node.key?.stage_ordinal) ||
+          target.port.source.stage_ordinal !== target.node.key?.stage_ordinal ||
+          source.node.key.stage_ordinal >= target.node.key.stage_ordinal ||
+          source.port.carrier !== target.port.carrier ||
+          typeof link.result_projection !== 'boolean' ||
+          !link.result_projection && source.port.carrier_contract_cid !== target.port.carrier_contract_cid ||
+          used.has(target.port.port_id)) refuse();
+      used.add(target.port.port_id);
+      edges.push({id: target.port.port_id, source: source.node.id, target: target.node.id,
+        sourceHandle: source.port.port_id, targetHandle: target.port.port_id,
+        label: link.result_projection ? 'Result projection' : 'Stage Result', type: 'default',
+        selectable: false, focusable: false, deletable: false});
+    }
+  }
   return {nodes: model.nodes.map((node, index) => ({id: node.id, type: 'logical',
     position: {x: (index % 4) * 290, y: Math.floor(index / 4) * 240},
     data: {original: node}, draggable: false, connectable: false, deletable: false})), edges};

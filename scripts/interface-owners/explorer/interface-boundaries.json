@@ -1703,7 +1703,7 @@
     {
       "module": "packages/explorer-ui/flow-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87245b2a936cae114ab1175673b7258e4c5b2f80adcfcd3f01314b67ec072084",
+      "sha256": "ce10747065fa7bbe138691f2813437c8f716173cfdfbcc902188d482380d877d",
       "exports": [
         "flowPresentation"
       ],
@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "994b13f07e5809aab12d4e9f43ab3aaa9fe99449a5aa3d319104e08e8f680c0d",
+      "sha256": "e72734a8fa82b95413d82493ef554266e4fe0f2732eb393cb1bcc0d61b55050e",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1875,7 +1875,7 @@
           "parameters": [
             "id: string"
           ],
-          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string}"
+          "result": "{kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string}"
         },
         {
           "name": "PlanExplorer",
@@ -2026,7 +2026,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1d5bc4507d449ffc8994be687fb1cac43f51d1fc35e179ef9d5b54861c6758e9",
+      "sha256": "909003c09f9dd0ececb980c0a67ce2a4911e6dc3b7d928d986b7acbde4d10559",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -2658,7 +2658,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "cfacd2e45d5d3921b91a403218dd9933d2c065c522561c9ab50fd33f4e8ef0d1",
+      "sha256": "8f4183d7ed5f35be5f509ca7046570c3b553accf06b44e6e6c33e66c5168fad1",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -3177,7 +3177,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -3239,7 +3239,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fbea64e952c0504c0921f1b962649cf11e0d2c76bb78de9ac888138a0fc47d6e",
+      "sha256": "13d43539b8c743efb3c65479f37383148c0ccd420218e223c142134a74988ab6",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -3291,10 +3291,24 @@
           "async": false
         },
         {
+          "name": "checkedContext/input/input",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
           "name": "checkedContext/locator/locator",
           "parameters": [
             "stage_ordinal",
             "input_port_ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedContext/output/output",
+          "parameters": [
+            "port"
           ],
           "async": false
         },
@@ -3686,7 +3700,9 @@
             "renderExplanation/renderExplanation",
             "renderExplanation/renderExplanation#2",
             "renderExplanation/renderExplanation#3",
-            "renderExplanation/renderExplanation#4"
+            "renderExplanation/renderExplanation#4",
+            "checkedContext/input/input",
+            "checkedContext/output/output"
           ],
           "exports": [
             "ExplorerReadError",
@@ -4013,7 +4029,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -4626,7 +4642,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "e7e51dc9be517c34826ab639d2e2c3ce0dccdcb04e612da2f4c24df4eb93aa34",
+      "sha256": "5ccb78abbb4d32b2f9ea21852213941bf66a5126aae3b90cf699a2fca728d120",
       "exports": [],
       "operations": [
         {
@@ -4978,33 +4994,48 @@
           "name": "graphStepLabels",
           "parameters": [
             "story: ExplanationStoryModel | undefined",
-            "context: StoryContext"
+            "context: StoryContext",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>",
           "parameters": [
-            "port"
+            "link"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>#2",
           "parameters": [
-            "input"
+            "port"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>#3",
           "parameters": [
-            "{left, right}"
+            "port"
           ],
           "result": null
         },
         {
           "name": "graphStepLabels/<call>#4",
+          "parameters": [
+            "input"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#5",
+          "parameters": [
+            "{left, right}"
+          ],
+          "result": null
+        },
+        {
+          "name": "graphStepLabels/<call>#6",
           "parameters": [
             "input"
           ],
@@ -5062,7 +5093,7 @@
             "saved: boolean",
             "boundary?: {stepId: string; state: StepState}"
           ],
-          "result": "StepState"
+          "result": "StepState | undefined"
         },
         {
           "name": "stepTitle",
@@ -5089,7 +5120,7 @@
         {
           "name": "StoryCard",
           "parameters": [
-            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
+            "{ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {\n  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;\n  open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;\n}"
           ],
           "result": null
         },
@@ -5380,7 +5411,9 @@
             "graphStepLabels/add",
             "graphStepLabels/<call>#4",
             "StepOrigin/<call>#2",
-            "stepTitle/<call>#2"
+            "stepTitle/<call>#2",
+            "graphStepLabels/<call>#5",
+            "graphStepLabels/<call>#6"
           ],
           "exports": [],
           "attributes": {
@@ -5474,6 +5507,10 @@
               {
                 "path": "packages/explorer/gateway.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               }
             ]
           }
@@ -5606,7 +5643,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -6228,7 +6265,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [
@@ -6722,7 +6759,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "return freeze({plan, story, context:"
+                "anchor": "return freeze({plan: projectedPlan, story, context:"
               }
             ],
             "identity": [

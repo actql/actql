@@ -200,6 +200,9 @@ fn explain_narrative_summary(
   let effects : Array[Int] = []
   let joins : Array[String] = []
   let mut topology = None
+  let stage_result_links = context.bind(value => {
+    @canonical.object_field(value, "stage_result_links")
+  })
   let filters : Array[String] = []
   let read : ExplanationNarrativeText = { budget, out: StringBuilder(), }
   let ask : ExplanationNarrativeText = { budget, out: StringBuilder(), }
@@ -260,7 +263,9 @@ fn explain_narrative_summary(
             if joins.length() < 2 {
               if joins.is_empty() && logical_map is Some(map) {
                 topology = Some(
-                  explanation_join_topology(facts, context, map, budget),
+                  explanation_join_topology(
+                    facts, context, map, stage_result_links, budget,
+                  ),
                 )
               }
               if !joins.is_empty() {
@@ -274,12 +279,16 @@ fn explain_narrative_summary(
             if !filters.is_empty() {
               filter.say(". ", "。")
             }
+            let meaning = explanation_narrative_field(fact, "meaning")
+            let predicate = @canonical.object_field(meaning, "predicate")
             let line = steps[index]
-            if line.length() <= 128 {
+            if predicate is Some(original) &&
+              explanation_narrative_string(original, "state") == "projected" &&
+              line.length() <= 128 {
               filter.append(line)
             } else {
               filter.say(
-                "Filter rows using the checked condition shown in Steps", "Steps に示す確認済みの条件で行を絞り込む",
+                "Filter rows (condition details in Steps)", "行を絞り込む（条件の詳細は Steps）",
               )
             }
             filters.push(id)

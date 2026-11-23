@@ -30,7 +30,15 @@ test('Explanation Context admits structural declarations and refuses leaked or i
       check_environment_cid: effectfulStaticPlan.check_environment_cid,
       compiled_plan_cid: computationPlan.compiled_plan_cid, logical_map_cid: computationPlan.logical_map.self_cid},
     items: [source, model, result, effect]};
+  // Retained Context without links remains readable without gaining origins.
   assert.equal(validWireExplanationContextShape(context), true);
+  const link = {producer: {step_id: cid('6'), port_id: cid('7')},
+    consumer: {step_id: cid('3'), port_id: cid('4')}, result_projection: true};
+  assert.equal(validWireExplanationContextShape({...context, stage_result_links: [link]}), true);
+  for (const invalid of [null, [{}], [{...link, result_projection: 'true'}],
+    [{...link, consumer: {...link.consumer, request_body: {}}}]]) {
+    assert.equal(validWireExplanationContextShape({...context, stage_result_links: invalid}), false);
+  }
   assert.equal(Object.hasOwn(buildControlRegistry().identity_domains, 'explanation_context'), false);
   const mapping = effect.members[0];
   const command = {declaration: commandMember,
@@ -68,12 +76,14 @@ test('Effectful static envelope preserves the independent original Plan/map sche
 
 test('versioned static Explanation composes the existing closed schema families', () => {
   const registry = buildControlRegistry();
-  const {static_explanation_view: added, run_explanation_context_view: saved, ...originalPins} = registry.schema_cids;
+  const {static_explanation_view: added, run_explanation_context_view: saved,
+    explanation_context: contextPin, ...originalPins} = registry.schema_cids;
+  assert.equal(contextPin, 'sha256:146f86ffe25bc0026368ee0a9d5a3ae03b7f3652de281c5534a95496c615b2fb');
   assert.match(added, /^sha256:[0-9a-f]{64}$/u);
   assert.match(saved, /^sha256:[0-9a-f]{64}$/u);
-  assert.equal(Object.keys(originalPins).length, 45);
+  assert.equal(Object.keys(originalPins).length, 44);
   assert.equal(createHash('sha256').update(canonicalText(originalPins)).digest('hex'),
-    '917cfb213c126abac9b31eea1d4ddb303d340094ce239cdf47c9181963604995');
+    'a5e4bded3697a042abfb4a36c815add879682e8137a616edc2abcb10fcee3734');
   assert.equal(Object.hasOwn(registry.identity_domains, 'static_explanation_view'), false);
   const binding = {program_definition_cid: effectfulStaticPlan.program_definition_cid,
     parameter_values_cid: effectfulStaticPlan.parameter_values_cid,

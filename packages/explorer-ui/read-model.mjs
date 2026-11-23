@@ -219,6 +219,22 @@ function checkedContext(story, facts, context, saved) {
     inputs.get(key).push({step_id: stepId, port_id: inputPortId});
   }
   const steps = new Map(story.occurrences.map(step => [step.stepId, step]));
+  if (context.stage_result_links !== undefined) {
+    const imported = new Set();
+    for (const {producer, consumer, result_projection} of context.stage_result_links) {
+      const original = steps.get(producer.step_id), destination = steps.get(consumer.step_id);
+      const output = original?.ports.find(port => port.port_id === producer.port_id);
+      const input = destination?.ports.find(port => port.port_id === consumer.port_id);
+      if (output?.role !== 'output' || input?.role !== 'input' ||
+          input.source.kind !== 'stage_input' ||
+          input.source.stage_ordinal !== destination.key.stage_ordinal ||
+          original.key.stage_ordinal >= destination.key.stage_ordinal ||
+          output.carrier !== input.carrier ||
+          (!result_projection && output.carrier_contract_cid !== input.carrier_contract_cid) ||
+          imported.has(consumer.port_id)) refuse('ExplorerInvalidExplanation');
+      imported.add(consumer.port_id);
+    }
+  }
   const sources = new Set();
   let sawEffects = false;
   for (const item of context.items) {
@@ -325,7 +341,9 @@ function explanationContextReadModel(view, locale, render, saved) {
     ? 'computation_component' : original.scope;
   const story = attachExplanationFacts({...original, scope, narrative: presentation},
     view.facts, index => lines.steps[index]);
-  return freeze({plan, story, context: view.context.items.map((item, index) =>
+  const projectedPlan = view.context.stage_result_links === undefined ? plan
+    : {...plan, stageResultLinks: structuredClone(view.context.stage_result_links)};
+  return freeze({plan: projectedPlan, story, context: view.context.items.map((item, index) =>
     ({origin: structuredClone(item), text: lines.context[index]}))});
 }
 

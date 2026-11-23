@@ -3,6 +3,7 @@ priv struct ExplanationJoinTopology {
   steps : Map[String, @canonical.CanonicalValue]
   ports : Map[String, (String, @canonical.CanonicalValue)]
   sources : Map[String, @canonical.CanonicalValue]
+  stage_producers : Map[String, String]
 }
 
 ///|
@@ -17,6 +18,7 @@ fn explanation_join_topology(
   facts : @canonical.CanonicalValue,
   context : @canonical.CanonicalValue?,
   logical_map : @canonical.CanonicalValue,
+  stage_result_links : @canonical.CanonicalValue?,
   budget : ExplanationNarrativeBudget,
 ) -> ExplanationJoinTopology raise ClientExplanationNarrativeIssue {
   if explanation_narrative_string(facts, "logical_map_cid") !=
@@ -30,6 +32,7 @@ fn explanation_join_topology(
   let steps : Map[String, @canonical.CanonicalValue] = Map([])
   let ports : Map[String, (String, @canonical.CanonicalValue)] = Map([])
   let sources : Map[String, @canonical.CanonicalValue] = Map([])
+  let stage_producers : Map[String, String] = Map([])
   visit_explanation_narrative_array(
     explanation_narrative_field(logical_map, "steps"),
     budget,
@@ -52,7 +55,7 @@ fn explanation_join_topology(
       )
     },
   )
-  if context is Some(context) {
+  if context is Some(context) && stage_result_links is Some(_) {
     visit_explanation_narrative_array(
       explanation_narrative_field(context, "items"),
       budget,
@@ -94,7 +97,53 @@ fn explanation_join_topology(
       },
     )
   }
-  { steps, ports, sources, }
+  if stage_result_links is Some(links) {
+    visit_explanation_narrative_array(links, budget, (_, link) => {
+      let from = explanation_narrative_field(link, "producer")
+      let to = explanation_narrative_field(link, "consumer")
+      let producer_id = explanation_narrative_string(from, "step_id")
+      let input_id = explanation_narrative_string(to, "port_id")
+      guard ports.get(explanation_narrative_string(from, "port_id"))
+        is Some((producer, output)) &&
+        ports.get(input_id) is Some((consumer, input)) &&
+        producer == producer_id &&
+        consumer == explanation_narrative_string(to, "step_id") &&
+        producer != consumer &&
+        !stage_producers.contains(input_id) &&
+        explanation_narrative_string(output, "role") == "output" &&
+        explanation_narrative_string(input, "role") == "input" &&
+        @canonical.object_field(input, "source") is Some(locator) &&
+        explanation_narrative_string(locator, "kind") == "stage_input" &&
+        explanation_narrative_field(locator, "stage_ordinal")
+        is @canonical.Number(locator_stage) &&
+        explanation_narrative_string(input, "carrier") ==
+        explanation_narrative_string(output, "carrier") &&
+        steps.get(producer) is Some(prior) &&
+        steps.get(consumer) is Some(next) &&
+        explanation_narrative_field(
+          explanation_narrative_field(prior, "key"),
+          "stage_ordinal",
+        )
+        is @canonical.Number(from_stage) &&
+        explanation_narrative_field(
+          explanation_narrative_field(next, "key"),
+          "stage_ordinal",
+        )
+        is @canonical.Number(to_stage) &&
+        locator_stage == to_stage &&
+        from_stage < to_stage &&
+        (
+          explanation_narrative_field(link, "result_projection")
+          is @canonical.Bool(true) ||
+          explanation_narrative_string(input, "carrier_contract_cid") ==
+          explanation_narrative_string(output, "carrier_contract_cid")
+        ) else {
+        raise InvalidExplanation
+      }
+      stage_producers[input_id] = producer_id
+    })
+  }
+  { steps, ports, sources, stage_producers, }
 }
 
 ///|
@@ -114,12 +163,13 @@ fn explanation_join_input(
     original_ordinal == ordinal.to_double() else {
     raise InvalidExplanation
   }
-  if topology.sources.get(port_id) is Some(view) {
+  if !topology.stage_producers.contains(port_id) &&
+    topology.sources.get(port_id) is Some(view) {
     return Some(CheckedSource(view))
   }
   let locator = explanation_narrative_field(port, "source")
   let producer_id = match explanation_narrative_string(locator, "kind") {
-    "stage_input" => None
+    "stage_input" => topology.stage_producers.get(port_id)
     "logical_output" => {
       let step = explanation_narrative_string(locator, "step_id")
       let output_id = explanation_narrative_string(locator, "output_port_id")
@@ -259,8 +309,19 @@ fn explain_summary_join(
     explain_join_input(left, text)
     text.say(" with ", " と ")
     explain_join_input(right, text)
-    text.say(" on ", " を ")
-    explain_narrative_join_keys(meaning, text, compact=true)
+    let source_keys = left is Some(JoinedRows) &&
+      right is Some(CheckedSource(_))
+    if source_keys {
+      text.say(" on the Source keys ", " を読み取り元のキー ")
+    } else {
+      text.say(" on ", " を ")
+    }
+    explain_narrative_join_keys(
+      meaning,
+      text,
+      compact=true,
+      right_source_keys=source_keys,
+    )
     text.say("", " で照合する")
   } else {
     text.say(if kind == "inner" { " rows on " } else { " on " }, "のキー ")

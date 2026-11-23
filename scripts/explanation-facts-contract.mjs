@@ -124,6 +124,11 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
         check_environment_cid: cid, compiled_plan_cid: cid, logical_map_cid: cid}),
       items: list(item)}),
   };
+  // The same Context can lack these links when its issuer did not retain
+  // them. Original stored bytes stay valid and do not acquire new provenance.
+  schemas.explanation_context.properties.stage_result_links = list(object({
+    producer: consumer, consumer, result_projection: {type: 'boolean'},
+  }));
   // A transport envelope around the original Plan and its two facets. Its
   // references share the Plan and Map binding; the reader checks that binding.
   const explanationView = plan => object({version: {const: 'actql-static-explanation/0.1'},

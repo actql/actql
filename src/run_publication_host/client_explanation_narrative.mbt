@@ -446,6 +446,7 @@ fn explain_narrative_join_keys(
   meaning : @canonical.CanonicalValue,
   text : ExplanationNarrativeText,
   compact? : Bool = false,
+  right_source_keys? : Bool = false,
 ) -> Unit raise ClientExplanationNarrativeIssue {
   visit_explanation_narrative_array(
     explanation_narrative_field(meaning, "keys"),
@@ -460,7 +461,7 @@ fn explain_narrative_join_keys(
       }
       let left = explanation_narrative_string(key, "left")
       let right = explanation_narrative_string(key, "right")
-      if compact && left == right {
+      if right_source_keys || (compact && left == right) {
         text.quote(right)
       } else {
         text.append("left.")

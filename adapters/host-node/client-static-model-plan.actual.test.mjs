@@ -7,6 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {setImmediate} from 'node:timers/promises';
 import {createHostObservationConnection} from '../host-common/observation.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {flowPresentation} from '../../packages/explorer-ui/flow-model.mjs';
 import {staticExplanationReadModel} from '../../packages/explorer-ui/read-model.mjs';
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -86,19 +87,19 @@ test('installed static Explanation retains the original deal-review Source, Mode
     assert.deepEqual(context.items.map(item => item.kind),
       ['source', 'source', 'source', 'model_task', 'result', 'effect_set']);
     const [opportunities, files, contents, model, result, effects] = context.items;
-    for (const [item, stage, connector, resource, request] of [
-      [opportunities, 0, 'salesforce', 'Opportunity', 'direct'],
-      [files, 1, 'drive', 'files', 'direct'],
-      [contents, 2, 'drive', 'contents', 'keyed'],
+    for (const [item, stage, input, connector, resource, request] of [
+      [opportunities, 0, 0, 'salesforce', 'Opportunity', 'direct'],
+      [files, 1, 0, 'drive', 'files', 'direct'],
+      [contents, 2, 2, 'drive', 'contents', 'keyed'],
     ]) {
       assert.equal(item.source_view.connector, connector);
       assert.equal(item.source_view.resource, resource);
       assert.equal(item.request_kind, request);
       assert.equal(item.link_state, 'linked');
-      assert.deepEqual(item.stage_input, {kind: 'stage_input', stage_ordinal: stage, input_port_ordinal: 0});
+      assert.deepEqual(item.stage_input, {kind: 'stage_input', stage_ordinal: stage, input_port_ordinal: input});
       const consumers = map.steps.flatMap(step => step.ports.filter(port => port.role === 'input' &&
         port.source.kind === 'stage_input' && port.source.stage_ordinal === stage &&
-        port.source.input_port_ordinal === 0).map(port => ({step_id: step.step_id, port_id: port.port_id})));
+        port.source.input_port_ordinal === input).map(port => ({step_id: step.step_id, port_id: port.port_id})));
       assert(consumers.length > 0);
       assert.deepEqual(item.consuming_ports, consumers);
     }
@@ -150,6 +151,27 @@ test('installed static Explanation retains the original deal-review Source, Mode
     assert.match(english.story.narrative.summary, /"drive".*Ask "model-task:deal-review.v1"/u);
     assert.match(english.story.narrative.summary, /Return "updates".*"StageName"/u);
     assert.match(japanese.story.narrative.summary, /"salesforce" の "Opportunity".*"name"/u);
+    assert.match(english.story.narrative.summary, /Match "Opportunity" from "salesforce" with "files" from "drive" on "name"/u);
+    assert.match(english.story.narrative.summary, /the joined rows with "contents" from "drive" on the Source keys "resource", "version"/u);
+    assert(!english.story.narrative.summary.includes('aql_chain_column_'));
+    assert.deepEqual(english.plan.stageResultLinks, context.stage_result_links);
+    assert.equal(context.stage_result_links.length, 2);
+    const flow = flowPresentation(english.plan);
+    for (const {producer, consumer} of context.stage_result_links) {
+      const edge = flow.edges.find(edge => edge.id === consumer.port_id);
+      assert.equal(edge?.source, producer.step_id);
+      assert.equal(edge.sourceHandle, producer.port_id);
+      assert.equal(edge.target, consumer.step_id);
+      assert.equal(edge.targetHandle, consumer.port_id);
+    }
+    const foreign = structuredClone(explanation);
+    const [first, second] = foreign.context.stage_result_links;
+    first.producer.step_id = second.consumer.step_id;
+    assert.throws(() => staticExplanationReadModel(foreign, {render, locale: 'en'}),
+      {code: 'ExplorerInvalidExplanation'});
+    foreign.context.stage_result_links = [second, structuredClone(second)];
+    assert.throws(() => staticExplanationReadModel(foreign, {render, locale: 'en'}),
+      {code: 'ExplorerInvalidExplanation'});
     assert.doesNotMatch(english.story.narrative.summary, /[0-9]+ logical joins/u);
     assert.deepEqual(english.story.narrative.clauses.find(clause => clause.kind === 'join').step_ids,
       facts.steps.filter(step => step.operator === 'join').map(step => step.step_id));

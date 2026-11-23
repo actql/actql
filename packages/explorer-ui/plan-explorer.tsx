@@ -11,7 +11,7 @@ import {layoutInput, requestFlowLayout, flowNodeWidth, flowNodeHeight, flowPortO
 import './styles.css';
 
 type Logical = PlanReadModel['nodes'][number];
-type NodePresentation = {kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state: string};
+type NodePresentation = {kind?: string; title?: string; inputs?: string; sourceInput?: boolean; state?: string};
 type LogicalNode = Node<{original: Logical; presentation?: NodePresentation; unlinkedInput?: boolean}, 'logical'>;
 function LogicalCard({data, selected}: NodeProps<LogicalNode>) {
   const original = data.original;

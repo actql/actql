@@ -3073,8 +3073,6 @@ pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> Prep
 
 pub fn write_client_static_effect_explanation_context(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
-pub fn write_client_static_effect_explanation_transfers(ClientStaticEffectExplanationOriginal, PreparedClientEffectComputation, ClientEffectCompilation, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
-
 pub fn write_client_static_pure_explanation_context(ClientStaticPureExplanationOriginal, @encode_core.Writer, Int) -> Result[Unit, ClientStaticExplanationSourceIssue]
 
 // Errors

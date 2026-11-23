@@ -21,6 +21,7 @@ export type PlanReadModel = Readonly<{
     targetPortOrdinal: number}>[];
   inputs: readonly Readonly<{stepId: string; inputPortId: string;
     locator: Extract<Step['ports'][number]['source'], {kind: 'stage_input'}>}>[];
+  stageResultLinks?: WireExplanationContext['stage_result_links'];
   sourceOrigins: Readonly<{state: 'unavailable'; reason: 'not_in_projection'}>;
 }>;
 export function planReadModel(view: WirePlanView | WireEffectfulStaticPlanView): PlanReadModel;

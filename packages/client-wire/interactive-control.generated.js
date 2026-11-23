@@ -17990,6 +17990,60 @@ const schemas = {
           ]
         },
         "minItems": 0
+      },
+      "stage_result_links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "producer",
+            "consumer",
+            "result_projection"
+          ],
+          "properties": {
+            "producer": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "port_id"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "port_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "consumer": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "step_id",
+                "port_id"
+              ],
+              "properties": {
+                "step_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "port_id": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "result_projection": {
+              "type": "boolean"
+            }
+          }
+        },
+        "minItems": 0
       }
     }
   },
@@ -21130,6 +21184,60 @@ const schemas = {
               ]
             },
             "minItems": 0
+          },
+          "stage_result_links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "producer",
+                "consumer",
+                "result_projection"
+              ],
+              "properties": {
+                "producer": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "port_id"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "port_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "consumer": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "port_id"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "port_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "result_projection": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "minItems": 0
           }
         }
       }
@@ -23388,6 +23496,60 @@ const schemas = {
                           ]
                         },
                         "minItems": 0
+                      },
+                      "stage_result_links": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "producer",
+                            "consumer",
+                            "result_projection"
+                          ],
+                          "properties": {
+                            "producer": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "step_id",
+                                "port_id"
+                              ],
+                              "properties": {
+                                "step_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                },
+                                "port_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                }
+                              }
+                            },
+                            "consumer": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "step_id",
+                                "port_id"
+                              ],
+                              "properties": {
+                                "step_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                },
+                                "port_id": {
+                                  "type": "string",
+                                  "pattern": "^sha256:[0-9a-f]{64}$"
+                                }
+                              }
+                            },
+                            "result_projection": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "minItems": 0
                       }
                     }
                   }
@@ -23474,7 +23636,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:4b0f4825e684647bf9ea10628523c7b0b2eed07610010389001792303e4bee46";
+export const interactiveControlRegistryCid = "sha256:f35f84748cb37f9419da36f2c4f64c492ffa5c74ec1231243ec1b45b73074ebb";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

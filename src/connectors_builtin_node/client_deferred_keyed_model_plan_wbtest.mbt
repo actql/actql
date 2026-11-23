@@ -281,16 +281,16 @@ extern "js" fn static_explanation_source_links_match(
   #|  const view = JSON.parse(planWire);
   #|  const steps = view.computation.plan_view.logical_map.steps;
   #|  const sources = JSON.parse(contextWire).items.filter(item => item.kind === 'source');
-  #|  const expected = [['salesforce', 'Opportunity', 'direct'], ['drive', 'files', 'direct'], ['drive', 'contents', 'keyed']];
+  #|  const expected = [['salesforce', 'Opportunity', 'direct', 0], ['drive', 'files', 'direct', 0], ['drive', 'contents', 'keyed', 2]];
   #|  if (view.provider_io !== 0 || sources.length !== expected.length) return false;
   #|  return sources.every(({source_view, stage_input, request_kind, link_state, consuming_ports}, stage) => {
-  #|    const [connector, resource, mode] = expected[stage];
+  #|    const [connector, resource, mode, ordinal] = expected[stage];
   #|    const links = steps.flatMap(step => step.ports.filter(port =>
   #|      port.role === 'input' && port.source?.kind === 'stage_input' &&
-  #|      port.source.stage_ordinal === stage && port.source.input_port_ordinal === 0
+  #|      port.source.stage_ordinal === stage && port.source.input_port_ordinal === ordinal
   #|    ).map(port => ({port_id: port.port_id, step_id: step.step_id})));
   #|    return source_view.connector === connector && source_view.resource === resource &&
-  #|      stage_input.kind === 'stage_input' && stage_input.stage_ordinal === stage && stage_input.input_port_ordinal === 0 &&
+  #|      stage_input.kind === 'stage_input' && stage_input.stage_ordinal === stage && stage_input.input_port_ordinal === ordinal &&
   #|      request_kind === mode && link_state === 'linked' && links.length > 0 &&
   #|      JSON.stringify(consuming_ports) === JSON.stringify(links);
   #|  });
@@ -330,13 +330,13 @@ test "Static explanation Source rows retain the exact consuming ports of one Eff
 ///|
 extern "js" fn static_explanation_stage_transfers_match(
   plan_wire : String,
-  transfers_wire : String,
+  context_wire : String,
   imports : FixedArray[Int],
 ) -> Bool =
-  #|(planWire, transfersWire, imports) => {
+  #|(planWire, contextWire, imports) => {
   #|  const steps = JSON.parse(planWire).computation.plan_view.logical_map.steps;
   #|  const ports = new Map(steps.flatMap(step => step.ports.map(port => [port.port_id, {step, port}])));
-  #|  const transfers = JSON.parse(transfersWire);
+  #|  const transfers = JSON.parse(contextWire).stage_result_links;
   #|  return transfers.length === 2 && imports.length === 6 &&
   #|    new Set(transfers.map(link => link.consumer.port_id)).size === 2 &&
   #|    transfers.every(({producer, consumer, result_projection}) => {
@@ -372,8 +372,8 @@ test "Static explanation retains original Result transfers into the README joins
       imports.push(input)
     }
   }
-  let writer = @encode.writer(4096, 256, 16)
-  @publication_host.write_client_static_effect_explanation_transfers(
+  let writer = @encode.writer(65536, 8192, 64)
+  @publication_host.write_client_static_effect_explanation_context(
     original, owner, compiled, writer, 10000,
   ).unwrap()
   let wire = @encode.finish(writer)
@@ -386,14 +386,14 @@ test "Static explanation retains original Result transfers into the README joins
   )
   let tiny = @encode.writer(16, 256, 16)
   assert_true(
-    @publication_host.write_client_static_effect_explanation_transfers(
+    @publication_host.write_client_static_effect_explanation_context(
       original, owner, compiled, tiny, 10000,
     )
     is Err(Encoding(@encode.OutputLimit)),
   )
   let work = @encode.writer(4096, 256, 16)
   assert_true(
-    @publication_host.write_client_static_effect_explanation_transfers(
+    @publication_host.write_client_static_effect_explanation_context(
       original, owner, compiled, work, 1,
     )
     is Err(WorkLimit),
@@ -401,7 +401,7 @@ test "Static explanation retains original Result transfers into the README joins
   let foreign = client_program_compile_local_effects_with_infer(owner, model).unwrap()
   let rejected = @encode.writer(4096, 256, 16)
   assert_true(
-    @publication_host.write_client_static_effect_explanation_transfers(
+    @publication_host.write_client_static_effect_explanation_context(
       original, owner, foreign, rejected, 10000,
     )
     is Err(ForeignOriginal),
@@ -643,9 +643,15 @@ test "Portable narrative renders the original deal-review Facts and Context in b
   assert_true(english.summary.contains("\"name\""))
   assert_true(english.summary.contains("\"resource\""))
   assert_true(
-    english.summary.contains("input origins not projected") ||
-    english.summary.contains("an input with no projected origin"),
+    english.summary.contains(
+      "Match \"Opportunity\" from \"salesforce\" with \"files\" from \"drive\" on \"name\"",
+    ),
   )
+  guard english.summary.contains(
+    "the joined rows with \"contents\" from \"drive\" on the Source keys \"resource\", \"version\"",
+  ) else {
+    fail(english.summary)
+  }
   assert_false(english.summary.contains("3 logical joins"))
   assert_true(japanese.summary.contains("\"salesforce\" の \"Opportunity\""))
   assert_true(japanese.summary.contains("\"name\""))

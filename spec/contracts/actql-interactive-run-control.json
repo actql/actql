@@ -5117,6 +5117,60 @@
             ]
           },
           "minItems": 0
+        },
+        "stage_result_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "producer",
+              "consumer",
+              "result_projection"
+            ],
+            "properties": {
+              "producer": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "step_id",
+                  "port_id"
+                ],
+                "properties": {
+                  "step_id": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "port_id": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "consumer": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "step_id",
+                  "port_id"
+                ],
+                "properties": {
+                  "step_id": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "port_id": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "result_projection": {
+                "type": "boolean"
+              }
+            }
+          },
+          "minItems": 0
         }
       }
     },
@@ -5275,7 +5329,7 @@
     "explanation_step": "sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a",
     "explanation_facts": "sha256:0bd17264c5c1efa5e2fa2984a5052e3ebace93ba3a66bcbe0c3a60ffca01b2a2",
     "run_explanation_view": "sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1",
-    "explanation_context": "sha256:15ae41547d78e8d2b3a5485e4ed42838db91bef2b47c7629e19ae367d6613f27",
+    "explanation_context": "sha256:146f86ffe25bc0026368ee0a9d5a3ae03b7f3652de281c5534a95496c615b2fb",
     "static_explanation_view": "sha256:8e4b03ac25f7e1457d676d66caf56ece97fdbad1a3dd78d09552f3bc0e4a73a2",
     "run_explanation_context_view": "sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d"
   },
@@ -5375,5 +5429,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:4b0f4825e684647bf9ea10628523c7b0b2eed07610010389001792303e4bee46"
+  "registry_cid": "sha256:f35f84748cb37f9419da36f2c4f64c492ffa5c74ec1231243ec1b45b73074ebb"
 }

@@ -49,7 +49,9 @@ function StoryHeading({story, context}: {story: ExplanationStoryModel; context: 
 
 type StepState = 'Planned' | 'Unknown' | 'Observed';
 
-function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext) {
+function graphStepLabels(story: ExplanationStoryModel | undefined, context: StoryContext,
+  stageResultLinks: PlanReadModel['stageResultLinks']) {
+  const importedInputs = stageResultLinks && new Set(stageResultLinks.map(link=>link.consumer.port_id));
   const sources = new Map<string, {resource: string; connector: string}[]>();
   const tasks = new Map<string, string[]>();
   const results = new Map<string, string[]>();
@@ -59,8 +61,9 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
     else index.set(stepId, [value]);
   };
   for (const {origin} of context) {
-    if (origin.kind === 'source') {
-      for (const id of new Set(origin.consuming_ports.map(port=>port.step_id))) add(sources, id, origin.source_view);
+    if (origin.kind === 'source' && importedInputs) {
+      const consumers = origin.consuming_ports.filter(port=>!importedInputs.has(port.port_id));
+      for (const id of new Set(consumers.map(port=>port.step_id))) add(sources, id, origin.source_view);
     } else if (origin.kind === 'model_task' && origin.producer.state === 'projected') {
       add(tasks, origin.producer.step_id, origin.task_id.replace(/^model-task:/u, ''));
     } else if (origin.kind === 'result' && origin.producer.state === 'projected') {
@@ -86,8 +89,8 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
     } else if (inputs?.length && inputDetail) {
       // A linked declaration names the input port; it does not make this
       // logical occurrence an actual Source attempt or another Graph node.
-      const connections = new Set(inputs.map(input=>input.connector));
-      labels.set(step.stepId, {kind: connections.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
+      const systems = new Set(inputs.map(input=>input.connector));
+      labels.set(step.stepId, {kind: systems.size === 1 ? inputs[0].connector : ja ? '入力' : 'Inputs',
         title: inputDetail, sourceInput: true});
     } else if (outputs?.length) {
       labels.set(step.stepId, {kind: 'Result', title: `${ja ? '結果' : 'Return'} ${outputs.join(', ')}`});
@@ -107,12 +110,12 @@ function stepTitle(step: Step, label?: string) {
   return step.operator?.replaceAll('_', ' ').replace(/^./u, char=>char.toUpperCase()) ?? 'Input / output';
 }
 
-function stepState(stepId: string, saved: boolean, boundary?: {stepId: string; state: StepState}): StepState {
-  return stepId === boundary?.stepId ? boundary.state : saved ? 'Unknown' : 'Planned';
+function stepState(stepId: string, saved: boolean, boundary?: {stepId: string; state: StepState}): StepState | undefined {
+  return stepId === boundary?.stepId ? boundary.state : saved ? undefined : 'Planned';
 }
 
 function StoryCard({ordinal, label, title, detail, system, state, open, selected, onToggle, children}: {
-  ordinal: number; label: string; title: string; detail?: string; system?: string; state: StepState;
+  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;
   open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;
 }) {
   return <li className="story-row" data-state={state}>
@@ -121,7 +124,7 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
       <summary onClick={event=>{event.preventDefault(); onToggle();}}>
         <span className="step-label">{label}
           {system && <span className="workspace-chip step-system">{system}</span>}
-          <span className="workspace-chip step-state" data-state={state}>{state}</span></span>
+          {state && <span className="workspace-chip step-state" data-state={state}>{state}</span>}</span>
         <strong><StoryText text={title}/></strong>
         {detail && title !== detail && <span className="step-summary"><StoryText text={detail}/></span>}
       </summary>
@@ -164,7 +167,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
     if (step.operator === 'join' && current?.[0]?.operator === 'join') current.push(step);
     else groups.push([step]);
   }
-  const unobserved = saved ? 'Unknown' : 'Planned';
+  const unobserved = saved ? undefined : 'Planned';
   let ordinal = 0;
   const card = (id: string, defaultOpen: boolean, selected?: string) => ({
     ordinal: ++ordinal, open: graph || (opened[id] ?? defaultOpen),
@@ -196,7 +199,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
         const step = graph ? selected ?? first : observed ?? selected ?? first;
         const tasks = models.get(step.stepId) ?? [];
         const title = tasks.length === 1 ? tasks[0].text : tasks.length > 1 ? `Ask ${tasks.length} declared model tasks` :
-          group.length > 1 && !graph ? `Join inputs · ${group.length} checked joins` :
+          group.length > 1 && !graph ? (story.locale === 'ja' ? '入力を結合' : 'Join inputs') :
           stepTitle(step, labels.get(step.stepId)?.title);
         const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined, step.stepId);
         if (graph && !selected) return null;
@@ -482,8 +485,8 @@ function App() {
   const context = selectedRef
     ? explanation?.state === 'projected' && 'context' in explanation ? explanation.context : []
     : staticExplanation?.context ?? [];
-  const graphLabels = useMemo(()=>graphStepLabels(story, context), [story, context]);
   const map = selectedRef ? originalPresentation?.plan ?? originalPlan?.plan : plan;
+  const graphLabels = useMemo(()=>graphStepLabels(story, context, map?.stageResultLinks), [story, context, map]);
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
   const edited = analyzedDraft !== undefined &&
     (analyzedDraft.text !== programText || analyzedDraft.format !== programFormat);
