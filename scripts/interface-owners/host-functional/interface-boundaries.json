@@ -146190,7 +146190,7 @@
                 "anchor": "const originals=new WeakMap<object, Readonly<UncheckedDependencyOriginal>>();"
               },
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "clientProgramInstalledEffectDependencyGroupReserve"
               }
             ],

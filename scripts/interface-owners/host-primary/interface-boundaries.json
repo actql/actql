@@ -6353,7 +6353,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "a1c282c0eb0c0d98204ad849575decb825db1795df20bda5256fd09d2cb7a589",
+      "sha256": "22b5c759c384f52d3355cd1fa067b956a8fb79f7ced78a7dfa0e02cbf27a1758",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -6428,24 +6428,6 @@
         {
           "name": "prepareDependentEffectSourceSet/staticSelection/staticSelection",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectDependencyInventory",
-          "parameters": [
-            "sources",
-            "store",
-            "control",
-            "contractLimits",
-            "dependencies"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectDependencyInventory/preparePinnedEffectDependencyInventory",
-          "parameters": [
-            "payload"
-          ],
           "async": false
         },
         {
@@ -6633,25 +6615,6 @@
             "payload"
           ],
           "async": false
-        },
-        {
-          "name": "retainPinnedEffectDependencyPayloads",
-          "parameters": [
-            "sources",
-            "execution",
-            "store",
-            "storedResults",
-            "control",
-            "runDefinition"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainPinnedEffectDependencyPayloads/bindings/bindings",
-          "parameters": [
-            "payload"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -6668,8 +6631,6 @@
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/staticBodies/staticBodies",
-            "preparePinnedEffectDependencyInventory",
-            "preparePinnedEffectDependencyInventory/preparePinnedEffectDependencyInventory",
             "preparePinnedEffectSourcePayload",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
@@ -6696,9 +6657,7 @@
             "preparePinnedEffectSourceSet/result/result",
             "preparePinnedEffectSourceSet/result/result#2",
             "preparePinnedEffectSourceSet/result/result#3",
-            "preparePinnedEffectSourceSet/temporary/temporary",
-            "retainPinnedEffectDependencyPayloads",
-            "retainPinnedEffectDependencyPayloads/bindings/bindings"
+            "preparePinnedEffectSourceSet/temporary/temporary"
           ],
           "exports": [
             "commitPinnedEffectSourceHolding",
@@ -6715,7 +6674,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "Assemble existing owned Results, never caller-authored roots"
               },
               {
@@ -6763,7 +6722,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "preparedEffectSourceSets.get(sources)"
               },
               {
@@ -6873,7 +6832,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "EffectDependencyEntryLimit"
               },
               {
@@ -6979,7 +6938,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "Assemble existing owned Results, never caller-authored roots"
               },
               {
@@ -7027,7 +6986,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "preparedEffectSourceSets.get(sources)"
               },
               {
@@ -7137,7 +7096,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-source-dependencies.mts",
                 "anchor": "EffectDependencyEntryLimit"
               },
               {
@@ -7243,8 +7202,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7253,8 +7212,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7263,8 +7222,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7273,8 +7232,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7283,8 +7242,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7293,8 +7252,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7303,8 +7262,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7313,8 +7272,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7323,8 +7282,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const original = installedEffectDependencyOriginal(construction, owner!.runtime);"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -7347,10 +7306,10 @@
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
+        "./effect-source-dependencies.mjs",
         "./effect-source-holdings.mjs",
         "./effect-source-stream.mjs",
-        "node:crypto",
-        "node:util"
+        "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -8363,6 +8322,181 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/effect-source-dependencies.mjs",
+      "sha256": "d84b74efb597228528fb05ff9242a167efef4dc03cb3e3ad0fc62ef09e7a3897",
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "createPinnedEffectSourceDependencies"
+      ],
+      "operations": [
+        {
+          "name": "createPinnedEffectSourceDependencies",
+          "parameters": [
+            "preparedEffectSourceOwners",
+            "preparedEffectSourceSets",
+            "adoptedEffectSourceDependencies"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceDependencies/preparePinnedEffectDependencyInventory",
+          "parameters": [
+            "sources",
+            "store",
+            "control",
+            "contractLimits",
+            "dependencies"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceDependencies/preparePinnedEffectDependencyInventory/preparePinnedEffectDependencyInventory",
+          "parameters": [
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceDependencies/retainPinnedEffectDependencyPayloads",
+          "parameters": [
+            "sources",
+            "execution",
+            "store",
+            "storedResults",
+            "control",
+            "runDefinition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceDependencies/retainPinnedEffectDependencyPayloads/bindings/bindings",
+          "parameters": [
+            "payload"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPinnedEffectSourceDependencies",
+            "createPinnedEffectSourceDependencies/preparePinnedEffectDependencyInventory",
+            "createPinnedEffectSourceDependencies/preparePinnedEffectDependencyInventory/preparePinnedEffectDependencyInventory",
+            "createPinnedEffectSourceDependencies/retainPinnedEffectDependencyPayloads",
+            "createPinnedEffectSourceDependencies/retainPinnedEffectDependencyPayloads/bindings/bindings"
+          ],
+          "exports": [
+            "createPinnedEffectSourceDependencies"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "function preparePinnedEffectDependencyInventory"
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "function retainPinnedEffectDependencyPayloads"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "return control.prepareLocalEffectDependencyInventory("
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const bindings = retainCompletedEffectDependencyPayloads("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "owner?.store !== store || owner?.control !== control"
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "originalArtifacts.push(payload.localResultArtifact)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "adoptedEffectSourceDependencies.add(sources)"
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "preparedEffectSourceOwners.get(payload)?.tableInput"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "TypeError('InvalidEffectDependencySetOwner')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "const bindings = retainCompletedEffectDependencyPayloads("
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "Failure leaves every input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "clientProgramInstalledEffectDependencyGroupReserve("
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "RangeError('EffectDependencyEntryLimit')"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "kind: 'local_manifest'"
+              },
+              {
+                "path": "adapters/host-node/effect-source-dependencies.mts",
+                "anchor": "body.kind === 'result_import_observation'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "same original inventory retains payload cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/table-dependent-input.fixture.mjs",
+                "anchor": "dependent private Table members retain a complete typed inventory and reject foreign provenance"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/effect-source-holdings.mjs",
