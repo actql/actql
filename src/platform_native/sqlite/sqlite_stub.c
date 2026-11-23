@@ -2331,7 +2331,8 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   int32_t caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database->transaction_fenced || database->lookup_generation != 0)
+    return -1;
   actql_clear_result(database);
   if (reserved_bytes < 0 || reserved_objects < 0 || max_bytes < 0 ||
       max_objects < 0 || reserved_bytes > max_bytes ||
@@ -2462,7 +2463,8 @@ int32_t actql_native_sqlite_database_grow_key_capacity_in_transaction(
   int64_t max_objects
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database->transaction_fenced || database->lookup_generation != 0)
+    return -1;
   actql_clear_result(database);
   if (database->library->get_autocommit(database->database) != 0) {
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
@@ -2532,7 +2534,8 @@ static int32_t actql_database_release_capacity(
   bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database->transaction_fenced || database->lookup_generation != 0)
+    return -1;
   actql_clear_result(database);
   if (reserved_bytes < 0 || reserved_objects < 0) return 2;
   const bool owns_transaction = !caller_transaction;
@@ -2692,14 +2695,14 @@ static int32_t actql_claim_ordinal(
   bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database->transaction_fenced || database->lookup_generation != 0)
+    return -1;
   actql_clear_result(database);
   if (max_claims <= 0) return 6;
   // Caller mode never begins, commits or rolls back the owning journal TX.
   // No autocommit fallback can split an ordinal from its original use row.
   const bool owns_transaction = !caller_transaction;
-  if (caller_transaction && (database->transaction_fenced ||
-      database->library->get_autocommit(database->database) != 0)) {
+  if (caller_transaction && database->library->get_autocommit(database->database) != 0) {
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
                         "claim requires an active unfenced caller transaction");
     return -1;
