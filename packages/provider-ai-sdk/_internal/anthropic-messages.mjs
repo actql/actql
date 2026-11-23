@@ -35,3 +35,9 @@ export function readReportedUsage(body) {
   const tokenCount = value => Number.isSafeInteger(value) && value >= 0 ? BigInt(value) : undefined;
   return {inputTokens: tokenCount(usage.input_tokens), outputTokens: tokenCount(usage.output_tokens)};
 }
+
+export function readReportedResponse(body) {
+  if (body === null || typeof body !== 'object') return undefined;
+  return {model: body.model, requestId: body.id, finishReason: body.stop_reason,
+    outcome: body.stop_reason === 'refusal' ? 'refusal' : undefined};
+}

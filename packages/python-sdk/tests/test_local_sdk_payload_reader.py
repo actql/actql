@@ -91,6 +91,7 @@ class SDKPayloadReaderTests(unittest.TestCase):
                     self.assertEqual(payload, b'{"n":1}\n' if expected_offset == 4 else b'')
                     self.assertEqual(stream.accept(output), 0 if expected_offset == 0 else 8)
             self.assertEqual(raw_reads, [(4, 0), (4, 4), (1, 8)])
+            self.assertEqual([name for name, _ in calls].count('produce_sdk_payload_chunk'), 3)
             self.assertTrue(stream._reader.eof)
             self.assertEqual('sha256:' + stream._reader.hash.hexdigest(),
                              'sha256:8cd664de3db2ebc3a68f6507c3d786addcdaffc9393fea9ce94364129ba27a98')

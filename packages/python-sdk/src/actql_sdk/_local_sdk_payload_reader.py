@@ -118,10 +118,8 @@ class OriginalSDKPayloadReader:
                 # across physical chunks, including partial UTF-8 and JSONL.
                 if self._input.length:
                     self._core.fill_input(self._input, 0, self._input.length)
-                self._output = self._storage.produce_original_chunk(
+                self._output, payload = self._storage.produce_original_chunk(
                     self._request, self._input, clock, eof=chunk.eof)
-                payload = self._storage.read_original_chunk(
-                    self._request, self._input, clock, self._output, eof=chunk.eof)
                 if isinstance(self._reader, _OriginalFileReader):
                     self._root._validate_original(self._reader)
                 else:

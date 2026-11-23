@@ -468,12 +468,8 @@ fn observe_original_model_physical_usage(
         return Err(RequestIdentity)
       }
       {
-        input_tokens: response.result
-        .to_option()
-        .bind(encoded => encoded.observation.input_tokens),
-        output_tokens: response.result
-        .to_option()
-        .bind(encoded => encoded.observation.output_tokens),
+        input_tokens: response.observation.bind(value => value.input_tokens),
+        output_tokens: response.observation.bind(value => value.output_tokens),
       }
     }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
