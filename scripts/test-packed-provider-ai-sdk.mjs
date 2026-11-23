@@ -14,12 +14,15 @@ import {runLocalCheck} from './local-checks-guard.mjs';
 const registeredProviderCases = Object.freeze([
   'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
 ]);
+const registeredTerminalFailures = Object.freeze({
+  'registered-length': 'truncated', 'registered-refusal': 'refusal',
+});
 const registeredRefusalCases = Object.freeze([
   'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header',
 ]);
 export const registeredProviderAcceptanceCases = Object.freeze([
-  ...registeredProviderCases, ...registeredRefusalCases,
+  ...registeredProviderCases, ...Object.keys(registeredTerminalFailures), ...registeredRefusalCases,
 ]);
 
 // Assertions over the original child report only; this issues no Run authority
@@ -43,6 +46,21 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     return;
   }
   assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (Object.hasOwn(registeredTerminalFailures, caseId)) {
+    assert.equal(value.terminalFailure, registeredTerminalFailures[caseId]);
+    assert.equal(value.registeredSdk, true);
+    assert.equal(value.projectCredential, true);
+    assert.equal(value.maxCalls, 1);
+    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+    if (phase === 'cold') {
+      assert.notEqual(pid, originalPid);
+      assert.equal(value.originalSavedFirst, true);
+      for (const field of ['calls', 'egressChecks', 'projectTlsConnects', 'originalModelStarts']) assert.equal(value[field], 0);
+    } else {
+      for (const field of ['tasks', 'requests', 'calls', 'projectTlsConnects', 'originalModelStarts']) assert.equal(value[field], 1);
+    }
+    return;
+  }
   if (caseId === 'registered-mixed') {
     assert.equal(value.registeredSdk, true); assert.equal(value.projectCredential, true);
     assert.deepEqual(value.mixedProviders, ['models/http', 'models/messages']);
@@ -132,6 +150,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
     ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const selections = cases === undefined ? available : [...available,
     ...registeredProviderCases.map(id => [id, 'cold']),
+    ...Object.keys(registeredTerminalFailures).map(id => [id, 'cold']),
     ...registeredRefusalCases.map(id => [id])].filter(([id]) => cases.includes(id));
   if (cases !== undefined) assert(cases.length > 0 && selections.length === cases.length,
     'Every selected provider case must match once');
@@ -174,7 +193,8 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
           const value = JSON.parse(actual.stdout.trim());
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
-          if (id === 'registered-mixed' || id === 'registered-mistral') {
+          if (id === 'registered-mixed' || id === 'registered-mistral' ||
+              Object.hasOwn(registeredTerminalFailures, id)) {
             if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
             else originalRunDefinitionCid = value.originalRunDefinitionCid;
           }
