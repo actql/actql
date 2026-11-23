@@ -4,18 +4,34 @@ import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledKintoneSource} from '../host/installed-kintone-source.mjs';
 import {installedKintoneFixture as fixture, originalForm, record} from './installed-kintone.fixture.mjs';
 
-const assertReleased = ledger => assert.deepEqual(
+import type {KintoneInstalledSource} from '../host/installed-kintone-source.mjs';
+
+type Runtime = Parameters<Awaited<ReturnType<typeof fixture>>['load']>[0] & Readonly<{
+  clientProgramMultiCapturedLedgerUsage(ledger: unknown): Parameters<typeof ledgerUsageSnapshot>[0];
+  clientProgramExportSourceCapture(source: unknown, requirement: unknown, input: string): unknown;
+  clientProgramSourceCaptureExportRows(value: unknown): string[];
+  clientProgramKintoneProjectForm(body: Uint8Array, app: string, limits: unknown): Readonly<{$tag: number; _0: unknown}>;
+  clientProgramKintoneFormLimits(bytes: number, nodes: number, depth: number, fields: number, names: number): unknown;
+}>;
+type FixtureSource = Awaited<ReturnType<Awaited<ReturnType<typeof fixture>>['load']>>;
+type Capture = Awaited<ReturnType<FixtureSource['openCapture']>>;
+type AcquisitionError = Readonly<{code?: unknown; outcome?: unknown; recovery?: unknown; cause?: unknown}>;
+type InstallationError = Readonly<{primaryFailure?: {cause?: unknown}; cleanupPending?: unknown; cleanupErrors?: unknown}>;
+const common = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href) as Runtime;
+
+const assertReleased = (ledger: unknown) => assert.deepEqual(
   ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 
 test('installed kintone prepares original typed metadata without provider or secret lookup', async t => {
   const f = await fixture(t), source = await f.load();
   assert.equal(source.connectorRegistration, 'kintone');
-  assert.deepEqual(source.sourceReadAccesses.map(value => value.resource), ['inquiries']);
+  assert.deepEqual(source.sourceReadAccesses!.map(value => value.resource), ['inquiries']);
   await source.prepare(await f.prepare(source));
   assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
 });
@@ -24,8 +40,8 @@ test('installed kintone pages the same accounted RowRun with original wide ID an
   const f = await fixture(t), source = await f.load(), ledger = f.ledger();
   const opened = await source.openCapture({...await f.prepare(source), ledger});f.captures.push(opened);
   const exported = checked(common.clientProgramExportSourceCapture(opened.capture.source(),
-    opened.requirement, 'kintone-record-read-test'));
-  const rows = common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
+    (opened as Extract<Capture, {requirement: unknown}>).requirement, 'kintone-record-read-test'));
+  const rows = common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse as (wire: string) => unknown);
   assert.deepEqual(rows, ['9007199254740992', '9007199254740993', '9007199254740994'].map((id, i) => ({
     $id: id, Subject: '東京\r\nnext', Tags: ['red', '東京', 'red'], RecordNumber: `APP-${i + 7}`})));
   assert.deepEqual(f.tls.seen().map(value => value.pathname), [
@@ -38,7 +54,7 @@ test('installed kintone pages the same accounted RowRun with original wide ID an
 });
 
 test('kintone metadata and record read permissions remain independent before I/O', async t => {
-  for (const options of [{formRead: 'deny'}, {recordsRead: 'deny'}]) {
+  for (const options of [{formRead: 'deny'}, {recordsRead: 'deny'}] as const) {
     const f = await fixture(t, options), source = await f.load(), ledger = f.ledger();
     await assert.rejects(source.openCapture({...await f.prepare(source), ledger}));
     assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
@@ -57,7 +73,7 @@ test('a changed kintone resolver cannot replace the original token between Form 
 test('a changed final Form refuses capture after real record bytes without a replacement lookup', async t => {
   const f = await fixture(t), source = await f.load(), ledger = f.ledger();
   f.state.page = () => ({records: [record('9007199254740992')], totalCount: null});
-  f.state.form = count => count === 2 ? {...originalForm, revision: '8'} : originalForm;
+  f.state.form = (count: number) => count === 2 ? {...originalForm, revision: '8'} : originalForm;
   await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), {code: 'MoonBitHostFailure'});
   assert.equal(f.tls.seen().length, 3);assert.equal(f.state.forms, 2);
   assert.equal(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes,
@@ -67,7 +83,7 @@ test('a changed final Form refuses capture after real record bytes without a rep
 
 test('kintone repeated cross-page IDs abort instead of treating totalCount as completion', async t => {
   const f = await fixture(t), source = await f.load(), ledger = f.ledger();
-  f.state.page = count => ({records: count === 1
+  f.state.page = (count: number) => ({records: count === 1
     ? [record('9007199254740992'), record('9007199254740993')]
     : [record('9007199254740993')], totalCount: '1'});
   await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), {code: 'MoonBitHostFailure'});
@@ -79,7 +95,7 @@ test('a kintone reply loss remains Unknown with one physical request and no auto
   const f = await fixture(t, {faults: [{kind: 'lose-reply', method: 'POST', pathname: '/k/v1/records.json'}]}),
     source = await f.load(), ledger = f.ledger();
   await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), error => {
-    assert.equal(error.outcome, 'unknown');assert.equal(error.code, 'ECONNRESET');return true;
+    assert.equal((error as AcquisitionError).outcome, 'unknown');assert.equal((error as AcquisitionError).code, 'ECONNRESET');return true;
   });
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
   assertReleased(ledger);
@@ -120,25 +136,25 @@ test('a rejected kintone response is charged on the original RowRun without anot
 
 test('canceling an awaited kintone page retains its original reservation until transport retirement', async t => {
   const f = await fixture(t), source = await f.load(), ledger = f.ledger();
-  let seen, resume;
-  const observed = new Promise(resolve => {seen = resolve;});
-  const response = new Promise(resolve => {resume = resolve;});
+  let seen: () => void, resume: () => void;
+  const observed = new Promise<void>(resolve => {seen = resolve;});
+  const response = new Promise<void>(resolve => {resume = resolve;});
   f.state.page = async () => {seen();await response;return {records: [], totalCount: null};};
   const controller = new AbortController();
   const opening = source.openCapture({...await f.prepare(source), ledger, signal: controller.signal});
   const rejected = assert.rejects(opening, error => {
-    assert.equal(error.code, 'ABORT_ERR');assert.equal(error.outcome, 'unknown');return true;
+    assert.equal((error as AcquisitionError).code, 'ABORT_ERR');assert.equal((error as AcquisitionError).outcome, 'unknown');return true;
   });
   await observed;
   assert.ok(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).reservedExecutionBytes > 0n);
-  controller.abort();resume();
+  controller.abort();resume!();
   await rejected;
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
   assertReleased(ledger);
 });
 
 test('kintone loader without its original initializer never enters raw configuration fallback',async()=>{
-  await assert.rejects(loadInstalledKintoneSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+  await assert.rejects(loadInstalledKintoneSource({metadataPath:'/UNOPENED-original-metadata'},{} as Parameters<typeof loadInstalledKintoneSource>[1]),
     {code:'KintoneSourceConstructionUnavailable'});
 });
 
@@ -146,13 +162,13 @@ test('registered kintone native Form refusal retains the original typed cause an
   const f=await fixture(t);
   const bytes=Buffer.from('{}');
   await writeFile(f.metadataPath,JSON.stringify({...f.metadata,formBody:bytes.toString('base64')}));
-  const limits=f.profile.limits;
+  const limits=f.profile.limits satisfies KintoneInstalledSource['limits'];
   const expected=common.clientProgramKintoneProjectForm(bytes,f.profile.appId,
     common.clientProgramKintoneFormLimits(limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxFields,limits.maxNameUnits));
   assert.equal(expected.$tag,0);
   await assert.rejects(f.load(),cause=>{
-    assert.deepEqual(cause.primaryFailure?.cause,expected._0);assert.equal(cause.cleanupPending,false);
-    assert.deepEqual(cause.cleanupErrors,[]);return true;
+    assert.deepEqual((cause as InstallationError).primaryFailure?.cause,expected._0);assert.equal((cause as InstallationError).cleanupPending,false);
+    assert.deepEqual((cause as InstallationError).cleanupErrors,[]);return true;
   });
   assert.equal(f.tls.seen().length,0);assert.equal(f.state.resolutions,0);
 });

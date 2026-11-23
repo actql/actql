@@ -5,12 +5,42 @@ import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {loadInstalledSource, installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 
+import type {TestContext} from 'node:test';
+import type {Exchange} from '../../../site-node/https-exchange-fixture.mjs';
+import type {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+
+type Runtime = Parameters<typeof createInstalledLoaderParent>[0]['moon'] &
+  Parameters<typeof loadInstalledSource>[1]['moon'] & Readonly<{
+    clientProgramCheckEnvironment(wire: string, evidenceCid: string, allowUntrusted: boolean,
+      allowImage: boolean, allowFiles: boolean, allowEffects: boolean, allowNative: boolean, allowModel: boolean,
+      allowExtra: boolean): unknown;
+    clientProgramPrepareEffectFreeWithParameters(program: string, format: string, environment: unknown, input: unknown): unknown;
+    clientProgramPreparationReady(outcome: unknown): unknown;
+    clientProgramPreparationIssue(outcome: unknown): unknown;
+    clientPrepareInstalledSequenceContracts(registry: string, values: string, fragment: string, ordered: string): unknown;
+    clientProgramAcquisitionLedger(tasks: number, acquisitions: number, transfer: bigint, retained: bigint,
+      execution: bigint, attempts: number): unknown;
+  }>;
+type RowSource = Awaited<ReturnType<typeof createInstalledRowSource>>;
+type FixtureSource = NonNullable<Awaited<ReturnType<typeof loadInstalledSource>>> &
+  Required<Pick<RowSource, 'prepare' | 'openCapture'>> & Readonly<{connectorRegistration: string}>;
+type Capture = Awaited<ReturnType<FixtureSource['openCapture']>>;
+type Tls = Awaited<ReturnType<typeof openHttpsExchangeFixture>>;
+type OriginalSetup = Readonly<{formRead?: 'allow' | 'deny'; recordsRead?: 'allow' | 'deny'; guestSpaceId?: string;
+  faults?: NonNullable<Parameters<typeof openHttpsExchangeFixture>[1]>['faults']}>;
+type SourceState = {secret: string; resolutions: number; forms: number; pages: number; responseBodies: Buffer[];
+  resolve?: () => unknown; form?: (count: number, exchange: Exchange) => unknown;
+  page?: (count: number, exchange: Exchange) => unknown; fixtureFailures: unknown[]};
+type AssertionFailure = {code?: unknown; message?: unknown; actual?: unknown; expected?: unknown};
+
+const common = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href) as Runtime;
 const repo = new URL('../../../../', import.meta.url);
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 export const originalForm = {revision: '7', properties: {
@@ -19,16 +49,17 @@ export const originalForm = {revision: '7', properties: {
     red: {label: 'red', index: '0'}, 東京: {label: '東京', index: '1'}}},
   RecordNumber: {code: 'RecordNumber', type: 'RECORD_NUMBER'},
 }};
-export const record = (id, label = 'APP-7') => ({$id: {type: '__ID__', value: id},
+export const record = (id: string, label = 'APP-7') => ({$id: {type: '__ID__', value: id},
   $revision: {type: '__REVISION__', value: '9'},
   Subject: {type: 'SINGLE_LINE_TEXT', value: '東京\r\nnext'},
   Tags: {type: 'MULTI_SELECT', value: ['red', '東京', 'red']},
   RecordNumber: {type: 'RECORD_NUMBER', value: label}});
 
-export async function installedKintoneFixture(t, {formRead = 'allow', recordsRead = 'allow',
-  guestSpaceId, faults = []} = {}) {
-  const sources = [], captures = [], dependentCleanup = [];
-  let loaderParent, fixtureRoot, fixtureTls, fixtureState;
+export async function installedKintoneFixture(t: TestContext, {formRead = 'allow', recordsRead = 'allow',
+  guestSpaceId, faults = []}: OriginalSetup = {}) {
+  const sources: FixtureSource[] = [], captures: Capture[] = [], dependentCleanup: (() => unknown)[] = [];
+  let loaderParent: ReturnType<typeof createInstalledLoaderParent> | undefined, fixtureRoot: string | undefined,
+    fixtureTls: Tls | undefined, fixtureState: SourceState | undefined;
   // Retain the real parent before open, and order its child retirement before
   // the loopback TLS fixture. This hook also covers partial fixture setup.
   t.after(async () => {
@@ -51,16 +82,16 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
   const root = await mkdtemp(join(parent.pathname, 'read-'));
   fixtureRoot = root;
   const prefix = guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${guestSpaceId}/v1/`;
-  const state = {secret: 'kintone-test-api-token', resolutions: 0,
+  const state: SourceState = {secret: 'kintone-test-api-token', resolutions: 0,
     forms: 0, pages: 0, responseBodies: [], resolve: undefined,
     form: undefined, page: undefined, fixtureFailures: []};
   fixtureState = state;
-  const serve = async (exchange, kind) => {
+  const serve = async (exchange: Exchange, kind: 'form' | 'page') => {
     try {
       assert.equal(exchange.method, 'POST');
       assert.equal(exchange.headers['x-http-method-override'], 'GET');
       assert.equal(exchange.authorized, true);
-      const parameters = JSON.parse(exchange.body);
+      const parameters = JSON.parse(exchange.body) as {app?: unknown; fields?: unknown; query?: unknown};
       assert.equal(parameters.app, '12');
       let body;
       if (kind === 'form') {
@@ -86,12 +117,12 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
       // this response and the product still observes its original transport
       // failure; the assertion and request are not rewritten or retried.
       state.fixtureFailures.push({kind, method: exchange.method, path: exchange.path,
-        requestBody: exchange.body, code: cause.code, message: cause.message,
-        actual: cause.actual, expected: cause.expected});
+        requestBody: exchange.body, code: (cause as AssertionFailure).code, message: (cause as AssertionFailure).message,
+        actual: (cause as AssertionFailure).actual, expected: (cause as AssertionFailure).expected});
       throw cause;
     }
   };
-  const tls = await openHttpsExchangeFixture({after: close => dependentCleanup.push(close)}, {faults,
+  const tls = await openHttpsExchangeFixture({after: close => dependentCleanup.push(close as () => unknown)}, {faults,
     routes: [{method: 'POST', pathname: prefix + 'app/form/fields.json',
       handle: exchange => serve(exchange, 'form')},
     {method: 'POST', pathname: prefix + 'records.json', handle: exchange => serve(exchange, 'page')}]});
@@ -129,19 +160,19 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
   loaderParent = createInstalledLoaderParent({root, principalId: 'operator', moon: common});
   loaderParent.open();
   const identity = () => installedSourceIdentity(path, {moon: common,
-    configurationReader: installedSourceConfigurationReader(loaderParent.services)});
+    configurationReader: installedSourceConfigurationReader(loaderParent!.services!)});
   const resolveSecret = async () => {
     state.resolutions++;
     await state.resolve?.();
     return state.secret;
   };
-  const load = async (moon = common) => {
-    const source = await loaderParent.load(loadInstalledSource, path, {root, principalId: 'operator', moon, runtimeUrl,
-      baseEnvironmentWire: await readFile(new URL('spec/local-check-environment.json', repo), 'utf8'), resolveSecret});
+  const load = async (moon: Parameters<typeof loadInstalledSource>[1]['moon'] & Readonly<{clientProgramKintoneManagedFormRequest?: unknown}> = common) => {
+    const source = await loaderParent!.load(loadInstalledSource, path, {root, principalId: 'operator', moon, runtimeUrl,
+      baseEnvironmentWire: await readFile(new URL('spec/local-check-environment.json', repo), 'utf8'), resolveSecret}) as FixtureSource;
     sources.push(source);return source;
   };
-  const prepare = async source => {
-    const env = JSON.parse(source.environmentWire);
+  const prepare = async (source: Pick<FixtureSource, 'environmentWire'>) => {
+    const env = JSON.parse(source.environmentWire) as {evidence_bundle_cid: string};
     const checkedEnvironment = common.clientProgramCheckEnvironment(source.environmentWire,
       env.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(checkedEnvironment);
@@ -167,7 +198,7 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
     // The query requirement consumes the same Common's admitted sequence
     // contracts original, never raw registry text pretending to be that port.
     const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
-    return {preparedProgram: program, registry: contracts, values, fragment, ordered, query, evidence};
+    return {preparedProgram: program, registry: contracts as NonNullable<Parameters<FixtureSource['openCapture']>[0]['registry']>, values, fragment, ordered, query, evidence};
   };
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1, 65536n,
     100000000n, 100000000n, 0));

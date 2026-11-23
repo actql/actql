@@ -252,7 +252,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
@@ -272,7 +272,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
@@ -282,17 +282,17 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a rejected kintone response is charged on the original RowRun without another request"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
@@ -302,7 +302,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
@@ -326,15 +326,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
               }
             ]
@@ -590,7 +590,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
@@ -610,7 +610,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
@@ -620,17 +620,17 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a rejected kintone response is charged on the original RowRun without another request"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
@@ -640,7 +640,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
@@ -664,15 +664,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
               }
             ]

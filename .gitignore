@@ -3128,3 +3128,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/kintone/host/kintone-effect-plan.d.mts
 /adapters/connectors/kintone/host/kintone-update-driver.mjs
 /adapters/connectors/kintone/host/kintone-update-driver.d.mts
+/adapters/connectors/kintone/test/installed-kintone.fixture.mjs
+/adapters/connectors/kintone/test/installed-kintone.fixture.d.mts
+/adapters/connectors/kintone/test/installed-kintone-source.test.mjs
+/adapters/connectors/kintone/test/installed-kintone-source.test.d.mts
