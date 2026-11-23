@@ -7,7 +7,8 @@ import {basename, dirname, join} from 'node:path';
 import {parse} from 'yaml';
 import {CLIENT_PACKAGES, packClientPackages} from './packed-client-packages.mjs';
 import {prepareHealthPackages} from './health-monitor-adapters.mjs';
-import {runPackedProviderAI, checkPackedProviderObservation} from './test-packed-provider-ai-sdk.mjs';
+import {runPackedProviderAI, checkPackedProviderObservation,
+  registeredProviderAcceptanceCases} from './test-packed-provider-ai-sdk.mjs';
 
 async function withFixtureGitHubSource(source, action) {
   const original = process.env.GITHUB_SHA;
@@ -380,6 +381,11 @@ test('optional diagnostic selection retains nested inventories and bounded usage
 });
 
 test('existing producer and README jobs retain required and optional original inputs', async () => {
+  assert.deepEqual(registeredProviderAcceptanceCases, [
+    'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed',
+    'registered-mistral', 'registered-too-late', 'registered-invalid',
+    'registered-credential-reference', 'registered-credential-header',
+  ]);
   const ci = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const producer = ci.jobs['client-packages'];
   const optional = producer.steps.filter(step => step.run?.includes("names: ['provider-ai-sdk']"));

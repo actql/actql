@@ -1,9 +1,18 @@
 ///|
+/// Observations from the same complete saved response apply even when the
+/// selected codec rejects the answer.
+pub(all) struct ModelSavedStructuredDecoded {
+  answer : Result[String, ModelProviderFailure]
+  observation : @publication.ModelCaptureObservation
+}
+
+///|
 /// Selected structured output from an installed decoder, with the original
 /// Store receipt as a separate nominal borrow. The decoded text is never Raw.
 pub struct ModelPhysicalSavedStructuredResponse {
   priv receipt : ModelSavedRawReceipt
   priv result : Result[ModelPhysicalEncodedResponse, ModelProviderFailure]
+  priv observation : @publication.ModelCaptureObservation?
 }
 
 ///|
@@ -76,7 +85,7 @@ pub fn model_physical_saved_structured_response(
       _ => ProviderError
     }
     return Ok(
-      PhysicalSavedStructuredResponse({ receipt, result: Err(failure), }),
+      PhysicalSavedStructuredResponse({ receipt, result: Err(failure), observation: None }),
     )
   }
   let selected = read_decoded(call, receipt, bytes)
@@ -87,7 +96,7 @@ pub fn model_physical_saved_structured_response(
   }
   guard selected is Some(decoded) else {
     return Ok(
-      PhysicalSavedStructuredResponse({ receipt, result: Err(SchemaInvalid), }),
+      PhysicalSavedStructuredResponse({ receipt, result: Err(SchemaInvalid), observation: None }),
     )
   }
   let observation = {
@@ -99,15 +108,11 @@ pub fn model_physical_saved_structured_response(
     ),
     observed_at,
   }
-  if !valid_reported_model_observation(
-      profile,
-      observation,
-      transport_eof,
-      decoded.endpoint_complete,
-      decoded.answer_complete,
-    ) {
+  if !valid_reported_model_observation_fields(profile, observation) {
     return Err(OutputIdentity)
   }
-  let encoded = { ..decoded, observation, transport_eof, }
-  Ok(PhysicalSavedStructuredResponse({ receipt, result: Ok(encoded), }))
+  let result = decoded.answer.map(body => {
+    { body, observation, transport_eof, endpoint_complete: true, answer_complete: true }
+  })
+  Ok(PhysicalSavedStructuredResponse({ receipt, result, observation: Some(observation) }))
 }

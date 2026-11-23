@@ -79,7 +79,7 @@ pub fn bind_prepared_model_scope(ModelPreparedCallSet, @run_publication.BoundMod
 
 pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
 
-pub fn bound_structured_model_async_request_plan(AdmittedStructuredModelProvider, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+pub fn bound_structured_model_async_request_plan(AdmittedStructuredModelProvider, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 
@@ -457,7 +457,7 @@ pub fn stopped_model_attempt_count(ModelExecution) -> Int?
 
 pub fn stopped_model_attempt_slot(ModelExecution, Int) -> Int?
 
-pub fn structured_model_async_request_plan(AdmittedStructuredModelProvider, StructuredModelCapability, @run_publication.RunEvidenceValue, ResolvedStructuredModel, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+pub fn structured_model_async_request_plan(AdmittedStructuredModelProvider, StructuredModelCapability, @run_publication.RunEvidenceValue, ResolvedStructuredModel, ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn update_model_content_bytes(ModelContentByteCheck, Bytes) -> Result[Int, ModelContentIssue]
 
@@ -908,6 +908,11 @@ pub struct ModelResponseReconciliation {
 
 pub struct ModelSavedRawReceipt {
   // private fields
+}
+
+pub(all) struct ModelSavedStructuredDecoded {
+  answer : Result[String, ModelProviderFailure]
+  observation : @run_publication.ModelCaptureObservation
 }
 
 pub(all) struct ModelSlotCapture {

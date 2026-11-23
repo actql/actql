@@ -56,11 +56,17 @@ fn valid_reported_model_observation(
   endpoint_complete : Bool,
   answer_complete : Bool,
 ) -> Bool {
-  if !transport_eof ||
-    !endpoint_complete ||
-    !answer_complete ||
-    observation.origin != @publication.Reported ||
-    observation.response_complete != Some(true) ||
+  transport_eof && endpoint_complete && answer_complete &&
+  observation.response_complete == Some(true) &&
+  valid_reported_model_observation_fields(profile, observation)
+}
+
+///|
+fn valid_reported_model_observation_fields(
+  profile : @environment.ModelResponseProfile,
+  observation : @publication.ModelCaptureObservation,
+) -> Bool {
+  if observation.origin != @publication.Reported ||
     observation.response_profile_cid !=
     Some(@environment.model_response_profile_identity(profile)) ||
     observation.historical_finish_reason is Some(_) ||

@@ -185,7 +185,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   }
   let registeredSdk;
   if (registeredSdkMode) {
-    const {openAIChatStaticOriginals:{createOpenAI}}=await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
+    const {openAIChatStaticOriginals:{createOpenAI},readReportedUsage,readReportedResponse}=
+      await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
     const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
     registeredSdk=Object.freeze({route:Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
       modelId,apiMode:'chat_completions',endpoint}),sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
@@ -200,8 +201,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
           response_format:{type:'json_schema',json_schema:{name:responseFormat.name,
             schema:responseFormat.schema,strict:true}}});
       },
-      readReportedUsage:body=>({inputTokens:BigInt(body.usage.prompt_tokens),
-        outputTokens:BigInt(body.usage.completion_tokens)})});
+      readReportedUsage,readReportedResponse});
   }
   let structuredAdmission, registeredProjectionIssue;
   let sends=0;

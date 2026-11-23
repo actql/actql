@@ -52,7 +52,7 @@ enum ModelPhysicalInvocation {
   AsynchronousSavedStructured(
     StructuredModelCapability,
     (ModelCallEntry) -> ModelPhysicalCall?,
-    (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?
+    (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?
   )
 }
 

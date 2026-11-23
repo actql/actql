@@ -56,13 +56,13 @@ test('selected structured SDK retains the original unknown when Raw cannot be co
 for (const [status, outcome] of [[401,'provider_error'],[429,'rate_limit'],[503,'provider_error']]) {
   test('selected structured SDK saves complete HTTP '+status+' as '+outcome,
     {timeout:15000}, t => originalHttpSettlement(t, true, {
-      status, outcome, wire:'{"error":{"message":"controlled provider failure"}}',
+      status, outcome, wire:'{"error":{"message":"controlled provider failure"}}', usage:[null,null],
     }));
 }
 
 test('selected structured SDK classifies a malformed complete 2xx from its decoder',
   {timeout:15000}, t => originalHttpSettlement(t, true, {
-    outcome:'schema_invalid',wire:'{"not-a-provider-envelope":true}',
+    outcome:'schema_invalid',wire:'{"not-a-provider-envelope":true}',usage:[null,null],
   }));
 
 test('selected structured SDK rejects a type-invalid complete 2xx through Common',
@@ -81,6 +81,25 @@ test('selected structured SDK preserves absent usage separately from reported ze
     wire:responseWire.replace(',"usage":{"prompt_tokens":3,"completion_tokens":2}',''),
     usage:[null,null],
   }));
+
+for (const [finish,outcome,usage] of [
+  ['length','truncated',{prompt_tokens:5,completion_tokens:7}],
+  ['refusal','refusal',{prompt_tokens:0}],
+]) {
+  test('registered SDK settles saved '+finish+' and retains actual failure usage',
+    {timeout:15000}, t => {
+      const reply=JSON.parse(responseWire);
+      reply.usage=usage;
+      if(finish==='refusal') {
+        reply.choices[0].message.content=null;
+        reply.choices[0].message.refusal='controlled refusal';
+      } else {
+        reply.choices[0].finish_reason=finish;
+      }
+      return originalHttpSettlement(t,'registered',{outcome,wire:JSON.stringify(reply),
+        usage:[usage.prompt_tokens??null,usage.completion_tokens??null]});
+    });
+}
 
 test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
@@ -199,6 +218,11 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
       'A saved raw response alone is not the settled slot');
     const record=JSON.parse(moon.strategyRunEvidenceJson(f.operation.issuedSlotCapture(0)));
     assert.equal(record.outcome,outcome===undefined?'ok':'failed:'+outcome);
+    if (structuredSdk) {
+      const accounting=JSON.parse(moon.strategyRunEvidenceJson(
+        moon.clientProgramInferAttemptLeaf(f.operation.attemptEvidence(0),'accounting')));
+      assert.deepEqual([accounting.input_tokens,accounting.output_tokens],usage);
+    }
     if (structuredSdk && outcome===undefined) {
       const exporter=checked(moon.clientProgramStartInferCallSettlementExport(
         boundary.settlement,65536,100000));
@@ -215,9 +239,9 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
         const evidence=bundle.captures[0].evidence;
         assert.match(evidence.raw_response_artifact_cid,/^sha256:[a-f0-9]{64}$/u);
         assert.deepEqual([evidence.input_tokens,evidence.output_tokens],usage);
-        const accounting=JSON.parse(moon.strategyRunEvidenceJson(
-          moon.clientProgramInferAttemptLeaf(f.operation.attemptEvidence(0),'accounting')));
-        assert.deepEqual([accounting.input_tokens,accounting.output_tokens],usage);
+        assert.equal(evidence.provider_reported_model_id,'reported-model');
+        assert.equal(evidence.provider_request_id,'original-http-response');
+        assert.equal(evidence.finish_reason,'stop');
       } finally {
         assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exporter)),true);
       }
