@@ -9,9 +9,10 @@ priv struct NativeLocalEffectValuesPolicySelection {
 ///|
 fn NativeLocalEffectValuesPolicySelection::current(
   self : NativeLocalEffectValuesPolicySelection,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Bool {
-  self.host.selected_configuration(self.file.name) is Ok(bytes) &&
-  bytes == self.file.body
+  local_run_policy_selected(self.host, self.file.name, capture~) is Ok(current) &&
+  current.body == self.file.body
 }
 
 ///|
@@ -52,6 +53,7 @@ fn NativeLocalHostConnection::select_effect_values_policy_originals(
   definition : @publication.PublicationContract,
   run_file : String,
   reads? : NativeClientJournalReadAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[
   (String, NativeLocalEffectValuesPolicySelection?),
   NativeClientRunJournalIssue,
@@ -83,7 +85,7 @@ fn NativeLocalHostConnection::select_effect_values_policy_originals(
       Err(issue) => Err(issue)
     }
   } else {
-    let file = match local_run_policy_selected(self, run_file) {
+    let file = match local_run_policy_selected(self, run_file, capture~) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -100,7 +102,7 @@ fn NativeLocalHostConnection::select_effect_values_policy_originals(
       host: self,
       file,
     }
-    if !selection.current() {
+    if !selection.current(capture~) {
       return Err(AuthorizationDenied)
     }
     Ok((wire, Some(selection)))

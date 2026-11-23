@@ -32,18 +32,30 @@ pub(all) enum NativeLocalRunPolicyPreparation {
 }
 
 ///|
+// A captured operation uses the same original Read for the selected file and
+// current fence. The standalone Host keeps its own selected-file check.
 fn local_run_policy_selected(
   host : NativeLocalHostConnection,
   name : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeLocalSelectedFile, NativeClientRunJournalIssue] {
-  if host.selected_configuration(name) is Err(_) {
+  let selected = match capture {
+    None => host.selected_configuration(name)
+    Some(original) => {
+      guard original.opening is JournalAcquired(current) &&
+        physical_equal(current, host) else {
+        return Err(CustodyLost)
+      }
+      original.selected_configuration_in_original_read(name)
+    }
+  }
+  guard selected is Ok(body) &&
+    host.session.settings.files.iter().find_first(file => file.name == name)
+    is Some(file) &&
+    file.body == body else {
     return Err(CustodyLost)
   }
-  match
-    host.session.settings.files.iter().find_first(file => file.name == name) {
-    Some(file) => Ok(file)
-    None => Err(CustodyLost)
-  }
+  Ok(file)
 }
 
 ///|

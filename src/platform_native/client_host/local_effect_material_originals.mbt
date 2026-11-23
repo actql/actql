@@ -251,6 +251,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
           definition,
           file,
           reads=operations.map(value => value.reads),
+          capture~,
         ) {
         Ok((wire, selection)) => (Some(wire), selection)
         Err(issue) => return Err(Journal(issue))
@@ -286,7 +287,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
     authority.current_for(self.journal, request) &&
     (match policy_selection {
       None => true
-      Some(selection) => selection.current()
+      Some(selection) => selection.current(capture~)
     }) &&
     (match local_policy {
       None => true
