@@ -220,9 +220,10 @@ test('Request Content runtime constructors unwrap only their registered graph, c
     calls.push('plan');return selected;}};
   const ports={moon,serializationPlanTokens:new WeakMap([[graph,rawGraph]]),compiledRunTokens:new WeakMap([[compiled,rawCompiled]]),
     compiledRunResult:v=>v,checked:v=>v,token:d=>{if(d!==definition)throw new TypeError('Foreign Definition');return rawDefinition;}};
-  const compile=method('../host-common/runtime-core.mjs','prepareCheckedClientRequestSerializationCompilation',ports);
-  const plan=method('../host-common/runtime-core.mjs','prepareCheckedClientRequestSerializationPlan',ports);
-  const prepare=method('../host-common/runtime-core.mjs','prepareRequestPrefix',{
+  const preparationSource='../host-common/runtime-model-preparation-control.mjs';
+  const compile=method(preparationSource,'prepareCheckedClientRequestSerializationCompilation',ports);
+  const plan=method(preparationSource,'prepareCheckedClientRequestSerializationPlan',ports);
+  const prepare=method('../host-common/content-generation-control.mjs','prepareRequestPrefix',{
     publications:{prepareCheckedClientRequestSerializationPlan:plan},workspaces:new WeakMap([[workspace,rawWorkspace]])});
   assert.equal(compile(parent,input,graph,contracts),artifact);
   assert.throws(()=>compile(parent,input,{...graph},contracts),/Foreign Content compilation graph/);
@@ -241,9 +242,10 @@ test('Request Content runtime retains original prefix start and cleanup without 
       calls.push('start');if(replyLost)throw primary;return prefix;},
     clientProgramInstalledManagedSerializationPrefixCleanup(r,s){assert.equal(this,moon);assert.deepEqual([r,s],[run,selected]);calls.push('cleanup');return ready;}};
   const ports={moon,prefixes,checked:v=>v};
-  const capacity=method('../host-common/runtime-core.mjs','requestPrefixCapacity',ports),
-    start=method('../host-common/runtime-core.mjs','startRequestPrefix',ports),
-    cleanup=method('../host-common/runtime-core.mjs','cleanupRequestPrefix',ports);
+  const contentSource='../host-common/content-generation-control.mjs';
+  const capacity=method(contentSource,'requestPrefixCapacity',ports),
+    start=method(contentSource,'startRequestPrefix',ports),
+    cleanup=method(contentSource,'cleanupRequestPrefix',ports);
   assert.deepEqual(capacity(selected),{retainedBytes:7n,executionBytes:9n});
   fields=[0n,2n,0n,0n,7n,9n];assert.throws(()=>capacity(selected),/Invalid Content prefix requirements/);
   fields=[0n,1n,0n,0n,-1n,9n];assert.throws(()=>capacity(selected),/Invalid Content prefix requirements/);
@@ -473,7 +475,7 @@ test('Request acquired prefix facade forwards same opaque capture and retains on
     assert.equal(this, moon); assert.deepEqual(args, [run, program, selected, capture]); calls++;
     if (fail) throw primary; return prefix;
   }};
-  const start = method('../host-common/runtime-core.mjs', 'startRequestAcquiredPrefix', {moon, prefixes, checked: v => v});
+  const start = method('../host-common/content-generation-control.mjs', 'startRequestAcquiredPrefix', {moon, prefixes, checked: v => v});
   assert.equal(start(run, program, selected, capture), prefix); assert(prefixes.has(prefix));
   fail = true; assert.throws(() => start(run, program, selected, capture), cause => cause === primary);
   assert.equal(calls, 2);
@@ -645,7 +647,7 @@ test('Model Content workspace keeps the same constructor failure without selecti
 test('Content generation projection keeps the original compiled schema and refuses foreign or invalid shape DATA', () => {
   const compiled = {}, rawCompiled = {}, selection = {}, graph = {};
   let count = 3, reads = 0;
-  const getter = method('../host-common/runtime-core.mjs', 'checkedClientSerializationGenerationLimits', {
+  const getter = method('../host-common/runtime-content-publication-control.mjs', 'checkedClientSerializationGenerationLimits', {
     compiledContent(actual) { assert.equal(actual, compiled); return rawCompiled; },
     serializationPlanTokens: new WeakMap([[selection, graph]]),
     runtimeField: (value, index) => value[`_${index}`],

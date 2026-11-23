@@ -7,7 +7,8 @@ import {openNodeComposedInferProvider} from './infer-operation.mjs';
 // Actual Host constructor with explicit Core/current/installation ports.
 // This does not issue Common originals or prove physical constructor backing.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+const authoritySource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+const runtimeSource = readFileSync(new URL('../host-common/runtime-model-preparation-control.mjs', import.meta.url), 'utf8');
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
   prepareCheckedClientRequestModelWholeInputsComponentCaptureModule: 'clientProgramPrepareRequestModelWholeInputsComponentCaptureModule',
@@ -211,11 +212,12 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   const checkedResult = value => {assert.equal(value.$tag, 1); return value._0;};
   if (facadeBindings) {
     const compiledRunTokens = new WeakMap([[compiled, rawCompiled]]), tokens = new WeakMap([[definition, rawDefinition]]);
-    const tokenStart = runtimeSource.indexOf('  const token = value => {');
-    const tokenEnd = runtimeSource.indexOf('  const inspectEvidence =', tokenStart);
+    const tokenStart = authoritySource.indexOf('  const token = value => {');
+    const tokenEnd = authoritySource.indexOf('  const inspectEvidence =', tokenStart);
+    assert(tokenStart >= 0 && tokenEnd > tokenStart);
     const methods = [...actualModuleMethods.values()].map(value => runtimeSource.slice(value.start, value.end)).join(',');
     const bindings = Function('moon', 'compiledRunTokens', 'tokens', 'checked',
-      runtimeSource.slice(tokenStart, tokenEnd) + ';return {' + methods + '};')(moon, compiledRunTokens, tokens, checkedResult);
+      authoritySource.slice(tokenStart, tokenEnd) + ';return {' + methods + '};')(moon, compiledRunTokens, tokens, checkedResult);
     Object.assign(control, bindings);
   } else {
     for (const [name, native] of Object.entries(modulePorts)) {
@@ -400,7 +402,7 @@ test('Request acquired Node Model does not retain provider DATA after its origin
 
 
 test('Request acquired Node Model facade unwraps only same registered compiler and Definition and forwards original layout fields', () => {
-  const text = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8'); let selected;
+  const text = runtimeSource; let selected;
   const walk = node => {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientRequestNodeModelCapturePlan') {
@@ -436,7 +438,7 @@ test('Request acquired Node Model facade unwraps only same registered compiler a
 });
 
 test('Request source-free Node Model facade retains the separate original bootstrap and complete read envelope', () => {
-  const text = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8'); let selected;
+  const text = runtimeSource; let selected;
   const walk = node => {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientRequestNodeModelSourceFreePlan') {

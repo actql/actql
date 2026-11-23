@@ -63,6 +63,7 @@ const runtimeCoreModules = [
   'adapters/host-common/runtime-captured-publication-control.mjs',
   'adapters/host-common/runtime-effect-capture-control.mjs',
   'adapters/host-common/runtime-infer-original-read-control.mjs',
+  'adapters/host-common/runtime-model-preparation-control.mjs',
   'adapters/host-common/runtime-publication-contract-control.mjs',
   'adapters/host-common/runtime-publication-validation-control.mjs',
   'adapters/host-common/runtime-query-time-control.mjs',

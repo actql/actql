@@ -18727,7 +18727,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18745,7 +18745,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18763,7 +18763,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18781,7 +18781,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18799,7 +18799,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18817,7 +18817,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18835,7 +18835,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18853,7 +18853,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -18871,7 +18871,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
                 "anchor": "    prepareCheckedClientRequestSerializationCompilation("
               },
               {
@@ -23899,6 +23899,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/modelPreparationControls/modelPreparationControls",
             "publicationControl/contentCaptures/contentCaptures",
             "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
             "publicationControl/inspectSnapshot/inspectSnapshot",
@@ -24034,8 +24035,6 @@
             "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
-            "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
-            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
@@ -25024,260 +25023,6 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
-            "publicationControl/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
-            "publicationControl/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
-            "publicationControl/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
-            "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
-            "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
-            "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/preparation_request_model_body.mbt",
-                "anchor": "pub fn[I] prepare_request_model_read_scope("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              },
-              {
-                "path": "adapters/host-node/infer-operation.mts",
-                "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/preparation_request_model_body.mbt",
-                "anchor": "pub fn[I] prepare_request_model_read_scope("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function prepareManagedMockModelRun("
-              },
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
-              },
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              },
-              {
-                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
-                "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              },
-              {
-                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
-                "case_id": "original_restored_input_capacity_cancel"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_model_body.mbt",
-                "anchor": "pub fn[I] prepare_request_model_read_scope("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              },
-              {
-                "path": "src/client_infer_host/original_input_body.mbt",
-                "anchor": "fn grow_original_infer_identity_body_capacity("
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Ordinary Host composition"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
-                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "###### Effect Request adoption and retired Mock entry points"
-              },
-              {
-                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
-                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "A cold composed Model selects the same installed preparation's explicit"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation.mbt",
-                "anchor": "pub fn start_original_restored_composed("
-              },
-              {
-                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
-                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
-                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
-              },
-              {
-                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
-                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
-              },
-              {
-                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
-                "anchor": "test('original restored composed body Read refuses foreign DATA and accessors before claim'"
-              },
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
               }
             ]
           }
@@ -26346,711 +26091,6 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
-            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
-            "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
-              },
-              {
-                "path": "src/client_local_host/preparation_request_model_module.mbt",
-                "anchor": "pub fn[I] prepare_request_model_capture_module("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-compilation-original.test.mjs",
-                "anchor": "actual Model Plan bindings retain module"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Request-owned Node Model layout"
-              },
-              {
-                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "installed Model caller cuts"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "adapters/host-node/request-content-caller.test.mjs",
-                "anchor": "Request acquired Model Content borrows"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model selector and module use retained invocation originals"
-              },
-              {
-                "path": "adapters/host-node/request-model-plan.test.mjs",
-                "anchor": "Request Model module unwraps same compiler and Definition before its existing native constructor"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
-              },
-              {
-                "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
-                "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
-              },
-              {
-                "path": "adapters/host-node/request-model-plan.test.mjs",
-                "anchor": "test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime'"
-              },
-              {
-                "path": "adapters/host-node/request-model-plan.test.mjs",
-                "anchor": "test('Request two-Source Mock retains its same deferred component when the current callback refuses'"
-              },
-              {
-                "path": "adapters/host-node/request-model-plan.test.mjs",
-                "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
-              },
-              {
-                "path": "adapters/host-node/client-compilation-original.test.mjs",
-                "anchor": "actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
-            "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
-            "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/request-content-caller.test.mjs",
-                "anchor": "Request Content manager compiles one original graph"
-              },
-              {
-                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
-                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Acquired Node Model provider and capture handoff"
-              },
-              {
-                "path": "adapters/host-node/request-content-caller.test.mjs",
-                "anchor": "Request acquired Model Content borrows"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
-                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -30423,18 +29463,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
-          "parameters": [
-            "original",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
           "parameters": [
             "parent",
@@ -30734,58 +29762,6 @@
             "compilation",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition",
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition",
-            "dag"
           ],
           "async": false
         },
@@ -31915,23 +30891,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition",
-            "prepared",
-            "sources",
-            "contracts",
-            "values",
-            "fragment",
-            "ordered",
-            "providers"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
           "parameters": [
             "allowed",
@@ -32002,439 +30961,6 @@
             "policy",
             "inferGraph",
             "compilationOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "occurrence",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected",
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation",
-          "parameters": [
-            "parent",
-            "input",
-            "selected",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "declarations",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "sourceRef",
-            "schema",
-            "table",
-            "query",
-            "evidence",
-            "receipts",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "bindOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "declaration",
-            "provider",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "declaration",
-            "provider",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "bindOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition",
-            "prepared",
-            "compiled",
-            "graphs",
-            "bounds",
-            "modelRetained",
-            "modelExecution",
-            "readRetained",
-            "readExecution",
-            "maxReservations",
-            "maxHoldings",
-            "maxDelegations",
-            "quantityLimits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrences",
-            "graphs",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "sourceRef",
-            "schema",
-            "table",
-            "query",
-            "evidence",
-            "receipts",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "bindOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "limits",
-            "workspace",
-            "queryTime"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "contracts",
-            "retainedOutput",
-            "queryTime"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "declarations",
-            "providers",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrences",
-            "graphs",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "compilation",
-            "wholeSources",
-            "query",
-            "evidence",
-            "transport",
-            "scratch",
-            "contracts",
-            "retainedOutput",
-            "queryTime",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected",
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "selected",
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
-          "parameters": [
-            "parent",
-            "input",
-            "original",
-            "request",
-            "compiled",
-            "definition",
-            "occurrences",
-            "graphs",
-            "selected",
-            "memberAt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
-          "parameters": [
-            "index",
-            "check"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
-          "parameters": [
-            "parent",
-            "input",
-            "graph",
-            "contracts"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "compiled",
-            "definition",
-            "limits",
-            "workspace"
           ],
           "async": false
         },
@@ -33171,19 +31697,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "definition",
-            "count",
-            "wireAt",
-            "containers"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
           "parameters": [
             "original",
@@ -33512,6 +32025,11 @@
           "async": false
         },
         {
+          "name": "publicationControl/modelPreparationControls/modelPreparationControls",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "publicationControl/queryTimeControls/queryTimeControls",
           "parameters": [],
           "async": false
@@ -33579,6 +32097,7 @@
         "./runtime-effect-capture-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-infer-original-read-control.mjs",
+        "./runtime-model-preparation-control.mjs",
         "./runtime-publication-contract-control.mjs",
         "./runtime-publication-validation-control.mjs",
         "./runtime-query-time-control.mjs",
@@ -33589,7 +32108,1601 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a5b961c08c36087e43a8ac76cb113409c192b7df01ff6ad9fca8443f3ce49497"
+      "sha256": "e3f2fa4db5a19690eac60f3dede8e045c361558321279b7675569277a9dae1b6"
+    },
+    {
+      "module": "adapters/host-common/runtime-model-preparation-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Content and Model preparation, recovery, and selected installation",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createModelPreparationControls",
+            "createModelPreparationControls/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
+            "createModelPreparationControls/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand"
+          ],
+          "exports": [
+            "createModelPreparationControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "export function createModelPreparationControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, workspace]"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "const original = serializationPlanTokens.get(graph as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const compiledRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const serializationPlanTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "currentControl().checkClientCompiledRunOwner(compiled, prepared);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "throw new TypeError('Installed Model recovery Scope unavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "return checked(moon.clientProgramStopInferOriginalReadPreparation(scope,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "census.bootstrapRetainedBytes, census.bootstrapExecutionBytes]"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...modelPreparationControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content runtime constructors unwrap only their registered graph, compiler, Definition and workspace originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelPreparationControls/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+            "createModelPreparationControls/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
+            "createModelPreparationControls/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
+            "createModelPreparationControls/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
+            "createModelPreparationControls/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
+            "createModelPreparationControls/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "case_id": "original_restored_input_capacity_cancel"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body.mbt",
+                "anchor": "fn grow_original_infer_identity_body_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed body Read refuses foreign DATA and accessors before claim'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelPreparationControls/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestModelSourceFreePlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model Plan bindings retain module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "Request Model module unwraps same compiler and Definition before its existing native constructor"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
+                "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source Mock retains its same deferred component when the current callback refuses'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual grouped Node Model Plan borrows the corresponding physical original for each checked Graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelPreparationControls/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
+            "createModelPreparationControls/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+            "createModelPreparationControls/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request acquired Model Content borrows"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelPreparationControls/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-model-preparation-control.mts",
+                "anchor": "    prepareCheckedClientRequestKeyedSerializationCompilation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createModelPreparationControls"
+      ],
+      "operations": [
+        {
+          "name": "createModelPreparationControls",
+          "parameters": [
+            "moon",
+            "compiledRunTokens",
+            "serializationPlanTokens",
+            "token",
+            "compiledRunResult",
+            "currentControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
+          "parameters": [
+            "original",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "dag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared",
+            "sources",
+            "contracts",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestKeyedSerializationCompilation/init:prepareCheckedClientRequestKeyedSerializationCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "selected",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "sourceRef",
+            "schema",
+            "table",
+            "query",
+            "evidence",
+            "receipts",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declaration",
+            "provider",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declaration",
+            "provider",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared",
+            "compiled",
+            "graphs",
+            "bounds",
+            "modelRetained",
+            "modelExecution",
+            "readRetained",
+            "readExecution",
+            "maxReservations",
+            "maxHoldings",
+            "maxDelegations",
+            "quantityLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "sourceRef",
+            "schema",
+            "table",
+            "query",
+            "evidence",
+            "receipts",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
+            "queryTime"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "providers",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule/init:prepareCheckedClientRequestModelWholeInputsComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "wholeSources",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected",
+            "memberAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan/init:prepareCheckedClientRequestNodeModelsSourceFreePlan",
+          "parameters": [
+            "index",
+            "check"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestSerializationCompilation/init:prepareCheckedClientRequestSerializationCompilation",
+          "parameters": [
+            "parent",
+            "input",
+            "graph",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "limits",
+            "workspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelPreparationControls/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "1b9e1d27985f1572a26aa5f7ef41eb40d49dd724db5dea7acb8e220992ec223f"
     },
     {
       "module": "adapters/host-common/runtime-infer-original-read-control.mjs",

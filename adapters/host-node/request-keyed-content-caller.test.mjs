@@ -8,6 +8,8 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {AcquisitionOpenError} from '../host-common/acquisition-outcome.mjs';
+import {localFileStoreDeclaration} from '../connectors/local/host/local-file-store-declaration.mjs';
+import {openLocalFileRoot,physicalReadChild} from '../connectors/local/site/root-filesystem.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 
@@ -82,7 +84,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
   view.prepareKeyedRead=method('./ordinary-source-managed.mjs','prepareKeyedRead',{
     ...helpers,project:true,bundle:{sources:[{declaration}]},fail});
   const tokens=new WeakMap([[graph,rawGraph]]),control={};
-  control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-core.mjs',
+  control.prepareCheckedClientRequestKeyedSerializationCompilation=method('../host-common/runtime-model-preparation-control.mjs',
     'prepareCheckedClientRequestKeyedSerializationCompilation',{serializationPlanTokens:tokens,moon,compiledRunResult:checked});
   const host=method('./embedded-local.mjs','prepareManagedKeyedContentRun',{
     sourceManaged:view,moon,record,originalInstallation,originals,checked,
@@ -93,17 +95,19 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
     assertSourceManagedInstallationCurrent(){},originalSourceManagedHostRequest:()=>sdkRequest,
     clientOperationError:code=>Object.assign(new Error(code),{code})});
   const path=new URL('../connectors/local/host/installed-project-files.mjs',import.meta.url),s=readFileSync(path,'utf8');
-  const names=new Set(['fail','canonical','cid','positive','text','acknowledged','physicalReadChild','installPreparedProjectLocalFiles']);
+  const names=new Set(['fail','canonical','cid','positive','text','acknowledged','installPreparedProjectLocalFiles']);
   const parts=parse(s,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(n=>{
     const v=n.type==='ExportNamedDeclaration'?n.declaration:n;
     const selectedNames=v?.type==='VariableDeclaration'?v.declarations.map(d=>d.id.name):[v?.id?.name];
     if(!selectedNames.some(n=>names.has(n)))return[];selectedNames.forEach(n=>assert(names.delete(n)));return[s.slice(v.start,v.end)];});assert.equal(names.size,0);
   const install=Function('createHash','canonicalJson','checked','runtimeOptionalField','readFile','moduleUrl',
     'createInstalledRowSource','rowSourceCheckEnvironment','composeInstalledCheckEnvironment','retainInstalledHostInitializationFailure','AcquisitionOpenError','mime',
+    'localFileStoreDeclaration','openLocalFileRoot','physicalReadChild',
     parts.join('\n').replaceAll('import.meta.url','moduleUrl')+'\nreturn installPreparedProjectLocalFiles;')(
       createHash,canonicalJson,checked,runtimeOptionalField,readFile,path,
       async options=>{localOptions=options;return{connectorBindings:[],admitsSource:()=>true};},()=>({wire:'{}'}),()=> '{}',
-      async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'));
+      async cause=>cause,AcquisitionOpenError,()=>assert.fail('No MIME/physical read'),
+      localFileStoreDeclaration,openLocalFileRoot,physicalReadChild);
   const entry={connection:'local',rootPath:'/not-opened',declaration,scopeCid:'sha256:'+'a'.repeat(64),
     queryAliases:[{name:'local',resource:'files'},{name:'local.contents',resource:'contents'}],
     limits:{maxReadBytes:100,maxPages:2,maxPageBytes:8,maxFileBytes:32},wire:JSON.stringify({views:[
