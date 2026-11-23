@@ -9,13 +9,19 @@
     "expectedRows": [{"id": "9007199254740993", "previous_name": "Before HubSpot approval", "next_name": "After HubSpot approval"}]
   },
   "read": {
-    "documentPath": "read.aql",
+    "document": "SELECT r.id AS id, r.name AS name\nFROM hubspot.companies AS r\nWHERE r.id IN (@record_id, @control_id)\nORDER BY id;\n",
     "format": "aql",
     "resultName": "main",
-    "parameterDeclarations": {"record_id": {"type": "string"}},
-    "parameters": {"record_id": "9007199254740993"},
-    "beforeRows": [{"id": "9007199254740993", "name": "Before HubSpot approval"}],
-    "afterRows": [{"id": "9007199254740993", "name": "After HubSpot approval"}]
+    "parameterDeclarations": {"record_id": {"type": "string"}, "control_id": {"type": "string"}},
+    "parameters": {"record_id": "9007199254740993", "control_id": "9007199254740994"},
+    "beforeRows": [
+      {"id": "9007199254740993", "name": "Before HubSpot approval"},
+      {"id": "9007199254740994", "name": "Untouched control"}
+    ],
+    "afterRows": [
+      {"id": "9007199254740993", "name": "After HubSpot approval"},
+      {"id": "9007199254740994", "name": "Untouched control"}
+    ]
   },
   "review": {
     "target": "connector://hubspot/companies",
