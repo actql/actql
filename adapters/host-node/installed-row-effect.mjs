@@ -103,12 +103,11 @@ import {createInstalledRowEffectRecoveredMembers, createInstalledRowEffectRecove
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 import {createInstalledRowEffectCaptureEntry} from './installed-row-effect-capture-entry.mjs';
-import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
-import {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
+import {createInstalledRowEffectCaptureStage} from './installed-row-effect-capture-stage.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreview,
   createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
-import {approvalOf, approvedValue, createInstalledRowEffectApproval, createInstalledRowEffectCommit} from './installed-row-effect-commit.mjs';
+import {approvalOf, createInstalledRowEffectApproval, createInstalledRowEffectCommit} from './installed-row-effect-commit.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild,
   createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision,
@@ -116,15 +115,12 @@ import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision
 import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {issueCompletedEffectfulComputationEvidence} from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
-import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
@@ -444,256 +440,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
 
   const {orderedSourceIndexes, claimsOf} = createInstalledRowEffectClaims({effect, limits, ownerOf, recoveryCid, fail});
 
-  async function captureStage({control, store, execution, checkedHost,
-    prepared, identity, plan, previewContext, unit, members,
-    runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
-    let sourceSet, entries, route;
-    const {limits, controlConstruction, inputs, commandKeys, contentBorrowers, requestChildren, memberCaptures,
-      proposals, currents, rowsOf, observations, publishedTargets, physicalOperations, retireRequestAliases,
-      childrenPending, releaseInputs, sourceExport} = prepareInstalledRowEffectCaptureInputs({
-      moon, control, store, execution, checkedHost, prepared, identity, plan, members, runInvocationCid, signal,
-      managedEffect, assertCurrent, ownInputs, ownChildren, runLimits, prepareCredentialOperation, ownerOf, recipeOf,
-      singular, cid, exportLimits, preparePinnedEffectSourceSet, fail,
-      readSourceSet: () => sourceSet,
-      readEntries: () => entries,
-      retireRoute() {
-        if (route !== undefined && !route.retire()) return false;
-        entries = undefined;
-        return true;
-      },
-    });
-    sourceSet = await sourceExport;
-    own(sourceSet);
-    assertCurrent?.();
-    // Reads of each update member's targets are decided before any provider
-    // I/O: a held or denied read authors no Preview.
-    const reads = [];
-    for (const [index, member] of members.entries()) {
-      reads.push(!guarded(member.kind) ? undefined :
-        await decideTargetRead({member, runInvocationCid,
-          dispatchRequestCid: dispatches[index],
-          subjectCid: checkSubject(runInvocationCid, member), signal,
-          targetReads, assertCurrent, controlConstruction}));
-      assertCurrent?.();
-    }
-    for (const [index, member] of members.entries()) {
-      const {owned, updateWriteSlot} = ownerOf(member);
-      assertCurrent?.();
-      if (proposals[index].length === 0) fail('InstalledRowEffectEmptyMember');
-      const description = await describeMember({member, maxRows: proposals[index].length, runInvocationCid,
-        dispatchRequestCid: dispatches[index], label: `preview-${index}`,
-        approval: reads[index]?.approval, signal, assertCurrent, physicalOperations, operationPhase: 'capture', controlConstruction});
-      assertCurrent?.();
-      currents.push(description);
-      const contentOf = member.kind !== 'command' ? undefined : commandContentBorrower({
-        control, prepared, inputs, memberIndex: member.memberIndex,
-        artifact: sourceSet.members[index].payload.localResultArtifact,
-        limits, assertCurrent});
-      if (contentOf !== undefined) contentBorrowers.push(contentOf);
-      const {constructRows, recoverObservedRows} = createInstalledRowEffectCaptureRows({
-        member, index, owned, updateWriteSlot, description, contentOf, moon, proposals, limits, recipeOf,
-        managedEffect, prepared, identity, reads, controlConstruction, runInvocationCid, dispatches, signal,
-        assertCurrent, contentOwner, resourceFields, physicalOperations, guarded, targeted, requestChildren,
-        rowsOf, observations, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
-        observeRows, retireRequestAliases, fail,
-      });
-      const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
-      if (observedCapture) {
-        // The proposal Strings are borrowed from the completed original Read.
-        // Its same constructor now funds every native map/parse/request below
-        // BEFORE entry and joins the actual asynchronous task before completion.
-        rowsOf[index] = recoverObservedRows;
-        observations[index] = await memberCaptures[index].prepare();
-      } else await constructRows();
-    }
-    entries = Object.freeze(rowsOf.map(rows =>
-      Object.freeze(rows.map(row => row.entry))));
-    // Every create row passes the provider check before a Preview.
-    await checkRows({members, entries, runInvocationCid, dispatches,
-      subjectOf: member => checkSubject(runInvocationCid, member), signal, assertCurrent,
-      physicalOperations, controlConstruction, operationPhase: 'capture'});
-    assertCurrent?.();
-    const capabilities = members.map((member, index) => admitCapability(
-      member, entries[index], currents[index], runInvocationCid,
-      dispatches[index], controlConstruction));
-    const footprints = members.map((member, index) =>
-      footprintOf(member, entries[index], controlConstruction));
-    if (sourceSet.dependencies !== undefined) {
-      retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
-        store, storedResults, control, runDefinition: plan.runDefinition});
-    }
-    const payloads = sourceSet.members.map(member => member.payload);
-    const preview = authorPreview({control, prepared, inputs, limits, managedEffect,
-      context: {runDefinition: previewContext.runDefinition,
-        runInvocation: previewContext.runInvocation,
-        compiledPlan: previewContext.compiledPlan,
-        storeAuthorityCid: store.storeAuthorityCid},
-      requestScope, members, rowsOf, capabilities, footprints, payloads});
-    const body = managedEffect === undefined ? JSON.parse(preview.wire)
-      : managedEffect.controlConstruction.parsePreview(preview.wire);
-    // The admitted Preview must state exactly the rows its requests write.
-    body.effects.forEach((member, index) => {
-      if (member.changes.length !== entries[index].length ||
-          member.changes.some((change, row) =>
-            !sameEffectValue(members[index].kind, approvedValue(members[index].kind, change), entries[index][row].value) ||
-            (targeted(members[index].kind) && !sameValue(
-              change.target_row_identity, entries[index][row].target)))) {
-        fail('InstalledRowEffectPreviewOrderMismatch');
-      }
-    });
-    const authoringContext = control.admitRunEvidence('authoring_context',
-      canonicalJson(body.authoring_context), plan.contractLimits);
-    const admittedPreview = control.admitEffectComputationPreview(
-      preview.wire, plan.runDefinition, authoringContext,
-      plan.contractLimits);
-    let applyPreview;
-    if (members.some(member => ownerOf(member).owned.finalizeRequest !== undefined)) {
-      applyPreview = effect.admitPreviewIdentity(preview.wire,
-        body.run_identity_cid, preview.authoringCid, requestScope,
-        preview.keys, limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth);
-      const finalized = [];
-      for (const [memberIndex, member] of members.entries()) {
-        const {owned} = ownerOf(member);
-        const recipe = recipeOf(member);
-        if (owned.finalizeRequest === undefined) {finalized.push(entries[memberIndex]); continue;}
-        const constructor = recipe?.requestFinalization;
-        const operationIndex = constructor?.operationIndex;
-        if (managedEffect?.runtime !== moon || managedEffect.prepared !== prepared ||
-            managedEffect.request !== identity || !Number.isSafeInteger(operationIndex) ||
-            operationIndex < 0 || operationIndex >= recipe.rowOperations.length ||
-            operationIndex === recipe.requestConstruction?.operationIndex) {
-          fail('InstalledEffectRequestFinalizationPlanUnavailable');
-        }
-        const rows = [];
-        for (const [rowIndex, original] of entries[memberIndex].entries()) {
-          const requestTag = effect.dispatchKeyCid(preview.keys[memberIndex][rowIndex]);
-          const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
-            create: () => prepareInstalledEffectRequestChild({run: managedEffect,
-              memberIndex: member.memberIndex, rowIndex, operationIndex,
-              operation: recipe.rowOperations[operationIndex].operation,
-              construct: () => owned.finalizeRequest({request: original.request, requestTag}),
-              requestsRetired: retireRequestAliases}), assertCurrent, signal});
-          const entry = requestEntry(member, {value: original.value, selector: original.target}, preparedRequest);
-          owned.assertRequestFinalized(entry.request, requestTag);
-          rows.push(entry);
-        }
-        finalized.push(Object.freeze(rows));
-      }
-      entries = Object.freeze(finalized);
-    }
-    const holdings = await preparePinnedEffectSourceHoldings({
-      sources: sourceSet, store, control, preview: admittedPreview,
-      invocation: plan.invocation,
-      resultArtifacts: payloads.map(payload => payload.localResultArtifact)}).commit();
-    assertCurrent?.();
-    const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
-      checkedHost, inputs, previewContext.runInvocation,
-      moon.clientProgramEffectInputStage(
-        moon.clientProgramEffectInputAt(inputs, 0)), preview.wire,
-      preview.authoringCid, moon.clientProgramEffectPreviewInputLimits(
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, limits.maxWork, limits.maxFields,
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, members.length, limits.maxRows,
-        limits.maxWork, limits.maxWork)));
-    // Every non-create member is verified against its pinned input. Command
-    // proofs bind exact target/input but are not Mapping Plan documents.
-    const plans = [];
-    for (const member of members) {
-      if (member.kind === 'create') continue;
-      const chunks = [];
-      const verified = await verifyPinnedEffectPlan({moon, execution,
-        previewInputs, previewIndex: member.memberIndex,
-        inputKey: commandKeys[member.memberIndex],
-        publishedTarget: publishedTargets?.[member.memberIndex],
-        limits: moon.clientProgramEffectInputExportLimits(
-          ...exportLimits(plan.outputLimits)),
-        planLimits: {maxFields: limits.maxFields, maxWork: limits.planWork,
-          maxBytes: limits.preview.maxWireBytes,
-          maxNodes: limits.preview.maxNodes,
-          maxDepth: limits.preview.maxDepth,
-          maxUtf16Units: limits.preview.maxWireBytes},
-        onChunk: chunk => { chunks.push(chunk); }, signal});
-      assertCurrent?.();
-      plans.push({name: member.effectId,
-        ...(member.kind === 'command' ? {} : {wire: chunks.join('')}),
-        proof: verified.proof});
-    }
-    const connectorRecovery = [];
-    for (const [index, member] of members.entries()) {
-      const {owned} = ownerOf(member);
-      const retained = memberCaptures[index];
-      const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
-      const entry = observedCapture ? observations[index] : retained === undefined
-        ? owned.recoveryEntry?.({member, current: currents[index], entries: entries[index]})
-        : await retained.prepare();
-      if (owned.recoveryEntry !== undefined) connectorRecovery.push({memberIndex: index,
-        kind: entry?.kind, observationCid: entry?.observationCid, wire: entry?.wire});
-    }
-    const computation = await issueCompletedEffectfulComputationEvidence({
-      execution, store, storedResults, control, admission: plan.admission,
-      runDefinition: plan.runDefinition, invocation: plan.invocation,
-      observation: plan.observation,
-      normalizationJournal: plan.normalizationJournal, authoringContext,
-      receiptEvidence: plan.receiptEvidence,
-      captureEvidence: plan.captureEvidence, preview: admittedPreview,
-      plans: plans.filter(item => item.wire !== undefined)
-        .map(({name, wire}) => ({name, wire})),
-      effectSourceHoldings: holdings, connectorRecovery,
-      contractLimits: plan.contractLimits, signal});
-    assertCurrent?.();
-    for (const payload of sourceSet.payloads) {
-      if (!childrenPending() && payload.prepared.status().pending) await payload.prepared.release();
-      assertCurrent?.();
-    }
-    const ledger = openLedger(identity, controlConstruction);
-    try {
-      applyPreview ??= effect.admitPreviewIdentity(preview.wire,
-        body.run_identity_cid, preview.authoringCid, requestScope,
-        preview.keys, limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth);
-      const claims = claimsOf({body, keys: preview.keys, entries,
-        requestScope, unit, dispatches,
-        members, unitCids: members.map(member => cid({version: ownerOf(member).profile.unit,
-          run_definition_cid: plan.runDefinition.identity, stage_index: member.stageIndex})),
-        retentionId: plan.effectInputRetention.identity});
-      route = physicalRoute({members, entries,
-        previewRows: body.effects.map(member => member.changes),
-        dispatchIndexes: body.effects.map(orderedSourceIndexes),
-        runInvocationCid, dispatches,
-        subjectCid: moon.clientProgramEffectApplySubjectCid(previewInputs),
-        applyPreview, ledger, targetReads, assertCurrent, physicalOperations, controlConstruction});
-      const preflight = {proofs: plans.map(item => item.proof),
-        ...basePreflight({effects: body.effects, members, requestScope, limits,
-          keys: preview.keys})};
-      return Object.freeze({preview: admittedPreview, computation,
-        storedResults,
-        apply: {moon, capturedInputs: previewInputs, preflight, ledger,
-          members: claims, maxFrontierWork: limits.maxFrontierWork,
-          refreshPreflight: route.current, bindDispatch: route.bindDispatch,
-          authorization: {gate: singular?.authorization, scopes: scopes(members)}},
-        receipt: {ledger, preview: applyPreview, commonMoon: moon,
-          publicationPreview: admittedPreview,
-          authorizeEvidenceRead: async () => true,
-          members: claims.map(member => ({rowOwners: member.claims.map(
-            claim => ({claim})), replayed: false})),
-          limits: plan.contractLimits},
-        publication: {execution, store, storedResults, control, computation,
-          preview: admittedPreview, ledger, request: plan.request,
-          attempt: plan.attempt, contractLimits: plan.contractLimits,
-          now: plan.now},
-        scopes: scopes(members),
-        continuationWire: continuationOf(plan, unit, members, dispatches,
-          updateTargetSelections !== undefined),
-        releaseInputs,
-        dispose: async () => { await releaseInputs(); ledger.close(); }});
-    } catch (error) {
-      ledger.close();
-      throw error;
-    }
-  }
+  const captureStage = createInstalledRowEffectCaptureStage({
+    moon, fail, ownerOf, runLimits, prepareCredentialOperation, recipeOf, singular, cid, exportLimits,
+    preparePinnedEffectSourceSet, guarded, targeted, checkSubject, decideTargetRead, describeMember,
+    commandContentBorrower, resourceFields, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
+    observeRows, checkRows, admitCapability, footprintOf, retainPinnedEffectDependencyPayloads, authorPreview,
+    sameEffectValue, sameValue, effect, preparePinnedEffectSourceHoldings, openLedger, claimsOf, physicalRoute,
+    orderedSourceIndexes, basePreflight, scopes, continuationOf,
+  });
 
   const prepareCaptured = createInstalledRowEffectCaptureEntry({
     moon, assertPrepared, installedRowEffectUnit, membersOf, runLimits, bindRunResources, selectionFence,

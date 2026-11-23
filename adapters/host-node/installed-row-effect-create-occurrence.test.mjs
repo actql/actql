@@ -28,10 +28,10 @@ import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChil
 // driver request/claim, Resource and physical ports are explicit here.
 const source=await readFile(new URL('./installed-row-effect.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes=[];
-function walk(node,parents=[]){
+function walk(node,parents=[],found=nodes){
   if(!node||typeof node!=='object')return;
-  if(typeof node.type==='string')nodes.push({node,parents});
-  for(const value of Object.values(node))if(Array.isArray(value))value.forEach(n=>walk(n,[...parents,node]));else if(value&&typeof value==='object')walk(value,[...parents,node]);
+  if(typeof node.type==='string')found.push({node,parents});
+  for(const value of Object.values(node))if(Array.isArray(value))value.forEach(n=>walk(n,[...parents,node],found));else if(value&&typeof value==='object')walk(value,[...parents,node],found);
 }
 walk(ast);
 const variable=name=>{
@@ -71,7 +71,10 @@ const expression=(name,ports)=>{
   }
   return Function(...Object.keys(ports),`return (${source.slice(variable(name).start,variable(name).end)});`)(...Object.values(ports));
 };
-const capture=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureStage').node;
+const captureSource=await readFile(new URL('./installed-row-effect-capture-stage.mjs',import.meta.url),'utf8');
+const captureOwner=parse(captureSource,{ecmaVersion:'latest',sourceType:'module'}).body
+  .find(node=>node.declaration?.id?.name==='createInstalledRowEffectCaptureStage').declaration;
+const capture=captureOwner.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='captureStage');
 const loops=capture.body.body.filter(n=>n.type==='ForOfStatement'&&n.body.body.some(statement=>statement.type==='VariableDeclaration'&&statement.declarations.some(d=>d.id.name==='description')));
 assert.equal(loops.length,1);
 const loop=loops[0];
@@ -254,7 +257,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     workspaceEvents.push(['project', row]);
     return ports.controlConstruction(receiver, method, args);
   };
-  const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
+  const run=()=>Function(...Object.keys(ports),`return (async()=>{${captureSource.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
 
@@ -721,10 +724,12 @@ test('ordinary CREATE retains the original Run continuation current fence withou
 });
 
 test('CREATE continuation namespace follows its original Mapping selection rather than Run current presence', () => {
-  const calls=nodes.filter(({node})=>node.type==='CallExpression'&&node.callee.name==='continuationOf');
+  const captureNodes=[];
+  walk(capture,[],captureNodes);
+  const calls=captureNodes.filter(({node})=>node.type==='CallExpression'&&node.callee.name==='continuationOf');
   assert.equal(calls.length,1);
   const selected=calls[0].node.arguments.at(-1);
-  const choose=Function('assertCurrent','updateTargetSelections',`return (${source.slice(selected.start,selected.end)});`);
+  const choose=Function('assertCurrent','updateTargetSelections',`return (${captureSource.slice(selected.start,selected.end)});`);
   const owner={},installation={binding:'original'};
   const {continuationOf: wire}=createInstalledRowEffectPreviewContext({
     singular:{profile:{continuation:'legacy',continuationBinding:'binding'},continuationBinding:'original'},

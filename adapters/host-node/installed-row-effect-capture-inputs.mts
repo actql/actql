@@ -8,6 +8,8 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 import type {createInstalledRowEffectPhysicalOperation} from './installed-row-effect-physical-read.mjs';
+import type {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
+import type {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 
 type MemberRef = Readonly<{kind: string; memberIndex: number; resource: string}>;
 type Operation<Member extends MemberRef> = Parameters<ReturnType<typeof createInstalledRowEffectPhysicalOperation<Member>>>[0];
@@ -32,10 +34,11 @@ type ContentBorrower = Readonly<{release(): void}>;
 type SourceSet = Readonly<{payloads: NonNullable<ReleaseOptions['payloads']>}>;
 type Current = () => SynchronousRuntimeData;
 type Proposal = Readonly<{changesWire: string; selectorWire?: string; proposalWire?: string}>;
-type Entry = Readonly<{request: unknown; requestCid: string; value?: unknown; target: unknown}>;
+type Entry = ReturnType<ReturnType<typeof createInstalledRowEffectRequests>['requestEntry']>;
 type RecoveryEntry = Readonly<{kind?: string; observationCid?: string; wire?: string; then?: never}>;
-type CapturedRow = Readonly<{entry: Entry; identity?: unknown; state?: string; versionCid?: string; before?: unknown}>;
-type CaptureRows = readonly CapturedRow[] | (() => Promise<RecoveryEntry | undefined>);
+type RowOptions = Parameters<typeof createInstalledRowEffectCaptureRows>[0];
+type CaptureRows = RowOptions['rowsOf'][number];
+type CaptureObservation = RowOptions['observations'][number];
 type Child = ReturnType<typeof prepareInstalledEffectCaptureChild<RecoveryEntry | undefined>>;
 type Constructor = (options: Parameters<typeof prepareInstalledEffectCaptureChild<RecoveryEntry | undefined>>[0]) => Child;
 type RetainedCapture = ReturnType<typeof retainInstalledRowCaptureChild<RecoveryEntry | undefined>>;
@@ -125,7 +128,7 @@ export function prepareInstalledRowEffectCaptureInputs<Member extends MemberRef,
   const contentArtifacts: unknown[] = [];
   const requestChildren: RequestChildren = [];
   const memberCaptures: RetainedCapture[] = [];
-  const proposals: Proposal[][] = [], currents: unknown[] = [], rowsOf: CaptureRows[] = [], observations: unknown[] = [];
+  const proposals: Proposal[][] = [], currents: unknown[] = [], rowsOf: CaptureRows[] = [], observations: CaptureObservation[] = [];
   let captureOpen = true;
   const retireRequestAliases = () => {
     if (captureOpen || !retireRoute()) return false;

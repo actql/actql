@@ -102,6 +102,9 @@ type SourceMember = Readonly<{memberIndex: number; artifact: Contract; schema?: 
 type LocalSource = CommonObject & Readonly<{kind: 'captured-local-effect-source'}>;
 type SourceHolding = SourceMember & Readonly<{source: Source; localEvidence: LocalSource; record: HoldingRecord}>;
 type ConnectorRecovery = Readonly<{memberIndex: number; kind: string; observationCid: string; wire: string}>;
+type ConnectorRecoveryInput = Readonly<{memberIndex: number; kind: string | undefined;
+  observationCid: string | undefined; wire: string | undefined}>;
+type EffectPlanWire = Pick<Contract, 'name' | 'wire'>;
 type DependencyFacts = Readonly<{artifact_cid: string; physical_cid: string; byte_count: number}>;
 type DependencyBinding = Readonly<{artifactCid: string; physicalCid: string; byteCount: number}>;
 type DependencyPayload = Readonly<{artifact: Contract; physical: Physical; prepared: PreparedPhysical}>;
@@ -131,7 +134,7 @@ type CaptureControl = CommonPublicationControl & Readonly<{
   issueEffectfulCapturedRun(chain: EvidenceChain, evidence: CapturedFacts & Readonly<{
     effectSources: readonly Source[]; localEffectSources: readonly LocalSource[];
     dependencyInventoryWire?: string; dependencyConstruction?: CommonObject;
-  }>, preview: Preview, plans: readonly Contract[], limits: Limits, signal?: AbortSignal): Awaitable<Contract>;
+  }>, preview: Preview, plans: readonly EffectPlanWire[], limits: Limits, signal?: AbortSignal): Awaitable<Contract>;
 }>;
 type ResultPlan = Readonly<{retention: Contract; evidenceContext: object; transformation?: unknown}>;
 type ResultRequest = ResultPlan & Readonly<{
@@ -174,8 +177,8 @@ type CompletedFreeOptions = Omit<ResultOptions, 'store' | 'control'> & CaptureIn
 type RecoveryOptions = Readonly<{store: CaptureStore; control: CaptureControl; runDefinition: ContractInput; contractLimits: Limits}>;
 type EffectCaptureOptions = RecoveryOptions & CaptureInputs & Readonly<{
   runDefinition: Contract; execution: Execution; storedResults: StoredResults<LiveResult>; invocation: Contract;
-  preview: Preview; plans: readonly Contract[]; effectSourceHoldings: readonly SourceHolding[];
-  connectorRecovery: readonly ConnectorRecovery[]; signal?: AbortSignal;
+  preview: Preview; plans: readonly EffectPlanWire[]; effectSourceHoldings: readonly SourceHolding[];
+  connectorRecovery: readonly ConnectorRecoveryInput[]; signal?: AbortSignal;
 }>;
 type Computation = Readonly<{manifest: Contract; computationReceipt: Contract; capturedRun: Contract}>;
 type EffectConfirmation = Readonly<{store: CaptureStore; control: CaptureControl; computation: Computation; preview: Preview}>;
@@ -845,7 +848,7 @@ export async function issueCompletedEffectfulComputationEvidence(options: Effect
   const ownedMemberIndices = new Set(ownedHoldings.map(
     holding => holding.memberIndex));
   const seenRecoveryMembers = new Set();
-  const ownedConnectorRecovery = connectorRecovery.map((entry: ConnectorRecovery) => {
+  const ownedConnectorRecovery = connectorRecovery.map((entry: ConnectorRecoveryInput): ConnectorRecovery => {
     if (!exactKeys(entry, [
       'memberIndex', 'kind', 'observationCid', 'wire',
     ]) || !Number.isSafeInteger(entry.memberIndex) ||
@@ -860,7 +863,7 @@ export async function issueCompletedEffectfulComputationEvidence(options: Effect
       fail('InvalidCompletedEffectConnectorRecovery');
     }
     seenRecoveryMembers.add(entry.memberIndex);
-    return Object.freeze({...entry});
+    return Object.freeze({...entry}) as ConnectorRecovery;
   });
   for (const holding of ownedHoldings) {
     const source = holding.source;

@@ -32,8 +32,8 @@ import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
 
 // Execute the complete internal adapter with its actual transport callees.
 // The constructor test below separately imports and exercises its real caller.
-const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const captureSource = readFileSync(new URL('./installed-row-effect-capture-stage.mjs', import.meta.url), 'utf8');
+const captureTree = parse(captureSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 // Actual private member constructor and existing exact-JSON decoder. The
@@ -1371,13 +1371,13 @@ test('Command construction requires SAME driver definition provider and immutabl
 
 
 test('actual member capture caller defers SAME original recovery until Preview and retains failing siblings', async () => {
-  const stage = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage');
+  const stage = captureTree.body.find(node => node.declaration?.id?.name === 'createInstalledRowEffectCaptureStage').declaration;
   const capture = stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureStage');
   const recovery = capture.body.body.filter(node => node.type === 'ForOfStatement' &&
-    rowSource.slice(node.start, node.end).includes('await retained.prepare()'));
+    captureSource.slice(node.start, node.end).includes('await retained.prepare()'));
   assert.equal(recovery.length, 1);
   const finishRecovery = Function('members','ownerOf','recipeOf','currents','entries','memberCaptures','observations',
-    `return (async()=>{const connectorRecovery=[];${rowSource.slice(recovery[0].start,recovery[0].end)};return connectorRecovery;})();`);
+    `return (async()=>{const connectorRecovery=[];${captureSource.slice(recovery[0].start,recovery[0].end)};return connectorRecovery;})();`);
   for (const failing of [false,true]) {
     const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
     const tokens=members.map(()=>({})); let retired=false,markCaptureFinished;

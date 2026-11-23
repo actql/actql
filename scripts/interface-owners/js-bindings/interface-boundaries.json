@@ -89011,6 +89011,1306 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-capture-stage.mjs",
+      "sha256": "b0c0abd4f15b91b8f4a85bae39b08180c5c43705776a9a19da0203c299cdf5f6",
+      "responsibilityFacet": "supplemental",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledRowEffectCaptureStage"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectCaptureStage",
+          "parameters": [
+            "moon",
+            "fail",
+            "ownerOf",
+            "runLimits",
+            "prepareCredentialOperation",
+            "recipeOf",
+            "singular",
+            "cid",
+            "exportLimits",
+            "preparePinnedEffectSourceSet",
+            "guarded",
+            "targeted",
+            "checkSubject",
+            "decideTargetRead",
+            "describeMember",
+            "commandContentBorrower",
+            "resourceFields",
+            "prepareInstalledCreateRows",
+            "commandContentRow",
+            "requestEntry",
+            "requestsOf",
+            "observeRows",
+            "checkRows",
+            "admitCapability",
+            "footprintOf",
+            "retainPinnedEffectDependencyPayloads",
+            "authorPreview",
+            "sameEffectValue",
+            "sameValue",
+            "effect",
+            "preparePinnedEffectSourceHoldings",
+            "openLedger",
+            "claimsOf",
+            "physicalRoute",
+            "orderedSourceIndexes",
+            "basePreflight",
+            "scopes",
+            "continuationOf"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage",
+          "parameters": [
+            "control",
+            "store",
+            "execution",
+            "checkedHost",
+            "prepared",
+            "identity",
+            "plan",
+            "previewContext",
+            "unit",
+            "members",
+            "runInvocationCid",
+            "dispatches",
+            "requestScope",
+            "storedResults",
+            "signal",
+            "targetReads",
+            "contentOwner",
+            "managedEffect",
+            "updateTargetSelections",
+            "own",
+            "ownInputs",
+            "ownChildren",
+            "assertCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/capabilities/capabilities",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage#2",
+          "parameters": [
+            "change",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage#3",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#10",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#3",
+          "parameters": [
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#5",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#6",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#7",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#8",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/captureStage#9",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/claims/claims",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/computation/computation",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/computation/computation#2",
+          "parameters": [
+            "name",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/footprints/footprints",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/holdings/holdings",
+          "parameters": [
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/init:retireRoute/init:retireRoute",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/payloads/payloads",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/preflight/preflight",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureStage/captureStage/verified/verified",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectCaptureStage",
+            "createInstalledRowEffectCaptureStage/captureStage",
+            "createInstalledRowEffectCaptureStage/captureStage/capabilities/capabilities",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage#2",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage/captureStage#3",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#10",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#3",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#4",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#5",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#6",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#7",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#8",
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#9",
+            "createInstalledRowEffectCaptureStage/captureStage/claims/claims",
+            "createInstalledRowEffectCaptureStage/captureStage/computation/computation",
+            "createInstalledRowEffectCaptureStage/captureStage/computation/computation#2",
+            "createInstalledRowEffectCaptureStage/captureStage/footprints/footprints",
+            "createInstalledRowEffectCaptureStage/captureStage/holdings/holdings",
+            "createInstalledRowEffectCaptureStage/captureStage/init:retireRoute/init:retireRoute",
+            "createInstalledRowEffectCaptureStage/captureStage/payloads/payloads",
+            "createInstalledRowEffectCaptureStage/captureStage/preflight/preflight",
+            "createInstalledRowEffectCaptureStage/captureStage/preparedRequest/preparedRequest",
+            "createInstalledRowEffectCaptureStage/captureStage/verified/verified"
+          ],
+          "exports": [
+            "createInstalledRowEffectCaptureStage"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "async function captureStage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "const admittedPreview = control.admitEffectComputationPreview"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "const computation = await issueCompletedEffectfulComputationEvidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "preview.wire, plan.runDefinition, authoringContext"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "const requestTag = effect.dispatchKeyCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "own(sourceSet)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "const holdings = await preparePinnedEffectSourceHoldings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "await checkRows({members, entries, runInvocationCid, dispatches"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "assertCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "fail('InstalledRowEffectPreviewOrderMismatch')"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "fail('InstalledEffectRequestFinalizationPlanUnavailable')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "requestsRetired: retireRequestAliases}), assertCurrent, signal});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "limits.maxWork, limits.maxFields"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "route = physicalRoute({members, entries,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "actual managed row loop stops on the same failed constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "actual member capture caller defers SAME original recovery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectCaptureStage/captureStage/preparedRequest/preparedRequest/preparedRequest"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed check-only metadata projections"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
+                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "// The existing capture retains this original child before any fallible current"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Owned guarded request preparation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage responsibility:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "let publishedTargets: readonly unknown[] | undefined;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "moon.clientProgramEffectPublishedStoreBinding!("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installed Row Effect retains its implementation's original typed operation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
+                "anchor": "reject('ForeignInstalledRowEffectRequest')"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "currentsByPreflight.get(currentPreflight)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage identity:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "owner.issueOriginalCollectionReference(pair, limits.maxWork)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original read grant, awaits that retained read child, then selects the separate"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "children.push({prepared: Object.freeze"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage ownership:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "moon.clientProgramBindEffectCommandTarget("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "if (result !== false && !preparing &&"
+              },
+              {
+                "path": "src/run_publication/cleanup_progress.mbt",
+                "anchor": "pub fn publication_cleanup_owner_action_code("
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage synchronization:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
+                "anchor": "assertCurrent?.();"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage failure:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "InstalledEffectPublishedTargetUnavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage cancellation:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "ownInputs(releaseInputPins, () => { captureOpen = false; });"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each selects its own declared row operation index; the constructor and other"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
+                "anchor": "if (childPending()) return false;"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
+                "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage resources:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "maxGroupingWork: limits.maxWork"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage extension:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "publishedTargets === undefined"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "createRowEffectStage"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
+                "anchor": "test('request child is retained before current refusal"
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
+                "anchor": "ordinary capture uses finite Host grouping work"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              },
+              {
+                "path": "src/run_publication/effect_target_inventory_wbtest.mbt",
+                "anchor": "test \"target order retains original indexes and exact canonical data keys\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
+                "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-current-refresh.integration.test.mjs",
+                "anchor": "refresh instead of the latest Catalog"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE authored Content captures Preview with its original published target'"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage verification:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('create original occurrence reaches synchronous provider"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/host-node/source-store-publication.test.mjs",
+                "anchor": "test('ordinary publication owns STORE targets"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowEffectCaptureStage/captureStage/captureStage#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "separate coordinates, even when they share an immutable extent or index."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "keeps the original input pin until child retirement, including failure before"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "capacity reservation settles. The installation's full selected extent must"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('original member capture reservation precedes exported proposal rows and retains their prefix until release'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('capture construction selects its original member extent without consuming a per-row slot'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-plan-verify.mjs",
+        "./installed-effect-plan.mjs",
+        "./installed-row-capture-cleanup.mjs",
+        "./installed-row-effect-capture-inputs.mjs",
+        "./installed-row-effect-capture-rows.mjs",
+        "./installed-row-effect-commit.mjs",
+        "./local-account-config.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-capture-values.mjs",
       "sha256": "02e26150631144d2b96fa35fc142fc0bf1ed859dea727ccc3e85d41335708e2d",
       "responsibilityFacet": "supplemental",
@@ -94845,7 +96145,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "35ca31ced8f0d3e1035ff32a67fece4a2c1b4a3a4919231ce04d103f70ec146d",
+      "sha256": "6480ce10d3c17028a19097f3261b19ab922665d0444c8bac3f7d4174961b4d82",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -95032,197 +96332,10 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage",
+          "name": "createRowEffectStage/checkSubject/checkSubject",
           "parameters": [
-            "control",
-            "store",
-            "execution",
-            "checkedHost",
-            "prepared",
-            "identity",
-            "plan",
-            "previewContext",
-            "unit",
-            "members",
             "runInvocationCid",
-            "dispatches",
-            "requestScope",
-            "storedResults",
-            "signal",
-            "targetReads",
-            "contentOwner",
-            "managedEffect",
-            "updateTargetSelections",
-            "own",
-            "ownInputs",
-            "ownChildren",
-            "assertCurrent"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/capabilities/capabilities",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#2",
-          "parameters": [
-            "change",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage/captureStage#3",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#3",
-          "parameters": [
-            "rows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
-          "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#8",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#9",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/claims/claims",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/computation/computation",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/computation/computation#2",
-          "parameters": [
-            "name",
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/footprints/footprints",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/holdings/holdings",
-          "parameters": [
-            "payload"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/init:retireRoute/init:retireRoute",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/payloads/payloads",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/preflight/preflight",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/verified/verified",
-          "parameters": [
-            "chunk"
           ],
           "async": false
         },
@@ -95668,7 +96781,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95678,7 +96791,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95688,7 +96801,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95698,7 +96811,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95708,7 +96821,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95718,7 +96831,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95728,7 +96841,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95738,7 +96851,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95748,7 +96861,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95758,7 +96871,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "approvedValue"
               },
               {
@@ -95768,190 +96881,6 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The installed Row Effect retains its implementation's original typed operation"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Managed Local file quantity selection"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "original read grant, awaits that retained read child, then selects the separate"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Managed Local file quantity selection"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Managed Local file quantity selection"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Managed Local file quantity selection"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Each selects its own declared row operation index; the constructor and other"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Managed Local file quantity selection"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Completed check-only metadata projections"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
-                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-write.test.mjs",
-                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-write.test.mjs",
-                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
-              },
-              {
-                "path": "adapters/host-node/mock-file-effect-plan.test.mts",
-                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
-              },
-              {
-                "path": "src/client_local_host/installed_effect_discarded_projection_js_wbtest.mbt",
-                "anchor": "test \"discarded Unit projection keeps full failed peak then reduces only the admitted remainder\""
               }
             ]
           }
@@ -96658,9 +97587,8 @@
             "createRowEffectStage/projectOwnedResponse/projectOwnedResponse",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/openLedger/openLedger",
-            "createRowEffectStage/captureStage",
-            "createRowEffectStage/captureStage/init:retireRoute/init:retireRoute",
-            "exportLimits/exportLimits"
+            "exportLimits/exportLimits",
+            "createRowEffectStage/checkSubject/checkSubject"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -96785,27 +97713,6 @@
             "createRowEffectStage/adapter/init:close/init:close/init:close",
             "createRowEffectStage/assertPrepared/assertPrepared",
             "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
-            "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage#10",
-            "createRowEffectStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/captureStage#4",
-            "createRowEffectStage/captureStage/captureStage#5",
-            "createRowEffectStage/captureStage/captureStage#6",
-            "createRowEffectStage/captureStage/captureStage#7",
-            "createRowEffectStage/captureStage/captureStage#8",
-            "createRowEffectStage/captureStage/captureStage#9",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
-            "createRowEffectStage/captureStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/claims/claims",
-            "createRowEffectStage/captureStage/computation/computation",
-            "createRowEffectStage/captureStage/computation/computation#2",
-            "createRowEffectStage/captureStage/footprints/footprints",
-            "createRowEffectStage/captureStage/holdings/holdings",
-            "createRowEffectStage/captureStage/payloads/payloads",
-            "createRowEffectStage/captureStage/preflight/preflight",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes"
           ],
@@ -97416,738 +98323,6 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/captureStage/captureStage"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "`stopBefore`"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "// The existing capture retains this original child before any fallible current"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Owned guarded request preparation"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage responsibility:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "let publishedTargets: readonly unknown[] | undefined;"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"request_optional_fields\""
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "export async function prepareInstalledRowCaptureChild<Result>(options: RetainOptions<Result>)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage inputs and outputs:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "moon.clientProgramEffectPublishedStoreBinding!("
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The installed Row Effect retains its implementation's original typed operation"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
-                "anchor": "fn check_requested_effect_stop_original("
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "let child: CaptureChild<Result> | undefined = create!();"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-recovery-backing.mts",
-                "anchor": "reject('ForeignInstalledRowEffectRequest')"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Identity: original request target and observation identity must match; the"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
-                "anchor": "currentsByPreflight.get(currentPreflight)"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Identity: each selected position belongs"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage identity:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "owner.issueOriginalCollectionReference(pair, limits.maxWork)"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "original read grant, awaits that retained read child, then selects the separate"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "originalSubmittedIntent("
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "export async function releasePreparedResults(exported: readonly PreparedEntry[], primary: unknown,"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "children.push({prepared: Object.freeze"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Ownership: existing capture/request children retain original reads and their"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Ownership: original installations retain their Sites"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage ownership:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "moon.clientProgramBindEffectCommandTarget("
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The standard CREATE declaration can express a read check as fixed `http`"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "if (result !== false && !preparing &&"
-              },
-              {
-                "path": "src/run_publication/cleanup_progress.mbt",
-                "anchor": "pub fn publication_cleanup_owner_action_code("
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
-                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Synchronization: reconstruction is synchronous"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage synchronization:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "assertCurrent?.();"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "fail('RequestedEffectStopCommitMismatch');"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
-              },
-              {
-                "path": "adapters/host-node/installed-row-json.test.mjs",
-                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Failure: missing scoped recovery support"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage failure:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "InstalledEffectPublishedTargetUnavailable"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A forbidden asynchronous constructor remains joined through settlement before"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "options.signal?.throwIfAborted();"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "signal?.throwIfAborted();"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "signal?.throwIfAborted()"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Cancellation: successful reconstruction neither cancels"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage cancellation:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "ownInputs(releaseInputPins, () => { captureOpen = false; });"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Each selects its own declared row operation index; the constructor and other"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
-                "anchor": "maxWireBytes: 256 * 1024"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-site.mjs",
-                "anchor": "function cleanupCustody("
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.mts",
-                "anchor": "if (childPending()) return false;"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Resources: bounded observation envelope copies, original before references,"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-physical-route.mts",
-                "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Resources: selection is bounded"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage resources:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "maxGroupingWork: limits.maxWork"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "write child. The commit decision never authorizes the read. A rejected read"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Extension: this composition profile remains"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage extension:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
-                "anchor": "publishedTargets === undefined"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Preparation, compilation and saved selection"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
-                "anchor": "test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-write.test.mjs",
-                "anchor": "test('standard declared read check owns fixed HTTP while pure callbacks retain only original provider DATA'"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
-              },
-              {
-                "path": "docs/design/github-issue-observations.md",
-                "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
-              },
-              {
-                "path": "adapters/host-node/installed-row-write.test.mjs",
-                "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "createRowEffectStage"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
-                "anchor": "fn check_requested_effect_stop_projection("
-              },
-              {
-                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
-                "anchor": "test('requested first Effect pauses Account Allow"
-              },
-              {
-                "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
-                "anchor": "test('request child is retained before current refusal"
-              },
-              {
-                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
-                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-json.test.mjs",
-                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
-              },
-              {
-                "path": "adapters/host-node/installed-row-json.test.mjs",
-                "anchor": "the child cannot substitute another row index into its read use"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
-                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
-              },
-              {
-                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
-                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
-              },
-              {
-                "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
-                "anchor": "ordinary capture uses finite Host grouping work"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
-              },
-              {
-                "path": "src/run_publication/effect_target_inventory_wbtest.mbt",
-                "anchor": "test \"target order retains original indexes and exact canonical data keys\""
-              },
-              {
-                "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
-                "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
-              },
-              {
-                "path": "adapters/connectors/salesforce/test/installed-current-refresh.integration.test.mjs",
-                "anchor": "refresh instead of the latest Catalog"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
-              },
-              {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE authored Content captures Preview with its original published target'"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "- CREATE carriage verification:"
-              },
-              {
-                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
-                "anchor": "test('create original occurrence reaches synchronous provider"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
-                "anchor": "test "
-              },
-              {
-                "path": "adapters/host-node/source-store-publication.test.mjs",
-                "anchor": "test('ordinary publication owns STORE targets"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createRowEffectStage/captureStage/captureStage#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "separate coordinates, even when they share an immutable extent or index."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "keeps the original input pin until child retirement, including failure before"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "extent refuses before export; no empty capacity or per-row constructor token"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "a Source set exists. Current/capture/route aliases must retire before the same"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "capacity reservation settles. The installation's full selected extent must"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "A managed capture selects its fixed `captureConstruction` member occurrence"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
-                "anchor": "test('original member capture reservation precedes exported proposal rows and retains their prefix until release'"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan.test.mjs",
-                "anchor": "test('capture construction selects its original member extent without consuming a per-row slot'"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [],
           "attributes": {
@@ -98275,7 +98450,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-stage.mts",
                 "anchor": "assertCurrent?.();"
               },
               {
@@ -101942,11 +102117,8 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/completed-run-publication.mjs",
         "../host-common/runtime-core.mjs",
-        "../host-common/runtime-result.mjs",
         "./effect-input-export.mjs",
-        "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./installed-effect-ledger-open.mjs",
         "./installed-effect-plan.mjs",
@@ -101954,8 +102126,7 @@
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-effect-authorization.mjs",
         "./installed-row-effect-capture-entry.mjs",
-        "./installed-row-effect-capture-inputs.mjs",
-        "./installed-row-effect-capture-rows.mjs",
+        "./installed-row-effect-capture-stage.mjs",
         "./installed-row-effect-capture-values.mjs",
         "./installed-row-effect-claims.mjs",
         "./installed-row-effect-commit.mjs",

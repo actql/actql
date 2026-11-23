@@ -10,7 +10,7 @@ import type {createInstalledRowEffectReadOperations} from './installed-row-effec
 
 type Values = ReturnType<typeof createInstalledRowEffectCaptureValues>;
 type Requests = ReturnType<typeof createInstalledRowEffectRequests>;
-type Member = Parameters<Requests['requestEntry']>[0];
+type RequestMember = Parameters<Requests['requestEntry']>[0];
 type RequestRow = Parameters<Requests['requestEntry']>[1];
 type PreparedRequest = (NonNullable<Parameters<Requests['requestEntry']>[2]> & {readonly then?: never}) | null | undefined;
 type RequestEntry = ReturnType<Requests['requestEntry']>;
@@ -20,23 +20,23 @@ type OwnedRequest = Parameters<typeof prepareInstalledEffectOwnedRequestChild<Pr
 type DirectRequest = Parameters<typeof prepareInstalledEffectRequestChild<PreparedRequest>>[0];
 type RetainRequest = Parameters<typeof prepareInstalledRowCaptureChild<PreparedRequest>>[0];
 type RequestConstructor = (options: OwnedRequest | DirectRequest) => ReturnType<RetainRequest['create']>;
-type ObserveRows = ReturnType<typeof createInstalledRowEffectReadOperations<Member>>['observeRows'];
-type Read = Parameters<ObserveRows>[0]['read'];
-type Current = Parameters<ObserveRows>[0]['assertCurrent'];
-type PhysicalOperations = Parameters<ObserveRows>[0]['physicalOperations'];
+type ObserveRows<Member extends RequestMember> = ReturnType<typeof createInstalledRowEffectReadOperations<Member>>['observeRows'];
+type Read = Parameters<ObserveRows<RequestMember>>[0]['read'];
+type Current = Parameters<ObserveRows<RequestMember>>[0]['assertCurrent'];
+type PhysicalOperations<Member extends RequestMember> = Parameters<ObserveRows<Member>>[0]['physicalOperations'];
 type RecoveryEntry = Readonly<{kind?: string; observationCid?: string; wire?: string; then?: never}>;
-type ObservedRow = Awaited<ReturnType<ObserveRows>>[number] & Readonly<{versionCid?: string; before?: unknown}>;
+type ObservedRow = Awaited<ReturnType<ObserveRows<RequestMember>>>[number] & Readonly<{versionCid?: string; before?: unknown}>;
 type PreviewRow = Readonly<{entry: RequestEntry | CreateRow['entry']; state?: ObservedRow['state'];
   versionCid?: ObservedRow['versionCid']; before?: ObservedRow['before']; identity?: unknown}>;
-type RequestContext = Readonly<{
+type RequestContext<Member> = Readonly<{
   member: Member; value: unknown; selector: unknown; current: unknown;
   createRowIdentity?: unknown; proposalWire?: string; content: ReturnType<Values['commandContentRow']>;
   signal?: AbortSignal; contentOwner?: unknown; rowIndex?: number; assertCurrent?: Current;
   authorizationForRow?: Read['authorizationForRow'];
 }>;
-type Owner = Readonly<{
-  prepareRequest(context: RequestContext): PreparedRequest;
-  prepareRequestChild?(context: RequestContext): ReturnType<OwnedRequest['constructChild']>;
+type Owner<Member> = Readonly<{
+  prepareRequest(context: RequestContext<Member>): PreparedRequest;
+  prepareRequestChild?(context: RequestContext<Member>): ReturnType<OwnedRequest['constructChild']>;
   recheckRequests(facts: Readonly<{member: Member; entries: readonly RequestEntry[]; current: unknown;
     controlConstruction?: ReturnType<typeof prepareInstalledEffectControlConstruction>}>): unknown;
   recoveryEntry?(facts: Readonly<{member: Member; current: unknown;
@@ -46,8 +46,8 @@ type Proposal = Readonly<{changesWire: string; selectorWire?: string}>;
 type InputExtent = (proposal: Proposal) => SynchronousRuntimeData;
 type Runtime = DirectRequest['run']['runtime'] & Parameters<Values['prepareInstalledCreateRows']>[0];
 type Limits = Readonly<{maxRowsPerMember: number; preview: Parameters<Values['prepareInstalledCreateRows']>[2]}>;
-type Options = Readonly<{
-  member: Member; index: number; owned: Owner; updateWriteSlot?: unknown; description: unknown;
+type Options<Member extends RequestMember> = Readonly<{
+  member: Member; index: number; owned: Owner<Member>; updateWriteSlot?: unknown; description: unknown;
   contentOf?: ReturnType<Values['commandContentBorrower']>;
   moon: Runtime; proposals: readonly (readonly Proposal[])[];
   limits: Limits; recipeOf(member: Member): InstalledEffectPlanRecipe | undefined;
@@ -55,21 +55,21 @@ type Options = Readonly<{
   controlConstruction?: ReturnType<typeof prepareInstalledEffectControlConstruction>;
   runInvocationCid: string; dispatches: readonly string[]; signal?: AbortSignal; assertCurrent?: Current;
   contentOwner?: unknown; resourceFields(member: Member): Readonly<{runOriginal?: object}>;
-  physicalOperations?: PhysicalOperations; guarded(kind: Member['kind']): boolean; targeted(kind: Member['kind']): boolean;
+  physicalOperations?: PhysicalOperations<Member>; guarded(kind: Member['kind']): boolean; targeted(kind: Member['kind']): boolean;
   requestChildren: RetainRequest['children']; rowsOf: (readonly PreviewRow[] | (() => Promise<RecoveryEntry | undefined>))[];
   observations: (readonly ObservedRow[] | RecoveryEntry | undefined)[];
   prepareInstalledCreateRows: Values['prepareInstalledCreateRows']; commandContentRow: Values['commandContentRow'];
-  requestEntry: Requests['requestEntry']; requestsOf: Requests['requestsOf']; observeRows: ObserveRows;
+  requestEntry: Requests['requestEntry']; requestsOf: Requests['requestsOf']; observeRows: ObserveRows<Member>;
   retireRequestAliases(): boolean; fail(code: string): never;
 }>;
 
-export function createInstalledRowEffectCaptureRows({
+export function createInstalledRowEffectCaptureRows<Member extends RequestMember>({
   member, index, owned, updateWriteSlot, description, contentOf, moon, proposals, limits, recipeOf,
   managedEffect, prepared, identity, reads, controlConstruction, runInvocationCid, dispatches, signal,
   assertCurrent, contentOwner, resourceFields, physicalOperations, guarded, targeted, requestChildren,
   rowsOf, observations, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
   observeRows, retireRequestAliases, fail,
-}: Options) {
+}: Options<Member>) {
   let memberEntries: readonly RequestEntry[] | undefined;
   const constructRows = async () => {
     const selectedCreate = member.kind === 'create'
