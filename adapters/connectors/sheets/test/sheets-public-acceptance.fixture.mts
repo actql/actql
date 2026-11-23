@@ -14,11 +14,63 @@ import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
   from './sheets-api.fixture.mjs';
 import {rangeProgram} from './sheets-range-program.fixture.mjs';
 import {clearProgram} from './sheets-clear-program.fixture.mjs';
+import type {KeyObject} from 'node:crypto';
+import type {AddressInfo} from 'node:net';
+import type {TestContext} from 'node:test';
+import type {Client, Execution, RunReference, RunState} from '@actql/sdk';
+import type {connect as connectLocal, publishEffect, publishSource} from '@actql/local-node';
+import type {openInstalledRemoteHttpHost as openRemoteHost} from '@actql/local-node/http-host';
+import type {canonicalJson as configurationJson} from '@actql/sdk/host-port';
+import type {fixtureCertificates as certificates, openHttpsExchangeFixture as httpsFixture}
+  from '../../../site-node/https-exchange-fixture.mjs';
+
+type Close = () => unknown;
+type RangeCommand = false | true | 'clear';
+type Custody = Readonly<{
+  root: string; closers?: Close[]; rangeCommand?: RangeCommand; acceptanceComplete?: boolean;
+  diagnostic?: (message: string) => void; preserveScratch?: boolean;
+}>;
+type ConnectedLocal = Readonly<{client: Client; as?: never; close?: never}>;
+type ConnectedRemote = Readonly<{client?: never; as(token: string): Promise<Client>; close(): Promise<void>}>;
+type Connection = ConnectedLocal | ConnectedRemote;
+type PreparedAppend<Connected extends Connection> = Readonly<{first: Connected; execution: Execution; state: RunState}>;
+type RawRow = Readonly<{text: string; number: number | null; flag: boolean}>;
+type Mapping = Readonly<{target: string; mappingRef: string}>;
+type Published = Readonly<{mappings?: readonly Mapping[]; commands?: readonly Readonly<{resource: string; commandRef: string}>[]}>;
+type ApiOptions = NonNullable<Parameters<typeof httpsFixture>[1]>;
+type Fault = NonNullable<ApiOptions['faults']>[number];
+type ApprovalPolicy = 'delegate' | 'allow' | 'deny';
+type InstallationOptions = Readonly<{
+  faults?: readonly Fault[]; commit?: ApprovalPolicy; reviewerPrincipal?: string;
+  rangeCommand?: RangeCommand; resumeAfterAnswer?: boolean;
+}>;
+type RouteState = Parameters<typeof sheetsRoutes>[0];
+type FixtureState = RouteState & Required<Pick<RouteState, 'appended'>> & {
+  acceptanceComplete?: boolean; physicalAppendObserved?: boolean;
+};
+type Observation = Readonly<{
+  code?: unknown; cause?: Readonly<{code?: unknown}>; error?: Readonly<{code?: unknown}>; reason?: unknown;
+}>;
+type Diagnostic = Readonly<{
+  code?: unknown; message?: unknown; issue?: unknown; cause?: Diagnostic; primaryFailure?: Diagnostic;
+  cleanupPending?: unknown; outcome?: Readonly<{problem?: unknown}>;
+}>;
+type Acceptance = Readonly<{
+  connect(options: Readonly<{mode: 'remote'; endpoint: string; token: string; durability: 'durable'}>): Promise<Client>;
+  connectEmbeddedLocal: typeof connectLocal;
+  openInstalledRemoteHttpHost: typeof openRemoteHost;
+  publishInstalledSource: typeof publishSource;
+  publishInstalledEffect: typeof publishEffect;
+  canonicalJson: typeof configurationJson;
+  fixtureCertificates: typeof certificates;
+  openHttpsExchangeFixture: typeof httpsFixture;
+  replayEntry: URL; scratch: string;
+}>;
 
 // Close live handles even when the caller retains the original fixture custody.
 export async function closeSheetsAcceptanceCustody({root, closers = [],
   rangeCommand = false, acceptanceComplete, diagnostic = () => {},
-  preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'}) {
+  preserveScratch = process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'}: Custody) {
   try { for (const close of closers.reverse()) await close(); }
   finally {
     if (preserveScratch) diagnostic(`Retained Sheets acceptance custody: ${root}`);
@@ -30,7 +82,7 @@ export async function closeSheetsAcceptanceCustody({root, closers = [],
 export async function registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,
   canonicalJson, fixtureCertificates, openHttpsExchangeFixture,
-  replayEntry, scratch}) {
+  replayEntry, scratch}: Acceptance) {
 // Independent profile versions, not values extracted from implementation source.
 const SHEETS_SITE_VERSION = 'actql-installed-sheets-site/0.1';
 const SHEETS_SOURCE_VERSION = 'actql-installed-sheets-source/0.1';
@@ -48,16 +100,16 @@ const outcomePolls = 400;
 // Give that retry the same outcome-observation window as an immediate resume.
 const resumedOutcomePolls = outcomePolls + Math.ceil((resumeLeaseMs + 100) / pollIntervalMs);
 const secret = async () => 'fixture-only-secret';
-const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
+const pem = (key: KeyObject) => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
 const reviewerKeys = generateKeyPairSync('ed25519'), hostKeys = generateKeyPairSync('ed25519');
 const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
-  sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
-const entry = (entry_id, outcome, connection, resource, operation) => ({
+  sign: (bytes: Uint8Array) => sign(null, bytes, reviewerKeys.privateKey)};
+const entry = (entry_id: string, outcome: string, connection: string, resource: string, operation: string) => ({
   entry_id, outcome, exclusions: [], principal: {all: true},
   connection: {any_of: [connection]}, resource: {any_of: [resource]},
   operation: {any_of: [operation]},
 });
-const configuration = (connection, commit = 'delegate', rangeCommand = false) => canonicalJson({version: 'actql-execution-account-config/0.1',
+const configuration = (connection: string, commit: ApprovalPolicy = 'delegate', rangeCommand: RangeCommand = false) => canonicalJson({version: 'actql-execution-account-config/0.1',
   account_id: 'sheets-fixture', entries: [
     entry('append', commit, connection, 'append_rows', 'effect'),
     entry('append-read', 'allow', connection, 'append_rows', 'read'),
@@ -72,7 +124,7 @@ const configuration = (connection, commit = 'delegate', rangeCommand = false) =>
     {entry_id: 'run', outcome: 'allow', exclusions: [], principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}},
   ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0)});
-const authorization = (accountConfiguration, reviewerPrincipal = 'reviewer-principal') => ({accountConfiguration,
+const authorization = (accountConfiguration: string, reviewerPrincipal = 'reviewer-principal') => ({accountConfiguration,
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
     principalId: reviewerPrincipal, publicKey: pem(reviewerKeys.publicKey)}],
   reviewReaders: [reviewerPrincipal], hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)},
@@ -87,7 +139,7 @@ const readProgram = JSON.stringify({version: 'actql/0.1', id: 'sheets-read', sta
   steps: [{select: ['text', 'number', 'flag'], as: 'out'}],
   results: {rows: {from: 'out', fields: ['text', 'number', 'flag']}},
 }], results: {answer: {from: {stage: 'compute', result: 'rows'}}}});
-const appendProgram = (mapping, rows) => JSON.stringify({version: 'actql/0.1', id: 'sheets-append', stages: [{
+const appendProgram = (mapping: Mapping, rows: readonly RawRow[]) => JSON.stringify({version: 'actql/0.1', id: 'sheets-append', stages: [{
   id: 'write', inputs: {}, steps: [{values: {schema: {
     text: {type: 'string', nullable: false}, number: {type: 'number', nullable: true},
     flag: {type: 'boolean', nullable: true}}, rows}, as: 'out'}],
@@ -95,7 +147,7 @@ const appendProgram = (mapping, rows) => JSON.stringify({version: 'actql/0.1', i
   effects: {append: {create: {target: mapping.target, mapping: mapping.mappingRef,
     from: {result: 'rows'}}}},
 }], results: {answer: {from: {stage: 'write', result: 'rows'}}}});
-async function until(read, polls = outcomePolls) {
+async function until<Value>(read: () => Promise<Value | undefined>, polls = outcomePolls): Promise<Value> {
   for (let index = 0; index < polls; index++) {
     const result = await read();
     if (result) return result;
@@ -104,18 +156,18 @@ async function until(read, polls = outcomePolls) {
   assert.fail('Sheets public execution did not reach its expected boundary');
 }
 const terminal = new Set(['succeeded', 'failed', 'cancelled']);
-const settled = execution => until(async () => {
+const settled = (execution: Execution) => until(async () => {
   const current = await execution.status();
   return terminal.has(current.status) || current.status === 'waiting_checkpoint' ? current : undefined;
 });
 
-async function installation(t, {faults = [], commit = 'delegate', reviewerPrincipal,
-  rangeCommand = false, resumeAfterAnswer = false} = {}) {
-  const state = {appended: [], ...(rangeCommand ? {rangeCommand, updated: [], cleared: []} : {})};
-  const observations = [];
+async function installation(t: TestContext, {faults = [], commit = 'delegate', reviewerPrincipal,
+  rangeCommand = false, resumeAfterAnswer = false}: InstallationOptions = {}) {
+  const state: FixtureState = {appended: [], ...(rangeCommand ? {rangeCommand, updated: [], cleared: []} : {})};
+  const observations: [name: string, detail: Observation | undefined][] = [];
   const api = await openHttpsExchangeFixture(t, {routes: sheetsRoutes(state), faults});
   const root = await mkdtemp(join(scratch, 'host-'));
-  const closers = [];
+  const closers: Close[] = [];
   t.after(() => closeSheetsAcceptanceCustody({root, closers, rangeCommand,
     acceptanceComplete: state.acceptanceComplete, diagnostic: message => t.diagnostic(message)}));
   const credential = generateKeyPairSync('ed25519');
@@ -140,28 +192,31 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     ...(rangeCommand ? {rangeCommand}
       : {sources: columns.map(column => ({target: column.name, field: column.name, null_behavior: 'reject'}))})}));
   const directory = join(root, 'state');
-  const publish = async effect => {
+  const publish = async (effect: boolean): Promise<Published> => {
     try {
       return await (effect
         ? publishInstalledEffect({effectProfilePath, directory, resolveEffectSecret: secret})
-        : publishInstalledSource({sourceProfilePath, directory, resolveSourceSecret: secret}));
+        : publishInstalledSource({sourceProfilePath, directory, resolveSourceSecret: secret})) as Published;
     } catch (error) {
       const codes = [];
-      for (let current = error, depth = 0; current && depth < 5; current = current.cause, depth++) {
+      for (let current = error as Diagnostic | undefined, depth = 0; current && depth < 5; current = current.cause, depth++) {
         codes.push({code: current.code, issue: current.issue});
       }
       t.diagnostic(JSON.stringify(codes));
       throw error;
     }
   };
-  async function open(effect, local = false) {
-    const openObserved = async action => {
+  function open(effect: boolean, local: true): Promise<ConnectedLocal>;
+  function open(effect: boolean, local?: false): Promise<ConnectedRemote>;
+  function open(effect: boolean, local: boolean): Promise<Connection>;
+  async function open(effect: boolean, local = false): Promise<Connection> {
+    const openObserved = async <Value,>(action: () => Promise<Value>) => {
       try { return await action(); }
       catch (error) {
-        const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+        const tag = (value: unknown) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
           ? value : undefined;
         const causes = [];
-        for (let cause = error, depth = 0; cause && depth < 4; cause = cause.cause, depth++) {
+        for (let cause = error as Diagnostic | undefined, depth = 0; cause && depth < 4; cause = cause.cause, depth++) {
           causes.push({code: tag(cause.code), messageTag: tag(cause.message),
             primaryCode: tag(cause.primaryFailure?.code),
             primaryTag: tag(cause.primaryFailure?.message), cleanupPending: cause.cleanupPending});
@@ -172,7 +227,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     };
     const options = {directory, ...(effect ? {effectProfilePath, resolveEffectSecret: secret}
       : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal), resumeAfterAnswer,
-        observe(name, detail) {
+        observe(name: string, detail: Observation | undefined) {
           observations.push([name, detail]);
         }}, ...(effect && rangeCommand ? {sourceProfilePath, resolveSourceSecret: secret} : {})};
     if (local) {
@@ -183,26 +238,26 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     }
     const host = await openObserved(() => openInstalledRemoteHttpHost({...options,
       authenticate: header => new Map([['owner-token', owner], ['reviewer-token', 'reviewer-principal']])
-        .get(header?.replace(/^Bearer /u, ''))}));
+        .get(header?.replace(/^Bearer /u, '') as string)}));
     const server = createServer({key: tls.key, cert: tls.cert}, host.handler);
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     let closed = false;
     const close = async () => {
       if (closed) return;
       server.closeAllConnections();
-      await new Promise(resolve => server.close(resolve));
+      await new Promise<Error | undefined>(resolve => server.close(resolve));
       await host.close();
       closed = true;
     };
     closers.push(close);
-    const as = async token => {
+    const as = async (token: string) => {
       let client;
       try {
-        client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+        client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${(server.address() as AddressInfo).port}/`,
           token, durability: 'durable'});
       } catch (error) {
-        t.diagnostic(JSON.stringify({code: error.code, cause: error.cause?.code,
-          underlying: error.cause?.cause?.code}));
+        t.diagnostic(JSON.stringify({code: (error as Diagnostic).code, cause: (error as Diagnostic).cause?.code,
+          underlying: (error as Diagnostic).cause?.cause?.code}));
         throw error;
       }
       closers.push(() => client.close());
@@ -211,7 +266,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     return {as, close};
   }
   return {api, state, publish, open, root, observations,
-    async replayInNewProcess(ref, expectedStatus, expectedRows) {
+    async replayInNewProcess(ref: RunReference, expectedStatus: RunState['status'], expectedRows?: readonly unknown[]) {
       const configPath = join(root, 'replay-fixture.json');
       await writeFile(configPath, JSON.stringify({ref, expectedStatus,
         ...(expectedRows === undefined ? {} : {expectedRows}),
@@ -230,7 +285,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     }};
 }
 
-async function approve(host, execution) {
+async function approve(host: Connection, execution: Execution) {
   const reviewer = host.client ?? await host.as('reviewer-token');
   const checkpoints = (await reviewer.checkpoints()).items;
   assert.equal(checkpoints.length, 1, 'one Set approval, not one approval per row');
@@ -239,8 +294,14 @@ async function approve(host, execution) {
     {signer: {...signer, authorityScopeCid: execution.ref.authorityScopeCid}});
   assert.deepEqual(answer.results.map(item => item.status), ['committed']);
 }
-async function preparedAppend(setup, rows, {local = false, nonce = 'append-once'} = {}) {
-  const [mapping] = (await setup.publish(true)).mappings;
+type Setup = Awaited<ReturnType<typeof installation>>;
+function preparedAppend(setup: Setup, rows: readonly RawRow[],
+  options: Readonly<{local: true; nonce?: string}>): Promise<PreparedAppend<ConnectedLocal>>;
+function preparedAppend(setup: Setup, rows: readonly RawRow[],
+  options?: Readonly<{local?: false; nonce?: string}>): Promise<PreparedAppend<ConnectedRemote>>;
+async function preparedAppend(setup: Setup, rows: readonly RawRow[],
+  {local = false, nonce = 'append-once'}: Readonly<{local?: boolean; nonce?: string}> = {}): Promise<PreparedAppend<Connection>> {
+  const [mapping] = (await setup.publish(true)).mappings!;
   const first = await setup.open(true, local);
   const client = first.client ?? await first.as('owner-token');
   const execution = await client.startSource(appendProgram(mapping, rows), {
@@ -248,7 +309,7 @@ async function preparedAppend(setup, rows, {local = false, nonce = 'append-once'
   const state = await settled(execution);
   return {first, execution, state};
 }
-async function approvedAppend(setup, rows) {
+async function approvedAppend(setup: Setup, rows: readonly RawRow[]) {
   const initial = await preparedAppend(setup, rows);
   assert.equal(initial.state.status, 'waiting_checkpoint', JSON.stringify(initial.state));
   assert.equal(setup.state.appended.length, 0);
@@ -265,7 +326,7 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
   for (const local of [true, false]) {
     const setup = await installation(t, {rangeCommand: 'clear', resumeAfterAnswer: true,
       ...(local ? {reviewerPrincipal: owner} : {})});
-    const [command] = (await setup.publish(true)).commands;
+    const [command] = (await setup.publish(true)).commands!;
     assert.equal(command.commandRef, 'command:sheet-book.sheets.clear_range.v1');
     const first = await setup.open(true, local);
     const client = first.client ?? await first.as('owner-token');
@@ -273,7 +334,7 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
       format: 'json', submissionRef: client.newSubmission({nonce: 'clear-once'})});
     const waiting = await settled(execution);
     assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
-    assert.equal(setup.state.cleared.length, 0, 'metadata acquisition is not a clear grant');
+    assert.equal(setup.state.cleared!.length, 0, 'metadata acquisition is not a clear grant');
     const capturedCalls = setup.api.seen().length;
     if (first.client) await first.client.close(); else await first.close();
     const resumed = await setup.open(true, local);
@@ -288,11 +349,11 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
     });
     assert.equal(done.status, 'succeeded', JSON.stringify(done));
     assert.deepEqual(await restored.result('answer').all(), [{receipt: 'clear-request'}]);
-    assert.equal(setup.state.cleared.length, 1);
-    assert.deepEqual(setup.state.cleared[0].requests[0], {updateCells: {
+    assert.equal(setup.state.cleared!.length, 1);
+    assert.deepEqual(setup.state.cleared![0].requests![0], {updateCells: {
       range: {sheetId: 7, startRowIndex: 2, endRowIndex: 4, startColumnIndex: 0, endColumnIndex: 3},
       rows: [], fields: 'userEnteredValue'}});
-    assert.equal(setup.state.updated.length, 0);
+    assert.equal(setup.state.updated!.length, 0);
     assert.equal(setup.state.appended.length, 0);
     const before = setup.api.seen().length;
     if (resumed.client) await resumed.client.close(); else await resumed.close();
@@ -305,15 +366,15 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
 test('Sheets clear keeps a lost response Unknown after cold restart without resend', async t => {
   const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
-  const [command] = (await setup.publish(true)).commands;
+  const [command] = (await setup.publish(true)).commands!;
   const first = await setup.open(true, true), client = first.client;
   const execution = await client.startSource(clearProgram(command.commandRef), {
     format: 'json', submissionRef: client.newSubmission({nonce: 'clear-unknown'})});
   assert.equal((await settled(execution)).status, 'waiting_checkpoint');
-  assert.equal(setup.state.cleared.length, 0);
+  assert.equal(setup.state.cleared!.length, 0);
   await approve(first, execution);
   await execution.reconcile();
-  let lastStatus;
+  let lastStatus: RunState['status'] | undefined;
   const unknown = await until(async () => {
     const current = await execution.status();
     lastStatus = current.status;
@@ -321,7 +382,7 @@ test('Sheets clear keeps a lost response Unknown after cold restart without rese
       setup.observations.some(([name]) => name === 'effect_resume_failed') ? current : undefined;
   }, resumedOutcomePolls).catch(error => {
     t.diagnostic(JSON.stringify({phase: 'clear-post-approval', status: lastStatus,
-      clearedBatches: setup.state.cleared.length,
+      clearedBatches: setup.state.cleared!.length,
       resumeClaims: setup.observations.filter(([name]) => name === 'resume_claimed').length,
       resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
         .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
@@ -333,7 +394,7 @@ test('Sheets clear keeps a lost response Unknown after cold restart without rese
       .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
         ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
-  assert.equal(setup.state.cleared.length, 1);
+  assert.equal(setup.state.cleared!.length, 1);
   const before = setup.api.seen().length;
   await client.close();
   await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
@@ -349,7 +410,7 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
   for (const local of [true, false]) {
     const setup = await installation(t, {rangeCommand: true, resumeAfterAnswer: true,
       ...(local ? {reviewerPrincipal: owner} : {})});
-    const [command] = (await setup.publish(true)).commands;
+    const [command] = (await setup.publish(true)).commands!;
     assert.equal(command.resource, 'range_target');
     const first = await setup.open(true, local);
     const client = first.client ?? await first.as('owner-token');
@@ -357,7 +418,7 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
       {format: 'json', submissionRef: client.newSubmission({nonce: 'range-once'})});
     const waiting = await settled(execution);
     assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
-    assert.equal(setup.state.updated.length, 0, 'metadata admission is not a write grant');
+    assert.equal(setup.state.updated!.length, 0, 'metadata admission is not a write grant');
     await approve(first, execution);
     await execution.reconcile();
     const done = await until(async () => {
@@ -366,10 +427,10 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
         setup.observations.some(([name]) => name === 'effect_resume_failed')
         ? current : undefined;
     });
-    const safeTag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+    const safeTag = (value: unknown) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
       ? value : undefined;
     assert.equal(done.status, 'succeeded', JSON.stringify({status: done.status,
-      nextAction: done.next_action?.kind, updates: setup.state.updated.length,
+      nextAction: done.next_action?.kind, updates: setup.state.updated!.length,
       observations: setup.observations.map(([name, detail]) => ({name,
         code: safeTag(detail?.code), cause: safeTag(detail?.cause?.code),
         error: safeTag(detail?.error?.code), reason: safeTag(detail?.reason)}))}));
@@ -389,17 +450,17 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
 test('Sheets range Command retains an unknown acknowledgement across process restart without resend', async t => {
   const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
-  const [command] = (await setup.publish(true)).commands;
+  const [command] = (await setup.publish(true)).commands!;
   const first = await setup.open(true, true);
   const client = first.client;
   const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];
   const execution = await client.startSource(rangeProgram(command.commandRef, rows),
     {format: 'json', submissionRef: client.newSubmission({nonce: 'range-unknown'})});
   assert.equal((await settled(execution)).status, 'waiting_checkpoint');
-  assert.equal(setup.state.updated.length, 0);
+  assert.equal(setup.state.updated!.length, 0);
   await approve(first, execution);
   await execution.reconcile();
-  let lastStatus;
+  let lastStatus: RunState['status'] | undefined;
   const unknown = await until(async () => {
     const value = await execution.status();
     lastStatus = value.status;
@@ -407,7 +468,7 @@ test('Sheets range Command retains an unknown acknowledgement across process res
       setup.observations.some(([name]) => name === 'effect_resume_failed') ? value : undefined;
   }, resumedOutcomePolls).catch(error => {
     t.diagnostic(JSON.stringify({phase: 'range-post-approval', status: lastStatus,
-      updatedBatches: setup.state.updated.length,
+      updatedBatches: setup.state.updated!.length,
       resumeClaims: setup.observations.filter(([name]) => name === 'resume_claimed').length,
       resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
         .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
@@ -419,7 +480,7 @@ test('Sheets range Command retains an unknown acknowledgement across process res
       .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
         ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
-  assert.equal(setup.state.updated.length, 1);
+  assert.equal(setup.state.updated!.length, 1);
   const before = setup.api.seen().length;
   await client.close();
   await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
@@ -448,9 +509,9 @@ test('Sheets failed publication removes only its own unpublished temporary file'
   // The target directory forces the atomic rename to fail after writing bytes.
   await mkdir(join(setup.root, 'publication.json'));
   await assert.rejects(setup.publish(false), error => {
-    assert.equal(error.code, 'InstalledHostInitializationFailed');
-    assert.equal(error.cleanupPending, false);
-    assert.ok(['EISDIR', 'EEXIST', 'ENOTEMPTY'].includes(error.primaryFailure?.code));
+    assert.equal((error as Diagnostic).code, 'InstalledHostInitializationFailed');
+    assert.equal((error as Diagnostic).cleanupPending, false);
+    assert.ok(['EISDIR', 'EEXIST', 'ENOTEMPTY'].includes((error as Diagnostic).primaryFailure?.code as string));
     return true;
   });
   assert.deepEqual((await readdir(setup.root)).filter(name => name.startsWith('publication.json')),
@@ -507,13 +568,13 @@ for (const [name, faults, cancel, applied] of [
   ['lost acknowledgement', [{kind: 'apply-then-lose-reply'}], false, 1],
   ['cancel while the physical append reply is pending', [{kind: 'apply-then-lose-reply'}], true, 1],
   ['provider 503', [{kind: 'reply', reply: {status: 503, body: {error: 'fixture'}}}], false, 0],
-]) {
+] as const) {
   test(`Sheets ${name} preserves unknown custody and never resends`, async t => {
     const setup = await installation(t, {faults: faults.map(fault => ({...fault,
       method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}))});
     const execution = await approvedAppend(setup, [row, row]);
-    let releaseReply;
-    const pendingReply = new Promise(resolve => { releaseReply = resolve; });
+    let releaseReply!: () => void;
+    const pendingReply = new Promise<void>(resolve => { releaseReply = resolve; });
     if (cancel) {
       // The responder has applied the row but cannot complete the exchange
       // until cancellation has been submitted through the public SDK.
@@ -549,7 +610,7 @@ for (const [name, faults, cancel, applied] of [
     await replay.reconcile();
     assert.equal(sends(), 1);
     assert.equal(setup.state.appended.length, applied);
-    if (cancel) assert.equal((await replay.status()).control.cancellation_requested, true);
+    if (cancel) assert.equal((await replay.status()).control!.cancellation_requested, true);
     await reopened.close();
     await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
     assert.equal(sends(), 1, 'a new process does not resend an unknown row');
@@ -574,7 +635,7 @@ for (const name of ['changed numeric tab', 'revoked account']) {
 
 test('Sheets unrepresentable cells and missing approval refuse before physical append', async t => {
   for (const [commit, value] of [['delegate', {...row, text: ''}],
-    ['delegate', {...row, number: null}], ['allow', row]]) {
+    ['delegate', {...row, number: null}], ['allow', row]] as const) {
     const setup = await installation(t, {commit});
     const {state} = await preparedAppend(setup, [value]);
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -589,8 +650,8 @@ test('Sheets cleanup retry keeps the same ledger owner and never repeats append'
   const execution = await approvedAppend(setup, [row]);
   const original = DatabaseSync.prototype.close;
   let failed = false, attempts = 0, successes = 0;
-  t.mock.method(DatabaseSync.prototype, 'close', function() {
-    if (new Error().stack.includes('/effect-ledger.mjs')) {
+  t.mock.method(DatabaseSync.prototype, 'close', function(this: DatabaseSync) {
+    if (new Error().stack!.includes('/effect-ledger.mjs')) {
       attempts++;
       if (!failed) { failed = true; throw new Error('FixtureLedgerClosePending'); }
       const value = original.call(this);
@@ -618,7 +679,7 @@ test('Sheets read uses the installed public Local and HTTPS owners and retained 
   for (const [local, gridRows, expected] of [
     [true, undefined, expectedRows], [false, undefined, expectedRows],
     [true, blankGridRows, []], [false, blankGridRows, []],
-  ]) {
+  ] as const) {
     const setup = await installation(t);
     setup.state.gridRows = gridRows;
     await setup.publish(false);
@@ -629,7 +690,7 @@ test('Sheets read uses the installed public Local and HTTPS owners and retained 
     const submissionRef = client.newSubmission({nonce: 'read-once'});
     let execution;
     try { execution = await client.startSource(readProgram, {format: 'json', submissionRef}); }
-    catch (error) { t.diagnostic(JSON.stringify(error.outcome?.problem)); throw error; }
+    catch (error) { t.diagnostic(JSON.stringify((error as Diagnostic).outcome?.problem)); throw error; }
     let done;
     try { done = await settled(execution); }
     catch (error) {
@@ -664,7 +725,7 @@ test('Sheets evaluated formula errors fail the public read without publishing NU
 
 test('Sheets append keeps one common approval across restart and saves acknowledgements without row IDs', async t => {
   const setup = await installation(t);
-  const [mapping] = (await setup.publish(true)).mappings;
+  const [mapping] = (await setup.publish(true)).mappings!;
   const first = await setup.open(true);
   const client = await first.as('owner-token');
   const rows = [{text: '=literal e\u0301\r\n', number: 0, flag: false}];

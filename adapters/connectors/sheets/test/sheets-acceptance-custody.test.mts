@@ -3,9 +3,10 @@ import {mkdtemp, open, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {closeSheetsAcceptanceCustody} from './sheets-public-acceptance.fixture.mjs';
 
-async function custody(t) {
+async function custody(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'sheets-custody-control-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const path = join(root, 'synthetic-state');
@@ -16,8 +17,8 @@ async function custody(t) {
 test('explicit preservation closes handles in reverse order and retains exact original files', async t => {
   const {root, path, before} = await custody(t);
   const handle = await open(path, 'r');
-  const order = [];
-  const diagnostics = [];
+  const order: string[] = [];
+  const diagnostics: string[] = [];
   await closeSheetsAcceptanceCustody({root, preserveScratch: true,
     closers: [async () => {order.push('first'); await handle.close();}, async () => order.push('last')],
     diagnostic: message => diagnostics.push(message)});
@@ -46,7 +47,7 @@ test('default cleanup still removes disposable completed or nonrange custody aft
 
 test('uncertain range custody remains retained without explicit preservation', async t => {
   const {root, path} = await custody(t);
-  const diagnostics = [];
+  const diagnostics: string[] = [];
   await closeSheetsAcceptanceCustody({root, rangeCommand: true, preserveScratch: false,
     diagnostic: message => diagnostics.push(message)});
   assert.equal(await readFile(path, 'utf8'), 'independent fixture bytes');

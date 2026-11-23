@@ -1,7 +1,7 @@
 import {connect} from '../../../../packages/sdk/index.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost,
-  publishInstalledSource, publishInstalledEffect} from '../../../host-node/embedded-local.mjs';
+  publishInstalledSource, publishInstalledEffect} from '../../../../adapters/host-node/embedded-local.mjs';
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {registerSheetsAcceptance} from './sheets-public-acceptance.fixture.mjs';
 import {fileURLToPath} from 'node:url';

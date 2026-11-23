@@ -1753,7 +1753,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -1868,7 +1868,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -3108,7 +3108,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -4750,7 +4750,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -5428,7 +5428,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -5625,7 +5625,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -5745,7 +5745,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             },
             {
@@ -5920,7 +5920,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -6065,7 +6065,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]
@@ -6294,7 +6294,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mts",
               "anchor": "Sheets clear Command retains original requests"
             }
           ]

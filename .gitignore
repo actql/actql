@@ -3010,3 +3010,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/sheets/test/sheets-clear-profile.test.d.mts
 /adapters/connectors/sheets/test/sheets-request-identity.test.mjs
 /adapters/connectors/sheets/test/sheets-request-identity.test.d.mts
+/adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs
+/adapters/connectors/sheets/test/sheets-public-acceptance.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-acceptance-custody.test.mjs
+/adapters/connectors/sheets/test/sheets-acceptance-custody.test.d.mts
+/adapters/connectors/sheets/test/sheets-packed.fixture.mjs
+/adapters/connectors/sheets/test/sheets-packed.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs
+/adapters/connectors/sheets/test/sheets-standard-host.integration.test.d.mts
