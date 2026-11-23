@@ -13,6 +13,8 @@ import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 import {admitCompositionRelease} from './composition-release-input.mjs';
 import {sheetsPackedSelection, sheetsPackedFixturePaths} from './sheets-packed-cases.mjs';
 
+type PackManifest = Readonly<{revision: string; tarballs: Readonly<Record<string, string>>}>;
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const state = checkoutState(repository);
 if (!state.clean) throw new Error('Build inputs differ from HEAD');
@@ -27,11 +29,11 @@ const directory = await withPackedQueryEvidence({
   // alongside the original private Run/DB/key custody after test closure.
   keepArtifacts: true,
 }, async ({root, recordTarball, run}) => {
-  const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
+  const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: packedNpmCache(root)};
   delete environment.NODE_PATH;
   delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
   delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
-  let names, archives;
+  let names: readonly string[], archives: readonly string[];
   if (normalRelease === undefined) {
     // CI does not choose a release version. Use the same lifecycle-enabled
     // five-package producer and source/digest-checked reuse as other consumers.
@@ -42,7 +44,7 @@ const directory = await withPackedQueryEvidence({
         pack: () => run('npm', normalNpmPackJsonArgs([
           'pack', '--pack-destination', producer, '--json',
         ]), {cwd: join(repository, 'packages', name), env: environment, timeout: 600_000})})});
-    const manifest = JSON.parse(await readFile(join(producer, 'packed-client-packages.json'), 'utf8'));
+    const manifest = JSON.parse(await readFile(join(producer, 'packed-client-packages.json'), 'utf8')) as PackManifest;
     assert.equal(manifest.revision, state.revision);
     assert.deepEqual(Object.keys(manifest.tarballs), names);
     archives = names.map(name => join(producer, `actql-${name}-0.0.0-development.tgz`));
@@ -74,7 +76,7 @@ const directory = await withPackedQueryEvidence({
   const args = nodeTestArguments(selection.testArguments);
   const stdout = run(process.execPath, args, {cwd: root, env: environment, timeout: 180_000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, selection.expectedTests);
+  assert.equal(checked.counts!.passed, selection.expectedTests);
   await normalRelease?.verifyUnchanged();
   assert.deepEqual(checkoutState(repository), state);
   console.log('PACKED_SHEETS_VERIFIED', JSON.stringify({revision: state.revision,

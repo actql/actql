@@ -10,7 +10,7 @@ export const sheetsPackedFixturePaths = Object.freeze([
     .map(name => `adapters/connectors/sheets/test/${name}`),
 ]);
 
-export function sheetsPackedSelection(argv) {
+export function sheetsPackedSelection(argv: readonly string[]) {
   let rangeOnly = false;
   for (let index = 0; index < argv.length; index++) {
     if (argv[index] === '--range-command-only') {
