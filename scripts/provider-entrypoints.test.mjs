@@ -11,7 +11,7 @@ import {createRegisteredSdkProvider} from '../packages/provider-ai-sdk/_internal
 test('optional entries expose Host assemblers and configured registrations', () => {
   assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration',
     'createInstalledUndiciOpenAIChatRegistration', 'createOpenAIChatProvider',
-    'createProjectOpenAIChatProvider', 'createRegisteredSdkProvider']);
+    'createProjectOpenAIChatProvider', 'createRegisteredSdkProvider', 'createRegisteredSdkProviders']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
   assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
   assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
@@ -24,15 +24,15 @@ test('optional entries expose Host assemblers and configured registrations', () 
   }
 });
 
-test('entry packages require normal source admission without a runtime builder', () => {
+test('entry packages require normal source admission before packing', () => {
   for (const name of ['provider-ai-sdk', 'provider-http']) {
     const value = JSON.parse(readFileSync(new URL(`../packages/${name}/package.json`, import.meta.url)));
     assert.equal(value.private, true);
     assert.equal(value.version, '0.0.0-development');
     assert.equal(value.license, 'Apache-2.0');
     assert.deepEqual(value.exports, {'.': {types: './index.d.ts', default: './index.mjs'}});
-    assert.deepEqual(value.scripts, {prepack:
-      `node ../../scripts/check-interface-owners.mjs --manifest packages/${name}/package.json`});
+    assert.equal(value.scripts.prepack.split(' && ').at(-1),
+      `node ../../scripts/check-interface-owners.mjs --manifest packages/${name}/package.json`);
     assert.ok(value.files.includes('LICENSE'));
     assert.deepEqual(readFileSync(new URL(`../packages/${name}/LICENSE`, import.meta.url)),
       readFileSync(new URL('../LICENSE', import.meta.url)));
