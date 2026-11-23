@@ -2,19 +2,30 @@
 // responses. Fixture authority and RowRun loans are not a normal Host supplier.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {openGitHubReadFixture} from './github-read.fixture.mjs';
 import {graphqlPullRequest, pullRequestReads} from './github-graphql.fixture.mjs';
 
-const world = (pullRequests, extra = {}) => ({
+type FixtureWorld = Parameters<typeof openGitHubReadFixture>[1];
+type Repository = FixtureWorld['repositories'] extends ReadonlyMap<string, infer Entry> ? Entry : never;
+type World = FixtureWorld & {repositories: Map<string, Repository>; names: Map<string, string>};
+type FixtureOptions = Parameters<typeof openGitHubReadFixture>[2];
+type Request = Parameters<typeof callHttpsCredentialResource>[0];
+type Response = Awaited<ReturnType<typeof callHttpsCredentialResource>>;
+type ReadFailure = Error & Readonly<{code?: string; stopped?: boolean; acceptedPages?: readonly unknown[];
+  unfetched?: unknown; complete?: unknown}>;
+
+const world = (pullRequests: NonNullable<Repository['pullRequests']>, extra: Partial<World> = {}): World => ({
   repositories: new Map([['R_A', {databaseId: 1296269,
     nameWithOwner: 'octo/hello', issues: [], pullRequests}]]),
   names: new Map([['octo/hello', 'R_A']]), pageSize: 1, ...extra});
-const setup = (t, state, options) => openGitHubReadFixture(t, state,
+const setup = (t: TestContext, state: World, options?: FixtureOptions) => openGitHubReadFixture(t, state,
   {...options, resource: 'pull_requests'});
-const failed = promise => promise.then(() => assert.fail('read unexpectedly completed'), error => error);
-const expected = (number, fields = {}) => ({number: String(number), node_id: `PR_${number}`,
+const failed = (promise: PromiseLike<unknown>) =>
+  promise.then(() => assert.fail('read unexpectedly completed'), error => error as ReadFailure);
+const expected = (number: number, fields: Readonly<Record<string, unknown>> = {}) => ({number: String(number), node_id: `PR_${number}`,
   title: `Pull request ${number}`, state: 'open', state_reason: null,
   body: '', author: 'octocat', assignees: [], labels: [],
   url: `https://github.com/octo/hello/pull/${number}`, comments: '0', milestone: null,
@@ -32,8 +43,8 @@ test('original PullRequest pages complete through actual Credential uses and one
     {number: 3, state: 'MERGED', mergeable: 'UNKNOWN', mergedBy: {login: 'bot[bot]'},
       mergedAt: '2026-10-04T00:00:00Z', closedAt: '2026-10-04T00:00:00Z', reviewDecision: 'APPROVED'},
   ]), {accounted: true});
-  const bodies = [];
-  const result = await context.read({callResource: async request => {
+  const bodies: Response['body'][] = [];
+  const result = await context.read({callResource: async (request: Request) => {
     const response = await callHttpsCredentialResource(request);
     bodies.push(response.body); return response;
   }});
@@ -49,9 +60,9 @@ test('original PullRequest pages complete through actual Credential uses and one
   assert.equal(context.fixture.seen().length, 5);
   assert.equal(context.journal.recover().length, 5);
   assert.ok(context.journal.recover().every(use => use.outcome === 'succeeded'));
-  assert.deepEqual(context.rowRun.counts(), {charges: 5, observations: 2});
-  assert.equal(context.rowRun.transferredBytes(), BigInt(bodies.reduce((sum, body) => sum + body.byteLength, 0)));
-  assert.equal(context.rowRun.finish(), 3);
+  assert.deepEqual(context.rowRun!.counts(), {charges: 5, observations: 2});
+  assert.equal(context.rowRun!.transferredBytes(), BigInt(bodies.reduce((sum, body) => sum + body.byteLength, 0)));
+  assert.equal(context.rowRun!.finish(), 3);
   const outer = pullRequestReads(context.fixture);
   assert.equal(outer.length, 3);
   assert.deepEqual(outer.map(request => request.variables.id), ['R_A', 'R_A', 'R_A']);
@@ -63,7 +74,9 @@ test('original PullRequest pages complete through actual Credential uses and one
 
 test('a same-name replacement cannot change the original PullRequest repository', async t => {
   const state = world([{number: 7}]);
-  state.repositories.set('R_B', {databaseId: 42, nameWithOwner: 'octo/hello', pullRequests: [{number: 99}]});
+  // The unselected replacement supplies only PullRequest data.
+  state.repositories.set('R_B', ({databaseId: 42, nameWithOwner: 'octo/hello',
+    pullRequests: [{number: 99}]} satisfies Omit<Repository, 'issues'>) as unknown as Repository);
   state.names.set('octo/hello', 'R_B');
   const context = await setup(t, state);
   assert.deepEqual((await context.read()).rows, [expected(7)]);
@@ -74,7 +87,7 @@ test('foreign repository and malformed native PullRequest fields refuse before r
   for (const kind of ['repository', 'type', 'mergeable', 'draft', 'state', 'missing-ref']) {
     const state = world([{number: 7}]);
     state.pullAnswer = () => {
-      const row = graphqlPullRequest({number: 7});
+      const row: Record<string, unknown> = graphqlPullRequest({number: 7});
       if (kind === 'type') row.__typename = 'Issue';
       if (kind === 'mergeable') row.mergeable = 'FUTURE';
       if (kind === 'draft') row.isDraft = 'false';
@@ -130,9 +143,9 @@ test('a lost PullRequest nested reply retains its original Unknown use without r
 
 test('PullRequest original response mutation during accounting is sticky after restored bytes', async t => {
   const context = await setup(t, world([{number: 7}]));
-  let response;
+  let response: Response;
   let disclosed = 0;
-  const failure = await failed(context.read({callResource: async request => {
+  const failure = await failed(context.read({callResource: async (request: Request) => {
     response = await callHttpsCredentialResource(request); return response;
   }, chargePage: async () => {
     await Promise.resolve(); response.body[0] ^= 1;
@@ -140,8 +153,8 @@ test('PullRequest original response mutation during accounting is sticky after r
   assert.equal(failure.code, 'RemoteCredentialRunResponseChanged');
   assert.equal(disclosed, 0);
   assert.equal(context.fixture.seen().length, 1);
-  response.body[0] ^= 1;
-  assert.throws(() => withHttpsCredentialRunResponseOriginal(response,
+  response!.body[0] ^= 1;
+  assert.throws(() => withHttpsCredentialRunResponseOriginal(response!,
     context.credential.control, context.journal, () => {}), {code: 'RemoteCredentialRunResponseChanged'});
 });
 

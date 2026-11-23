@@ -5972,7 +5972,7 @@
                 "anchor": "the PullRequest declaration keeps native read types and an inapplicable nullable reason"
               },
               {
-                "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
+                "path": "adapters/connectors/github/test/github-comment-read.test.mts",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
               },
               {
@@ -6957,11 +6957,11 @@
                 "anchor": "native label snapshot validates the single captured value"
               },
               {
-                "path": "adapters/connectors/github/test/github-pull-request-read.test.mjs",
+                "path": "adapters/connectors/github/test/github-pull-request-read.test.mts",
                 "anchor": "original PullRequest pages complete through actual Credential uses and one accounted RowRun"
               },
               {
-                "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
+                "path": "adapters/connectors/github/test/github-comment-read.test.mts",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
               },
               {
