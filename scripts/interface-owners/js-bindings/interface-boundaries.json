@@ -35982,7 +35982,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-content-publication-control.mts",
-                "anchor": "const completion = serializationGenerationTokens.get(generation);"
+                "anchor": "const completion = serializationGenerationTokens.get(generation as object);"
               }
             ],
             "ownership": [
