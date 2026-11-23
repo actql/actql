@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import stat
 from threading import RLock, get_ident
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal as _Literal
 
 if TYPE_CHECKING:
     from ._local_host_binding import _InvocationObservation
@@ -116,6 +116,9 @@ class CapacityUsage:
     reserved_objects: int
 
 
+_TransactionCleanupPhase = _Literal['state_inspection', 'rollback']
+
+
 class LocalStorageError(RuntimeError):
     """Physical storage failure; it grants no execution, retry or absence fact."""
 
@@ -128,21 +131,25 @@ class LocalStorageCommitUnknown(LocalStorageError):
     """
 
     def __init__(self, cleanup_store: 'LocalByteStore', *,
-                 commit_confirmed: bool = False, cleanup_error: BaseException | None = None) -> None:
+                 commit_confirmed: bool = False, cleanup_error: BaseException | None = None,
+                 _cleanup_phase: _TransactionCleanupPhase | None = None) -> None:
         super().__init__('Local physical COMMIT outcome is unknown')
         self.cleanup_store = cleanup_store
         self.commit_confirmed = commit_confirmed
         self.cleanup_error = cleanup_error
+        self._cleanup_phase = _cleanup_phase
 
 
 class LocalStorageWriteCleanupPending(LocalStorageError):
     """The original write connection has no confirmed transaction stop."""
 
     def __init__(self, cleanup_store: 'LocalByteStore',
-                 cleanup_error: BaseException) -> None:
+                 cleanup_error: BaseException, *,
+                 _cleanup_phase: _TransactionCleanupPhase | None = None) -> None:
         super().__init__('Local physical storage transaction cleanup is pending')
         self.cleanup_store = cleanup_store
         self.cleanup_error = cleanup_error
+        self._cleanup_phase = _cleanup_phase
 
 
 class LocalStorageInitializationError(LocalStorageError):
@@ -422,18 +429,24 @@ class LocalByteStore:
     def _classify_failed_write(self, failure: BaseException, *,
                                commit_attempted: bool, commit_confirmed: bool) -> None:
         cleanup_error = None
+        cleanup_phase: _TransactionCleanupPhase | None = None
         if not commit_confirmed:
+            phase: _TransactionCleanupPhase = 'state_inspection'
             try:
                 if self._physical.in_transaction:
+                    phase = 'rollback'
                     self._physical.rollback()
             except BaseException as cleanup:
                 self._write_cleanup_pending = True
                 cleanup_error = cleanup
+                cleanup_phase = phase
         if commit_attempted:
             raise LocalStorageCommitUnknown(
-                self, commit_confirmed=commit_confirmed, cleanup_error=cleanup_error) from failure
+                self, commit_confirmed=commit_confirmed, cleanup_error=cleanup_error,
+                _cleanup_phase=cleanup_phase) from failure
         if cleanup_error is not None:
-            raise LocalStorageWriteCleanupPending(self, cleanup_error) from failure
+            raise LocalStorageWriteCleanupPending(
+                self, cleanup_error, _cleanup_phase=cleanup_phase) from failure
 
     @staticmethod
     def _key(key: str) -> None:

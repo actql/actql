@@ -65873,7 +65873,8 @@
             "self",
             "cleanup_store",
             "commit_confirmed",
-            "cleanup_error"
+            "cleanup_error",
+            "_cleanup_phase"
           ]
         },
         {
@@ -65905,7 +65906,8 @@
           "parameters": [
             "self",
             "cleanup_store",
-            "cleanup_error"
+            "cleanup_error",
+            "_cleanup_phase"
           ]
         },
         {
@@ -65924,7 +65926,7 @@
           "parameters": []
         }
       ],
-      "sha256": "10aeb6ea7307f17c24123d04d715dd161b03353b7321cdaca57f975a84726e98",
+      "sha256": "cb3aa7b2b9384dab3f722ed326f7e90531a54cb2553190ff0d34e88f916ef68f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

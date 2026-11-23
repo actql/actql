@@ -647,8 +647,9 @@ Writes still use SQLite's existing exclusive serialization. Competing generation
 cannot replace one another. A failed
 write COMMIT acknowledgement retains the original cause and Store, regardless
 of whether the write uses a current callback. SQL confirmation and later
-current refusal are separate observations. Transaction-state inspection and
-rollback failures retain their own cause. Without a confirmed stop, the same
+current refusal are separate observations. A cleanup failure retains its cause
+and private phase, either transaction-state inspection or rollback. A failed
+inspection does not attempt rollback. Without a confirmed stop, the same
 connection remains fenced from ordinary reads and writes until close.
 An observed inactive connection may be reusable, while continuation of the
 original operation still requires exact readback and the original Core decision.

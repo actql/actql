@@ -170,6 +170,7 @@ class LocalFencedBatchTests(unittest.TestCase):
             refused = False
             rollback_count = 0
             begin_count = 0
+            commit_attempt_count = 0
 
             @property
             def in_transaction(self):
@@ -182,6 +183,7 @@ class LocalFencedBatchTests(unittest.TestCase):
                 if sql == 'BEGIN IMMEDIATE':
                     self.begin_count += 1
                 if sql == 'COMMIT' and self.armed:
+                    self.commit_attempt_count += 1
                     self.refused = True
                     raise primary
                 if sql == 'ROLLBACK' and self.armed:
@@ -205,6 +207,8 @@ class LocalFencedBatchTests(unittest.TestCase):
                         self.assertIs(caught.exception.cleanup_store, store)
                         self.assertIs(caught.exception.__cause__, primary)
                         self.assertIs(caught.exception.cleanup_error, cleanup)
+                        self.assertEqual(caught.exception._cleanup_phase,
+                                         'rollback' if mode == 'rollback' else 'state_inspection')
                         self.assertFalse(caught.exception.commit_confirmed)
                         self.assertTrue(store._connection.in_transaction)
                         self.assertEqual(store._connection.rollback_count, int(mode == 'rollback'))
@@ -213,7 +217,10 @@ class LocalFencedBatchTests(unittest.TestCase):
                             store.read('row')
                         with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
                             store.reserve_capacity('space', 'item', 5, 1, 10, 2)
+                        with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+                            store.compare_exchange_many((ByteWrite('row', None, _RUN),))
                         self.assertEqual(store._connection.begin_count, before)
+                        self.assertEqual(store._connection.commit_attempt_count, 1)
                 with self.store(path) as reopened:
                     self.assertIsNone(reopened.read('row'))
                     self.assertEqual(reopened.capacity_usage('space').reserved_objects, 0)
@@ -258,6 +265,7 @@ class LocalFencedBatchTests(unittest.TestCase):
                     self.assertIs(caught.exception.cleanup_store, store)
                     self.assertIs(caught.exception.__cause__, primary)
                     self.assertIs(caught.exception.cleanup_error, cleanup)
+                    self.assertEqual(caught.exception._cleanup_phase, 'rollback')
                     self.assertFalse(store._connection.in_transaction)
                     self.assertEqual(store._connection.rollback_count, 1)
                     self.assertEqual(store._connection.commit_count, before)
@@ -288,6 +296,7 @@ class LocalFencedBatchTests(unittest.TestCase):
                             self.assertIs(caught.exception.cleanup_store, store)
                             self.assertTrue(caught.exception.commit_confirmed)
                             self.assertIsNone(caught.exception.cleanup_error)
+                            self.assertIsNone(caught.exception._cleanup_phase)
                             self.assertIsInstance(caught.exception.__cause__, PermissionError)
                         self.assertEqual(calls, refuse_at)
                         expected = None if refuse_at < 3 else _OBSERVED
