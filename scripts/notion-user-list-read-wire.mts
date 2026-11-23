@@ -8,14 +8,18 @@ import {fileURLToPath} from 'node:url';
 export function generateNotionUserListReadWire(root: string, write = false) {
   const input = join(root, 'src/connectors/notion/user-list-request.json');
   const output = join(root, 'adapters/connectors/notion/site/user-list-read-wire.generated.mjs');
+  const declaration = join(root, 'adapters/connectors/notion/site/user-list-read-wire.generated.d.mts');
   const original = JSON.parse(readFileSync(input, 'utf8')) as {read?: unknown};
   assert(original.read && typeof original.read === 'object' && !Array.isArray(original.read),
     'Missing original Notion user-list request DATA');
   const wire = JSON.stringify(original.read);
-  const generated = '// Generated from src/connectors/notion/user-list-request.json; edit that original asset.\n' +
-    'export const notionUserListReadWire = ' + JSON.stringify(wire) + ';\n';
-  if (write) writeFileSync(output, generated);
-  else assert.equal(readFileSync(output, 'utf8'), generated, 'Stale original Notion user-list read wire');
+  const header = '// Generated from src/connectors/notion/user-list-request.json; edit that original asset.\n';
+  const generated = header + 'export const notionUserListReadWire = ' + JSON.stringify(wire) + ';\n';
+  const generatedDeclaration = header + 'export declare const notionUserListReadWire: string;\n';
+  for (const [file, expected] of [[output, generated], [declaration, generatedDeclaration]]) {
+    if (write) writeFileSync(file, expected);
+    else assert.equal(readFileSync(file, 'utf8'), expected, `Stale original Notion user-list read wire: ${file}`);
+  }
   return {input, output};
 }
 
