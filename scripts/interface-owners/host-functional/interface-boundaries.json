@@ -25170,7 +25170,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1fe463ae84872e6c67baba2c358eec969eaf01135c9376fa1b08819525cad664",
+      "sha256": "4c83cc9952aaddc02182304d518c9bd343cf63e4be5ba48645b971362274c229",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -25596,8 +25596,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "function originalStaticExplanation({plan, facts, context}) {"
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function validStaticExplanationBinding(view) {"
               }
             ],
             "ownership": [
@@ -27528,7 +27528,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27691,7 +27691,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28323,7 +28323,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -116154,7 +116154,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2d6f28b3c53bca427be9d220fd551fe4e6701af319a227d3a96ce1be51811070"
+      "sha256": "a0d30756ab42df75c3966b5955beb85bf18e74295a79fdb85e281df84d1c780c"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -124798,7 +124798,7 @@
       "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -125929,7 +125929,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -127138,7 +127138,7 @@
       "sha256": "90768f355b49d6fc4a4ab9e10f4424dd9db3ce647b698aea16cb4222777550d4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -134311,7 +134311,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134614,7 +134614,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -135249,7 +135249,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

@@ -1334,9 +1334,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           // Actual captured/Effect Plan construction belongs to its existing
           // Host caller. A logical compiler result cannot select a different
           // parent or claim that an unconstructed Plan is ready.
-          if (state.compilationKind !== 'effectful' && staticExplanation !== undefined) {
-            fail('ClientOperationUnavailable');
-          }
           if (state.compilationKind === 'effectful') {
             if (staticPlan !== undefined) {
               if (typeof borrowStaticEffect !== 'function' || typeof readStaticOccurrences !== 'function' ||
@@ -1437,9 +1434,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             // inventory counts do not authorize an ordinary Pure module.
             state.compilationFamily = infers.length !== 0 ? 'model'
               : serializations.length !== 0 ? 'content' : 'pure';
-            if (staticPlan !== undefined && state.compilationFamily !== 'pure') {
+            if (staticPlan !== undefined && state.compilationFamily !== 'pure' &&
+                (staticExplanation === undefined || state.compilationFamily !== 'model')) {
               fail('ClientOperationUnavailable');
             }
+            if (staticExplanation !== undefined) state.staticModelOccurrences = infers;
             if (state.compilationFamily !== 'pure') {
               const select = moon[state.compilationFamily === 'model'
                 ? 'clientProgramBorrowRequestModelPlanInput' : 'clientProgramBorrowRequestContentPlanInput'];
@@ -1465,12 +1464,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
-            if (staticPlan !== undefined && count !== 0) fail('ClientOperationUnavailable');
+            if (staticPlan !== undefined && staticExplanation === undefined && count !== 0) {
+              fail('ClientOperationUnavailable');
+            }
             const requiresTime = moon.clientProgramRequiresQueryTime;
             state.requiresQueryTime = typeof requiresTime === 'function'
               ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) : false;
             if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
-            if (state.compilationFamily === 'pure' && count === 0) {
+            if (staticExplanation === undefined && state.compilationFamily === 'pure' && count === 0) {
               prepareOriginalExplanation(state, producer, contracts, journal, staticPlan);
             }
             // A timed module needs the actual submission Request and first
@@ -1497,7 +1498,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       if (staticPlan !== undefined) {
-        if (state.compilationKind === 'effectful') {
+        const effectful = state.compilationKind === 'effectful';
+        if (effectful || explanationPorts !== undefined) {
           // Checking has finished and its real nominal borrow is retained.
           // Metadata readers now enter their normal owner stages: no forged
           // `prepared`, preparing-guard bypass or execution-route setup.
@@ -1505,12 +1507,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           try {
             state.staticModelGraphs = [];
             state.staticModelExecutions = [];
-            state.staticModelOccurrences = constructRequestDomain(state, () =>
-              checked(Reflect.apply(readStaticOccurrences, moon, [prepared])));
+            if (effectful) {
+              state.staticModelOccurrences = constructRequestDomain(state, () =>
+                checked(Reflect.apply(readStaticOccurrences, moon, [prepared])));
+            }
+            const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
+              : moon.clientProgramPreparationBorrowRead;
             const assertOriginal = () => {
               current(); signal?.throwIfAborted();
               if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-                  state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+                  Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
                 fail('ForeignInstalledSourceProducer');
               }
             };

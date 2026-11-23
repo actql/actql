@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "93fa2257b415dd8dc8cedfe689dc41cb07b5baf9a045574fb4619879adc3fbf3",
+      "sha256": "b1e0cf420a13bb885635ad0a85890bea181172a6148f05e3259360cc8ab0731e",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -494,6 +494,7 @@
         "validRunRef",
         "validRunState",
         "validRunWaitContract",
+        "validStaticExplanationBinding",
         "validStoredSubmissionOutcome",
         "validSubmissionAttempt",
         "validSubmissionEpoch",
@@ -790,6 +791,13 @@
             "since: number | null"
           ],
           "result": "value is WireRunState"
+        },
+        {
+          "name": "validStaticExplanationBinding",
+          "parameters": [
+            "view: WireStaticExplanationView"
+          ],
+          "result": "boolean"
         },
         {
           "name": "validStoredSubmissionOutcome",
@@ -2265,10 +2273,12 @@
         },
         {
           "operations": [
-            "validClientBody"
+            "validClientBody",
+            "validStaticExplanationBinding"
           ],
           "exports": [
-            "validClientBody"
+            "validClientBody",
+            "validStaticExplanationBinding"
           ],
           "attributes": {
             "responsibility": [
@@ -2355,6 +2365,10 @@
               {
                 "path": "scripts/public-wire-language-vectors.test.mjs",
                 "anchor": "jsWireVector"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run'"
               }
             ]
           }
@@ -5515,7 +5529,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "475190a9621949de84a509213a83bab17312a0a1c87c0870af61a350c1dc0759",
+      "sha256": "f68b136cc23ac92ed78ad83ff9524aef0f8948dd39646cc9245abfc32fe9a4f6",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5564,6 +5578,7 @@
         "validRunRef",
         "validRunState",
         "validRunWaitContract",
+        "validStaticExplanationBinding",
         "validStoredSubmissionOutcome",
         "validSubmissionAttempt",
         "validSubmissionEpoch",
@@ -5970,6 +5985,13 @@
           "name": "validRunState",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validStaticExplanationBinding",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -8677,10 +8699,12 @@
             "validClientBody/validClientBody",
             "validClientBody/validClientBody#2",
             "validClientBody/validClientBody#3",
-            "validClientBody/validClientBody#4"
+            "validClientBody/validClientBody#4",
+            "validStaticExplanationBinding"
           ],
           "exports": [
-            "validClientBody"
+            "validClientBody",
+            "validStaticExplanationBinding"
           ],
           "attributes": {
             "responsibility": [
@@ -8821,6 +8845,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
+                "anchor": "test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run'"
               }
             ]
           }

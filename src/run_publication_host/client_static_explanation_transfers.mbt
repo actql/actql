@@ -72,9 +72,11 @@ pub fn write_client_static_effect_explanation_transfers(
           is Some((source_step, source_port)) &&
           explanation_original_text(source_port, "carrier") ==
           explanation_original_text(port, "carrier") &&
-          (projected ||
-          explanation_original_text(source_port, "carrier_contract_cid") ==
-          explanation_original_text(port, "carrier_contract_cid")) {
+          (
+            projected ||
+            explanation_original_text(source_port, "carrier_contract_cid") ==
+            explanation_original_text(port, "carrier_contract_cid")
+          ) {
           @encode.begin_object(writer)
           @encode.key(writer, "consumer")
           write_static_explanation_transfer_port(writer, step, port)
