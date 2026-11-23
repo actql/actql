@@ -506,7 +506,7 @@ fn product_assemble_originals(
                 ("enabled", Json::boolean(true)),
                 ("principal", Json::string(principal)),
                 ("connection", Json::string(connection)),
-                if mock is Some(_) {
+                if finite_run_profile {
                   (
                     "result_selection",
                     product_object([

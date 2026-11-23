@@ -116,6 +116,9 @@ export async function observeNativeNamedResults({root, cli}) {
   assert(state.run_id.length > 0);
   const names = Object.keys(results).sort();
   assert.deepEqual(Object.keys(state.result_availability).sort(), names);
+  const absent = await cli(['result', state.run_id, '--result', 'undeclared', '--format', 'jsonl'], project, 1);
+  assert.equal(absent.stdout, '');
+  assert.match(absent.stderr, /\bLocalResultNotDeclared\b/u);
   const pids = new Set([run.sourceFreeWork.pid]);
   const readResults = async () => {
     for (const [name, expected] of Object.entries(results)) {
@@ -134,7 +137,7 @@ export async function observeNativeNamedResults({root, cli}) {
   await readResults();
   return {runId: state.run_id, results, submissionCalls: 1, nativeRunAndResultProcesses: pids.size,
     fixtureSha256: createHash('sha256').update(fixture).digest('hex'),
-    coldSavedWithoutProgram: true};
+    undeclaredResultRefused: true, coldSavedWithoutProgram: true};
 }
 
 // Independent scalar, aggregate and window expectations under the ordinary

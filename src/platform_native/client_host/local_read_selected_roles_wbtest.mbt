@@ -28,7 +28,12 @@ fn selected_read_roles_fixture(
     let original = key => {
       originals.iter().find_first(pair => pair.0 == key).unwrap().1
     }
+    // Custom operator roles explicitly select a finite name list.
     let read = @utf8.decode(original("read.json"))
+      .replace(
+        old="\"result_selection\":{\"kind\":\"requested_original_result\"}",
+        new="\"result_names\":[\"answer\"]",
+      )
       .replace_all(old="run.json", new=names[1])
       .replace_all(old="retention.json", new=names[3])
       .replace_all(old="store.json", new=names[4])
