@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 import {lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {isBuiltin} from 'node:module';
@@ -215,6 +216,9 @@ const nativeOutputs = external !== undefined ? new Map()
 if (outputs.has(initialControlPackageOriginal)) {
   outputs.set(initialControlPackageOriginal,
     renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs,
+      prepareOptionalSdk: directory =>
+        execFileSync('npm', ['--prefix', directory, 'run', 'build:adapters'],
+          {stdio: 'inherit', timeout: 120_000}),
       compatibilityEngine: external === undefined && nativeInputs === undefined && nativeOutputs.size > 0
         ? observeOrdinaryCompatibilityEngine() : undefined}));
 }
