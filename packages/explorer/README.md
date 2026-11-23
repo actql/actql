@@ -79,6 +79,17 @@ awaited close contract. Close never cancels a Run or releases retained Results;
 retry a failed close on the same viewer. Browser disconnect only discards its
 presentation session. Closing the terminal viewer closes its server and lease.
 
+Use `--allow-run-start` with the installed launcher, or `allowRunStart: true`
+with an embedded Gateway, to show **Run** for a checked draft. The connected
+SDK submits the draft through the Host's ordinary admission and policy.
+After an edit, check the draft again before starting.
+
+If the response is lost, expand **Start outcome unknown** and use **Look up
+start**. The viewer checks the original submission, including after reconnect.
+The panel contains the original reference. A successful lookup opens the
+same Run without submitting the draft again. Its Story and status are
+separate authorized reads.
+
 The low-level `startExplorerGateway` export is also available for embedding an
 already-connected Client with a caller-admitted asset Map; it opens no Host.
 

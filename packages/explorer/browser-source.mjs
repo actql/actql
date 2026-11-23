@@ -1,5 +1,5 @@
 import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';
-import {validCancellationLookup, validRunRef, validWireRunExplanationViewShape} from '@actql/client-wire';
+import {snapshotClientRequest, validCancellationLookup, validRunRef, validSubmissionRef, validWireRunExplanationViewShape} from '@actql/client-wire';
 import {captureCancellation, validCancellationObservation} from '@actql/explorer-ui/cancellation';
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
 
@@ -34,6 +34,15 @@ function validNarrative(plan, story, context, locale) {
     Array.isArray(story.narrative.clauses) && Array.isArray(story.narrative.items) &&
     story.narrative.items.length === context.length + story.occurrences.length &&
     context.every(item => typeof item?.text === 'string' && item.origin != null);
+}
+
+function readStartObservation(value, submissionRef) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) refused('ExplorerInvalidReply');
+  if (value.state === 'ready' && Object.keys(value).length === 2 && validRunRef(value.ref) &&
+      value.ref.authorityScopeCid === submissionRef.epoch.authorityScopeCid) return value;
+  if (Object.keys(value).length === 1 && ['held', 'preparing', 'not_accepted', 'preparation_failed',
+    'unresolvable', 'reply_unknown'].includes(value.state)) return value;
+  refused('ExplorerInvalidReply');
 }
 
 // A browser session holds only Gateway presentation credentials in memory.
@@ -92,13 +101,41 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           !Number.isSafeInteger(answer.expiresAt) || answer.expiresAt <= now() ||
           answer.expiresAt > now() + 300000 ||
           capabilities === null || typeof capabilities !== 'object' ||
-          Object.keys(capabilities).length !== 9 || typeof capabilities.plan !== 'boolean' ||
+          Object.keys(capabilities).length !== 9 + Number(capabilities.runStart === true) ||
+          (Object.hasOwn(capabilities, 'runStart') && capabilities.runStart !== true) ||
+          typeof capabilities.plan !== 'boolean' ||
           capabilities.run !== true || capabilities.resultMetadata !== true ||
           capabilities.resultPayload !== false || capabilities.control !== false ||
           capabilities.sample !== false || typeof capabilities.cancellation !== 'boolean'||typeof capabilities.checkpointList!=='boolean'||typeof capabilities.checkpointReview!=='boolean') refused('ExplorerInvalidReply');
       session = Object.freeze({csrf: answer.csrf, scopeEpoch: answer.scopeEpoch,
-        expiresAt: answer.expiresAt, cancellation: capabilities.cancellation,checkpointList:capabilities.checkpointList,checkpointReview:capabilities.checkpointReview});
+        expiresAt: answer.expiresAt, cancellation: capabilities.cancellation,checkpointList:capabilities.checkpointList,checkpointReview:capabilities.checkpointReview,
+        runStart: capabilities.runStart === true});
       return answer.capabilities;
+    },
+    async prepareStart() {
+      if (!session?.runStart) refused('ExplorerCapabilityUnavailable');
+      const ref = await read('prepare-start', {});
+      if (!validSubmissionRef(ref)) refused('ExplorerInvalidReply');
+      return ref;
+    },
+    async startRun(selection) {
+      if (!session?.runStart) refused('ExplorerCapabilityUnavailable');
+      const input = snapshotClientRequest(selection);
+      if (!validSubmissionRef(input?.ref) || Object.keys(input).length !== 3 ||
+          typeof input.text !== 'string' || !input.text.isWellFormed() || !input.text.trim() ||
+          !['sql', 'aql', 'aql-text', 'program'].includes(input.format)) refused('ExplorerInvalidReply');
+      const original = session;
+      try {return readStartObservation(await read('start-run', input, 'control'), input.ref);}
+      catch (error) {
+        if (session === original && now() < original.expiresAt) return {state: 'reply_unknown'};
+        throw error;
+      }
+    },
+    async lookupStart(ref) {
+      if (!session?.runStart) refused('ExplorerCapabilityUnavailable');
+      const original = snapshotClientRequest(ref);
+      if (!validSubmissionRef(original)) refused('ExplorerInvalidReply');
+      return readStartObservation(await read('lookup-start', {ref: original}), original);
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
     async staticExplanation(input, options, locale = 'en') {

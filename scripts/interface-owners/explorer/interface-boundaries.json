@@ -4665,7 +4665,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "fea4a5b4221cc0c5fde36ef15f8e44e226d765a1067b0411b65f8786a42354d1",
+      "sha256": "616791a9323f6410c7e2cff7558deaec31b6f71053190bc9beaa5c8fa191ac9d",
       "exports": [],
       "operations": [
         {
@@ -4781,9 +4781,7 @@
         },
         {
           "name": "App/<call>#17",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -4807,6 +4805,13 @@
         },
         {
           "name": "App/<call>#20",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#21",
           "parameters": [
             "event"
           ],
@@ -4853,6 +4858,15 @@
           "result": null
         },
         {
+          "name": "App/displayStart",
+          "parameters": [
+            "answer: ExplorerStartObservation",
+            "ref: WireSubmissionRef",
+            "selected: number"
+          ],
+          "result": null
+        },
+        {
           "name": "App/importCancellation",
           "parameters": [
             "event:FormEvent<HTMLFormElement>"
@@ -4888,6 +4902,16 @@
         },
         {
           "name": "App/lookupCancellation/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupStart",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/lookupStart/<call>",
           "parameters": [],
           "result": null
         },
@@ -5011,6 +5035,16 @@
           "parameters": [
             "id: string"
           ],
+          "result": null
+        },
+        {
+          "name": "App/startDraft",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "App/startDraft/<call>",
+          "parameters": [],
           "result": null
         },
         {
@@ -5531,7 +5565,13 @@
             "StepOrigin/<call>#2",
             "stepTitle/<call>#2",
             "graphStepLabels/<call>#5",
-            "graphStepLabels/<call>#6"
+            "graphStepLabels/<call>#6",
+            "App/<call>#21",
+            "App/displayStart",
+            "App/lookupStart",
+            "App/lookupStart/<call>",
+            "App/startDraft",
+            "App/startDraft/<call>"
           ],
           "exports": [],
           "attributes": {
@@ -5629,6 +5669,10 @@
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
               }
             ]
           }
@@ -5972,9 +6016,11 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "dd281955fa24c2f3d5294f2eb5de06f80133c45ce1764cc0779ea4c21bee18fb",
+      "sha256": "f92ab8ffb5bf77bb45cdaf630eb3d771e0503044a53823df775ab3597256628f",
       "exports": [
         "ExplorerCapabilities",
+        "ExplorerStartObservation",
+        "ExplorerStartSelection",
         "createExplorerBrowserSource"
       ],
       "operations": [
@@ -5983,7 +6029,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  prepareStart(): Promise<WireSubmissionRef>;\n  startRun(selection: ExplorerStartSelection): Promise<ExplorerStartObservation>;\n  lookupStart(ref: WireSubmissionRef): Promise<ExplorerStartObservation>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  staticExplanation(input: Parameters<Client['explain']>[0], options?: Parameters<Client['explain']>[1],\n    locale?: 'en' | 'ja'): Promise<StaticExplanationReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runContext(ref: RunReference, locale?: 'en' | 'ja'): Promise<SavedExplanationReadModel>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -6049,6 +6095,13 @@
           "result": "Promise<WireCancellationLookup>"
         },
         {
+          "name": "createExplorerBrowserSource/lookupStart",
+          "parameters": [
+            "ref: WireSubmissionRef"
+          ],
+          "result": "Promise<ExplorerStartObservation>"
+        },
+        {
           "name": "createExplorerBrowserSource/observe",
           "parameters": [
             "ref: RunReference"
@@ -6062,6 +6115,11 @@
             "options?: Parameters<Client['plan']>[1]"
           ],
           "result": "Promise<PlanReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/prepareStart",
+          "parameters": [],
+          "result": "Promise<WireSubmissionRef>"
         },
         {
           "name": "createExplorerBrowserSource/reviewCheckpoint",
@@ -6092,6 +6150,13 @@
             "options?: {locale?: 'en' | 'ja'}"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/startRun",
+          "parameters": [
+            "selection: ExplorerStartSelection"
+          ],
+          "result": "Promise<ExplorerStartObservation>"
         },
         {
           "name": "createExplorerBrowserSource/staticExplanation",
@@ -6132,11 +6197,16 @@
             "createExplorerBrowserSource/observe",
             "createExplorerBrowserSource/plan",
             "createExplorerBrowserSource/reviewCheckpoint",
-            "createExplorerBrowserSource/runPlan"
+            "createExplorerBrowserSource/runPlan",
+            "createExplorerBrowserSource/lookupStart",
+            "createExplorerBrowserSource/prepareStart",
+            "createExplorerBrowserSource/startRun"
           ],
           "exports": [
             "ExplorerCapabilities",
-            "createExplorerBrowserSource"
+            "createExplorerBrowserSource",
+            "ExplorerStartObservation",
+            "ExplorerStartSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -6229,6 +6299,10 @@
               {
                 "path": "packages/explorer/cancellation.test.mjs",
                 "anchor": "lost or malformed cancellation replies"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
               }
             ]
           }
@@ -6459,7 +6533,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7774cff7aac57eb4666b33caaf8a3b887ca2164e82d62924372917e56e60ed2d",
+      "sha256": "df8bc9f1a4635f88e8ebe6df29e504a425e12e0c45fd8bc7a868ea0437eec95f",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -6527,6 +6601,13 @@
           "async": true
         },
         {
+          "name": "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
+          "parameters": [
+            "ref"
+          ],
+          "async": true
+        },
+        {
           "name": "createExplorerBrowserSource/init:observe/init:observe",
           "parameters": [
             "ref"
@@ -6540,6 +6621,11 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createExplorerBrowserSource/init:reviewCheckpoint/init:reviewCheckpoint",
@@ -6568,6 +6654,13 @@
           "parameters": [
             "ref",
             "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerBrowserSource/init:startRun/init:startRun",
+          "parameters": [
+            "selection"
           ],
           "async": true
         },
@@ -6626,7 +6719,10 @@
             "createExplorerBrowserSource/init:reviewCheckpoint/init:reviewCheckpoint",
             "createExplorerBrowserSource/init:runPlan/init:runPlan",
             "createExplorerBrowserSource/invalidate/invalidate",
-            "jsonReply/jsonReply"
+            "jsonReply/jsonReply",
+            "createExplorerBrowserSource/init:lookupStart/init:lookupStart",
+            "createExplorerBrowserSource/init:prepareStart/init:prepareStart",
+            "createExplorerBrowserSource/init:startRun/init:startRun"
           ],
           "exports": [
             "createExplorerBrowserSource"
@@ -6722,6 +6818,10 @@
               {
                 "path": "packages/explorer/cancellation.test.mjs",
                 "anchor": "lost or malformed cancellation replies"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
               }
             ]
           }
@@ -7282,7 +7382,7 @@
     {
       "module": "packages/explorer/cli-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "efa9b9840b4e96e65d44a77b5dd68f89c16f682cc043a6e7b303e0b5a77622ca",
+      "sha256": "5be240c6e6f8fe3de2de33bba85279daead1eb964f228af2b86a9c239a11a312",
       "exports": [
         "explorerArguments",
         "explorerLaunchInput"
@@ -7424,7 +7524,7 @@
     {
       "module": "packages/explorer/cli.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b1a0257f69edee1a29b0a30fb1f6d687ce490f0ad672ef5f949ca64214daef6d",
+      "sha256": "20903d366a61f38031527260a0c12eb669c5623e835a6e7c37391397d30103c9",
       "exports": [],
       "operations": [
         {
@@ -7555,7 +7655,7 @@
     {
       "module": "packages/explorer/gateway.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "cf6995c3b9c67acb5d2af7f6a8776abfb7c03497b322da4537ee7b5ca5a2debc",
+      "sha256": "baea67db451be237acc6e9f7c7940285e4475fc24bbfdab49e3b50e7cd5c3d56",
       "exports": [
         "ExplorerAsset",
         "ExplorerBootstrap",
@@ -7758,7 +7858,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "808b5700a0dd5dd2c46d10a25c706f9679eb1eaac26f8c14b311bd7e4b6acf68",
+      "sha256": "e7edd526b09a8dacb86a062fb29eafb9e55a71cf31324358286525542b4a7b6f",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -7775,17 +7875,17 @@
             "sessionMs",
             "bootstrapMs",
             "launchInput",
-            "allowCancellation"
+            "allowCancellation",
+            "allowRunStart"
           ],
           "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway",
           "parameters": [
-            "c",
-            "next"
+            "name"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway/createExplorerGateway",
@@ -7832,17 +7932,18 @@
         {
           "name": "createExplorerGateway/createExplorerGateway#2",
           "parameters": [
-            "error",
-            "c"
+            "c",
+            "next"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#3",
           "parameters": [
+            "error",
             "c"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#4",
@@ -7853,6 +7954,13 @@
         },
         {
           "name": "createExplorerGateway/createExplorerGateway#5",
+          "parameters": [
+            "c"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExplorerGateway/createExplorerGateway#6",
           "parameters": [
             "c"
           ],
@@ -8005,6 +8113,7 @@
         "@actql/explorer-ui/read-model",
         "@actql/explorer-ui/run-observation",
         "@actql/local-node/_internal/explanation-narrative",
+        "@actql/sdk",
         "@actql/sdk/host-port",
         "@hono/node-server",
         "hono",
@@ -8053,7 +8162,8 @@
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
             "startExplorerGateway/startExplorerGateway#2",
-            "loadExplanationRenderer/loadExplanationRenderer"
+            "loadExplanationRenderer/loadExplanationRenderer",
+            "createExplorerGateway/createExplorerGateway#6"
           ],
           "exports": [
             "createExplorerGateway",
@@ -8207,6 +8317,10 @@
               {
                 "path": "packages/explorer/test/static-explanation.actual.test.mjs",
                 "anchor": "test('Explorer renders retained Saved Context from one attached Execution read"
+              },
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
               }
             ]
           }

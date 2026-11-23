@@ -4,10 +4,11 @@ import {copyExplorerLaunchInput} from './launch-input.mjs';
 
 const invalid = () => {throw new Error('ExplorerInvalidArguments');};
 export function explorerArguments(args) {
-  let local = false, allowCancellation = false, stateDir, program, run, format;
+  let local = false, allowCancellation = false, allowRunStart = false, stateDir, program, run, format;
   for (let i = 0; i < args.length; i++) {
     const flag = args[i], value = args[i + 1];
     if (flag === '--local' && !local) local = true;
+    else if (flag === '--allow-run-start' && !allowRunStart) allowRunStart = true;
     else if (flag === '--allow-cancel' && !allowCancellation) allowCancellation = true;
     else if (['--state-dir', '--program', '--run', '--format'].includes(flag) &&
         typeof value === 'string' && value.length > 0 && !value.startsWith('--')) {
@@ -22,7 +23,7 @@ export function explorerArguments(args) {
   if (!local) throw new Error('ExplorerExplicitHostRequired');
   if (program !== undefined && run !== undefined ||
       format !== undefined && (program === undefined || !['sql', 'aql', 'aql-text', 'program'].includes(format))) invalid();
-  return Object.freeze({...(allowCancellation ? {allowCancellation:true} : {}), local: stateDir === undefined ? {} : {stateDir},
+  return Object.freeze({...(allowRunStart ? {allowRunStart: true} : {}), ...(allowCancellation ? {allowCancellation:true} : {}), local: stateDir === undefined ? {} : {stateDir},
     ...(program === undefined ? {} : {program, format: format ?? 'sql'}),
     ...(run === undefined ? {} : {run})});
 }

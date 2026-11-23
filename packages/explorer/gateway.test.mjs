@@ -640,3 +640,68 @@ test('browser cancellation keeps the original through lost Gateway ACK and uses 
   assert.deepEqual(observation,{state:'unknown',original:{cancelRef,attemptRef}});assert.equal(requested,1);
   const history=await source.lookupCancellation(cancelRef);assert.equal(history.kind,'found');assert.equal(lookups,1);assert.equal(requested,1);
 });
+
+test('Explorer sends one ordinary start and looks up the original after a lost reply', async () => {
+  const {connectInProcess} = await import('@actql/sdk');
+  const {readySubmission, readySubmissionAttempt, submissionEpoch} = await import('../sdk/submission-fixture.mjs');
+  const submissions = [], lookups = [];
+  const admission = {ref, durability: 'durable', revision: 1};
+  const client = await connectInProcess({mode: 'local', owner: 'local', durability: 'durable'}, {
+    async perform(operation, body) {
+      if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'explorer-start', capabilities: ['aql-document'],
+        submissionEpoch, limits: {maxReadWireBytes: 1024, maxRowWireBytes: 256, maxRowRetainedValueBytes: 512,
+          maxRetainedValueBytes: 2048, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
+      if (operation === 'submit-intent') {
+        submissions.push(body);
+        return readySubmissionAttempt(body, admission);
+      }
+      assert.equal(operation, 'lookup-submission');
+      lookups.push(body.submissionRef);
+      return readySubmission(submissions[0], admission);
+    },
+  });
+  const readOnly = harness({client});
+  const enabled = harness({client, allowRunStart: true});
+  let cookie, lost = false;
+  const source = createExplorerBrowserSource({origin, async fetch(url, options) {
+    const response = await enabled.send(new URL(url).pathname, options.body, {...options.headers, Cookie: cookie});
+    cookie = response.headers.get('set-cookie')?.split(';')[0] ?? cookie;
+    if (url.endsWith('/api/control/start-run')) {
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).data, {state: 'ready', ref});
+      assert.equal(lost, false);
+      lost = true;
+      throw new TypeError('Lost reply after original accepted');
+    }
+    return response;
+  }});
+  try {
+    const defaultSession = await readOnly.connect();
+    assert.equal(defaultSession.body.capabilities.runStart, undefined);
+    assert.equal((await readOnly.read('prepare-start', {}, defaultSession)).status, 404);
+    const enabledSession = await enabled.connect();
+    const headers = {Cookie: enabledSession.cookie, 'X-Actql-CSRF': enabledSession.body.csrf};
+    const original = (await (await enabled.read('prepare-start', {}, enabledSession)).json()).data;
+    const text = 'SELECT 1 AS n', format = 'sql';
+    assert.equal((await enabled.send('/api/control/start-run',
+      {ref: original, text, format, executionProfile: 'debug'}, headers)).status, 400);
+    assert.equal((await enabled.send('/api/control/start-run', {ref: original, text, format})).status, 403);
+    assert.deepEqual(submissions, []);
+    assert.equal((await source.connect(enabled.gateway.issueBootstrap().bootstrap)).runStart, true);
+    const candidate = await source.prepareStart();
+    assert.deepEqual(await source.startRun({ref: candidate, text, format}), {state: 'reply_unknown'});
+    assert.equal(lost, true);
+    await source.connect(enabled.gateway.issueBootstrap().bootstrap);
+    assert.deepEqual(await source.lookupStart(candidate), {state: 'ready', ref});
+    assert.deepEqual(lookups, [candidate]);
+    assert.deepEqual(submissions.map(body => body.submissionRef), [candidate]);
+    assert.equal(submissions[0].input.text, text);
+    assert.equal(Object.hasOwn(submissions[0], 'executionProfile'), false);
+  } finally {
+    source.close();
+    await enabled.gateway.close();
+    await readOnly.gateway.close();
+    await client.close();
+  }
+});

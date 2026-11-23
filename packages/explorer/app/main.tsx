@@ -5,10 +5,10 @@ import {PlanExplorer, RunInspector, CancellationPanel, CheckpointPanel} from '@a
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/plan-explorer';
 import {validCancellationRef, validOperationAttemptRef, validRunRef} from '@actql/client-wire';
 import type {RunReference} from '@actql/sdk';
-import type {WireCancellationLookup} from '@actql/client-wire';
+import type {WireCancellationLookup, WireSubmissionRef} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel, ExplanationStoryModel} from '@actql/explorer-ui/read-model';
-import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
+import {createExplorerBrowserSource, type ExplorerStartObservation} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
 import './styles.css';
 
@@ -335,6 +335,16 @@ function WorkspaceDialog({title, close, children}: {title: string; close(): void
   </dialog>;
 }
 
+const startStatus = {
+  held: 'Waiting on a Checkpoint',
+  preparing: 'Preparing the original Run',
+  not_accepted: 'Start refused',
+  preparation_failed: 'Run preparation failed',
+  unresolvable: 'Original start could not be resolved',
+  reply_unknown: 'Start outcome unknown',
+  ready: 'Original Run accepted',
+};
+
 function App() {
   const source = useMemo(() => createExplorerBrowserSource({origin: window.location.origin}), []);
   const [connected, connect] = useState(false), [plan, showPlan] = useState<PlanReadModel>();
@@ -346,7 +356,7 @@ function App() {
   const [drawer, showDrawer] = useState<'connect' | 'open-run'>();
   const [selectedStep, selectStep] = useState<{scope: string; id: string}>();
   const [locale, setLocale] = useState<'en' | 'ja'>('en');
-  const [analyzedDraft, keepAnalyzedDraft] = useState<{text: string; format: string}>();
+  const [analyzedDraft, keepAnalyzedDraft] = useState<{text: string; format: typeof programFormat}>();
   const [selectedRef, selectRef] = useState<RunReference>();
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
   const [originalPresentation, showOriginalPresentation] = useState<OriginalRunPresentationReadModel | SavedExplanationReadModel>();
@@ -357,6 +367,10 @@ function App() {
   const [runReference, setRunReference] = useState('');
   const [launcherProgram, showLauncherProgram] = useState(false);
   const [error, showError] = useState(''), [pending, busy] = useState(false);
+  const [startEnabled, enableStart] = useState(false);
+  const [start, showStart] = useState<{ref: WireSubmissionRef;
+    state: keyof typeof startStatus}>();
+  const starting = useRef(false);
   const [cancellationEnabled, enableCancellation] = useState(false);
   const [originalCancellation, keepCancellation] = useState<OriginalCancellation|null>(null);
   const [cancellationObservation, showCancellation] = useState<CancellationObservation|null>(null);
@@ -369,7 +383,7 @@ function App() {
   const cancelSent = useRef(false);
   const epoch = useRef(0);
   const runSelection = useRef(0);
-  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); busy(false);
+  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); enableStart(false); busy(false);
     selectRef(undefined); selectStep(undefined); showDrawer(undefined); keepAnalyzedDraft(undefined);
     showPlan(undefined); showStaticExplanation(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
     reviewSelection.current++;showCheckpointPage(null);showReview(null);setCheckpointCapabilities({list:false,read:false});
@@ -417,7 +431,7 @@ function App() {
       const capabilities = await source.connect(token);
       if (epoch.current !== selected) return;
       setCheckpointCapabilities({list:capabilities.checkpointList,read:capabilities.checkpointReview});
-      enableCancellation(capabilities.cancellation); connect(true);
+      enableCancellation(capabilities.cancellation); enableStart(capabilities.runStart === true); connect(true);
       const view = await source.launchView();
       if (epoch.current !== selected) return;
       if (view?.kind === 'program') {
@@ -476,6 +490,47 @@ function App() {
       showPlan(map); showStaticExplanation(explanation); keepAnalyzedDraft({text, format});
       showGraph(!explain); setEditing(false);
       if (queryMenu) queryMenu.open = false;
+    });
+  };
+  const displayStart = (answer: ExplorerStartObservation, ref: WireSubmissionRef, selected: number) => {
+    if (answer.state !== 'ready') {
+      showStart({ref, state: answer.state});
+      return;
+    }
+    if (selected !== runSelection.current) {
+      showStart({ref, state: 'ready'});
+      return;
+    }
+    showStart(undefined);
+    setRunReference(JSON.stringify(answer.ref, null, 2));
+    selectRef(answer.ref); selectStep(undefined);
+    showPlan(undefined); showStaticExplanation(undefined);
+    showOriginalPlan(undefined); showOriginalPresentation(undefined);
+    showRun(undefined); showResult(undefined);
+  };
+  const startDraft = () => {
+    if (!startEnabled || !connected || starting.current || pending || !analyzedDraft || selectedRef ||
+        start && !['not_accepted', 'preparation_failed'].includes(start.state) ||
+        analyzedDraft.text !== programText || analyzedDraft.format !== programFormat) return;
+    const draft = analyzedDraft, scope = epoch.current, version = draftVersion.current;
+    const selected = runSelection.current;
+    starting.current = true;
+    void perform(async () => {
+      try {
+        const ref = await source.prepareStart();
+        if (epoch.current !== scope || selected !== runSelection.current || version !== draftVersion.current) return;
+        showStart({ref, state: 'reply_unknown'});
+        const answer = await source.startRun({ref, ...draft});
+        if (epoch.current === scope) displayStart(answer, ref, selected);
+      } finally {starting.current = false;}
+    });
+  };
+  const lookupStart = () => {
+    if (!start || !startEnabled || !connected || pending || starting.current) return;
+    const {ref} = start, scope = epoch.current, selected = runSelection.current;
+    void perform(async () => {
+      const answer = await source.lookupStart(ref);
+      if (epoch.current === scope) displayStart(answer, ref, selected);
     });
   };
   const readOriginal = (original: RunReference, action: string, name = '') => {
@@ -635,7 +690,7 @@ function App() {
           <details className="toolbar-menu query-menu"><summary aria-label="Query options">⋯</summary>
             <div className="panel query-options">
               <label className="query-file">Open query file <input type="file" accept=".sql,.aql,.json" onChange={event=>void openDraft(event)}/></label>
-              <label>Format <select name="format" value={programFormat} onChange={event=>setProgramFormat(event.target.value as typeof programFormat)}>
+              <label>Format <select name="format" value={programFormat} onChange={event=>{draftVersion.current++; setProgramFormat(event.target.value as typeof programFormat);}}>
                 <option value="sql">SQL</option><option value="aql">AQL</option><option value="aql-text">AQL text</option><option value="program">Program JSON</option></select></label>
               <label>Language <select value={locale} onChange={event=>setLocale(event.target.value === 'ja' ? 'ja' : 'en')}>
                 <option value="en">English</option><option value="ja">日本語</option></select></label>
@@ -658,7 +713,12 @@ function App() {
         </div>
         <div className="run-toolbar" aria-label="Run controls and status">
           <span className="workspace-chip">{selectedRef ? 'Saved Run' : 'No Run yet'}</span>
+          {!selectedRef && startEnabled && <button className="small primary" type="button" onClick={startDraft}
+            disabled={pending || !analyzedDraft || edited ||
+              !!start && !['not_accepted', 'preparation_failed'].includes(start.state)}>Run</button>}
           <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>Open Run</button>
+          {selectedRef && !originalPresentation && <button className="small" type="button" disabled={pending}
+            onClick={()=>readOriginal(selectedRef, 'run-explanation-context')}>Read Story</button>}
           {selectedRef && <button className="small" type="button" disabled={pending}
             onClick={()=>readOriginal(selectedRef, 'inspect')}>Inspect status</button>}
           <span className="run-status" role="status" data-known={!!run || !selectedRef}><span className="status-dot"/>
@@ -668,6 +728,12 @@ function App() {
               <pre aria-label="Original Run reference">{JSON.stringify(selectedRef, null, 2)}</pre></div>
           </details>}
         </div>
+        {start && <details className="workspace-tools panel"><summary>{startStatus[start.state]}</summary>
+          <p>Look up the original submission to check this outcome.</p>
+          <button className="small" type="button" onClick={lookupStart}
+            disabled={!connected || !startEnabled || pending}>Look up start</button>
+          <pre aria-label="Original submission reference">{JSON.stringify(start.ref, null, 2)}</pre>
+        </details>}
         {error && !drawer && <p className="workspace-notice" role="alert">{error}</p>}
         {edited && !selectedRef && map && <p className="workspace-notice">Draft changed. Story and Graph still show the last checked version.</p>}
         {map && <div className="inspection-strip">

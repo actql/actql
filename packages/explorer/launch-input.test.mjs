@@ -96,3 +96,11 @@ test('cancellation needs explicit launcher opt-in and does not turn Program inpu
   assert.throws(()=>explorerArguments(['--local','--allow-cancel','--allow-cancel']),/ExplorerInvalidArguments/u);
   assert.throws(()=>explorerArguments(['--allow-cancel']),/ExplorerExplicitHostRequired/u);
 });
+
+test('the Local launcher enables ordinary start only on explicit opt-in', () => {
+  assert.equal(explorerArguments(['--local']).allowRunStart, undefined);
+  assert.deepEqual(explorerArguments(['--local', '--allow-run-start']), {local: {}, allowRunStart: true});
+  assert.throws(() => explorerArguments(['--local', '--allow-run-start', '--allow-run-start']),
+    /ExplorerInvalidArguments/u);
+  assert.throws(() => explorerArguments(['--allow-run-start']), /ExplorerExplicitHostRequired/u);
+});
