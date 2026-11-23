@@ -104,7 +104,7 @@ function packageRoot(name, from) {
 // Use the installed package's declared dependency graph, not a parallel list of
 // Connector modules. Paths in the recipe are package-relative; build locations
 // and operational receipts never enter the published image inventory.
-function dependencyImages(root, destination, localManifest, cohort) {
+function dependencyImages(root, destination, localManifest, cohort, prepareOptionalSdk) {
   const packages = [], roots = new Map();
   function rollback(before) {
     packages.length = before;
@@ -114,7 +114,7 @@ function dependencyImages(root, destination, localManifest, cohort) {
     if (expectedVersion !== undefined && /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/u.test(expectedVersion) &&
         manifest.version !== expectedVersion) fail('WrongInitialControlDependencyVersion:' + name);
   }
-  function collect(name, directory, expectedVersion) {
+  function collect(name, directory, expectedVersion, prepare) {
     directory = realpathSync(directory);
     const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
     if (manifest.name !== name || typeof manifest.version !== 'string') fail('WrongInitialControlDependency');
@@ -123,7 +123,8 @@ function dependencyImages(root, destination, localManifest, cohort) {
     const index = packages.length;
     roots.set(directory, index);
     const item = {name, version: manifest.version, ...releaseVersion(manifest, cohort),
-      images: publicCodeFiles(directory, manifest, cohort), dependencies: []};
+      images: prepare === undefined ? publicCodeFiles(directory, manifest, cohort) : undefined,
+      dependencies: []};
     packages.push(item);
     const dependencies = {...manifest.dependencies, ...manifest.peerDependencies};
     for (const dependency of Object.keys(dependencies).sort()) {
@@ -131,6 +132,10 @@ function dependencyImages(root, destination, localManifest, cohort) {
       const resolved = packageRoot(dependency, directory);
       if (resolved === undefined) fail('UnpreparedInitialControlDependency:' + dependency);
       item.dependencies.push({name: dependency, package: collect(dependency, resolved, dependencies[dependency])});
+    }
+    if (prepare !== undefined) {
+      prepare(directory);
+      item.images = publicCodeFiles(directory, manifest, cohort);
     }
     return index;
   }
@@ -144,13 +149,16 @@ function dependencyImages(root, destination, localManifest, cohort) {
     bindings.push({name, package: collect(name, directory, localManifest.dependencies[name])});
   }
   // This is the existing startup's optional SDK resolution, not a new public
-  // dependency or a Provider invocation. Missing coverage refuses its adoption.
+  // dependency or a Provider invocation. With a prepared dependency closure,
+  // emit the optional package's generated code before measuring its images.
   const sdk = join(root, 'packages/provider-ai-sdk');
   let optionalSdk, optionalSdkCoverage = 'absent';
   if (existsSync(join(sdk, 'package.json'))) {
     const before = packages.length;
-    try { optionalSdk = collect('@actql/provider-ai-sdk', sdk); optionalSdkCoverage = 'prepared'; }
-    catch (error) {
+    try {
+      optionalSdk = collect('@actql/provider-ai-sdk', sdk, undefined, prepareOptionalSdk);
+      optionalSdkCoverage = 'prepared';
+    } catch (error) {
       if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
       rollback(before);
       optionalSdkCoverage = 'unprepared';
@@ -198,7 +206,7 @@ function dependencyImages(root, destination, localManifest, cohort) {
 // import rewrite. Normal runtime assets are read from that same destination.
 // This returns only generated Source; it cannot issue or price a scope.
 export function renderInitialControlPackageOriginal({
-  root, destination, inputs, outputs, nativeOutputs = new Map(), compatibilityEngine,
+  root, destination, inputs, outputs, nativeOutputs = new Map(), compatibilityEngine, prepareOptionalSdk,
 }) {
   if (!(outputs instanceof Map) || !outputs.has(initialControlPackageOriginal)) {
     fail('MissingInitialControlPackageTemplate');
@@ -295,7 +303,7 @@ export function renderInitialControlPackageOriginal({
       exported('./' + path);
     }
   }
-  const dependencies = dependencyImages(root, destination, manifest, cohort);
+  const dependencies = dependencyImages(root, destination, manifest, cohort, prepareOptionalSdk);
   const facts = [...images].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, bytes]) => {
       if (!concrete(path)) fail('InvalidInitialControlImage');
