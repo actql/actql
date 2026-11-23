@@ -65,6 +65,32 @@ test('absent and unrelated connections create no Local declaration or default li
   }
 });
 
+test('actual Common restores distinct declared CSV views with their original schema and key',async()=>{
+  const tables={small:{path:'small.csv',columns:{id:'int64',name:'string'},key:['id']},
+    other:{path:'other.csv',columns:{id:'int64',name:'string'},key:['id']},
+    events:{path:'warehouse/events',format:'iceberg'}};
+  const f=await fixture(document(JSON.stringify({connector:'local',root:'../data',tables})));
+  let opens=0;
+  const preparation=await prepareInstalledProjectLocalFiles(moon,f.project,{limits,assertCurrent(){},
+    openFile:async(path,...args)=>{assert.equal(path,join(f.directory,'configuration/connectors.json'));
+      opens++;return open(path,...args);}});
+  const source=preparation.originalsForRuntime(moon).sources[0];
+  const declaration=JSON.parse(source.wire);
+  assert.equal(opens,1);
+  assert.deepEqual(source.queryAliases.map(alias=>alias.name),['local','local.files','local.contents','local.small','local.other']);
+  for(const resource of ['small','other']){
+    const view=declaration.views.find(view=>view.resource===resource);
+    const schema=declaration.contracts.map(JSON.parse).find(contract=>contract.cid===view.carrier_schema_cid);
+    assert.deepEqual(schema.body.fields,{id:{type:'int64',nullable:false},name:{type:'string',nullable:false}});
+    assert.ok(Object.hasOwn(source.csvTransports,view.source_ref));
+    assert.ok(declaration.contracts.map(JSON.parse).some(contract=>contract.body.relation_keys?.candidate_keys[0][0]==='id'));
+  }
+  assert.notEqual(declaration.views.find(view=>view.resource==='small').source_ref,
+    declaration.views.find(view=>view.resource==='other').source_ref);
+  assert.equal(Object.keys(source.csvTransports).length,2);
+  preparation.retire(moon);
+});
+
 test('Local preparation refuses malformed roots and unsupported version selection without guessed semantics',async()=>{
   for(const value of [null,false,'','a\0b']){
     const f=await fixture(document(JSON.stringify({connector:'local',root:value,tables:{}})));

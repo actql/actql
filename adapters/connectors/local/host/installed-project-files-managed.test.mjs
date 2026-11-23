@@ -38,6 +38,7 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
   const calls = [], scopeCid = 'sha256:' + 'a'.repeat(64), contextCid = 'sha256:' + 'b'.repeat(64);
   let options, valid = true, closeAllowed = !pendingClose;
   const entry = {connection: 'local', rootPath: '/not-opened', declaration, scopeCid,
+    tables: [], csvTransports: {},
     limits: {maxReadBytes: 4096, maxPages: 4, maxPageBytes: 1024, maxFileBytes: 1024,
       maxPageRows: 4, maxFiles: 8},
     queryAliases: [{name: 'local', resource: 'files'}],
@@ -397,6 +398,7 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
   const declared = {views: [{resource: 'files', source_ref: 'local:files',
     view_cid: 'view', carrier_schema_cid: 'schema'}]};
   const entry = {connection: 'local', connectorId: 'local', rootPath: '/not-opened', declaration, scopeCid,
+    tables: [], csvTransports: {},
     limits: {maxReadBytes: 4096, maxPages: 4, maxPageBytes: 1024, maxFileBytes: 1024,
       maxPageRows: 4, maxFiles: 8}, queryAliases: [{name: 'local', resource: 'files'}],
     wire: JSON.stringify(declared)};

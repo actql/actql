@@ -13128,7 +13128,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "34e240fe08e548172236d0631c27e24a5e9d86a1b57573118a2a625dc4e1e601",
+      "sha256": "283f739f08c4fdf175464095e0f0dc5df41f2a252a3cd6692c78f7448606e611",
       "operations": [
         {
           "name": "byCid/byCid/byCid",
@@ -13185,6 +13185,7 @@
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
+            "originalReadTransports",
             "readAsset",
             "originalPageLimits"
           ],
@@ -13347,6 +13348,13 @@
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
           "parameters": [
             "resource",
             "operation"
@@ -13833,6 +13841,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/sourceBody/init:close/init:close",
           "parameters": [],
           "async": false
@@ -13863,7 +13878,8 @@
         {
           "name": "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [
-            "selection"
+            "selection",
+            "sourceRef"
           ],
           "async": false
         },
@@ -16066,7 +16082,9 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/createInstalledRowSource#11"
+            "createInstalledRowSource/createInstalledRowSource#11",
+            "createInstalledRowSource/createInstalledRowSource#12",
+            "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport"
           ],
           "exports": [],
           "attributes": {

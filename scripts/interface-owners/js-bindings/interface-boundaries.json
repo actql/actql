@@ -50197,7 +50197,8 @@
             "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
             "readInstalledProjectSourcePreparation",
             "readSourceManagedRunRequirementsOwned/matches/matches",
-            "readSourceManagedRunRequirementsOwned/matches/matches/matches"
+            "readSourceManagedRunRequirementsOwned/matches/matches/matches",
+            "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles"
           ],
           "exports": [
             "readInstalledProjectSourcePreparation"
@@ -52793,11 +52794,11 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount"
+            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2"
           ],
           "exports": [],
           "attributes": {
@@ -65085,6 +65086,35 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/assertModelRuntime",
           "parameters": [],
           "async": false
@@ -65396,20 +65426,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource#2",
           "parameters": [
             "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-          "parameters": [
-            "access"
           ],
           "async": false
         },
@@ -65869,21 +65885,6 @@
             "value"
           ],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
@@ -67772,8 +67773,16 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
           "parameters": [
-            "options",
+            "root",
+            "storeAuthorityCid",
             "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles",
+          "parameters": [
+            "runtime"
           ],
           "async": false
         },
@@ -69148,7 +69157,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "616f5f4879b72061b9ff66f6d0271b8107bcee89902bd51aac1041435d26daec"
+      "sha256": "9acbc2647c351b71e868bd5ed5f292e0e146178067394005fb5015655405704f"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -94841,9 +94850,9 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "34e240fe08e548172236d0631c27e24a5e9d86a1b57573118a2a625dc4e1e601",
+      "sha256": "283f739f08c4fdf175464095e0f0dc5df41f2a252a3cd6692c78f7448606e611",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "encodeTypedResponseJson",
@@ -94912,6 +94921,7 @@
             "prepareKeyedSourceRead",
             "closeKeyedSourceRead",
             "originalKeyedTransport",
+            "originalReadTransports",
             "readAsset",
             "originalPageLimits"
           ],
@@ -95074,6 +95084,13 @@
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
           "parameters": [
             "resource",
             "operation"
@@ -95560,6 +95577,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/sourceBody/init:close/init:close",
           "parameters": [],
           "async": false
@@ -95590,7 +95614,8 @@
         {
           "name": "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [
-            "selection"
+            "selection",
+            "sourceRef"
           ],
           "async": false
         },
@@ -96877,7 +96902,9 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+            "createInstalledRowSource/createInstalledRowSource#12",
+            "createInstalledRowSource/resourceTransport/resourceTransport/resourceTransport"
           ],
           "exports": [
             "createInstalledRowSource",

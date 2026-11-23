@@ -12,6 +12,7 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
+import {encodeLocalCsvPage,prepareLocalCsvTable} from './local-csv-table.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -41,7 +42,7 @@ function ownLimits(input) {
       value.maxAttempts < value.maxPages || value.maxPageRows > value.maxFiles) fail('LocalFilesLimitsUnavailable');
   return value;
 }
-function restoreDeclaration(call, connection, rootPath, versionMode, limits) {
+function restoreDeclaration(call, connection, rootPath, versionMode, limits, tables) {
   const string = nullable => ({type:'string',nullable});
   const resource = {type:'resource_ref',resource_kind:'file',nullable:false};
   const timestamp = nullable => ({type:'timestamp',nullable});
@@ -60,6 +61,11 @@ function restoreDeclaration(call, connection, rootPath, versionMode, limits) {
   view('contents',contentSchema,{resource,version:string(false)},
     {kind:'fetch',authority:'read_content',correlation:{request_fields:['resource','version'],
       response_fields:['resource','version'],identity:['resource','version'],cardinality:'one'}})];
+  for (const table of tables) {
+    const schema = Object.fromEntries(Object.entries(table.columnTypes).map(([name,type]) => [name,{type,nullable:false}]));
+    views.push({resource:table.resource,resource_kind:'record',schema_wire:canonical(schema),schema_cid:cid(schema),
+      facts_wire:canonical(table.key.length === 0 ? {} : {relation_keys:{candidate_keys:[table.key]}})});
+  }
   const restore = () => checked(call('clientProgramRowSourceRestoreRelationDeclaration',
     connection,'local','local/0.1',JSON.stringify({views}),undefined));
   const initial = JSON.parse(call('clientProgramRowSourceDeclarationJson',restore()));
@@ -89,8 +95,7 @@ function restoreDeclaration(call, connection, rootPath, versionMode, limits) {
 }
 
 // Same original Project/connection declaration, before Root acquisition.
-// Only this existing Connector's files/contents views are prepared here;
-// configured table formats retain their original declaration for their Owner.
+// Prepare only the shipped file/content and declared CSV read views here.
 export async function prepareInstalledProjectLocalFiles(moon, project,
   {assertCurrent, limits, openFile} = {}) {
   if (project === undefined) return undefined;
@@ -131,16 +136,29 @@ export async function prepareInstalledProjectLocalFiles(moon, project,
     const rootPath=resolve(dirname(original.path),entry.root);
     if(!text(rootPath,4096))fail('InvalidLocalFilesConnection');
     const versionMode=entry.version==='content'?'content':'metadata';
-    const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits);
+    const tables=[];
+    for(const [resource,table] of Object.entries(entry.tables??{})){
+      if(table?.format!=='csv'&&(table?.format!==undefined||typeof table?.path!=='string'||!table.path.endsWith('.csv')))continue;
+      if(!text(resource,128)||['files','contents'].includes(resource))fail('InvalidLocalCsvResource');
+      tables.push(prepareLocalCsvTable(resource,table,selectedLimits));
+    }
+    const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,tables);
+    const csvTransports=Object.freeze(Object.fromEntries(JSON.parse(declared.wire).views.flatMap(view=>{
+      const table=tables.find(table=>table.resource===view.resource);
+      return table===undefined?[]:[[view.source_ref,table.transport]];
+    })));
     sources.push(Object.freeze({connection,connectorId:connection,registration:'local',revision:'local/0.1',
       originalEntryWire:wire,rootPath,versionMode,limits:selectedLimits,
+      tables:Object.freeze(tables),csvTransports,
       queryAliases:Object.freeze([{name:connection,resource:'files'},
-        {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'}]
+        {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'},
+        ...tables.map(table=>({name:connection+'.'+table.resource,resource:table.resource}))]
         .map(value=>Object.freeze(value))),...declared}));
     current();
   }
   if(sources.length===0)return undefined;
-  bundle=Object.freeze({project:projectOriginal,connections:original,sources:Object.freeze(sources)});
+  bundle=Object.freeze({project:projectOriginal,connections:original,sources:Object.freeze(sources),
+    realizationKey:'installed-multi-acquired'});
   const same = (runtime,receiver) => {if(runtime!==moon||receiver!==view)fail('ForeignLocalFilesPreparation');};
   view=Object.freeze({originalsForRuntime(runtime){same(runtime,this);current();
     if(connections.originalsForRuntime(moon)!==original)fail('ForeignLocalFilesPreparation');return bundle;},
@@ -465,7 +483,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       // physical connection shared with STORE; equal CIDs cannot replace it.
       if(entry.queryAliases!==originalEntry.queryAliases||entry.limits!==originalEntry.limits||
           entry.connection!==originalEntry.connection||entry.connectorId!==originalEntry.connectorId||
-          entry.rootPath!==originalEntry.rootPath||entry.scopeCid!==originalEntry.scopeCid)
+          entry.rootPath!==originalEntry.rootPath||entry.scopeCid!==originalEntry.scopeCid||
+          entry.tables!==originalEntry.tables||entry.csvTransports!==originalEntry.csvTransports)
         fail('ForeignLocalFilesPreparation');
       current();
       const authorization=await authorizationFor(entry.connection);current();
@@ -490,7 +509,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         site:Object.freeze({connection:entry.connection,
           issueReadGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,maxUses}){
             current();
-            if(operation!=='read'||!['files','contents'].includes(resource)||
+            if(operation!=='read'||!declared.views.some(view=>view.resource===resource)||
                 !/^sha256:[0-9a-f]{64}$/u.test(runInvocationCid)||
                 !/^sha256:[0-9a-f]{64}$/u.test(dispatchRequestCid)||!positive(maxUses)||
                 decision?.action!=='dispatch'||decision.boundary!=='acquisition'||
@@ -504,11 +523,15 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           },
           async close(){
             for(const read of sharedReads)if(read.entry===entry)await closeRead(read);}}),
-        physicalTarget:(resource,fields)=>({connection:entry.connection,root:entry.rootPath,
-          resource,fields:[...fields],scope_cid:entry.scopeCid}),
+        physicalTarget:(resource,fields)=>{
+          const table=entry.tables.find(table=>table.resource===resource);
+          return {connection:entry.connection,root:entry.rootPath,resource,fields:[...fields],scope_cid:entry.scopeCid,
+            ...(table===undefined?{}:{relative_path:table.path})};
+        },
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         // The funded declaration projection preserves this exact Source order.
+        ...(entry.tables.length===0?{}:{originalReadTransports:entry.csvTransports}),
         originalKeyedTransport:keyedTransport(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence,managedRun,originalRead,requestIdentity}){
           current();
@@ -629,7 +652,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
                 stopped?undefined:Object.freeze({close:cleanup,cleanup,cleanupPending:()=>!stopped}));
             }
           }
-          if(options.resource!=='files'||options.listing===undefined)fail('LocalFilesContentReadUnavailable');
+          const csv=entry.tables.find(table=>table.resource===options.resource);
+          if(csv===undefined&&(options.resource!=='files'||options.listing===undefined))fail('LocalFilesContentReadUnavailable');
           const retained=reads.get(options.rowRun.originalRead);
           if(retained?.read===undefined)fail('LocalFilesSourcePreparationMismatch');
           const {run,read}=retained;sameRun(run.prepared);
@@ -641,6 +665,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             await options.verifyRead();options.signal?.throwIfAborted();sameRun(run.prepared);
             const fileLimits=Object.fromEntries(['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes']
               .map(name=>[name,entry.limits[name]]));
+            if(csv!==undefined)fileLimits.maxReadBytes=fileLimits.maxFileBytes=csv.maxBytes;
             const checkRead=()=>{sameRun(run.prepared);checked(moon.clientProgramInstalledSourceReadCheckCurrent(read.value));};
             read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead});
             Reflect.apply(read.retain,read.raw,[read.physical]);
@@ -650,6 +675,15 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             // directory open; initialization is not listing or Content credit.
             entered=true;
             read.reader=read.physical.start({limits:fileLimits,signal:options.signal,assertCurrent:checkRead});
+            if(csv!==undefined){
+              const file=await read.reader.read(csv.path);
+              checkRead();
+              const charge=options.chargePage(file.bytes);
+              await options.consumePageWire(encodeLocalCsvPage(file.bytes,csv,entry.limits.maxPageBytes),{charge});
+              checkRead();
+              if(shared)await closeSourceRead(read.value);
+              return;
+            }
             let items=[],page=0,token;
             const flush=async final=>{
               const next=final?null:String(++page);
@@ -701,8 +735,10 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             entry.declaration,requirement,queryContract,evidenceContract));
           const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
           if(capacity===undefined)fail('LocalFilesManagedReadUnavailable');
-          return Object.freeze({capacity,transferBytes:BigInt(entry.limits.maxPages)*BigInt(entry.limits.maxPageBytes),
-            executionBytes:BigInt(entry.limits.maxPageBytes)});
+          const sourceRef=entry.tables.length===0?undefined:moon.clientProgramQueryRequirementSourceRef(requirement);
+          const transport=entry.csvTransports[sourceRef]??{transferBytes:BigInt(entry.limits.maxPages)*BigInt(entry.limits.maxPageBytes),
+            executionBytes:BigInt(entry.limits.maxPageBytes)};
+          return Object.freeze({capacity,...transport});
         },
         async prepare(facts){
           const owner=facts.preparedEffect??facts.preparedProgram;
@@ -736,7 +772,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     for(const source of sources)environmentWire=composeInstalledCheckEnvironment(moon,baseEnvironmentWire,
       environmentWire,source.environmentWire);
     current();
-    profile=Object.freeze({realizationKey:'installed-multi-acquired',environmentWire,sources:Object.freeze(sources),
+    profile=Object.freeze({realizationKey:bundle.realizationKey,environmentWire,sources:Object.freeze(sources),
       ...(bundle.fileReadDeclarations===undefined?{}:{fileReadDeclarations:bundle.fileReadDeclarations}),
       ...(construction===undefined?{}:{originalsForProjectEffects(runtime,originalPreparation){
         if(this!==profile||runtime!==moon||originalPreparation!==preparation)

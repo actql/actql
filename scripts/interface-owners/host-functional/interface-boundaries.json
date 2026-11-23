@@ -16298,7 +16298,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b5ac53856e0c7fa3298621b888d36f662113a00a3f821043feb042fc03764d86",
+      "sha256": "02ea6b84909fc35137a16051d94388186a9528d0e2e5c7326f6ad0af93cbde9b",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
