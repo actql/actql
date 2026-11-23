@@ -2824,5 +2824,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/database-read-source-preparation.test.d.mts
 /adapters/connectors/notion/test/public-connection.test.mjs
 /adapters/connectors/notion/test/public-connection.test.d.mts
+/adapters/connectors/notion/test/project-connection.test.mjs
+/adapters/connectors/notion/test/project-connection.test.d.mts
 /adapters/connectors/notion/test/read-declarations.test.mjs
 /adapters/connectors/notion/test/read-declarations.test.d.mts

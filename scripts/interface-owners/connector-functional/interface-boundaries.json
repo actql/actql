@@ -27337,7 +27337,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/project-connection.test.mjs",
+                "path": "adapters/connectors/notion/test/project-connection.test.mts",
                 "anchor": "actual Project file feeds the exact selected Notion entry"
               }
             ]
