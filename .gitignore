@@ -3066,3 +3066,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/github/test/github-comment-read.test.d.mts
 /adapters/connectors/github/test/github-pull-request-read.test.mjs
 /adapters/connectors/github/test/github-pull-request-read.test.d.mts
+/adapters/connectors/slack/site/user-list-read.mjs
+/adapters/connectors/slack/site/user-list-read.d.mts
+/adapters/connectors/slack/site/channel-list-read.mjs
+/adapters/connectors/slack/site/channel-list-read.d.mts
