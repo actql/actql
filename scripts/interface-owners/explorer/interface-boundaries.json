@@ -1858,7 +1858,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e72734a8fa82b95413d82493ef554266e4fe0f2732eb393cb1bcc0d61b55050e",
+      "sha256": "e45c551eccf899d667b258a5c1237042c4d9dc2dd370a4382ab3103bd8a274fd",
       "exports": [
         "CancellationObservation",
         "CancellationPanel",
@@ -1870,6 +1870,20 @@
         "RunInspector"
       ],
       "operations": [
+        {
+          "name": "CancellationPanel",
+          "parameters": [
+            "props: CancellationPanelProps"
+          ],
+          "result": "ReactElement"
+        },
+        {
+          "name": "CheckpointPanel",
+          "parameters": [
+            "props: CheckpointPanelProps"
+          ],
+          "result": "ReactElement"
+        },
         {
           "name": "label",
           "parameters": [
@@ -1885,6 +1899,13 @@
           "result": "ReactElement"
         },
         {
+          "name": "RunInspector",
+          "parameters": [
+            "props: {model: RunObservationModel}"
+          ],
+          "result": "ReactElement"
+        },
+        {
           "name": "select",
           "parameters": [
             "id: string"
@@ -1893,11 +1914,10 @@
         }
       ],
       "imports": [
-        "./cancellation-panel.js",
         "./cancellation-types.js",
-        "./checkpoint-panel.js",
+        "./checkpoint-review.js",
         "./read-model.js",
-        "./run-inspector.js",
+        "./run-observation.js",
         "react"
       ],
       "compilerFields": [],
@@ -1908,8 +1928,11 @@
         {
           "operations": [
             "<module>",
+            "CancellationPanel",
+            "CheckpointPanel",
             "label",
             "PlanExplorer",
+            "RunInspector",
             "select"
           ],
           "exports": [
@@ -1926,7 +1949,7 @@
             "responsibility": [
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               },
               {
                 "path": "packages/explorer/README.md",
@@ -1936,7 +1959,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "identity": [
@@ -1946,7 +1969,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "ownership": [
@@ -1956,7 +1979,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "synchronization": [
@@ -1966,7 +1989,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "failure": [
@@ -1976,7 +1999,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "cancellation": [
@@ -1986,7 +2009,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "resources": [
@@ -1996,7 +2019,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "extension": [
@@ -2006,7 +2029,7 @@
               },
               {
                 "path": "packages/explorer-ui/plan-explorer.d.ts",
-                "anchor": "export {CheckpointPanel} from './checkpoint-panel.js';"
+                "anchor": "export function CheckpointPanel(props: CheckpointPanelProps): ReactElement;"
               }
             ],
             "verification": [
