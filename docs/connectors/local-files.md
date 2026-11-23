@@ -8,6 +8,21 @@ other tools — and for Programs you develop before pointing them at a
 warehouse. Everything it does runs on the Host itself: its Site is always
 `host:local`.
 
+## Node Local availability
+
+In `@actql/node` Local mode, the Project connection exposes File listing
+and content sources. These reads require an admitted Local Account for the
+selected operation as well as filesystem access under `root`.
+
+The installed Project connection does not register CSV tables from
+`connectors.json` yet. For example, a declaration for `local.small` with
+`"path": "small.csv"`, `"key": ["id"]` and `"columns": {"id": "int64", "name": "string"}`
+does not make `SELECT id, name FROM local.small ORDER BY id` runnable. Check
+reports an unresolved Source even if the same Account can list `small.csv`.
+Use `LIST_FILES(local)` to discover files. It returns file metadata; the
+values of the CSV columns are unavailable through this route. The table
+configuration and examples below describe the Connector design.
+
 ## Sources
 
 Each table you declare in the connection is a source: `local.orders`,
@@ -105,10 +120,10 @@ neither can an Effect.
 }
 ```
 
-No credentials are needed. `root` is relative to the configuration file. The
-Host process needs read access under the root for sources and write access
-for Effects; nothing else is required. On ActQL Cloud a `local` connection
-refers to the Cloud worker's own storage and is scoped the same way.
+`root` is relative to the configuration file. The Host process needs read
+access under the root for sources and write access for Effects. The Local
+Account controls ActQL operations on the selected resources. On ActQL Cloud
+a `local` connection refers to the Cloud worker's own storage.
 
 ## Capabilities and pushdown
 
