@@ -1,13 +1,11 @@
 // Bind the installed source-free compiler to the common Run and publication
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
-import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
-import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {checkedLocalOutputLimits, checkedPublicationLimitValues} from './local-publication-limit-projection.mjs';
 import {localContractLimits as limits, localOutputLimits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
-import {prepareQueryInvocation, bindQueryInvocation, checkedOriginalQueryInvocation, cid, policyCid, instant}
+import {prepareQueryInvocation, bindQueryInvocation}
   from './local-query-invocation.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 import {retentionDependencies, localPublicationPlan, localRetentionTimes, buildLocalPublicationPlan,
@@ -17,43 +15,10 @@ export {keyedInputRetentionSelection} from './local-publication-plan.mjs';
 export {checkedLocalOutputLimits} from './local-publication-limit-projection.mjs';
 export {prepareTimedClientInvocation} from './local-query-invocation.mjs';
 export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
+import {checkedTaskRunAdmission, inferResultPolicy} from './local-source-free-plan.mjs';
+export {acquiredTaskRunAdmission, sourceFreePlanOriginal, sourceFreePlanExplanation, sourceFreePlanExecutionOwner,
+  sourceFreeTaskPlan, sourceFreeValuesAdmissionEvidence, sourceFreeValuesPlan} from './local-source-free-plan.mjs';
 
-const valuesAdmissions = new WeakMap();
-const originalPlans = new WeakMap();
-export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
-export function sourceFreePlanExplanation(plan) {return originalPlans.get(plan)?.originalExplanation;}
-export function sourceFreePlanExecutionOwner(plan) {return originalPlans.get(plan)?.executionOwner;}
-
-function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime, explanation) {
-  // Keep lifetime links in the existing private association, outside the
-  // closed publication data bag. This replaces the larger timed Plan clone.
-  const original = explanation === undefined
-    ? control.captureOriginalClientRunPlan(compiled, preparedProgram, plan.runDefinition, limits)
-    : control.captureOriginalClientRunPlan(compiled, preparedProgram, plan.runDefinition, limits, explanation);
-  const retained = {
-    executionOwner: Object.freeze({program: preparedProgram, compiled}),
-    // Original admission uses the same metadata codec as its invocation and
-    // publication. Later inspection keeps the reader's own explicit bounds.
-    original,
-    queryTimePreparation: queryTime?.queryTimePreparation,
-    queryTime: queryTime?.queryTime,
-  };
-  if (explanation !== undefined) retained.originalExplanation = original;
-  originalPlans.set(plan, Object.freeze(retained));
-  return plan;
-}
-// The ordinary Effect-free INFER Host profile explicitly binds unknown
-// provenance. It never relabels synthetic values or Model output as public.
-// Effect-bearing profiles retain their separate required installation policy.
-const inferResultPolicyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
-const inferResultPolicy = Object.freeze({kind: 'data_policy', wire: inferResultPolicyWire,
-  cid: `sha256:${createHash('sha256').update(inferResultPolicyWire).digest('hex')}`});
-
-// Preserve the closed publication-plan shape. The request journal retains
-// this original configuration with the admission it actually authorized.
-export function sourceFreeValuesAdmissionEvidence(plan) {
-  return valuesAdmissions.get(plan);
-}
 // This is the existing admitted Effect Run, not a second preparation or a
 // replacement timestamp. Common checks its exact Run/request correspondence.
 export function openSourceFreeEffectComputation({moon, facts, managedRun}) {
@@ -647,73 +612,6 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
   }
 }
 
-export function sourceFreeValuesPlan({moon, control, preparedProgram,
-  authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation, invocationOriginal, originalExplanationPreparation}) {
-  const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
-    invocationOriginal, control, preparedProgram, requestIdentity, 'values', retainedDefinitionWire);
-  const at = original === undefined ? Date.parse(now()) : undefined;
-  if (original === undefined && !Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
-  const retained = retainedDefinitionWire === undefined ? undefined :
-    JSON.parse(retainedDefinitionWire);
-  const queryInvocation=original === undefined && publicationPreparation === undefined
-    ? prepareQueryInvocation(control,preparedProgram,requestIdentity,retained) : undefined;
-  const createdAt = original?.createdAt ?? retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
-  const validUntil = original?.validUntil ?? retained?.valid_until ??
-    instant(at + 24 * 60 * 60 * 1000);
-  // The original checked plan and installed publication owner enforce row,
-  // cell and byte demand. Authored/output counts are not a new Host profile.
-  const hostPolicyCid = policyCid('source-free-values');
-  const contextCid = valuesExecutionContextCid(authorityScopeCid);
-  const compiled = original?.compiled ?? control.prepareCheckedClientCompiledRun(preparedProgram,
-    'values', {executionContextCid: contextCid,
-      hostPolicyCid, expiresAt: validUntil}, undefined, compilationOriginal);
-  const {admission, compiledPlan} = compiled;
-  const runDefinition = original?.runDefinition ?? control.defineCheckedClientCompiledRun(compiled, {
-    namespaceId, runId: randomUUID(), createdAt, validUntil,
-    retainedDefinitionWire,
-  });
-  const queryTime=original === undefined
-    ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
-    : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
-  const dataPolicyCid = policyCid('local-result-data');
-  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);
-  if ((publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
-      (publicationOriginal?.kind !== 'installed_run' || publicationPreparation === undefined ||
-        publicationPreparation !== publicationOriginal.value)) {
-    throw new TypeError('OriginalProgramRetentionOwnerRequired');
-  }
-  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
-    control.issueProgramInitialRetention(publicationPreparation, preparedProgram, requestIdentity, dataPolicyCid,
-      localRetentionTimes(now), retentionDependencies, limits);
-  const plan = localPublicationPlan({control, originalRetention, admission, runDefinition, invocation,
-    observation, compiledPlanCid: compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
-    namespaceId, storeAuthorityCid, dataPolicyCid, createdAt,
-    now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled, preparedProgram, publicationOriginal,
-    // The existing Result owner retains one row index per unsorted row.
-    // Consume the common checked Result envelope and publication policy;
-    // the adapter does not infer workspace or field bounds from output rows.
-    outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
-  });
-  valuesAdmissions.set(plan, Object.freeze({
-    prepared: compiled.preparedEvidence.wire,
-    authorization: compiled.authorization.wire,
-  }));
-  return retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime, originalExplanationPreparation);
-}
-
-// Admit the complete checked task graph, including acquired sources, to the
-// same portable Run owner used by the installed source-free profile. Physical
-// acquisition and Source Evidence must still be established before this Run
-// can be published; this admission alone never authorizes provider I/O.
-export function acquiredTaskRunAdmission(options) {
-  return checkedTaskRunAdmission(options, 'tasks');
-}
-
 // The model graph belongs to the original prepared Program. Compilation
 // verifies that ownership; no source-free Observation Set is issued for a
 // model barrier. Capture and its common issuer must supply it after dispatch.
@@ -896,77 +794,6 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
     moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
   }
-}
-
-function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal, publicationOriginal, originalExplanationPreparation}, kind) {
-  const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
-    invocationOriginal, control, preparedProgram, requestIdentity, kind, retainedDefinitionWire);
-  const at = original === undefined ? Date.parse(now()) : undefined;
-  if (original === undefined && !Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
-  const retained = retainedDefinitionWire === undefined ? undefined :
-    JSON.parse(retainedDefinitionWire);
-  const queryInvocation=original === undefined && !(kind === 'tasks' && publicationPreparation !== undefined)
-    ? prepareQueryInvocation(control,preparedProgram,requestIdentity,retained) : undefined;
-  const createdAt = original?.createdAt ?? retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
-  const validUntil = original?.validUntil ?? retained?.valid_until ??
-    instant(at + 24 * 60 * 60 * 1000);
-  const contextCid = cid({version: 'actql-installed-local-context/0.1',
-    authority_scope_cid: authorityScopeCid});
-  const compiled = original?.compiled ?? control.prepareCheckedClientCompiledRun(preparedProgram,
-    kind, {executionContextCid: contextCid,
-      hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer'
-        : kind === 'serialization' ? 'checked-content' : 'checked-tasks'),
-      expiresAt: validUntil,
-      ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})},
-    kind === 'serialization' ? serializationGraph : inferGraph, compilationOriginal);
-  const {admission, compiledPlan} = compiled;
-  const runDefinition = original?.runDefinition ?? control.defineCheckedClientCompiledRun(compiled, {
-    namespaceId, runId: randomUUID(), createdAt, validUntil,
-    retainedDefinitionWire,
-  });
-  const queryTime=original === undefined
-    ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
-    : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
-  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation, requestIdentity,
-    authoringContextOriginal: publicationOriginal?.authoringContext,
-    ...queryTime,
-    ...(kind === 'infer' ? {inferGraph} : {}),
-    ...(kind === 'serialization' ? {serializationGraph} : {})});
-  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control, queryTime, originalExplanationPreparation) : admitted;
-}
-
-// Multi-task source-free Programs use the common task compiler and the same
-// empty initial input set. No source observation is invented for Values roots.
-export function sourceFreeTaskPlan(options) {
-  const acquired = acquiredTaskRunAdmission(options);
-  const {moon, control, preparedProgram, authorityScopeCid, namespaceId,
-    storeAuthorityCid, now, publicationOriginal, publicationPreparation} = options;
-  const dataPolicyCid = policyCid('local-result-data');
-  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits,
-    publicationPreparation, preparedProgram);
-  if ((publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
-      (publicationOriginal?.kind !== 'installed_run' || publicationPreparation === undefined ||
-        publicationPreparation !== publicationOriginal.value)) {
-    throw new TypeError('OriginalProgramRetentionOwnerRequired');
-  }
-  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
-    control.issueProgramInitialRetention(publicationPreparation, preparedProgram, acquired.requestIdentity, dataPolicyCid,
-      localRetentionTimes(now), retentionDependencies, limits);
-  const plan = localPublicationPlan({control, originalRetention, admission: acquired.admission,
-    runDefinition: acquired.runDefinition, invocation, observation,
-    compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
-    storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
-    resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram, publicationOriginal,
-    outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)});
-  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
-    authorization: acquired.authorization.wire}));
-  originalPlans.set(plan, originalPlans.get(acquired));
-  return plan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing

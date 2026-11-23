@@ -113157,7 +113157,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "02cd6d25e1d73daf8bb93644147ed70aa78efa7b64902512d8488202689767e8",
+      "sha256": "cec4ba99f89b0c22c90d1c3e3a92aa6e9407dbc29c8f42e35be4cfc2dbb53f59",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -113525,13 +113525,6 @@
           "async": false
         },
         {
-          "name": "acquiredTaskRunAdmission",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "inferTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -113725,61 +113718,6 @@
           "name": "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
           "parameters": [
             "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreePlanExecutionOwner",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreePlanExplanation",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreePlanOriginal",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeTaskPlan",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeValuesAdmissionEvidence",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeValuesPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "retainedDefinitionWire",
-            "requestIdentity",
-            "publicationOriginal",
-            "compilationOriginal",
-            "publicationPreparation",
-            "invocationOriginal",
-            "originalExplanationPreparation"
           ],
           "async": false
         }
@@ -115266,16 +115204,14 @@
           }
         },
         {
-          "operations": [
-            "acquiredTaskRunAdmission"
-          ],
+          "operations": [],
           "exports": [
             "acquiredTaskRunAdmission"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115285,7 +115221,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115295,7 +115231,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115305,7 +115241,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115315,7 +115251,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115325,7 +115261,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115335,7 +115271,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115345,7 +115281,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115355,7 +115291,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -115365,7 +115301,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "acquiredTaskRunAdmission"
               },
               {
@@ -116192,116 +116128,6 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "retainOriginalPlan"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
               }
             ]
           }
@@ -117285,16 +117111,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreePlanOriginal"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreePlanOriginal"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117304,7 +117128,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117314,7 +117138,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117324,7 +117148,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117334,7 +117158,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117344,7 +117168,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117354,7 +117178,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117364,7 +117188,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117374,7 +117198,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117384,7 +117208,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -117399,16 +117223,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeTaskPlan"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeTaskPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117422,7 +117244,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117436,7 +117258,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117450,7 +117272,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117464,7 +117286,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117478,7 +117300,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117492,7 +117314,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117506,7 +117328,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117520,7 +117342,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117534,7 +117356,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeTaskPlan"
               },
               {
@@ -117553,16 +117375,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeValuesAdmissionEvidence"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeValuesAdmissionEvidence"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117572,7 +117392,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117582,7 +117402,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117592,7 +117412,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117602,7 +117422,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117612,7 +117432,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117622,7 +117442,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117632,7 +117452,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117642,7 +117462,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117652,7 +117472,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesAdmissionEvidence"
               },
               {
@@ -117667,16 +117487,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeValuesPlan"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeValuesPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117690,7 +117508,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117704,7 +117522,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117718,7 +117536,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117732,7 +117550,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117746,7 +117564,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117760,7 +117578,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117774,7 +117592,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117788,7 +117606,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -117802,7 +117620,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreeValuesPlan"
               },
               {
@@ -118133,17 +117951,15 @@
           }
         },
         {
-          "operations": [
-            "sourceFreePlanExecutionOwner"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreePlanExecutionOwner"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -118152,17 +117968,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "const originalPlans = new WeakMap();"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "const originalPlans = new WeakMap<object, Readonly<RetainedPlan> | undefined>();"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
               },
               {
@@ -118379,134 +118195,6 @@
           }
         },
         {
-          "operations": [
-            "sourceFreePlanExplanation"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### Retained structural explanation read"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
-                "anchor": "reserve_request_explanation_read"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "sourceFreePlanOriginal"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
-                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [
             "sourceFreePlanExplanation"
@@ -118514,7 +118202,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118528,7 +118216,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118538,7 +118226,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118548,7 +118236,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118562,7 +118250,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118572,7 +118260,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118582,7 +118270,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118592,7 +118280,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118606,7 +118294,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118616,7 +118304,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "sourceFreePlanOriginal"
               },
               {
@@ -118640,6 +118328,1232 @@
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-publication-limit-projection.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs",
+        "./local-query-invocation.mjs",
+        "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-source-free-plan.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "09ac1cca2553bce813ae00d9b111cc21dc691d33b38bd8eb28b87b035fe1de31",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "acquiredTaskRunAdmission",
+        "checkedTaskRunAdmission",
+        "inferResultPolicy",
+        "sourceFreePlanExecutionOwner",
+        "sourceFreePlanExplanation",
+        "sourceFreePlanOriginal",
+        "sourceFreeTaskPlan",
+        "sourceFreeValuesAdmissionEvidence",
+        "sourceFreeValuesPlan"
+      ],
+      "operations": [
+        {
+          "name": "acquiredTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "inferGraph",
+            "serializationGraph",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "retainedDefinitionWire",
+            "resultDataPolicy",
+            "requestIdentity",
+            "compilationOriginal",
+            "publicationPreparation",
+            "invocationOriginal",
+            "publicationOriginal",
+            "originalExplanationPreparation",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanExecutionOwner",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanExplanation",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanOriginal",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeTaskPlan",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeValuesAdmissionEvidence",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeValuesPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "retainedDefinitionWire",
+            "requestIdentity",
+            "publicationOriginal",
+            "compilationOriginal",
+            "publicationPreparation",
+            "invocationOriginal",
+            "originalExplanationPreparation"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkedTaskRunAdmission"
+          ],
+          "exports": [
+            "checkedTaskRunAdmission",
+            "inferResultPolicy"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreeValuesPlan<Retention>({"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled}),"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "originalPlans.set(plan, Object.freeze(retained));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "return checkedTaskRunAdmission(options,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "throw new TypeError('OriginalProgramRetentionOwnerRequired');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "publicationPreparation !== publicationOriginal.value"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "localRetentionTimes(now), retentionDependencies, limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "originalPlans.set(plan, originalPlans.get(acquired));"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves its first Run and original custody"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "staged Task plan passes the same artifact through the existing admission function"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquiredTaskRunAdmission"
+          ],
+          "exports": [
+            "acquiredTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "acquiredTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "retainOriginalPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanOriginal"
+          ],
+          "exports": [
+            "sourceFreePlanOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeTaskPlan"
+          ],
+          "exports": [
+            "sourceFreeTaskPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeTaskPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeValuesAdmissionEvidence"
+          ],
+          "exports": [
+            "sourceFreeValuesAdmissionEvidence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesAdmissionEvidence"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeValuesPlan"
+          ],
+          "exports": [
+            "sourceFreeValuesPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreeValuesPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "exports": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "const originalPlans = new WeakMap<object, Readonly<RetainedPlan> | undefined>();"
+              },
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.test.mjs",
+                "anchor": "function assertOriginalExecutionOwner(plan, program, control)"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExplanation"
+          ],
+          "exports": [
+            "sourceFreePlanExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
         "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",

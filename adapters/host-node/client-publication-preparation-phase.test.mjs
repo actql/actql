@@ -69,9 +69,10 @@ test('publication invocation issues and binds through one Core original engine, 
 });
 
 test('funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call',()=>{
- const source=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
+ const source=readFileSync(new URL('./local-source-free-plan.mjs',import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let fn;for(const node of ast.body){if(node.type==='ExportNamedDeclaration'&&node.declaration?.id?.name==='sourceFreeValuesPlan')fn=node.declaration;}assert(fn);
  const calls=[];function walk(n){if(!n||typeof n!=='object')return;if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='issueCheckedClientCompiledInvocation')calls.push(n);for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object')walk(x);}}walk(fn);assert.equal(calls.length,1);assert.deepEqual(calls[0].arguments.slice(4).map(x=>x.name),['publicationPreparation','preparedProgram']);
- assert.equal(source.includes('bindPreparedPublicationCompiledOriginal'),false);
+ const planner=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
+ assert.equal((source+planner).includes('bindPreparedPublicationCompiledOriginal'),false);
 });
 
 test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{

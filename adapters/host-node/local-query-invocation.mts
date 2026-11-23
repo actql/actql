@@ -121,7 +121,7 @@ export function prepareTimedClientInvocation({control, preparedProgram, requestI
   return Object.freeze({original: invocationOriginal, retained: retainedInvocation});
 }
 
-export function checkedOriginalQueryInvocation(original: RetainedInvocation,
+export function checkedOriginalQueryInvocation<Original extends RetainedInvocation>(original: Original,
   control: InvocationChecks, prepared: unknown, request: unknown, kind: CompilationKind,
   retainedWire: string | undefined) {
   if (original.preparedProgram !== prepared || original.requestIdentity !== request ||

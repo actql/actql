@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "02cd6d25e1d73daf8bb93644147ed70aa78efa7b64902512d8488202689767e8",
+      "sha256": "cec4ba99f89b0c22c90d1c3e3a92aa6e9407dbc29c8f42e35be4cfc2dbb53f59",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32458,13 +32458,6 @@
           "async": false
         },
         {
-          "name": "acquiredTaskRunAdmission",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "inferTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -32660,61 +32653,6 @@
             "model"
           ],
           "async": false
-        },
-        {
-          "name": "sourceFreePlanExecutionOwner",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreePlanExplanation",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreePlanOriginal",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeTaskPlan",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeValuesAdmissionEvidence",
-          "parameters": [
-            "plan"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeValuesPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "retainedDefinitionWire",
-            "requestIdentity",
-            "publicationOriginal",
-            "compilationOriginal",
-            "publicationPreparation",
-            "invocationOriginal",
-            "originalExplanationPreparation"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -32756,7 +32694,6 @@
             "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
             "acquiredMultiTaskPublicationPlan/whole/whole",
             "acquiredTaskPublicationPlan",
-            "acquiredTaskRunAdmission",
             "inferTaskPublicationPlan",
             "inferTaskRunAdmission",
             "prepareAcquiredEffectSourceUnits",
@@ -32768,11 +32705,7 @@
             "serializationTaskRunAdmission",
             "sourceFreeEffectPublicationPlan",
             "sourceFreeInferEffectPublicationPlan",
-            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
-            "sourceFreePlanOriginal",
-            "sourceFreeTaskPlan",
-            "sourceFreeValuesAdmissionEvidence",
-            "sourceFreeValuesPlan"
+            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",
@@ -34179,17 +34112,15 @@
           }
         },
         {
-          "operations": [
-            "sourceFreePlanExecutionOwner"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreePlanExecutionOwner"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -34198,17 +34129,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreePlanExecutionOwner(plan)"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "const originalPlans = new WeakMap();"
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "const originalPlans = new WeakMap<object, Readonly<RetainedPlan> | undefined>();"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
               },
               {
@@ -34424,402 +34355,6 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('late Values binding consumes its exact early receipt once at the closed port'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "sourceFreePlanExplanation"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "common Run and publication"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### Retained structural explanation read"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "acquiredEffectPublicationAdmission"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_original_materials.mbt",
-                "anchor": "pub fn"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "originalInputs(prepared: object) {"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Original captured Source publication"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "Physical Local policy CIDs are stable identities"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "Failed or interrupted writes retain their cleanup"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              },
-              {
-                "path": "docs/design/interactive-run-control.md",
-                "anchor": "### First structural facts admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-dispatch-stop.mts",
-                "anchor": "physical owner calls this after confirmed stop"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/local-publication-limits.mts",
-                "anchor": "export const localOutputLimits"
-              },
-              {
-                "path": "adapters/host-node/local-publication-limits.mts",
-                "anchor": "export const localContractLimits"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              },
-              {
-                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
-                "anchor": "reserve_request_explanation_read"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/local-values-plan-policy.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original Request domain construction"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function acquiredKeyedEffectPublicationPlan("
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/local-values-plan.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/local-values-plan-policy.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Original compilation at Task admission"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
-              },
-              {
-                "path": "adapters/host-node/request-content-caller.test.mjs",
-                "anchor": "Request Content manager compiles one original graph"
-              },
-              {
-                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
-                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
-              },
-              {
-                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
-                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
-              },
-              {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
-                "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
-              },
-              {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
-              },
-              {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
-                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
-              },
-              {
-                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
-                "anchor": "test('Source-only publication refuses missing original lookup and preserves actual Unit failure'"
-              },
-              {
-                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
-                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
-              },
-              {
-                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
-                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
               }
             ]
           }
@@ -35226,6 +34761,754 @@
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-publication-limit-projection.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs",
+        "./local-query-invocation.mjs",
+        "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-source-free-plan.mjs",
+      "sha256": "09ac1cca2553bce813ae00d9b111cc21dc691d33b38bd8eb28b87b035fe1de31",
+      "exports": [
+        "acquiredTaskRunAdmission",
+        "checkedTaskRunAdmission",
+        "inferResultPolicy",
+        "sourceFreePlanExecutionOwner",
+        "sourceFreePlanExplanation",
+        "sourceFreePlanOriginal",
+        "sourceFreeTaskPlan",
+        "sourceFreeValuesAdmissionEvidence",
+        "sourceFreeValuesPlan"
+      ],
+      "operations": [
+        {
+          "name": "acquiredTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "inferGraph",
+            "serializationGraph",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "retainedDefinitionWire",
+            "resultDataPolicy",
+            "requestIdentity",
+            "compilationOriginal",
+            "publicationPreparation",
+            "invocationOriginal",
+            "publicationOriginal",
+            "originalExplanationPreparation",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanExecutionOwner",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanExplanation",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreePlanOriginal",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeTaskPlan",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeValuesAdmissionEvidence",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeValuesPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "retainedDefinitionWire",
+            "requestIdentity",
+            "publicationOriginal",
+            "compilationOriginal",
+            "publicationPreparation",
+            "invocationOriginal",
+            "originalExplanationPreparation"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acquiredTaskRunAdmission",
+            "checkedTaskRunAdmission",
+            "sourceFreePlanOriginal",
+            "sourceFreeTaskPlan",
+            "sourceFreeValuesAdmissionEvidence",
+            "sourceFreeValuesPlan"
+          ],
+          "exports": [
+            "acquiredTaskRunAdmission",
+            "checkedTaskRunAdmission",
+            "inferResultPolicy",
+            "sourceFreePlanOriginal",
+            "sourceFreeTaskPlan",
+            "sourceFreeValuesAdmissionEvidence",
+            "sourceFreeValuesPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreeValuesPlan<Retention>({"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled}),"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "originalPlans.set(plan, Object.freeze(retained));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "return checkedTaskRunAdmission(options,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "throw new TypeError('OriginalProgramRetentionOwnerRequired');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "publicationPreparation !== publicationOriginal.value"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "localRetentionTimes(now), retentionDependencies, limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "originalPlans.set(plan, originalPlans.get(acquired));"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves its first Run and original custody"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "staged Task plan passes the same artifact through the existing admission function"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "funded Values plan passes its borrowed owner and Prepared to the single invocation issuance call"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "exports": [
+            "sourceFreePlanExecutionOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "Run reconciliation only observes that execution: it MUST NOT submit or"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "export function sourceFreePlanExecutionOwner(plan: object)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "const originalPlans = new WeakMap<object, Readonly<RetainedPlan> | undefined>();"
+              },
+              {
+                "path": "adapters/host-node/local-source-free-plan.mts",
+                "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const value = compiledRunTokens.get(compiled);"
+              },
+              {
+                "path": "src/run_publication_host/client_source_free_observation.mbt",
+                "anchor": "pub fn client_compiled_local_execution_owner("
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "flock(original->descriptor, LOCK_EX | LOCK_NB)"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "static napi_value local_fs_lease_receipt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const original = retainRunStateFrame(originalFrame, ref);"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "call('storeOwnerLeaseReceipt', lease)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-publication-store-ownership.mts",
+                "anchor": "return entry.recoveryReady === true && entry.ownership!.priorExecutionStopped("
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "if (leaseClose?.outcome !== 'closed')"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "transact('physical_start', 'ClientRunPhysicalStartUnknown'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "if (facts.journal.observeStoppedLocalExecutionOwner(facts.ref, retained) !== true ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "return undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (stored === undefined) return false;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "facts.journal.markPhysicalClose(facts.ref, committed ? null : 'failed', retained);"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "The Host MUST distinguish confirmed business outcomes, pending cleanup and"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This observation issues no cancellation or new start permission. Existing Run control still requires its original cancellation decision and confirmed physical stop."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLease: record("
+              },
+              {
+                "path": "adapters/host-node/host-journal-service-recipe.cts",
+                "anchor": "ownershipLeaseDescriptors: 2"
+              },
+              {
+                "path": "adapters/store-local/publication-owner-lease.mts",
+                "anchor": "const close = () => {"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private extensions of the same Store/Host/Journal and compiled Common originals; no public Run identity, new scheduler, arbitrary liveness callback or replacement resource authority."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.test.mjs",
+                "anchor": "function assertOriginalExecutionOwner(plan, program, control)"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt atomically binds the original start"
+              },
+              {
+                "path": "adapters/host-node/client-source-operation.test.mts",
+                "anchor": "test('local execution owner receipt rejects foreign and external-work originals"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease locks the exact retained anchor"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExplanation"
+          ],
+          "exports": [
+            "sourceFreePlanExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "common Run and publication"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_original_materials.mbt",
+                "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Original captured Source publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "Physical Local policy CIDs are stable identities"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "Failed or interrupted writes retain their cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-stop.mts",
+                "anchor": "physical owner calls this after confirmed stop"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localOutputLimits"
+              },
+              {
+                "path": "adapters/host-node/local-publication-limits.mts",
+                "anchor": "export const localContractLimits"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan-policy.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/local-values-plan-policy.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only publication refuses missing original lookup and preserves actual Unit failure'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
+              },
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
         "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",
