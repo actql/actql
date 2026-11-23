@@ -1227,6 +1227,8 @@ target/
 /adapters/host-node/client-dispatch-stop.d.mts
 /adapters/host-node/client-dispatch-cleanup.mjs
 /adapters/host-node/client-dispatch-cleanup.d.mts
+/adapters/host-node/client-dispatch-tracking.mjs
+/adapters/host-node/client-dispatch-tracking.d.mts
 /adapters/host-node/installed-source-publication.mjs
 /adapters/host-node/installed-source-publication.d.mts
 /adapters/host-node/installed-source-inventory.mjs

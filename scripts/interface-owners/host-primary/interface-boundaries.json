@@ -3195,35 +3195,9 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/drain/drain",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/drain/drain/drain",
+          "name": "installNodeClientDispatchOwner/current/current",
           "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/drain/drain/drain#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/drain/drain/drain#3",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/drain/drain/running/running",
-          "parameters": [
-            "entry"
+            "ref"
           ],
           "async": false
         },
@@ -3266,13 +3240,6 @@
           "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
           "parameters": [
             "ledger"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
-          "parameters": [
-            "ref"
           ],
           "async": false
         },
@@ -3558,68 +3525,11 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/track/track",
+          "name": "retainDispatchPrimaryFailure",
           "parameters": [
-            "ref",
-            "run",
-            "observeStopped",
-            "barrierFailureOutcome"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
-          "parameters": [
-            "preparedProgram",
-            "preparedSource",
-            "sourceAccess"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
-          "parameters": [
-            "execution"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track#2",
-          "parameters": [
+            "entry",
             "result"
           ],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track#3",
-          "parameters": [
-            "cause"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientDispatchOwner/track/track/track#5",
-          "parameters": [],
           "async": false
         }
       ],
@@ -3629,8 +3539,6 @@
       "contracts": [
         {
           "operations": [
-            "installNodeClientDispatchOwner/keyOf/keyOf",
-            "installNodeClientDispatchOwner/observeStop",
             "installNodeClientDispatchOwner",
             "installNodeClientDispatchOwner/acquireKeyedSources/captured/captured",
             "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
@@ -3638,12 +3546,11 @@
             "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
             "installNodeClientDispatchOwner/acquireSource",
             "installNodeClientDispatchOwner/cancel/cancel",
-            "installNodeClientDispatchOwner/drain/drain",
-            "installNodeClientDispatchOwner/drain/drain/drain",
-            "installNodeClientDispatchOwner/drain/drain/drain#2",
-            "installNodeClientDispatchOwner/drain/drain/drain#3",
-            "installNodeClientDispatchOwner/drain/drain/running/running",
+            "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+            "installNodeClientDispatchOwner/current/current",
+            "installNodeClientDispatchOwner/keyOf/keyOf",
             "installNodeClientDispatchOwner/live/live",
+            "installNodeClientDispatchOwner/observeStop",
             "installNodeClientDispatchOwner/operation/operation",
             "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
             "installNodeClientDispatchOwner/start/start",
@@ -3680,18 +3587,7 @@
             "installNodeClientDispatchOwner/start/start/start/start#7",
             "installNodeClientDispatchOwner/start/start/start/start#8",
             "installNodeClientDispatchOwner/start/start/start/start#9",
-            "installNodeClientDispatchOwner/track/track",
-            "installNodeClientDispatchOwner/track/track/track",
-            "installNodeClientDispatchOwner/track/track/track#2",
-            "installNodeClientDispatchOwner/track/track/track#3",
-            "installNodeClientDispatchOwner/track/track/track#4",
-            "installNodeClientDispatchOwner/track/track/track#5",
-            "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
-            "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
-            "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
-            "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
-            "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
-            "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal"
+            "retainDispatchPrimaryFailure"
           ],
           "exports": [
             "cancelNodeRunContinuation",
@@ -4910,6 +4806,7 @@
         "./client-dispatch-cleanup.mjs",
         "./client-dispatch-diagnostic.mjs",
         "./client-dispatch-stop.mjs",
+        "./client-dispatch-tracking.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
         "./infer-operation.mjs",
@@ -4922,8 +4819,251 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a9a6c435a843f71428403e4bec4cbf7dd380f2e891d4be06bbfd64be1724df73",
+      "sha256": "cabb7563c03a01e647a3b8de166d23e00f41533fb13dbfbbc49dc1c447c095b4",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-tracking.mjs",
+      "exports": [
+        "createClientDispatchTracking"
+      ],
+      "operations": [
+        {
+          "name": "createClientDispatchTracking",
+          "parameters": [
+            "entries",
+            "keyOf",
+            "current",
+            "beforeDispatch",
+            "acquireSource",
+            "retainDispatchPrimaryFailure",
+            "settleCleanup",
+            "settleRetainedEntry",
+            "retire",
+            "credentialRefusalPending",
+            "diagnostic",
+            "diagnosticErrorType",
+            "diagnosticStackFormatter",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchTracking/drain/drain/drain",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/drain/drain/drain#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/drain/drain/drain#3",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/drain/drain/running/running",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/settleCredentialRefusal/settleCredentialRefusal",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track",
+          "parameters": [
+            "ref",
+            "run",
+            "observeStopped",
+            "barrierFailureOutcome"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track/init:acquireSource/init:acquireSource",
+          "parameters": [
+            "preparedProgram",
+            "preparedSource",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track/init:retainExecution/init:retainExecution",
+          "parameters": [
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track#2",
+          "parameters": [
+            "result"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track#3",
+          "parameters": [
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchTracking/track/track/track#5",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createClientDispatchTracking",
+            "createClientDispatchTracking/drain/drain",
+            "createClientDispatchTracking/drain/drain/drain",
+            "createClientDispatchTracking/drain/drain/drain#2",
+            "createClientDispatchTracking/drain/drain/drain#3",
+            "createClientDispatchTracking/drain/drain/running/running",
+            "createClientDispatchTracking/settleCredentialRefusal/settleCredentialRefusal",
+            "createClientDispatchTracking/track/track",
+            "createClientDispatchTracking/track/track/track",
+            "createClientDispatchTracking/track/track/track/init:acquireSource/init:acquireSource",
+            "createClientDispatchTracking/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
+            "createClientDispatchTracking/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
+            "createClientDispatchTracking/track/track/track/init:retainExecution/init:retainExecution",
+            "createClientDispatchTracking/track/track/track#2",
+            "createClientDispatchTracking/track/track/track#3",
+            "createClientDispatchTracking/track/track/track#4",
+            "createClientDispatchTracking/track/track/track#5"
+          ],
+          "exports": [
+            "createClientDispatchTracking"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "export function createClientDispatchTracking<Ref extends DispatchRef>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "return {track, settleCredentialRefusal, drain};"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "if (existing !== undefined) return existing.promise;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "entry.cleanupOwner = execution;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "await Promise.allSettled(running.map(entry => entry.promise));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "throw Object.assign(new Error('ClientDispatchCleanupPending'), {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "await settleRetainedEntry(entry);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-tracking.mts",
+                "anchor": "return acquireSource(entry, preparedProgram, preparedSource, sourceAccess, {originalEvidence: true});"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test('Effect owner retains an unobserved start after callback failure'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test('Effect dispatch barrier gates both execution and refusal'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('tracked observation settlement cannot retire unresolved physical cleanup'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "./client-dispatch-diagnostic.mjs",
+        "./entry.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
+      "sha256": "edb2dfa891ec9c10dd65854b73c2161e9ce79c2dc93748e1739038124c8eddee",
+      "rationale": "Internal tracking and drain keep the original Client Dispatch entry, physical cleanup, and stop observation under the existing owner."
     },
     {
       "module": "adapters/host-node/client-dispatch-cleanup.mjs",
