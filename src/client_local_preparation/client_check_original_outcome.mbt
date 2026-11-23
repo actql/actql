@@ -192,6 +192,8 @@ pub fn client_program_project_original_check_outcome(
               findings.push(NumericProfileRequired)
               findings.push(Limit("checking_context_missing"))
             }
+            HostCalendarSelection | CalendarProfileArtifact(_) =>
+              findings.push(Limit("checking_context_missing"))
             _ => findings.push(Limit("bound_values_missing"))
           }
         }

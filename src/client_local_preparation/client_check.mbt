@@ -417,6 +417,11 @@ fn check_source_findings(
         is Some({ kind: NumericReductionProfile(_), .. }) {
         findings.push(NumericProfileRequired)
         findings.push(Limit("checking_context_missing"))
+      } else if @checked.input_request_at(requests, 0)
+        is Some(
+          { kind: HostCalendarSelection | CalendarProfileArtifact(_), .. }
+        ) {
+        findings.push(Limit("checking_context_missing"))
       } else {
         findings.push(Limit("bound_values_missing"))
       }
@@ -535,6 +540,8 @@ fn check_missing_input_findings(
   if @checked.diagnostic_cause(diagnostic)
     is Template(_, Capacity(MissingCapacity)) {
     findings.push(CapacityPolicyRequired)
+    findings.push(Limit("checking_context_missing"))
+  } else if @checked.diagnostic_calendar_context_missing(diagnostic) {
     findings.push(Limit("checking_context_missing"))
   } else {
     findings.push(

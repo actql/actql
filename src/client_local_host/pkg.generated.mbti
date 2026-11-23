@@ -593,6 +593,8 @@ pub fn[I, P] inspect_program_check_source_local_snapshot_reference(ClientProgram
 
 pub fn[I, P] inspect_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
+pub fn installed_calendar_artifact_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
 
 pub fn installed_captured_local_tasks_control_capacity(@physical_strategy.CheckedDAG) -> @execution_relation.ExecutionCapacity?

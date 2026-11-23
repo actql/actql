@@ -22,6 +22,11 @@ test "Calendar requests retain selection ownership through public supplementatio
   }
   let request = @program_check.input_request_at(missing, 0).unwrap()
   assert_true(request.kind is HostCalendarSelection)
+  assert_true(
+    @program_check.diagnostic_calendar_context_missing(
+      @program_check.input_requests_diagnostic(missing),
+    ),
+  )
   assert_true(@program_check.input_request_source(request) is None)
   assert_eq(@program_check.input_request_path(request), [
     @source.Key("host_policy_profile"),
@@ -51,6 +56,11 @@ test "Calendar requests retain selection ownership through public supplementatio
   guard artifact.kind is CalendarProfileArtifact(selection) else {
     fail("Calendar artifact selection")
   }
+  assert_true(
+    @program_check.diagnostic_calendar_context_missing(
+      @program_check.input_requests_diagnostic(material),
+    ),
+  )
   assert_eq(@environment.calendar_selection_release(selection), "test-fixture")
   let source = @program_check.input_request_source(artifact).unwrap()
   assert_true(

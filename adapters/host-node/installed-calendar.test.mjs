@@ -72,6 +72,37 @@ test('Calendar semantic refusal remains owned by the original artifact admission
     {name: 'TypeError', message: 'InvalidInstalledCalendar'});
 });
 
+test('Calendar admission reserves the exact artifact before returning the selected checker', () => {
+  const input = original(), selected = snapshotInstalledCalendar(input);
+  const environment = Object.freeze({}), admitted = Object.freeze({});
+  const quote = Object.freeze({});
+  const trace = [];
+  const moon = {
+    clientProgramInstalledCalendarArtifactConstructionCapacity(...bounds) {
+      assert.deepEqual(bounds, [input.tableBytes.length, 100, 8, 1, 0, 12]);
+      trace.push('quote');
+      return quote;
+    },
+    clientProgramCheckEnvironmentWithCalendarArtifact(before, bytes) {
+      assert.strictEqual(before, environment);
+      assert.deepEqual(Buffer.from(bytes), input.tableBytes);
+      trace.push('admit');
+      return admitted;
+    },
+  };
+  const failure = new Error('insufficient capacity');
+  assert.throws(() => admitInstalledCalendar(moon, environment, selected, capacity => {
+    assert.strictEqual(capacity(), quote);
+    throw failure;
+  }, 12), error => error === failure);
+  assert.deepEqual(trace, ['quote']);
+  assert.strictEqual(admitInstalledCalendar(moon, environment, selected, (capacity, project) => {
+    assert.strictEqual(capacity(), quote);
+    return project();
+  }, 12), admitted);
+  assert.deepEqual(trace, ['quote', 'quote', 'admit']);
+});
+
 test('Calendar installation identity binds actual bytes and budgets without claiming semantic validity', () => {
   const value = original(), first = snapshotInstalledCalendar(value);
   value.tableBytes[0] ^= 1;

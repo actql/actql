@@ -66,16 +66,23 @@ export function installedCalendarSelection(selected) {
   return installedCalendarIdentity(selected)?.selection;
 }
 
-export function admitInstalledCalendar(moon, environment, selected) {
+export function admitInstalledCalendar(moon, environment, selected, construct, policyFields) {
   if (selected === undefined) return environment;
   const bytes = originals.get(selected);
   if (bytes === undefined || typeof moon?.clientProgramCheckEnvironmentWithCalendarArtifact !== 'function') {
     throw new TypeError('InvalidInstalledCalendar');
   }
   const limits = selected.limits;
-  const admitted = moon.clientProgramCheckEnvironmentWithCalendarArtifact(environment,
-    bytes, limits.max_bytes, limits.max_nodes, limits.max_depth,
-    limits.max_zones, limits.max_transitions, selected.maxSelectionWork);
-  if (admitted === undefined) throw new TypeError('InvalidInstalledCalendar');
-  return admitted;
+  const admit = () => {
+    const admitted = moon.clientProgramCheckEnvironmentWithCalendarArtifact(environment,
+      bytes, limits.max_bytes, limits.max_nodes, limits.max_depth,
+      limits.max_zones, limits.max_transitions, selected.maxSelectionWork);
+    if (admitted === undefined) invalid();
+    return admitted;
+  };
+  if (construct === undefined) return admit();
+  if (typeof moon.clientProgramInstalledCalendarArtifactConstructionCapacity !== 'function') invalid();
+  return construct(() => moon.clientProgramInstalledCalendarArtifactConstructionCapacity(
+    bytes.byteLength, limits.max_nodes, limits.max_depth, limits.max_zones,
+    limits.max_transitions, policyFields), admit);
 }
