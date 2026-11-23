@@ -8355,7 +8355,7 @@
                 "anchor": "## Saved installation-publication physical custody"
               },
               {
-                "path": "adapters/store-local/installation-publication-storage-original.test.mjs",
+                "path": "adapters/store-local/installation-publication-storage-original.test.mts",
                 "anchor": "original installation observation projects exact Store DATA without Model evidence"
               },
               {
@@ -18479,7 +18479,7 @@
                 "anchor": "fresh prepared owner remains nominal and ordinary owner-only format refusal stays unchanged"
               },
               {
-                "path": "adapters/store-local/installation-publication-storage-original.test.mjs",
+                "path": "adapters/store-local/installation-publication-storage-original.test.mts",
                 "anchor": "copied and equal foreign Store handles cannot replace original membership"
               }
             ]

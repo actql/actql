@@ -7,20 +7,32 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+// @ts-expect-error TS7016: the Common composition facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {createInstallationPublicationStorageMetadata} from
   '../host-common/installation-publication-storage-metadata.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 
+import type {TestContext} from 'node:test';
+import type {FileHandle} from 'node:fs/promises';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type FaultableHandle = Pick<FileHandle, 'fd' | 'stat' | 'read'> & {close(...args: unknown[]): Promise<unknown>};
+type Cleanup = Readonly<{status(): Readonly<{pending: boolean}>; retry(): Promise<unknown>}>;
+type Options = Readonly<{
+  missingKey?: boolean; bounds?: Parameters<typeof createInstallationPublicationStorageMetadata>[2];
+  assertCurrent?: () => SynchronousRuntimeData;
+}>;
+
 const runtimePath = process.env.ACTQL_TEST_INSTALLATION_STORAGE_RUNTIME;
 assert.equal(typeof runtimePath, 'string', 'An exact matching runtime is required');
-const moon = await import(pathToFileURL(runtimePath).href);
+const moon = await import(pathToFileURL(runtimePath!).href);
 const control = runtimeCore(moon).publicationControl;
 const authority = 'sha256:' + '1'.repeat(64);
-const cid = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+const cid = (bytes: string | Uint8Array) => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
 const bounds = Object.freeze({maxWireBytes: 2048, maxNodes: 32, maxDepth: 2});
 
-async function fixture(t, options = {}) {
+async function fixture(t: TestContext, options: Options = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'installation-storage-common-', label: 'actual Common installation storage metadata'});
   const directory = join(scratch.path, 'store');
@@ -105,7 +117,7 @@ test('original Host current refusal after awaited Store observation leaves Commo
 });
 
 test('same Store closing during the original after-await fence cannot issue the Common binding', async t => {
-  let checks = 0, close;
+  let checks = 0, close: Promise<boolean> | undefined;
   const f = await fixture(t, {assertCurrent() { if (++checks === 2) close = f.store.close(); }});
   await assert.rejects(f.metadata.observe(), {code: 'PublicationStoreClosed'});
   assert.equal(await close, true);
@@ -128,14 +140,14 @@ test('missing actual key and exhausted Common codec remain refused without a sub
 
 test('one original asynchronous observation stays pending without a second read or early forgetting', async t => {
   const f = await fixture(t);
-  let release, entered = 0;
+  let release: (() => void) | undefined, entered = 0;
   const delayed = Object.freeze({
     status: f.store.status,
     originalInstallationPublicationStorageBindingEvidence:
       f.store.originalInstallationPublicationStorageBindingEvidence,
     async observeOriginalInstallationPublicationStorageBinding() {
       entered++;
-      await new Promise(resolve => { release = resolve; });
+      await new Promise<void>(resolve => { release = resolve; });
       return f.store.observeOriginalInstallationPublicationStorageBinding();
     },
   });
@@ -149,7 +161,7 @@ test('one original asynchronous observation stays pending without a second read 
     await assert.rejects(view.observe(), {code: 'InstallationPublicationStorageObservationPending'});
     assert.equal(entered, 1);
   } finally {
-    release(); await pending;
+    release!(); await pending;
   }
   assert.equal(view.cid(), cid(view.wire()));
   assert.equal(await f.store.close(), true);
@@ -163,38 +175,39 @@ for (const outcome of ['false', 'reject']) {
     const probe = await open(f.contractPath, 'r');
     const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
     await probe.close();
-    let original, nativeClose, cleanup, blocked = true, reads = 0;
+    let original: FaultableHandle | undefined, nativeClose: FaultableHandle['close'] | undefined,
+      cleanup: Cleanup | undefined, blocked = true, reads = 0;
     const failure = Object.freeze(new Error('OriginalInstallationStoreCloseRefused'));
-    prototype.stat = function(...args) {
-      if (original === undefined && new Error().stack.split('\n')[2]?.includes('readBounded')) {
+    prototype.stat = function(this: FaultableHandle, ...args: unknown[]) {
+      if (original === undefined && new Error().stack!.split('\n')[2]?.includes('readBounded')) {
         original = this; nativeClose = this.close;
         const read = this.read;
-        this.read = function(...input) { reads++; return Reflect.apply(read, this, input); };
-        this.close = function(...input) {
+        this.read = function(...input: unknown[]) { reads++; return Reflect.apply(read, this, input); };
+        this.close = function(...input: unknown[]) {
           if (blocked) return outcome === 'false' ? Promise.resolve(false) : Promise.reject(failure);
-          return Reflect.apply(nativeClose, this, input);
+          return Reflect.apply(nativeClose!, this, input);
         };
       }
       return Reflect.apply(stat, this, args);
     };
     t.after(async () => {
       prototype.stat = stat; blocked = false;
-      if (cleanup?.status().pending) await cleanup.retry();
-      assert(original === undefined || original.fd === -1);
+      if (cleanup?.status().pending) await cleanup!.retry();
+      assert(original === undefined || original!.fd === -1);
     });
     await assert.rejects(f.metadata.observe(), error => {
-      cleanup = error.cleanupHandle;
+      cleanup = (error as {cleanupHandle?: Cleanup}).cleanupHandle;
       return cleanup?.status().pending === true;
     });
-    assert(original.fd >= 0);
+    assert(original!.fd >= 0);
     assert.equal(f.metadata.forget(), false);
     const readCount = reads;
     await assert.rejects(f.metadata.observe(), {code: 'PublicationStoreCleanupPending'});
     await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
-    await assert.rejects(cleanup.retry());
-    assert.equal(cleanup.status().pending, true);
-    blocked = false; await cleanup.retry();
-    assert.equal(original.fd, -1);
+    await assert.rejects(cleanup!.retry());
+    assert.equal(cleanup!.status().pending, true);
+    blocked = false; await cleanup!.retry();
+    assert.equal(original!.fd, -1);
     assert.equal(reads, readCount, 'cleanup retries close only, not the contract read');
     prototype.stat = stat;
     await f.metadata.observe();

@@ -6498,7 +6498,7 @@
     },
     {
       "module": "adapters/host-common/installation-publication-storage-metadata.mjs",
-      "sha256": "cae6dbac9fa43180a8864b74051ebe9c63f4d001ee3dd499a326b3bd9953dca2",
+      "sha256": "2f63420b993396c5b25c4d5b8863f5d3df8e54205939d321e31270a43aa944d2",
       "exports": [
         "createInstallationPublicationStorageMetadata"
       ],
@@ -6631,14 +6631,14 @@
                 "anchor": "## Installation publication storage association"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "export function createInstallationPublicationStorageMetadata(moon, store,"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "export function createInstallationPublicationStorageMetadata(moon: Runtime | undefined, store: Store | undefined,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "let bounds = data(limits, limitNames);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "let bounds: Bounds | undefined = data(limits, limitNames) as Bounds;"
               },
               {
                 "path": "src/run_publication/installation_publication_storage_binding.mbt",
@@ -6647,7 +6647,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "if (handle !== original || !sameFields(found)) {"
               },
               {
@@ -6657,11 +6657,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "if (pending || Reflect.apply(status, store, []).closed !== true) return false;"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "if (pending || Reflect.apply(status!, store, []).closed !== true) return false;"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "moon = undefined; store = undefined; assertCurrent = undefined;"
               },
               {
@@ -6671,21 +6671,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "const handle = await Reflect.apply(observe, store, []);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "const handle = await Reflect.apply(observe!, store, []);"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "const found = originalFields(handle);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "} finally { pending = false; }"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('original Host current refusal after awaited Store observation leaves Common unissued'"
               }
             ],
@@ -6695,7 +6695,7 @@
                 "anchor": "originalInstallationPublicationStorageBindingReaders !== 0"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "for (const outcome of ['false', 'reject']) {"
               }
             ],
@@ -6705,8 +6705,8 @@
                 "anchor": "## Installation publication storage association"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth']);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth'] as const);"
               },
               {
                 "path": "adapters/store-local/publication-store-format.mts",
@@ -6725,11 +6725,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('same actual Store projects one Common binding with exact retained contract and purpose'"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('one original asynchronous observation stays pending without a second read or early forgetting'"
               }
             ]
@@ -6747,14 +6747,14 @@
                 "anchor": "## Installation publication storage association"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "export function createInstallationPublicationStorageMetadata(moon, store,"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "export function createInstallationPublicationStorageMetadata(moon: Runtime | undefined, store: Store | undefined,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "let bounds = data(limits, limitNames);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "let bounds: Bounds | undefined = data(limits, limitNames) as Bounds;"
               },
               {
                 "path": "src/run_publication/installation_publication_storage_binding.mbt",
@@ -6763,7 +6763,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "if (handle !== original || !sameFields(found)) {"
               },
               {
@@ -6773,11 +6773,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "if (pending || Reflect.apply(status, store, []).closed !== true) return false;"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "if (pending || Reflect.apply(status!, store, []).closed !== true) return false;"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "moon = undefined; store = undefined; assertCurrent = undefined;"
               },
               {
@@ -6787,21 +6787,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "const handle = await Reflect.apply(observe, store, []);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "const handle = await Reflect.apply(observe!, store, []);"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "const found = originalFields(handle);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
                 "anchor": "} finally { pending = false; }"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('original Host current refusal after awaited Store observation leaves Common unissued'"
               }
             ],
@@ -6811,7 +6811,7 @@
                 "anchor": "originalInstallationPublicationStorageBindingReaders !== 0"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "for (const outcome of ['false', 'reject']) {"
               }
             ],
@@ -6821,8 +6821,8 @@
                 "anchor": "## Installation publication storage association"
               },
               {
-                "path": "adapters/host-common/installation-publication-storage-metadata.mjs",
-                "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth']);"
+                "path": "adapters/host-common/installation-publication-storage-metadata.mts",
+                "anchor": "const limitNames = Object.freeze(['maxWireBytes', 'maxNodes', 'maxDepth'] as const);"
               },
               {
                 "path": "adapters/store-local/publication-store-format.mts",
@@ -6841,11 +6841,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('same actual Store projects one Common binding with exact retained contract and purpose'"
               },
               {
-                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mjs",
+                "path": "adapters/host-node/installation-publication-storage-metadata.actual.test.mts",
                 "anchor": "test('one original asynchronous observation stays pending without a second read or early forgetting'"
               }
             ]
@@ -7374,7 +7374,7 @@
     },
     {
       "module": "adapters/host-common/installed-row-update-recovery.mjs",
-      "sha256": "897c802a4b037d029e970791b177483028045c4e146508d8956e6d667666f6bf",
+      "sha256": "973c69fe7c4da00f5bdcd9679800255c1c834c303771fde115d09321ec33f352",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Row Effect saved update member selection",
@@ -7496,77 +7496,77 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
-                "anchor": "export function restoreInstalledRowUpdateMembers("
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
+                "anchor": "export function restoreInstalledRowUpdateMembers<"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "const {durable, recorded, members, memberIndexes} = context;"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "byIndex.has(entry.memberIndex)) fail(invalidCode);"
               },
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "rebuilt.requestCid !== claims[row].canonicalRequestCid"
               },
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "wireCid(saved.wire) !== saved.observationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "Only a connector's retained request codec can restore a row."
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "restoreMember(context, index, byIndex.get(index))"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "index <= indexes[offset - 1])) fail(invalidCode);"
               },
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "encode(facts.target) !== encode(changes[row].target_row_identity)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "restoreMember(context, index, byIndex.get(index))"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
-                "anchor": "const requests = new Array(indexes.length);"
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
+                "anchor": "const requests = new Array<Request | undefined>(indexes.length);"
               },
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "Buffer.byteLength(wire) > maxRecoveryBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.mts",
                 "anchor": "Only a connector's retained request codec can restore a row."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.test.mts",
                 "anchor": "test('update recovery retains original global indexes"
               },
               {
@@ -7574,7 +7574,7 @@
                 "anchor": "test('HubSpot cold row driver refuses changed approved value target dispatch binding and claim rather than sending'"
               },
               {
-                "path": "adapters/host-common/installed-row-update-recovery.test.mjs",
+                "path": "adapters/host-common/installed-row-update-recovery.test.mts",
                 "anchor": "test('update recovery keeps the exact bounded provider wire"
               }
             ]

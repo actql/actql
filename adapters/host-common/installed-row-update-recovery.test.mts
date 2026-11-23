@@ -7,16 +7,16 @@ test('update recovery retains original global indexes before restoring any selec
   const first = Object.freeze({memberIndex: 1}), last = Object.freeze({memberIndex: 3});
   const context = {members: [{}, {}, {}, {}], recorded: {members: [{}, {}, {}, {}]},
     memberIndexes: [1, 3], durable: {connectorRecovery: [last, first]}};
-  const seen = [];
+  const seen: (typeof first | typeof last | undefined)[] = [];
   const requests = restoreInstalledRowUpdateMembers(context, 4, 'InvalidOriginal', (original, index, entry) => {
     assert.equal(original, context);
     seen.push(entry);
     return [context.members[index]];
   });
   assert.deepEqual(seen, [first, last]);
-  assert.equal(requests.requests[0][0], context.members[1]);
-  assert.equal(requests.requests[1][0], context.members[3]);
-  const sparse = new Array(2);
+  assert.equal(requests.requests[0]![0], context.members[1]);
+  assert.equal(requests.requests[1]![0], context.members[3]);
+  const sparse = new Array<number>(2);
   sparse[1] = 3;
   const restored = restoreInstalledRowUpdateMembers({...context, memberIndexes: sparse}, 4, 'InvalidOriginal',
     (_original, index, entry) => {
@@ -26,7 +26,7 @@ test('update recovery retains original global indexes before restoring any selec
     });
   assert.equal(restored.requests.length, 2);
   assert.equal(0 in restored.requests, false);
-  assert.equal(restored.requests[1][0], context.members[3]);
+  assert.equal(restored.requests[1]![0], context.members[3]);
   for (const invalid of [
     {...context, memberIndexes: [3, 1]},
     {...context, memberIndexes: [1, 1]},
@@ -45,8 +45,8 @@ test('update recovery keeps the exact bounded provider wire and rejects foreign 
   const request = Object.freeze({});
   let encoded = 0;
   const codec = {
-    requestCid(value) {assert.equal(value, request); return 'original';},
-    savedWire(value) {assert.equal(value, request); encoded++; return 'request-wire';},
+    requestCid(value: typeof request) {assert.equal(value, request); return 'original';},
+    savedWire(value: typeof request) {assert.equal(value, request); encoded++; return 'request-wire';},
   };
   assert.throws(() => installedRowUpdateRequestWires([{request, requestCid: 'foreign'}], 1,
     codec, 'Invalid', 'Foreign'), {code: 'Foreign'});
