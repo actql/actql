@@ -26377,7 +26377,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -31719,7 +31719,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116266,7 +116266,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116288,7 +116288,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116306,7 +116306,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116324,7 +116324,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116342,7 +116342,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116360,7 +116360,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116382,7 +116382,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116400,7 +116400,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116422,7 +116422,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116444,7 +116444,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -116480,7 +116480,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116498,7 +116498,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116516,7 +116516,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116534,7 +116534,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116552,7 +116552,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116570,7 +116570,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116588,7 +116588,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116606,7 +116606,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116624,7 +116624,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -116650,7 +116650,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -116848,7 +116848,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116874,7 +116874,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116896,7 +116896,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116918,7 +116918,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116940,7 +116940,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116962,7 +116962,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -116988,7 +116988,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -117010,7 +117010,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -117036,7 +117036,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -117062,7 +117062,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
@@ -118777,7 +118777,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118799,7 +118799,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118821,7 +118821,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118843,7 +118843,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118861,7 +118861,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118879,7 +118879,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118897,7 +118897,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118915,7 +118915,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118937,7 +118937,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -118951,7 +118951,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -119089,7 +119089,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119107,7 +119107,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119125,7 +119125,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119143,7 +119143,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119161,7 +119161,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119179,7 +119179,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119197,7 +119197,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119215,7 +119215,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119233,7 +119233,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -119255,7 +119255,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -120337,7 +120337,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('late Values binding consumes its exact early receipt once at the closed port'"
               }
             ]
@@ -120858,7 +120858,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120880,7 +120880,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120902,7 +120902,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120924,7 +120924,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120942,7 +120942,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120960,7 +120960,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120978,7 +120978,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -120996,7 +120996,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121018,7 +121018,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121032,7 +121032,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -121175,7 +121175,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121193,7 +121193,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121211,7 +121211,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121229,7 +121229,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121247,7 +121247,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121265,7 +121265,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121283,7 +121283,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121301,7 +121301,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121319,7 +121319,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
@@ -121341,7 +121341,7 @@
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
@@ -121447,7 +121447,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "path": "adapters/host-node/effect-publication-binding.test.mts",
                 "anchor": "test('late Values binding consumes its exact early receipt once at the closed port'"
               }
             ]
