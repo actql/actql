@@ -11936,6 +11936,15 @@ fn wire_check_outcome_shape(value : Json) -> Bool {
 }
 
 ///|
+fn wire_rule_1075(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "observed") {
+    return false
+  }
+  true
+}
+
+///|
 enum WireResponseIssue {
   InvalidShape
   ConnectionMismatch
@@ -12010,6 +12019,235 @@ fn wire_request_lookup(value : Json, expected : String) -> Bool {
     wire_held_shape(value) &&
     fields.get("requestId") == Some(Json::string(expected))
   )
+}
+
+///|
+fn wire_submission_name_shape(value : Json) -> Bool {
+  wire_rule_7(value)
+}
+
+///|
+fn wire_rule_1402(value : Json) -> Bool {
+  if [
+      wire_rule_8(value),
+      wire_rule_22(value),
+      wire_rule_54(value),
+      wire_rule_59(value),
+      wire_rule_893(value),
+      wire_rule_915(value),
+    ]
+    .filter(fn(ok) { ok })
+    .length() !=
+    1 {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_1397(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "requestName" ||
+      key == "intentCid" ||
+      key == "attemptRef" ||
+      key == "outcome") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("requestName") {
+    return false
+  }
+  if !fields.contains("intentCid") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("outcome") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_1075(item) {
+      return false
+    }
+  }
+  if fields.get("requestName") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  if fields.get("intentCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_930(item) {
+      return false
+    }
+  }
+  if fields.get("outcome") is Some(item) {
+    if !wire_rule_1402(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_1415(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "authorization" ||
+    text == "admission_capacity" ||
+    text == "epoch_expired" ||
+    text == "epoch_not_yet_valid") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_1409(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "requestName" ||
+      key == "intentCid" ||
+      key == "attemptRef" ||
+      key == "guarantee" ||
+      key == "reason") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("requestName") {
+    return false
+  }
+  if !fields.contains("intentCid") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("guarantee") {
+    return false
+  }
+  if !fields.contains("reason") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_935(item) {
+      return false
+    }
+  }
+  if fields.get("requestName") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  if fields.get("intentCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_930(item) {
+      return false
+    }
+  }
+  if fields.get("guarantee") is Some(item) {
+    if !wire_rule_937(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_1415(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_1421(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "intent") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_1416(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "requestName" ||
+      key == "intentCid" ||
+      key == "attemptRef" ||
+      key == "reason") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("requestName") {
+    return false
+  }
+  if !fields.contains("intentCid") {
+    return false
+  }
+  if !fields.contains("attemptRef") {
+    return false
+  }
+  if !fields.contains("reason") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_947(item) {
+      return false
+    }
+  }
+  if fields.get("requestName") is Some(item) {
+    if !wire_rule_7(item) {
+      return false
+    }
+  }
+  if fields.get("intentCid") is Some(item) {
+    if !wire_rule_1(item) {
+      return false
+    }
+  }
+  if fields.get("attemptRef") is Some(item) {
+    if !wire_rule_930(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_1421(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_named_submission_attempt_shape(value : Json) -> Bool {
+  if [wire_rule_1397(value), wire_rule_1409(value), wire_rule_1416(value)]
+    .filter(fn(ok) { ok })
+    .length() !=
+    1 {
+    return false
+  }
+  true
 }
 
 ///|
