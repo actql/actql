@@ -32,6 +32,7 @@ test('installed Content cleanup retains a real prepared object until the same re
   let starts = 0, seals = 0, releaseCalls = 0, commitCalls = 0, stops = 0, prefixWork = 0n;
   let ledgerPreparations = 0, managedPreparations = 0;
   const request = {}, managed = {value: {}, serialization: {}, closed: false};
+  const selectedWorkspace = Object.freeze({retainedBytes: 1n, executionBytes: 1n});
   const originalFailure = new Error('IndependentPhysicalCommitNotStarted');
   const ledger = Object.freeze({fixture: 'original Pure acquisition ledger'});
   const compiled = Object.freeze({fixture: 'checked compilation'});
@@ -110,7 +111,21 @@ test('installed Content cleanup retains a real prepared object until the same re
     namespaceId: 'fixture', authorityScopeCid: cid('independent scope'), storeAuthorityCid: authority,
     ownerPrincipal: 'fixture', now: () => '2026-10-13T00:00:00.000Z', authorize: () => true,
     retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},
-    prepareSerializationManagedRun(program, identity, plan) {assert.equal(program, preparedProgram);assert.equal(identity, request);assert.equal(plan.compiled, compiled);managedPreparations++;return managed;},
+    prepareSerializationOutputDemand(program, compilation, selection, generation, _reference, _contract, output, identitySlots) {
+      assert.strictEqual(program, preparedProgram);
+      assert.strictEqual(compilation, compiled);
+      assert.strictEqual(selection, plan.serializationGraph);
+      assert.strictEqual(output, localOutputLimits);
+      return {generationLimits: generation, outputLimits: output, identitySlots, workspace: selectedWorkspace};
+    },
+    prepareSerializationManagedRun(program, identity, selected, _limits, workspace) {
+      assert.strictEqual(program, preparedProgram);
+      assert.strictEqual(identity, request);
+      assert.strictEqual(selected, plan);
+      assert.strictEqual(workspace, selectedWorkspace);
+      managedPreparations++;
+      return managed;
+    },
     preparedRunRequired: true, assertRunCurrent: () => assert.equal(store.status().closed, false),
   });
   const plan = Object.freeze({kind: 'serialization', compiled,
