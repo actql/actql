@@ -57,7 +57,7 @@ pub struct RelationTargetDocument {
   priv columns : Array[String]
   priv identity_index : Int
   priv writable_fields : Array[String]
-  priv row_cursors : Array[@decode.Cursor]
+  priv row_array : @decode.Cursor
   priv rows : Array[Array[@admitted.CheckedValue]]
   priv limits : RowPageLimits
   priv usage : @decode.AdmissionUsage
@@ -232,6 +232,14 @@ fn relation_target_row_original(row : RelationTargetRow) -> Bool {
   row.original is Some(original) &&
   physical_equal(row, original) &&
   relation_target_original(row.document)
+}
+
+///|
+fn RelationTargetDocument::row_cursor(
+  self : RelationTargetDocument,
+  index : Int,
+) -> @decode.Cursor {
+  @decode.element_at(self.row_array, index).unwrap()
 }
 
 ///|
@@ -439,11 +447,11 @@ pub fn project_relation_target_document(
         raise RelationDocumentStop(InvalidInputSchema)
       }
     }
-    let selected = relation_document_path(root, items_path)
-    let row_cursors = @decode.elements(selected).unwrap_or_else(() => {
+    let row_array = relation_document_path(root, items_path)
+    let row_count = @decode.array_length(row_array).unwrap_or_else(() => {
       raise RelationDocumentStop(InvalidPage)
     })
-    if row_cursors.length() > limits.max_rows {
+    if row_count > limits.max_rows {
       raise RelationDocumentStop(InvalidPage)
     }
     let values : @admitted.Limits = {
@@ -453,7 +461,8 @@ pub fn project_relation_target_document(
     }
     let keys : Array[String] = []
     let rows = []
-    for cursor in row_cursors {
+    for index in 0..<row_count {
+      let cursor = @decode.element_at(row_array, index).unwrap()
       let object = @decode.closed_object(cursor, columns).unwrap_or_else(() => {
         raise RelationDocumentStop(InvalidPage)
       })
@@ -494,7 +503,7 @@ pub fn project_relation_target_document(
       columns,
       identity_index,
       writable_fields: writable,
-      row_cursors,
+      row_array,
       rows,
       limits,
       usage,
@@ -713,7 +722,7 @@ pub fn prepare_relation_target_update(
     if names.is_empty() {
       raise RelationDocumentStop(InvalidPage)
     }
-    let original = @decode.open_object(document.row_cursors[row.index]).unwrap()
+    let original = @decode.open_object(document.row_cursor(row.index)).unwrap()
     let replacements = []
     let mut size = document.bytes.length()
     for name in names {
@@ -803,24 +812,23 @@ pub fn prepare_relation_target_delete(
     return Err(ForeignSource)
   }
   let bytes = document.bytes
-  let rows = document.row_cursors
-  let span = @decode.cursor_span(rows[row.index])
+  let span = @decode.cursor_span(document.row_cursor(row.index))
   try {
     let work = Ref(max_work)
     // Remove the following separator when possible, otherwise the preceding
     // one. The gap between original adjacent elements contains one comma and
     // optional whitespace. Keep that whitespace in the replacement.
-    let separator = if row.index + 1 < rows.length() {
+    let separator = if row.index + 1 < document.rows.length() {
       relation_target_separator(
         bytes,
         span.end_byte,
-        @decode.cursor_span(rows[row.index + 1]).start_byte,
+        @decode.cursor_span(document.row_cursor(row.index + 1)).start_byte,
         work,
       )
     } else if row.index > 0 {
       relation_target_separator(
         bytes,
-        @decode.cursor_span(rows[row.index - 1]).end_byte,
+        @decode.cursor_span(document.row_cursor(row.index - 1)).end_byte,
         span.start_byte,
         work,
       )

@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9b5023bf920cafbbe00dc61623d18d763fd154680c7603e5af366d597dcc9ceb",
+      "sha256": "fd446e0e71ae1f841719a2bd1b1182b3c74bad755f5910ca31ba6af2379c941a",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -128,6 +128,10 @@
         {
           "name": "relation_target_version",
           "declaration": "relation_target_version ( row : RelationTargetRow ) - > String ?"
+        },
+        {
+          "name": "RelationTargetDocument::row_cursor",
+          "declaration": "RelationTargetDocument : : row_cursor ( self : RelationTargetDocument , index : Int , ) - > @ decode . Cursor"
         }
       ],
       "contracts": [
@@ -160,7 +164,8 @@
             "relation_target_separator",
             "relation_target_text",
             "relation_target_text_bytes",
-            "relation_target_version"
+            "relation_target_version",
+            "RelationTargetDocument::row_cursor"
           ],
           "exports": [],
           "attributes": {
@@ -226,6 +231,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation target indexes the original at the existing page row limit"
               }
             ]
           }
