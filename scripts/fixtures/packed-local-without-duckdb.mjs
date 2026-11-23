@@ -212,16 +212,24 @@ if (mode === 'initial') {
     other: [{id: '4', name: 'D'}, {id: '5', name: 'E'}]};
   for (const selection of [['small'], ['small', 'other']]) {
     const directory = resolve(consumerRoot, 'csv-project-' + selection.length);
+    const originalIssueProject = selection.length === 1;
     await mkdir(resolve(directory, 'data'), {recursive: true});
     await writeFile(resolve(directory, 'actql.config.json'), JSON.stringify({
-      version: 'actql-config/0.1', connectors: './connectors.json', state_dir: './.actql',
-    }), {flag: 'wx'});
+      version: 'actql-config/0.1', connectors: './connectors.json',
+      ...(originalIssueProject ? {model_tasks: './model-tasks.json'} : {}),
+      state_dir: './.actql',
+    }) + '\n', {flag: 'wx'});
+    if (originalIssueProject) {
+      await writeFile(resolve(directory, 'model-tasks.json'), JSON.stringify({
+        version: 'actql-model-tasks/0.1', tasks: {}, providers: {},
+      }) + '\n', {flag: 'wx'});
+    }
     await writeFile(resolve(directory, 'connectors.json'), JSON.stringify({
       version: 'actql-connectors/0.1', connections: {local: {connector: 'local', root: './data',
         tables: Object.fromEntries(selection.map(resource => [resource, {
           path: resource + '.csv', key: ['id'], columns: {id: 'int64', name: 'string'},
         }]))}},
-    }), {flag: 'wx'});
+    }) + '\n', {flag: 'wx'});
     for (const resource of selection) {
       await writeFile(resolve(directory, 'data', resource + '.csv'), data[resource], {flag: 'wx'});
     }
