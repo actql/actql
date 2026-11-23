@@ -44,3 +44,13 @@ export function readReportedUsage(body) {
   return {inputTokens: reportedTotal(usage.promptTokenCount, usage.toolUsePromptTokenCount),
     outputTokens: reportedTotal(usage.candidatesTokenCount, usage.thoughtsTokenCount)};
 }
+
+export function readReportedResponse(body) {
+  if (body === null || typeof body !== 'object') return undefined;
+  const finish = Array.isArray(body.candidates) && body.candidates.length === 1
+    ? body.candidates[0]?.finishReason : undefined;
+  const blocked = body.promptFeedback?.blockReason;
+  return {model: body.modelVersion, requestId: body.responseId, finishReason: finish ?? blocked,
+    outcome: finish === 'SAFETY' || typeof blocked === 'string' && blocked !== 'BLOCK_REASON_UNSPECIFIED'
+      ? 'refusal' : undefined};
+}

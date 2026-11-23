@@ -7,7 +7,8 @@ import {basename, dirname, join} from 'node:path';
 import {parse} from 'yaml';
 import {CLIENT_PACKAGES, packClientPackages} from './packed-client-packages.mjs';
 import {prepareHealthPackages} from './health-monitor-adapters.mjs';
-import {runPackedProviderAI, checkPackedProviderObservation} from './test-packed-provider-ai-sdk.mjs';
+import {runPackedProviderAI, checkPackedProviderObservation,
+  registeredProviderAcceptanceCases} from './test-packed-provider-ai-sdk.mjs';
 
 async function withFixtureGitHubSource(source, action) {
   const original = process.env.GITHUB_SHA;
@@ -354,6 +355,24 @@ test('Project acceptance requires the original environment credential path and n
   }
 });
 
+test('registered terminal failures require original Saved in a distinct zero-egress process', () => {
+  const shared = {firstCloseReturned: true, aliveScopedFD0: true, registeredSdk: true,
+    projectCredential: true, maxCalls: 1, originalRunDefinitionCid: 'sha256:' + 'd'.repeat(64)};
+  for (const [caseId, terminalFailure] of [['registered-length', 'truncated'], ['registered-refusal', 'refusal']]) {
+    const warm = {...shared, terminalFailure, phase: caseId, tasks: 1, requests: 1,
+      calls: 1, projectTlsConnects: 1, originalModelStarts: 1};
+    const cold = {...shared, terminalFailure, phase: 'cold', calls: 0, projectTlsConnects: 0,
+      originalModelStarts: 0, egressChecks: 0, originalSavedFirst: true};
+    checkPackedProviderObservation({caseId, phase: caseId, pid: 1, observation: warm});
+    checkPackedProviderObservation({caseId, phase: 'cold', pid: 2, originalPid: 1, observation: cold});
+    for (const [pid, observation] of [[1, cold], [2, {...cold, originalSavedFirst: false}],
+      [2, {...cold, originalModelStarts: 1}], [2, {...cold, egressChecks: 1}],
+      [2, {...cold, terminalFailure: 'schema_invalid'}]]) {
+      assert.throws(() => checkPackedProviderObservation({caseId, phase: 'cold', pid, originalPid: 1, observation}));
+    }
+  }
+});
+
 test('optional diagnostic selection retains nested inventories and bounded usage evidence without keys or state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-provider-diagnostic-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -380,6 +399,11 @@ test('optional diagnostic selection retains nested inventories and bounded usage
 });
 
 test('existing producer and README jobs retain required and optional original inputs', async () => {
+  assert.deepEqual(registeredProviderAcceptanceCases, [
+    'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed',
+    'registered-mistral', 'registered-length', 'registered-refusal', 'registered-too-late', 'registered-invalid',
+    'registered-credential-reference', 'registered-credential-header',
+  ]);
   const ci = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const producer = ci.jobs['client-packages'];
   const optional = producer.steps.filter(step => step.run?.includes("names: ['provider-ai-sdk']"));
