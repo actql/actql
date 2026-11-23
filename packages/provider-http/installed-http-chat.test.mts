@@ -6,12 +6,27 @@ import {installModelProviders} from '../../adapters/host-node/installed-model.mj
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
-const cid = x => `sha256:${x.repeat(64)}`;
+import type {createHttpChatPreflight} from './_internal/model-port.mjs';
+
+type Registration = ReturnType<typeof createInstalledHttpChatRegistration>;
+type HostRuntime = Parameters<typeof installModelProviders>[0];
+// The installed bridge calls the registration with this same fixture runtime.
+type HostRegistration = NonNullable<Parameters<typeof installModelProviders>[1]>;
+type Runtime = HostRuntime & Parameters<Registration>[0];
+type Inputs = Parameters<typeof createHttpChatPreflight>[0];
+type Persist = NonNullable<Inputs['persistRaw']>;
+type Raw = Parameters<Persist>[1];
+type Bind = Parameters<NonNullable<Inputs['rawCaptureBinder']>>[0];
+type Poll = {kind: 'pending' | 'unknown'} | {kind: 'saved'; response: {raw: Raw}};
+type FixturePreflight = {advance(): {_1: {start(entry: unknown): {poll(): Poll} | undefined}}; cleanup(): boolean};
+type Configuration = ReturnType<typeof configuration>;
+
+const cid = (x: string) => `sha256:${x.repeat(64)}`;
 function configuration() {
   // Explicit original-selection/installation doubles, not adopted numerical
   // values or a grant. Common checks these originals in an actual Run.
-  const profile = {};
-  const installation = Object.freeze({sdk: undefined,
+  const profile = {} as object | null | undefined;
+  const installation = Object.freeze({sdk: undefined as unknown,
     endpoint: 'https://fixture.invalid/chat', http_method: 'POST',
     streaming: false, completion_basis: 'generation_finish'});
   const rawCaptureSelection = Object.freeze({profile, installation, probability: undefined,
@@ -39,15 +54,15 @@ function configuration() {
     requestLimits: {maxBytes: 4096, maxHeaderBytes: 128, maxHeaders: 4},
     responseLimits: {maxBytes: 512, maxChunkBytes: 512, maxChunks: 2, maxHeaderBytes: 64,
       observedHeaders: ['content-type']},
-    fetch: () => assert.fail('No uninstalled send'), observeAt: () => '2026-10-14T00:00:00Z',
+    fetch: (() => assert.fail('No uninstalled send')) as NonNullable<Inputs['fetch']>, observeAt: () => '2026-10-14T00:00:00Z',
     observeEgress: () => ({}),
   };
 }
-function runtime(config) {
+function runtime(config: Configuration) {
   const counts = {installs: 0, projections: 0, sends: 0};
   const request = {}, provider = {}, entry = {};
   const body = '{"model":"fixture","n":1,"stream":false,"messages":[{"role":"user","content":"é\\r\\n"}]}';
-  const moon = {
+  const moon: Partial<Runtime> = {
     clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
       assert.strictEqual(profile, config.rawCaptureSelection.profile);
       assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
@@ -76,13 +91,13 @@ function runtime(config) {
   };
   config.fetch = (url, init) => {
     counts.sends++; assert.equal(url, 'https://fixture.invalid/chat');
-    assert.equal(init.body, body); assert.equal(init.redirect, 'error');
-    assert.deepEqual(init.headers, [['authorization', 'Bearer fixture-only']]);
+    assert.equal((init as RequestInit).body, body); assert.equal((init as RequestInit).redirect, 'error');
+    assert.deepEqual((init as RequestInit).headers, [['authorization', 'Bearer fixture-only']]);
     return new Response('{}', {headers: {'content-type': 'application/json'}});
   };
-  return {moon, counts, request, provider, entry};
+  return {moon: moon as Runtime, counts, request, provider, entry};
 }
-async function until(read, accept) {
+async function until<Value>(read: () => Value, accept: (value: Value) => unknown): Promise<Value> {
   for (let i = 0; i < 40; i++) { const value = read(); if (accept(value)) return value; await turn(); }
   assert.fail('Finite independent installed HTTP observation unavailable');
 }
@@ -94,10 +109,10 @@ test('SDK-free facade installs the existing exclusive async registration with no
   assert.equal(Object.hasOwn(declaration, 'invoke'), false);
   assert.equal(declaration.entryPersistence, 'async');
   assert.equal(declaration.rawCaptureSelection, config.rawCaptureSelection);
-  const installed = installModelProviders(f.moon, register).get(config.providerId);
-  assert.equal(installed.rawCaptureSelection.installation.sdk, undefined);
-  assert.equal(installed.validatePrompt(cid('1'), 'http-fixture', config.promptPayloadWire), true);
-  assert.equal(installed.validatePrompt(cid('1'), 'http-fixture', config.promptPayloadWire + ' '), false);
+  const installed = installModelProviders(f.moon, register as unknown as HostRegistration).get(config.providerId);
+  assert.equal(installed!.rawCaptureSelection!.installation.sdk, undefined);
+  assert.equal(installed!.validatePrompt(cid('1'), 'http-fixture', config.promptPayloadWire), true);
+  assert.equal(installed!.validatePrompt(cid('1'), 'http-fixture', config.promptPayloadWire + ' '), false);
   assert.deepEqual(f.counts, {installs: 1, projections: 0, sends: 0});
 });
 
@@ -107,38 +122,38 @@ test('installed HTTP preflight keeps original endpoint headers selectors and raw
   config.endpoint = 'https://other.invalid/chat'; config.headers[0][1] = 'replacement';
   config.modelId = 'replacement'; config.requestLimits.maxBytes = 1;
   config.projectionLimits.maxWork = 0;
-  const installed = installModelProviders(f.moon, register).get('models/http-fixture');
-  let bind;
-  const preflight = installed.physicalPreflight(f.request, createInferIoNotification(),
-    callback => { bind = callback; }, f.provider);
+  const installed = installModelProviders(f.moon, register as unknown as HostRegistration).get('models/http-fixture');
+  let bind!: Bind;
+  const preflight = installed!.physicalPreflight!(f.request, createInferIoNotification(),
+    (callback: Bind) => { bind = callback; }, f.provider) as FixturePreflight;
   t.after(() => until(() => preflight.cleanup(), x => x));
   const plan = preflight.advance()._1;
   assert.equal(f.counts.sends, 0);
-  let raw;
-  const persistence = async (call, originalRaw) => { raw = originalRaw; return {response: {call, raw}}; };
+  let raw: Raw | undefined;
+  const persistence = async (call: unknown, originalRaw: Raw) => { raw = originalRaw; return {response: {call, raw}}; };
   persistence.cleanup = () => true;
   bind({}, persistence);
-  const call = plan.start(f.entry);
+  const call = plan.start(f.entry)!;
   const saved = await until(() => call.poll(), x => x.kind === 'saved');
-  assert.equal(saved.response.raw, raw);
-  assert.equal(raw.transportComplete, true);
+  assert.equal((saved as Extract<Poll,{kind:'saved'}>).response.raw, raw);
+  assert.equal(raw!.transportComplete, true);
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.counts.sends, 1);
   assert.equal(f.counts.projections, 1);
 });
 
 test('missing originals foreign profile or an external SDK refuse before provider installation', () => {
-  for (const change of [config => { config.originalReadInstallation = undefined; },
-    config => { config.rawCaptureSelection = undefined; },
-    ...[undefined, null].map(profile => config => {
+  for (const change of [(config: Configuration) => { config.originalReadInstallation = undefined as unknown as Configuration['originalReadInstallation']; },
+    (config: Configuration) => { config.rawCaptureSelection = undefined as unknown as Configuration['rawCaptureSelection']; },
+    ...[undefined, null].map(profile => (config: Configuration) => {
       config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection, profile});
       const original = config.originalReadInstallation;
       config.originalReadInstallation = Object.freeze({...original,
         nodeInstallation: Object.freeze({...original.nodeInstallation,
           layout: Object.freeze({...original.nodeInstallation.layout, response_profile: profile})})});
     }),
-    config => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection, profile: {}}); },
-    config => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection,
+    (config: Configuration) => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection, profile: {}}); },
+    (config: Configuration) => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection,
       installation: Object.freeze({...config.rawCaptureSelection.installation, sdk: {package_name: 'foreign'}})}); }]) {
     const config = configuration(), f = runtime(config); change(config);
     assert.throws(() => createInstalledHttpChatRegistration(config), /HTTPChatOriginalInstallation/u);
@@ -169,11 +184,11 @@ test('missing Common runtime or original physical context refuses without projec
   for (const name of ['clientProgramProjectHTTPChatRequest', 'clientProgramModelResponseProfileTransportMatches']) {
     assert.throws(() => register({...f.moon, [name]: undefined}), /HTTPChatOriginalRuntimeUnavailable/u);
   }
-  const installed = installModelProviders(f.moon, register).get(config.providerId);
+  const installed = installModelProviders(f.moon, register as unknown as HostRegistration).get(config.providerId);
   for (const args of [[f.request, {}, () => {}, f.provider],
     [f.request, createInferIoNotification(), undefined, f.provider],
     [f.request, createInferIoNotification(), () => {}, undefined]]) {
-    assert.throws(() => installed.physicalPreflight(...args), /HTTPChatOriginalPhysicalContextUnavailable/u);
+    assert.throws(() => installed!.physicalPreflight!(...args), /HTTPChatOriginalPhysicalContextUnavailable/u);
   }
   assert.equal(f.counts.projections, 0); assert.equal(f.counts.sends, 0);
 });
@@ -196,8 +211,8 @@ test('HTTP facade preserves explicit SDK null without treating absence as a comp
   const config = configuration(), f = runtime(config);
   config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection,
     installation: Object.freeze({...config.rawCaptureSelection.installation, sdk: null})});
-  const installed = installModelProviders(f.moon, createInstalledHttpChatRegistration(config)).get(config.providerId);
-  assert.equal(installed.rawCaptureSelection.installation.sdk, null);
+  const installed = installModelProviders(f.moon, createInstalledHttpChatRegistration(config) as unknown as HostRegistration).get(config.providerId);
+  assert.equal(installed!.rawCaptureSelection!.installation.sdk, null);
   assert.equal(f.counts.projections, 0); assert.equal(f.counts.sends, 0);
 });
 
@@ -220,14 +235,14 @@ test('header array and pair keep the inspected DATA without Proxy property callb
 
 test('HTTP facade refuses a combined projection key before registration', () => {
   const config = configuration(), f = runtime(config);
-  config.projectionLimits = {'maxBytes,maxDepth': 4096, maxFrames: 32, maxNodes: 256, maxWork: 4096};
+  config.projectionLimits = {'maxBytes,maxDepth': 4096, maxFrames: 32, maxNodes: 256, maxWork: 4096} as unknown as Configuration['projectionLimits'];
   assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatProjection/u);
   assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
 });
 
 test('HTTP facade refuses a combined request key before registration', () => {
   const config = configuration(), f = runtime(config);
-  config.requestLimits = {'maxBytes,maxHeaderBytes': 4096, maxHeaders: 4};
+  config.requestLimits = {'maxBytes,maxHeaderBytes': 4096, maxHeaders: 4} as unknown as Configuration['requestLimits'];
   assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatRequestLimits/u);
   assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
 });

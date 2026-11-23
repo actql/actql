@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOriginalHttpChatRequest} from './_internal/original-chat-request.mjs';
 
+type Projection = Parameters<typeof prepareOriginalHttpChatRequest>[0];
+
 const limits = {maxBytes: 4096, maxNodes: 256, maxDepth: 16, maxFrames: 32, maxWork: 4096};
 function fixture() {
   const request = {}, provider = {}, body = '{"model":"fixture","n":1,"stream":false}';
   let calls = 0;
-  const moon = {clientProgramProjectHTTPChatRequest(p, r, model, ...bounds) {
+  const moon: Projection['moon'] = {clientProgramProjectHTTPChatRequest(p, r, model, ...bounds) {
     calls++; assert.equal(p, provider); assert.equal(r, request);
     assert.equal(model, 'fixture');
     assert.deepEqual(bounds, [4096, 256, 16, 32, 4096]);
@@ -26,7 +28,7 @@ test('independent HTTP preparation consumes original Common arguments and body u
   assert.equal(f.calls(), 1);
 });
 test('independent HTTP preparation rejects every changed semantic binding', () => {
-  for (const name of ['taskCid', 'promptCid', 'outputSchemaCid', 'modelSelector']) {
+  for (const name of ['taskCid', 'promptCid', 'outputSchemaCid', 'modelSelector'] as const) {
     const f = fixture();
     assert.throws(() => prepareOriginalHttpChatRequest({...f.args, [name]: 'foreign'}),
       /HTTPChatOriginalBindingMismatch/);

@@ -5,18 +5,33 @@ import {createServer} from 'node:http';
 import {createHttpChatPreflight} from './_internal/model-port.mjs';
 import {createInferIoNotification, claimInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
 
-async function until(read, accept) {
+import type {AddressInfo} from 'node:net';
+
+type Input = Parameters<typeof createHttpChatPreflight>[0];
+type Persist = NonNullable<Input['persistRaw']>;
+type Raw = Parameters<Persist>[1];
+type FixtureRead = {done: true} | {done: false; value: Uint8Array};
+type Bind = Parameters<NonNullable<Input['rawCaptureBinder']>>[0];
+type Poll = {kind: 'pending' | 'unknown'} | {kind: 'chat'; response: unknown};
+type Call = {poll(): Poll; cancel(): void; cleanup(): boolean};
+type Plan = {start(entry: unknown): Call | undefined};
+type Port = Omit<ReturnType<typeof createHttpChatPreflight>,'preflight' | 'readReconciledUsage'> & {
+  preflight: {advance(): {_0: boolean; _1?: Plan}; cleanup(): boolean};
+  readReconciledUsage(original: unknown, quantum: number): {view: unknown};
+};
+
+async function until<Value>(read: () => Value, accept: (value: Value) => unknown): Promise<Value> {
   for (let i=0;i<80;i++) { const value=read(); if(accept(value))return value; await turn(); }
   assert.fail('Finite original HTTP physical observation not reached');
 }
 const body='{"model":"fixture","n":1,"stream":false}';
 const wire='{"id":"observed","choices":[{"index":0,"message":{"content":"{\\"ok\\":true}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":0}}';
 const bytes=new TextEncoder().encode(wire);
-function fixture(extra={}) {
+function fixture(extra: Partial<Input>={}) {
   const request={},provider={},entry={},saved=Object.freeze({originalSaved: true});
   const responseProfile = {};
-  let sends=0,saves=0,cleanupAllowed=false,lastRaw;
-  const moon={
+  let sends=0,saves=0,cleanupAllowed=false,lastRaw: Raw | undefined;
+  const moon: Input['moon']={
     clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
       assert.strictEqual(profile, responseProfile);
       assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
@@ -40,7 +55,7 @@ function fixture(extra={}) {
     clientProgramModelPhysicalSavedChat:response=>({kind:'chat',response}),
     clientProgramReadReconciledInferRawUsage:(call,view,quantum)=>({call,view,quantum}),
   };
-  const args={moon,admittedProvider:provider,request,modelId:'fixture',
+  const args: Input={moon,admittedProvider:provider,request,modelId:'fixture',
     taskCid:'task',promptCid:'prompt',outputSchemaCid:'schema',modelSelector:'selector',
     projectionLimits:{maxBytes:4096,maxNodes:256,maxDepth:16,maxFrames:32,maxWork:4096},
     endpoint:'https://fixture.invalid/chat',headers:[['content-type','application/json']],
@@ -48,17 +63,17 @@ function fixture(extra={}) {
     responseLimits:{maxBytes:512,maxChunkBytes:512,maxChunks:2,maxHeaderBytes:64,
       observedHeaders:['content-type']},profile:responseProfile,installation:{sdk:undefined},
     quantities:{tokens:16n,costUnits:0n,durationMs:1n},
-    fetch(endpoint,init){sends++;assert.equal(init.body,body);assert.equal(init.redirect,'error');
+    fetch(endpoint,init){sends++;assert.equal((init as RequestInit).body,body);assert.equal((init as RequestInit).redirect,'error');
       return Promise.resolve(new Response(bytes,{headers:{'content-type':'application/json'}}));},
     persistRaw(call,raw){saves++;lastRaw=raw;return Promise.resolve({response:saved});},
     cleanupRaw:()=>cleanupAllowed,notify(){},observeAt:()=> '2026-10-13T00:00:00Z',checked:value=>value,
     ...extra,
   };
-  const port=createHttpChatPreflight(args);
+  const port=createHttpChatPreflight(args) as Port;
   return {args,port,entry,saved,sends:()=>sends,saves:()=>saves,raw:()=>lastRaw,
     allowCleanup(){cleanupAllowed=true;}};
 }
-async function finish(f){f.allowCleanup();await until(()=>f.port.preflight.cleanup(),v=>v===true);}
+async function finish(f: ReturnType<typeof fixture>){f.allowCleanup();await until(()=>f.port.preflight.cleanup(),v=>v===true);}
 
 // Common/Entry/saved view are explicit boundary doubles. Node HTTP, bounded
 // reader, original raw buffers and physical cleanup execute for real; no
@@ -67,7 +82,7 @@ test('direct HTTP physical preflight refuses admitted bound mismatch before proj
   const f = fixture();
   t.after(() => finish(f));
   let matches = 0, projections = 0, bindings = 0;
-  const moon = {...f.args.moon,
+  const moon: Input['moon'] = {...f.args.moon,
     clientProgramProjectHTTPChatRequest() { projections++; assert.fail('No projection before admission'); },
     clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
       matches++;
@@ -85,31 +100,31 @@ test('direct HTTP physical preflight refuses admitted bound mismatch before proj
 
 test('independent HTTP physical plan freezes request, starts once, saves same raw before release',async t=>{
   const f=fixture();t.after(()=>finish(f));
-  const plan=f.port.preflight.advance()._1;
-  assert.equal(f.sends(),0);const call=plan.start(f.entry);
+  const plan=f.port.preflight.advance()._1!;
+  assert.equal(f.sends(),0);const call=plan.start(f.entry)!;
   assert.equal(plan.start(f.entry),undefined);
   const result=await until(()=>call.poll(),v=>v.kind==='chat');
-  assert.equal(result.response,f.saved);assert.equal(f.sends(),1);assert.equal(f.saves(),1);
-  assert.deepEqual(f.raw().body,bytes);assert.equal(f.raw().body.buffer.byteLength,512);
-  assert.equal(f.raw().transportComplete,true);
+  assert.equal((result as Extract<Poll,{kind:'chat'}>).response,f.saved);assert.equal(f.sends(),1);assert.equal(f.saves(),1);
+  assert.deepEqual(f.raw()!.body,bytes);assert.equal(f.raw()!.body.buffer.byteLength,512);
+  assert.equal(f.raw()!.transportComplete,true);
   assert.equal(call.cleanup(),false);call.cancel();assert.equal(call.cleanup(),false);
 });
 test('independent HTTP cancelled prefix remains incomplete while original read retains cleanup', async t => {
-  let finishRead;
-  let finishCancel;
+  let finishRead!: (value: FixtureRead) => void;
+  let finishCancel!: () => void;
   let reads = 0;
   let releases = 0;
   let sends = 0;
-  let raw;
+  let raw: Raw | undefined;
   const f = fixture({fetch() {
     sends++;
     return {status: 503, headers: new Headers(), body: {getReader() { return {
       read() {
         reads++;
         if (reads === 1) return Promise.resolve({done: false, value: new Uint8Array([65])});
-        return new Promise(resolve => { finishRead = resolve; });
+        return new Promise<FixtureRead>(resolve => { finishRead = resolve; });
       },
-      cancel() { return new Promise(resolve => { finishCancel = resolve; }); },
+      cancel() { return new Promise<void>(resolve => { finishCancel = resolve; }); },
       releaseLock() { releases++; },
     }; }}};
   }, persistRaw(call, value) { raw = value; return Promise.resolve({response: f.saved}); }});
@@ -117,16 +132,16 @@ test('independent HTTP cancelled prefix remains incomplete while original read r
     finishRead?.({done: true}); finishCancel?.();
     await finish(f);
   });
-  const plan = f.port.preflight.advance()._1;
-  const call = plan.start(f.entry);
+  const plan = f.port.preflight.advance()._1!;
+  const call = plan.start(f.entry)!;
   await until(() => finishRead, value => typeof value === 'function');
   call.cancel();
   await until(() => { call.poll(); return raw; }, value => value !== undefined);
-  assert.deepEqual(raw.body, new Uint8Array([65]));
-  assert.equal(raw.observedBytes, 1);
-  assert.equal(raw.transportComplete, false);
-  assert.equal(raw.issue, 'InferResponseReadCancelled');
-  assert.equal(raw.status, 503);
+  assert.deepEqual(raw!.body, new Uint8Array([65]));
+  assert.equal(raw!.observedBytes, 1);
+  assert.equal(raw!.transportComplete, false);
+  assert.equal(raw!.issue, 'InferResponseReadCancelled');
+  assert.equal(raw!.status, 503);
   assert.equal(call.cleanup(), false);
   finishCancel();
   for (let i = 0; i < 4; i++) await turn();
@@ -138,27 +153,27 @@ test('independent HTTP cancelled prefix remains incomplete while original read r
   assert.equal(reads, 2);
   assert.equal(sends, 1);
   assert.equal(plan.start(f.entry), undefined);
-  assert.deepEqual(raw.body, new Uint8Array([65]));
-  assert.equal(raw.transportComplete, false);
+  assert.deepEqual(raw!.body, new Uint8Array([65]));
+  assert.equal(raw!.transportComplete, false);
 });
 test('independent HTTP save backpressure retains raw and cancel is not cleanup ACK',async t=>{
-  let completeSave,saves=0,raw;
-  const waiting=new Promise(resolve=>{completeSave=resolve;});
+  let completeSave!: (value: {response: unknown}) => void,saves=0,raw: Raw | undefined;
+  const waiting=new Promise<{response: unknown}>(resolve=>{completeSave=resolve;});
   const f=fixture({persistRaw(call,value){saves++;raw=value;return waiting;}});
   t.after(async()=>{completeSave({response:f.saved});await finish(f);});
-  const call=f.port.preflight.advance()._1.start(f.entry);
+  const call=f.port.preflight.advance()._1!.start(f.entry)!;
   await until(()=>{call.poll();return saves;},v=>v===1);
-  assert.deepEqual(raw.body,bytes);assert.equal(call.cleanup(),false);
+  assert.deepEqual(raw!.body,bytes);assert.equal(call.cleanup(),false);
   call.cancel();assert.equal(call.poll().kind,'pending');assert.equal(call.cleanup(),false);
   completeSave({response:f.saved});
   await until(()=>call.poll(),v=>v.kind==='chat');assert.equal(f.sends(),1);
 });
 test('independent HTTP unknown save preserves one stable explicit reconciliation and never resends',async t=>{
-  const failure=Error('OriginalStoreUnavailable');let saves=0,raw;
+  const failure=Error('OriginalStoreUnavailable');let saves=0,raw: Raw | undefined;
   const f=fixture({persistRaw(call,value){saves++;if(raw!==undefined)assert.equal(value,raw);
     raw=value;return saves===1?Promise.reject(failure):Promise.resolve({response:f.saved});}});
   t.after(()=>finish(f));
-  const call=f.port.preflight.advance()._1.start(f.entry);
+  const call=f.port.preflight.advance()._1!.start(f.entry)!;
   await until(()=>call.poll(),v=>v.kind==='unknown');assert.equal(f.port.rawFailure(),failure);
   assert.equal(call.cleanup(),false);
   const first=f.port.reconcileRaw(call);const second=f.port.reconcileRaw(call);
@@ -171,15 +186,15 @@ test('independent HTTP unknown save preserves one stable explicit reconciliation
 test('independent HTTP transport throw remains original unknown and one attempted start',async t=>{
   let attempts=0;
   const f=fixture({fetch(){attempts++;throw Error('UnconfirmedTransmission');}});
-  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1;const call=plan.start(f.entry);
+  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1!;const call=plan.start(f.entry)!;
   await until(()=>call.poll(),v=>v.kind==='unknown');
   assert.equal(plan.start(f.entry),undefined);assert.equal(attempts,1);assert.equal(f.saves(),0);
 });
 test('independent HTTP deferred raw binding cannot regain a consumed missing-binding attempt',async t=>{
-  let bind;
+  let bind!: Bind;
   const f=fixture({persistRaw:undefined,cleanupRaw:undefined,
     rawCaptureBinder(callback){bind=callback;}});
-  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1;
+  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1!;
   assert.equal(plan.start(f.entry),undefined);assert.equal(f.sends(),0);
   const persistence=()=>Promise.resolve({response:f.saved});persistence.cleanup=()=>true;
   bind({},persistence);assert.equal(plan.start(f.entry),undefined);assert.equal(f.sends(),0);
@@ -203,8 +218,8 @@ test('independent HTTP cancellation before preparation sends zero and keeps fini
 });
 test('independent HTTP cancellation after preparation before entered start sends zero',async t=>{
   const controller=new AbortController();const f=fixture({signal:controller.signal});
-  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1;
-  controller.abort();const call=plan.start(f.entry);
+  t.after(()=>finish(f));const plan=f.port.preflight.advance()._1!;
+  controller.abort();const call=plan.start(f.entry)!;
   assert.equal(f.sends(),0);
   assert.equal(call.poll().kind,'unknown','local cancellation cannot reclassify an entered attempt');
   assert.equal(plan.start(f.entry),undefined);
@@ -219,25 +234,25 @@ test('independent HTTP uses two explicitly authorized loopback fixture endpoints
       req.on('end',()=>{assert.equal(input,body);res.writeHead(200,{'content-type':'application/json'});
         res.end(JSON.stringify({id:tag,choices:[{index:0,message:{content:'{"ok":true}'},finish_reason:'stop'}]}));});
     });
-    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
-    t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
-    const endpoint=`http://127.0.0.1:${server.address().port}/chat`;
+    await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+    t.after(()=>new Promise<Error | undefined>(resolve=>{server.close(resolve);server.closeAllConnections();}));
+    const endpoint=`http://127.0.0.1:${(server.address() as AddressInfo).port}/chat`;
     const notification=createInferIoNotification();
     const wake=claimInferIoNotification(notification);t.after(()=>wake.close());
-    let raw;
-    const f=fixture({endpoint,fetch:(url,init)=>{assert.equal(url,endpoint);return nativeFetch(url,init);},
+    let raw: Raw | undefined;
+    const f=fixture({endpoint,fetch:(url,init)=>{assert.equal(url,endpoint);return nativeFetch(url,init as RequestInit);},
       notify:notification.notify,
       persistRaw(call,value){raw=value;return Promise.resolve({response:f.saved});}});
-    t.after(()=>finish(f));const call=f.port.preflight.advance()._1.start(f.entry);
+    t.after(()=>finish(f));const call=f.port.preflight.advance()._1!.start(f.entry)!;
     let result;
     for(let i=0;i<8;i++) {
       const ticket=wake.arm();
       try {result=call.poll();if(result.kind==='chat')break;await ticket.promise;}
       finally {ticket.dispose();}
     }
-    assert.equal(result.kind,'chat');
-    assert.equal(requests,1);assert.equal(raw.status,200);assert.equal(raw.transportComplete,true);
-    assert.equal(JSON.parse(new TextDecoder().decode(raw.body)).id,tag);
+    assert.equal(result!.kind,'chat');
+    assert.equal(requests,1);assert.equal(raw!.status,200);assert.equal(raw!.transportComplete,true);
+    assert.equal(JSON.parse(new TextDecoder().decode(raw!.body)).id,tag);
     await finish(f);
   }
 });

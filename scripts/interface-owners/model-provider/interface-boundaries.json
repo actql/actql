@@ -249,7 +249,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -289,7 +289,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -500,7 +500,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -540,7 +540,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -933,7 +933,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -973,7 +973,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1117,7 +1117,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1157,7 +1157,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1462,7 +1462,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1502,7 +1502,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1678,7 +1678,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1722,7 +1722,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1980,7 +1980,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2020,7 +2020,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2259,7 +2259,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2299,7 +2299,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2631,7 +2631,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2671,7 +2671,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2789,7 +2789,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2829,7 +2829,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -3142,7 +3142,7 @@
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -3182,7 +3182,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -3252,7 +3252,7 @@
             },
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -3278,7 +3278,7 @@
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {

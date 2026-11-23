@@ -4,17 +4,27 @@ import {createHash} from 'node:crypto';
 import {canonicalJson} from '../sdk/host-port.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
-const cid = c => `sha256:${c.repeat(64)}`;
-const body = value => {
+type ProfileVector = Readonly<{cases: readonly Readonly<{wire: string}>[]}>;
+type ResponseProfile = Readonly<{
+  self_cid: string; adapter: Readonly<Record<'builder_id' | 'builder_revision' | 'codec_id' |
+    'codec_revision' | 'build_artifact_cid', string> & {sdk: unknown}>;
+  operation: Readonly<{endpoint: string}>;
+  completion: Readonly<Record<'validator_id' | 'validator_revision' | 'validator_artifact_cid', string>>;
+  task: Readonly<{contract_cid: string; output_schema_cid: string}>;
+  limits: Readonly<Record<'request_bytes' | 'response_bytes' | 'chunk_bytes' | 'chunks' | 'header_bytes', number>>;
+}>;
+
+const cid = (c: string) => `sha256:${c.repeat(64)}`;
+const body = (value: unknown) => {
   const wire = canonicalJson(value, {dataKeys: true});
   return {wire, cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`};
 };
 
 export function httpMaterialsConfiguration() {
   // An existing independent SDK-free vector, not a numerical/physical grant.
-  const vector = JSON.parse(readFileSync(new URL(
-    '../../portability/corpus/model-response-profiles.json', import.meta.url))).cases[0];
-  const p = JSON.parse(vector.wire);
+  const vector = (JSON.parse(readFileSync(new URL(
+    '../../portability/corpus/model-response-profiles.json', import.meta.url)) as unknown as string) as ProfileVector).cases[0];
+  const p = JSON.parse(vector.wire) as ResponseProfile;
   assert.equal(p.adapter.sdk, null);
   const installation = {builder_id:p.adapter.builder_id, builder_revision:p.adapter.builder_revision,
     codec_id:p.adapter.codec_id, codec_revision:p.adapter.codec_revision,
@@ -22,8 +32,9 @@ export function httpMaterialsConfiguration() {
     http_method:'POST', streaming:false, validator_id:p.completion.validator_id,
     validator_revision:p.completion.validator_revision,
     validator_artifact_cid:p.completion.validator_artifact_cid, completion_basis:'generation_finish'};
-  const policies = {};
-  for (const name of ['retention', 'metadata', 'clock']) {
+  const policies = {} as {retention: ReturnType<typeof body>; metadata: ReturnType<typeof body>;
+    clock?: ReturnType<typeof body>; data: ReturnType<typeof body>};
+  for (const name of ['retention', 'metadata', 'clock'] as const) {
     policies[name] = body({name:`http-${name}`, version:'actql-installed-local-policy/0.1'});
   }
   policies.data = body({classification:'unknown', source_data_policy_cids:[],

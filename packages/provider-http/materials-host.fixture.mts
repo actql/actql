@@ -4,20 +4,22 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {httpMaterialsConfiguration} from './original-materials.fixture.mjs';
 import {createInstalledHttpChatRegistration} from './index.mjs';
+// @ts-expect-error Remove when the embedded Local Host source is migrated to TypeScript.
 import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';
 
 const register = createInstalledHttpChatRegistration(httpMaterialsConfiguration());
-const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+const moon: unknown = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 const root = await mkdtemp(join(tmpdir(), 'actql-http-materials-host-'));
-let host, callbacks = 0, completed = false;
+let host: {close(): Promise<unknown>} | undefined, callbacks = 0, completed = false;
 try {
-  const options = {directory:root, authenticate:() => 'owner', registerModelProviders:actual => {
+  const options = {directory:root, authenticate:() => 'owner', registerModelProviders:(actual: Parameters<typeof register>[0]) => {
     callbacks++; assert.strictEqual(actual, moon); return register(actual);
   }};
   host = await openInstalledRemoteHttpHost(options);
-  await host.close(); await host.close(); host = undefined;
+  await host!.close(); await host!.close(); host = undefined;
   await assert.rejects(openInstalledRemoteHttpHost(options), error =>
-    error.message === 'HTTPOriginalInstallationReused' || error.cause?.message === 'HTTPOriginalInstallationReused');
+    (error as Error).message === 'HTTPOriginalInstallationReused' || ((error as Error).cause as Error | undefined)?.message === 'HTTPOriginalInstallationReused');
   assert.equal(callbacks, 2);
   completed = true;
 } finally {

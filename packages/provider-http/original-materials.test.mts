@@ -6,15 +6,24 @@ import {createInstalledHttpChatRegistration} from './index.mjs';
 import {httpMaterialsConfiguration as configuration} from './original-materials.fixture.mjs';
 import {installModelProviders} from '../../adapters/host-node/installed-model.mjs';
 
-const cid = c => `sha256:${c.repeat(64)}`;
-function runtime(config) {
-  const calls = [];
+type Configuration = ReturnType<typeof configuration>;
+type InstalledRuntime = Parameters<typeof installModelProviders>[0];
+type HostRegistration = NonNullable<Parameters<typeof installModelProviders>[1]>;
+type Register = ReturnType<typeof createInstalledHttpChatRegistration>;
+type Runtime = InstalledRuntime & Parameters<Register>[0];
+type ProviderLayout = Readonly<{nodeInstallation: {layout: {response_profile: unknown}}}>;
+type SDKInstallation = Readonly<{sdk: unknown}>;
+type CommonBinding = Runtime & {clientProgramModelRawSelectionOriginals(...originals: unknown[]): unknown[]};
+
+const cid = (c: string) => `sha256:${c.repeat(64)}`;
+function runtime(config: Configuration) {
+  const calls: unknown[][] = [];
   const profile = Object.freeze({runtimeOwnedDouble:{}});
   const moon = Object.fromEntries(['clientProgramProjectHTTPChatRequest',
     'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan',
     'clientProgramModelPhysicalCallForRequest','clientProgramModelPhysicalPending',
     'clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat']
-    .map(name => [name, () => assert.fail('No Model, physical selector or Entry')]));
+    .map(name => [name, () => assert.fail('No Model, physical selector or Entry')])) as Record<string,(...args: unknown[]) => unknown>;
   moon.clientProgramInstallAsyncModelProvider = () => ({});
   moon.clientProgramReadModelResponseProfile = (...args) => {
     calls.push(['profile', ...args]); return {$tag:1,_0:profile};
@@ -28,7 +37,7 @@ function runtime(config) {
       config.responseLimits.maxChunkBytes, config.responseLimits.maxChunks, config.responseLimits.maxHeaderBytes]);
     return true;
   };
-  return {moon, calls, profile};
+  return {moon: moon as Runtime, calls, profile};
 }
 
 test('HTTP materials snapshot original DATA once and use only the Host callback runtime', () => {
@@ -42,13 +51,13 @@ test('HTTP materials snapshot original DATA once and use only the Host callback 
   supplied.responseProfile.wire = '{}';
   config.headers[0][1] = 'replacement';
   config.projectionLimits.maxWork = 0;
-  const installed = installModelProviders(f.moon, register).get(config.providerId);
+  const installed = installModelProviders(f.moon, register as unknown as HostRegistration).get(config.providerId);
   assert.equal(gets, 0);
   assert.equal(f.calls.length, 5);
   assert.equal(f.calls[0][1], wire);
-  assert.strictEqual(installed.rawCaptureSelection.profile, f.profile);
-  assert.strictEqual(installed.originalReadInstallation.nodeInstallation.layout.response_profile, f.profile);
-  assert.equal(installed.rawCaptureSelection.installation.sdk, null);
+  assert.strictEqual(installed!.rawCaptureSelection!.profile, f.profile);
+  assert.strictEqual((installed!.originalReadInstallation as ProviderLayout).nodeInstallation.layout.response_profile, f.profile);
+  assert.equal((installed!.rawCaptureSelection!.installation as SDKInstallation).sdk, null);
   assert.throws(() => register(f.moon), /HTTPOriginalInstallationReused/u);
   assert.throws(() => register({...f.moon}), /HTTPOriginalInstallationReused/u);
 });
@@ -57,21 +66,21 @@ test('HTTP missing runtime does not spend the callback or start partial admissio
   const config = configuration(), f = runtime(config);
   const register = createInstalledHttpChatRegistration(config);
   for (const missing of [null, undefined, {}]) {
-    assert.throws(() => register(missing), /HTTPChatOriginalRuntimeUnavailable/u);
+    assert.throws(() => register(missing as Runtime), /HTTPChatOriginalRuntimeUnavailable/u);
   }
   assert.equal(f.calls.length, 0);
   assert.ok(register(f.moon)[0]);
 });
 
 test('HTTP closed materials reject missing policies opaque mixtures accessors and fake SDKs', () => {
-  for (const change of [c => delete c.originalMaterials.policyOriginals.clock,
-    c => {c.rawCaptureSelection = {};}, c => {c.originalReadInstallation = {};},
-    c => {c.originalMaterials.rawCaptureSelection.profile = {};},
-    c => {c.originalMaterials.installation.sdk = {};},
-    c => {c.originalMaterials.installation.sdk = undefined;},
-    c => {Object.defineProperty(c.originalMaterials.responseProfile, 'wire',
+  for (const change of [(c: Configuration) => delete c.originalMaterials.policyOriginals.clock,
+    (c: Configuration) => {(c as Configuration & {rawCaptureSelection: object}).rawCaptureSelection = {};}, (c: Configuration) => {(c as Configuration & {originalReadInstallation: object}).originalReadInstallation = {};},
+    (c: Configuration) => {(c.originalMaterials.rawCaptureSelection as {profile?: object}).profile = {};},
+    (c: Configuration) => {(c.originalMaterials.installation as {sdk: unknown}).sdk = {};},
+    (c: Configuration) => {(c.originalMaterials.installation as {sdk: unknown}).sdk = undefined;},
+    (c: Configuration) => {Object.defineProperty(c.originalMaterials.responseProfile, 'wire',
       {get() {assert.fail('Do not invoke body accessors');}, enumerable:true});},
-    c => {c.originalMaterials[Symbol('extra')] = 1;}]) {
+    (c: Configuration) => {(c.originalMaterials as Record<symbol, unknown>)[Symbol('extra')] = 1;}]) {
     const config = configuration(); change(config);
     assert.throws(() => createInstalledHttpChatRegistration(config), TypeError);
   }
@@ -94,7 +103,7 @@ test('HTTP material refusal spends only the original callback and never falls ba
 test('HTTP material quantities and parser bounds preserve their finite domains', () => {
   for (const value of [-1n, 9223372036854775808n, 1, '1']) {
     const config = configuration();
-    config.originalMaterials.originalReadInstallation.nodeInstallation.layout.prepared_rows = value;
+    (config.originalMaterials.originalReadInstallation.nodeInstallation.layout as {prepared_rows: unknown}).prepared_rows = value;
     assert.throws(() => createInstalledHttpChatRegistration(config), {code:'InvalidHTTPOriginalMaterials'});
   }
   const config = configuration(); config.originalMaterials.readerLimits.maxNodes = 2147483648;
@@ -102,24 +111,25 @@ test('HTTP material quantities and parser bounds preserve their finite domains',
 });
 
 test('actual HTTP Common readers bind original wire CID policies and finite acquisition limits', async () => {
-  const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
-  const installed = installModelProviders(moon, createInstalledHttpChatRegistration(configuration()))
+  const moon: CommonBinding = await import(new URL(
+    '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+  const installed = installModelProviders(moon, createInstalledHttpChatRegistration(configuration()) as unknown as HostRegistration)
     .get('models/http-materials');
-  assert.strictEqual(installed.rawCaptureSelection.profile,
-    installed.originalReadInstallation.nodeInstallation.layout.response_profile);
+  assert.strictEqual(installed!.rawCaptureSelection!.profile,
+    (installed!.originalReadInstallation as ProviderLayout).nodeInstallation.layout.response_profile);
   assert.equal(moon.clientProgramModelRawSelectionOriginals(...['retention','metadata','clock','data']
-    .map(name => installed.rawCaptureSelection[name])).length, 4);
-  for (const change of [c => {c.originalMaterials.responseProfile.cid = cid('0');},
-    c => {c.originalMaterials.responseProfile.wire = '{}';},
-    c => {c.originalMaterials.policyOriginals.clock.cid = cid('0');},
-    c => {c.originalMaterials.readerLimits.maxBytes = 1;},
-    c => {c.originalMaterials.readerLimits.maxWork = 1;}]) {
+    .map(name => installed!.rawCaptureSelection![name as 'retention' | 'metadata' | 'clock' | 'data'])).length, 4);
+  for (const change of [(c: Configuration) => {c.originalMaterials.responseProfile.cid = cid('0');},
+    (c: Configuration) => {c.originalMaterials.responseProfile.wire = '{}';},
+    (c: Configuration) => {c.originalMaterials.policyOriginals.clock!.cid = cid('0');},
+    (c: Configuration) => {c.originalMaterials.readerLimits.maxBytes = 1;},
+    (c: Configuration) => {c.originalMaterials.readerLimits.maxWork = 1;}]) {
     const config = configuration(); change(config);
     assert.throws(() => createInstalledHttpChatRegistration(config)(moon), {code:'HTTPOriginalMaterialsRefused'});
   }
   for (const [section, key] of [['requestLimits','maxBytes'], ['responseLimits','maxBytes'],
     ['responseLimits','maxChunkBytes'], ['responseLimits','maxChunks'], ['responseLimits','maxHeaderBytes']]) {
-    const config = configuration(); config[section][key]++;
+    const config = configuration(); (config[section as 'requestLimits' | 'responseLimits'] as Record<string, number>)[key]++;
     assert.throws(() => createInstalledHttpChatRegistration(config)(moon), /HTTPChatOriginalTransportLimitsMismatch/u);
   }
 });
