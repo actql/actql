@@ -5,5 +5,5 @@ const QueryClockDate = Date;
 const queryClockIso = Date.prototype.toISOString;
 const queryClockApply = Reflect.apply;
 
-export const sampleOriginalQueryTime = () =>
+export const sampleOriginalQueryTime = (): string =>
   queryClockApply(queryClockIso, new QueryClockDate(), []);

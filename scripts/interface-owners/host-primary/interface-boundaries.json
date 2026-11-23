@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "0b4e137d617e07a3ddb1c4f8b57a387fa76ed722c8ae7e7d73bcef0ac6d47a2b",
+      "sha256": "3b08b1ed4bf0a4ace99c9984862d4beac9d026526bc1e4378aa713c56feba4fa",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32473,13 +32473,6 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "effectPublicationAdmission/selectRetention/selectRetention",
           "parameters": [],
           "async": false
@@ -32551,29 +32544,6 @@
           "parameters": [
             "unit",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareTimedClientInvocation",
-          "parameters": [
-            "control",
-            "preparedProgram",
-            "requestIdentity",
-            "compilationOriginal",
-            "kind",
-            "authorityScopeCid",
-            "namespaceId",
-            "now",
-            "retainedDefinitionWire",
-            "retainedInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareTimedClientInvocation/prepareTimedClientInvocation",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -32816,7 +32786,6 @@
             "acquiredTaskPublicationPlan",
             "acquiredTaskRunAdmission",
             "buildLocalPublicationPlan/plan/plan",
-            "cid/cid",
             "effectPublicationAdmission/selectRetention/selectRetention",
             "inferTaskPublicationPlan",
             "inferTaskRunAdmission",
@@ -33878,16 +33847,14 @@
           }
         },
         {
-          "operations": [
-            "prepareTimedClientInvocation"
-          ],
+          "operations": [],
           "exports": [
             "prepareTimedClientInvocation"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33897,7 +33864,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33907,7 +33874,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33917,7 +33884,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33927,7 +33894,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33937,7 +33904,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33947,7 +33914,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33957,7 +33924,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33967,7 +33934,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33977,7 +33944,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-query-invocation.mts",
                 "anchor": "export function prepareTimedClientInvocation("
               },
               {
@@ -33987,78 +33954,6 @@
               {
                 "path": "adapters/host-node/local-values-policy-original.test.mjs",
                 "anchor": "timed original downstream Values publication preserves its first Run and original custody"
-              },
-              {
-                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
-                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepareTimedClientInvocation/prepareTimedClientInvocation"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "reserve one aggregate invocation extent"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "first raw compilation"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "original-identity checks remain required"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same parent and input"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current reentry is fenced"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Failure keeps the original"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "does not acknowledge physical stop"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "variable backing follows"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "does not enable Model, Content or Effect"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
-                "anchor": "timed invocation backing retains its original compiler"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -35365,6 +35260,430 @@
         "./infer-effect-observation.mjs",
         "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
+        "./local-query-invocation.mjs",
+        "./local-values-capacity.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-query-invocation.mjs",
+      "sha256": "5715c4b8d0d38a812d8647277a7b4153fda44676531f7ae39d272684a94b6896",
+      "exports": [
+        "bindQueryInvocation",
+        "checkedOriginalQueryInvocation",
+        "cid",
+        "instant",
+        "policyCid",
+        "prepareQueryInvocation",
+        "prepareTimedClientInvocation"
+      ],
+      "operations": [
+        {
+          "name": "bindQueryInvocation",
+          "parameters": [
+            "control",
+            "original",
+            "prepared",
+            "compiled",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedOriginalQueryInvocation",
+          "parameters": [
+            "original",
+            "control",
+            "prepared",
+            "request",
+            "kind",
+            "retainedWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "instant/instant",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "policyCid/policyCid",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareQueryInvocation",
+          "parameters": [
+            "control",
+            "prepared",
+            "request",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTimedClientInvocation",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "requestIdentity",
+            "compilationOriginal",
+            "kind",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "retainedDefinitionWire",
+            "retainedInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareTimedClientInvocation/prepareTimedClientInvocation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "prepareTimedClientInvocation"
+          ],
+          "exports": [
+            "prepareTimedClientInvocation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves its first Run and original custody"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareTimedClientInvocation/prepareTimedClientInvocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "reserve one aggregate invocation extent"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "first raw compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original-identity checks remain required"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same parent and input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current reentry is fenced"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Failure keeps the original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not acknowledge physical stop"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "variable backing follows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "does not enable Model, Content or Effect"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "timed invocation backing retains its original compiler"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>",
+            "bindQueryInvocation",
+            "checkedOriginalQueryInvocation",
+            "cid/cid",
+            "instant/instant",
+            "policyCid/policyCid",
+            "prepareQueryInvocation"
+          ],
+          "exports": [
+            "bindQueryInvocation",
+            "checkedOriginalQueryInvocation",
+            "cid",
+            "instant",
+            "policyCid",
+            "prepareQueryInvocation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-query-invocation.mts",
+                "anchor": "export function prepareTimedClientInvocation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### First timed Request invocation"
+              },
+              {
+                "path": "adapters/host-node/local-values-policy-original.test.mjs",
+                "anchor": "timed original downstream Values publication preserves its first Run and original custody"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"
@@ -35721,7 +36040,7 @@
     },
     {
       "module": "adapters/host-node/query-evaluation-clock.mjs",
-      "sha256": "ebb1f49649022b24b847460f88d3fc8ded4b64618bb4f4b0f16958ce2770158b",
+      "sha256": "3229ce565b3e9a769d0ab9dbe1cddb09584ac6dfa2939cc678022ab0c9bfe4c0",
       "exports": [
         "sampleOriginalQueryTime"
       ],
@@ -35748,6 +36067,10 @@
           ],
           "attributes": {
             "responsibility": [
+              {
+                "path": "adapters/host-node/query-evaluation-clock.mts",
+                "anchor": "export const sampleOriginalQueryTime ="
+              },
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"
@@ -35816,6 +36139,10 @@
           "exports": [],
           "attributes": {
             "responsibility": [
+              {
+                "path": "adapters/host-node/query-evaluation-clock.mts",
+                "anchor": "export const sampleOriginalQueryTime ="
+              },
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"

@@ -18,7 +18,7 @@ export function valuesHostPolicyOriginal(maxRows: unknown) {
   return Object.freeze({cid: digest(wire), wire});
 }
 
-export function valuesExecutionContextCid(authorityScopeCid: string, original: Readonly<{cid: string}> | undefined) {
+export function valuesExecutionContextCid(authorityScopeCid: string, original?: Readonly<{cid: string}>) {
   // Preserve the default profile's preimage. A configured ceiling becomes
   // part of the context that the common owner binds to the Run Definition.
   return digest(JSON.stringify({version: 'actql-installed-local-context/0.1',

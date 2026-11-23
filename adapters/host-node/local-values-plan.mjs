@@ -7,92 +7,13 @@ import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {checkedLocalOutputLimits, checkedPublicationLimitValues} from './local-publication-limit-projection.mjs';
 import {localContractLimits as limits, localOutputLimits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
-import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
+import {prepareQueryInvocation, bindQueryInvocation, checkedOriginalQueryInvocation, cid, policyCid, instant}
+  from './local-query-invocation.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 export {checkedLocalOutputLimits} from './local-publication-limit-projection.mjs';
+export {prepareTimedClientInvocation} from './local-query-invocation.mjs';
 export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
 
-function prepareQueryInvocation(control, prepared, request, retained) {
-  if (control.clientRequiresQueryTime?.(prepared) !== true) return undefined;
-  if (request === undefined) throw new TypeError('OriginalClientQueryRequestRequired');
-  if (retained !== undefined) return {request};
-  const createdAt=sampleOriginalQueryTime();
-  return {request,createdAt,preparation:control.prepareClientQueryTime(prepared,request,createdAt)};
-}
-
-function bindQueryInvocation(control, original, prepared, compiled, definition) {
-  if (original === undefined) return {};
-  if (original.preparation === undefined) {
-    return control.restoreClientQueryTime(prepared,compiled,definition,original.request);
-  }
-  return Object.freeze({queryTimePreparation:original.preparation,
-    queryTime:control.bindClientQueryTime(original.preparation,prepared,compiled,definition,original.request)});
-}
-
-// Called only by the existing timed Request adoption constructor. Its parent
-// already retains the compiler artifact; the returned Option is a Core original.
-export function prepareTimedClientInvocation({control, preparedProgram, requestIdentity,
-  compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedDefinitionWire, retainedInvocation}) {
-  if (!['values', 'tasks'].includes(kind) || compilationOriginal === undefined || requestIdentity === undefined ||
-      retainedInvocation === null || typeof retainedInvocation !== 'object' || Object.isFrozen(retainedInvocation)) {
-    throw new TypeError('OriginalClientQueryInvocationRequired');
-  }
-  const fields = Object.getOwnPropertyDescriptors(retainedInvocation);
-  if (fields.preparedProgram?.value !== preparedProgram || fields.requestIdentity?.value !== requestIdentity ||
-      ['compiled', 'runDefinition', 'createdAt', 'validUntil', 'queryTimePreparation', 'queryTime']
-        .some(name => fields[name]?.writable !== true || !Object.hasOwn(fields[name] ?? {}, 'value') ||
-          fields[name].value !== undefined)) throw new TypeError('OriginalClientQueryInvocationRequired');
-  // Existing native Definition admission permits at most100000 wire bytes.
-  // Fence the earlier JS parse too; this cannot admit a looser native body.
-  if (retainedDefinitionWire !== undefined &&
-      (typeof retainedDefinitionWire !== 'string' || retainedDefinitionWire.length > 100000)) {
-    throw new TypeError('OriginalClientQueryInvocationRequired');
-  }
-  const at = Date.parse(now());
-  if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
-  const retained = retainedDefinitionWire === undefined ? undefined : JSON.parse(retainedDefinitionWire);
-  const queryInvocation = retained === undefined
-    ? {request: requestIdentity, createdAt: sampleOriginalQueryTime(), preparation: undefined}
-    : {request: requestIdentity};
-  if (retained === undefined) {
-    retainedInvocation.createdAt = queryInvocation.createdAt;
-    retainedInvocation.queryTimePreparation = queryInvocation.preparation = control.prepareClientQueryTime(
-      preparedProgram, requestIdentity, queryInvocation.createdAt);
-  }
-  const createdAt = retainedInvocation.createdAt = retained?.created_at ?? queryInvocation.createdAt;
-  const validUntil = retainedInvocation.validUntil = retained?.valid_until ?? instant(at + 24 * 60 * 60 * 1000);
-  const contextCid = kind === 'values' ? valuesExecutionContextCid(authorityScopeCid)
-    : cid({version: 'actql-installed-local-context/0.1', authority_scope_cid: authorityScopeCid});
-  const compiled = retainedInvocation.compiled = control.prepareCheckedClientCompiledRun(preparedProgram, kind,
-    {executionContextCid: contextCid,
-      hostPolicyCid: policyCid(kind === 'values' ? 'source-free-values' : 'checked-tasks'),
-      expiresAt: validUntil}, undefined, compilationOriginal);
-  const runDefinition = retainedInvocation.runDefinition = control.defineCheckedClientCompiledRun(compiled,
-    {namespaceId, runId: randomUUID(), createdAt, validUntil, retainedDefinitionWire});
-  const queryTime = bindQueryInvocation(control, queryInvocation, preparedProgram, compiled, runDefinition);
-  retainedInvocation.queryTimePreparation = queryTime.queryTimePreparation;
-  retainedInvocation.queryTime = queryTime.queryTime;
-  const invocationOriginal = control.clientQueryTimeInvocationOriginal(queryTime.queryTimePreparation, preparedProgram);
-  Object.freeze(retainedInvocation);
-  return Object.freeze({original: invocationOriginal, retained: retainedInvocation});
-}
-
-function checkedOriginalQueryInvocation(original, control, prepared, request, kind, retainedWire) {
-  if (original.preparedProgram !== prepared || original.requestIdentity !== request ||
-      original.compiled?.kind !== kind || original.queryTimePreparation === undefined ||
-      original.queryTime === undefined || retainedWire !== undefined &&
-        original.runDefinition?.wire !== retainedWire) {
-    throw new TypeError('ForeignClientQueryInvocationOriginal');
-  }
-  control.checkClientCompiledRunOwner(original.compiled, prepared);
-  control.checkClientCompiledRunDefinition(original.compiled, original.runDefinition);
-  return original;
-}
-
-const cid = value => `sha256:${createHash('sha256')
-  .update(JSON.stringify(value)).digest('hex')}`;
-const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
-  name});
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
 export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
@@ -129,8 +50,6 @@ const inferResultPolicy = Object.freeze({kind: 'data_policy', wire: inferResultP
 export function sourceFreeValuesAdmissionEvidence(plan) {
   return valuesAdmissions.get(plan);
 }
-const instant = value => new Date(value).toISOString();
-
 // These retained contract bodies use canonical key order. Previously only
 // opaque profile IDs were emitted; durable dependency recovery needs the
 // exact canonical body as well. This is a coordinated 0.1 identity change,

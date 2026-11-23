@@ -2470,6 +2470,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/local-publication-limits.d.mts
 /adapters/host-node/local-publication-limit-projection.mjs
 /adapters/host-node/local-publication-limit-projection.d.mts
+/adapters/host-node/local-query-invocation.mjs
+/adapters/host-node/local-query-invocation.d.mts
+/adapters/host-node/query-evaluation-clock.mjs
+/adapters/host-node/query-evaluation-clock.d.mts
 /adapters/host-node/client-publication-limit-projection.test.mjs
 /adapters/host-node/client-publication-limit-projection.test.d.mts
 /adapters/host-node/installed-effect-plan-current.test.mjs
