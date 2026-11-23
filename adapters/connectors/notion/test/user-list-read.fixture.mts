@@ -149,7 +149,7 @@ async function rowOwner(verifyTransport:VerifiedTransport,format:UserFormat) {
     close:()=>checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function userListFixture(t:TestContext,{account='allow',format='sql',accounted=true}:UserFixtureOptions={}) {
+export async function userListFixture(t:Pick<TestContext,'after'|'diagnostic'>,{account='allow',format='sql',accounted=true}:UserFixtureOptions={}) {
   const parent=join(repo,'_build','notion-user-list-fixtures');await mkdir(parent,{recursive:true});
   const root=await mkdtemp(join(parent,'query-'));
   execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','server.key',

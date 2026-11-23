@@ -191,11 +191,11 @@
                 "anchor": "Notion cursor metadata uses exact bounded writer output"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor keeps the original implementation refusal before any Site or reader"
               },
               {
@@ -203,7 +203,7 @@
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
@@ -1709,11 +1709,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page publication refusal keeps its original cause and never republishes"
               },
               {
@@ -1721,7 +1721,7 @@
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
@@ -2679,7 +2679,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
               }
             ]

@@ -4,7 +4,6 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createPublicKey} from 'node:crypto';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {ledgerUsageHasPendingResources,ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import {ledgerUsageSpentFields} from '../../../host-common/ledger-contract.generated.mjs';
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {NotionUserListReadFailure} from '../site/user-list-read.mjs';
@@ -14,9 +13,22 @@ import {installedNotionFixture} from './installed-notion.fixture.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 
+import type {ledgerUsageHasPendingResources as hasPendingResources,ledgerUsageSnapshot as snapshotUsage} from '../../../host-common/ledger-usage.mjs';
+import type {NotionFixtureCause} from './property-item-read.fixture.mjs';
+
+type IdentityPart = Awaited<ReturnType<typeof installedNotionSourceIdentityParts>>[number];
+type IdentityParts = [IdentityPart,Extract<IdentityPart,{siteGeneration:number}>,
+  Extract<IdentityPart,{originalStringsCid:string}>];
+type CapturedRow = Readonly<{id:string;name:string}>;
+type LedgerKey = keyof ReturnType<typeof snapshotUsage>;
+type NotionOpenFailure = AcquisitionOpenError & {cause:NotionUserListReadFailure & {cause:NotionFixtureCause}};
+const {ledgerUsageHasPendingResources,ledgerUsageSnapshot}:{
+  ledgerUsageHasPendingResources:typeof hasPendingResources;ledgerUsageSnapshot:typeof snapshotUsage;
+}=await import(new URL('../../../host-common/runtime-core.mjs',import.meta.url).href);
+
 test('installed Notion users refuses missing original initialization or material without legacy fallback or I/O',async t=>{
   const f=await installedNotionFixture(t);
-  await assert.rejects(loadInstalledNotionSource(f.profile,{...f.options,readerCapacity:{}}),
+  await assert.rejects(loadInstalledNotionSource(f.profile,{...f.options,readerCapacity:{}} as Parameters<typeof loadInstalledNotionSource>[1]),
     {code:'NotionSourceInitializationUnavailable'});
   await assert.rejects(f.load({resolveSecret:undefined}),{code:'NotionCredentialMaterialUnavailable'});
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
@@ -32,22 +44,23 @@ test('installed Notion closed profile rejects scope shortcuts undeclared resourc
 });
 
 test('installed Notion original strings Site generation and selected TLS remain distinct at metadata loading',async t=>{
-  const f=await installedNotionFixture(t),a=await installedNotionSourceIdentityParts(f.profile,{...f.profile,connectorId:'é'}),
-    b=await installedNotionSourceIdentityParts(f.profile,{...f.profile,connectorId:'é'});
+  const f=await installedNotionFixture(t),a=await installedNotionSourceIdentityParts(f.profile,{...f.profile,connectorId:'é'}) as IdentityParts,
+    b=await installedNotionSourceIdentityParts(f.profile,{...f.profile,connectorId:'é'}) as IdentityParts;
   assert.notEqual(a[2].originalStringsCid,b[2].originalStringsCid);
   await writeFile(f.profile.siteProfilePath,JSON.stringify({...f.site,siteGeneration:2}));
-  const next=await installedNotionSourceIdentityParts(f.profile,f.profile);assert.equal(next[1].siteGeneration,2);
+  const next=await installedNotionSourceIdentityParts(f.profile,f.profile) as IdentityParts;assert.equal(next[1].siteGeneration,2);
   assert.equal(a[1].siteGeneration,1);assert.equal(typeof next[2].caSha256,'string');assert.equal(f.state.requests.length,0);
 });
 
 test('installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader',async t=>{
-  for(const format of ['sql','aql']){
+  for(const format of ['sql','aql'] as const){
     const f=await installedNotionFixture(t),source=await f.load(),preparation=await f.prepare(source,{format});
     const opened=await source.openCapture(preparation);await f.retain(opened,preparation.ledger);
-    const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-notion-user-test'));
+    const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),
+      (opened as typeof opened & {requirement:unknown}).requirement,'installed-notion-user-test'));
     // AcquisitionSelect retains only these query-required original columns.
     // The complete Source schema and provider-row admission remain unchanged.
-    assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
+    assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse as (row:string)=>CapturedRow),[
       {id:'U1',name:'one'},
       {id:'U2',name:'two'}]);
     assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
@@ -91,21 +104,21 @@ test('installed Notion actual Account denial refuses preparation before a Creden
 test('installed Notion lost original reply keeps Journal Unknown after original reader retirement without resend',async t=>{
   const f=await installedNotionFixture(t),source=await f.load(),preparation=await f.prepare(source);
   const before=ledgerUsageSnapshot(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger));
-  f.state.beforeResponse=request=>request.socket.destroy();let original;
-  await assert.rejects(source.openCapture(preparation),error=>{
+  f.state.beforeResponse=request=>request.socket.destroy();let original:NotionOpenFailure|undefined;
+  await assert.rejects(source.openCapture(preparation),(error:NotionOpenFailure)=>{
     original=error;return error instanceof AcquisitionOpenError&&error.outcome==='stopped'&&
       error.recovery===undefined&&error.cause instanceof NotionUserListReadFailure;
   });
   // Physical acquisition end and the original durable attempt outcome are
   // separate. The SAME acknowledged reader may retire; it cannot turn the
   // lost reply into success, failed business evidence, or an unspent attempt.
-  assert.equal(original.code,'NotionUserListReadFailed');
-  assert.ok(original.cause.cause);assert.deepEqual(f.state.rows,[]);
+  assert.equal(original!.code,'NotionUserListReadFailed');
+  assert.ok(original!.cause.cause);assert.deepEqual(f.state.rows,[]);
   const retired=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
   assert.equal(ledgerUsageHasPendingResources(retired),false);
   const spent=ledgerUsageSnapshot(retired);
   for(const field of ledgerUsageSpentFields){
-    const key=field.replace(/_([a-z])/gu,(_match,letter)=>letter.toUpperCase());
+    const key=field.replace(/_([a-z])/gu,(_match,letter)=>letter.toUpperCase()) as LedgerKey;
     assert(spent[key]>=before[key]);
   }
   await source.close();

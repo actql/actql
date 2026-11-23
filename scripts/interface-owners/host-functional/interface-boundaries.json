@@ -147711,7 +147711,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
               }
             ],
@@ -147729,7 +147729,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mts",
                 "anchor": "finite provider-page publication refusal keeps its original cause"
               }
             ]

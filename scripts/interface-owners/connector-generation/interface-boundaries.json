@@ -614,7 +614,7 @@
                 "anchor": "phase = 'failed'; primary = cause;"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion lost original reply keeps Journal Unknown after original reader retirement without resend"
               },
               {
@@ -802,23 +802,23 @@
                 "anchor": "LIST_FILES paths=[]"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "ordinary installed Notion entrance selects the real factory and refuses missing normal supply"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion copied preparation or absent original Ledger cannot dispatch users"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion actual Account denial refuses preparation before a Credential use or HTTP"
               },
               {
-                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mts",
                 "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
               },
               {
