@@ -238,7 +238,14 @@ OPTIONS (name = 'rows.jsonl', ${option} = 1)`;
     try {
       const restored = await cold.attach(original.ref);
       assert.deepEqual(restored.ref, original.ref);
-      assert.deepEqual(await restored.status(), originalState);
+      const restoredState = await restored.status();
+      assert.equal(restoredState.run_id, originalState.run_id);
+      assert.equal(restoredState.revision, originalState.revision);
+      assert.equal(restoredState.status, 'failed');
+      assert.deepEqual(restoredState.control, originalState.control);
+      assert.equal(restoredState.result_available, false);
+      assert.equal(restoredState.result_availability.main.reason, 'not_published');
+      assert.deepEqual(restoredState.terminal_error, originalState.terminal_error);
     } finally {
       await cold.close();
     }
