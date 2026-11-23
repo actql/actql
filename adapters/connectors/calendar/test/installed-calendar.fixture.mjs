@@ -43,7 +43,8 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
     const view=env.schema_snapshots.find(v=>v.source_ref===source.sourceReadAccesses[0].sourceRef);assert.ok(view);
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'calendar.calendars',
       sourceRef:view.source_ref,sourceViewContractCid:view.source_view_contract_cid,schemaContractCid:view.carrier_schema_contract_cid}]});
-    const text=format==='sql'?`SELECT ${selection} FROM calendar.calendars`:`FROM calendar.calendars |> SELECT ${selection}`;
+    const text=format==='sql'?`SELECT ${selection} FROM calendar.calendars WHERE TRUE`:
+      `FROM calendar.calendars |> WHERE TRUE |> SELECT ${selection}`;
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
     const[registry,aoa]=await Promise.all([readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8'),
