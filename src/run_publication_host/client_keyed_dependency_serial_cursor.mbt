@@ -16,6 +16,9 @@ priv enum KeyedDependencyMeasuredBodies {
 // Reuse work only between synchronous admissions that have returned. Capacity
 // stays on the original lookup until the existing adopted-protocol settlement.
 priv struct KeyedDependencySerialCursor {
+  lookup : ClientKeyedLookupInput
+  reservation : @resources.Reservation
+  mut finished : Bool
   mut available_retained : Int64
   mut available_execution : Int64
   mut pending_retained : Int64
@@ -27,16 +30,82 @@ priv struct KeyedDependencySerialCursor {
 }
 
 ///|
-fn new_keyed_dependency_serial_cursor() -> KeyedDependencySerialCursor {
-  {
-    available_retained: 0L,
-    available_execution: 0L,
-    pending_retained: -1L,
-    pending_execution: 0L,
-    pending_depth: -1,
-    extent_workspace_depth: -1,
-    batch_start: -1,
-    measured: None,
+// Only a sealed cursor can issue this proof. It borrows the same lookup and
+// reservation through settlement, with no reference back to its cursor.
+priv struct KeyedDependencySerialCompletion {
+  lookup : ClientKeyedLookupInput
+  reservation : @resources.Reservation
+  last : KeyedDependencyMeasuredBodies
+}
+
+///|
+fn keyed_dependency_cursor_reservation_live(
+  lookup : ClientKeyedLookupInput,
+) -> Bool {
+  !lookup.closed &&
+  lookup.left.lookup_issue is None &&
+  lookup.holding is None &&
+  @resources.reservation_open(lookup.reservation) &&
+  !@resources.reservation_pending(lookup.reservation)
+}
+
+///|
+fn validate_keyed_dependency_cursor_owner(
+  lookup : ClientKeyedLookupInput,
+  original : ClientKeyedLookupInput,
+  reservation : @resources.Reservation,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  if !physical_equal(lookup, original) ||
+    !physical_equal(lookup.reservation, reservation) {
+    return Err(Assembly("foreign_dependency_cursor"))
+  }
+  if !keyed_dependency_cursor_reservation_live(lookup) {
+    return Err(Assembly("retired_dependency_cursor"))
+  }
+  Ok(())
+}
+
+///|
+fn KeyedDependencySerialCursor::validate(
+  self : KeyedDependencySerialCursor,
+  lookup : ClientKeyedLookupInput,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  match
+    validate_keyed_dependency_cursor_owner(
+      lookup,
+      self.lookup,
+      self.reservation,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) if self.finished => Err(Assembly("retired_dependency_cursor"))
+    Ok(_) => Ok(())
+  }
+}
+
+///|
+fn KeyedDependencySerialCursor::retire(
+  self : KeyedDependencySerialCursor,
+) -> Unit {
+  self.finished = true
+}
+
+///|
+fn KeyedDependencySerialCursor::seal(
+  self : KeyedDependencySerialCursor,
+  lookup : ClientKeyedLookupInput,
+) -> Result[KeyedDependencySerialCompletion?, ClientKeyedRequestIssue] {
+  match self.validate(lookup) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if self.pending_retained >= 0L || self.batch_start >= 0 {
+    return Err(Assembly("live_dependency_cursor"))
+  }
+  self.retire()
+  match self.measured {
+    Some(last) =>
+      Ok(Some({ lookup: self.lookup, reservation: self.reservation, last, }))
+    None => Ok(None)
   }
 }
 
@@ -50,8 +119,13 @@ priv struct KeyedDependencySerialFunding {
 ///|
 fn KeyedDependencySerialCursor::begin_batch(
   self : KeyedDependencySerialCursor,
+  lookup : ClientKeyedLookupInput,
   start : Int,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
+  match self.validate(lookup) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if self.pending_retained >= 0L || self.batch_start >= 0 {
     return Err(Assembly("live_dependency_cursor"))
   }
@@ -62,9 +136,14 @@ fn KeyedDependencySerialCursor::begin_batch(
 ///|
 fn KeyedDependencySerialCursor::record_body(
   self : KeyedDependencySerialCursor,
+  lookup : ClientKeyedLookupInput,
   bodies : Array[@publication.CapturedEffectDependencyBody],
   max_nodes : Int,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
+  match self.validate(lookup) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let end = bodies.length()
   let first = if self.batch_start >= 0 { self.batch_start } else { end - 1 }
   if self.batch_start == end && self.pending_retained < 0L {
@@ -151,30 +230,52 @@ fn KeyedDependencySerialCursor::record_body(
 }
 
 ///|
-fn reserve_keyed_dependency_serial_controls(
+fn begin_keyed_dependency_serial_cursor(
   lookup : ClientKeyedLookupInput,
-) -> Result[Unit, ClientKeyedRequestIssue] {
+) -> Result[KeyedDependencySerialCursor, ClientKeyedRequestIssue] {
+  if !keyed_dependency_cursor_reservation_live(lookup) {
+    return Err(Assembly("retired_dependency_cursor"))
+  }
   // One body and one range certificate, plus the old/new certificate overlap
   // while updating the serial state. The extent stack is funded separately.
   // Keep the batch hooks and the checked range carriers until settlement.
   // Five live range records plus one replacement each reserve a variant tag.
+  // Include two cursor aliases and its latch, the sealed owner's three
+  // references, and the overlapping reserve result, seal result and Some.
   guard @execution.preparation_representation_cost({
-      record_headers: 43L,
-      reference_slots: 67L,
-      scalar_words: 71L,
+      record_headers: 47L,
+      reference_slots: 75L,
+      scalar_words: 75L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
     is Some(controls) else {
     return Err(Assembly("capacity_overflow"))
   }
-  keyed_lookup_body_grow(
-    lookup,
-    lookup.retained_bytes,
-    lookup.execution_bytes,
-    controls,
-    None,
-  )
+  match
+    keyed_lookup_body_grow(
+      lookup,
+      lookup.retained_bytes,
+      lookup.execution_bytes,
+      controls,
+      None,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      Ok({
+        lookup,
+        reservation: lookup.reservation,
+        finished: false,
+        available_retained: 0L,
+        available_execution: 0L,
+        pending_retained: -1L,
+        pending_execution: 0L,
+        pending_depth: -1,
+        extent_workspace_depth: -1,
+        batch_start: -1,
+        measured: None,
+      })
+  }
 }
 
 ///|
@@ -194,10 +295,14 @@ fn grow_keyed_dependency_body(
   depth : Int,
   serial : KeyedDependencySerialCursor?,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
-  if serial is Some(value) &&
-    value.pending_retained >= 0L &&
-    value.batch_start < 0 {
-    return Err(Assembly("live_dependency_cursor"))
+  if serial is Some(value) {
+    match value.validate(lookup) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if value.pending_retained >= 0L && value.batch_start < 0 {
+      return Err(Assembly("live_dependency_cursor"))
+    }
   }
   guard @execution.execution_capacity_inventory_bytes([
       { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
