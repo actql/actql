@@ -31963,7 +31963,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "common Run/Source/candidate and Store owners decide identity"
               },
               {
@@ -31973,7 +31973,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "installRunKeyedContentCapture"
               },
               {
@@ -31987,11 +31987,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "checkClientCompiledRunOwner"
               },
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "clientProgramKeyedAcquisitionMatchesProgram"
               },
               {
@@ -32005,7 +32005,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "no capture journal here"
               },
               {
@@ -32015,7 +32015,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "authorize"
               },
               {
@@ -32045,11 +32045,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "maxBytes"
               },
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "inventoryCount"
               },
               {
@@ -32089,8 +32089,8 @@
                 "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               },
               {
-                "path": "adapters/host-node/keyed-content-workspace-growth.test.mjs",
-                "anchor": "captured inventory grows before a candidate constructor"
+                "path": "adapters/host-node/keyed-content-workspace-growth.test.mts",
+                "anchor": "captured inventory grows actual persistent extent after its prepaid frame and before Store construction"
               }
             ]
           }
@@ -32104,8 +32104,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32114,8 +32114,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32124,8 +32124,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32134,8 +32134,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32144,8 +32144,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32154,8 +32154,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32164,8 +32164,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32174,8 +32174,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32184,8 +32184,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consumption['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -32208,7 +32208,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "common Run/Source/candidate and Store owners decide identity"
               },
               {
@@ -32218,7 +32218,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "installRunKeyedContentCapture"
               },
               {
@@ -32232,11 +32232,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "checkClientCompiledRunOwner"
               },
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "clientProgramKeyedAcquisitionMatchesProgram"
               },
               {
@@ -32250,7 +32250,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "no capture journal here"
               },
               {
@@ -32260,7 +32260,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "authorize"
               },
               {
@@ -32290,11 +32290,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "maxBytes"
               },
               {
-                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "path": "adapters/host-node/installed-keyed-content-capture.mts",
                 "anchor": "inventoryCount"
               },
               {

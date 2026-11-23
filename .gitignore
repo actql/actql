@@ -2510,6 +2510,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-content-command-restart.test.d.mts
 /adapters/host-node/fixtures/file-listing-source.fixture.mjs
 /adapters/host-node/fixtures/file-listing-source.fixture.d.mts
+/adapters/host-node/installed-keyed-content-capture.mjs
+/adapters/host-node/installed-keyed-content-capture.d.mts
+/adapters/host-node/keyed-content-workspace-growth.test.mjs
+/adapters/host-node/keyed-content-workspace-growth.test.d.mts
 /adapters/host-node/stored-content-consumption.test.mjs
 /adapters/host-node/stored-content-consumption.test.d.mts
 /adapters/host-node/local-values-retention-original.test.mjs
