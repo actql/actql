@@ -18,6 +18,7 @@ import {openSourceFreeEffectComputation as openSourceFree} from './local-values-
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {createEffectPreviewControls} from '../host-common/runtime-effect-preview-control.mjs';
 import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
@@ -521,7 +522,6 @@ test('an original planned Resource read never substitutes for the provider Crede
 // Execute the original recovered Row Effect and its actual physical-route
 // guard/retirement. Credential/Core/provider ports are explicit, never a new
 // Common Plan, Resource grant or ordinary Saved acceptance.
-const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
@@ -603,11 +603,14 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     effectComputationPreviewSemanticCid: () => 'original-preview'};
   // Execute the real Common wrapper with explicit native ports. The fixture's
   // key DATA tests forwarding, not Common admission or physical authority.
-  control.recoverInstalledEffectPreviewKeys = new Function('moon', 'checked', 'computationPreviewTokens', 'token',
-    'return ({' + recoveryKeysSource + '}).recoverInstalledEffectPreviewKeys;')(
-    moon, checked, new WeakMap([[preview, originalCurrent]]), original => {
-      assert.strictEqual(original, invocation); return invocationOriginal;
-    });
+  const unavailable = () => assert.fail('No independent Preview issuance or evidence lookup');
+  const {effectPreviewControls} = createEffectPreviewControls(moon, {
+    computationPreviewTokens: new WeakMap([[preview, originalCurrent]]),
+    computationPreviewWires: new WeakMap(), issuanceLimits: unavailable,
+    evidenceToken: unavailable, inspectEvidence: unavailable, inspectSourceAdvance: unavailable,
+    token(original) {assert.strictEqual(original, invocation); return invocationOriginal;},
+  });
+  control.recoverInstalledEffectPreviewKeys = effectPreviewControls.recoverInstalledEffectPreviewKeys;
   const limits = {preview: {}, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
   const runLimits = createInstalledRowEffectRunLimits({limits, moon,
     readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape, owners: [owner], fail});
