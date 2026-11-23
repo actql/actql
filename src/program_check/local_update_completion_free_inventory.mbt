@@ -21,14 +21,15 @@ fn audit_local_update_completion_free(
     ProfileNotInstalled => return ProfileNotInstalled
     CompletionObserved => return CompletionObserved
   }
-  audit_local_update_mapping(computation, effects, work)
+  audit_local_mapped_write(computation, effects, work)
 }
 
 ///|
-fn audit_local_update_mapping(
+fn audit_local_mapped_write(
   computation : EffectComputationCandidate,
   effects : @results.EffectStaticCandidate,
   work : Int,
+  require_delete? : Bool = false,
 ) -> CompletionFreeAudit {
   let checked = computation.checked
   let headers = computation.headers
@@ -59,13 +60,15 @@ fn audit_local_update_mapping(
   remaining -= member_count - 1
   let literal_count = @results.effect_mapping_literal_count(literals)
   let mut next_literal = 0
+  let mut seen_delete = false
   for index in 0..<member_count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     let rule = @results.effect_mapping_rule_at(rules, index).unwrap()
     let binding = @results.effect_mapping_shape_effect(
       @results.effect_mapping_rule_effect(rule),
     )
-    if @syntax.effect_header_kind(header) != "update" ||
+    let operation = @syntax.effect_header_kind(header)
+    if (operation != "update" && !(require_delete && operation == "delete")) ||
       !@syntax.effect_header_contract_ref(header).has_prefix("mapping:") ||
       !physical_equal(
         binding,
@@ -82,13 +85,40 @@ fn audit_local_update_mapping(
     let (kind, selector, fields) = @environment.mapping_permission_rule(
       @results.effect_mapping_rule_selection(rule),
     )
-    if kind != "update" || selector != "id" {
+    if kind != operation || selector != "id" {
       return ProfileNotInstalled
     }
     // The field bindings and literal inventory come from this exact header.
     let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
-    guard @decode.lookup(body, "id") is Some(_) &&
-      @decode.lookup(body, "set") is Some(changes) &&
+    guard @decode.lookup(body, "id") is Some(_) else {
+      return ProfileNotInstalled
+    }
+    if operation == "delete" {
+      // The original checked DELETE binds exactly one correlated identity.
+      // There is no Mapping write field, literal or value to normalize.
+      guard remaining > 0 &&
+        fields.is_empty() &&
+        @results.effect_result_field_binding_count(binding) == 1 &&
+        @results.effect_result_field_binding_role(
+          @results.effect_result_field_binding_at(binding, 0).unwrap(),
+        )
+        is EffectSelector else {
+        return ProfileNotInstalled
+      }
+      if next_literal < literal_count &&
+        physical_equal(
+          @results.effect_mapping_literal_rule(
+            @results.effect_mapping_literal_at(literals, next_literal).unwrap(),
+          ),
+          rule,
+        ) {
+        return ProfileNotInstalled
+      }
+      remaining -= 1
+      seen_delete = true
+      continue
+    }
+    guard @decode.lookup(body, "set") is Some(changes) &&
       @decode.open_object(changes) is Ok(changes_object) else {
       return ProfileNotInstalled
     }
@@ -150,7 +180,7 @@ fn audit_local_update_mapping(
       return ProfileNotInstalled
     }
   }
-  if next_literal != literal_count {
+  if next_literal != literal_count || (require_delete && !seen_delete) {
     return ProfileNotInstalled
   }
   Complete(10000 - remaining)
@@ -242,6 +272,71 @@ fn audit_common_update_normalization_inventory(
   LocalCommonUpdateNormalizationInventory,
   CompletionFreeInventoryIssue,
 ] {
+  audit_common_mapped_write_normalization_inventory(
+    candidate, allow_source_completion, false,
+  ).map(fn(inventory) {
+    let (computation, audited_work) = inventory
+    if local_common_normalization_entry_count(computation) == 0 {
+      CompletionFree({ owner: candidate, computation, audited_work, })
+    } else {
+      SourceCompleted({ owner: candidate, computation, audited_work, })
+    }
+  })
+}
+
+///|
+/// Retains the checked UPDATE/DELETE member order, including at least one
+/// correlated DELETE, and the same original Source selection inventory.
+struct LocalCommonFileMutationNormalizationInventory {
+  owner : EffectProgramStaticCandidate
+  computation : LocalCommonNormalizationInventory
+  audited_work : Int
+}
+
+///|
+pub fn effect_program_common_file_mutation_normalization_inventory(
+  candidate : EffectProgramStaticCandidate,
+) -> Result[
+  LocalCommonFileMutationNormalizationInventory,
+  CompletionFreeInventoryIssue,
+] {
+  audit_common_mapped_write_normalization_inventory(candidate, true, true).map(fn(
+    inventory,
+  ) {
+    let (computation, audited_work) = inventory
+    { owner: candidate, computation, audited_work, }
+  })
+}
+
+///|
+pub fn local_common_file_mutation_normalization_computation(
+  inventory : LocalCommonFileMutationNormalizationInventory,
+) -> LocalCommonNormalizationInventory {
+  inventory.computation
+}
+
+///|
+pub fn local_common_file_mutation_normalization_inventory_matches(
+  inventory : LocalCommonFileMutationNormalizationInventory,
+  candidate : EffectProgramStaticCandidate,
+) -> Bool {
+  physical_equal(inventory.owner, candidate) &&
+  inventory.audited_work >= 0 &&
+  local_common_normalization_inventory_matches(
+    inventory.computation,
+    candidate.computation.checked,
+  )
+}
+
+///|
+fn audit_common_mapped_write_normalization_inventory(
+  candidate : EffectProgramStaticCandidate,
+  allow_source_completion : Bool,
+  require_delete : Bool,
+) -> Result[
+  (LocalCommonNormalizationInventory, Int),
+  CompletionFreeInventoryIssue,
+] {
   let computation = match
     audit_local_common_normalization_inventory(
       candidate.computation.checked,
@@ -265,20 +360,17 @@ fn audit_common_update_normalization_inventory(
     }
   }
   let audited_work = match
-    audit_local_update_mapping(
+    audit_local_mapped_write(
       candidate.computation,
       candidate.effects,
       work + count,
+      require_delete~,
     ) {
     Complete(value) => value
     CompletionObserved => return Err(CompletionObserved)
     ProfileNotInstalled => return Err(ProfileNotInstalled)
   }
-  if count == 0 {
-    Ok(CompletionFree({ owner: candidate, computation, audited_work, }))
-  } else {
-    Ok(SourceCompleted({ owner: candidate, computation, audited_work, }))
-  }
+  Ok((computation, audited_work))
 }
 
 ///|

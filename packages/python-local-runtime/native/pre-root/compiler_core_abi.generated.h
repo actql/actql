@@ -166,7 +166,9 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_publication_commit_export_confirm_sdk_payload_chunk", "i64 i32", "i64"},
     {"actql_publication_commit_export_confirm_sdk_run_state", "i64 i32 i32", "i32"},
     {"actql_publication_commit_export_count", "i64 i32 i32", "i32"},
+    {"actql_publication_commit_export_emit_sdk_run_state", "i64 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_length", "i64 i32", "i32"},
+    {"actql_publication_commit_export_measure_sdk_run_state", "i64 i32 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_observe_sdk_terminal", "i64 i32 i32", "i32"},
     {"actql_publication_commit_export_prepare_sdk_payload_codecs", "i64 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_prepare_sdk_payload_input", "i64 i32 i32 i32", "i32"},
@@ -310,5 +312,5 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_workspace_reserve", "i64 i32 i64", "i32"},
     {"actql_workspace_root_reserved", "i64", "i64"},
 };
-#define ACTQL_COMPILER_EXPORTS_COUNT 278
+#define ACTQL_COMPILER_EXPORTS_COUNT 280
 #endif

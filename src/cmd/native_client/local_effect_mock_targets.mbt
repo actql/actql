@@ -173,10 +173,11 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
       @syntax.effect_header_id(header),
       policy.effects.max_work,
     ).unwrap_or_else(() => stop("LocalOriginalEffectTargetsUnavailable"))
-    guard descriptor.2 == "update" &&
-      installations
+    let deleting = descriptor.2 == "delete"
+    guard installations
       .iter()
       .find_first(value => {
+        value.matches_file_operation(descriptor.2) &&
         value.target == descriptor.3 &&
         value.write.mapping.mapping_ref == descriptor.4 &&
         value.write.mapping.mapping_cid == descriptor.5
@@ -232,42 +233,50 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         guard selector is String(identity) else {
           stop("LocalOriginalEffectSelectorUnavailable")
         }
-        let child = match
-          @row_file.prepare_native_relation_file_target_io(
+        let prepare_response = bytes => {
+          let capacity = installation.file_target_read_capacity(
             binding.provider,
-            installation.write.writable_fields,
-            identity,
-            before_response=Some(bytes => {
-              let capacity = @row_file.native_relation_file_target_read_io_capacity(
-                binding.provider,
-                installation.write.writable_fields.length(),
-                response_bytes=Some(bytes),
-              )
-              guard capacity is Some(capacity) &&
-                @local_values.prepare_installed_effect_operation_extent(
-                  "native.mock.file.capture-target",
-                  capacity,
-                  binding.limits.page.max_bytes.to_int64(),
-                  true,
-                )
-                is Ok(extent) else {
-                report(
-                  CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
-                )
-                return false
-              }
-              match
-                @local_values.begin_installed_effect_operation_input(
-                  operation, extent,
-                ) {
-                Ok(_) => true
-                Err(issue) => {
-                  report(CommandBusinessEffectProposals(Managed(issue)))
-                  false
-                }
-              }
-            }),
-          ) {
+            response_bytes=Some(bytes),
+          )
+          guard capacity is Some(capacity) &&
+            @local_values.prepare_installed_effect_operation_extent(
+              "native.mock.file.capture-target",
+              capacity,
+              binding.limits.page.max_bytes.to_int64(),
+              true,
+            )
+            is Ok(extent) else {
+            report(
+              CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+            )
+            return false
+          }
+          match
+            @local_values.begin_installed_effect_operation_input(
+              operation, extent,
+            ) {
+            Ok(_) => true
+            Err(issue) => {
+              report(CommandBusinessEffectProposals(Managed(issue)))
+              false
+            }
+          }
+        }
+        let child = match
+          (if deleting {
+            @row_file.prepare_native_relation_file_delete_target_observation(
+              binding.provider,
+              identity,
+              prepare_response,
+            )
+          } else {
+            @row_file.prepare_native_relation_file_target_io(
+              binding.provider,
+              installation.write.writable_fields,
+              identity,
+              before_response=Some(prepare_response),
+            )
+          }) {
           Err(issue) => {
             report(CommandBusinessSource(issue))
             stop("LocalOriginalEffectTargetUnavailable")
@@ -345,6 +354,7 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
           proposal.1,
           before,
           version,
+          deleting~,
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         let extent = @local_values.prepare_installed_effect_operation_extent(
           "native.mock.file.request", capacity, 0L, false,
@@ -355,27 +365,38 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         let changes = @json.parse(proposal.1) catch {
           _ => stop("LocalOriginalEffectChangesUnavailable")
         }
-        guard changes is Object(fields) &&
-          fields.length() == 2 &&
-          fields.get("state") == Some(Json::string("present")) &&
-          fields.get("value") is Some(Object(value)) &&
-          value.length() == installation.write.mapping.write_fields.length() &&
-          installation.write.mapping.write_fields.all(name => {
-            value.contains(name)
-          }) else {
+        guard changes is Object(fields) else {
           stop("LocalOriginalEffectChangesUnavailable")
         }
-        let value = Json::object(value)
-        let changes_wire = local_project_mock_relation_wire(value).unwrap_or_else(() => {
-            stop("LocalOriginalEffectChangesUnavailable")
-          },
-        )
-        match child.check_update(changes_wire) {
-          Err(issue) => {
-            report(CommandBusinessSource(issue))
+        let value = if deleting {
+          if fields.length() != 1 ||
+            fields.get("state") != Some(Json::string("not_applicable")) {
             stop("LocalOriginalEffectChangesUnavailable")
           }
-          Ok(_) => ()
+          Json::null()
+        } else {
+          guard fields.length() == 2 &&
+            fields.get("state") == Some(Json::string("present")) &&
+            fields.get("value") is Some(Object(value)) &&
+            value.length() == installation.write.mapping.write_fields.length() &&
+            installation.write.mapping.write_fields.all(name => {
+              value.contains(name)
+            }) else {
+            stop("LocalOriginalEffectChangesUnavailable")
+          }
+          let typed_changes = Json::object(value)
+          let changes_wire = local_project_mock_relation_wire(typed_changes).unwrap_or_else(() => {
+              stop("LocalOriginalEffectChangesUnavailable")
+            },
+          )
+          match child.check_update(changes_wire) {
+            Err(issue) => {
+              report(CommandBusinessSource(issue))
+              stop("LocalOriginalEffectChangesUnavailable")
+            }
+            Ok(_) => ()
+          }
+          typed_changes
         }
         held.request_input = Some({ value, before, version, initial: capacity, })
         match child.close() {
@@ -431,16 +452,16 @@ fn LocalNativeMockEffectPlan::observe_mock_effect_targets_in_original_request(
         let before = @json.parse(before) catch {
           _ => stop("LocalOriginalEffectTargetUnavailable")
         }
-        // SAME canonical request contract as the existing Mock UPDATE Owner.
-        // Its full original before/version reaches Preview and cold recovery;
-        // neither this DATA nor its digest is a durable write claim.
-        let wire = native_mock_effect_update_request_wire(
+        // The original guard and before image reach Preview on this request.
+        // The DELETE shape carries no requested field values.
+        let wire = native_mock_effect_file_request_wire(
           installation.binding,
           installation.write.mapping.mapping_cid,
           target,
           value,
           before,
           version,
+          deleting~,
         ).unwrap_or_else(() => stop("LocalOriginalEffectRequestUnavailable"))
         if @utf8.encode(wire).length() >
           policy.program.checking.compilation.artifacts.bytes {

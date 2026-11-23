@@ -1,6 +1,7 @@
 // HubSpot protocol DATA on the existing generic Reader's original response
 // borrow. Physical sends, charge-before-decode, current and cleanup stay there.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {projectHubSpotAccountIdentity, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from './hubspot-account-read.mjs';
 import {HUBSPOT_OBJECT_LIST_OPERATION, HUBSPOT_PROPERTIES_READ_OPERATION} from './hubspot-object-read.mjs';
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -8,7 +9,7 @@ const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => `%${unit.charCodeAt(0).toString(16).toUpperCase()}`);
 const names = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
   'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
-  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson',
+  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageProgress',
   'hubspotPreparePropertyResponseSource', 'hubspotPropertyResponseSourceGeometryData',
   'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource'];
 
@@ -96,16 +97,16 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
           const original = checked(provider.hubspotProjectObjectPage(body, originalCatalog, selected,
             limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, pageRows, limits.maxColumns,
             limits.maxCursorUnits, limits.maxValueNodes, limits.maxValueTextBytes));
-          const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(original));
+          const progress = provider.hubspotObjectPageProgress(original);
           const wire = checked(provider.hubspotObjectPageRowsWire(original, limits.maxRowsWireBytes,
             limits.maxRowsWireNodes, limits.maxRowsWireDepth));
           const rows = JSON.parse(wire);
           for (const row of rows) {if (ids.has(row.id)) fail('HubSpotReadDuplicateRecord');ids.add(row.id);}
-          return Object.freeze({metadata, rows});
+          return Object.freeze({count: runtimeField(progress, 0), nextAfter: runtimeField(progress, 1), rows});
         });
-        if (rowCount + page.metadata.rowCount > limits.maxRows) fail('HubSpotReadRowLimit');
+        if (rowCount + page.count > limits.maxRows) fail('HubSpotReadRowLimit');
         await context.consumePage(page.rows);current();
-        pages++;rowCount += page.metadata.rowCount;after = page.metadata.nextAfter ?? undefined;
+        pages++;rowCount += page.count;after = page.nextAfter === '' ? undefined : page.nextAfter;
         if (after !== undefined) {
           if (cursors.has(after)) fail('HubSpotReadCursorCycle');cursors.add(after);
           if (rowCount >= limits.maxRows) fail('HubSpotReadRowLimit');

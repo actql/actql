@@ -20,7 +20,7 @@ pub fn hubspot_execution_mapping_ref(@catalog.ExecutionMapping) -> String
 
 pub fn hubspot_mapping_source(String, String, String) -> @catalog.MappingSource
 
-pub fn hubspot_object_page_metadata_json(@catalog.ObjectPage) -> String
+pub fn hubspot_object_page_progress(@catalog.ObjectPage) -> (Int, String)
 
 pub fn hubspot_object_page_rows_wire(@catalog.ObjectPage, Int, Int, Int) -> Result[String, @catalog.ObjectPageIssue]
 

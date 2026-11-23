@@ -57,21 +57,24 @@ fn local_effect_first_compilation(
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
-  // Select an issuer from the first original checked header. The update
-  // issuer audits the entire ordered Set before issuing a single proof.
+  // The original file inputs are retained only by the admitted project Mock
+  // entrance. One proof audits the entire checked Set, including a later DELETE.
+  let allow_file_mutation = !source_inputs.is_empty() && models.is_empty()
   let headers = @checked.effect_program_static_headers(
     @run_host.prepared_client_effect_computation_candidate(prepared),
   )
   guard @syntax.effect_header_at(headers, 0) is Some(header) else {
     stop("LocalEffectNormalizationProfileNotInstalled")
   }
-  let normalization_result = match @syntax.effect_header_kind(header) {
+  let first_kind = @syntax.effect_header_kind(header)
+  let normalization_result = match first_kind {
     "create" if @syntax.effect_header_count(headers) == 1 =>
       @run_host.issue_prepared_client_effect_normalization(prepared)
-    "update" =>
+    "update" | "delete" if first_kind == "update" || allow_file_mutation =>
       @run_host.issue_prepared_client_effect_selected_normalization(
         prepared,
         allow_source_completion=true,
+        allow_file_mutation~,
       )
     _ => stop("LocalEffectNormalizationProfileNotInstalled")
   }

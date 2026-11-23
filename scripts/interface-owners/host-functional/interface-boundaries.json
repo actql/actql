@@ -42318,12 +42318,13 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc6c29af530bc92a02d2c81bec857eb7a3b28df78f0a67751fabe336b898756e",
+      "sha256": "b05efb04942ad3afab29eda23b3a51251cbaf0827a0c3c912671f7399ec765fb",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "bindManagedComputeRunObservation",
         "createEmbeddedHostRegistry",
+        "installedEffectSettlements",
         "installedHostShutdown",
         "managedComputeUsageReader",
         "managedPreparationRetirementContinuation"
@@ -42702,6 +42703,57 @@
           "async": false
         },
         {
+          "name": "installedEffectSettlements",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:drain/init:drain",
+          "parameters": [
+            "resumes",
+            "retirements"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start",
+          "parameters": [
+            "accepted",
+            "effectRun",
+            "settle",
+            "diagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain",
+          "parameters": [
+            "settlement"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedHostShutdown",
           "parameters": [
             "host"
@@ -42922,6 +42974,13 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer/pending/pending",
             "createEmbeddedHostRegistry/init:connect/init:connect/seal",
             "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
+            "installedEffectSettlements",
+            "installedEffectSettlements/init:drain/init:drain",
+            "installedEffectSettlements/init:start/init:start",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+            "installedEffectSettlements/retain/retain",
+            "installedEffectSettlements/retain/retain/retire/retire",
             "installedHostShutdown",
             "installedHostShutdown/shutdown/shutdown",
             "installedHostShutdown/shutdown/shutdown#10",
@@ -42942,6 +43001,7 @@
           ],
           "exports": [
             "createEmbeddedHostRegistry",
+            "installedEffectSettlements",
             "installedHostShutdown"
           ],
           "attributes": {
@@ -43304,6 +43364,14 @@
               }
             ],
             "verification": [
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "initial Effect observation retains settlement after early acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
+              },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('ordinary Client close retires the original runtime once after all actual closes',async()=>{"
@@ -117994,7 +118062,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
+      "sha256": "065858933145004e1db98fcfb56cc07cbe72127eb560a5627c50507147797f26",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -118028,8 +118096,9 @@
           "async": false
         },
         {
-          "name": "createMockFileRowCodec/init:update/init:update",
+          "name": "createMockFileRowCodec/init:replace/init:replace",
           "parameters": [
+            "operation",
             "bytes",
             "target",
             "record",
@@ -118373,6 +118442,7 @@
         {
           "name": "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry",
           "parameters": [
+            "member",
             "entries"
           ],
           "async": false
@@ -118527,6 +118597,13 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/supportedKinds/supportedKinds",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/targetForRecord/target/target",
           "parameters": [
             "value"
@@ -118638,14 +118715,15 @@
             "wire/wire",
             "createMockFileRowCodec",
             "createMockFileRowCodec/admit/admit",
-            "createMockFileRowCodec/init:update/init:update",
+            "createMockFileRowCodec/init:replace/init:replace",
             "createMockFileRowCodec/observe/observe",
             "mockFileEffectPlanRecipe",
             "mockFileRowFootprint",
             "mockFileRowFootprint/mockFileRowFootprint",
             "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/driver/init:footprint/init:footprint",
-            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors"
+            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors",
+            "mockRowEffectDriver/supportedKinds/supportedKinds"
           ],
           "exports": [
             "installPreparedProjectMockEffects",
@@ -118658,7 +118736,7 @@
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -118821,6 +118899,14 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('actual target output wire stays bound to its same closed immutable observation'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -118834,7 +118920,7 @@
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -127049,7 +127135,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "1e5b1d245bd64ae21e1a3b21629178372caa963d4515862a14222237f5d9fc87",
+      "sha256": "90768f355b49d6fc4a4ab9e10f4424dd9db3ce647b698aea16cb4222777550d4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -127634,13 +127720,6 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
           "parameters": [],
           "async": false
@@ -127653,7 +127732,24 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2",
           "parameters": [],
           "async": false
         },
@@ -129482,13 +129578,15 @@
             "installedSourceConfigurationReader/retainMetadataInput/retainMetadataInput",
             "installedSourceConfigurationReader/validateMetadataInput/validateMetadataInput",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
-            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime"
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2"
           ],
           "exports": [],
           "attributes": {
@@ -129554,6 +129652,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
                 "anchor": "test('HubSpot real initial parent funds Native Mapping"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -138116,8 +138218,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5532,
-    "exports": 1201,
+    "operations": 5539,
+    "exports": 1202,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

@@ -13610,6 +13610,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/reconciliation.file-operation-kind-bound",
+      "statement_sha256": "bce1500f52eacd41df62dbd1ef13b8cbcb844bd1bb6668a7ad0ef3cb77451e8a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/reconciliation.file-operation-generation-size-bound",
       "statement_sha256": "bdaf5933220d1ba69245f72e12636d5660090bca5437a8ada9dcdeb610ac63bc",
       "status": "pending",
@@ -20024,7 +20035,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "a0180409cd0cfe30433e80114e9be42a829ae4c7851a72f17e1384252ad977ca",
+      "statement_sha256": "bfb72b5f899281cf607300dcb02e5e22e863996e5e01fc0c8b2b2abf9524afe5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

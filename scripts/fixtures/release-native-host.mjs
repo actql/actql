@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:https';
 import {readFile, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {userInfo} from 'node:os';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
@@ -70,8 +70,11 @@ await new Promise(resolve => schemaServer.listen(0, '127.0.0.1', resolve));
 await writeFile('connection.json', JSON.stringify({mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []}));
 await writeFile('token.txt', 'fixture-token\n', {mode: 0o600});
 await writeFile('query.sql', 'SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id');
+const selectedHttpLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY;
+if (selectedHttpLibrary !== undefined) assert(isAbsolute(selectedHttpLibrary), 'Use the admitted installed HTTP member');
+const compatibilityHttpLibrary = process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4';
 const common = ['--endpoint', endpoint, '--connection-root', root, '--connection-file', 'connection.json',
-  '--token-root', root, '--token-file', 'token.txt', '--http-library', process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4',
+  '--token-root', root, '--token-file', 'token.txt', '--http-library', selectedHttpLibrary ?? compatibilityHttpLibrary,
   '--ca', join(root, 'remote.crt'), '--cert', join(root, 'remote.crt'), '--key', join(root, 'remote.key')];
 let commandWrites = Promise.resolve();
 async function runCaptured(command, argv, args = argv) {

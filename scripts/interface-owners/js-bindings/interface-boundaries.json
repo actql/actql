@@ -60866,9 +60866,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
@@ -66776,22 +66774,8 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
-          "parameters": [
-            "error"
-          ],
           "async": false
         },
         {
@@ -69164,7 +69148,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
+      "sha256": "616f5f4879b72061b9ff66f6d0271b8107bcee89902bd51aac1041435d26daec"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -83859,7 +83843,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a8f790d5432be245fec546581ac572dbc09ff7c48b89c31c957b276dc51350f4",
+      "sha256": "ad3fc66cf4071a9b6deacbf3e3299c2a5573f7f6eea482cd8544c8b24b085ffd",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84193,12 +84177,19 @@
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect",
           "parameters": [
-            "rule"
+            "kind"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -85567,6 +85558,13 @@
           "name": "createRowEffectStage/selectOwner/selectOwner/route/route",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf",
+          "parameters": [
+            "rule"
           ],
           "async": false
         },
@@ -87372,7 +87370,9 @@
             "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings"
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffect/createInstalledRowEffect#3",
+            "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -94841,7 +94841,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
+      "sha256": "34e240fe08e548172236d0631c27e24a5e9d86a1b57573118a2a625dc4e1e601",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -163571,7 +163571,7 @@
   ],
   "counts": {
     "modules": 59,
-    "operations": 4671,
+    "operations": 4669,
     "exports": 624,
     "explicitContractGroups": 916
   }

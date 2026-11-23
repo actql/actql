@@ -789,6 +789,87 @@ pub fn prepare_relation_target_update(
 }
 
 ///|
+/// Prepare replacement DATA for removing the original observed row. The file
+/// owner must still bind the operation, approval and current file generation.
+pub fn prepare_relation_target_delete(
+  document : RelationTargetDocument,
+  row : RelationTargetRow,
+  expected_version : String,
+  max_work : Int,
+) -> Result[Bytes, RowSourceIssue] {
+  if !relation_target_row_original(row) ||
+    !physical_equal(document, row.document) ||
+    expected_version != row.version_cid {
+    return Err(ForeignSource)
+  }
+  let bytes = document.bytes
+  let rows = document.row_cursors
+  let span = @decode.cursor_span(rows[row.index])
+  try {
+    let work = Ref(max_work)
+    // Remove the following separator when possible, otherwise the preceding
+    // one. The gap between original adjacent elements contains one comma and
+    // optional whitespace. Keep that whitespace in the replacement.
+    let separator = if row.index + 1 < rows.length() {
+      relation_target_separator(
+        bytes,
+        span.end_byte,
+        @decode.cursor_span(rows[row.index + 1]).start_byte,
+        work,
+      )
+    } else if row.index > 0 {
+      relation_target_separator(
+        bytes,
+        @decode.cursor_span(rows[row.index - 1]).end_byte,
+        span.start_byte,
+        work,
+      )
+    } else {
+      bytes.length()
+    }
+    let row_bytes = span.end_byte - span.start_byte
+    let separator_bytes = if separator < bytes.length() { 1 } else { 0 }
+    let size = bytes.length() - row_bytes - separator_bytes
+    relation_document_work(work, size)
+    Ok(
+      Bytes::makei(size, index => {
+        // Translate each output index through the two removed ranges in source
+        // order. This also keeps equal-looking values in other collections.
+        let mut source = index
+        if separator < span.start_byte && source >= separator {
+          source += 1
+        }
+        if source >= span.start_byte {
+          source += row_bytes
+        }
+        if separator >= span.end_byte && source >= separator {
+          source += 1
+        }
+        bytes[source]
+      }),
+    )
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn relation_target_separator(
+  bytes : Bytes,
+  start : Int,
+  end : Int,
+  work : Ref[Int],
+) -> Int raise RelationDocumentStop {
+  relation_document_work(work, end - start)
+  for index in start..<end {
+    if bytes[index] == b',' {
+      return index
+    }
+  }
+  raise RelationDocumentStop(InvalidPage)
+}
+
+///|
 /// Consume the original physical response ticket and append selected values
 /// through the ordinary admitted-input owner. The document cannot authorize
 /// transport, acknowledge cleanup or be substituted for another declaration.

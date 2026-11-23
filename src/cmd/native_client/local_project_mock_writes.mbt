@@ -1,6 +1,6 @@
 ///|
 // Original declared write DATA and Common's Mapping, not an installed grant.
-// Observe and update permissions retain their separate authored meanings.
+// Observe and write permissions retain their separate authored meanings.
 priv struct LocalProjectMockWriteDeclaration {
   mapping : @row_host.RowMapping
   writable_fields : Array[String]
@@ -63,8 +63,8 @@ fn local_project_mock_write_null_selected(value : Json?, name : String) -> Bool 
 }
 
 ///|
-// Mechanical adaptation to the EXISTING closed UPDATE constructor. Common
-// checks the complete original Relation and every sibling write specification.
+// Adapt only the closed Catalog UPDATE and DELETE forms. Common checks the
+// complete original Relation and every sibling write specification.
 fn local_project_mock_write_declarations(
   entry : Json,
   declaration : @row_host.RowDeclaration,
@@ -87,39 +87,56 @@ fn local_project_mock_write_declarations(
   ] = []
   for write in writes {
     guard write is Object(body) else { return Err(InvalidSpecification) }
-    let optional_count = (if body.get("write_null_fields") is Some(_) {
-        1
-      } else {
-        0
-      }) +
-      (if body.get("update_fields") is Some(_) { 1 } else { 0 })
-    guard body.length() == 7 + optional_count &&
-      local_project_mock_file_text(write, "resource") is Some(resource) &&
+    let operation = match body.get("operation") {
+      None | Some(String("update")) => "update"
+      Some(String("delete")) => "delete"
+      _ => return Err(InvalidSpecification)
+    }
+    guard local_project_mock_file_text(write, "resource") is Some(resource) &&
       local_project_mock_file_text(write, "primary_identity") is Some(identity) &&
       local_project_mock_file_text(write, "permission") is Some(permission) &&
       local_project_mock_file_text(write, "observe_permission") is Some(observe) &&
       local_project_mock_file_text(write, "approval") == Some("required") &&
-      local_project_mock_write_names(body.get("writable_fields")) is Some(names) &&
-      !names.is_empty() &&
-      local_project_mock_write_null_fields_valid(
-        body.get("write_null_fields"),
-        names,
-      ) &&
       local_project_mock_write_names(body.get("aliases")) is Some(aliases) &&
       !aliases.is_empty() &&
       !originals.any(original => original.0 == resource) else {
       return Err(InvalidSpecification)
     }
-    let selected = match body.get("update_fields") {
-      None => names
-      Some(value) => {
-        guard local_project_mock_write_names(Some(value)) is Some(fields) &&
-          !fields.is_empty() &&
-          fields.all(name => names.contains(name)) else {
-          return Err(InvalidSpecification)
-        }
-        fields
+    let (names, selected) = if operation == "delete" {
+      // The six common properties and operation exhaust the DELETE object.
+      guard body.length() == 7 else { return Err(InvalidSpecification) }
+      let fields : Array[String] = []
+      (fields, fields)
+    } else {
+      let optional_count = (if body.get("write_null_fields") is Some(_) {
+          1
+        } else {
+          0
+        }) +
+        (if body.get("update_fields") is Some(_) { 1 } else { 0 }) +
+        (if body.get("operation") is Some(_) { 1 } else { 0 })
+      guard body.length() == 7 + optional_count &&
+        local_project_mock_write_names(body.get("writable_fields"))
+        is Some(names) &&
+        !names.is_empty() &&
+        local_project_mock_write_null_fields_valid(
+          body.get("write_null_fields"),
+          names,
+        ) else {
+        return Err(InvalidSpecification)
       }
+      let selected = match body.get("update_fields") {
+        None => names
+        Some(value) => {
+          guard local_project_mock_write_names(Some(value)) is Some(fields) &&
+            !fields.is_empty() &&
+            fields.all(name => names.contains(name)) else {
+            return Err(InvalidSpecification)
+          }
+          fields
+        }
+      }
+      (names, selected)
     }
     guard data
       .iter()
@@ -131,15 +148,27 @@ fn local_project_mock_write_declarations(
       Some(identity) else {
       return Err(InvalidSpecification)
     }
-    adapted.push({
-      "resource": Json::string(resource),
-      "primary_identity": Json::string(identity),
-      "update": {
-        "fields": Json::array(names.map(Json::string)),
-        "permission": Json::string(permission),
-        "approval": "required",
-      },
-    })
+    let specification : Json = if operation == "delete" {
+      {
+        "resource": Json::string(resource),
+        "primary_identity": Json::string(identity),
+        "delete": {
+          "permission": Json::string(permission),
+          "approval": "required",
+        },
+      }
+    } else {
+      {
+        "resource": Json::string(resource),
+        "primary_identity": Json::string(identity),
+        "update": {
+          "fields": Json::array(names.map(Json::string)),
+          "permission": Json::string(permission),
+          "approval": "required",
+        },
+      }
+    }
+    adapted.push(specification)
     originals.push((resource, names, selected, aliases, observe))
   }
   let wire = match
@@ -153,7 +182,13 @@ fn local_project_mock_write_declarations(
       Object(body) => body.get("write_null_fields")
       _ => None
     }
-    let mapping = match
+    // UPDATE always retains at least one eligible field; an empty field
+    // inventory comes only from the explicit closed DELETE declaration.
+    let admitted = if names.is_empty() {
+      @row_host.prepare_row_delete_mapping_from_writes(
+        declaration, wire, resource,
+      )
+    } else {
       @row_host.prepare_row_update_mapping(
         declaration,
         wire,
@@ -169,7 +204,9 @@ fn local_project_mock_write_declarations(
             "reject"
           },
         }),
-      ) {
+      )
+    }
+    let mapping = match admitted {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -197,6 +234,38 @@ priv struct LocalProjectMockWriteInstallation {
   binding : String
   owner : (String, String)
   target : String
+}
+
+///|
+fn LocalProjectMockWriteInstallation::matches_file_operation(
+  self : Self,
+  operation : String,
+) -> Bool {
+  match operation {
+    "update" => !self.write.writable_fields.is_empty()
+    "delete" => self.write.writable_fields.is_empty()
+    _ => false
+  }
+}
+
+///|
+fn LocalProjectMockWriteInstallation::file_target_read_capacity(
+  self : Self,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  response_bytes? : Int? = None,
+) -> @execution.ExecutionCapacity? {
+  if self.write.writable_fields.is_empty() {
+    @row_file.native_relation_file_delete_target_read_io_capacity(
+      provider,
+      response_bytes~,
+    )
+  } else {
+    @row_file.native_relation_file_target_read_io_capacity(
+      provider,
+      self.write.writable_fields.length(),
+      response_bytes~,
+    )
+  }
 }
 
 ///|

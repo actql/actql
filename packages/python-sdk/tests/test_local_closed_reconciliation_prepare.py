@@ -104,7 +104,10 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         constant('publication_commit_export_result_count', 2, 1)
         counted('publication_commit_export_validate_payload_binding', 5, 'bindings')
         counted('payload_record_validate_snapshot', 3, 'snapshots')
-        export('publication_commit_export_reserve', 3, 'local.get $p1 i32.const 100 i32.add')
+        export('publication_commit_export_reserve_bounded', 4, '''
+            local.get $p2 i32.const 64 i32.eq
+            local.get $p2 i32.const 71 i32.eq i32.or
+            if (result i32) local.get $p1 i32.const 100 i32.add else i32.const -4 end''')
         export('publication_commit_export_produce_index_key', 2, '''
             i32.const 64 global.set $length i32.const 64 global.set $address
             global.get $effect_enabled if call $test_effect drop end i32.const 0''')

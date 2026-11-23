@@ -7,15 +7,26 @@ import {isAbsolute, join, resolve} from 'node:path';
 import {inventory, unpack} from './package-release.mjs';
 import {admitInstalledNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 import {admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 export function nativeCliReleaseInstallSelection(args) {
   assert(Array.isArray(args) && (args.length === 2 || args.length === 3) &&
     args.every(value => typeof value === 'string' && value.length > 0) &&
-    (args.length === 2 || args[2] === '--shared-clients'),
-  'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC> [--shared-clients]');
+    (args.length === 2 || ['--shared-clients', '--verified-remote-http'].includes(args[2])),
+  'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC> [--shared-clients|--verified-remote-http]');
   return {cliDirectory: resolve(args[0]), sdkDirectory: resolve(args[1]),
-    sharedClients: args.length === 3};
+    sharedClients: args.length === 3,
+    ...(args[2] === '--verified-remote-http' ? {verifiedRemoteHttp: true} : {})};
+}
+
+export function admitInstalledNativeRemoteHttp(directory, expected, artifact) {
+  const runtime = admitInstalledLocalRuntime({
+    root: directory, expected: {...expected, platform: artifact.platform}, metadata: artifact.localRuntime,
+  });
+  const member = runtime.libraries.find(value => value.role === 'remote-http');
+  assert(member, 'The selected Native Remote installation requires the verified HTTP member');
+  return {member, libraryPath: join(directory, member.path)};
 }
 
 export function nativeStandaloneAcceptanceScope() {
