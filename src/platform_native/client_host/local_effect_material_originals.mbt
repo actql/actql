@@ -246,7 +246,10 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
       }
       match
         self.select_effect_values_policy_originals(
-          reference, request, definition, file,
+          reference,
+          request,
+          definition,
+          file,
           reads=operations.map(value => value.reads),
         ) {
         Ok((wire, selection)) => (Some(wire), selection)

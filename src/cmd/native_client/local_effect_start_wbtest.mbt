@@ -128,28 +128,43 @@ test "Native Mock CREATE issues original evidence from its installed Result poli
   )
   let policy = installation.source_free.unwrap()
   let original = @run_host.issue_client_effect_source_free_invocation_original(
-    compilation, policy.result_policy_cid, 16384, 1024, 20,
+    compilation,
+    policy.result_policy_cid,
+    16384,
+    1024,
+    20,
   ).unwrap()
   let admission = @run_host.client_effect_allowed_run_admission(first.allowed)
   let evidence = @publication.resolve_run_local_result_evidence_refs(
     admission,
     first.definition,
     @run_host.client_effect_source_free_invocation_original_invocation(original),
-    @run_host.client_effect_source_free_invocation_original_observation(original),
+    @run_host.client_effect_source_free_invocation_original_observation(
+      original,
+    ),
     installation.retention,
   ).unwrap()
   assert_eq(evidence.1, policy.result_policy_cid)
   let foreign = @run_host.issue_client_effect_source_free_invocation_original(
-    compilation, "sha256:" + "f".repeat(64), 16384, 1024, 20,
+    compilation,
+    "sha256:" + "f".repeat(64),
+    16384,
+    1024,
+    20,
   ).unwrap()
   assert_true(
     @publication.resolve_run_local_result_evidence_refs(
       admission,
       first.definition,
-      @run_host.client_effect_source_free_invocation_original_invocation(foreign),
-      @run_host.client_effect_source_free_invocation_original_observation(foreign),
+      @run_host.client_effect_source_free_invocation_original_invocation(
+        foreign,
+      ),
+      @run_host.client_effect_source_free_invocation_original_observation(
+        foreign,
+      ),
       installation.retention,
-    ) is Err(ForeignRetention),
+    )
+    is Err(ForeignRetention),
   )
 }
 
