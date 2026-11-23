@@ -190,10 +190,17 @@ function PlanSteps({map, boundary, selection, select, graph, locale}: {
   </section>;
 }
 
-function StepOrigin({step, label, select}: {step: Step; label?: string; select?(): void}) {
+function StepOrigin({step, label, select, folded = false}: {
+  step: Step; label?: string; select?(): void; folded?: boolean;
+}) {
+  const meaning = step.explanation.meaning;
   return <div className="occurrence-origin">
-    <strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p>
+    {!folded && <><strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p></>}
     <details><summary>Original step and ports</summary>
+      {folded && <p><StoryText text={step.explanation.text}/></p>}
+      {meaning.kind === 'join' && <ul aria-label="Checked join key pairs">
+        {meaning.keys.map(({left,right},index)=><li key={index}><code>{left}</code> = <code>{right}</code></li>)}
+      </ul>}
       {step.names.length > 0 && <p>{step.names.map(name=><code key={name}>{name}</code>)}</p>}
       {select && <button type="button" className="small" onClick={select}>Select original step</button>}
       <code>{step.stepId}</code>
@@ -348,7 +355,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
               <thead><tr>{projection.columns.map(name=><th key={name} scope="col"><code>{name}</code></th>)}</tr></thead>
             </table>
           </div>}
-          {step && <StepOrigin step={step} label={labels.get(step.stepId)?.title} select={()=>selectStep(step.stepId)}/>}
+          {step && <StepOrigin step={step} folded select={()=>selectStep(step.stepId)}/>}
           <p>Bounded Source data is not available in this view.</p>
           <details><summary>Original Source and links</summary>
             <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
@@ -380,7 +387,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
           state={stepState(focusedStep.stepId, saved, boundary)} title={title}
           detail={tasks.length ? undefined : step.explanation.text}>
           {saved && <p>Sample data is unavailable for this step.</p>}
-          {projection && <StepOrigin step={projection.step} label={labels.get(projection.step.stepId)?.title}
+          {projection && <StepOrigin step={projection.step} folded
             select={()=>selectStep(projection.step.stepId)}/>}
           {group.map(item=><StepOrigin key={item.stepId} step={item}
             label={labels.get(item.stepId)?.title}

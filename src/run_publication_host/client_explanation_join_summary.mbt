@@ -249,7 +249,7 @@ fn explain_join_input(
 }
 
 ///|
-fn explain_summary_join(
+fn explain_narrative_join(
   fact : @canonical.CanonicalValue,
   topology : ExplanationJoinTopology?,
   text : ExplanationNarrativeText,
@@ -316,16 +316,11 @@ fn explain_summary_join(
     } else {
       text.say(" on ", " を ")
     }
-    explain_narrative_join_keys(
-      meaning,
-      text,
-      compact=true,
-      right_source_keys=source_keys,
-    )
+    explain_narrative_join_keys(meaning, text, right_source_keys=source_keys)
     text.say("", " で照合する")
   } else {
     text.say(if kind == "inner" { " rows on " } else { " on " }, "のキー ")
-    explain_narrative_join_keys(meaning, text, compact=true)
+    explain_narrative_join_keys(meaning, text)
     text.say(
       " (input origins not projected)", "（入力の参照は未提供）",
     )

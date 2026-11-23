@@ -2049,7 +2049,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "689931317c515c3a1ac755ecaf6a8fd5b187c14b7c5a76c8c1c172f13ff671db",
+      "sha256": "681107e88270e530d8c17333a855f105ee353d91a9da4cd9aaf7269df991df79",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -2350,6 +2350,37 @@
           "result": null
         },
         {
+          "name": "narrowWorkspaceViewport",
+          "parameters": [
+            "placed: LogicalNode[]",
+            "focus: LogicalNode",
+            "edges: Edge[]",
+            "width: number"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>",
+          "parameters": [
+            "node"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>#2",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
+          "name": "narrowWorkspaceViewport/<call>#3",
+          "parameters": [
+            "edge"
+          ],
+          "result": null
+        },
+        {
           "name": "OriginalEdge",
           "parameters": [
             "{id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label}: EdgeProps"
@@ -2438,7 +2469,11 @@
             "groupUnlinkedInputs/<call>#6",
             "groupUnlinkedInputs/<call>#7",
             "groupUnlinkedInputs/<call>#8",
-            "groupUnlinkedInputs/<call>#9"
+            "groupUnlinkedInputs/<call>#9",
+            "narrowWorkspaceViewport",
+            "narrowWorkspaceViewport/<call>",
+            "narrowWorkspaceViewport/<call>#2",
+            "narrowWorkspaceViewport/<call>#3"
           ],
           "exports": [
             "CancellationPanel",
@@ -4705,7 +4740,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1132b6e35e82e12ac27f4e9ecdd765a4b4aa3c98131518ef14d89a27b9c35d9e",
+      "sha256": "1b0da244393eb9e1a22ec9fb0f3562cba67afaee2d2242aab437158a0910e3a5",
       "exports": [],
       "operations": [
         {
@@ -5254,19 +5289,27 @@
         {
           "name": "StepOrigin",
           "parameters": [
-            "{step, label, select}: {step: Step; label?: string; select?(): void}"
+            "{step, label, select, folded = false}: {\n  step: Step; label?: string; select?(): void; folded?: boolean;\n}"
           ],
           "result": null
         },
         {
           "name": "StepOrigin/<call>",
           "parameters": [
-            "name"
+            "{left,right}",
+            "index"
           ],
           "result": null
         },
         {
           "name": "StepOrigin/<call>#2",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StepOrigin/<call>#3",
           "parameters": [
             "port"
           ],
@@ -5974,7 +6017,8 @@
             "ModelFields/<call>#2",
             "StoryHeading/<call>#4",
             "StorySteps/<call>/<call>#9",
-            "StorySteps/<call>/<call>/<call>"
+            "StorySteps/<call>/<call>/<call>",
+            "StepOrigin/<call>#3"
           ],
           "exports": [],
           "attributes": {

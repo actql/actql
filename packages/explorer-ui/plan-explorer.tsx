@@ -89,6 +89,24 @@ function initialViewportNodes(placed: LogicalNode[], focus: LogicalNode | undefi
   return opening.filter(node=>Math.abs(node.position.x - focus.position.x) <= reach);
 }
 
+function narrowWorkspaceViewport(placed: LogicalNode[], focus: LogicalNode, edges: Edge[], width: number) {
+  const byId = new Map(placed.map(node => [node.id, node]));
+  const connected = edges.find(edge => edge.source === focus.id) ??
+    edges.find(edge => edge.target === focus.id) ?? edges[0];
+  const source = connected && byId.get(connected.source);
+  const target = connected && byId.get(connected.target);
+  const first = source ?? focus;
+  const second = target ?? first;
+  const left = Math.min(first.position.x, second.position.x);
+  const top = Math.min(first.position.y, second.position.y);
+  const span = Math.abs(first.position.x - second.position.x) + flowNodeWidth;
+  // Start near the top of the canvas so an original input and its real
+  // connection are visible before scrolling. Keep manual pan and zoom.
+  const zoom = Math.min(0.95, Math.max(0.76, (width - 28) / span));
+  return {x: (width - Math.min(span * zoom, width - 28)) / 2 - left * zoom,
+    y: 28 - top * zoom, zoom};
+}
+
 // Scope changes remount selection and the renderer. This component accepts an
 // already admitted original model and has no Client, transport or control API.
 export function PlanExplorer({model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps) {
@@ -142,6 +160,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
   const original = model.nodes.find(node => node.id === selection);
   const focus = placed.find(node=>node.id === selection) ?? placed[0];
   const fitNodes = workspace ? initialViewportNodes(placed, focus, canvasWidth) : focus ? [focus] : [];
+  const openingViewport = workspace && focus && canvasWidth < flowNodeWidth * 2
+    ? narrowWorkspaceViewport(placed, focus, flow.edges, canvasWidth) : undefined;
   const originalMetadata = <>
     <dl className="actql-explorer-identities"><dt>Compiled Plan</dt><dd>{model.compiledPlanCid}</dd>
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
@@ -186,7 +206,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
     {mode === 'list' && originalMetadata}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div ref={canvas} className="actql-explorer-flow">
       {placed.some(node=>node.data.unlinkedInput) && <span className="actql-explorer-input-group">Declared inputs</span>}
-      {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+      {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView={openingViewport === undefined} defaultViewport={openingViewport}
+        nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitViewOptions={{nodes: fitNodes, minZoom: 0.9, maxZoom: 1, padding: 0.12}}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
         connectOnClick={false} deleteKeyCode={null} zoomOnDoubleClick={false}

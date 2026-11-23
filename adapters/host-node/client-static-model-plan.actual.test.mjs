@@ -147,23 +147,23 @@ test('installed static Explanation retains the original deal-review Source, Mode
       assert.deepEqual(presentation.context.map(item => item.origin), context.items);
       assert.doesNotMatch(JSON.stringify(presentation), /"(?:prompt|instructions)"|Review only the current stage/);
     }
-    assert.match(english.story.narrative.summary, /Read "Opportunity" from "salesforce"/u);
-    assert.match(english.story.narrative.summary, /"drive".*Ask "model-task:deal-review.v1"/u);
-    assert.match(english.story.narrative.summary, /Return "updates".*"StageName"/u);
-    for (const presentation of [english, japanese]) {
+    assert.equal(english.story.narrative.summary,
+      'Read from "salesforce", "drive". Join inputs. Ask "model-task:deal-review.v1". Filter rows. Return "updates". Plan to update "Opportunity" in "salesforce".');
+    assert.equal(japanese.story.narrative.summary,
+      '"salesforce"、"drive" から読み取る。入力を結合する。"model-task:deal-review.v1" に問い合わせる。行を絞り込む。"updates" を結果として返す。"salesforce" の "Opportunity" を更新する計画。');
+    for (const [presentation, redaction] of [[english, /\[redacted /u], [japanese, /\[非開示 /u]]) {
       const filter = presentation.story.occurrences.find(step => step.operator === 'filter');
       assert.equal(filter.explanation.meaning.predicate.state, 'projected');
       assert.match(filter.explanation.text, /"review"\."value"\."changed"/u);
-      assert.match(presentation.story.narrative.summary, /"review"\."value"\."changed"/u);
+      assert.match(filter.explanation.text, redaction);
       assert.doesNotMatch(filter.explanation.text, /"ok"/u);
-      assert.doesNotMatch(presentation.story.narrative.summary, /"ok"/u);
+      assert.doesNotMatch(presentation.story.narrative.summary, /"ok"|"review"|aql_chain_column_/u);
     }
-    assert.match(english.story.narrative.summary, /\[redacted /u);
-    assert.match(japanese.story.narrative.summary, /\[非開示 /u);
-    assert.match(japanese.story.narrative.summary, /"salesforce" の "Opportunity".*"name"/u);
-    assert.match(english.story.narrative.summary, /Match "Opportunity" from "salesforce" with "files" from "drive" on "name"/u);
-    assert.match(english.story.narrative.summary, /the joined rows with "contents" from "drive" on the Source keys "resource", "version"/u);
-    assert(!english.story.narrative.summary.includes('aql_chain_column_'));
+    const englishJoins = english.story.occurrences.filter(step => step.operator === 'join');
+    const japaneseJoins = japanese.story.occurrences.filter(step => step.operator === 'join');
+    assert.match(englishJoins[0].explanation.text, /Match "Opportunity" from "salesforce" with "files" from "drive" on "name"/u);
+    assert.match(englishJoins[1].explanation.text, /the joined rows with "contents" from "drive" on the Source keys "resource", "version"/u);
+    assert.match(japaneseJoins[0].explanation.text, /"salesforce" の "Opportunity".*"name"/u);
     assert.deepEqual(english.plan.stageResultLinks, context.stage_result_links);
     assert.equal(context.stage_result_links.length, 2);
     const flow = flowPresentation(english.plan);

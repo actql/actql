@@ -479,7 +479,6 @@ fn explain_narrative_predicate(
 fn explain_narrative_join_keys(
   meaning : @canonical.CanonicalValue,
   text : ExplanationNarrativeText,
-  compact? : Bool = false,
   right_source_keys? : Bool = false,
 ) -> Unit raise ClientExplanationNarrativeIssue {
   visit_explanation_narrative_array(
@@ -487,15 +486,11 @@ fn explain_narrative_join_keys(
     text.budget,
     (index, key) => {
       if index > 0 {
-        if compact {
-          text.say(", ", "、")
-        } else {
-          text.append(", ")
-        }
+        text.say(", ", "、")
       }
       let left = explanation_narrative_string(key, "left")
       let right = explanation_narrative_string(key, "right")
-      if right_source_keys || (compact && left == right) {
+      if right_source_keys || left == right {
         text.quote(right)
       } else {
         text.append("left.")
@@ -510,6 +505,7 @@ fn explain_narrative_join_keys(
 ///|
 fn explain_narrative_fact(
   fact : @canonical.CanonicalValue,
+  topology : ExplanationJoinTopology?,
   text : ExplanationNarrativeText,
 ) -> Unit raise ClientExplanationNarrativeIssue {
   let meaning = explanation_narrative_field(fact, "meaning")
@@ -579,9 +575,7 @@ fn explain_narrative_fact(
       )
     }
     "join" => {
-      text.append(explanation_narrative_string(meaning, "join_kind"))
-      text.say(" join on: ", " 結合のキー: ")
-      explain_narrative_join_keys(meaning, text)
+      explain_narrative_join(fact, topology, text)
       text.say("; Null keys: ", "; NULLキー: ")
       match explanation_narrative_string(meaning, "null_key") {
         "no_match" => text.say("do not match", "一致させない")
@@ -625,6 +619,7 @@ pub fn render_client_explanation_narrative(
     )
   }
   let steps : Array[String] = []
+  let mut topology = None
   visit_explanation_narrative_array(
     explanation_narrative_field(facts, "steps"),
     budget,
@@ -633,12 +628,25 @@ pub fn render_client_explanation_narrative(
         raise ExplanationPresentationLimit
       }
       let text : ExplanationNarrativeText = { budget, out: StringBuilder(), }
-      explain_narrative_fact(fact, text)
+      if topology is None &&
+        @canonical.object_field(fact, "operator")
+        is Some(@canonical.String("join")) &&
+        logical_map is Some(map) {
+        let stage_result_links = context.bind(value => {
+          @canonical.object_field(value, "stage_result_links")
+        })
+        topology = Some(
+          explanation_join_topology(
+            facts, context, map, stage_result_links, budget,
+          ),
+        )
+      }
+      explain_narrative_fact(fact, topology, text)
       steps.push(text.out.to_string())
     },
   )
   let (summary, clauses, items) = explain_narrative_summary(
-    context, facts, steps, logical_map, budget,
+    context, facts, budget,
   )
   { context: context_items, steps, summary, clauses, items, }
 }

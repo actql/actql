@@ -30,48 +30,26 @@ fn explanation_summary_sources(
   text : ExplanationNarrativeText,
   indices : Array[Int],
 ) -> Unit raise ClientExplanationNarrativeIssue {
-  // Keep the connector and resource distinct. Several views or inputs can
-  // refer to the same pair. All original indices remain navigable.
-  let seen : Map[String, Map[String, Unit]] = Map([])
+  let seen : Map[String, Unit] = Map([])
   let mut count = 0
   visit_explanation_narrative_array(value, text.budget, (index, item) => {
     if explanation_narrative_string(item, "kind") == "source" {
       indices.push(index)
       let view = explanation_narrative_field(item, "source_view")
       let connector = explanation_narrative_string(view, "connector")
-      let resource = explanation_narrative_string(view, "resource")
-      let resources = match seen.get(connector) {
-        Some(resources) => resources
-        None => {
-          let resources = Map([])
-          seen[connector] = resources
-          resources
-        }
-      }
-      if !resources.contains(resource) {
-        resources[resource] = ()
+      if !seen.contains(connector) {
+        seen[connector] = ()
         explanation_summary_append_separator(text, count)
         if count == 0 {
-          text.say("Read ", "")
+          text.say("Read from ", "")
         }
-        match text.budget.language {
-          English => {
-            text.quote(resource)
-            text.append(" from ")
-            text.quote(connector)
-          }
-          Japanese => {
-            text.quote(connector)
-            text.append(" の ")
-            text.quote(resource)
-          }
-        }
+        text.quote(connector)
         count += 1
       }
     }
   })
   if count > 0 {
-    text.say("", " を読み取る")
+    text.say("", " から読み取る")
   }
 }
 
@@ -136,26 +114,6 @@ fn explanation_summary_effects(
             explanation_narrative_string(contract, "declared_target"),
             text,
           )
-          let writes = explanation_narrative_field(entry, "write_fields")
-          if explanation_narrative_string(writes, "state") == "declared" &&
-            @canonical.object_field(writes, "fields") is Some(fields_value) &&
-            fields_value is @canonical.Array(fields) &&
-            @canonical.array_count(fields) > 0 {
-            visit_explanation_narrative_array(fields_value, text.budget, (
-              index,
-              field,
-            ) => {
-              if index == 0 {
-                text.say(" (", " の ")
-              }
-              explanation_summary_append_separator(text, index)
-              guard field is @canonical.String(name) else {
-                raise InvalidExplanation
-              }
-              text.quote(name)
-            })
-            text.say(")", "")
-          }
           match kind {
             "create" => text.say("", " にレコードを作成する計画")
             "update" => text.say("", " を更新する計画")
@@ -185,8 +143,6 @@ fn explanation_summary_effects(
 fn explain_narrative_summary(
   context : @canonical.CanonicalValue?,
   facts : @canonical.CanonicalValue,
-  steps : Array[String],
-  logical_map : @canonical.CanonicalValue?,
   budget : ExplanationNarrativeBudget,
 ) -> (
   String,
@@ -199,10 +155,6 @@ fn explain_narrative_summary(
   let results : Array[Int] = []
   let effects : Array[Int] = []
   let joins : Array[String] = []
-  let mut topology = None
-  let stage_result_links = context.bind(value => {
-    @canonical.object_field(value, "stage_result_links")
-  })
   let filters : Array[String] = []
   let read : ExplanationNarrativeText = { budget, out: StringBuilder(), }
   let ask : ExplanationNarrativeText = { budget, out: StringBuilder(), }
@@ -245,7 +197,7 @@ fn explain_narrative_summary(
     })
   }
   if !models.is_empty() {
-    ask.say(" about each input row", " に入力行ごとに問い合わせる")
+    ask.say("", " に問い合わせる")
   }
   if !results.is_empty() {
     output.say("", " を結果として返す")
@@ -259,49 +211,18 @@ fn explain_narrative_summary(
       if @canonical.object_field(fact, "operator")
         is Some(@canonical.String(operator)) {
         match operator {
-          "join" => {
-            if joins.length() < 2 {
-              if joins.is_empty() && logical_map is Some(map) {
-                topology = Some(
-                  explanation_join_topology(
-                    facts, context, map, stage_result_links, budget,
-                  ),
-                )
-              }
-              if !joins.is_empty() {
-                join.say(". ", "。")
-              }
-              explain_summary_join(fact, topology, join)
-            }
-            joins.push(id)
-          }
-          "filter" => {
-            if !filters.is_empty() {
-              filter.say(". ", "。")
-            }
-            let meaning = explanation_narrative_field(fact, "meaning")
-            let predicate = @canonical.object_field(meaning, "predicate")
-            let line = steps[index]
-            if predicate is Some(original) &&
-              explanation_narrative_string(original, "state") == "projected" &&
-              line.length() <= 128 {
-              filter.append(line)
-            } else {
-              filter.say(
-                "Filter rows (condition details in Steps)", "行を絞り込む（条件の詳細は Steps）",
-              )
-            }
-            filters.push(id)
-          }
+          "join" => joins.push(id)
+          "filter" => filters.push(id)
           _ => ()
         }
       }
     },
   )
-  if joins.length() > 2 {
-    join.say(
-      ". See the other checked join keys in Steps", "。ほかの確認済みの結合キーは Steps に表示",
-    )
+  if !joins.is_empty() {
+    join.say("Join inputs", "入力を結合する")
+  }
+  if !filters.is_empty() {
+    filter.say("Filter rows", "行を絞り込む")
   }
   let clauses : Array[ClientExplanationSummaryClause] = []
   let summary : ExplanationNarrativeText = { budget, out: StringBuilder(), }
