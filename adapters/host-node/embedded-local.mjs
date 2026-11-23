@@ -5722,6 +5722,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const retireTerminalEffects = async () => {
     if (effectRun === undefined || checkpoints === undefined) return;
+    // Shutdown has already drained the admitted work. Leave durable
+    // capture discovery to a later authorized opener if this Journal fenced.
+    if (checkpoints.journal.connectionFenced) return;
     let after = '';
     const failures = [];
     try { await retireIncompleteEffects(); }
