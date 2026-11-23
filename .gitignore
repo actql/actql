@@ -2534,3 +2534,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-common/runtime-result-delivery-control.d.mts
 /scripts/workers-composition.test.mjs
 /scripts/workers-composition.test.d.mts
+/adapters/host-common/runtime-run-state-control.mjs
+/adapters/host-common/runtime-run-state-control.d.mts

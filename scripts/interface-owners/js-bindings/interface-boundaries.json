@@ -24136,19 +24136,12 @@
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
-            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
-            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
-            "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState#2",
-            "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
-            "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
             "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
-            "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
-            "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
             "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
@@ -24226,7 +24219,6 @@
             "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
             "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
             "publicationControl/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
-            "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
             "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
             "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
             "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
@@ -24235,7 +24227,6 @@
             "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
             "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
-            "publicationControl/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
             "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
@@ -24287,7 +24278,6 @@
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
-            "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
             "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid/init:publicationPreflightValid",
@@ -24302,7 +24292,6 @@
             "publicationControl/init:readCurrentClientRunView/init:readCurrentClientRunView",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
-            "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
@@ -24321,12 +24310,7 @@
             "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
             "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
             "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
-            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed",
-            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
-            "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
             "publicationControl/init:runChainValid/init:runChainValid",
-            "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
-            "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
             "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
@@ -32830,48 +32814,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
-          "parameters": [
-            "preview",
-            "receipts",
-            "runId",
-            "updatedAt",
-            "resultNames",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
-          "parameters": [
-            "preview",
-            "receipts",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
           "parameters": [
             "artifact",
@@ -32888,24 +32830,6 @@
             "invocationCid",
             "sourceTableInput",
             "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
-          "parameters": [
-            "originWire",
-            "stateWire",
-            "cutWire",
-            "phase",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -33933,14 +33857,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
-          "parameters": [
-            "request",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
           "parameters": [
             "original",
@@ -34034,14 +33950,6 @@
             "responseWire",
             "statusCode",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
-          "parameters": [
-            "document",
-            "field"
           ],
           "async": false
         },
@@ -35294,14 +35202,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
-          "parameters": [
-            "record",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
           "parameters": [
             "preview",
@@ -35459,14 +35359,6 @@
             "evidence",
             "candidate",
             "content"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
-          "parameters": [
-            "wire",
-            "limits"
           ],
           "async": false
         },
@@ -35920,27 +35812,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed",
-          "parameters": [
-            "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:runChainValid/init:runChainValid",
           "parameters": [
             "runDefinition",
@@ -35949,21 +35820,6 @@
             "artifacts",
             "manifest",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
-          "parameters": [
-            "runDefinition",
-            "expectedCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
-          "parameters": [
-            "runDefinition"
           ],
           "async": false
         },
@@ -36496,12 +36352,267 @@
         "./runtime-execution-control.mjs",
         "./runtime-result-delivery-control.mjs",
         "./runtime-result.mjs",
+        "./runtime-run-state-control.mjs",
         "./runtime-tuple.mjs",
         "./site-control.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "13fd46637d29ff978d5d471ef4c0d1319e903c3460c57c3f554ef482a6dccd83"
+      "sha256": "1fe0edb6c67b99da0a6f2d77449ea8a766d53fa678486cf60430cf93fb41f02d"
+    },
+    {
+      "module": "adapters/host-common/runtime-run-state-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing Common Result issuance, retention, delivery and row framing through the original publication owner",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createRunStateControls",
+            "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState",
+            "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
+            "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState#2",
+            "createRunStateControls/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+            "createRunStateControls/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+            "createRunStateControls/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+            "createRunStateControls/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+            "createRunStateControls/init:issueSucceededRunState/init:issueSucceededRunState",
+            "createRunStateControls/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
+            "createRunStateControls/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+            "createRunStateControls/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
+            "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed",
+            "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
+            "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
+            "createRunStateControls/init:runDefinitionLifetime/init:runDefinitionLifetime",
+            "createRunStateControls/init:runDefinitionRunId/init:runDefinitionRunId"
+          ],
+          "exports": [
+            "createRunStateControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "export function createRunStateControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "issueSucceededRunState(request: SucceededRun, limits: Limits)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "token(runDefinition), expectedCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const modelOriginalDocumentTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const token = value => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "return moon.clientRunCancellationConfirmed("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "throw new TypeError('Foreign original Model document');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "throw new TypeError('Invalid Run cancellation observations');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "issuanceLimits(limits, 'Effect reconciliation Run state');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...publicationStateControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "Checkpoint lifetime projects only the same original admitted Run without renewal"
+              },
+              {
+                "path": "adapters/host-node/client-confirmed-cancellation.test.mjs",
+                "anchor": "an earlier physical close cannot acknowledge current restored cleanup"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createRunStateControls"
+      ],
+      "operations": [
+        {
+          "name": "createRunStateControls",
+          "parameters": [
+            "moon",
+            "token",
+            "issuanceLimits",
+            "computationPreviewTokens",
+            "modelOriginalDocumentTokens"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState",
+          "parameters": [
+            "preview",
+            "receipts",
+            "runId",
+            "updatedAt",
+            "resultNames",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+          "parameters": [
+            "preview",
+            "receipts",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+          "parameters": [
+            "originWire",
+            "stateWire",
+            "cutWire",
+            "phase",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:issueSucceededRunState/init:issueSucceededRunState",
+          "parameters": [
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
+          "parameters": [
+            "document",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+          "parameters": [
+            "record",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
+          "parameters": [
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:runDefinitionLifetime/init:runDefinitionLifetime",
+          "parameters": [
+            "runDefinition",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRunStateControls/init:runDefinitionRunId/init:runDefinitionRunId",
+          "parameters": [
+            "runDefinition"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "e1b9dafd20233acd0c4ba10dab356c30cafea0bbe0fe58d377a73c763c72f230"
     },
     {
       "module": "adapters/host-common/runtime-result-delivery-control.mjs",

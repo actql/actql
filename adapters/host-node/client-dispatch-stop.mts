@@ -1,3 +1,4 @@
+import type {RunCancellationFacts} from '../host-common/runtime-run-state-control.mjs';
 import type {openClientRequestJournal} from './client-request-journal.mjs';
 import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 
@@ -5,18 +6,6 @@ type Journal = ReturnType<typeof openClientRequestJournal>;
 type LookupRun = Journal['lookupRunDefinition'];
 type RunRef = Parameters<LookupRun>[0];
 type RunFrame = NonNullable<ReturnType<LookupRun>>;
-type CancellationFacts = Readonly<{
-  cancellationRequested: boolean;
-  modelFenceRequired: boolean;
-  modelFenced: boolean;
-  unresolvedModelCalls: boolean;
-  unresolvedEffects: boolean;
-  reconciliationRequired: boolean;
-  publicationCommitted: boolean;
-  physicalStopConfirmed: boolean;
-  cleanupConfirmed: boolean;
-  revisionUnchanged: boolean;
-}>;
 type ModelJournal = Readonly<{
   discoverModelCallSets: (selection: Readonly<{runId: string; limit: 1}>) => readonly unknown[];
   modelCancellationFenced?: (runId: string, runDefinitionCid: string) => boolean;
@@ -35,7 +24,7 @@ type StopFacts = RunIdentity & Readonly<{
   store: Pick<Awaited<ReturnType<typeof openLocalPublicationStore>>, 'confirmCommittedIndex'>;
   control: RunIdentity['control'] & Readonly<{
     runDefinitionRunId: (definition: RunFrame['runDefinition']) => string;
-    runCancellationConfirmed: (facts: CancellationFacts) => boolean;
+    runCancellationConfirmed: (facts: RunCancellationFacts) => boolean;
   }>;
   checkpoints?: Readonly<{journal?: ModelJournal}>;
   cleanupConfirmed?: boolean;

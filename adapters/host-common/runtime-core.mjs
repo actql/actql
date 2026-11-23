@@ -17,6 +17,7 @@ import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationProgressControl} from './publication-progress-control.mjs';
 import {createResultDeliveryControls} from './runtime-result-delivery-control.mjs';
+import {createRunStateControls} from './runtime-run-state-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -553,6 +554,9 @@ function publicationControl(moon) {
   const {resultReadControls, resultRetentionControls, resultDeliveryControls} =
     createResultDeliveryControls(moon, {token, inspect, issuanceLimits, captureContractLimits,
       issuedDeliveryGrants, issuedDeliveryAttempts, originalDeliveryAttempts});
+  const {effectRunStateControls, runIdentityControls, publicationStateControls} =
+    createRunStateControls(moon, {token, issuanceLimits,
+      computationPreviewTokens, modelOriginalDocumentTokens});
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -5101,40 +5105,7 @@ function publicationControl(moon) {
         ),
       ), limits);
     },
-    effectSetReceiptRunDisposition(preview, receipts, limits) {
-      issuanceLimits(limits, 'Effect Set Run disposition');
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined ||
-          typeof receipts?.setWire !== 'string' ||
-          !Array.isArray(receipts.memberWires) ||
-          receipts.memberWires.some(wire => typeof wire !== 'string')) {
-        throw new TypeError('Invalid Effect Set Run disposition');
-      }
-      return checked(moon.strategyEffectSetReceiptRunDisposition(
-        ownedPreview, receipts.setWire, receipts.memberWires,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-      ));
-    },
-    // The public state of a Run whose complete admitted Effect Set has
-    // unknown outcomes: `needs_reconciliation` naming exactly those Effects.
-    effectReconciliationRunState(preview, receipts, {runId, updatedAt,
-      resultNames}, limits) {
-      issuanceLimits(limits, 'Effect reconciliation Run state');
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined ||
-          typeof receipts?.setWire !== 'string' ||
-          !Array.isArray(receipts.memberWires) ||
-          receipts.memberWires.some(wire => typeof wire !== 'string') ||
-          !Array.isArray(resultNames) ||
-          resultNames.some(name => typeof name !== 'string')) {
-        throw new TypeError('Invalid Effect reconciliation Run state');
-      }
-      return checked(moon.strategyEffectReconciliationRunState(
-        ownedPreview, receipts.setWire, receipts.memberWires, runId,
-        updatedAt, resultNames, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth,
-      ));
-    },
+    ...effectRunStateControls,
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
         previous === undefined ? undefined : token(previous),
@@ -5534,98 +5505,9 @@ function publicationControl(moon) {
       ), limits);
     },
     ...resultReadControls,
-    runDefinitionRunId(runDefinition) {
-      return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
-    },
-    runDefinitionLifetime(runDefinition, expectedCid) {
-      const lifetime = checked(moon.clientLocalCheckpointRunLifetime(
-        token(runDefinition), expectedCid));
-      return Object.freeze({createdAt: runtimeField(lifetime, 0),
-        validUntil: runtimeField(lifetime, 1)});
-    },
-    // The Common reader checks the exact canonical document and embedded
-    // resource CID. This private handle carries data, never restored custody.
-    encodeModelOriginalResourceDocument(originWire, stateWire, cutWire, phase, limits) {
-      if (![originWire, stateWire, cutWire, phase].every(value => typeof value === 'string')) {
-        throw new TypeError('Invalid original Model document inputs');
-      }
-      issuanceLimits(limits, 'Original Model document');
-      const {maxWireBytes, maxNodes, maxDepth} = limits;
-      return checked(moon.clientProgramEncodeModelOriginalResourceDocument(
-        originWire, stateWire, cutWire, phase, maxWireBytes, maxNodes, maxDepth));
-    },
-    readModelOriginalResourceDocument(wire, limits) {
-      if (typeof wire !== 'string') throw new TypeError('Invalid original Model document');
-      issuanceLimits(limits, 'Original Model document');
-      const {maxWireBytes, maxNodes, maxDepth} = limits;
-      const document = checked(moon.clientProgramReadModelOriginalResourceDocument(
-        wire, maxWireBytes, maxNodes, maxDepth));
-      const view = Object.freeze({kind: 'model-original-resource-document', wire});
-      modelOriginalDocumentTokens.set(view, document);
-      return view;
-    },
-    modelOriginalResourceOriginField(document, field) {
-      const original = modelOriginalDocumentTokens.get(document);
-      if (original === undefined) throw new TypeError('Foreign original Model document');
-      if (typeof field !== 'string') throw new TypeError('Invalid original Model origin field');
-      return moon.clientProgramModelOriginalResourceOriginField(original, field);
-    },
-    runCancellationConfirmed(facts) {
-      const names = ['cancellationRequested', 'modelFenceRequired', 'modelFenced',
-        'unresolvedModelCalls', 'unresolvedEffects', 'reconciliationRequired',
-        'publicationCommitted', 'physicalStopConfirmed', 'cleanupConfirmed',
-        'revisionUnchanged'];
-      if (names.some(name => typeof facts?.[name] !== 'boolean')) {
-        throw new TypeError('Invalid Run cancellation observations');
-      }
-      return moon.clientRunCancellationConfirmed(...names.map(name => facts[name]));
-    },
+    ...runIdentityControls,
     ...resultRetentionControls,
-    projectCommittedPublicationState(record, index) {
-      return checked(moon.strategyPublicationSnapshotState(
-        record === undefined ? undefined : token(record),
-        token(index),
-      ));
-    },
-    issueSucceededRunState(request, limits) {
-      issuanceLimits(limits, 'Succeeded Run state');
-      if (request === null || typeof request !== 'object' ||
-          typeof request.runId !== 'string' ||
-          typeof request.updatedAt !== 'string' ||
-          !Array.isArray(request.declaredResults) ||
-          !Array.isArray(request.observations)) {
-        throw new TypeError('Invalid succeeded Run state');
-      }
-      const names = [];
-      const states = [];
-      const reasons = [];
-      const observedAt = [];
-      for (const observation of request.observations) {
-        if (observation === null || typeof observation !== 'object' ||
-            typeof observation.name !== 'string' ||
-            typeof observation.state !== 'string' ||
-            typeof observation.reason !== 'string' ||
-            typeof observation.observedAt !== 'string') {
-          throw new TypeError('Invalid Result availability observation');
-        }
-        names.push(observation.name);
-        states.push(observation.state);
-        reasons.push(observation.reason);
-        observedAt.push(observation.observedAt);
-      }
-      return checked(moon.strategyIssueSucceededRunState(
-        request.runId,
-        request.updatedAt,
-        request.declaredResults,
-        names,
-        states,
-        reasons,
-        observedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      ));
-    },
+    ...publicationStateControls,
     ...resultDeliveryControls,
   });
   publicationControls.set(moon, control);
