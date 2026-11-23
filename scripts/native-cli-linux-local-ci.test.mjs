@@ -397,7 +397,7 @@ test('mandatory Local installation retains ingress controls on its actual instal
   const selection=nativeInstalledIngressSelection();
   for(const file of ['test-native-local-cli.test.mjs','test-native-file-source-queries.test.mjs'])
     assert.equal(selection.files.filter(path=>path.endsWith('/'+file)).length,1,file);
-  assert.equal(selection.expectedTests,13+nativeInstalledSourceQueries.length);
+  assert.equal(selection.expectedTests,16+nativeInstalledSourceQueries.length);
   assert(installed.includes('const {files,expectedTests}=nativeInstalledIngressSelection()'));
   assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
   for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY']) {

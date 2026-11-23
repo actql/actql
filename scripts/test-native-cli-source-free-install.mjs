@@ -1040,7 +1040,7 @@ export async function withInstalledFileCapacityObservations(environment, observe
 export function nativeInstalledIngressSelection() {
   return {files: ['./test-native-local-cli.test.mjs', './test-native-file-source-queries.test.mjs']
     .map(path => fileURLToPath(new URL(path, import.meta.url))),
-  expectedTests: 13 + nativeInstalledSourceQueries.length};
+  expectedTests: 16 + nativeInstalledSourceQueries.length};
 }
 
 async function observeInstalledSourceFree(input, observationPath) {
