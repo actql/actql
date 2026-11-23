@@ -43,6 +43,23 @@ struct Journal {
 }
 
 ///|
+fn[T] Journal::abort_write(
+  self : Journal,
+  result : Result[T, NativeRemoteJournalIssue],
+) -> Result[T, NativeRemoteJournalIssue] {
+  match self.database.rollback_journal_write() {
+    Ok(_) => result
+    Err(cleanup) => {
+      let original = match result {
+        Ok(_) => None
+        Err(issue) => Some(issue)
+      }
+      Err(TransactionStop(original, cleanup))
+    }
+  }
+}
+
+///|
 struct CoordinatorJournal {
   database : @sqlite.Database
   control : @remote.CoordinatorDispatchJournal
@@ -106,30 +123,21 @@ fn Journal::begin_mutation(
   self : Journal,
   require_current_site : Bool,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   if !require_current_site {
     return Ok(())
   }
   let expected = match expected_site_binding(self.control) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   match self.database.read("site_metadata", "binding") {
     Ok(value) if value.body == expected => Ok(())
-    Ok(_) | Err(@sqlite.NotFound) => {
-      ignore(self.database.rollback())
-      Err(StaleSiteBinding)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.NotFound) => self.abort_write(Err(StaleSiteBinding))
+    Err(issue) => self.abort_write(Err(Physical(issue)))
   }
 }
 
@@ -350,6 +358,9 @@ fn Journal::accept_with_initial_custody(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -372,41 +383,30 @@ fn Journal::accept_with_initial_custody(
       }
       match self.database.read("site_dispatch", key) {
         Ok(value) => {
-          ignore(self.database.rollback())
+          match self.abort_write(Ok(())) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
           return self.existing(request, value)
         }
         Err(@sqlite.NotFound) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
       if retain_initial is Some(retain) {
         match retain(body) {
           Ok(_) => ()
-          Err(issue) => {
-            ignore(self.database.rollback())
-            return Err(issue)
-          }
+          Err(issue) => return self.abort_write(Err(issue))
         }
       }
       match self.database.insert("site_dispatch", key, body) {
         Ok(0L) => ()
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-      match self.database.commit() {
+      match self.database.commit_journal_write() {
         Ok(_) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return Err(TransactionCommit(issue))
       }
       match @remote.commit_dispatch_acceptance(admission, true) {
         Ok(value) => Ok(value)
@@ -432,6 +432,9 @@ pub fn Journal::request_cancellation(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -448,27 +451,18 @@ pub fn Journal::request_cancellation(
   let existing = match self.database.read("site_dispatch", key) {
     Ok(value) => Some(value)
     Err(@sqlite.NotFound) => None
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   let admission = match existing {
     None =>
       match @remote.prepare_dispatch_cancellation(self.control, request) {
         Ok(value) => Some(value)
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Protocol(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Protocol(issue)))
       }
     Some(value) => {
       match self.existing(request, value) {
         Ok(_) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(issue)
-        }
+        Err(issue) => return self.abort_write(Err(issue))
       }
       None
     }
@@ -546,17 +540,11 @@ pub fn Journal::request_cancellation(
   }
   match persist() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   // Memory commits follow physical durability, including uncertain-commit replay.
   match admission {
@@ -590,6 +578,9 @@ pub fn Journal::cancellation_requested(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -618,6 +609,9 @@ pub fn Journal::require(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -677,6 +671,9 @@ pub fn Journal::require_completed_cleanup(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -719,6 +716,9 @@ pub fn Journal::recover_after(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let entry = match self.database.scan_after("site_dispatch", after_key) {
     Ok(value) => value
@@ -801,38 +801,29 @@ pub fn Journal::restart(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match self.recover_all() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   let restart = match
     @remote.prepare_site_generation_restart(self.control, replacement) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Protocol(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Protocol(issue)))
   }
   let next_binding = match @remote.site_restart_next_binding_json(restart) {
     Ok(value) => @utf8.encode(value)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Protocol(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Protocol(issue)))
   }
   let metadata = match self.database.read("site_metadata", "binding") {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   let mut physical_issue : NativeRemoteJournalIssue? = None
   let count = @remote.site_restart_transition_count(restart)
@@ -885,18 +876,12 @@ pub fn Journal::restart(
     }
   }
   match physical_issue {
-    Some(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Some(issue) => return self.abort_write(Err(issue))
     None => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   match @remote.commit_site_generation_restart(restart, true) {
     Ok(value) => Ok(value)
@@ -914,6 +899,9 @@ fn Journal::persist_transition(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   if @remote.dispatch_transition_installs_managed_observation(transition) {
     return Err(Protocol(@remote.InvalidTransition))
@@ -947,26 +935,16 @@ fn Journal::persist_transition(
       match self.database.read("site_dispatch", key) {
         Ok(value) =>
           value.revision == expected.to_int64() + 1L && value.body == encoded
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   if !durable {
-    ignore(self.database.rollback())
-    return Err(StateCollision)
+    return self.abort_write(Err(StateCollision))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   Ok(())
 }
@@ -1026,6 +1004,9 @@ pub fn Journal::start_claimant(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.require(request) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -1070,6 +1051,9 @@ pub fn Journal::claim_start(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   if !@remote.dispatch_transition_starts_execution(transition) ||
     !valid_start_claimant(claimant) {
     return Err(Protocol(@remote.InvalidTransition))
@@ -1095,7 +1079,10 @@ pub fn Journal::claim_start(
   }
   match self.database.read("site_start_claim", key) {
     Ok(value) => {
-      ignore(self.database.rollback())
+      match self.abort_write(Ok(())) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       if value.body == claim {
         // The durable claim is ours; bring this process's view up to date
         // when the reply of the earlier claim was lost.
@@ -1105,10 +1092,7 @@ pub fn Journal::claim_start(
       return Ok(LostTo(start_claimant_of(value.body)))
     }
     Err(@sqlite.NotFound) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match
     self.database.compare_exchange(
@@ -1118,19 +1102,16 @@ pub fn Journal::claim_start(
       next,
     ) {
     Ok(revision) if revision == expected.to_int64() + 1L => ()
-    Ok(_) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
+    Ok(_) => return self.abort_write(Err(StateCollision))
     Err(@sqlite.Collision) => {
       let current = match self.database.read("site_dispatch", key) {
         Ok(value) => value
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-      ignore(self.database.rollback())
+      match self.abort_write(Ok(())) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       return match @remote.admit_durable_dispatch_record(current.body) {
         Ok(record) =>
           if @remote.durable_dispatch_record_execution_cancelled(record) {
@@ -1141,28 +1122,17 @@ pub fn Journal::claim_start(
         Err(issue) => Err(Protocol(issue))
       }
     }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match self.database.insert("site_start_claim", key, claim) {
     Ok(0L) => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   match @remote.commit_dispatch_transition(transition, true) {
     Ok(_) => Ok(Won)
@@ -1187,6 +1157,9 @@ pub fn Journal::retain_dispatch_envelope(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1197,33 +1170,26 @@ pub fn Journal::retain_dispatch_envelope(
     Err(issue) => return Err(issue)
   }
   match self.database.read("site_dispatch_envelope", key) {
-    Ok(value) => {
-      ignore(self.database.rollback())
-      return if value.body == body { Ok(()) } else { Err(StateCollision) }
-    }
+    Ok(value) =>
+      return self.abort_write(
+        if value.body == body {
+          Ok(())
+        } else {
+          Err(StateCollision)
+        },
+      )
     Err(@sqlite.NotFound) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match self.database.insert("site_dispatch_envelope", key, body) {
     Ok(0L) => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1245,50 +1211,40 @@ pub fn Journal::retain_output_intent(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let bytes = @utf8.encode(body)
   match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match self.database.read("site_output_intent_done", key) {
-    Ok(_) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
+    Ok(_) => return self.abort_write(Err(StateCollision))
     Err(@sqlite.NotFound) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match self.database.read("site_output_intent", key) {
-    Ok(value) => {
-      ignore(self.database.rollback())
-      return if value.body == bytes { Ok(()) } else { Err(StateCollision) }
-    }
+    Ok(value) =>
+      return self.abort_write(
+        if value.body == bytes {
+          Ok(())
+        } else {
+          Err(StateCollision)
+        },
+      )
     Err(@sqlite.NotFound) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match self.database.insert("site_output_intent", key, bytes) {
     Ok(0L) => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1303,6 +1259,9 @@ pub fn Journal::pending_output_intents(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let pending : Array[(String, String)] = []
   let mut cursor = ""
@@ -1336,31 +1295,22 @@ pub fn Journal::complete_output_intent(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.begin_mutation(false) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match self.database.read("site_output_intent", key) {
     Ok(_) => ()
-    Err(@sqlite.NotFound) => {
-      ignore(self.database.rollback())
-      return Err(MissingDispatch)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(@sqlite.NotFound) => return self.abort_write(Err(MissingDispatch))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match self.database.read("site_output_intent_done", key) {
-    Ok(_) => {
-      ignore(self.database.rollback())
-      return Ok(())
-    }
+    Ok(_) => return self.abort_write(Ok(()))
     Err(@sqlite.NotFound) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match
     self.database.insert(
@@ -1369,21 +1319,13 @@ pub fn Journal::complete_output_intent(
       @utf8.encode("{\"version\":\"actql-remote-output-intent-done/0.1\"}"),
     ) {
     Ok(0L) => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1398,6 +1340,9 @@ pub fn Journal::dispatch_envelope(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.database.read("site_dispatch_envelope", attempt_identity) {
     Ok(value) => Ok(Some(@utf8.decode_lossy(value.body)))
@@ -1435,6 +1380,9 @@ pub fn Journal::force_loss(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let force = match
     @remote.prepare_force_loss(self.control, record, authorized) {
     Ok(value) => value
@@ -1467,6 +1415,9 @@ pub fn Journal::commit_evidence_transition(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   if !@remote.dispatch_transition_installs_managed_observation(transition) {
     return Err(Protocol(@remote.InvalidTransition))
@@ -1562,18 +1513,12 @@ pub fn Journal::commit_evidence_transition(
     }
   }
   match failure {
-    Some(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Some(issue) => return self.abort_write(Err(issue))
     None => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   match @remote.commit_dispatch_transition(transition, true) {
     Ok(_) => Ok(())
@@ -1660,6 +1605,9 @@ pub fn CoordinatorJournal::accept(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1736,6 +1684,9 @@ pub fn CoordinatorJournal::require(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1771,6 +1722,9 @@ pub fn CoordinatorJournal::commit_transition(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let key = match
     @remote.coordinator_dispatch_transition_attempt_identity(transition) {
@@ -1844,6 +1798,9 @@ pub fn CoordinatorJournal::recover_after(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.database.scan_after("coordinator_dispatch", after_key) {
     Ok(entry) =>

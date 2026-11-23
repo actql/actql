@@ -193,6 +193,9 @@ pub(all) enum NativeRemoteJournalIssue {
   Closed
   CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
+  TransactionFenced
+  TransactionCommit(@sqlite.NativeSqliteJournalCommitFailure)
+  TransactionStop(NativeRemoteJournalIssue?, @sqlite.NativeSqliteTransactionStopFailure)
   Protocol(@remote_site_protocol.DispatchIssue)
   StaleSiteBinding
   MissingDispatch
