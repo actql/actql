@@ -608,13 +608,14 @@ fn prepare_client_effect_keyed_generic_dependencies(
       // Each Generic Request can admit at most one serial body. Without
       // a second Request there is no following admission that can reuse it.
       let serial_cursor = if lookup.known.length() > 1 {
-        match reserve_keyed_dependency_serial_controls(lookup) {
-          Ok(_) => Some(new_keyed_dependency_serial_cursor())
+        match begin_keyed_dependency_serial_cursor(lookup) {
+          Ok(cursor) => Some(cursor)
           Err(issue) => return Err(issue)
         }
       } else {
         None
       }
+      defer (if serial_cursor is Some(cursor) { cursor.retire() })
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
 
       let before = (
@@ -652,7 +653,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
               before(bytes, nodes, depth, serial_cursor)
             }),
             begin_batch: first => {
-              match cursor.begin_batch(first) {
+              match cursor.begin_batch(lookup, first) {
                 Ok(_) => true
                 Err(issue) => {
                   primary.val = Some(issue)
@@ -661,7 +662,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
               }
             },
             record: bodies => {
-              match cursor.record_body(bodies, max_nodes) {
+              match cursor.record_body(lookup, bodies, max_nodes) {
                 Ok(_) => true
                 Err(issue) => {
                   primary.val = Some(issue)
@@ -685,14 +686,19 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
+      let proof = match serial_cursor {
+        Some(cursor) =>
+          match cursor.seal(lookup) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+        None => None
+      }
       Ok(
         keyed_protocol_built(
           bodies,
           dependency_bodies=Some(bodies),
-          measured_bodies=match serial_cursor {
-            Some(cursor) => cursor.measured
-            None => None
-          },
+          measured_bodies=proof,
         ),
       )
     },

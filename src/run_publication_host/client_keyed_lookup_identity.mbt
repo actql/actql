@@ -642,6 +642,17 @@ fn finish_keyed_lookup_protocol_metadata(
   if max_nodes < 1 || max_depth < 1 || lookup.closed || lookup.growing {
     return Err(Assembly("unavailable_protocol_workspace_return"))
   }
+  if dependencies is Measured(_, completion) {
+    match
+      validate_keyed_dependency_cursor_owner(
+        lookup,
+        completion.lookup,
+        completion.reservation,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   // This construction attempt is consumed before any fallible measurement
   // or settlement. Cleanup retains the same reservation on failure; it never
   // retries construction or turns low-level absolute reduction single-use.
@@ -750,10 +761,10 @@ fn finish_keyed_lookup_protocol_metadata(
     // Preserve the original order of unmeasured bodies and their failures.
     // The range bound follows the original Request, policy and Catalog sites.
     let ranges = match dependencies {
-      Measured(_, last) => {
+      Measured(_, completion) => {
         let ordered = Array(capacity=keyed_dependency_measured_range_capacity)
         let mut limit = bodies.length()
-        let mut current = Some(last)
+        let mut current = Some(completion.last)
         while current is Some(range) {
           let ReturnedKeyedDependencyRange(
             bodies=original,
