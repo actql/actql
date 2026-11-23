@@ -18,6 +18,7 @@ type EffectPublication = Parameters<typeof publishEffectfulRun>[0];
 type Evidence = FreePublication['evidence'];
 type Contract = Evidence['runDefinition'];
 type ContractInput = Pick<Contract, 'name' | 'identity' | 'wire'>;
+type RunEvidenceInput = CommonObject & ContractInput;
 type Limits = FreePublication['limits'];
 type Preview = EffectPublication['preview'];
 type Physical = Readonly<{cid: string; bytes: number}>;
@@ -76,7 +77,7 @@ type EvidenceChain = Pick<Evidence, 'runDefinition' | 'invocation' | 'definition
 type EffectEvidenceChain = Omit<EvidenceChain, 'receipt'> & Computation;
 type ContentEvidence = Readonly<{contentGenerations?: readonly CommonObject[]}>;
 type ReceiptEvidence = ContentEvidence & Readonly<{
-  bindings: readonly CommonObject[];
+  bindings: readonly (CommonObject & Readonly<{name: string; sha256: string}>)[];
   sourceEvidence: readonly CommonObject[];
   modelEvidence: readonly CommonObject[];
   barrierAttemptReceiptCids: readonly string[];
@@ -85,7 +86,7 @@ type CaptureEvidence = ContentEvidence & Readonly<{
   pendingSourceStateAdvances: readonly CommonObject[];
   modelEvidence: readonly CommonObject[];
 }>;
-type CapturedFacts = CaptureEvidence & Readonly<{snapshots: readonly CommonObject[]; authoringContext: Contract}>;
+type CapturedFacts = CaptureEvidence & Readonly<{snapshots: readonly CommonObject[]; authoringContext: RunEvidenceInput}>;
 type CommonPublicationControl = ReleaseControl & AdmitControl & Readonly<{
   issueResultManifest(run: Contract, invocation: Contract, definitions: readonly Contract[],
     artifacts: readonly Contract[], limits: Limits): Contract;
@@ -121,8 +122,8 @@ type CaptureControl = CommonPublicationControl & Readonly<{
   effectComputationRecordHoldingCid(run: Contract, authorityCid: string): string;
   effectComputationPreviewLedgerIdentity(preview: Preview): SynchronousRuntimeData;
   effectPrivateEvidenceBinding(preview: Preview, authorityCid: string): WireBinding;
-  admitEffectComputationPreview(wire: string, run: Contract, authoring: Contract, limits: Limits): Preview;
-  admitRunEvidence(name: string, wire: string, limits: Limits): Contract;
+  admitEffectComputationPreview(wire: string, run: Contract, authoring: RunEvidenceInput, limits: Limits): Preview;
+  admitRunEvidence(name: string, wire: string, limits: Limits): RunEvidenceInput;
   hasPreparedCapturedEffectRun?(captured: Contract): boolean;
   effectfulComputationEvidenceChainValid(chain: EffectEvidenceChain, preview: Preview, limits: Limits): boolean;
   prepareCapturedEffectSourceInventory(chain: EffectEvidenceChain, preview: Preview, sources: readonly SourceMember[],
@@ -169,7 +170,7 @@ type ResultOptions = Readonly<{
   outputLimits: unknown; contractLimits: Limits; signal?: AbortSignal; resultProgress?: unknown;
 }>;
 type CaptureInputs = Readonly<{
-  admission: CommonObject; observation: Contract; authoringContext: Contract; normalizationJournal: Contract;
+  admission: CommonObject; observation: Contract; authoringContext: RunEvidenceInput; normalizationJournal: Contract;
   receiptEvidence: ReceiptEvidence; captureEvidence: CaptureEvidence;
 }>;
 type CompletedFreeOptions = Omit<ResultOptions, 'store' | 'control'> & CaptureInputs &

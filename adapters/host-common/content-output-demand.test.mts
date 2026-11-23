@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {contentGenerationControl as typedContentGenerationControl} from './content-generation-control.mjs';
-// @ts-expect-error TS7016: the Common runtime facade is still authored in JS.
 import {contentGenerationControl} from './runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from '../host-node/local-publication-limits.mjs';
 

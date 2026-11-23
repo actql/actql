@@ -11,7 +11,6 @@ import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {publishInstalledSourceProfile, installedSourcePublicationRequestId,
   assertInstalledSourcePublicationRequest, observeInstalledSourcePublicationCurrent}
   from './installed-source.mjs';
-// @ts-expect-error TS7016: remove after runtime-core has an authored TypeScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {OriginalPublication} from './installed-source-publication.mjs';
 

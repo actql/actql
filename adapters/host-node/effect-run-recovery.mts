@@ -1,4 +1,3 @@
-// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {recoverCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';

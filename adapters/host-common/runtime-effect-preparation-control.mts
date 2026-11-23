@@ -167,7 +167,7 @@ type EffectPreparationPorts = Readonly<{
   inspectEvidence: (value: unknown) => Evidence;
   issuanceLimits: (limits: Limits, label: string) => Limits;
   captureContractLimits: (limits: Limits, label: string) => Limits;
-  localEffectDependencyTokens: WeakMap<object, EffectDependencyOwner>;
+  localEffectDependencyTokens: {set(key: object, value: EffectDependencyOwner): void};
   inferInvocationTokens: WeakMap<object, Readonly<{compiled: unknown}>>;
   compiledRunTokens: WeakMap<object, unknown>;
   serializationGenerationTokens: WeakMap<object, unknown>;

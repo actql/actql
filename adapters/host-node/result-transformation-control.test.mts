@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {outputExportControl} from '../host-common/output-export-control.mjs';
-// @ts-expect-error TS7016: remove after migrating the Common runtime facade.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localOutputLimits} from './local-publication-limits.mjs';
 

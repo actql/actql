@@ -4,7 +4,6 @@ import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
 import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from
   '../host-common/completed-run-publication.mjs';
-// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issuedEffectSetReceiptWires} from '../host-common/effect-receipt-custody.mjs';
 import type {retainIssuedEffectSetReceipt} from '../host-common/effect-receipt-custody.mjs';

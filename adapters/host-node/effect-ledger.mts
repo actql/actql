@@ -1,5 +1,4 @@
 import {types as nodeTypes} from 'node:util';
-// @ts-expect-error TS7016: the Common runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';

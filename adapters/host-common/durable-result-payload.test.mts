@@ -12,7 +12,6 @@ import {
   storeCompletedResultPayload,
   storeCompletedResultPublicationPayload,
 } from './durable-result-payload.mjs';
-// @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {runtimeCore} from './runtime-core.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';

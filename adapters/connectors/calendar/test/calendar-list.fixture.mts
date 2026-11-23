@@ -11,7 +11,6 @@ import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 const common: CalendarRowRuntime = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 const provider: CalendarListBindings = await import(process.env.ACTQL_TEST_CALENDAR_URL ?? new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js', import.meta.url).href);
-// @ts-expect-error TS7016: the Common runtime facade is still authored JavaScript.
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';

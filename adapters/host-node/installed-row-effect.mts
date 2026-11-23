@@ -115,7 +115,6 @@ import {createInstalledRowEffectCapability, createInstalledRowEffectReadDecision
 import {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectRunControls, createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
 import {createInstalledRowEffectOwnerProjection} from './installed-row-effect-owner-projection.mjs';
-// @ts-expect-error TS7016: runtime-core's composition facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from

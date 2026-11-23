@@ -4,7 +4,6 @@ import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {sourceFreePlanOriginal} from './local-values-plan.mjs';
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {snapshotConfigurations} from './installation.mjs';
 import {completionObserver, taskStartObserver} from '../host-common/completion-observer.mjs';

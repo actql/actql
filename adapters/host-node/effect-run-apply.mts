@@ -1,6 +1,5 @@
 import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error The shared runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {confirmCompletedEffectfulApplySources} from
   '../host-common/completed-run-publication.mjs';

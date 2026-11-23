@@ -95,7 +95,8 @@ export function createRuntimeExecutionControls(moon: Runtime, publications: Publ
           )) as string,
           {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64},
         );
-        const definition = JSON.parse(definitionContract.wire) as Readonly<Record<string, unknown>>;
+        const definition = JSON.parse(definitionContract.wire) as
+          Readonly<Record<string, unknown> & {result_definition_cid: string}>;
         return Object.freeze({
           name: checked(
             moon.strategyHostPublicationInventoryName(inventory, index),
@@ -203,7 +204,8 @@ export function createRuntimeExecutionControls(moon: Runtime, publications: Publ
       moon.strategyHostTransferCleanupAction(progress),
     ) as number,
     transferReceipt: moon.strategyHostTransferReceipt as Runtime['strategyHostTransferReceipt'],
-    explain: (value: unknown, bytes: number, nodes: number) => JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes)) as string) as unknown,
+    explain: (value: unknown, bytes: number, nodes: number) =>
+      JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes)) as string) as SynchronousRuntimeData,
     preparationUsageIsolated: (value: unknown, holder: unknown) =>
       typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
       moon.clientProgramPreparationBorrowUsageIsolated(holder, moon.strategyHostRun(value)) === true,

@@ -7,7 +7,6 @@ import {DatabaseSync} from 'node:sqlite';
 import type {SQLInputValue} from 'node:sqlite';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {signRemoteRuntimeBundle} from './remote-bundle-signature.mjs';

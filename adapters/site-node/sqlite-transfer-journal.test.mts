@@ -4,7 +4,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import type {TestContext} from 'node:test';
-// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {remoteTransferControl} from '../host-common/remote-transfer-control.mjs';
 import {openSqliteTransferJournal} from './sqlite-transfer-journal.mjs';

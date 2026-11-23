@@ -10,7 +10,6 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {types as nodeTypes} from 'node:util';
 import {fileURLToPath} from 'node:url';
-// @ts-expect-error TS7016: runtime-core still has an authored JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';

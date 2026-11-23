@@ -27,7 +27,6 @@ import {createExecutionSiteControlFixture} from
   './execution-site-control.fixture.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
-// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from './runtime-core.mjs';
 
 const moon: unknown = await import(new URL(

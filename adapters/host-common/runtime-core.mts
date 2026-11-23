@@ -40,26 +40,429 @@ import {
   validResultOutputLimits,
 } from './result-output-limits.mjs';
 
+type WireLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type ContentLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxTextUnits: number}>;
+type KeyedCaptureLimits = Readonly<{maxEntries: number; maxNameBytes: number; maxBytes: number; maxWork: number}>;
+type Contract = Readonly<{name: string; identityField: string; identity: string; wire: string}>;
+type Evidence = Readonly<{name: string; identity: string; wire: string}>;
+type CommonObject = Extract<import('./runtime-result.mjs').SynchronousRuntimeData, object>;
+type EvidenceBody = Readonly<{kind: string; cid?: string; wire: string}>;
+type CompiledRun = Readonly<{kind: string}>;
+type ResultPolicy = Readonly<{kind: string; cid: string; wire: string}>;
+type CompilationPolicy = Readonly<{
+  executionContextCid: string; hostPolicyCid: string; expiresAt: string; resultDataPolicy?: ResultPolicy;
+}>;
+type DefinitionOptions = Readonly<{namespaceId: string; runId: string; createdAt: string;
+  validUntil: string; retainedDefinitionWire?: string}>;
+type SourceCapture = Readonly<{
+  inputKind: string; identity?: unknown; requirement?: unknown;
+  logicalInput?: unknown; wholeCapacity?: unknown;
+  capture: Readonly<{
+    source(): unknown;
+    originalWholeInput(): unknown;
+    originalRowCapture(): unknown;
+    originalCapturedInput(): unknown;
+  }>;
+}>;
+type SourceInput = Readonly<{captured: SourceCapture; sourceEvidence: unknown}>;
+type InvocationSource = Readonly<{
+  captured: SourceCapture; sourceEvidence: unknown; sources?: readonly SourceInput[];
+  keyedObservation?: unknown; authorityScopeCid: string; captureStartedAt: string; captureCompletedAt: string;
+}>;
+type InvocationOptions = Readonly<{dataPolicyCid: string; source?: InvocationSource}>;
+type CapturedInput = Readonly<{inferStep: number; capturedSource: unknown; identity: unknown; requirement: unknown; logicalInput: unknown}>;
+type RetentionSelection = Readonly<{
+  retentionContractCid: string; availableUntil: string; deleteBy: string;
+  metadataDeleteBy: string; metadataRetentionPolicyCid: string; clockContractCid: string;
+}>;
+type PrivateStorage = Readonly<{namespaceId: string; storeAuthorityCid: string; availabilityEvidenceCid: string;
+  issuerContractCid: string}>;
+type InstalledEffectOriginal = Readonly<{runtime: unknown; closed: boolean; prepared: unknown; value?: unknown; request?: unknown}>;
+type EffectPreparationDependencyOwner = Parameters<Parameters<typeof createEffectPreparationControls>[1]['localEffectDependencyTokens']['set']>[1];
+type ModelEffectDependency = Readonly<{kind: 'preconsumer_model' | 'model'; issued: unknown; original: unknown}>;
+type ImportedEffectDependency = Readonly<{kind: 'imported'; issued: unknown; originalSources: readonly unknown[]}>;
+type EffectDependencyOwner = EffectPreparationDependencyOwner | ModelEffectDependency |
+  Readonly<{kind: 'source_free'; issued: unknown}> | ImportedEffectDependency;
+type HoldingEntry = Readonly<{scopeCid: string; slotCid: string; attemptCid: string; attemptIndex: number}>;
+type DispatchOptions = Readonly<{
+  account: unknown; principalId: string; at: string; delegated: unknown;
+  observeAccount: () => unknown; observeAt: () => string;
+}>;
+type ModelScopeOptions = Readonly<{
+  scope: unknown; provider: unknown;
+  expectedBoundary: Readonly<{task_index: number | bigint | string; strategy_revision: number | bigint | string}>;
+}>;
+type RawSelection = Readonly<{retention: unknown; metadata: unknown; clock: unknown; data: unknown}>;
+type RawCaptureOptions = RawSelection & Readonly<{
+  profile: unknown; installation: unknown; probability: unknown; storeAuthorityCid: string;
+  selectedAt: string; availableUntil: string; deleteBy: string; extensionCeilingAt: string; metadataDeleteBy: string;
+}>;
+type RawCaptureRegistration = Readonly<{
+  policy: unknown; profile: unknown; installation: unknown; probability: unknown; account: unknown;
+  at: string; storeAuthorityCid: string; selectionAvailable: () => boolean;
+  observeAccount: () => unknown; observeAt: () => string; delegated: unknown;
+}>;
+type IssuedInvocation = Readonly<{binding: unknown; observation: Evidence; invocation: Contract}>;
+type ModelObservation = Readonly<{task: number; unit: number; step: number; bodies: readonly EvidenceBody[]}>;
+type RunDefinitionRequest = Readonly<{scopeId: string; runId: string; inputArtifactSetCid: string; createdAt: string; validUntil: string}>;
+type ReceiptChain = Readonly<{admission: unknown; runDefinition: unknown; invocation: unknown; observation: unknown;
+  definitions: readonly unknown[]; artifacts: readonly unknown[]; manifest: unknown}>;
+type ReceiptProvenance = Readonly<{
+  normalizationJournal: unknown; bindings: readonly Readonly<{name: string; sha256: string}>[];
+  sourceEvidence: readonly unknown[]; modelEvidence: readonly unknown[];
+  barrierAttemptReceiptCids: readonly string[]; contentGenerations?: readonly unknown[];
+}>;
+type BindingParameters<Name extends keyof DirectCommonBindings> = Parameters<DirectCommonBindings[Name]>;
+type Tail<Tuple extends readonly unknown[], Count extends number, Skipped extends readonly unknown[] = []> =
+  Skipped['length'] extends Count ? Tuple :
+    Tuple extends readonly [unknown, ...infer Rest] ? Tail<Rest, Count, [...Skipped, unknown]> : never;
+type WeakValue<Table> = Table extends WeakMap<infer _Key, infer Value> ? Value : never;
+// WeakMap permits reads with foreign values and reports absence. Insertion
+// is still restricted to issued object keys.
+type TokenTable<Value> = WeakMap<object, Value> & {
+  get(key: unknown): Value | undefined;
+  has(key: unknown): boolean;
+};
+
+// Scalar arguments and returns follow the generated Common ABI. Nominal
+// Core originals and boxed tagged values stay opaque at this boundary.
+type DirectCommonBindings = Readonly<{
+  clientProgramAcknowledgeOriginalExplanationCapture(original: unknown): unknown;
+  clientProgramAcquiredEffectCatalogBodies(value: unknown, max_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  clientProgramAcquiredEffectDependencyBodies(value: unknown): readonly unknown[];
+  clientProgramAcquiredEffectInvocation(value: unknown): unknown;
+  clientProgramAcquiredEffectRequestCid(value: unknown): string;
+  clientProgramAdmitCompiledRunDefinition(value: unknown, wire: string): unknown;
+  clientProgramAdmitComposedInferSources(occurrence: unknown, captures: unknown, identities: unknown,
+    requirements: unknown, logicals: unknown, evidence: unknown, authority_scope_cid: string, started_at: string,
+    completed_at: string, keyed: unknown): unknown;
+  clientProgramAdmitComposedInferWholeSources(occurrence: unknown, captures: unknown, identities: unknown,
+    capacities: unknown, logicals: unknown, evidence: unknown, authority_scope_cid: string, started_at: string,
+    completed_at: string, keyed: unknown): unknown;
+  clientProgramAdmitInferCapturedInput(prepared: unknown, step: number, source: unknown, identity: unknown,
+    requirement: unknown, logical: unknown, source_evidence: unknown, authority_scope_cid: string,
+    data_policy_cid: string, started_at: string, completed_at: string): unknown;
+  clientProgramAdmitPublication(prepared: unknown, template: unknown, invocation: unknown,
+    authorization: unknown, plan: unknown): unknown;
+  clientProgramAdmitSourceFreeResultPolicyBody(cid: string, wire: string, max_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  clientProgramBindCompiledInferResultPolicy(compiled: unknown, cid: string, wire: string, max_bytes: number,
+    max_nodes: number, max_depth: number): unknown;
+  clientProgramBindEffectRun(prepared: unknown, admission: unknown, definition: unknown): unknown;
+  clientProgramBindInferDispatchAdmission(active: unknown, admission: unknown): unknown;
+  clientProgramBindInferInvocation(active: unknown, compiled: unknown, definition: unknown, verified: unknown,
+    invocation: unknown, data_policy_cid: string): unknown;
+  clientProgramBindInferModelDispatch(active: unknown, prepared: unknown, admission: unknown,
+    enter: (_arg0: unknown) => boolean): unknown;
+  clientProgramBindInferModelEntryPersistence(active: unknown, prepared: unknown, admission: unknown,
+    begin: (_arg0: unknown) => unknown): unknown;
+  clientProgramBindInferModelScope(active: unknown, prepared: unknown, scope: unknown, provider: unknown,
+    expected: unknown): unknown;
+  clientProgramBindInferRun(active: unknown, compiled: unknown, definition: unknown): unknown;
+  clientProgramBindIssuedInferInvocation(execution: unknown, compiled: unknown, definition: unknown,
+    issued: unknown): unknown;
+  clientProgramBindModelRawCapturePolicy(policy: unknown, retention: unknown, metadata: unknown, clock: unknown,
+    data: unknown): unknown;
+  clientProgramBindPreconsumerModelUnitObservation(binding: unknown, original: unknown): unknown;
+  clientProgramCaptureRequestOriginalExplanation(original: unknown, compiled: unknown, definition: unknown): unknown;
+  clientProgramCheckCompiledLocalExecutionOwner(compiled: unknown, definition: unknown): boolean;
+  clientProgramCheckCompiledRunDefinition(compiled: unknown, definition: unknown): boolean;
+  clientProgramCompileLocalInfer(prepared: unknown, graph: unknown): unknown;
+  clientProgramCompileLocalInfers(prepared: unknown, graphs: unknown): unknown;
+  clientProgramCompileLocalSerialization(owner: unknown, graph: unknown): unknown;
+  clientProgramCompileLocalTasks(prepared: unknown): unknown;
+  clientProgramCompileLocalValues(prepared: unknown): unknown;
+  clientProgramCompiledRunAdmission(value: unknown): unknown;
+  clientProgramCompiledRunAuthorization(value: unknown): unknown;
+  clientProgramCompiledRunEffectMatches(compiled: unknown, prepared: unknown, compilation: unknown): boolean;
+  clientProgramCompiledRunEvaluationPolicy(compiled: unknown): readonly [string, string, string] | undefined;
+  clientProgramCompiledRunHasSerialization(run: unknown): boolean;
+  clientProgramCompiledRunMatches(value: unknown, prepared: unknown): boolean;
+  clientProgramCompiledRunPlan(value: unknown): unknown;
+  clientProgramCompiledRunPrepared(value: unknown): unknown;
+  clientProgramCompiledRunResultTransformation(value: unknown, prepared: unknown, result: number): unknown;
+  clientProgramCompiledRunSerializationGraph(run: unknown): unknown;
+  clientProgramCompiledRunSourceFreeResultPolicy(compiled: unknown): readonly [string, string, string] | undefined;
+  clientProgramCompiledRunTemplate(value: unknown): unknown;
+  clientProgramComposedInferSourcesMatch(sources: unknown, occurrence: unknown): boolean;
+  clientProgramEffectAllowedInferRun(allowed: unknown): unknown;
+  clientProgramEffectAllowedInferRunWithPolicyBody(allowed: unknown, policy_cid: string, policy_wire: string,
+    max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramEffectAllowedKeyedRun(allowed: unknown, plan: unknown, definition: unknown): unknown;
+  clientProgramEffectInputExportLimits(max_result_fields: number, max_result_mapping_work: number,
+    max_result_order_work: number, max_result_workspace_entries: number, max_rows: number,
+    max_value_nodes: number, max_value_text_bytes: number, max_value_depth: number, max_value_work: number,
+    max_wire_bytes: number, max_wire_nodes: number, max_wire_depth: number, max_columns: number,
+    max_order_work: number, max_logical_wire_bytes: number, max_logical_wire_nodes: number,
+    max_logical_wire_depth: number, max_schema_fields: number, max_schema_bytes: number,
+    max_schema_nodes: number, max_schema_depth: number, max_batch_bytes: number): unknown;
+  clientProgramEffectInputExportLogicalCid(receipt: unknown): string;
+  clientProgramEffectInputExportSchemaCid(receipt: unknown): string;
+  clientProgramEffectInputExportSchemaWire(receipt: unknown): string;
+  clientProgramEffectKeyedDeclaredFileActivationRecord(activation: unknown, request: unknown, original: unknown,
+    max_bytes: number): unknown;
+  clientProgramEffectKeyedDeclaredFilePageRecord(page: unknown, keyed_request: unknown, request: unknown,
+    original: unknown, max_bytes: number): unknown;
+  clientProgramEffectKeyedGenericPublicationInput(parent: unknown, lookup: unknown, observed_at: string,
+    max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramEffectKeyedGenericSourceMetadata(parent: unknown, lookup: unknown, identity: unknown,
+    logical: unknown, observation: unknown, retention_contract: string, available_until: string,
+    delete_by: string, metadata_delete_by: string, metadata_policy: string, clock_contract: string,
+    max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramEffectKeyedNativeActivationMatches(activation: unknown, request: unknown, original: unknown): boolean;
+  clientProgramEffectKeyedNativeCapturedPageMatches(page: unknown, keyed_request: unknown, request: unknown,
+    original: unknown): boolean;
+  clientProgramEffectKeyedOriginalSourceEvidenceFacts(original: unknown, owner: unknown, request: unknown): unknown;
+  clientProgramInferInvocationBindingInvocation(binding: unknown): unknown;
+  clientProgramInferInvocationBindingObservation(binding: unknown): unknown;
+  clientProgramInferInvocationEvidence(active: unknown, slot: number): unknown;
+  clientProgramInferModelIdentityBody(scan: unknown, receipt: unknown): string | undefined;
+  clientProgramInitialJevDecisionProfile(): unknown;
+  clientProgramInstalledEffectKeyedOriginal(owner: unknown, prepared: unknown, request: unknown): unknown;
+  clientProgramInstalledManagedPublicationSourceKind(owner: unknown, prepared: unknown): unknown;
+  clientProgramInstalledOriginalComposedKeyedHostInputLeft(owner: unknown, scope: unknown, compiled: unknown,
+    definition: unknown, plan: unknown, keyed: unknown, rows: unknown, host: unknown): unknown;
+  clientProgramIssueCapturedPublicationInvocation(owner: unknown, prepared: unknown, compiled: unknown,
+    definition: unknown, captures: unknown, identities: unknown, requirements: unknown, sources: unknown,
+    inputs: unknown, keyed: unknown, authority_scope_cid: string, data_policy_cid: string,
+    capture_started_at: string, capture_completed_at: string, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  clientProgramIssueCompiledRunDefinition(value: unknown, scope_id: string, run_id: string, created_at: string,
+    valid_until: string): unknown;
+  clientProgramIssueCompiledSourceFreeTaskInvocation(value: unknown, definition: unknown,
+    data_policy_cid: string, max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramIssueCompiledValuesInvocation(value: unknown, definition: unknown, data_policy_cid: string,
+    max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramIssueInferDispatchAdmission(compiled: unknown, definition: unknown, account: unknown,
+    principal: string, at: string, delegated: unknown, observe_account: () => unknown, observe_at: () => string): unknown;
+  clientProgramIssueInferInvocationBindingOriginalModelObservation(binding: unknown, receipt: unknown,
+    max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramIssueInferRawCapturePolicy(compiled: unknown, definition: unknown, dispatch: unknown,
+    scope: unknown, profile: unknown, installation: unknown, probability: unknown, store_authority_cid: string,
+    retention: unknown, metadata: unknown, clock: unknown, data: unknown, selected_at: string,
+    available_until: string, delete_by: string, extension_ceiling_at: string, metadata_delete_by: string): unknown;
+  clientProgramIssueOriginalTaskCompiledRun(prepared: unknown, original: unknown, execution_context_cid: string,
+    host_policy_cid: string, expires_at: string): unknown;
+  clientProgramIssueOriginalValuesCompiledRun(prepared: unknown, original: unknown,
+    execution_context_cid: string, host_policy_cid: string, expires_at: string): unknown;
+  clientProgramIssuePublicationInvocation(owner: unknown, prepared: unknown, compiled: unknown,
+    definition: unknown, data_policy_cid: string, max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramIssueScopedInferDispatchAdmission(compiled: unknown, definition: unknown, scope: unknown,
+    account: unknown, principal: string, at: string, delegated: unknown, observe_account: () => unknown,
+    observe_at: () => string): unknown;
+  clientProgramIssueTaskCompiledRun(prepared: unknown, compilation: unknown, execution_context_cid: string,
+    host_policy_cid: string, expires_at: string): unknown;
+  clientProgramIssueValuesCompiledRun(prepared: unknown, compilation: unknown, execution_context_cid: string,
+    host_policy_cid: string, expires_at: string): unknown;
+  clientProgramIssueWholeSourcePublicationInvocation(owner: unknown, prepared: unknown, compiled: unknown,
+    definition: unknown, capture: unknown, identity: unknown, source: unknown, input: unknown,
+    authority_scope_cid: string, data_policy_cid: string, capture_started_at: string,
+    capture_completed_at: string, max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramIssueWholeSourcesPublicationInvocation(owner: unknown, prepared: unknown, compiled: unknown,
+    definition: unknown, captures: unknown, identities: unknown, sources: unknown, inputs: unknown,
+    authority_scope_cid: string, data_policy_cid: string, capture_started_at: string,
+    capture_completed_at: string, max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramKeyedLookupActivationFields(original: unknown): readonly [string, string, number, number];
+  clientProgramKeyedLookupActivationMatches(original: unknown, request: unknown, compiled: unknown,
+    definition: unknown, graph: unknown): boolean;
+  clientProgramKeyedLookupBindDeclaredFilePhysicalSource(lookup: unknown, declarations: unknown): unknown;
+  clientProgramKeyedLookupBindQuerySourceMetadata(lookup: unknown, index: number, requirement: unknown,
+    identity: unknown, logical: unknown, observation: unknown, request: unknown, retention: unknown,
+    max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramKeyedLookupBindWholeSourceMetadata(lookup: unknown, index: number, identity: unknown,
+    logical: unknown, observation: unknown, request: unknown, retention: unknown, max_bytes: number,
+    max_nodes: number, max_depth: number): unknown;
+  clientProgramKeyedLookupCapturedPageFields(page: unknown): readonly [string, string, string, number];
+  clientProgramKeyedLookupCapturedPageMatches(page: unknown, keyed_request: unknown, request: unknown,
+    compiled: unknown, definition: unknown, graph: unknown): boolean;
+  clientProgramKeyedLookupDeclaredFileActivationRecord(original: unknown, request: unknown, compiled: unknown,
+    definition: unknown, graph: unknown, max_bytes: number): unknown;
+  clientProgramKeyedLookupDeclaredFilePageRecord(page: unknown, keyed_request: unknown, request: unknown,
+    compiled: unknown, definition: unknown, graph: unknown, max_bytes: number): unknown;
+  clientProgramKeyedLookupObservationOriginals(value: unknown): readonly [unknown, unknown, string] | undefined;
+  clientProgramKeyedLookupPrepareCapturedPage(request: unknown, capture: unknown, raw: unknown,
+    recorded_at: string, limits: unknown, max_work: number, max_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  clientProgramKeyedLookupPrepareDeclaredFileRawCapture(compiled: unknown, definition: unknown, request: unknown,
+    retention: unknown, store_id: string, store_cid: string, availability_cid: string, issuer_cid: string,
+    content_cid: string, size_bytes: number, captured_at: string, now_ms: bigint, max_bytes: number,
+    max_nodes: number, max_depth: number, max_text_units: number): unknown;
+  clientProgramKeyedLookupPrepareLeftIdentity(lookup: unknown, limits: unknown, max_work: number): unknown;
+  clientProgramKeyedLookupPrepareLeftRelation(lookup: unknown, request: unknown, retention: unknown,
+    issuer: string, max_bytes: number, max_nodes: number, max_depth: number): unknown;
+  clientProgramKeyedLookupPrepareRetention(lookup: unknown, request: unknown, retention_contract: string,
+    available_until: string, delete_by: string, metadata_delete_by: string, metadata_policy: string,
+    clock_contract: string, max_bytes: number): unknown;
+  clientProgramKeyedLookupRawStoreBinding(raw: unknown): unknown;
+  clientProgramLocalEffectResultArtifactCid(value: unknown): string;
+  clientProgramLocalEffectResultArtifactJson(value: unknown): string;
+  clientProgramLocalEffectResultDerivationJson(value: unknown): string;
+  clientProgramLocalEffectResultOrderingJson(value: unknown): string;
+  clientProgramModelPrivateHoldingCid(definition: unknown, store: string, role: string, slot: number): string | undefined;
+  clientProgramModelRawSelectionOriginals(retention: unknown, metadata: unknown, clock: unknown, data: unknown): readonly unknown[];
+  clientProgramModelScopedPrivateHoldingCid(definition: unknown, store: string, scope: string, slot: string,
+    attempt: string, index: number, phase: string, role: string): string | undefined;
+  clientProgramObserveOriginalDispatchFailure(original: unknown, host: unknown): unknown;
+  clientProgramOriginalExplanationFactsWire(original: unknown): unknown;
+  clientProgramOriginalExplanationPlanWire(original: unknown): unknown;
+  clientProgramOriginalModelAcquiredEffectEvidence(value: unknown, retention: unknown, max_bytes: number,
+    max_nodes: number, max_depth: number, imports: unknown, source_originals: unknown): unknown;
+  clientProgramOriginalModelAcquiredEffectEvidenceIssueKind(result: unknown): string | undefined;
+  clientProgramOriginalModelAcquiredEffectInvocation(value: unknown): unknown;
+  clientProgramOriginalModelAcquiredEffectLookupBarrier(value: unknown): readonly [string, string] | undefined;
+  clientProgramOriginalModelAcquiredEffectScope(value: unknown): string;
+  clientProgramOriginalModelAcquiredEffectSources(value: unknown): readonly unknown[];
+  clientProgramOriginalModelAcquiredLookupDependencyBodies(value: unknown): unknown;
+  clientProgramOriginalModelAcquiredScopeImportBodies(value: unknown): readonly unknown[];
+  clientProgramOriginalModelObservationBody(value: unknown): readonly [string, string] | undefined;
+  clientProgramOriginalModelObservationCoordinates(value: unknown): readonly [number, number, number] | undefined;
+  clientProgramOriginalModelObservationInputBodies(value: unknown): unknown;
+  clientProgramPrepareLogicalObservation(run: unknown, prepared: unknown, compiled: unknown, definition: unknown,
+    bytes: number, nodes: number, depth: number): unknown;
+  clientProgramPreparedAuthoringContextEvidence(prepared: unknown, original: unknown, max_wire_bytes: number,
+    max_nodes: number, max_depth: number): unknown;
+  clientProgramPreparedLocalNormalizationEvidence(prepared: unknown, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  clientProgramPrivateContinuationRetentionShape(bytes: Uint8Array, prepare_attempt_id: string,
+    max_wire_bytes: number, max_entries: number): string;
+  clientProgramReadModelResponseProfile(wire: string, expected_cid: string, max_bytes: number, max_nodes: number,
+    max_depth: number, max_members: number, max_work: number): unknown;
+  clientProgramReadSavedComposedInferInputScope(compiled: unknown, definition: unknown, occurrence: unknown,
+    graph: unknown, snapshot_wire: string, authority_scope_cid: string, custody_available: () => boolean): unknown;
+  clientProgramReadSavedInferInputScope(compiled: unknown, definition: unknown, prepared: unknown, step: number,
+    graph: unknown, snapshot_wire: string, authority_scope_cid: string, custody_available: () => boolean): unknown;
+  clientProgramReadVerifiedInferSlotReplay(observation: unknown, records: unknown, bundle: unknown,
+    proofs: unknown, saved: unknown, definition: unknown, max_slots: number, max_slot_wire_units: number): unknown;
+  clientProgramRecoveredContentIssuerKind(wire: string, max_bytes: number, max_nodes: number, max_depth: number,
+    max_text_units: number): unknown;
+  clientProgramRecoveredEffectCapturedRunContract(value: unknown): unknown;
+  clientProgramRecoveredEffectCapturedRunLimits(value: unknown): readonly [number, number, number];
+  clientProgramRecoveredSourceContentCandidate(original: unknown, owner: unknown, request: unknown,
+    reference_wire: string, binding_wire: string, max_bytes: number, max_nodes: number, max_depth: number,
+    max_text_units: number): unknown;
+  clientProgramRecoveredSourceContentConstructionCapacity(reference_wire: string, binding_wire: string,
+    max_bytes: number, max_nodes: number, max_depth: number, max_text_units: number, role: string): unknown;
+  clientProgramRegisterInferRawCapture(compiled: unknown, definition: unknown, dispatch: unknown, scope: unknown,
+    policy: unknown, profile: unknown, installation: unknown, probability: unknown, account: unknown, at: string,
+    store_authority_cid: string, selection_available: () => boolean, observe_account: () => unknown,
+    observe_at: () => string, delegated: unknown): unknown;
+  clientProgramRetainRequestResultMetadataContract(parent: unknown, input: unknown, slot: number,
+    contract: unknown, mode: number): unknown;
+  clientProgramReturnOriginalExplanationCapture(original: unknown): unknown;
+  clientProgramRunCapturedContentCandidate(compiled: unknown, definition: unknown, acquisition: unknown,
+    request: unknown, binding_wire: string, media_type: string, content_cid: string, size_bytes: number,
+    max_bytes: number, max_nodes: number, max_depth: number, max_text_units: number): unknown;
+  clientProgramSerializationCapture(generation: unknown): unknown;
+  clientProgramStartInstalledEffectKeyedCaptureInput(owner: unknown, prepared: unknown, request: unknown,
+    compiled: unknown, definition: unknown, plan: unknown, keyed: unknown, captures: unknown,
+    max_entries: number, max_name_bytes: number, max_bytes: number, max_work: number): unknown;
+  clientProgramStartInstalledOriginalComposedKeyedHostPrefix(owner: unknown, scope: unknown, compiled: unknown,
+    definition: unknown, plan: unknown, keyed: unknown, rows: unknown, host: unknown): unknown;
+  clientProgramStartInstalledOriginalComposedKeyedInputPrefix(owner: unknown, scope: unknown, compiled: unknown,
+    definition: unknown, plan: unknown, keyed: unknown, inputs: unknown): unknown;
+  clientProgramStartInstalledOriginalComposedKeyedPrefix(owner: unknown, scope: unknown, compiled: unknown,
+    definition: unknown, plan: unknown, keyed: unknown, rows: unknown): unknown;
+  clientProgramStartOriginalComposedKeyedPrefix(scope: unknown, compiled: unknown, definition: unknown,
+    plan: unknown, keyed: unknown, rows: unknown, input_prefix: unknown): unknown;
+  clientProgramStoredRunCapturedContentCandidate(compiled: unknown, definition: unknown, acquisition: unknown,
+    original_wire: string, binding_wire: string, max_bytes: number, max_nodes: number, max_depth: number,
+    max_text_units: number): unknown;
+  clientRequestAuthorityScopeCid(value: unknown): string;
+  strategyHostManagedExecutionProfileCid(): string;
+  strategyHostOutputExportIssueResultArtifact(value: unknown, invocation: unknown, retention: unknown,
+    max_wire_bytes: number, max_nodes: number, max_depth: number): unknown;
+  strategyIssueEffectFreeRunReceipt(admission: unknown, run_definition: unknown, invocation: unknown,
+    observation: unknown, definitions: unknown, artifacts: unknown, manifest: unknown,
+    normalization_journal: unknown, binding_names: unknown, binding_digests: unknown, source_evidence: unknown,
+    model_evidence: unknown, barrier_attempt_receipt_cids: unknown, max_wire_bytes: number, max_nodes: number,
+    max_depth: number, content_generations: unknown): unknown;
+  strategyIssueRunDefinition(admission: unknown, scope_id: string, run_id: string,
+    input_artifact_set_cid: string, created_at: string, valid_until: string, max_wire_bytes: number,
+    max_nodes: number, max_depth: number): unknown;
+  strategyIssueRunInvocation(template: unknown, observation: unknown, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  strategyModule_local_ManagedFailureExplanation(cause: string): string | undefined;
+  strategyPublicationAdmit(name: string, complete_wire: string, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  strategyPublicationContractIdentity(contract: unknown): string;
+  strategyPublicationContractIdentityField(contract: unknown): string;
+  strategyPublicationContractJson(contract: unknown): string;
+  strategyPublicationContractName(contract: unknown): string;
+  strategyPublicationSeal(name: string, body_wire: string, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  strategyRunEvidenceAdmit(name: string, complete_wire: string, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  strategyRunEvidenceIdentity(value: unknown): string;
+  strategyRunEvidenceJson(value: unknown): string;
+  strategyRunEvidenceName(value: unknown): string;
+  strategyRunEvidenceSeal(name: string, body_wire: string, max_wire_bytes: number, max_nodes: number,
+    max_depth: number): unknown;
+  strategyRunPublicationAdmit(template: unknown, prepared: unknown, authorization: unknown,
+    compiled_plan: unknown): unknown;
+}>;
+type RuntimeBindings = DirectCommonBindings &
+  Parameters<typeof outputExportControl>[0] &
+  Parameters<typeof contentGenerationControl>[0] &
+  Parameters<typeof contentCaptureControl>[0] &
+  Parameters<typeof siteControl>[0] &
+  Parameters<typeof remoteStandardSourceControl>[0] &
+  Parameters<typeof remoteCredentialControl>[0] &
+  Parameters<typeof remoteBundleControl>[0] &
+  Parameters<typeof remoteTransferControl>[0] &
+  Parameters<typeof remoteSiteControl>[0] &
+  Parameters<typeof effectApplicationControl>[0] &
+  Parameters<typeof createRuntimeExecutionControls>[0] &
+  Parameters<typeof createLocalSigningMetadata>[0] &
+  Parameters<typeof createInstallationPreparationMetadata>[0] &
+  Parameters<typeof publicationProgressControl>[0] &
+  Parameters<typeof createResultDeliveryControls>[0] &
+  Parameters<typeof createRunStateControls>[0] &
+  Parameters<typeof createPublicationContractControls>[0] &
+  Parameters<typeof createQueryTimeControls>[0] &
+  Parameters<typeof createContentPublicationControls>[0] &
+  Parameters<typeof createContentInferenceControls>[0] &
+  Parameters<typeof createEffectCaptureControls>[0] &
+  Parameters<typeof createPublicationValidationControls>[0] &
+  Parameters<typeof createCapturedPublicationControls>[0] &
+  Parameters<typeof createInferOriginalReadControls>[0] &
+  Parameters<typeof createModelPreparationControls>[0] &
+  Parameters<typeof createEffectPreparationControls>[0] &
+  Parameters<typeof createEffectUnitResultControls>[0] &
+  Parameters<typeof createEffectArtifactControls>[0] &
+  Parameters<typeof createEffectRecoveryControls>[0] &
+  Parameters<typeof createEffectPreviewControls>[0] &
+  Parameters<typeof createEffectPublicationControls>[0] &
+  Parameters<typeof createRunPlanControls>[0] &
+  Parameters<typeof createInferAdmissionControls>[0];
+type LatePublicationPorts =
+  ReturnType<Parameters<typeof createQueryTimeControls>[1]['currentControl']> &
+  ReturnType<Parameters<typeof createModelPreparationControls>[1]['currentControl']> &
+  ReturnType<Parameters<typeof createEffectArtifactControls>[1]['currentControl']> &
+  ReturnType<Parameters<typeof createEffectRecoveryControls>[1]['currentControl']> &
+  ReturnType<Parameters<typeof createRunPlanControls>[1]['currentControl']> &
+  ReturnType<Parameters<typeof createInferAdmissionControls>[1]['currentControl']>;
+
 export {contentCaptureControl, contentGenerationControl};
 export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
-const publicationControls = new WeakMap();
+const publicationControls: TokenTable<unknown> = new WeakMap<object, unknown>();
 
-function publicationControl(moon) {
-  let control = publicationControls.get(moon);
-  if (control !== undefined) return control;
-  const tokens = new WeakMap();
-  const recoveredEffectCaptures = new WeakMap();
-  const capturedComputationPreparations = new WeakMap();
-  const contractBounds = new WeakMap();
-  const issuedDeliveryGrants = new WeakMap();
-  const issuedDeliveryAttempts = new WeakMap();
-  const originalDeliveryAttempts = new WeakMap();
-  const evidenceTokens = new WeakMap();
-  const modelOriginalDocumentTokens = new WeakMap();
-  const admissionTokens = new WeakMap();
-  const compiledRunTokens = new WeakMap();
-  const originalRunPlanTokens = new WeakMap();
+function publicationControl(moon: RuntimeBindings) {
+  let control = publicationControls.get(moon) as LatePublicationPorts | undefined;
+  if (control !== undefined) return control as typeof assembled;
+  const tokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const recoveredEffectCaptures: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const capturedComputationPreparations: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const contractBounds: TokenTable<WireLimits> = new WeakMap<object, WireLimits>();
+  const issuedDeliveryGrants: TokenTable<WeakValue<Parameters<typeof createResultDeliveryControls>[1]['issuedDeliveryGrants']>> = new WeakMap<object, WeakValue<Parameters<typeof createResultDeliveryControls>[1]['issuedDeliveryGrants']>>();
+  const issuedDeliveryAttempts: TokenTable<WeakValue<Parameters<typeof createResultDeliveryControls>[1]['issuedDeliveryAttempts']>> = new WeakMap<object, WeakValue<Parameters<typeof createResultDeliveryControls>[1]['issuedDeliveryAttempts']>>();
+  const originalDeliveryAttempts: TokenTable<WeakValue<Parameters<typeof createResultDeliveryControls>[1]['originalDeliveryAttempts']>> = new WeakMap<object, WeakValue<Parameters<typeof createResultDeliveryControls>[1]['originalDeliveryAttempts']>>();
+  const evidenceTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const modelOriginalDocumentTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const admissionTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const compiledRunTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const originalRunPlanTokens: TokenTable<WeakValue<Parameters<typeof createRunPlanControls>[1]['originalRunPlanTokens']>> = new WeakMap<object, WeakValue<Parameters<typeof createRunPlanControls>[1]['originalRunPlanTokens']>>();
   // The installed namespace supplies these fixed methods before a first
   // admission can await. Later property replacement cannot return another
   // owner's loan or change the original projection selected by this control.
@@ -71,37 +474,38 @@ function publicationControl(moon) {
   const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
   const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
-  const originalInferRunTokens = new WeakMap();
-  const restoredInferRuns = new WeakSet();
-  const serializationPlanTokens = new WeakMap();
-  const serializationGenerationTokens = new WeakMap();
-  const serializationInputEvidenceTokens = new WeakMap();
-  const compiledSourceFreeResultPolicy = compiled => {
+  const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> =
+    new WeakMap<object, WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>>();
+  const restoredInferRuns = new WeakSet<object>();
+  const serializationPlanTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const serializationGenerationTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const serializationInputEvidenceTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const compiledSourceFreeResultPolicy = (compiled: unknown) => {
     const value = compiledRunTokens.get(compiled);
     if (value === undefined) throw new TypeError('Foreign Client compiled Run');
     const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
     return original === undefined ? undefined : Object.freeze({
-      kind: runtimeField(original, 0), cid: runtimeField(original, 1), wire: runtimeField(original, 2),
+      kind: runtimeField(original, 0) as string, cid: runtimeField(original, 1) as string, wire: runtimeField(original, 2) as string,
     });
   };
-  const inferInvocationTokens = new WeakMap();
-  const inferModelObservationTokens = new WeakMap();
-  const compiledRunResult = (result, code) => {
+  const inferInvocationTokens: TokenTable<Readonly<{compiled: unknown; definition: Contract}>> = new WeakMap<object, Readonly<{compiled: unknown; definition: Contract}>>();
+  const inferModelObservationTokens: TokenTable<Readonly<{original: unknown; issued: IssuedInvocation}>> = new WeakMap<object, Readonly<{original: unknown; issued: IssuedInvocation}>>();
+  const compiledRunResult = (result: unknown, code: string) => {
     try {
       return checked(result);
     } catch (error) {
-      if (error.code !== 'MoonBitHostFailure') throw error;
-      throw Object.assign(new Error(code, {cause: error.cause}), {code});
+      if ((error as {code?: unknown}).code !== 'MoonBitHostFailure') throw error;
+      throw Object.assign(new Error(code, {cause: (error as Error).cause}), {code});
     }
   };
-  const compiledContent = compiled => {
+  const compiledContent = (compiled: unknown) => {
     const value = compiledRunTokens.get(compiled);
     if (value === undefined || !moon.clientProgramCompiledRunHasSerialization(value)) {
       throw new TypeError('Foreign Client compiled Content Run');
     }
     return value;
   };
-  const contentCaptures = values => {
+  const contentCaptures = (values: unknown) => {
     if (values === undefined) return [];
     if (!Array.isArray(values)) throw new TypeError('Invalid Content capture inventory');
     return values.map(value => {
@@ -111,20 +515,20 @@ function publicationControl(moon) {
         'Client Content capture unavailable');
     });
   };
-  const snapshotTokens = new WeakMap();
-  const effectSourceTokens = new WeakMap();
-  const localEffectSourceTokens = new WeakMap();
-  const localEffectArtifactTokens = new WeakMap();
-  const localEffectIdentityTokens = new WeakMap();
-  const tableInputTokens = new WeakMap();
-  const tablePreviewTokens = new WeakMap();
-  const recoveredTablePreviewTokens = new WeakMap();
-  const localEffectManifestTokens = new WeakMap();
-  const localEffectArtifactSources = new WeakMap();
-  const localEffectImportSources = new WeakMap();
-  const localEffectDependencyTokens = new WeakMap();
-  const localEffectImportTokens = new WeakMap();
-  const inspectLocalEffectArtifact = issued => {
+  const snapshotTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const effectSourceTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const localEffectSourceTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const localEffectArtifactTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const localEffectIdentityTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const tableInputTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const tablePreviewTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const recoveredTablePreviewTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const localEffectManifestTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const localEffectArtifactSources: TokenTable<WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectArtifactSources']>> = new WeakMap<object, WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectArtifactSources']>>();
+  const localEffectImportSources: TokenTable<WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectImportSources']>> = new WeakMap<object, WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectImportSources']>>();
+  const localEffectDependencyTokens: TokenTable<EffectDependencyOwner> = new WeakMap<object, EffectDependencyOwner>();
+  const localEffectImportTokens: TokenTable<WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectImportTokens']>> = new WeakMap<object, WeakValue<Parameters<typeof createEffectArtifactControls>[1]['localEffectImportTokens']>>();
+  const inspectLocalEffectArtifact = (issued: unknown) => {
     const value = Object.freeze({
       identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
       wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
@@ -137,38 +541,38 @@ function publicationControl(moon) {
   // The actual Core-issued Source metadata is projected once. Only callers
   // with an admitted whole Unit register an Artifact dependency token below;
   // Model contributions remain inside their complete Model context.
-  const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {
+  const inspectAcquiredEffectEvidence = (issued: unknown, publicationRetention: unknown, limits: WireLimits, deferCatalogs = false) => {
     return Object.freeze({
       invocation: moon.clientProgramAcquiredEffectInvocation(issued),
       bodies: Object.freeze([
         ...moon.clientProgramAcquiredEffectDependencyBodies(issued)
-          .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
-            ...(runtimeField(pair, 0) === 'request_values' ? {
+          .map(pair => Object.freeze({kind: runtimeField(pair, 0) as string, wire: runtimeField(pair, 1) as string,
+            ...(runtimeField(pair, 0) as string === 'request_values' ? {
               cid: moon.clientProgramAcquiredEffectRequestCid(issued),
             } : {})})),
         Object.freeze({kind: 'result_retention_policy',
           wire: inspect(token(publicationRetention)).wire}),
       ]),
-      ...(deferCatalogs ? {catalogDeferred: true, catalogBodies: Object.freeze([])} : {catalogBodies: Object.freeze(checked(
+      ...(deferCatalogs ? {catalogDeferred: true, catalogBodies: Object.freeze([])} : {catalogBodies: Object.freeze((checked(
         moon.clientProgramAcquiredEffectCatalogBodies(issued,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-        .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
-          wire: runtimeField(body, 2)})))}),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)) as readonly unknown[])
+        .map(body => Object.freeze({kind: runtimeField(body, 0) as string, cid: runtimeField(body, 1) as string,
+          wire: runtimeField(body, 2) as string})))}),
     });
   };
-  const localEffectContext = context => {
+  const localEffectContext = (context: unknown): readonly [unknown, unknown, unknown, unknown] => {
     if (context === null || typeof context !== 'object' ||
         !['admission', 'runDefinition', 'runInvocation', 'observation']
-          .every(key => context[key] !== undefined)) {
+          .every(key => (context as Readonly<Record<string, unknown>>)[key] !== undefined)) {
       throw new TypeError('Invalid local Effect Result context');
     }
-    return [admissionToken(context.admission), token(context.runDefinition),
-      token(context.runInvocation), evidenceToken(context.observation)];
+    return [admissionToken((context as Readonly<Record<string, unknown>>).admission), token((context as Readonly<Record<string, unknown>>).runDefinition),
+      token((context as Readonly<Record<string, unknown>>).runInvocation), evidenceToken((context as Readonly<Record<string, unknown>>).observation)];
   };
-  const sourceAdvanceTokens = new WeakMap();
-  const computationPreviewTokens = new WeakMap();
-  const computationPreviewWires = new WeakMap();
-  const inspect = (contract, limits) => {
+  const sourceAdvanceTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const computationPreviewTokens: TokenTable<unknown> = new WeakMap<object, unknown>();
+  const computationPreviewWires: TokenTable<WeakValue<Parameters<typeof createEffectPreviewControls>[1]['computationPreviewWires']>> = new WeakMap<object, WeakValue<Parameters<typeof createEffectPreviewControls>[1]['computationPreviewWires']>>();
+  const inspect = (contract: unknown, limits?: WireLimits) => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
       identityField: moon.strategyPublicationContractIdentityField(contract),
@@ -191,24 +595,24 @@ function publicationControl(moon) {
   };
   // Complete immutable DATA only; callers retain their original Read/Run
   // reservation and all current/physical duties. Shared by fresh and recovery.
-  const inspectPreparedEffectCapturedRun = prepared => {
+  const inspectPreparedEffectCapturedRun = (prepared: unknown) => {
     const existing = recoveredEffectCaptures.get(prepared);
-    if (existing !== undefined) return existing;
+    if (existing !== undefined) return existing as Contract;
     const actual = moon.clientProgramRecoveredEffectCapturedRunLimits(prepared);
-    const limits = Object.freeze({maxWireBytes:runtimeField(actual,0), maxNodes:runtimeField(actual,1), maxDepth:runtimeField(actual,2)});
+    const limits = Object.freeze({maxWireBytes:runtimeField(actual,0) as number, maxNodes:runtimeField(actual,1) as number, maxDepth:runtimeField(actual,2) as number});
     issuanceLimits(limits, 'original Effect captured Run');
     const captured = inspect(moon.clientProgramRecoveredEffectCapturedRunContract(prepared), limits);
-    recoveredEffectCaptures.set(captured, prepared); recoveredEffectCaptures.set(prepared, captured);
+    recoveredEffectCaptures.set(captured, prepared); recoveredEffectCaptures.set(prepared as object, captured);
     return captured;
   };
-  const token = value => {
+  const token = (value: unknown) => {
     const result = tokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign publication contract');
     }
     return result;
   };
-  const inspectEvidence = evidence => {
+  const inspectEvidence = (evidence: unknown) => {
     const value = Object.freeze({
       name: moon.strategyRunEvidenceName(evidence),
       identity: moon.strategyRunEvidenceIdentity(evidence),
@@ -217,67 +621,67 @@ function publicationControl(moon) {
     evidenceTokens.set(value, evidence);
     return value;
   };
-  const evidenceToken = value => {
+  const evidenceToken = (value: unknown) => {
     const result = evidenceTokens.get(value);
     if (result === undefined) throw new TypeError('Foreign Run evidence');
     return result;
   };
-  const inspectAdmission = admission => {
+  const inspectAdmission = (admission: unknown) => {
     const value = Object.freeze({kind: 'run-publication-admission'});
     admissionTokens.set(value, admission);
     return value;
   };
-  const admissionToken = value => {
+  const admissionToken = (value: unknown) => {
     const result = admissionTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign Run publication admission');
     }
     return result;
   };
-  const inspectSnapshot = snapshot => {
+  const inspectSnapshot = (snapshot: unknown) => {
     const value = Object.freeze({kind: 'captured-result-snapshot'});
     snapshotTokens.set(value, snapshot);
     return value;
   };
-  const snapshotToken = value => {
+  const snapshotToken = (value: unknown) => {
     const result = snapshotTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign captured Result snapshot');
     }
     return result;
   };
-  const inspectEffectSource = source => {
+  const inspectEffectSource = (source: unknown) => {
     const value = Object.freeze({kind: 'captured-effect-source-artifact'});
     effectSourceTokens.set(value, source);
     return value;
   };
-  const effectSourceToken = value => {
+  const effectSourceToken = (value: unknown) => {
     const result = effectSourceTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign captured Effect source artifact');
     }
     return result;
   };
-  const localEffectSourceToken = value => {
+  const localEffectSourceToken = (value: unknown) => {
     const result = localEffectSourceTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign local Effect source evidence');
     }
     return result;
   };
-  const inspectSourceAdvance = advance => {
+  const inspectSourceAdvance = (advance: unknown) => {
     const value = Object.freeze({kind: 'pending-source-state-advance'});
     sourceAdvanceTokens.set(value, advance);
     return value;
   };
-  const sourceAdvanceToken = value => {
+  const sourceAdvanceToken = (value: unknown) => {
     const result = sourceAdvanceTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign pending source-state advance');
     }
     return result;
   };
-  const issuanceLimits = (limits, label) => {
+  const issuanceLimits = (limits: WireLimits, label: string) => {
     if (limits === null || typeof limits !== 'object' ||
         !Number.isSafeInteger(limits.maxWireBytes) ||
         !Number.isSafeInteger(limits.maxNodes) ||
@@ -288,7 +692,7 @@ function publicationControl(moon) {
     }
     return limits;
   };
-  const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({
+  const captureContractLimits = (limits: WireLimits, label: string) => issuanceLimits(Object.freeze({
     maxWireBytes: limits?.maxWireBytes,
     maxNodes: limits?.maxNodes,
     maxDepth: limits?.maxDepth,
@@ -308,7 +712,7 @@ function publicationControl(moon) {
     serializationPlanTokens, serializationInputEvidenceTokens, inspectAdmission, evidenceToken, issuanceLimits,
   });
   const queryTimeControls = createQueryTimeControls(moon, {
-    compiledRunTokens, token, currentControl: () => control,
+    compiledRunTokens, token, currentControl: () => control!,
   });
   const contentInferenceControls = createContentInferenceControls(moon, {
     serializationPlanTokens, serializationGenerationTokens, compiledContent, compiledRunResult, token,
@@ -332,7 +736,7 @@ function publicationControl(moon) {
     compiledRunTokens, modelOriginalDocumentTokens, token, evidenceToken, inspectEvidence, issuanceLimits,
   });
   const modelPreparationControls = createModelPreparationControls(moon, {
-    compiledRunTokens, serializationPlanTokens, token, compiledRunResult, currentControl: () => control,
+    compiledRunTokens, serializationPlanTokens, token, compiledRunResult, currentControl: () => control!,
   });
   const effectPreparationControls = createEffectPreparationControls(moon, {
     admissionToken, token, evidenceToken, inspectAdmission, inspect, inspectEvidence,
@@ -348,12 +752,12 @@ function publicationControl(moon) {
       localEffectDependencyTokens, localEffectManifestTokens, localEffectArtifactTokens, localEffectArtifactSources,
       localEffectImportTokens, localEffectImportSources, localEffectSourceTokens, localEffectIdentityTokens,
       issuanceLimits, token, admissionToken, evidenceToken, effectSourceToken, inspectLocalEffectArtifact,
-      localEffectContext, currentControl: () => control,
+      localEffectContext, currentControl: () => control!,
     });
   const effectRecoveryControls = createEffectRecoveryControls(moon, {
     computationPreviewTokens, localEffectArtifactTokens, localEffectIdentityTokens,
     tableInputTokens, tablePreviewTokens, recoveredTablePreviewTokens,
-    compiledContent, issuanceLimits, token, effectSourceToken, currentControl: () => control,
+    compiledContent, issuanceLimits, token, effectSourceToken, currentControl: () => control!,
   });
   const {pendingSourceAdvanceControls, effectPreviewControls} =
     createEffectPreviewControls(moon, {
@@ -367,14 +771,14 @@ function publicationControl(moon) {
   const runPlanControls = createRunPlanControls(moon, {
     compiledRunTokens, originalRunPlanTokens, compiledRunResult, issuanceLimits, token, evidenceToken,
     captureRequestExplanation, originalExplanationPlanWire, originalExplanationFactsWire, returnExplanationCapture,
-    acknowledgeExplanationCapture, observeOriginalDispatchFailure, prepareLogicalObservation, currentControl: () => control,
+    acknowledgeExplanationCapture, observeOriginalDispatchFailure, prepareLogicalObservation, currentControl: () => control!,
   });
   const inferAdmissionControls = createInferAdmissionControls(moon, {
     originalInferRunTokens, compiledRunTokens, restoredInferRuns, issuanceLimits,
-    compiledRunResult, token, inspect, inspectEvidence, inspectAdmission, currentControl: () => control,
+    compiledRunResult, token, inspect, inspectEvidence, inspectAdmission, currentControl: () => control!,
   });
-  control = Object.freeze({
-    executionFailureExplanation(cause) {
+  const assembled = control = Object.freeze({
+    executionFailureExplanation(cause: unknown) {
       if (typeof cause !== 'string' || cause.length > 96 ||
           typeof describeExecutionFailure !== 'function') return undefined;
       // Reuse the original Common export captured with this control. This is
@@ -382,7 +786,7 @@ function publicationControl(moon) {
       const value = Reflect.apply(describeExecutionFailure, moon, [cause]);
       return typeof value === 'string' ? value : undefined;
     },
-    seal(name, bodyWire, limits) {
+    seal(name: string, bodyWire: string, limits: WireLimits) {
       limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationSeal(
         name,
@@ -394,7 +798,7 @@ function publicationControl(moon) {
     },
     // Data-only private retention parser; no resource/custody/current grant.
     privateContinuationRetentionShape: moon.clientProgramPrivateContinuationRetentionShape,
-    admit(name, completeWire, limits) {
+    admit(name: string, completeWire: string, limits: WireLimits) {
       limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationAdmit(
         name,
@@ -406,12 +810,12 @@ function publicationControl(moon) {
     },
     // SAME private opaque contract and original READ capacity. These are
     // representation observations, not copied DATA admission or authority.
-    retainResultReadMetadata(parent, input, slot, original, mode) {
+    retainResultReadMetadata(parent: unknown, input: unknown, slot: number, original: unknown, mode: number) {
       const value = tokens.get(original);
       if (value === undefined) throw new TypeError('Foreign publication contract');
       return checked(moon.clientProgramRetainRequestResultMetadataContract(parent, input, slot, value, mode));
     },
-    admitOriginal(original, limits) {
+    admitOriginal(original: Contract, limits: WireLimits) {
       const retained = contractBounds.get(original);
       if (retained === undefined || !tokens.has(original)) return undefined;
       const required = captureContractLimits(limits, 'publication contract');
@@ -419,20 +823,20 @@ function publicationControl(moon) {
         retained.maxNodes <= required.maxNodes &&
         retained.maxDepth <= required.maxDepth ? original : undefined;
     },
-    preparedClientNormalizationEvidence(prepared, limits) {
+    preparedClientNormalizationEvidence(prepared: unknown, limits: WireLimits) {
       issuanceLimits(limits, 'Run evidence');
       // The same original already owns its measured journal. No Source read,
       // wire admission or fresh normalization occurs at publication time.
       return inspectEvidence(checked(moon.clientProgramPreparedLocalNormalizationEvidence(
         prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     },
-    preparedClientAuthoringContextEvidence(prepared, original, limits) {
+    preparedClientAuthoringContextEvidence(prepared: unknown, original: unknown, limits: WireLimits) {
       issuanceLimits(limits, 'Run evidence');
       if (original === undefined) throw new TypeError('OriginalClientAuthoringContextRequired');
       return inspectEvidence(checked(moon.clientProgramPreparedAuthoringContextEvidence(
         prepared, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     },
-    sealRunEvidence(name, bodyWire, limits) {
+    sealRunEvidence(name: string, bodyWire: string, limits: WireLimits) {
       issuanceLimits(limits, 'Run evidence');
       return inspectEvidence(checked(moon.strategyRunEvidenceSeal(
         name,
@@ -442,7 +846,7 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    admitRunEvidence(name, completeWire, limits) {
+    admitRunEvidence(name: string, completeWire: string, limits: WireLimits) {
       issuanceLimits(limits, 'Run evidence');
       return inspectEvidence(checked(moon.strategyRunEvidenceAdmit(
         name,
@@ -452,7 +856,7 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    issueRunInvocation(template, observation, limits) {
+    issueRunInvocation(template: unknown, observation: unknown, limits: WireLimits) {
       limits = captureContractLimits(limits, 'Run Invocation');
       return inspect(checked(moon.strategyIssueRunInvocation(
         evidenceToken(template),
@@ -462,7 +866,7 @@ function publicationControl(moon) {
         limits.maxDepth,
       )), limits);
     },
-    admitRunPublication(template, prepared, authorization, compiledPlan) {
+    admitRunPublication(template: unknown, prepared: unknown, authorization: unknown, compiledPlan: unknown) {
       return inspectAdmission(checked(moon.strategyRunPublicationAdmit(
         evidenceToken(template),
         evidenceToken(prepared),
@@ -471,7 +875,7 @@ function publicationControl(moon) {
       )));
     },
     admitCheckedClientRunPublication(
-      checkedProgram, template, prepared, authorization, compiledPlan,
+      checkedProgram: unknown, template: unknown, prepared: unknown, authorization: unknown, compiledPlan: unknown,
     ) {
       if (typeof moon.clientProgramAdmitPublication !== 'function') {
         throw new TypeError('Client Program admission is unavailable');
@@ -491,7 +895,7 @@ function publicationControl(moon) {
     ...contentInferenceControls,
     ...runPlanControls,
     ...inferAdmissionControls,
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, compilationOriginal) {
+    prepareCheckedClientCompiledRun(checkedProgram: unknown, kind: string, policy: CompilationPolicy, inferGraph?: unknown, compilationOriginal?: unknown) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
       }
@@ -567,7 +971,7 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
-    admitSourceFreeResultPolicy(resultPolicy, limits) {
+    admitSourceFreeResultPolicy(resultPolicy: ResultPolicy, limits: WireLimits) {
       if (resultPolicy?.kind !== 'data_policy' ||
           typeof resultPolicy.cid !== 'string' ||
           typeof resultPolicy.wire !== 'string' ||
@@ -582,7 +986,7 @@ function publicationControl(moon) {
       return Object.freeze({kind: runtimeField(original, 0), cid: runtimeField(original, 1),
         wire: runtimeField(original, 2)});
     },
-    adoptCheckedClientEffectInferRun(allowed, definition, resultPolicy, limits) {
+    adoptCheckedClientEffectInferRun(allowed: unknown, definition: unknown, resultPolicy?: ResultPolicy | undefined, limits?: WireLimits) {
       if (resultPolicy !== undefined &&
           (resultPolicy?.kind !== 'data_policy' ||
            typeof resultPolicy.cid !== 'string' ||
@@ -596,7 +1000,7 @@ function publicationControl(moon) {
         ? moon.clientProgramEffectAllowedInferRun(allowed)
         : moon.clientProgramEffectAllowedInferRunWithPolicyBody(
           allowed, resultPolicy.cid, resultPolicy.wire,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+          limits!.maxWireBytes, limits!.maxNodes, limits!.maxDepth));
       if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Effect Infer Run Definition differs from admission');
       }
@@ -613,7 +1017,7 @@ function publicationControl(moon) {
     // Borrow the checked Source-only Effect component from this exact keyed
     // plan and admitted Definition. A Model graph or an equal wire cannot
     // supply this nominal association, and this projection issues no Run.
-    adoptCheckedClientEffectKeyedRun(allowed, definition, keyedPlan) {
+    adoptCheckedClientEffectKeyedRun(allowed: unknown, definition: unknown, keyedPlan: unknown) {
       const value = compiledRunResult(moon.clientProgramEffectAllowedKeyedRun(
         allowed, keyedPlan, token(definition)), 'RunHostEffectKeyedAdmissionRejected');
       if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
@@ -626,8 +1030,8 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
-    bindCheckedClientRequestEffectKeyedOriginal(parent, input, operationPlan, compilation,
-      compiled, definition, keyedPlan, keyed, construct) {
+    bindCheckedClientRequestEffectKeyedOriginal(parent: unknown, input: unknown, operationPlan: unknown, compilation: unknown,
+      compiled: CompiledRun, definition: unknown, keyedPlan: unknown, keyed: unknown, construct: (...args: unknown[]) => unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'effect-keyed' || typeof construct !== 'function') {
         throw new TypeError('Foreign Client compiled keyed Effect preparation');
@@ -635,8 +1039,8 @@ function publicationControl(moon) {
       return checked(construct(parent, input, operationPlan, compilation,
         value, token(definition), keyedPlan, keyed));
     },
-    startInstalledEffectKeyedCaptureInput(managedRun, prepared, request, compiled,
-      definition, keyedPlan, keyed, captures, limits) {
+    startInstalledEffectKeyedCaptureInput(managedRun: unknown, prepared: unknown, request: unknown, compiled: CompiledRun,
+      definition: unknown, keyedPlan: unknown, keyed: unknown, captures: readonly SourceCapture[], limits: KeyedCaptureLimits) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'effect-keyed' ||
           !Array.isArray(captures) || captures.some(value =>
@@ -654,67 +1058,67 @@ function publicationControl(moon) {
     // authorization, Source observation or Command approval is issued here.
     ...contentPublicationControls,
     compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
-    compiledInferEvaluationPolicy(compiled) {
+    compiledInferEvaluationPolicy(compiled: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
       const original = moon.clientProgramCompiledRunEvaluationPolicy(value);
       return original === undefined ? undefined : Object.freeze({
-        kind: runtimeField(original, 0), cid: runtimeField(original, 1), wire: runtimeField(original, 2),
+        kind: runtimeField(original, 0) as string, cid: runtimeField(original, 1) as string, wire: runtimeField(original, 2) as string,
       });
     },
-    checkClientCompiledRunOwner(compiled, checkedProgram) {
+    checkClientCompiledRunOwner(compiled: unknown, checkedProgram: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined ||
           !moon.clientProgramCompiledRunMatches(value, checkedProgram)) {
         throw new TypeError('Foreign Client compiled Run');
       }
     },
-    checkClientCompiledEffectRunOwner(compiled, prepared, compilation) {
+    checkClientCompiledEffectRunOwner(compiled: unknown, prepared: unknown, compilation: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined ||
           moon.clientProgramCompiledRunEffectMatches(value, prepared, compilation) !== true) {
         throw new TypeError('Foreign Client compiled Run');
       }
     },
-    checkClientCompiledRunDefinition(compiled, definition) {
+    checkClientCompiledRunDefinition(compiled: unknown, definition: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Foreign Client compiled Run Definition');
       }
     },
-    checkClientCompiledLocalExecutionOwner(compiled, definition) {
+    checkClientCompiledLocalExecutionOwner(compiled: unknown, definition: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined ||
           moon.clientProgramCheckCompiledLocalExecutionOwner(value, token(definition)) !== true) {
         throw new TypeError('Foreign Client local execution owner');
       }
     },
-    checkedClientRunCapturedContentCandidate(compiled, definition, acquisition, request,
-      bindingWire, mediaType, contentCid, sizeBytes, limits) {
+    checkedClientRunCapturedContentCandidate(compiled: unknown, definition: unknown, acquisition: unknown, request: unknown,
+      bindingWire: string, mediaType: string, contentCid: string, sizeBytes: number, limits: Tail<BindingParameters<'clientProgramRunCapturedContentCandidate'>, 8>) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
       return checked(moon.clientProgramRunCapturedContentCandidate(value, token(definition),
-        acquisition, request, bindingWire, mediaType, contentCid, sizeBytes, ...limits));
+        acquisition, request, bindingWire, mediaType, contentCid, sizeBytes, ...limits)) as CommonObject;
     },
-    checkedClientStoredRunCapturedContentCandidate(compiled, definition, acquisition,
-      originalWire, bindingWire, limits) {
+    checkedClientStoredRunCapturedContentCandidate(compiled: unknown, definition: unknown, acquisition: unknown,
+      originalWire: string, bindingWire: string, limits: Tail<BindingParameters<'clientProgramStoredRunCapturedContentCandidate'>, 5>) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
       return checked(moon.clientProgramStoredRunCapturedContentCandidate(value,
-        token(definition), acquisition, originalWire, bindingWire, ...limits));
+        token(definition), acquisition, originalWire, bindingWire, ...limits)) as CommonObject;
     },
-    recoveredContentIssuerKind(wire, limits) {
-      if (typeof wire !== 'string' || !['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits']
+    recoveredContentIssuerKind(wire: string, limits: ContentLimits) {
+      if (typeof wire !== 'string' || !(['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'] as const)
         .every(key => Number.isInteger(limits?.[key]) && limits[key] > 0 && limits[key] <= 2147483647)) {
         throw new TypeError('Invalid recovered Content reference limits');
       }
       return checked(moon.clientProgramRecoveredContentIssuerKind(wire,
         limits.maxBytes, limits.maxNodes, limits.maxDepth, limits.maxTextUnits));
     },
-    recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role = 'metadata') {
+    recoveredSourceContentConstructionCapacity(wire: string, bindingWire: string, limits: ContentLimits, role: string = 'metadata') {
       if (typeof wire !== 'string' || typeof bindingWire !== 'string' ||
           typeof role !== 'string' ||
-          !['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'].every(key =>
+          !(['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'] as const).every(key =>
             Number.isInteger(limits?.[key]) && limits[key] > 0 && limits[key] <= 2147483647)) {
         throw new TypeError('Invalid recovered Source Content construction limits');
       }
@@ -723,7 +1127,7 @@ function publicationControl(moon) {
       if (capacity === undefined) throw new TypeError('Recovered Source Content construction unavailable');
       return capacity;
     },
-    installedEffectKeyedOriginal(managedContext, prepared) {
+    installedEffectKeyedOriginal(managedContext: InstalledEffectOriginal | undefined, prepared: unknown) {
       if (managedContext?.runtime !== moon || managedContext.closed ||
           managedContext.prepared !== prepared || managedContext.value === undefined ||
           managedContext.request === undefined) {
@@ -732,7 +1136,7 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledEffectKeyedOriginal(
         managedContext.value, prepared, managedContext.request));
     },
-    effectKeyedOriginalSourceEvidenceFacts(original, prepared, request) {
+    effectKeyedOriginalSourceEvidenceFacts(original: unknown, prepared: unknown, request: unknown) {
       const facts = checked(moon.clientProgramEffectKeyedOriginalSourceEvidenceFacts(
         original, prepared, request));
       if (!Array.isArray(facts) || facts.length !== 6 ||
@@ -741,12 +1145,12 @@ function publicationControl(moon) {
       }
       return facts;
     },
-    checkedRecoveredSourceContentCandidate(original, prepared, request,
-      referenceWire, bindingWire, limits) {
+    checkedRecoveredSourceContentCandidate(original: unknown, prepared: unknown, request: unknown,
+      referenceWire: string, bindingWire: string, limits: Tail<BindingParameters<'clientProgramRecoveredSourceContentCandidate'>, 5>) {
       return checked(moon.clientProgramRecoveredSourceContentCandidate(original,
-        prepared, request, referenceWire, bindingWire, ...limits));
+        prepared, request, referenceWire, bindingWire, ...limits)) as CommonObject;
     },
-    compiledRunResultTransformation(compiled, checkedProgram, result) {
+    compiledRunResultTransformation(compiled: unknown, checkedProgram: unknown, result: number) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || !Number.isSafeInteger(result) || result < 0) {
         throw new TypeError('Foreign Client compiled Result');
@@ -756,8 +1160,8 @@ function publicationControl(moon) {
           value, checkedProgram, result), 'RunHostResultSelectionRejected');
     },
     ...queryTimeControls,
-    defineCheckedClientCompiledRun(compiled, {namespaceId, runId,
-      createdAt, validUntil, retainedDefinitionWire}) {
+    defineCheckedClientCompiledRun(compiled: CompiledRun, {namespaceId, runId,
+      createdAt, validUntil, retainedDefinitionWire}: DefinitionOptions) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) {
         throw new TypeError('Foreign Client compiled Run');
@@ -772,8 +1176,8 @@ function publicationControl(moon) {
           ? 'RunHostSourceFreeDefinitionRejected'
           : 'RunHostSourceFreeAdmissionRejected'));
     },
-    issueCheckedClientCompiledInvocation(compiled, definition,
-      {dataPolicyCid, source}, limits, publicationPreparation, preparedProgram) {
+    issueCheckedClientCompiledInvocation(compiled: CompiledRun, definition: unknown,
+      {dataPolicyCid, source}: InvocationOptions, limits: WireLimits, publicationPreparation?: unknown, preparedProgram?: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) {
         throw new TypeError('Foreign Client compiled Run');
@@ -846,15 +1250,15 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
-    admitInferCapturedInput(prepared, captured, sourceEvidence, authorityScopeCid,
-      dataPolicyCid, startedAt, completedAt) {
+    admitInferCapturedInput(prepared: unknown, captured: CapturedInput, sourceEvidence: unknown, authorityScopeCid: string,
+      dataPolicyCid: string, startedAt: string, completedAt: string) {
       return checked(moon.clientProgramAdmitInferCapturedInput(prepared,
         captured.inferStep, captured.capturedSource, captured.identity, captured.requirement,
         captured.logicalInput, evidenceToken(sourceEvidence), authorityScopeCid,
         dataPolicyCid, startedAt, completedAt));
     },
-    admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
-      startedAt, completedAt, keyed) {
+    admitComposedInferSources(occurrence: unknown, captures: readonly SourceCapture[], sourceEvidence: readonly unknown[], authorityScopeCid: string,
+      startedAt: string, completedAt: string, keyed?: unknown) {
       if (captures.some(value => value.inputKind === 'whole-input')) {
         if (captures.some(value => value.inputKind !== 'whole-input' || value.wholeCapacity === undefined)) {
           throw new TypeError('Unsupported mixed original Model Source inputs');
@@ -869,10 +1273,10 @@ function publicationControl(moon) {
         captures.map(value => value.requirement), captures.map(value => value.logicalInput),
         sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
     },
-    composedInferSourcesFor(occurrence, original) {
+    composedInferSourcesFor(occurrence: unknown, original: unknown) {
       return moon.clientProgramComposedInferSourcesMatch(original, occurrence) === true ? original : undefined;
     },
-    startOriginalComposedKeyedPrefix(compiled, definition, graph, scope, keyed, captures, prefix) {
+    startOriginalComposedKeyedPrefix(compiled: CompiledRun, definition: unknown, graph: unknown, scope: unknown, keyed: unknown, captures: readonly SourceCapture[], prefix: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
@@ -881,7 +1285,7 @@ function publicationControl(moon) {
         value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture()), prefix));
     },
-    startInstalledOriginalComposedKeyedPrefix(managedRun, compiled, definition, graph, scope, keyed, captures) {
+    startInstalledOriginalComposedKeyedPrefix(managedRun: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, scope: unknown, keyed: unknown, captures: readonly SourceCapture[]) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
@@ -899,7 +1303,7 @@ function publicationControl(moon) {
         scope, value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture())));
     },
-    prepareInstalledOriginalComposedKeyedHostInput(managedRun, compiled, definition, graph, scope, keyed, captures, host) {
+    prepareInstalledOriginalComposedKeyedHostInput(managedRun: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, scope: unknown, keyed: unknown, captures: readonly SourceCapture[], host: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' || host === undefined ||
           captures.some(value => value.inputKind !== 'whole-input' ||
@@ -914,7 +1318,7 @@ function publicationControl(moon) {
       return Object.freeze({prefix: checked(moon.clientProgramStartInstalledOriginalComposedKeyedHostPrefix(
         managedRun, scope, value, originalDefinition, graph, keyed, originals, host))});
     },
-    prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {
+    prepareGenericEffectKeyedLookupSourceMetadata(parent: unknown, lookup: unknown, captures: readonly SourceCapture[], sources: readonly SourceInput[], selection: RetentionSelection, limits: WireLimits) {
       limits = captureContractLimits(limits, 'generic keyed Source metadata');
       if (parent === undefined || !Array.isArray(captures) || captures.length !== 1 ||
           !Array.isArray(sources) || sources.length !== 1 || sources[0]?.captured !== captures[0] ||
@@ -930,13 +1334,13 @@ function publicationControl(moon) {
         selection.metadataDeleteBy, selection.metadataRetentionPolicyCid,
         selection.clockContractCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
-    finishGenericEffectKeyedLookupPublicationInput(parent, lookup, observedAt, limits) {
+    finishGenericEffectKeyedLookupPublicationInput(parent: unknown, lookup: unknown, observedAt: string, limits: WireLimits) {
       limits = captureContractLimits(limits, 'generic keyed Source completion');
       return checked(moon.clientProgramEffectKeyedGenericPublicationInput(parent, lookup, observedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
-    prepareKeyedLookupSourceMetadata(lookup, request, captures, sources,
-      retentionSelection, outputLimits, maxWork, limits, fileReadDeclarations) {
+    prepareKeyedLookupSourceMetadata(lookup: unknown, request: unknown, captures: readonly SourceCapture[], sources: readonly SourceInput[],
+      retentionSelection: RetentionSelection, outputLimits: unknown, maxWork: number, limits: WireLimits, fileReadDeclarations: readonly unknown[]) {
       limits = captureContractLimits(limits, 'keyed Source metadata');
       if (!Array.isArray(captures) || !Array.isArray(sources) || !Array.isArray(fileReadDeclarations) ||
           !Object.isFrozen(fileReadDeclarations) || captures.length < 1 ||
@@ -947,7 +1351,7 @@ function publicationControl(moon) {
         throw new TypeError('ForeignOriginalKeyedSourceMetadata');
       }
       const exported = moon.clientProgramEffectInputExportLimits(
-        ...resultOutputLimitFields.map(name => outputLimits[name]));
+        ...resultOutputLimitFields.map(name => outputLimits[name]) as BindingParameters<'clientProgramEffectInputExportLimits'>);
       if (exported === undefined) throw new TypeError('Invalid original keyed input limits');
       const selected = retentionSelection;
       const retention = checked(moon.clientProgramKeyedLookupPrepareRetention(lookup,
@@ -973,7 +1377,7 @@ function publicationControl(moon) {
       checked(moon.clientProgramKeyedLookupBindDeclaredFilePhysicalSource(lookup, fileReadDeclarations));
       return inspect(retention, limits);
     },
-    keyedLookupActivationJournalRecord(original, request, compiled, definition, graph, limits, sourceOriginal) {
+    keyedLookupActivationJournalRecord(original: unknown, request: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, limits: WireLimits, sourceOriginal?: unknown) {
       limits = captureContractLimits(limits, 'keyed lookup activation');
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || (compiled.kind !== 'infer' &&
@@ -990,7 +1394,7 @@ function publicationControl(moon) {
         slotCid: runtimeField(fields, 1), batchIndex: runtimeField(fields, 2),
         batchCount: runtimeField(fields, 3)});
     },
-    keyedLookupActivationJournalCurrent(original, request, compiled, definition, graph, sourceOriginal) {
+    keyedLookupActivationJournalCurrent(original: unknown, request: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, sourceOriginal?: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) return false;
       return compiled.kind === 'effect-keyed'
@@ -999,8 +1403,8 @@ function publicationControl(moon) {
         : compiled.kind === 'infer' && moon.clientProgramKeyedLookupActivationMatches(
           original, request, value, token(definition), graph) === true;
     },
-    prepareKeyedLookupRawCapture(keyedRequest, compiled, definition, retention,
-      storage, contentCid, bytes, at, nowMs, limits) {
+    prepareKeyedLookupRawCapture(keyedRequest: unknown, compiled: CompiledRun, definition: unknown, retention: unknown,
+      storage: PrivateStorage, contentCid: string, bytes: number, at: string, nowMs: bigint, limits: ContentLimits) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || (compiled.kind !== 'infer' && compiled.kind !== 'effect-keyed')) {
         throw new TypeError('Foreign Client compiled Infer preparation');
@@ -1016,16 +1420,16 @@ function publicationControl(moon) {
         wire:runtimeField(fields,2), contentCid:runtimeField(fields,3),
         byteCount:Number(runtimeField(fields,4))})});
     },
-    prepareKeyedLookupCapturedPage(keyedRequest, capture, raw, at, outputLimits, maxWork, limits) {
+    prepareKeyedLookupCapturedPage(keyedRequest: unknown, capture: unknown, raw: unknown, at: string, outputLimits: unknown, maxWork: number, limits: WireLimits) {
       limits = captureContractLimits(limits, 'keyed captured page');
       if (!validResultOutputLimits(outputLimits)) throw new TypeError('Invalid keyed page limits');
       const exported = moon.clientProgramEffectInputExportLimits(
-        ...resultOutputLimitFields.map(name => outputLimits[name]));
+        ...resultOutputLimitFields.map(name => outputLimits[name]) as BindingParameters<'clientProgramEffectInputExportLimits'>);
       if (exported === undefined) throw new TypeError('Invalid keyed page limits');
       return checked(moon.clientProgramKeyedLookupPrepareCapturedPage(keyedRequest, capture,
         raw, at, exported, maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
-    keyedLookupPageJournalRecord(page, keyedRequest, request, compiled, definition, graph, limits, sourceOriginal) {
+    keyedLookupPageJournalRecord(page: unknown, keyedRequest: unknown, request: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, limits: WireLimits, sourceOriginal?: unknown) {
       limits = captureContractLimits(limits, 'keyed lookup page');
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || (compiled.kind !== 'infer' &&
@@ -1042,7 +1446,7 @@ function publicationControl(moon) {
         slotCid: runtimeField(fields, 1), activationCid: runtimeField(fields, 2),
         batchIndex: runtimeField(fields, 3)});
     },
-    keyedLookupPageJournalCurrent(page, keyedRequest, request, compiled, definition, graph, sourceOriginal) {
+    keyedLookupPageJournalCurrent(page: unknown, keyedRequest: unknown, request: unknown, compiled: CompiledRun, definition: unknown, graph: unknown, sourceOriginal?: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) return false;
       return compiled.kind === 'effect-keyed'
@@ -1051,14 +1455,14 @@ function publicationControl(moon) {
         : compiled.kind === 'infer' && moon.clientProgramKeyedLookupCapturedPageMatches(
           page, keyedRequest, request, value, token(definition), graph) === true;
     },
-    takeSourceEvidenceOriginal(capture) {
+    takeSourceEvidenceOriginal(capture: unknown) {
       const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
       if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
       const evidence = inspectEvidence(Reflect.apply(take, capture, []));
       if (evidence.name !== 'source_evidence') throw new TypeError('InvalidInstalledSourceEvidence');
       return evidence;
     },
-    keyedLookupPublicationEvidence(original) {
+    keyedLookupPublicationEvidence(original: unknown) {
       const value = moon.clientProgramKeyedLookupObservationOriginals(original);
       if (value === undefined) throw new TypeError('Foreign keyed lookup observation');
       return Object.freeze({source: inspectEvidence(runtimeField(value, 1)),
@@ -1067,20 +1471,20 @@ function publicationControl(moon) {
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
     // this does not adopt external attempts or grant publication authority.
-    modelPrivateHoldingCid(definition, storeAuthorityCid, role, slot) {
+    modelPrivateHoldingCid(definition: unknown, storeAuthorityCid: string, role: string, slot: number) {
       const identity = moon.clientProgramModelPrivateHoldingCid(
         token(definition), storeAuthorityCid, role, slot);
       if (identity === undefined) throw new TypeError('InvalidModelPrivateHolding');
       return identity;
     },
-    modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry, role, phase = 'settled') {
+    modelScopedPrivateHoldingCid(definition: unknown, storeAuthorityCid: string, entry: HoldingEntry, role: string, phase: string = 'settled') {
       const identity = moon.clientProgramModelScopedPrivateHoldingCid(token(definition),
         storeAuthorityCid, entry.scopeCid, entry.slotCid, entry.attemptCid,
         entry.attemptIndex, phase, role);
       if (identity === undefined) throw new TypeError('InvalidModelScopedPrivateHolding');
       return identity;
     },
-    bindCheckedClientInferRun(compiled, execution, definition) {
+    bindCheckedClientInferRun(compiled: CompiledRun, execution: unknown, definition: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1090,7 +1494,7 @@ function publicationControl(moon) {
     },
     // Inspect only the original Core execution's issued value. Wire admission
     // remains a separate path; this view does not issue Store or send authority.
-    inspectInferInvocationEvidence(originalMoon, execution, slot) {
+    inspectInferInvocationEvidence(originalMoon: unknown, execution: unknown, slot: number) {
       if (originalMoon !== moon || !Number.isSafeInteger(slot) || slot < 0 ||
           slot > 2147483647 ||
           typeof moon.clientProgramInferInvocationEvidence !== 'function') {
@@ -1103,8 +1507,8 @@ function publicationControl(moon) {
       }
       return inspectEvidence(evidence);
     },
-    bindCheckedClientInferDispatch(compiled, execution, definition,
-      {account, principalId, at, delegated, observeAccount, observeAt}) {
+    bindCheckedClientInferDispatch(compiled: CompiledRun, execution: unknown, definition: unknown,
+      {account, principalId, at, delegated, observeAccount, observeAt}: DispatchOptions) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1119,8 +1523,8 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferDispatchAdmission(execution,
         admitted));
     },
-    readCheckedClientComposedInferSavedInputScope(compiled, definition, occurrence,
-      graph, snapshotWire, authorityScopeCid, custodyAvailable) {
+    readCheckedClientComposedInferSavedInputScope(compiled: CompiledRun, definition: unknown, occurrence: unknown,
+      graph: unknown, snapshotWire: string, authorityScopeCid: string, custodyAvailable: () => boolean) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' || typeof custodyAvailable !== 'function') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1128,8 +1532,8 @@ function publicationControl(moon) {
       return checked(moon.clientProgramReadSavedComposedInferInputScope(value, token(definition),
         occurrence, graph, snapshotWire, authorityScopeCid, custodyAvailable));
     },
-    readCheckedClientInferSavedInputScope(compiled, definition, preparedProgram,
-      step, graph, snapshotWire, authorityScopeCid, custodyAvailable) {
+    readCheckedClientInferSavedInputScope(compiled: CompiledRun, definition: unknown, preparedProgram: unknown,
+      step: number, graph: unknown, snapshotWire: string, authorityScopeCid: string, custodyAvailable: () => boolean) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' || typeof custodyAvailable !== 'function') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1137,8 +1541,8 @@ function publicationControl(moon) {
       return checked(moon.clientProgramReadSavedInferInputScope(value, token(definition),
         preparedProgram, step, graph, snapshotWire, authorityScopeCid, custodyAvailable));
     },
-    bindCheckedClientInferModelScope(compiled, execution, definition,
-      preparedCallSet, {scope, provider, expectedBoundary}) {
+    bindCheckedClientInferModelScope(compiled: CompiledRun, execution: unknown, definition: unknown,
+      preparedCallSet: unknown, {scope, provider, expectedBoundary}: ModelScopeOptions) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1151,9 +1555,9 @@ function publicationControl(moon) {
           task_index: BigInt(expectedBoundary.task_index),
           strategy_revision: BigInt(expectedBoundary.strategy_revision)}));
     },
-    bindCheckedClientInferModelDispatch(compiled, execution, definition,
-      preparedCallSet, scope, {account, principalId, at, delegated,
-        observeAccount, observeAt, enterCall}) {
+    bindCheckedClientInferModelDispatch(compiled: CompiledRun, execution: unknown, definition: unknown,
+      preparedCallSet: unknown, scope: unknown, {account, principalId, at, delegated,
+        observeAccount, observeAt, enterCall}: DispatchOptions & {enterCall: BindingParameters<'clientProgramBindInferModelDispatch'>[3]}) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' ||
           typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
@@ -1169,9 +1573,9 @@ function publicationControl(moon) {
     },
     // Installation-only async port. It uses the same original scoped
     // admission issuer; a persistence observation is never a fresh permit.
-    bindCheckedClientInferModelEntryPersistence(compiled, execution, definition,
-      preparedCallSet, scope, {account, principalId, at, delegated,
-        observeAccount, observeAt, beginEntry}) {
+    bindCheckedClientInferModelEntryPersistence(compiled: CompiledRun, execution: unknown, definition: unknown,
+      preparedCallSet: unknown, scope: unknown, {account, principalId, at, delegated,
+        observeAccount, observeAt, beginEntry}: DispatchOptions & {beginEntry: BindingParameters<'clientProgramBindInferModelEntryPersistence'>[3]}) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' ||
           typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
@@ -1202,9 +1606,9 @@ function publicationControl(moon) {
       }
       return profile;
     },
-    readInstalledModelResponseProfile(wire, expectedCid, limits) {
+    readInstalledModelResponseProfile(wire: string, expectedCid: string, limits: WireLimits & Readonly<{maxMembers: number; maxWork: number}>) {
       issuanceLimits(limits, 'Model response profile');
-      if (['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork']
+      if ((['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork'] as const)
           .some(key => !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
             limits[key] > 2147483647) ||
           typeof wire !== 'string' || wire.length > limits.maxWireBytes) {
@@ -1214,21 +1618,21 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         limits.maxMembers, limits.maxWork));
     },
-    bindInstalledModelRawCapturePolicy(policy, retention, metadata, clock, data) {
+    bindInstalledModelRawCapturePolicy(policy: unknown, retention: unknown, metadata: unknown, clock: unknown, data: unknown) {
       return checked(moon.clientProgramBindModelRawCapturePolicy(
         evidenceToken(policy), retention, metadata, clock, data));
     },
-    installedModelRawSelectionOriginals({retention, metadata, clock, data}) {
+    installedModelRawSelectionOriginals({retention, metadata, clock, data}: RawSelection) {
       // Existing Common bodies remain the authority for exact kind/CID/wire.
       // This projection cannot issue policy adoption, raw custody or sending.
       return moon.clientProgramModelRawSelectionOriginals(retention, metadata,
-        clock, data).map(value => Object.freeze({kind: runtimeField(value, 0),
-          cid: runtimeField(value, 1), wire: runtimeField(value, 2)}));
+        clock, data).map(value => Object.freeze({kind: runtimeField(value, 0) as string,
+          cid: runtimeField(value, 1) as string, wire: runtimeField(value, 2) as string}));
     },
-    issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
+    issueCheckedClientInferRawCapturePolicy(compiled: CompiledRun, definition: unknown, dispatch: unknown, scope: unknown,
       {profile, installation, probability, storeAuthorityCid, retention, metadata,
         clock, data, selectedAt, availableUntil, deleteBy, extensionCeilingAt,
-        metadataDeleteBy}) {
+        metadataDeleteBy}: RawCaptureOptions) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer raw policy');
@@ -1238,9 +1642,9 @@ function publicationControl(moon) {
         storeAuthorityCid, retention, metadata, clock, data, selectedAt,
         availableUntil, deleteBy, extensionCeilingAt, metadataDeleteBy));
     },
-    registerCheckedClientInferRawCapture(compiled, definition, dispatch, scope,
+    registerCheckedClientInferRawCapture(compiled: CompiledRun, definition: unknown, dispatch: unknown, scope: unknown,
       {policy, profile, installation, probability, account, at, storeAuthorityCid,
-        selectionAvailable, observeAccount, observeAt, delegated}) {
+        selectionAvailable, observeAccount, observeAt, delegated}: RawCaptureRegistration) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' ||
           typeof selectionAvailable !== 'function' ||
@@ -1252,8 +1656,8 @@ function publicationControl(moon) {
         probability, account, at, storeAuthorityCid, selectionAvailable,
         observeAccount, observeAt, delegated));
     },
-    bindCheckedClientInferInvocation(compiled, execution, definition,
-      verified, invocation, dataPolicyCid) {
+    bindCheckedClientInferInvocation(compiled: CompiledRun, execution: unknown, definition: unknown,
+      verified: unknown, invocation: unknown, dataPolicyCid: string) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1261,7 +1665,7 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferInvocation(execution,
         value, token(definition), verified, token(invocation), dataPolicyCid));
     },
-    bindIssuedClientInferInvocation(compiled, execution, definition, issued) {
+    bindIssuedClientInferInvocation(compiled: CompiledRun, execution: unknown, definition: Contract, issued: unknown) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1276,7 +1680,7 @@ function publicationControl(moon) {
       inferInvocationTokens.set(result, {compiled: value, definition});
       return result;
     },
-    checkedClientEffectInferInvocation(checkedEffect, compilation, definition, issued) {
+    checkedClientEffectInferInvocation(checkedEffect: unknown, compilation: unknown, definition: Contract, issued: IssuedInvocation) {
       const retained = inferInvocationTokens.get(issued);
       if (retained === undefined || retained.definition.identity !== definition.identity ||
           !moon.clientProgramCompiledRunEffectMatches(retained.compiled, checkedEffect, compilation) ||
@@ -1287,7 +1691,7 @@ function publicationControl(moon) {
       return Object.freeze({observation: issued.observation, invocation: issued.invocation,
         owner: token(issued.invocation)});
     },
-    captureCheckedClientInferModelObservation(issued, scan, receipt, limits, preconsumer) {
+    captureCheckedClientInferModelObservation(issued: IssuedInvocation, scan: unknown, receipt: unknown, limits: WireLimits, preconsumer?: unknown) {
       issuanceLimits(limits, 'Original Model observation');
       if (!inferInvocationTokens.has(issued)) {
         throw new TypeError('Foreign Model observation Invocation');
@@ -1299,7 +1703,7 @@ function publicationControl(moon) {
       const original = prior === undefined
         ? moon.clientProgramIssueInferInvocationBindingOriginalModelObservation(
           issued.binding, receipt, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : checked(moon.clientProgramBindPreconsumerModelUnitObservation(issued.binding, prior.original));
+        : checked(moon.clientProgramBindPreconsumerModelUnitObservation(issued.binding, (prior as ModelEffectDependency).original));
       if (original === undefined) throw new TypeError('Foreign Model outcome receipt');
       const body = moon.clientProgramOriginalModelObservationBody(original);
       const coordinates = moon.clientProgramOriginalModelObservationCoordinates(original);
@@ -1313,8 +1717,8 @@ function publicationControl(moon) {
           !Array.isArray(inputs) || typeof outcomes !== 'string') {
         throw new TypeError('Original Model dependency bodies unavailable');
       }
-      const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
-        step = runtimeField(coordinates, 2);
+      const task = runtimeField(coordinates, 0) as number, unit = runtimeField(coordinates, 1) as number,
+        step = runtimeField(coordinates, 2) as number;
       if (!Number.isSafeInteger(task) || task < 0 ||
           !Number.isSafeInteger(unit) || unit < 0 ||
           !Number.isSafeInteger(step) || step < 0) {
@@ -1322,10 +1726,10 @@ function publicationControl(moon) {
       }
       const value = Object.freeze({task, unit, step,
         bodies: Object.freeze([
-          Object.freeze({kind: 'local_model_observation', cid: runtimeField(body, 0),
-            wire: runtimeField(body, 1)}),
-          ...inputs.map(entry => Object.freeze({kind: runtimeField(entry, 0),
-            cid: runtimeField(entry, 1), wire: runtimeField(entry, 2)})),
+          Object.freeze({kind: 'local_model_observation', cid: runtimeField(body, 0) as string,
+            wire: runtimeField(body, 1) as string}),
+          ...inputs.map(entry => Object.freeze({kind: runtimeField(entry, 0) as string,
+            cid: runtimeField(entry, 1) as string, wire: runtimeField(entry, 2) as string})),
           Object.freeze({kind: 'relation_value',
             cid: moon.clientProgramEffectInputExportLogicalCid(receipt), wire: outcomes}),
           Object.freeze({kind: 'relation_schema',
@@ -1335,7 +1739,7 @@ function publicationControl(moon) {
       inferModelObservationTokens.set(value, {original, issued});
       return value;
     },
-    issueOriginalModelEffectEvidence(model, retention, imports, limits, deferCatalogs = false) {
+    issueOriginalModelEffectEvidence(model: ModelObservation, retention: unknown, imports: Readonly<{bodies: readonly EvidenceBody[]}> | undefined, limits: WireLimits, deferCatalogs = false) {
       issuanceLimits(limits, 'Original Model Effect dependency');
       const retained = inferModelObservationTokens.get(model);
       const imported = imports === undefined ? undefined : localEffectDependencyTokens.get(imports);
@@ -1345,7 +1749,7 @@ function publicationControl(moon) {
       }
       const result = moon.clientProgramOriginalModelAcquiredEffectEvidence(
         retained.original, token(retention), limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth, imported?.issued, imported?.originalSources ?? []);
+        limits.maxDepth, imported?.issued, (imported as ImportedEffectDependency | undefined)?.originalSources ?? []);
       let acquired;
       try { acquired = checked(result); }
       catch (cause) {
@@ -1362,9 +1766,9 @@ function publicationControl(moon) {
       const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired)
         .map(source => inspectAcquiredEffectEvidence(source, retention, limits, deferCatalogs));
       const barrier = moon.clientProgramOriginalModelAcquiredEffectLookupBarrier(acquired);
-      const lookupBodies = checked(moon.clientProgramOriginalModelAcquiredLookupDependencyBodies(acquired))
-        .map(body => Object.freeze({kind:runtimeField(body,0), cid:runtimeField(body,1),
-          wire:runtimeField(body,2)}));
+      const lookupBodies = (checked(moon.clientProgramOriginalModelAcquiredLookupDependencyBodies(acquired)) as readonly unknown[])
+        .map(body => Object.freeze({kind:runtimeField(body,0) as string, cid:runtimeField(body,1) as string,
+          wire:runtimeField(body,2) as string}));
       const value = Object.freeze({
         invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
         bodies: Object.freeze([
@@ -1372,13 +1776,13 @@ function publicationControl(moon) {
           ...direct.flatMap(source => source.bodies),
           ...lookupBodies,
           ...moon.clientProgramOriginalModelAcquiredScopeImportBodies(acquired)
-            .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
-              wire: runtimeField(body, 2)})),
+            .map(body => Object.freeze({kind: runtimeField(body, 0) as string, cid: runtimeField(body, 1) as string,
+              wire: runtimeField(body, 2) as string})),
           ...(imports?.bodies ?? []),
           Object.freeze({kind: 'acquisition_scope',
             wire: moon.clientProgramOriginalModelAcquiredEffectScope(acquired)}),
           ...(barrier === undefined || lookupBodies.length !== 0 ? [] : [Object.freeze({kind: 'lookup_barrier',
-            cid: runtimeField(barrier, 0), wire: runtimeField(barrier, 1)})]),
+            cid: runtimeField(barrier, 0) as string, wire: runtimeField(barrier, 1) as string})]),
         ]),
         ...(deferCatalogs ? {catalogDeferred: true} : {}),
         catalogBodies: Object.freeze([...direct.flatMap(source => source.catalogBodies),
@@ -1389,8 +1793,8 @@ function publicationControl(moon) {
         original: retained.original});
       return value;
     },
-    readCheckedClientInferSlotReplay(compiled, definition, observation,
-      records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {
+    readCheckedClientInferSlotReplay(compiled: CompiledRun, definition: unknown, observation: unknown,
+      records: unknown, bundle: unknown, proofs: unknown, {maxSlots, maxSlotWireUnits}: Readonly<{maxSlots: number; maxSlotWireUnits: number}>) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer Run');
@@ -1402,7 +1806,7 @@ function publicationControl(moon) {
     ...effectPreparationControls,
     ...effectUnitResultControls,
     ...effectDependencyControls,
-    bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
+    bindCheckedClientEffectRun(checkedEffect: unknown, admission: unknown, runDefinition: unknown) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {
         throw new TypeError('Client Effect Run binding is unavailable');
       }
@@ -1413,7 +1817,7 @@ function publicationControl(moon) {
       }
       return bound;
     },
-    issueRunDefinition(admission, definition, limits) {
+    issueRunDefinition(admission: unknown, definition: RunDefinitionRequest, limits: WireLimits) {
       limits = captureContractLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
         throw new TypeError('Invalid Run Definition request');
@@ -1430,7 +1834,7 @@ function publicationControl(moon) {
         limits.maxDepth,
       )), limits);
     },
-    issueEffectFreeRunReceipt(chain, provenance, limits) {
+    issueEffectFreeRunReceipt(chain: ReceiptChain, provenance: ReceiptProvenance, limits: WireLimits) {
       limits = captureContractLimits(limits, 'Run Receipt');
       if (chain === null || typeof chain !== 'object' ||
           provenance === null || typeof provenance !== 'object' ||
@@ -1478,7 +1882,7 @@ function publicationControl(moon) {
     ...publicationProgressControl(moon, token),
     ...contractControls,
     ...publicationValidationControls,
-    issueResultArtifact(exportHandle, invocation, retention, limits) {
+    issueResultArtifact(exportHandle: unknown, invocation: unknown, retention: unknown, limits: WireLimits) {
       limits = captureContractLimits(limits, 'Result Artifact');
       return inspect(checked(
         moon.strategyHostOutputExportIssueResultArtifact(
@@ -1498,28 +1902,46 @@ function publicationControl(moon) {
     ...resultDeliveryControls,
   });
   publicationControls.set(moon, control);
-  return control;
+  return assembled;
 }
 
-export function runtimeCore(moon) {
-  const publications = publicationControl(moon);
+type RuntimeFacade = Readonly<{
+  siteControl: ReturnType<typeof siteControl>;
+  managedExecutionProfileCid: RuntimeBindings['strategyHostManagedExecutionProfileCid'];
+  remoteSiteControl: ReturnType<typeof remoteSiteControl>;
+  remoteTransferControl: ReturnType<typeof remoteTransferControl>;
+  remoteStandardSourceControl: ReturnType<typeof remoteStandardSourceControl>;
+  remoteCredentialControl: ReturnType<typeof remoteCredentialControl>;
+  localSigningMetadata: () => ReturnType<typeof createLocalSigningMetadata>;
+  installationPreparationMetadata: () => ReturnType<typeof createInstallationPreparationMetadata>;
+  effectApplicationControl: ReturnType<typeof effectApplicationControl>;
+  remoteBundleControl: ReturnType<typeof remoteBundleControl>;
+  publicationControl: ReturnType<typeof publicationControl>;
+  outputExportControl: ReturnType<typeof outputExportControl>;
+  contentGenerationControl: ReturnType<typeof contentGenerationControl>;
+  contentCaptureControl: ReturnType<typeof contentCaptureControl>;
+}> & ReturnType<typeof createRuntimeExecutionControls>;
+
+export function runtimeCore(moon: unknown): RuntimeFacade {
+  const runtime = moon as RuntimeBindings;
+  const publications = publicationControl(runtime);
   return Object.freeze({
-    siteControl: siteControl(moon),
-    managedExecutionProfileCid: moon.strategyHostManagedExecutionProfileCid,
-    remoteSiteControl: remoteSiteControl(moon),
-    remoteTransferControl: remoteTransferControl(moon),
-    remoteStandardSourceControl: remoteStandardSourceControl(moon),
-    remoteCredentialControl: remoteCredentialControl(moon),
+    siteControl: siteControl(runtime),
+    managedExecutionProfileCid: runtime.strategyHostManagedExecutionProfileCid,
+    remoteSiteControl: remoteSiteControl(runtime),
+    remoteTransferControl: remoteTransferControl(runtime),
+    remoteStandardSourceControl: remoteStandardSourceControl(runtime),
+    remoteCredentialControl: remoteCredentialControl(runtime),
     // Explicit private DATA view, not an installed issuer or signing permit.
     // Keep older unused runtime routes lazy; actual callers require this ABI.
-    localSigningMetadata: () => createLocalSigningMetadata(moon),
-    installationPreparationMetadata: () => createInstallationPreparationMetadata(moon),
-    effectApplicationControl: effectApplicationControl(moon),
-    remoteBundleControl: remoteBundleControl(moon),
+    localSigningMetadata: () => createLocalSigningMetadata(runtime),
+    installationPreparationMetadata: () => createInstallationPreparationMetadata(runtime),
+    effectApplicationControl: effectApplicationControl(runtime),
+    remoteBundleControl: remoteBundleControl(runtime),
     publicationControl: publications,
-    outputExportControl: outputExportControl(moon, publications),
-    contentGenerationControl: contentGenerationControl(moon, publications),
-    contentCaptureControl: contentCaptureControl(moon, publications),
-    ...createRuntimeExecutionControls(moon, publications),
+    outputExportControl: outputExportControl(runtime, publications),
+    contentGenerationControl: contentGenerationControl(runtime, publications),
+    contentCaptureControl: contentCaptureControl(runtime, publications),
+    ...createRuntimeExecutionControls(runtime, publications),
   });
 }

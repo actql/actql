@@ -1771,7 +1771,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e82f07e9ef231b31193be2b845f4fcf539c252c6516bb9c8d1b75c3589113343",
+      "sha256": "4ee939592974a0295e808265fdc5f7358e8f91234e1b3c3fb57914b93dcf3a3c",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -11982,8 +11982,8 @@
                 "anchor": "async function persistContracts(store: Store, contracts: readonly Contract[], attempt?: Contract, initialRecords?: readonly Contract[]) {"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitOriginal(original, limits) {"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "admitOriginal(original: Contract, limits: WireLimits) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12012,7 +12012,7 @@
                 "anchor": "if (persisted.has(contract.identity)) continue;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
@@ -12050,8 +12050,8 @@
                 "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const contractBounds = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const contractBounds: TokenTable<WireLimits> = new WeakMap<object, WireLimits>();"
               },
               {
                 "path": "adapters/host-common/run-publication.mts",
@@ -12088,8 +12088,8 @@
                 "anchor": "acknowledgements; no caller receives provisional per-contract durability."
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const captureContractLimits = (limits: WireLimits, label: string) => issuanceLimits(Object.freeze({"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12194,7 +12194,7 @@
                 "anchor": "if (selected.length === 0) return false;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
@@ -12422,8 +12422,8 @@
                 "anchor": "async function persistContracts(store: Store, contracts: readonly Contract[], attempt?: Contract, initialRecords?: readonly Contract[]) {"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitOriginal(original, limits) {"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "admitOriginal(original: Contract, limits: WireLimits) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12452,7 +12452,7 @@
                 "anchor": "if (persisted.has(contract.identity)) continue;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
@@ -12490,8 +12490,8 @@
                 "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const contractBounds = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const contractBounds: TokenTable<WireLimits> = new WeakMap<object, WireLimits>();"
               },
               {
                 "path": "adapters/host-common/run-publication.mts",
@@ -12528,8 +12528,8 @@
                 "anchor": "acknowledgements; no caller receives provisional per-contract durability."
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const captureContractLimits = (limits: WireLimits, label: string) => issuanceLimits(Object.freeze({"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -12634,7 +12634,7 @@
                 "anchor": "if (selected.length === 0) return false;"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
@@ -21783,7 +21783,7 @@
     {
       "module": "adapters/host-node/client-effect-observations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f6d0c03ff46072f337f5ce170c933fe31e9cf8898fdadf80082a6b93702d9dd",
+      "sha256": "92bb67389af8fcb4d34c6e74af754d8381c09035fda154cc2f5c6e3aced2c300",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -27304,8 +27304,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",
@@ -27679,8 +27679,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28099,8 +28099,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",
@@ -29444,8 +29444,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -30770,8 +30770,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -34167,8 +34167,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -35575,8 +35575,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -36379,8 +36379,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -37420,7 +37420,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -39083,8 +39083,8 @@
                 "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -39703,8 +39703,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const originalInferRunTokens: TokenTable<WeakValue<Parameters<typeof createInferAdmissionControls>[1]['originalInferRunTokens']>> ="
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -39870,7 +39870,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -45655,7 +45655,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a9caf01c1c3dd9d6bbd3680022d192b6cc6404dfad4177ae653eccd56af6fa3f",
+      "sha256": "1565675c0683d2927f5b3713852edc5d2e80f444f0a6bb434b894b4c27f73024",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -47075,7 +47075,7 @@
     {
       "module": "adapters/host-node/effect-response-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "18ae79f143f198a38cef6c72142d68038b6b956cce10ce699fc20c66e600d6e8",
+      "sha256": "b421d4d3a3b742df5e89e6fe3a6edb817243e3e92709dde4319e220d336db33a",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -47547,7 +47547,7 @@
     {
       "module": "adapters/host-node/effect-run-completion.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d5e9772ce16a76b7ab021476e9d5c6f9eef6c97df16c07ce7c0166d2e0d7f08",
+      "sha256": "c387b4572eaa05049d4280696251c6a5051e08f0139d33d5dfde7852349a5ce6",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -47937,7 +47937,7 @@
     {
       "module": "adapters/host-node/effect-run-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5535071f0e6f776f230a97fa7bd784cd4f6ab9435f89619b993926a2fcb2f2d9",
+      "sha256": "3a86f0c48d811fe0222ad551086b1c00467a7c098e051d9cd0924dcc3e6badef",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -51368,7 +51368,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a86da4ec51353c1dec11371e9ac56a2441bf9cd537de5326a845e422e19894e",
+      "sha256": "69ccdec53499e23438f0c8ae260ecef6263126d116739f9444da706d3f3a9934",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -53421,7 +53421,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -105828,7 +105828,7 @@
     {
       "module": "adapters/host-node/table-commit-reconciliation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce156b6ced2e29ffe68db742fd3bbc8a21e426c3690412625f2badd756e670c9",
+      "sha256": "2d074cc98a363728bcac57e257ef9985b5e3a2c0d790c3a4c8f2a0a0da0460dd",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [

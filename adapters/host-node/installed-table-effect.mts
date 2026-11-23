@@ -8,7 +8,6 @@ import {createHash} from 'node:crypto';
 import {checkedTableWriteBinding, verifyTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: the Common runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {issueCompletedEffectfulComputationEvidence,

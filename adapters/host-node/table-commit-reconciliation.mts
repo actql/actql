@@ -1,6 +1,5 @@
 // Readonly original-operation recovery under the existing Effect evidence,
 // Ledger and typed Table outcome owners. This path never claims or sends a write.
-// @ts-expect-error TS7016: the shared runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
 import {snapshotEffectDispatchClaim} from './effect-physical-dispatch.mjs';

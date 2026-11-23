@@ -7,7 +7,6 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {readContinuationLedgerBounded as readBounded} from './bounded-continuation-metadata.mjs';
 import {readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: remove when the actual Common runtime-core producer is converted.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 import type {FileHandle} from 'node:fs/promises';

@@ -11,7 +11,6 @@ import type {FileHandle} from 'node:fs/promises';
 import type {FixtureCleanupFailure, FixtureFailureFields, FixtureRead} from './fixtures/store-file-ports.d.mts';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
-// @ts-expect-error TS7016: remove after migrating the authored Common runtime adapter.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 async function fixture(t: TestContext, {outcomes = ['false', 'false'], primary, openFailure}: {outcomes?: ('false' | 'reject')[]; primary?: unknown; openFailure?: unknown} = {}) {

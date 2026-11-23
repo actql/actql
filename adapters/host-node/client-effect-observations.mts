@@ -3,7 +3,6 @@
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {openEffectLedger} from './effect-ledger.mjs';
-// @ts-expect-error TS7016: the common runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
 import type {OwnerObservationRequest, OwnerObservationSource} from './client-owner-observations.mjs';

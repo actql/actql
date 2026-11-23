@@ -1,7 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import process from 'node:process';
-// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {runRuntimeBundleOperation} from

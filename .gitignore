@@ -2908,3 +2908,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/infer-prior-pool-mutation.fixture.d.cts
 /adapters/host-node/node-public-initial-control-bootstrap.cjs
 /adapters/host-node/node-public-initial-control-bootstrap.d.cts
+/adapters/host-common/runtime-core.mjs
+/adapters/host-common/runtime-core.d.mts

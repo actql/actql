@@ -7391,8 +7391,8 @@
                 "anchor": "const original = await readSemanticOriginal(semanticCid, false, true);"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitOriginal(original, limits) {"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "admitOriginal(original: Contract, limits: WireLimits) {"
               },
               {
                 "path": "adapters/store-local/publication-contract-store.mts",
@@ -7525,7 +7525,7 @@
                 "anchor": "if (original.physicalCid !== physicalCid ||"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               },
               {
@@ -7643,8 +7643,8 @@
                 "anchor": "path: group.removable || activePhysicalRecordWriters.size !== 0"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const contractBounds = new WeakMap();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const contractBounds: TokenTable<WireLimits> = new WeakMap<object, WireLimits>();"
               },
               {
                 "path": "adapters/store-local/publication-semantic-writes.mts",
@@ -7761,8 +7761,8 @@
                 "anchor": "if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const captureContractLimits = (limits: WireLimits, label: string) => issuanceLimits(Object.freeze({"
               },
               {
                 "path": "adapters/store-local/publication-contract-store.mts",
@@ -8119,7 +8119,7 @@
                 "anchor": "Store close and same-Store metadata reclamation until release or adoption. Each"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               },
               {
@@ -9842,7 +9842,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -19194,7 +19194,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -19452,7 +19452,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -21596,7 +21596,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {

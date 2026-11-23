@@ -1,4 +1,3 @@
-// @ts-expect-error TS7016: the Common runtime facade is still authored JavaScript.
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';

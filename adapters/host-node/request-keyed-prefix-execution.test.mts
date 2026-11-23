@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeContentRun} from './installed-content-run.mjs';
-// @ts-expect-error TS7016: the shared runtime facade is still authored in JavaScript.
 import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import type {contentGenerationControl as createContentControl} from '../host-common/content-generation-control.mjs';
 

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-// @ts-expect-error TS7016: remove after migrating the authored Common runtime adapter.
 import {runtimeCore, ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from './runtime-core.mjs';
 import {ledgerUsageFields} from './ledger-contract.generated.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
 import {createExecutionSiteControlFixture} from './execution-site-control.fixture.mjs';
 
-const camel = (name: string) => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
+const camel = (name: typeof ledgerUsageFields[number]['name']) =>
+  name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase()) as keyof ReturnType<typeof ledgerUsageSnapshot>;
 
 test('strategy usage preserves every actual Core field and its original nonzero value', () => {
   const setup = {};

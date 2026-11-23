@@ -12,7 +12,6 @@ import type {FileHandle} from 'node:fs/promises';
 import type {FixtureCleanupFailure, FixtureFailureFields, FixtureRead} from './fixtures/store-file-ports.d.mts';
 import {runInNewContext} from 'node:vm';
 import {openLocalPublicationStore, readBoundedLocalMetadata} from './publication-store.mjs';
-// @ts-expect-error TS7016: remove after migrating the authored Common runtime adapter.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const body = Function.prototype.toString.call(readBoundedLocalMetadata);

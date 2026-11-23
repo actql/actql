@@ -1,4 +1,3 @@
-// @ts-expect-error TS7016: the Common runtime facade is still authored in JS.
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
 import {withScopedStrategy} from './scoped-strategy.mjs';

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-// @ts-expect-error TS7016: The actual Common runtime facade is still authored JavaScript.
 import {runtimeCore} from './runtime-core.mjs';
 import {finishResolvedCommit} from './run-publication.mjs';
 import type {createPublicationContractControls} from './runtime-publication-contract-control.mjs';

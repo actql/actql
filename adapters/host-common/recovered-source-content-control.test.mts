@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {contentCaptureControl} from './content-capture-control.mjs';
-// @ts-expect-error TS7016: remove after migrating the Common runtime facade.
 import {runtimeCore} from './runtime-core.mjs';
 
 type SemanticContract = Readonly<{name: string; identity: string; wire: string}>;

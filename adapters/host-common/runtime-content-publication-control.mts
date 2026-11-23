@@ -18,7 +18,7 @@ type CommonContentPublicationBindings = Readonly<{
   clientCapturedContentGenerationStorage(captured: unknown, definition: unknown, storeCid: string,
     index: number): unknown;
   clientProgramSerializationRecoveryBindings(generation: unknown, run: unknown, storeCid: string): unknown;
-  clientProgramSerializationGenerationOutput(generation: unknown, run: unknown): unknown;
+  clientProgramSerializationGenerationOutput(generation: unknown, run: unknown): Extract<import('./runtime-result.mjs').SynchronousRuntimeData, object> | undefined;
   clientProgramExportContentGenerationOutput(generation: unknown, run: unknown, definition: unknown,
     storeCid: string): unknown;
   clientProgramSerializationGenerationEvidence(generation: unknown, run: unknown): unknown;

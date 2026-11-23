@@ -4520,7 +4520,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -6346,7 +6346,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -8042,7 +8042,7 @@
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
-      "sha256": "4c5a10c5e8357bb4991c655ac0666b1e0483568ef499490da97603d4e32c82ca",
+      "sha256": "d6ab213e994676e5251235a1e05d77453db4e75d9d0ee31bd4b808f6fa35526c",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -10023,8 +10023,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -14135,8 +14135,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -17031,8 +17031,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -21576,8 +21576,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -22860,8 +22860,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -24140,8 +24140,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -25420,8 +25420,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -32983,8 +32983,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -33552,8 +33552,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -34040,8 +34040,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -34234,7 +34234,7 @@
                 "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -34574,8 +34574,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -35685,8 +35685,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -36220,7 +36220,7 @@
                 "anchor": "executionOwner: Object.freeze({program: preparedProgram, compiled})"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-core.mts",
                 "anchor": "const value = compiledRunTokens.get(compiled);"
               },
               {
@@ -36458,8 +36458,8 @@
                 "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
+                "path": "adapters/host-common/runtime-core.mts",
+                "anchor": "const restoredInferRuns = new WeakSet<object>();"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

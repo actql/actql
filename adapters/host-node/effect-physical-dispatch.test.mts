@@ -3,7 +3,6 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-// @ts-expect-error TS7016: the Common runtime facade still has a JavaScript entry.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {

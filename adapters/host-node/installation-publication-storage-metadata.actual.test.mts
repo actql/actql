@@ -8,7 +8,6 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-// @ts-expect-error TS7016: the Common composition facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {createInstallationPublicationStorageMetadata} from
   '../host-common/installation-publication-storage-metadata.mjs';

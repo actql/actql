@@ -6,7 +6,6 @@ import test from 'node:test';
 import type {TestContext} from 'node:test';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
-// @ts-expect-error TS7016: remove after migrating the Common runtime adapter.
 import {runtimeCore} from './runtime-core.mjs';
 import {preparePrivatePublicationHolding} from
   './private-publication-holding.mjs';

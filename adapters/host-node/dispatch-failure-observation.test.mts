@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-// @ts-expect-error TS7016: the Common composition facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {dispatchFailureSnapshot, publicBudgetFailureMessage} from './client-dispatch-diagnostic.mjs';

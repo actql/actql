@@ -12955,7 +12955,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "4275ee4daaa4618b70a71740d91d7790c27fbdbdd8cd18482699345dd5274439",
+      "sha256": "d0f95c2568447a87ef9fb64cc7bdadf9fb3bb98ff30560b11432acd8adb8fc63",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -22203,7 +22203,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "50f39d831923b7b47fb0447702296bcdf0c4e3a3fb57aba0d0729ed331f38796",
+      "sha256": "cc699a6fc7717444aad5e9f1ffd4299441329ac2c9f53b6dd41f30733a0444d7",
       "operations": [
         {
           "name": "cid/cid",
@@ -25994,7 +25994,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "3a1845c3d363f7859093c6fa32677b8ad30daa942ecae7f507cee64c28457c5e",
+      "sha256": "910d8e31259c55434161730698e97490ee6572d0e831f3d776c730224477a2e0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",

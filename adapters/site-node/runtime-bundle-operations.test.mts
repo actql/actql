@@ -6,7 +6,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
 import test from 'node:test';
-// @ts-expect-error TS7016: remove when the remaining Common runtime adapter is migrated.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
 import {signRemoteRuntimeBundle} from
