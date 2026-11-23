@@ -47,9 +47,14 @@ for (const entrance of ['local', 'https']) {
     let physicalStarts = 0, client, host, server, completed = false;
     const authorization = {
       accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-        account_id: 'interactive-read', entries: [{entry_id: 'execution', outcome: 'allow',
-          principal: {all: true}, connection: {all: true}, resource: {all: true},
-          operation: {any_of: ['write']}, exclusions: []}]}),
+        account_id: 'interactive-read', entries: [
+          {entry_id: 'execution', outcome: 'allow',
+            principal: {all: true}, connection: {all: true}, resource: {all: true},
+            operation: {any_of: ['write']}, exclusions: []},
+          {entry_id: 'original-read', outcome: 'allow',
+            principal: {any_of: [principalId]}, connection: {any_of: ['actql-remote-host']},
+            resource: {any_of: ['result/main', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+        ]}),
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
@@ -106,7 +111,7 @@ for (const entrance of ['local', 'https']) {
       submissionRef: client.newSubmission({nonce: 'interactive-original'})});
     const state = await run.wait({signal: AbortSignal.timeout(15000)});
     assert.equal(state.status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(), expectedRows);
+    assert.deepEqual(await run.result('main').all(), expectedRows);
     await drain(observation);
     const before = starts(records, physicalStarts);
     assert.equal(before.physical, 1); assert.equal(before.compute, 1);
@@ -147,7 +152,7 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(view.capabilities.sample_capture, []);
       assert.deepEqual(view.capabilities.full_intermediate_retention, []);
       assert.equal((await run.status()).control.revision, state.control.revision);
-      assert.deepEqual(await run.result('answer').all(), expectedRows);
+      assert.deepEqual(await run.result('main').all(), expectedRows);
     }
     await assert.rejects(run.inspect({maxDepth: 0}), {code: 'InvalidRunInspectRequest'});
     await drain(observation);

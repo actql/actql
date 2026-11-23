@@ -3120,8 +3120,11 @@ test('static Plan manager retains one admitted original and never constructs a m
     moon.clientProgramReturnRequestOriginalExplanation = value => {
       assert.strictEqual(value, loan); returns++; return ok(false);
     };
-    moon.clientProgramRequestOriginalStaticPlanWire = value => {
-      assert.strictEqual(value, loan); reads++; events.push('plan-read');
+    if (outcome === 'returned') moon.clientProgramCurrentRunView = () => assert.fail('A static Plan does not inspect a Run');
+    moon.clientProgramRequestOriginalStaticPlanWire = (value, inspectInstalled) => {
+      assert.strictEqual(value, loan);
+      assert.equal(inspectInstalled, outcome === 'returned');
+      reads++; events.push('plan-read');
       reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits);
       if (outcome === 'read-failed') throw primary;
       // Explicit compiler wire port only. Core owns actual Plan/schema proof.
@@ -3160,7 +3163,7 @@ test('static Effect Plan manager reads the same checked Request without executio
   moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No original static refusal selected');
   moon.clientProgramReadRequestCheckedStaticPlan = function(parent, original, ...limits) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
-    assert.deepEqual(limits, [4096, 512, 32, []]); events.push('original-plan');
+    assert.deepEqual(limits, [4096, 512, 32, [], false]); events.push('original-plan');
     reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds);
     reentry.catch(() => {});
     return ok(originalWire);

@@ -69454,7 +69454,7 @@
         },
         {
           "name": "client_program_read_request_checked_static_plan",
-          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
+          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , infers : Array [ @ publication_host . ClientInferPlanGraph ] , inspect_installed : Bool , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
         },
         {
           "name": "client_program_read_request_explanation",
@@ -69530,7 +69530,7 @@
         },
         {
           "name": "client_program_request_original_static_plan_wire",
-          "declaration": "client_program_request_original_static_plan_wire ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ String , @ client_local_host . ClientOriginalExplanationCaptureIssue ]"
+          "declaration": "client_program_request_original_static_plan_wire ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , inspect_installed : Bool , ) - > Result [ String , @ client_local_host . ClientOriginalExplanationCaptureIssue ]"
         },
         {
           "name": "client_program_request_parameters_original",
@@ -69681,7 +69681,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "b943473db7c280ee869ce29e522da0644a333cbbf8b26820a20e6e4ff3d2f08f"
+      "sha256": "85f4857fc3353593454828fbaf2ea68b8b59034a34425eb85a02603602312b8d"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -101254,7 +101254,7 @@
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "fbc6b3c5c565d64b64de0961dbfe01664ac1476a39452e770f1110bc3954ee04"
+      "sha256": "eb7ba95905b0f403d87a0b10489c7804df27438e90d51fc8a4e19e89782170af"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",

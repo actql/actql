@@ -2217,7 +2217,7 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_read_request_checked_static_effect_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@client_local_host.ClientRequestStaticEffectExplanation, ClientRequestStaticExplanationBridgeIssue]
 
-pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[String, ClientRequestStaticPlanBridgeIssue]
+pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Array[@run_publication_host.ClientInferPlanGraph], Bool) -> Result[String, ClientRequestStaticPlanBridgeIssue]
 
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
@@ -2347,7 +2347,7 @@ pub fn client_program_request_model_recovery_source_coordinates(@client_local_ho
 
 pub fn client_program_request_model_recovery_usage_isolated(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
-pub fn client_program_request_original_static_plan_wire(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
+pub fn client_program_request_original_static_plan_wire(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal], Bool) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_request_parameters_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@decode_core.Cursor?, @client_local_host.ClientRequestPreparationIssue]
 

@@ -1214,6 +1214,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // Only the installed static-plan service selects this private read.
       // Capture the same loaded compiler method before policy verification can
       // await. Its token still requires actual original working admission.
+      const inspectInstalled = staticPlan !== undefined &&
+        typeof Object.getOwnPropertyDescriptor(moon, 'clientProgramCurrentRunView')?.value === 'function';
       const readStaticPlan = staticPlan === undefined ? undefined
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestOriginalStaticPlanWire')?.value;
       const readCheckedStaticPlan = staticPlan === undefined ? undefined
@@ -1550,7 +1552,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               const wire = checkedRequestProgramPreparation(moon,
                 Reflect.apply(readCheckedStaticPlan, moon, [state.parent, producer.receipt,
                   staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth,
-                  state.staticModelGraphs]), checkedStaticIssue);
+                  state.staticModelGraphs, inspectInstalled]), checkedStaticIssue);
               assertOriginal();
               if (typeof wire !== 'string') fail('InvalidOriginalStaticPlan');
               return wire;
@@ -1565,7 +1567,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const original = state.originalExplanation;
         if (original?.preparation === undefined) fail('ClientOperationUnavailable');
         const wire = constructRequestDomain(state, () => {
-          const value = checked(Reflect.apply(readStaticPlan, moon, [original.preparation]));
+          const value = checked(Reflect.apply(readStaticPlan, moon, [original.preparation, inspectInstalled]));
           current();
           if (producerForRequest(request) !== producer || producer.preparation !== state ||
               state.originalExplanation !== original || typeof value !== 'string') {

@@ -2878,6 +2878,7 @@ pub fn client_program_read_request_checked_static_plan(
   max_nodes : Int,
   max_depth : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
+  inspect_installed : Bool,
 ) -> Result[String, ClientRequestStaticPlanBridgeIssue] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
@@ -2891,6 +2892,7 @@ pub fn client_program_read_request_checked_static_plan(
     max_nodes,
     max_depth,
     infers~,
+    inspect_installed~,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -3032,10 +3034,11 @@ pub fn client_program_request_original_static_plan_wire(
   original : @client_local_host.ClientRequestOriginalExplanation[
     ClientLocalPreparationInputOriginal,
   ],
+  inspect_installed : Bool,
 ) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
   @client_local_host.request_original_static_plan_wire(
     original,
-    inspect_installed=true,
+    inspect_installed~,
   )
 }
 
