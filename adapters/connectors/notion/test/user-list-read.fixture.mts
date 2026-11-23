@@ -1,4 +1,3 @@
-import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual Common/Credential/SQLite/TLS and legacy accounted canonical RowRun.
 // Explicit component bounds do not fund the retained reader graph, establish
 // normal physical retirement, or qualify a pristine installed Notion product.
@@ -8,9 +7,8 @@ import {mkdir,mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
-const provider = await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js', import.meta.url).href);
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+const common:Common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const provider:Provider = await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js', import.meta.url).href);
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson,readAccountConfiguration} from '../../../host-node/local-account-config.mjs';
@@ -23,25 +21,94 @@ import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 
+import type {IncomingMessage,ServerResponse} from 'node:http';
+import type {AddressInfo} from 'node:net';
+import type {TestContext} from 'node:test';
+import type {remoteCredentialControl} from '../../../host-common/remote-credential-control.mjs';
+import type {ledgerUsageSnapshot} from '../../../host-common/ledger-usage.mjs';
+import type {NotionCursorBindings,NotionPageLimits,NotionSynchronousProjection,NotionUserListBindings} from '../site/user-list-read.mjs';
+import type {CatalogDeclaredSource,CommonCatalogBindings,NotionCatalogBindings} from './catalog-bindings.fixture.mjs';
+import type {NotionFixtureCause} from './property-item-read.fixture.mjs';
+
+type Control = ReturnType<typeof remoteCredentialControl>;
+type Journal = ReturnType<typeof openSqliteCredentialJournal>;
+type GateRuntime = NonNullable<NonNullable<Parameters<typeof createAuthorizationGate>[0]>['runtime']>;
+type Factory = ReturnType<typeof createInstalledCredentialSourceReader>;
+type Reader = ReturnType<Factory['prepare']>;
+type ReaderInput = Parameters<Factory['prepare']>[0];
+type UserFormat = 'sql'|'aql';
+type Scope = Parameters<Control['prepare']>[0];
+type UserReadAuthorization = {grant:ReturnType<Control['prepare']>;scope:Scope;useId:string};
+type PageSelection = Readonly<{operation:string;index:number}>;
+type PageConsumption = Readonly<{charge:unknown}>;
+type UserRow = Readonly<{id:string;name:string|null;type:string|null;email:string|null}>;
+type Credential = {control:Control;journal:Journal;ca:Buffer;resolveSecret():Promise<string>};
+type Provider = NotionUserListBindings & Pick<NotionCatalogBindings,'notionUserListSchemaWire'>;
+type UserReaderOptions = {
+  moon:Provider;names:readonly string[];initialAuthorization:UserReadAuthorization;credential:Credential;
+  authorizationFor(selection:PageSelection):UserReadAuthorization;limits:NotionPageLimits;
+  current(operation:string):unknown;signal?:AbortSignal;
+  chargeResponse(body:ArrayBufferView):unknown;consumeObservation(charge:unknown):unknown;
+  consumePage(rows:UserRow[],output:PageConsumption):unknown;
+};
+type VerifiedTransport = ()=>boolean;
+type Common = CommonCatalogBindings & NotionCursorBindings & GateRuntime &
+  Parameters<typeof remoteCredentialControl>[0] & {
+    clientPrepareInstalledSequenceContracts(registry:string,values:string,fragment:string,ordered:string):unknown;
+    clientProgramPrepareLocalQueryRequirement(program:unknown,task:number,step:number,contracts:unknown,
+      values:string,fragment:string,ordered:string):unknown;
+    clientProgramRowSourcePrepareAcquisition(declaration:unknown,requirement:unknown,query:string,evidence:string):unknown;
+    clientProgramAcquisitionLedger(runs:number,branches:number,transfer:bigint,retention:bigint,execution:bigint,diagnostics:number):unknown;
+    clientProgramRowSourceStartAccounted(acquisition:unknown,id:string,verifyTransport:VerifiedTransport,ledger:unknown,
+      transfer:bigint,scratch:bigint):unknown;
+    clientProgramRowSourceBegin(run:unknown,bytes:number,pages:number,rows:number,signal:undefined):unknown;
+    clientProgramRowSourceChargePage(run:unknown,body:ArrayBufferView):unknown;
+    clientProgramRowSourceConsumeObservationCharge(run:unknown,charge:unknown):unknown;
+    clientProgramRowSourceAcceptChargedPage(run:unknown,charge:unknown,rows:Uint8Array):unknown;
+    clientProgramRowSourceFinish(run:unknown):unknown;
+    clientProgramRowSourceCaptureBegin(run:unknown):unknown;
+    clientProgramRowSourceCaptureAdvance(run:unknown,work:number):unknown;
+    clientProgramRowSourceCapture(run:unknown):unknown;
+    clientProgramRowSourceCaptureSource(capture:unknown):unknown;
+    clientProgramCapturedSourceRowCount(source:unknown):number;
+    clientProgramIdentifyCapturedSourceRelation(source:unknown):unknown;
+    clientProgramMultiCapturedLedgerUsage(ledger:unknown):unknown;
+    clientProgramRowSourceCloseAccounted(run:unknown):unknown;
+  };
+type RequestRecord = {path:string|undefined;method:string|undefined;authorization:string|undefined;
+  contentType:string|undefined;notionVersion:string|string[]|undefined;body:Buffer};
+type UserFixtureState = {
+  pages:unknown[];requests:RequestRecord[];resolutions:number;charges:number;observationCharges:number;
+  rows:UserRow[];status:number;secret:string;
+  beforeResponse?:(request:IncomingMessage,response:ServerResponse)=>unknown;resolved?:()=>unknown;
+};
+type UserFixtureOptions = {account?:'allow'|'deny';format?:UserFormat;accounted?:boolean};
+
+const {runtimeCore}:{runtimeCore(moon:Common):{remoteCredentialControl:Control}}=
+  await import(new URL('../../../host-common/runtime-core.mjs',import.meta.url).href);
+const {ledgerUsageFieldsFor}:{ledgerUsageFieldsFor(values:unknown,
+  names:readonly (keyof ReturnType<typeof ledgerUsageSnapshot>)[]):bigint[]}=
+  await import(new URL('../../../host-node/fixtures/ledger-usage.mjs',import.meta.url).href);
+
 const repo=new URL('../../../../',import.meta.url).pathname;
 const control=runtimeCore(common).remoteCredentialControl;
-const cid=c=>`sha256:${c.repeat(64)}`;
-const read = name => readFile(join(process.env.ACTQL_TEST_CONTRACT_ROOT ?? repo, name), 'utf8');
+const cid=(c:string)=>`sha256:${c.repeat(64)}`;
+const read = (name:string) => readFile(join(process.env.ACTQL_TEST_CONTRACT_ROOT ?? repo, name), 'utf8');
 export const userListReadLimits=Object.freeze({maxResponseBytes:8192,maxTotalResponseBytes:24576,
   maxNodes:512,maxDepth:16,maxRows:10,maxTotalRows:20,maxPages:4,pageSize:10,
   maxCursorBytes:128,maxIdentityBytes:128,maxTargetBytes:1024,
   maxValueNodes:100,maxValueTextBytes:4096,maxRowsWireBytes:8192,maxRowsWireNodes:200,maxRowsWireDepth:8});
-export const userPage=(results,nextCursor)=>({object:'list',type:'user',user:{},results,has_more:nextCursor!==null,next_cursor:nextCursor});
+export const userPage=(results:readonly unknown[],nextCursor:string|null)=>({object:'list',type:'user',user:{},results,has_more:nextCursor!==null,next_cursor:nextCursor});
 
-async function rowOwner(verifyTransport,format) {
-  const wire=checked(provider.notionUserListSchemaWire(4096,100,8));
+async function rowOwner(verifyTransport:VerifiedTransport,format:UserFormat) {
+  const wire=checked(provider.notionUserListSchemaWire(4096,100,8)) as string;
   assert.deepEqual(JSON.parse(wire),{email:{nullable:true,type:'string'},id:{nullable:false,type:'string'},
     name:{nullable:true,type:'string'},type:{nullable:true,type:'string'}});
   const declaration=checked(common.clientProgramRowSourceRestoreRelationDeclaration('notion','notion','notion/0.1',
     JSON.stringify({views:[{resource:'users',resource_kind:'notion_users',schema_wire:wire,
       schema_cid:`sha256:${createHash('sha256').update(wire).digest('hex')}`,
       facts_wire:'{"relation_keys":{"candidate_keys":[["id"]]}}'}]}),undefined));
-  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
+  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)) as CatalogDeclaredSource;
   const environment=rowSourceCheckEnvironment((await read('spec/local-check-environment.json')).trimEnd(),declared);
   const check=common.clientProgramCheckEnvironment(environment.wire,environment.evidenceCid,false,false,true,false,false,false,false);
   const view=declared.views[0];
@@ -67,9 +134,9 @@ async function rowOwner(verifyTransport,format) {
   const ledger=checked(common.clientProgramAcquisitionLedger(1,1,65536n,100000000n,100000000n,0));
   const run=checked(common.clientProgramRowSourceStartAccounted(acquisition,randomUUID(),verifyTransport,ledger,65536n,8192n));
   checked(common.clientProgramRowSourceBegin(run,8192,5,20,undefined));
-  return {charge:body=>checked(common.clientProgramRowSourceChargePage(run,body)),
-    observe:charge=>checked(common.clientProgramRowSourceConsumeObservationCharge(run,charge)),
-    page:(rows,charge)=>checked(common.clientProgramRowSourceAcceptChargedPage(run,charge,Buffer.from(JSON.stringify(rows)))),
+  return {charge:(body:ArrayBufferView)=>checked(common.clientProgramRowSourceChargePage(run,body)),
+    observe:(charge:unknown)=>checked(common.clientProgramRowSourceConsumeObservationCharge(run,charge)),
+    page:(rows:UserRow[],charge:unknown)=>checked(common.clientProgramRowSourceAcceptChargedPage(run,charge,Buffer.from(JSON.stringify(rows)))),
     finish:()=>checked(common.clientProgramRowSourceFinish(run)),
     captureCount:()=>{
       checked(common.clientProgramRowSourceCaptureBegin(run));
@@ -82,19 +149,19 @@ async function rowOwner(verifyTransport,format) {
     close:()=>checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function userListFixture(t,{account='allow',format='sql',accounted=true}={}) {
+export async function userListFixture(t:TestContext,{account='allow',format='sql',accounted=true}:UserFixtureOptions={}) {
   const parent=join(repo,'_build','notion-user-list-fixtures');await mkdir(parent,{recursive:true});
   const root=await mkdtemp(join(parent,'query-'));
   execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','server.key',
     '-out','server.crt','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],
   {cwd:root,stdio:'ignore'});
   const [key,cert]=await Promise.all([readFile(join(root,'server.key')),readFile(join(root,'server.crt'))]);
-  const state={pages:[userPage([{object:'user',id:'U1',type:'person',name:'one',person:{email:'one@example.test'}}],'opaque+/= cursor'),
+  const state:UserFixtureState={pages:[userPage([{object:'user',id:'U1',type:'person',name:'one',person:{email:'one@example.test'}}],'opaque+/= cursor'),
       userPage([{object:'user',id:'U2',type:'bot',name:'two',bot:{}}],null)],
     requests:[],resolutions:0,charges:0,observationCharges:0,rows:[],status:200,
     secret:'notion-fixture-token',beforeResponse:undefined,resolved:undefined};
   const server=createServer({key,cert},async(request,response)=>{
-    const chunks=[];for await(const chunk of request)chunks.push(chunk);
+    const chunks:Buffer[]=[];for await(const chunk of request)chunks.push(chunk);
     state.requests.push({path:request.url,method:request.method,authorization:request.headers.authorization,
       contentType:request.headers['content-type'],notionVersion:request.headers['notion-version'],body:Buffer.concat(chunks)});
     try {
@@ -104,24 +171,25 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
       assert.notEqual(body,undefined);
       response.writeHead(state.status,{'content-type':'application/json'});
       response.end(typeof body==='string'?body:JSON.stringify(body));
-    } catch(cause){response.destroy(cause);}
+    } catch(cause){response.destroy(cause as Error);}
   });
-  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
-  let journal,row;const readers=[],factories=[];
+  await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  let journal:Journal|undefined,row:Awaited<ReturnType<typeof rowOwner>>|undefined;
+  const readers:Reader[]=[],factories:Factory[]=[];
   t.after(async()=>{
-    const errors=[];
+    const errors:NotionFixtureCause[]=[];
     let readersRetired=false;
     try{
       for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}
       for(const factory of factories)assert.equal(factory.retire(),true);
       readersRetired=true;
-    }catch(cause){errors.push(cause);}
+    }catch(cause){errors.push(cause as NotionFixtureCause);}
     if(readersRetired){
       let rowClosed=false;
-      try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}rowClosed=true;}catch(cause){errors.push(cause);}
-      if(rowClosed)try{journal?.close();}catch(cause){errors.push(cause);}
+      try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}rowClosed=true;}catch(cause){errors.push(cause as NotionFixtureCause);}
+      if(rowClosed)try{journal?.close();}catch(cause){errors.push(cause as NotionFixtureCause);}
     }
-    try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
+    try{await new Promise<void>((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause as NotionFixtureCause);}
     t.diagnostic(`Retained original Notion fixture: ${root}`);
     if(errors.length){t.diagnostic(JSON.stringify(errors.map(error=>({name:error.name,code:error.code,message:error.message}))));throw new AggregateError(errors,'NotionUserListFixtureCleanupUnconfirmed');}
   });
@@ -132,14 +200,14 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     ['notion-fixture',new Map([['key',authority.publicKey]])]])});
   const scope=Object.freeze({issuerAuthority:'notion-fixture',principal:'operator',namespaceId:'fixture',environment:'test',
     siteKey:'site',siteGeneration:1,runtimeBundleCid:cid('a'),connectorRegistration:'notion',connectorRevision:'notion/0.1',
-    resourceOrigin:`https://127.0.0.1:${server.address().port}`,operation:NOTION_USER_LIST_OPERATION,
+    resourceOrigin:`https://127.0.0.1:${(server.address() as AddressInfo).port}`,operation:NOTION_USER_LIST_OPERATION,
     runInvocationCid:cid('b'),taskAttempt:1,dispatchRequestCid:cid('c'),
     expiresUnixMilliseconds:BigInt(Date.now()+60000),maxUses:5});
   const grant=control.prepare(scope);
-  const sign=value=>signRemoteCredentialGrant(value,control,{keyId:'key',privateKey:authority.privateKey});
+  const sign=(value:unknown)=>signRemoteCredentialGrant(value,control,{keyId:'key',privateKey:authority.privateKey});
   journal.acceptGrant(sign(grant),control);
   const accountPath=join(root,'account.json');
-  const writeAccount=outcome=>writeFile(accountPath,canonicalJson({version:'actql-execution-account-config/0.1',
+  const writeAccount=(outcome:'allow'|'deny')=>writeFile(accountPath,canonicalJson({version:'actql-execution-account-config/0.1',
     account_id:'fixture',entries:[{entry_id:'notion-read',outcome,principal:{all:true},connection:{any_of:['notion:fixture']},
       resource:{any_of:['users']},operation:{any_of:['read']},exclusions:[]}]}));
   await writeAccount(account);
@@ -151,21 +219,21 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async()=>{state.resolutions++;await state.resolved?.();return state.secret;}};
   row=accounted?await rowOwner(()=>readers.every(reader=>reader.observe().transportClosed),format):undefined;
-  const authorizationFor=({operation,index})=>{assert.equal(operation,NOTION_USER_LIST_OPERATION);
+  const authorizationFor=({operation,index}:PageSelection)=>{assert.equal(operation,NOTION_USER_LIST_OPERATION);
     return{grant,scope,useId:`users-${index}`};};
-  const options={moon:provider,names:provider.notionUserListColumnNames(),
+  const options:UserReaderOptions={moon:provider,names:provider.notionUserListColumnNames(),
     initialAuthorization:{grant,scope,useId:'initial'},credential,
     authorizationFor,limits:userListReadLimits,current,
-    chargeResponse:body=>{state.charges++;return row.charge(body);},
-    consumeObservation:charge=>{state.observationCharges++;row.observe(charge);},
-    consumePage:(rows,{charge})=>{row.page(rows,charge);state.rows.push(...rows);}};
-  const create=(overrides={})=>{
+    chargeResponse:body=>{state.charges++;return row!.charge(body);},
+    consumeObservation:charge=>{state.observationCharges++;row!.observe(charge);},
+    consumePage:(rows,{charge})=>{row!.page(rows,charge);state.rows.push(...rows);}};
+  const create=(overrides:Partial<UserReaderOptions>={})=>{
     const selected={...options,...overrides};
     const bound=Object.freeze({...selected.limits});
     const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
     const originalSite=Object.freeze({site,referenceCurrent:()=>true,callResource:callHttpsCredentialResource,
-      authorizationPurpose(original) {assert.equal(original,selected.initialAuthorization);return {kind:'read'};},
-      bindRunAcquisition(original,callbacks) {
+      authorizationPurpose(original:unknown) {assert.equal(original,selected.initialAuthorization);return {kind:'read'};},
+      bindRunAcquisition(original:UserReadAuthorization,callbacks:{assertCurrent():undefined;observeCurrent():Promise<void>}) {
         assert.equal(original,selected.initialAuthorization);callbacks.assertCurrent();
         const binding=openHttpsCredentialBinding({...selected.credential,scope:original.scope,
           maxSecretBytes:128,assertCurrent:callbacks.assertCurrent});
@@ -175,14 +243,15 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     });
     const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},operation:NOTION_USER_LIST_OPERATION,
       maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
-      preparePageReader:({columns},applySynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,common,names:columns,limits:bound},applySynchronousProjection)});
+      preparePageReader:({columns}:{columns:readonly string[]},applySynchronousProjection:NotionSynchronousProjection)=>prepareNotionUserListPages({moon:selected.moon,common,names:columns,limits:bound},applySynchronousProjection)});
     factories.push(factory);
+    // This fixture intentionally passes missing callbacks to test Host admission.
     const reader=factory.prepare({originalAuthorization:selected.initialAuthorization,resource:'users',columns:selected.names,signal:selected.signal,
       verifyRead:typeof selected.current==='function'?()=>selected.current(NOTION_USER_LIST_OPERATION):selected.current,
       authorizationFor:typeof selected.authorizationFor==='function'?index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}):selected.authorizationFor,
       chargePage:typeof selected.chargeResponse==='function'?body=>selected.chargeResponse(body):selected.chargeResponse,
       consumePage:typeof selected.consumePage==='function'?()=>assert.fail('Expected checked page wire'):selected.consumePage,
-      consumePageWire:typeof selected.consumePage==='function'?(wire,ticket)=>selected.consumePage(JSON.parse(wire),ticket):selected.consumePage});
+      consumePageWire:typeof selected.consumePage==='function'?(wire:string,ticket:PageConsumption)=>selected.consumePage(JSON.parse(wire),ticket):selected.consumePage} as ReaderInput);
     readers.push(reader);return reader;
   };
   return {root,state,row,journal,scope,grant,control,sign,options,current,writeAccount,create,readers};

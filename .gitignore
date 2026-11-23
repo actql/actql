@@ -2860,3 +2860,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/read-snapshot.test.d.mts
 /adapters/connectors/notion/test/read-snapshot-relation.test.mjs
 /adapters/connectors/notion/test/read-snapshot-relation.test.d.mts
+/adapters/connectors/notion/test/user-list-read.fixture.mjs
+/adapters/connectors/notion/test/user-list-read.fixture.d.mts
+/adapters/connectors/notion/test/user-list-read.test.mjs
+/adapters/connectors/notion/test/user-list-read.test.d.mts

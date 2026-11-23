@@ -215,7 +215,7 @@
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
               },
               {
-                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "path": "adapters/connectors/notion/test/user-list-read.test.mts",
                 "anchor": "Notion cross-page IDs stay checked when selected output omits identity"
               }
             ]
