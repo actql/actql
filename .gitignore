@@ -2620,6 +2620,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-capture-resources.d.mts
 /adapters/host-node/effect-capture-resources.test.mjs
 /adapters/host-node/effect-capture-resources.test.d.mts
+/adapters/host-node/effect-capture-connection.test.mjs
+/adapters/host-node/effect-capture-connection.test.d.mts
 /adapters/host-node/request-content-graph-resources.test.mjs
 /adapters/host-node/request-content-graph-resources.test.d.mts
 /adapters/host-common/runtime-query-time-control.mjs
