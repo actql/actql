@@ -119,6 +119,12 @@ export async function observeNativeNamedResults({root, cli}) {
   const absent = await cli(['result', state.run_id, '--result', 'undeclared', '--format', 'jsonl'], project, 1);
   assert.equal(absent.stdout, '');
   assert.match(absent.stderr, /\bLocalResultNotDeclared\b/u);
+  const foreignProject = join(root, 'foreign-named-results');
+  await cli(['init', foreignProject], root);
+  const foreign = await cli(['result', state.run_id, '--result', names[0], '--format', 'jsonl'],
+    foreignProject, 1);
+  assert.equal(foreign.stdout, '');
+  assert.match(foreign.stderr, /\bLocalOriginalRunStateUnavailable\b/u);
   const pids = new Set([run.sourceFreeWork.pid]);
   const readResults = async () => {
     for (const [name, expected] of Object.entries(results)) {
@@ -135,9 +141,17 @@ export async function observeNativeNamedResults({root, cli}) {
   assert.equal(saved.status, 'succeeded');
   assert.deepEqual(Object.keys(saved.result_availability).sort(), names);
   await readResults();
+  const fileName = 'saved-before-change.jsonl';
+  const delivered = await cli(['result', state.run_id, '--result', 'before_change', '--format', 'jsonl',
+    '--output', fileName], project);
+  assert(!pids.has(delivered.sourceFreeWork.pid), 'Use a fresh Native process for the Saved File delivery');
+  pids.add(delivered.sourceFreeWork.pid);
+  const savedFile = await readFile(join(project, fileName), 'utf8');
+  assert.deepEqual(savedFile.trimEnd().split('\n').map(line => JSON.parse(line)), results.before_change);
   return {runId: state.run_id, results, submissionCalls: 1, nativeRunAndResultProcesses: pids.size,
+    coldNamedFileDelivered: true,
     fixtureSha256: createHash('sha256').update(fixture).digest('hex'),
-    undeclaredResultRefused: true, coldSavedWithoutProgram: true};
+    undeclaredResultRefused: true, foreignRunRefused: true, coldSavedWithoutProgram: true};
 }
 
 // Independent scalar, aggregate and window expectations under the ordinary

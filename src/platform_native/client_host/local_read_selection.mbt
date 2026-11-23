@@ -36,6 +36,7 @@ struct NativeLocalReadPurpose {
 priv enum NativeLocalReadNamePurpose {
   FiniteResultNames(Array[String])
   RequestedOriginalResult
+  RequestedOriginalResultWithAuthority
 }
 
 ///|
@@ -335,7 +336,7 @@ pub fn admit_native_local_read_purpose(
         FiniteResultNames(read_policy_list(fields, "result_names", 16, 128))
       (None, Some(value)) => {
         let selected = read_policy_decoded(
-          @decode.closed_object(value, ["kind"]),
+          @decode.closed_object(value, ["authority", "kind"]),
         )
         if read_policy_text(selected, "kind", 32) != "requested_original_result" {
           return Err(InvalidOriginal)
@@ -343,7 +344,12 @@ pub fn admit_native_local_read_purpose(
         if !(expiry is AcceptedRunProfile(_)) {
           return Err(InvalidOriginal)
         }
-        RequestedOriginalResult
+        match @decode.lookup(selected, "authority") {
+          None => RequestedOriginalResult
+          Some(_) if read_policy_text(selected, "authority", 32) ==
+            "original_result_read" => RequestedOriginalResultWithAuthority
+          Some(_) => return Err(InvalidOriginal)
+        }
       }
       _ => return Err(InvalidOriginal)
     }
@@ -392,7 +398,8 @@ pub fn admit_native_local_read_selection(
     Ok(purpose) =>
       match purpose.names {
         FiniteResultNames(names) => Ok(purpose.finite_selection(names))
-        RequestedOriginalResult => Err(InvalidOriginal)
+        RequestedOriginalResult | RequestedOriginalResultWithAuthority =>
+          Err(InvalidOriginal)
       }
   }
 }
@@ -430,7 +437,7 @@ fn NativeLocalReadPurpose::narrow_original(
       // Even an old finite list is narrowed, never widened to another name.
       Ok(self.finite_selection([name]))
     }
-    RequestedOriginalResult => {
+    RequestedOriginalResult | RequestedOriginalResultWithAuthority => {
       if !original_exists() {
         return Err(SelectionMismatch)
       }

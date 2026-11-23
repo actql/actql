@@ -1,13 +1,13 @@
 ///|
 // Independently authored literal, not product output.
-let finite_read_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-read\",\"result_selection\":{\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"stdout\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
+let finite_read_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-read\",\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"stdout\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
 
 ///|
-let finite_material_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"json\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-table\",\"result_selection\":{\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"material\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
+let finite_material_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"json\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-table\",\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"material\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
 
 ///|
 // Independently authored File selection; no stdout or Material grant is reused.
-let finite_file_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-file\",\"result_selection\":{\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"file\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
+let finite_file_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-file\",\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"},\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"file\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
 
 ///|
 test "explicit finite install adds profile within existing selected limits" {
@@ -76,8 +76,24 @@ test "explicit finite install adds profile within existing selected limits" {
   }
   assert_eq(@canonical.array_count(values), 7)
   let legacy = product_test_originals()
-  for
-    name in ["account.json", "environment.json", "retention.json", "store.json"] {
+  let legacy_account = product_test_original(legacy, "account.json")
+  assert_true(legacy_account.contains("\"entry_id\":\"local-result-read\""))
+  assert_true(
+    legacy_account.contains("\"resource\":{\"any_of\":[\"result/answer\"]}"),
+  )
+  assert_eq(
+    product_test_original(originals, "account.json"),
+    legacy_account
+    .replace(
+      old="\"entry_id\":\"local-result-read\"",
+      new="\"entry_id\":\"local-result-original-read\"",
+    )
+    .replace(
+      old="\"resource\":{\"any_of\":[\"result/answer\"]}",
+      new="\"resource\":{\"any_of\":[\"result\"]}",
+    ),
+  )
+  for name in ["environment.json", "retention.json", "store.json"] {
     assert_eq(
       product_test_original(originals, name),
       product_test_original(legacy, name),

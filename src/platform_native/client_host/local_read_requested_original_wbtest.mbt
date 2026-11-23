@@ -41,6 +41,34 @@ test "requested original purpose cannot be used as an unnarrowed finite read sel
 }
 
 ///|
+test "installed original Result authority is a closed selected purpose" {
+  let legacy = requested_original_test_wire()
+  let marked = legacy.replace(
+    old="\"kind\":\"requested_original_result\"",
+    new="\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"",
+  )
+  let purpose = admit_native_local_read_purpose(marked).unwrap()
+  assert_true(purpose.names is RequestedOriginalResultWithAuthority)
+  assert_true(admit_native_local_read_selection(marked) is Err(InvalidOriginal))
+  assert_true(
+    admit_native_local_read_purpose(
+      marked.replace(old="original_result_read", new="read_any_result"),
+    )
+    is Err(InvalidOriginal),
+  )
+  assert_true(
+    purpose.narrow_original("before_change", () => false, (_, _) => true)
+    is Err(SelectionMismatch),
+  )
+  assert_eq(
+    purpose
+    .narrow_original("before_change", () => true, (_, _) => true)
+    .unwrap().result_names,
+    ["before_change"],
+  )
+}
+
+///|
 test "requested original narrows to one existing name and preserves finite operator names" {
   let purpose = admit_native_local_read_purpose(requested_original_test_wire()).unwrap()
   let checks = Ref(0)

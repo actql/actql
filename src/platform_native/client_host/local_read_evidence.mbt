@@ -199,6 +199,9 @@ fn NativeLocalHostConnection::validate_read_evidence(
   guard epoch_text(egress, "result_name") is Some(recorded_name) else {
     return Err(CustodyLost)
   }
+  if purpose.names is RequestedOriginalResultWithAuthority && upgrade is Some(_) {
+    return Err(CustodyLost)
+  }
   let selection = match purpose.names {
     FiniteResultNames(names) => {
       if !names.contains(recorded_name) {
@@ -206,7 +209,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
       }
       purpose.finite_selection(names)
     }
-    RequestedOriginalResult => {
+    RequestedOriginalResult | RequestedOriginalResultWithAuthority => {
       let prepare_original = match
         run_metadata_construction(self.database, reads) {
         Some(prepare) => prepare
@@ -214,11 +217,11 @@ fn NativeLocalHostConnection::validate_read_evidence(
       }
       // Existing callback Option1H1R1W, original issue cell1H1R,
       // predicate1H0R, preparation closure1H2R and issue Some1H1R1W.
-      // Admit these five actual archive controls before the cell/closures;
-      // the finite record/one-name array is separately admitted below.
+      // Admit these controls and the binding's account-purpose slot before
+      // construction; the finite record/one-name array is admitted below.
       guard @execution.preparation_representation_cost({
           record_headers: 5L,
-          reference_slots: 5L,
+          reference_slots: 6L,
           scalar_words: 2L,
           owned_utf16_units: 0L,
           owned_wire_bytes: 0L,
@@ -424,6 +427,11 @@ fn NativeLocalHostConnection::validate_read_evidence(
     crypto,
     file,
     selection,
+    account_purpose: if purpose.names is RequestedOriginalResultWithAuthority {
+      ArchivedOriginalResultRead
+    } else {
+      NamedResultRead
+    },
     principal: selection.principal,
     connection: selection.connection,
     scope,

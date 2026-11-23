@@ -17,6 +17,16 @@ pub(all) enum NativeLocalReadBindingIssue {
 }
 
 ///|
+// Admission for the new installer role retains exactly the proved Run and
+// namespace. The request and its sole admitted Result name remain in the
+// original binding. Archive mode can reconstruct bytes, never authorize.
+priv enum NativeLocalReadAccountPurpose {
+  NamedResultRead
+  InstalledOriginalResultRead(String, String)
+  ArchivedOriginalResultRead
+}
+
+///|
 // Constructed only from an original selected file in the real adopted Host.
 // Parsing a selection or possessing this binding grants no payload bytes.
 struct NativeLocalReadPolicyBinding {
@@ -25,6 +35,7 @@ struct NativeLocalReadPolicyBinding {
   crypto : @crypto.Library
   file : NativeLocalSelectedFile
   selection : NativeLocalReadSelection
+  account_purpose : NativeLocalReadAccountPurpose
   principal : String
   connection : String
   scope : String
@@ -94,6 +105,7 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
     crypto,
     file,
     selection,
+    account_purpose: NamedResultRead,
     principal,
     connection,
     scope,
@@ -188,11 +200,13 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     Ok(value) => value
     Err(issue) => return Err(Selection(issue))
   }
-  let selection = match requested_result {
+  let (selection, account_purpose) = match requested_result {
     None =>
       match purpose.names {
-        FiniteResultNames(names) => purpose.finite_selection(names)
-        RequestedOriginalResult => return Err(SelectionMismatch)
+        FiniteResultNames(names) =>
+          (purpose.finite_selection(names), NamedResultRead)
+        RequestedOriginalResult | RequestedOriginalResultWithAuthority =>
+          return Err(SelectionMismatch)
       }
     Some((original, store, namespace_id, name)) => {
       guard capture is Some(current) &&
@@ -233,7 +247,32 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
         None => ()
       }
       match selected {
-        Ok(value) => value
+        Ok(value) => {
+          let account_purpose = if purpose.names
+            is RequestedOriginalResultWithAuthority {
+            // The same prepare callback pays for the retained variant and
+            // its binding slot before either construction.
+            guard policy.origin is Selected &&
+              @execution.preparation_representation_cost({
+                record_headers: 1L,
+                reference_slots: 3L,
+                scalar_words: 1L,
+                owned_utf16_units: 0L,
+                owned_wire_bytes: 0L,
+              })
+              is Some(cost) &&
+              prepare(cost, cost) else {
+              return Err(Adoption(OriginalResourceScopePending))
+            }
+            InstalledOriginalResultRead(
+              namespace_id,
+              @publication.publication_contract_identity(original.definition),
+            )
+          } else {
+            NamedResultRead
+          }
+          (value, account_purpose)
+        }
         Err(issue) => return Err(issue)
       }
     }
@@ -297,6 +336,7 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     crypto: policy.crypto,
     file,
     selection,
+    account_purpose,
     principal: policy.principal,
     connection: policy.connection,
     scope: policy.scope,
@@ -445,7 +485,7 @@ fn NativeLocalReadPolicyBinding::require_request(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.require_request_selection(original, facts)
+  self.require_request_selection(original, facts.request, facts.observed_at)
 }
 
 ///|
@@ -484,7 +524,8 @@ fn NativeLocalReadPolicyBinding::require_receiver(
 fn NativeLocalReadPolicyBinding::require_request_selection(
   self : NativeLocalReadPolicyBinding,
   original : @host.ClientRequestIdentity,
-  facts : @result_access.NativeResultReadFacts,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
   if self.capture is Some(capture) {
     return read_binding_with_material_in_original_read(capture, (
@@ -498,18 +539,22 @@ fn NativeLocalReadPolicyBinding::require_request_selection(
       read_binding_in_journal_snapshot(host.journal, operations.reads, () => {
         self.require_request_in_snapshot(
           original,
-          facts,
+          request,
+          observed_at,
           material,
           operations.reads,
         )
       })
     })
   }
+  if !(self.account_purpose is NamedResultRead) {
+    return Err(AuthorizationDenied)
+  }
   match self.require_current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match self.require_request_constraints(original, facts) {
+  match self.require_request_constraints(original, request, observed_at) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -520,7 +565,7 @@ fn NativeLocalReadPolicyBinding::require_request_selection(
       self.principal,
       self.connection,
       original,
-      ReadResultPolicy(facts.request.result_name),
+      ReadResultPolicy(request.result_name),
       capture=self.capture,
     ) {
     Ok(_) => Ok(())
@@ -534,11 +579,21 @@ fn NativeLocalReadPolicyBinding::require_request_selection(
 fn NativeLocalReadPolicyBinding::require_request_constraints(
   self : NativeLocalReadPolicyBinding,
   original : @host.ClientRequestIdentity,
-  facts : @result_access.NativeResultReadFacts,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
   if self.run_policy_original is Some((_, bound, _)) &&
     @host.client_request_identity_relation(bound, original) != @host.SameRequest {
     return Err(SelectionMismatch)
+  }
+  match self.account_purpose {
+    NamedResultRead => ()
+    InstalledOriginalResultRead(namespace_id, run_cid) =>
+      if request.namespace_id != namespace_id ||
+        request.run_definition_cid != run_cid {
+        return Err(Journal(ForeignRun))
+      }
+    ArchivedOriginalResultRead => return Err(AuthorizationDenied)
   }
   if self.selection.expiry is Absolute(_) {
     match self.host.require_original_legacy_policy(original) {
@@ -549,18 +604,18 @@ fn NativeLocalReadPolicyBinding::require_request_constraints(
   if !self.selection.enabled {
     return Err(Disabled)
   }
-  if facts.request.principal_id != self.principal ||
-    facts.request.authority_scope_cid != self.scope ||
+  if request.principal_id != self.principal ||
+    request.authority_scope_cid != self.scope ||
     @host.client_request_authority_scope_cid(original) != self.scope {
     return Err(AuthorizationDenied)
   }
-  if !self.selection.result_names.contains(facts.request.result_name) ||
-    !self.selection.formats.contains(facts.request.format) ||
-    facts.request.purpose != self.selection.purpose ||
-    facts.request.attempt_id.is_empty() {
+  if !self.selection.result_names.contains(request.result_name) ||
+    !self.selection.formats.contains(request.format) ||
+    request.purpose != self.selection.purpose ||
+    request.attempt_id.is_empty() {
     return Err(SelectionMismatch)
   }
-  let observed = match @values.timestamp_epoch_milliseconds(facts.observed_at) {
+  let observed = match @values.timestamp_epoch_milliseconds(observed_at) {
     Some(value) => value
     None => return Err(InvalidObservationTime)
   }
