@@ -60555,26 +60555,6 @@
         },
         {
           "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk",
-          "parameters": [
-            "self",
-            "request",
-            "chunk",
-            "clock",
-            "output",
-            "eof"
-          ]
-        },
-        {
-          "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk/read",
-          "parameters": [
-            "first",
-            "configuration"
-          ]
-        },
-        {
-          "async": false,
           "name": "OriginalSDKDeliveryStore/selected_original_payload",
           "parameters": [
             "self",
@@ -60626,7 +60606,7 @@
           ]
         }
       ],
-      "sha256": "97754eb140b37933b9682638cfcd54bef65a88bf2adbcf01bc2f44202ccea1f1",
+      "sha256": "911fa75414d2fd5888f3716e908ce26f8baf2bb184c88f99640c9ce55988d835",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60667,8 +60647,6 @@
             "OriginalSDKDeliveryStore/produce_original_chunk/produce",
             "OriginalSDKDeliveryStore/produce_original_receipt",
             "OriginalSDKDeliveryStore/produce_original_receipt/produce",
-            "OriginalSDKDeliveryStore/read_original_chunk",
-            "OriginalSDKDeliveryStore/read_original_chunk/read",
             "OriginalSDKDeliveryStore/selected_original_payload",
             "OriginalSDKDeliveryStore/_selected_original_payload"
           ],
@@ -61698,7 +61676,7 @@
           ]
         }
       ],
-      "sha256": "6179d179c8fd5cbdc6c3e076e610ae3bedbe4f29b19eec14a9dd6187ed082d7c",
+      "sha256": "36dad7ebfea7177148f040806299032547760443366a3fcbfe488370cd3a2558",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -81086,9 +81064,13 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "7275ee4ce2974bfbbba5b587c682715830bce442f886a8f96ff383f4cbed6e9c",
+      "sha256": "61b7402075e5a489913f1b9df97d4563ea0d2fbc4a8fff04ba0569b437ae1fab",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_python_local_source_free_environment",
+          "declaration": "admit_python_local_source_free_environment ( body : String , cid : String , ) - > @ checked . CheckEnvironment ?"
+        },
         {
           "name": "bind_restored_preparation",
           "declaration": "bind_restored_preparation ( nonce : Int64 , handle : Int , restoration_handle : Int , ) - > Int"
@@ -81182,7 +81164,8 @@
             "prepared_results",
             "prepared_tasks",
             "reserve_preparation",
-            "stored_preparation_input"
+            "stored_preparation_input",
+            "admit_python_local_source_free_environment"
           ],
           "exports": [],
           "attributes": {
@@ -81328,6 +81311,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/client_check_wbtest.mbt",
+                "anchor": "test \"Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT\""
               }
             ]
           }
@@ -87287,7 +87274,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "be978392877d6599eafcb683af51654956e9866ab141cc7f6f63fd11e5f510af",
+      "sha256": "5ac76edf94e8889e4096bb90da000d5214992b0e04d4e375a4d88655ef796678",
       "exports": [],
       "operations": [
         {
@@ -90422,7 +90409,7 @@
           }
         }
       ],
-      "sha256": "90da607a5b7342e62b9d92f3c6db96a9a87356379fb35fdb17bb16a225d4ded7",
+      "sha256": "74720506d098afa37293bdfba917c8754b10217f373352d5d118be4dab948334",
       "exports": [],
       "operations": [
         {

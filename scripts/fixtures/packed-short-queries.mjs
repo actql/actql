@@ -13,6 +13,7 @@ import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {assertObservedTransition, shortQueryAuthorization as authorization, observedRevision,
   observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
 import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
+import {checkOrderedInlineStringAgg} from './packed-ordered-inline-string-agg.mjs';
 
 
 const defaults = await open();
@@ -20,6 +21,8 @@ await withFixtureClientCleanup(defaults, async () => {
   assert.equal(defaults.info.stateDir, resolve('.actql'));
   assert.deepEqual(await defaults.sql('SELECT 0 AS id').all(), [{id: 0}]);
 });
+
+await checkOrderedInlineStringAgg(resolve('ordered-inline-string-agg-state'));
 
 async function checkRunnable(db, counter, label) {
   const before = counter.count();

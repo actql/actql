@@ -38,6 +38,23 @@ struct Journal {
 }
 
 ///|
+fn[T] Journal::abort_write(
+  self : Journal,
+  result : Result[T, NativeRemoteTransferJournalIssue],
+) -> Result[T, NativeRemoteTransferJournalIssue] {
+  match self.database.rollback_journal_write() {
+    Ok(_) => result
+    Err(cleanup) => {
+      let original = match result {
+        Ok(_) => None
+        Err(issue) => Some(issue)
+      }
+      Err(TransactionStop(original, cleanup))
+    }
+  }
+}
+
+///|
 /// Private scalar interpretation of one exact persisted record. This is not a
 /// reader, material, or authority validation result. The Journal's immutable
 /// limits bind admission policy, and its Database bounds the retained body.
@@ -279,6 +296,9 @@ fn Journal::replace_destination_allocation(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let body = destination_allocation_body(
     current.staging_name,
     current.final_name,
@@ -501,6 +521,9 @@ pub fn Journal::accept(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -517,41 +540,33 @@ pub fn Journal::accept(
         Ok(value) => journal_bytes(value)
         Err(issue) => return Err(Protocol(issue))
       }
-      match self.database.begin_immediate() {
+      match self.database.begin_journal_write() {
         Ok(_) => ()
-        Err(issue) => return Err(Physical(issue))
+        Err(issue) => return Err(Physical(issue.issue))
       }
       match self.database.read("remote_transfer", key) {
         Ok(value) => {
-          ignore(self.database.rollback())
+          match self.abort_write(Ok(())) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
           return match self.existing(request, value) {
             Ok(existing) => Ok((ExistingTransfer, existing))
             Err(issue) => Err(issue)
           }
         }
         Err(@sqlite.NotFound) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
       match self.database.insert("remote_transfer", key, body) {
         Ok(0L) => ()
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-      match self.database.commit() {
+      match self.database.commit_journal_write() {
         Ok(_) => Ok((NewTransfer, record))
-        Err(issue) => {
-          ignore(self.database.rollback())
-          Err(Physical(issue))
-        }
+        Err(issue) => Err(TransactionCommit(issue))
       }
     }
     Err(issue) => Err(Physical(issue))
@@ -568,6 +583,9 @@ pub fn Journal::require(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
@@ -594,6 +612,9 @@ pub fn Journal::accept_store_use(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let store_use = match @transfer.prepare_store_use(request, use_id) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -612,41 +633,33 @@ pub fn Journal::accept_store_use(
         Ok(value) => journal_bytes(value)
         Err(issue) => return Err(Protocol(issue))
       }
-      match self.database.begin_immediate() {
+      match self.database.begin_journal_write() {
         Ok(_) => ()
-        Err(issue) => return Err(Physical(issue))
+        Err(issue) => return Err(Physical(issue.issue))
       }
       match self.database.read("remote_transfer_store_use", key) {
         Ok(value) => {
-          ignore(self.database.rollback())
+          match self.abort_write(Ok(())) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
           return match self.restore_store_use_value(value) {
             Ok(existing) => Ok((ExistingTransfer, existing))
             Err(issue) => Err(issue)
           }
         }
         Err(@sqlite.NotFound) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
       match self.database.insert("remote_transfer_store_use", key, body) {
         Ok(0L) => ()
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-      match self.database.commit() {
+      match self.database.commit_journal_write() {
         Ok(_) => Ok((NewTransfer, record))
-        Err(issue) => {
-          ignore(self.database.rollback())
-          Err(Physical(issue))
-        }
+        Err(issue) => Err(TransactionCommit(issue))
       }
     }
     Err(issue) => Err(Physical(issue))
@@ -666,6 +679,9 @@ pub fn Journal::require_store_use(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match
     self.database.read(
@@ -691,6 +707,9 @@ pub fn Journal::bind_destination_use(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match @transfer.prepare_store_use(request, use_id) {
     Ok(_) => ()
     Err(issue) => return Err(Protocol(issue))
@@ -700,30 +719,23 @@ pub fn Journal::bind_destination_use(
     Err(issue) => return Err(Protocol(issue))
   }
   let body = @utf8.encode(use_id)
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   match self.database.read("remote_transfer", request_key) {
     Ok(value) =>
       match self.existing(request, value) {
         Ok(_) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(issue)
-        }
+        Err(issue) => return self.abort_write(Err(issue))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   let newly_bound = match
     self.database.read("remote_transfer_destination_use", request_key) {
     Ok(value) => {
       if value.revision != 0L || value.body != body {
-        ignore(self.database.rollback())
-        return Err(StateCollision)
+        return self.abort_write(Err(StateCollision))
       }
       false
     }
@@ -733,26 +745,15 @@ pub fn Journal::bind_destination_use(
           "remote_transfer_destination_use", request_key, body,
         ) {
         Ok(0L) => true
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(newly_bound)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -768,6 +769,9 @@ pub fn Journal::reserve_destination_holding(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let mut bytes = 0L
   let lengths = @transfer.request_chunk_byte_lengths(request)
@@ -802,6 +806,9 @@ pub fn Journal::release_destination_holding(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let mut bytes = 0L
   let lengths = @transfer.request_chunk_byte_lengths(request)
   for length in lengths {
@@ -832,6 +839,9 @@ pub fn Journal::destination_capacity_usage(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.database.capacity_usage("remote_transfer_destination") {
     Ok(value) => Ok(value)
     Err(issue) => Err(Physical(issue))
@@ -847,11 +857,17 @@ pub fn Journal::prepare_destination_allocation(
   staging_name : String,
   final_name : String,
 ) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
-  if self.retiring && !self.closed {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
     return Err(CleanupPending)
   }
-  if self.closed || staging_name.is_empty() || final_name.is_empty() {
-    return if self.closed { Err(Closed) } else { Err(StateCollision) }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
+  if staging_name.is_empty() || final_name.is_empty() {
+    return Err(StateCollision)
   }
   let key = match destination_allocation_key(request, use_id, index) {
     Ok(value) => value
@@ -910,6 +926,9 @@ pub fn Journal::inspect_destination_allocation(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match destination_allocation_key(request, use_id, index) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -936,6 +955,9 @@ pub fn Journal::inspect_destination_allocation_if_present(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let key = match destination_allocation_key(request, use_id, index) {
     Ok(value) => value
@@ -1072,6 +1094,9 @@ pub fn Journal::commit_destination_receipt(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1080,43 +1105,40 @@ pub fn Journal::commit_destination_receipt(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.database.begin_immediate() {
+  // Refuse a receipt for another request before it can occupy this key.
+  let admitted = match admit_stored_receipt(body, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   match self.database.read("remote_transfer_destination_receipt", key) {
     Ok(value) => {
-      ignore(self.database.rollback())
+      match self.abort_write(Ok(())) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       if value.revision != 0L || value.body != body {
         return Err(StateCollision)
       }
-      admit_stored_receipt(value.body, request)
+      Ok(admitted)
     }
     Err(@sqlite.NotFound) => {
       match
         self.database.insert("remote_transfer_destination_receipt", key, body) {
         Ok(0L) => ()
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-      match self.database.commit() {
-        Ok(_) => admit_stored_receipt(body, request)
-        Err(issue) => {
-          ignore(self.database.rollback())
-          Err(Physical(issue))
-        }
+      match self.database.commit_journal_write() {
+        Ok(_) => Ok(admitted)
+        Err(issue) => Err(TransactionCommit(issue))
       }
     }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => self.abort_write(Err(Physical(issue)))
   }
 }
 
@@ -1133,6 +1155,9 @@ pub fn Journal::inspect_destination_receipt(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
@@ -1312,6 +1337,9 @@ pub fn Journal::acquire_destination_reader(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1319,31 +1347,22 @@ pub fn Journal::acquire_destination_reader(
   // The bounded claim helper owns its own SQLite transaction. Establish and
   // validate the active material first, commit that preflight, claim the
   // occurrence, and then revalidate under the reader CAS transaction below.
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let preflight_key = match
     self.require_committed_destination(request, receipt) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   match self.ensure_destination_material_active(preflight_key, receipt) {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   let claim_scope = "remote_transfer_reader_" + @transfer.request_cid(request)
   match
@@ -1355,32 +1374,25 @@ pub fn Journal::acquire_destination_reader(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let material_key = match
     self.require_committed_destination(request, receipt) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   match self.ensure_destination_material_active(material_key, receipt) {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   let body = destination_reader_body(request, receipt, reader_id, true)
   let acquired = match
     self.database.read("remote_transfer_destination_reader", reader_key) {
     Ok(value) => {
       if value.revision != 0L || value.body != body {
-        ignore(self.database.rollback())
-        return Err(StateCollision)
+        return self.abort_write(Err(StateCollision))
       }
       false
     }
@@ -1390,26 +1402,15 @@ pub fn Journal::acquire_destination_reader(
           "remote_transfer_destination_reader", reader_key, body,
         ) {
         Ok(0L) => true
-        Ok(_) | Err(@sqlite.Collision) => {
-          ignore(self.database.rollback())
-          return Err(StateCollision)
-        }
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Ok(_) | Err(@sqlite.Collision) =>
+          return self.abort_write(Err(StateCollision))
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(acquired)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1428,29 +1429,26 @@ pub fn Journal::validate_destination_reader(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let checked = self.validate_destination_reader_snapshot(
     request, receipt, reader_key, reader_id,
   )
   match checked {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(issue)
-    }
+    Err(issue) => self.abort_write(Err(issue))
     Ok(_) =>
-      match self.database.commit() {
+      match self.database.commit_journal_write() {
         Ok(_) => Ok(())
-        Err(issue) => {
-          ignore(self.database.rollback())
-          Err(Physical(issue))
-        }
+        Err(issue) => Err(TransactionCommit(issue))
       }
   }
 }
@@ -1517,21 +1515,21 @@ pub fn Journal::release_destination_reader(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let value = match
     self.database.read("remote_transfer_destination_reader", reader_key) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   let active = destination_reader_matches(
     value.body,
@@ -1548,12 +1546,10 @@ pub fn Journal::release_destination_reader(
     false,
   )
   if !active && !released {
-    ignore(self.database.rollback())
-    return Err(StateCollision)
+    return self.abort_write(Err(StateCollision))
   }
   if released {
-    ignore(self.database.rollback())
-    return Ok(false)
+    return self.abort_write(Ok(false))
   }
   let next = destination_reader_body(request, receipt, reader_id, false)
   match
@@ -1564,21 +1560,13 @@ pub fn Journal::release_destination_reader(
       next,
     ) {
     Ok(revision) if revision == value.revision + 1L => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(true)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1594,16 +1582,16 @@ pub fn Journal::begin_destination_material_reclaim(
   if self.retiring {
     return Err(CleanupPending)
   }
-  match self.database.begin_immediate() {
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let key = match self.require_committed_destination(request, receipt) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   let value = match
     self.database.read("remote_transfer_destination_material", key) {
@@ -1611,51 +1599,28 @@ pub fn Journal::begin_destination_material_reclaim(
     Err(@sqlite.NotFound) => {
       match self.ensure_destination_material_active(key, receipt) {
         Ok(_) => ()
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(issue)
-        }
+        Err(issue) => return self.abort_write(Err(issue))
       }
       match self.database.read("remote_transfer_destination_material", key) {
         Ok(value) => value
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
     }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   match parse_destination_material(value, receipt) {
-    Some(DestinationMaterialReclaiming) => {
-      ignore(self.database.rollback())
-      return Ok(false)
-    }
-    Some(DestinationMaterialReleased) => {
+    Some(DestinationMaterialReclaiming) => return self.abort_write(Ok(false))
+    Some(DestinationMaterialReleased) =>
       // The same cleanup Owner can resume after a lost completion reply. The
       // reader admission boundary still rejects this released material.
-      ignore(self.database.rollback())
-      return Ok(false)
-    }
+      return self.abort_write(Ok(false))
     Some(DestinationMaterialActive) => ()
-    None => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
+    None => return self.abort_write(Err(StateCollision))
   }
   match self.active_destination_reader_exists(request) {
-    Ok(true) => {
-      ignore(self.database.rollback())
-      return Err(MaterialInUse)
-    }
+    Ok(true) => return self.abort_write(Err(MaterialInUse))
     Ok(false) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   let body = destination_material_body(receipt, DestinationMaterialReclaiming)
   match
@@ -1666,21 +1631,13 @@ pub fn Journal::begin_destination_material_reclaim(
       body,
     ) {
     Ok(revision) if revision == value.revision + 1L => ()
-    Ok(_) | Err(@sqlite.Collision) => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Ok(_) | Err(@sqlite.Collision) =>
+      return self.abort_write(Err(StateCollision))
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(true)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -1697,6 +1654,9 @@ pub fn Journal::finish_destination_material_reclaim(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   if !physical_reclaimed {
     return Err(RecoveryRequired)
   }
@@ -1704,40 +1664,26 @@ pub fn Journal::finish_destination_material_reclaim(
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   match self.active_destination_reader_exists(request) {
-    Ok(true) => {
-      ignore(self.database.rollback())
-      return Err(MaterialInUse)
-    }
+    Ok(true) => return self.abort_write(Err(MaterialInUse))
     Ok(false) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
   }
   let value = match
     self.database.read("remote_transfer_destination_material", key) {
     Ok(value) => value
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   let transitioned = match parse_destination_material(value, receipt) {
     Some(DestinationMaterialReleased) => false
     Some(DestinationMaterialReclaiming) => true
-    Some(DestinationMaterialActive) => {
-      ignore(self.database.rollback())
-      return Err(RecoveryRequired)
-    }
-    None => {
-      ignore(self.database.rollback())
-      return Err(StateCollision)
-    }
+    Some(DestinationMaterialActive) =>
+      return self.abort_write(Err(RecoveryRequired))
+    None => return self.abort_write(Err(StateCollision))
   }
   if transitioned {
     let body = destination_material_body(receipt, DestinationMaterialReleased)
@@ -1749,24 +1695,19 @@ pub fn Journal::finish_destination_material_reclaim(
         body,
       ) {
       Ok(revision) if revision == value.revision + 1L => ()
-      Ok(_) | Err(@sqlite.Collision) => {
-        ignore(self.database.rollback())
-        return Err(StateCollision)
-      }
-      Err(issue) => {
-        ignore(self.database.rollback())
-        return Err(Physical(issue))
-      }
+      Ok(_) | Err(@sqlite.Collision) =>
+        return self.abort_write(Err(StateCollision))
+      Err(issue) => return self.abort_write(Err(Physical(issue)))
     }
-    match self.database.commit() {
+    match self.database.commit_journal_write() {
       Ok(_) => ()
-      Err(issue) => {
-        ignore(self.database.rollback())
-        return Err(Physical(issue))
-      }
+      Err(issue) => return Err(TransactionCommit(issue))
     }
   } else {
-    ignore(self.database.rollback())
+    match self.abort_write(Ok(())) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let lengths = @transfer.request_chunk_byte_lengths(request)
   let mut bytes = 0L
@@ -1799,6 +1740,9 @@ pub fn Journal::commit_transition(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = match
     @transfer.remote_transfer_transition_journal_identity(transition) {
     Ok(value) => value
@@ -1812,9 +1756,9 @@ pub fn Journal::commit_transition(
     Ok(value) => journal_bytes(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let durable = match
     self.database.compare_exchange(
@@ -1828,26 +1772,16 @@ pub fn Journal::commit_transition(
       match self.database.read("remote_transfer", key) {
         Ok(value) =>
           value.revision == expected.to_int64() + 1L && value.body == body
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   if !durable {
-    ignore(self.database.rollback())
-    return Err(StateCollision)
+    return self.abort_write(Err(StateCollision))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   match @transfer.commit_transition(transition, true) {
     Ok(_) => Ok(())
@@ -1866,6 +1800,9 @@ pub fn Journal::commit_store_use_transition(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let key = @transfer.remote_transfer_store_use_transition_journal_identity(
     transition,
   )
@@ -1880,9 +1817,9 @@ pub fn Journal::commit_store_use_transition(
     Ok(value) => journal_bytes(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  match self.database.begin_immediate() {
+  match self.database.begin_journal_write() {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(Physical(issue.issue))
   }
   let durable = match
     self.database.compare_exchange(
@@ -1896,26 +1833,16 @@ pub fn Journal::commit_store_use_transition(
       match self.database.read("remote_transfer_store_use", key) {
         Ok(value) =>
           value.revision == expected.to_int64() + 1L && value.body == body
-        Err(issue) => {
-          ignore(self.database.rollback())
-          return Err(Physical(issue))
-        }
+        Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Physical(issue)))
   }
   if !durable {
-    ignore(self.database.rollback())
-    return Err(StateCollision)
+    return self.abort_write(Err(StateCollision))
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Physical(issue))
-    }
+    Err(issue) => return Err(TransactionCommit(issue))
   }
   match @transfer.commit_store_use_transition(transition, true) {
     Ok(_) => Ok(())
@@ -1933,6 +1860,9 @@ pub fn Journal::recover_after(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.database.scan_after("remote_transfer", after_key) {
     Ok(entry) => {

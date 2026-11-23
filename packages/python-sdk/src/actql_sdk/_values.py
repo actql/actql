@@ -1,6 +1,7 @@
 """Exact opaque JSON values and the existing canonical identity domains."""
 from collections.abc import Mapping
 import hashlib
+from itertools import chain as _chain
 import json
 import math
 import unicodedata
@@ -84,10 +85,20 @@ def wire_bytes(value):
     captured = snapshot(value)
     def encode(item):
         if type(item) is dict:
-            # ECMAScript Object.keys orders array-index properties first.
-            indices = sorted((key for key in item if key.isascii() and key.isdecimal()
-                              and str(int(key)) == key and int(key) < 4294967295), key=int)
-            keys = indices + [key for key in item if key not in set(indices)]
+            # An ECMAScript array index is a canonical decimal uint32
+            # strictly below 2**32 - 1. Bound the integer conversion first.
+            indices, ordinary = [], []
+            for key in item:
+                length = len(key)
+                if (0 < length <= 10 and (length == 1 or key[0] != '0')
+                        and key.isascii() and key.isdecimal()):
+                    index = int(key)
+                    if index < 4294967295:
+                        indices.append((index, key))
+                        continue
+                ordinary.append(key)
+            indices.sort()
+            keys = _chain((key for _, key in indices), ordinary)
             return b'{' + b','.join(rfc8785.dumps(key) + b':' + encode(item[key]) for key in keys) + b'}'
         if type(item) is list:
             return b'[' + b','.join(encode(child) for child in item) + b']'

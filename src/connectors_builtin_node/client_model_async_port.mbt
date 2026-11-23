@@ -293,9 +293,16 @@ pub fn client_program_model_structured_request_plan(
   installation : @check_environment.ModelResponseProfileInstallation,
   start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
   read_answer : (@model.ModelPhysicalCall, @model.ModelSavedRawReceipt, Bytes) -> (
+    String?,
     String,
     Int64?,
     Int64?,
+    String?,
+    String?,
+    String?,
+    Bool?,
+    String?,
+    String?,
   )?,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   @model.bound_structured_model_async_request_plan(
@@ -308,30 +315,50 @@ pub fn client_program_model_structured_request_plan(
     start,
     (call, receipt, bytes) => {
       read_answer(call, receipt, bytes).map(answer => {
-        let (body, input_tokens, output_tokens) = answer
+        let (
+          text,
+          finish,
+          input_tokens,
+          output_tokens,
+          model,
+          request_id,
+          reason,
+          complete,
+          metadata_name,
+          metadata_value,
+        ) = answer
+        let answer : Result[String, @model.ModelProviderFailure] = match
+          (finish, text) {
+          ("stop", Some(body)) => Ok(body)
+          ("length", _) => Err(Truncated)
+          ("refusal", _) => Err(Refusal)
+          ("safety", _) => Err(SafetyRejected)
+          _ => Err(SchemaInvalid)
+        }
         {
-          body,
+          answer,
           observation: {
             origin: @publication.Reported,
-            provider_model: None,
+            provider_model: model,
             provider_revision: None,
-            provider_request_id: None,
+            provider_request_id: request_id,
             gateway_request_id: None,
             input_tokens,
             output_tokens,
-            provider_finish_reason: None,
+            provider_finish_reason: reason,
             historical_finish_reason: None,
             response_profile_cid: Some(
               @check_environment.model_response_profile_identity(profile),
             ),
-            response_complete: Some(true),
+            response_complete: complete,
             raw_response_artifact_cid: None,
-            provider_metadata: None,
+            provider_metadata: match (metadata_name, metadata_value) {
+              (Some(name), Some(value)) =>
+                @model.admit_saved_sdk_report_metadata(profile, name, value)
+              _ => None
+            },
             observed_at: "",
           },
-          transport_eof: true,
-          endpoint_complete: true,
-          answer_complete: true,
         }
       })
     },
