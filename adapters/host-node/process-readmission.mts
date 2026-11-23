@@ -5,8 +5,20 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {completionRecordLimits, snapshotCompletionDescriptor, snapshotCompletionTask} from './completion-record.mjs';
 import * as runtime from '../../_build/js/release/build/retained_host_bridge/retained_host_bridge.js';
 
+import type {consumeDelegatedFile} from '../store-local/delegated-reader.mjs';
+import type {processStoreContext} from '../store-local/process-binding.mjs';
+
+type ReadReport = Awaited<ReturnType<typeof consumeDelegatedFile>>;
+type ReadmissionContext = ReturnType<typeof processStoreContext>;
+type Handoff = Readonly<{
+  taskIdentity?: unknown;
+  descriptor?: unknown;
+  origin?: Readonly<Partial<{task: number; run: string; session: string; request: number; output: string}>>;
+  lease?: Partial<ReadReport>;
+}>;
+
 const defaultLimits = Object.freeze({maxCompletions: 4, maxInputs: 2, maxColumns: 10});
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+const fail = (code: string): never => { throw Object.assign(new Error(code), {code}); };
 
 // One authoritative Common quote, not a per-entrance numerical allowance.
 // This immutable recipe caches no facts, currentness or permission.
@@ -18,8 +30,9 @@ const readmissionFactsControls = (() => {
 })();
 export function processReadmissionControlBytes() {return readmissionFactsControls;}
 
-export function prepareProcessReadmission(preparation, expectedTask, handoff, context, signal,
-  suppliedLimits = defaultLimits) {
+export function prepareProcessReadmission(preparation: unknown, expectedTask: unknown,
+  handoff: Handoff | undefined, context: ReadmissionContext, signal: AbortSignal,
+  suppliedLimits: unknown = defaultLimits) {
   // Installed receiving profile, never inferred from the supplied descriptor.
   // Snapshot it before any custody acknowledgement can yield control.
   const limits = completionRecordLimits(suppliedLimits);
@@ -33,26 +46,27 @@ export function prepareProcessReadmission(preparation, expectedTask, handoff, co
       task.task !== origin.task || descriptor.output_step !== task.output_step ||
       descriptor.input_count !== task.inputs.length ||
       origin.run !== context.run || typeof origin.session !== 'string' || !origin.session.length ||
-      origin.session === context.session || !Number.isSafeInteger(origin.request) || origin.request < 1 ||
+      origin.session === context.session || !Number.isSafeInteger(origin.request) || origin.request! < 1 ||
       typeof origin.output !== 'string' || !origin.output.length || origin.output.length > 256 ||
       lease.session !== context.session || lease.bytes !== descriptor.bytes || lease.cid !== descriptor.rows_cid ||
       typeof context.callHost !== 'function') fail('ForeignCompletionHandoff');
   const callHost = context.callHost;
-  let live = true, used = false, accepted;
+  let live = true, used = false, accepted: unknown;
   const permitted = () => live && !signal.aborted;
   // The callback is fixed here and checks exact opaque receipt identity. It is
   // enabled only by this installed channel's verified custody response below.
   const installed = checked(runtime.retainedReadmissionInstall(preparation, descriptor,
-    receipt => permitted() && accepted === receipt, permitted));
+    (receipt: unknown) => permitted() && accepted === receipt, permitted));
   return Object.freeze({
-    async admit(receipt, report) {
+    async admit(receipt: unknown, report: ReadReport | undefined) {
       if (used || !permitted()) fail('CompletionReadmissionUnavailable');
       used = true;
       if (!report || report.version !== lease.version || report.session !== lease.session ||
           report.token !== lease.token || report.bytes !== lease.bytes || report.cid !== lease.cid) {
         fail('ForeignCompletionReadReport');
       }
-      const confirmed = await callHost({command: 'verify-completion-read', report});
+      const confirmed = await callHost({command: 'verify-completion-read', report}) as
+        Readonly<Partial<Pick<ReadReport, 'bytes' | 'cid'>>> | null | undefined;
       signal.throwIfAborted();
       if (!live || !confirmed || Object.keys(confirmed).sort().join(',') !== 'bytes,cid' ||
           confirmed.bytes !== descriptor.bytes || confirmed.cid !== descriptor.rows_cid) {
@@ -62,7 +76,7 @@ export function prepareProcessReadmission(preparation, expectedTask, handoff, co
       try { return checked(runtime.retainedReadmissionComplete(installed, receipt)); }
       catch (error) { live = false; throw error; }
     },
-    readable: input => permitted() && runtime.retainedReadmissionReadable(installed, input),
+    readable: (input: unknown) => permitted() && runtime.retainedReadmissionReadable(installed, input),
     close() {
       live = false;
       accepted = undefined;

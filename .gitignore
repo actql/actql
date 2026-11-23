@@ -2358,6 +2358,14 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-source-dependencies.d.mts
 /adapters/host-node/effect-input-export.mjs
 /adapters/host-node/effect-input-export.d.mts
+/adapters/host-node/process-capacity.mjs
+/adapters/host-node/process-capacity.d.mts
+/adapters/host-node/process-capacity.test.mjs
+/adapters/host-node/process-capacity.test.d.mts
+/adapters/host-node/process-completion-observer.mjs
+/adapters/host-node/process-completion-observer.d.mts
+/adapters/host-node/process-readmission.mjs
+/adapters/host-node/process-readmission.d.mts
 /adapters/host-common/runtime-execution-control.mjs
 /adapters/host-common/runtime-execution-control.d.mts
 /adapters/host-node/dispatch-failure-observation.test.mjs

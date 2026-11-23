@@ -22,10 +22,10 @@ const origins = new WeakMap<object, Readonly<{binding: ProcessStoreBinding; iden
 
 // An exact sealed lease, not a caller-supplied output key or matching digest.
 // This is physical provenance; completion evidence is checked separately.
-export function processRetainedBodyIdentity(body: {available: () => boolean}, binding: ProcessStoreBinding) {
+export function processRetainedBodyIdentity(body: object, binding: ProcessStoreBinding) {
   processStoreContext(binding);
   const origin = origins.get(body);
-  if (!origin || origin.binding !== binding || !body.available()) {
+  if (!origin || origin.binding !== binding || !(body as {available(): boolean}).available()) {
     throw new RetainedFileError('ForeignRetainedStoreBody');
   }
   return origin.identity;

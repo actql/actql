@@ -6,15 +6,26 @@ import {processStoreContext} from '../store-local/process-binding.mjs';
 import {processRetainedBodyIdentity} from '../store-local/process-client.mjs';
 import {completionRecordLimits, snapshotCompletionDescriptor, snapshotCompletionTask} from './completion-record.mjs';
 
+import type {ProcessStoreBinding} from '../store-local/process-binding.mjs';
+
+type CompletionRuntime = Readonly<{
+  retainedCompletionEvidence(output: unknown, maxInputs: number, maxColumns: number): unknown;
+  retainedCompletionDescriptor(evidence: unknown): unknown;
+  retainedCompletionMaterial(evidence: unknown, output: unknown): object | undefined;
+  retainedCompletionCanHandoff(evidence: unknown, output: unknown): boolean;
+}>;
+type CompletionEvent = Readonly<{task: number; output: unknown}>;
+type CompletionTask = (task: number, output: unknown) => unknown;
+
 const runtimeUrl = new URL('../../_build/js/release/build/retained_host_bridge/retained_host_bridge.js', import.meta.url);
 
-export async function installProcessCompletionObserver(binding, options, completionTask) {
+export async function installProcessCompletionObserver(binding: ProcessStoreBinding, options: unknown, completionTask: CompletionTask) {
   const context = processStoreContext(binding);
   const limits = completionRecordLimits(options);
   if (typeof completionTask !== 'function') throw new TypeError('MissingCompletionTaskProjection');
-  const runtime = await import(runtimeUrl.href);
+  const runtime: CompletionRuntime = await import(runtimeUrl.href);
   let delivered = 0;
-  return installCompletionObserver(async ({task, output}) => {
+  return installCompletionObserver(async ({task, output}: CompletionEvent) => {
     if (delivered >= limits.maxCompletions) throw new Error('CompletionRecordLimit');
     const evidence = checked(runtime.retainedCompletionEvidence(output, limits.maxInputs, limits.maxColumns));
     const descriptor = snapshotCompletionDescriptor(runtime.retainedCompletionDescriptor(evidence), limits);
@@ -29,7 +40,7 @@ export async function installProcessCompletionObserver(binding, options, complet
       throw new Error('ForeignCompletionHolding');
     }
     const receipt = await context.callHost({command: 'retain-completion', task,
-      output: physical.output, descriptor, taskIdentity});
+      output: physical.output, descriptor, taskIdentity}) as Readonly<{task?: unknown}> | null | undefined;
     if (!receipt || Object.keys(receipt).join(',') !== 'task' || receipt.task !== task) {
       throw new Error('ForeignCompletionReceipt');
     }

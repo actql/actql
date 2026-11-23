@@ -6,6 +6,17 @@ import {join} from 'node:path';
 import {createManagedProcessHost} from './process-capacity.mjs';
 import {createProcessRetainedStore} from '../store-local/process-service.mjs';
 
+import type {ProcessCapacityRuntime} from './process-capacity.mjs';
+import type {snapshotProcessUsage} from './process-accounting.mjs';
+
+type Host = Awaited<ReturnType<typeof createManagedProcessHost>>;
+type Channel = Awaited<ReturnType<Host['start']>>;
+type Failure = Error & Readonly<{code: string; cleanupHandle: Channel['cleanupHandle']}>;
+type LedgerUsage = ReturnType<typeof snapshotProcessUsage>;
+type Ledger = Parameters<ProcessCapacityRuntime['processLedgerUsage']>[0];
+type Delegation = Parameters<ProcessCapacityRuntime['processDelegationStarted']>[1];
+type Reservation = Parameters<ProcessCapacityRuntime['processStarted']>[1];
+
 const limits = () => ({planning_work: 0, attempts: 8, holdings: 0,
   transfer_bytes: 0n, retained_bytes: 100n, execution_bytes: 200n});
 const capacity = {retainedBytes: 100n, executionBytes: 200n};
@@ -28,7 +39,7 @@ test('delegated process uses snapshotted subledger and returns unused quotas onl
   const channel = await starting;
   try {
     assert.equal(host.usage().reserved_transfer_bytes, 20n);
-    assert.equal((await channel.request({command: 'limits'})).limits.attempts, 2);
+    assert.equal((await channel.request({command: 'limits'}) as {limits: {attempts: number}}).limits.attempts, 2);
     await channel.request({command: 'allocate'});
     assert.equal(host.usage().attempts, 2);
     assert.equal(host.usage().reserved_execution_bytes, 200n);
@@ -96,8 +107,8 @@ test('invalid usage and missing accounting support cannot pass delegated admissi
   assert.equal(host.usage().transferred_bytes, 0n);
   assert.equal(host.usage().uncertain_transfer_bytes, 20n);
   const other = await createManagedProcessHost({...childLimits(), attempts: 3});
-  let failure;
-  try { await other.start(configuration(), delegatedCapacity()); } catch (error) { failure = error; }
+  let failure: Failure | undefined;
+  try { await other.start(configuration(), delegatedCapacity()); } catch (error) { failure = error as Failure; }
   assert(failure?.cleanupHandle);
   await failure.cleanupHandle.retry();
   assert.equal(other.usage().attempts, 3);
@@ -108,7 +119,7 @@ test('undersized process envelope and caller accounting fail before reservation'
   const before = host.usage();
   await assert.rejects(host.start(delegatedConfiguration(), {...delegatedCapacity(), retainedBytes: 99n}));
   await assert.rejects(host.start(delegatedConfiguration(), {...delegatedCapacity(), executionBytes: 199n}));
-  await assert.rejects(host.start({...delegatedConfiguration(), accounting: {}}, delegatedCapacity()));
+  await assert.rejects(host.start({...delegatedConfiguration(), accounting: {} as never}, delegatedCapacity()));
   assert.deepEqual(host.usage(), before);
 });
 
@@ -133,7 +144,7 @@ test('actual writer crash settles process capacity but preserves sealed files an
   const store = createProcessRetainedStore({parentDirectory: directory,
     capacityBytes: 200, maxFrameBytes: 100, maxEntries: 2});
   const host = await createManagedProcessHost(limits());
-  let channel;
+  let channel: Channel | undefined;
   t.after(async () => {
     await channel?.close();
     await store.close();
@@ -147,25 +158,25 @@ test('actual writer crash settles process capacity but preserves sealed files an
   store.observe(channel);
   await channel.request({command: 'write', output: 'sealed'});
   assert.equal(host.usage().reserved_execution_bytes, 200n);
-  assert.equal(store.status().reservedBytes, 10);
+  assert.equal(store.status()!.reservedBytes, 10);
   await assert.rejects(channel.request({command: 'crash', output: 'partial'}),
-    error => ['ExecutionExited', 'ExecutionChannelClosed'].includes(error.code));
+    error => ['ExecutionExited', 'ExecutionChannelClosed'].includes((error as Failure).code));
   await channel.cleanupHandle.whenStopped();
-  assert.equal(channel.status().exit.code, 9);
+  assert.equal(channel.status().exit!.code, 9);
   assert.equal(host.usage().reserved_execution_bytes, 0n);
   assert.equal(host.usage().reserved_retention_bytes, 0n);
   // Store capacity is independently owned; native/process settlement cannot
   // pretend that an unreported write was zero bytes or already reclaimed.
-  assert.equal(store.status().uncertainWriteBytes, 100);
+  assert.equal(store.status()!.uncertainWriteBytes, 100);
   assert.equal(channel.cleanupHandle.status().pending, true);
   assert.equal(store.body('partial'), undefined);
-  const sealed = store.body('sealed');
-  const pieces = [];
+  const sealed = store.body('sealed')!;
+  const pieces: Buffer[] = [];
   await sealed.consume(chunk => pieces.push(Buffer.from(chunk)));
   assert.equal(Buffer.concat(pieces).toString(), '[{"id":3}]');
   assert.deepEqual(await channel.cleanupHandle.retry(), {pending: false});
-  assert.equal(store.status().reservedBytes, 10);
-  assert.equal(store.status().admittedWriteBytes, 10);
+  assert.equal(store.status()!.reservedBytes, 10);
+  assert.equal(store.status()!.admittedWriteBytes, 10);
   assert.equal(sealed.available(), true);
   // Retrying uncertain cleanup neither revokes nor double-frees the earlier
   // sealed file. Explicit Store close, not child exit, releases that holding.
@@ -173,7 +184,7 @@ test('actual writer crash settles process capacity but preserves sealed files an
   await store.close();
   await store.cleanupHandle.retry();
   assert.equal(sealed.available(), false);
-  assert.equal(store.status().reservedBytes, 0);
+  assert.equal(store.status()!.reservedBytes, 0);
   assert.deepEqual(await readdir(directory), []);
 });
 
@@ -219,7 +230,7 @@ test('unexpected exit returns process-only capacity without requiring a cleanup 
   await assert.rejects(channel.request({command: 'crash'}));
   await channel.cleanupHandle.whenStopped();
   assert.equal(channel.status().exited, true);
-  assert.equal(channel.status().exit.code, 9);
+  assert.equal(channel.status().exit!.code, 9);
   assert.equal(host.usage().reserved_execution_bytes, 0n);
   assert.equal(host.usage().reserved_retention_bytes, 0n);
   assert.equal(host.usage().attempts, 1);
@@ -227,10 +238,10 @@ test('unexpected exit returns process-only capacity without requiring a cleanup 
 
 test('startup failure releases its exact reservation only when its process stops', async () => {
   const host = await createManagedProcessHost(limits());
-  let failure;
+  let failure: Failure | undefined;
   try {
     await host.start({...configuration(), entry: new URL('./missing-worker.mjs', import.meta.url)}, capacity);
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error as Failure; }
   assert.ok(failure?.cleanupHandle);
   await failure.cleanupHandle.retry();
   assert.equal(failure.cleanupHandle.status().pending, false);
@@ -246,14 +257,14 @@ test('a failed request keeps cleanup ownership and separate Hosts do not share c
   const b = await right.start(configuration(), capacity);
   t.after(() => a.close());
   t.after(() => b.close());
-  let failure;
+  let failure: Failure | undefined;
   try { await a.request({command: 'undefined-failure'}); }
-  catch (error) { failure = error; }
+  catch (error) { failure = error as Failure; }
   assert.ok(failure?.cleanupHandle);
   await failure.cleanupHandle.retry();
   assert.equal(left.usage().reserved_execution_bytes, 0n);
   assert.equal(right.usage().reserved_execution_bytes, 200n);
-  assert.equal((await b.request({command: 'echo', value: 2})).value, 2);
+  assert.equal((await b.request({command: 'echo', value: 2}) as {value: number}).value, 2);
 });
 
 
@@ -295,37 +306,39 @@ test('actual worker cannot downgrade Core usage to a legacy ten-field report', a
 
 
 test('actual bridge reservation and delegation preserve original Start and settlement transitions', async () => {
-  const runtime = await import('../../_build/js/release/build/process_host_bridge/process_host_bridge.js');
+  const runtime: ProcessCapacityRuntime = await import(
+    new URL('../../_build/js/release/build/process_host_bridge/process_host_bridge.js', import.meta.url).href);
   const {checked} = await import('../host-common/runtime-result.mjs');
   for (const delegated of [false, true]) {
-    const original = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4}));
-    const foreign = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4}));
+    const original = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4})) as Ledger;
+    const foreign = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4})) as Ledger;
     const ticket = delegated
       ? checked(runtime.processDelegate(original, childLimits(), 100n, 200n))
       : checked(runtime.processReserve(original, 100n, 200n));
-    const enter = delegated ? runtime.processDelegationStarted : runtime.processStarted;
-    const reserved = runtime.processLedgerUsage(original);
+    const enter = (delegated ? runtime.processDelegationStarted : runtime.processStarted) as
+      (ledger: Ledger, ticket: Reservation | Delegation) => unknown;
+    const reserved = runtime.processLedgerUsage(original) as LedgerUsage;
     assert.equal(reserved.attempts, 0);
     assert.equal(reserved.reserved_attempts, 1);
-    assert.throws(() => checked(enter(foreign, ticket)));
+    assert.throws(() => checked(enter(foreign, ticket as Reservation | Delegation)));
     assert.deepEqual(runtime.processLedgerUsage(original), reserved);
-    checked(enter(original, ticket));
-    const started = runtime.processLedgerUsage(original);
+    checked(enter(original, ticket as Reservation | Delegation));
+    const started = runtime.processLedgerUsage(original) as LedgerUsage;
     assert.equal(started.attempts, 1);
     assert.equal(started.reserved_attempts, 0);
-    checked(enter(original, ticket));
+    checked(enter(original, ticket as Reservation | Delegation));
     assert.deepEqual(runtime.processLedgerUsage(original), started);
     if (delegated) {
-      const unused = checked(runtime.processLedgerCreate(childLimits()));
-      checked(runtime.processDelegationStopped(original, ticket, runtime.processLedgerUsage(unused)));
-    } else checked(runtime.processStopped(original, ticket));
-    const stopped = runtime.processLedgerUsage(original);
+      const unused = checked(runtime.processLedgerCreate(childLimits())) as Ledger;
+      checked(runtime.processDelegationStopped(original, ticket as Delegation, runtime.processLedgerUsage(unused) as LedgerUsage));
+    } else checked(runtime.processStopped(original, ticket as Reservation));
+    const stopped = runtime.processLedgerUsage(original) as LedgerUsage;
     assert.equal(stopped.attempts, 1);
     assert.equal(stopped.live_reservations, 0);
     assert.equal(stopped.live_delegations, 0);
     assert.equal(stopped.reserved_retention_bytes, 0n);
     assert.equal(stopped.reserved_execution_bytes, 0n);
-    assert.throws(() => checked(enter(original, ticket)));
+    assert.throws(() => checked(enter(original, ticket as Reservation | Delegation)));
     assert.deepEqual(runtime.processLedgerUsage(original), stopped);
   }
 });
@@ -337,14 +350,14 @@ test('actual failed physical spawn keeps its attempted provisioning debit and re
     await assert.rejects(host.start(delegatedConfiguration(),
       delegated ? delegatedCapacity() : capacity, AbortSignal.abort()));
     assert.deepEqual(host.usage(), before);
-    let failure;
+    let failure: Failure | undefined;
     try {
       await host.start({...delegatedConfiguration(), runtime: new URL('file:///actql-missing-physical-runtime')},
         delegated ? delegatedCapacity() : capacity);
-    } catch (error) { failure = error; }
-    assert.equal(failure.code, 'ExecutionSpawnFailure');
-    await failure.cleanupHandle.retry();
-    assert.equal(failure.cleanupHandle.status().pending, false);
+    } catch (error) { failure = error as Failure; }
+    assert.equal(failure!.code, 'ExecutionSpawnFailure');
+    await failure!.cleanupHandle.retry();
+    assert.equal(failure!.cleanupHandle.status().pending, false);
     assert.equal(host.usage().attempts, delegated ? 3 : 1);
     assert.equal(host.usage().reserved_attempts, 0);
     assert.equal(host.usage().live_reservations, 0);
