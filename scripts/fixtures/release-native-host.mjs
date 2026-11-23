@@ -247,6 +247,31 @@ async function sharedClientCase() {
   assert.equal(conflict.intentCid, other.outcome.intentCid);
   assert.notEqual(conflict.intentCid, original.outcome.intentCid);
   assert.equal(namedSubmissions, 4);
+
+  const lostAlias = {programFile: original.programFile, requestName: original.requestName,
+    submissionFile: 'submission-lost-alias.json', requestId: 'native-shared-lost-alias',
+    attemptId: 'native-shared-attempt-lost-alias'};
+  const candidate = JSON.parse(await run('new-submission', '--request-id', lostAlias.requestId));
+  assert.notDeepEqual(candidate, original.submission);
+  await writeFile(lostAlias.submissionFile, JSON.stringify(candidate), {mode: 0o600, flag: 'wx'});
+  loseNamedReply = true;
+  const {answer: aliasAnswer, unknownPid: aliasPid} = await submitSharedNamed(lostAlias, true);
+  assert.equal(aliasAnswer, undefined);
+  assert(aliasPid > 0);
+  assert.equal(lostNamedReplies, 2);
+  assert.equal(lostNamedStatus, 200);
+  const unresolvedAlias = JSON.parse(await run('lookup-submission', '--submission-ref-file', lostAlias.submissionFile));
+  assert.deepEqual(unresolvedAlias, {kind: 'unresolvable', submissionRef: candidate,
+    problem: {code: 'submission_history_unresolvable'}});
+  const aliasLookup = records.at(-1);
+  assert(aliasLookup.pid > 0);
+  assert.notEqual(aliasLookup.pid, aliasPid);
+  const retainedOriginal = JSON.parse(await run('lookup-submission', '--submission-ref-file', original.submissionFile));
+  assert.equal(retainedOriginal.kind, 'ready');
+  assert.deepEqual(retainedOriginal.submissionRef, original.submission);
+  assert.equal(retainedOriginal.intentCid, original.outcome.intentCid);
+  assert.deepEqual(retainedOriginal.admission.ref, original.admission.ref);
+  assert.equal(namedSubmissions, 5, 'Lookups must never resend either lost reply');
   assert.equal(computes, 2, 'Named duplicate, conflict and Saved reads must not dispatch again');
   assert.equal(sharedDispatches.length, actors.length);
   for (const actor of actors) {
@@ -256,7 +281,9 @@ async function sharedClientCase() {
   await writeFile('native-shared-host-acceptance.json', JSON.stringify({
     version: 'actql-native-shared-host-acceptance/0.1',
     scope: 'parallel-named-lost-reply-recovery-and-saved-client-detach', ownerPid: process.pid, actors, computes,
-    named: {duplicate, conflict, namedSubmissions, lostNamedReplies, lostNamedStatus},
+    named: {duplicate, conflict, namedSubmissions, lostNamedReplies, lostNamedStatus,
+      lostAcceptedCandidate: {unknownPid: lost[0].unknownPid, lookupPid: originalLookup.pid},
+      lostAlias: {unknownPid: aliasPid, lookupPid: aliasLookup.pid, unresolvedAlias, retainedOriginal}},
     sharedDispatches, sdkClientCloseReturned: true, operations: records,
     unexecuted: ['active-cancel-isolation', 'client-crash', 'owner-restart'],
   }, null, 2));
