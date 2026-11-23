@@ -173,6 +173,12 @@ fn NativeLocalEffectResumeOriginal::saved_publication_service(
     }),
     bind_original=Some(binding => {
       if self.settlement_only {
+        // Recovery observes the existing binding on the same original Run.
+        // Preserve the Publisher's current check without another Journal CAS.
+        if self.record.publication_binding == Some(binding) &&
+          publisher.current() {
+          return Ok(())
+        }
         return Err(Construction)
       }
       publisher
