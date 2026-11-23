@@ -43,15 +43,21 @@ fn validate_sdk_read_original_binding(
   result_name : String,
   format : String,
   attempt_id : String,
-) -> Result[(String, String), LocalSDKReadOriginalsIssue] {
-  match source.validate_current(account, result_name) {
-    Ok(_) => ()
+) -> Result[(String, String, String), LocalSDKReadOriginalsIssue] {
+  let resource = match source.validate_current(account, result_name) {
+    Ok(resource) => resource
     Err(issue) => return Err(issue)
   }
-  let (principal, connection, _, name, selected_format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let (principal, connection, _, _, selected_format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     selection,
   )
-  if result_name != name ||
+  if !@publication.local_sdk_result_read_selection_accepts_name(
+      selection, result_name,
+    ) ||
+    source.installed_original_result !=
+    @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+      selection,
+    ) ||
     format != selected_format ||
     attempt_id.is_empty() ||
     source.principal_connection().0 != principal ||
@@ -75,7 +81,7 @@ fn validate_sdk_read_original_binding(
     read_cid != @publication.local_sdk_result_read_selection_cid(selection) {
     return Err(InvalidOriginal)
   }
-  Ok((adoption, read_cid))
+  Ok((adoption, read_cid, resource))
 }
 
 ///|
@@ -98,7 +104,7 @@ pub fn prepare_local_sdk_read_originals_for_source(
   observed_at : String,
   max_results : Int,
 ) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
-  let (adoption, read_cid) = match
+  let (adoption, read_cid, resource) = match
     validate_sdk_read_original_binding(
       source, account, original, selection, host_adoption_cid, result_name, format,
       attempt_id,
@@ -169,7 +175,7 @@ pub fn prepare_local_sdk_read_originals_for_source(
       ("attempt_id", Text(attempt_id)),
       ("authority_scope_cid", Text(index.authority_scope_cid)),
       ("connection", Text(connection)),
-      ("decisions", AllowedReads(result_name)),
+      ("decisions", AllowedReadResource(resource)),
       ("domain", Text("python_local_read.authorization_context")),
       ("format", Text(format)),
       (
@@ -236,7 +242,7 @@ pub fn prepare_local_sdk_read_originals_for_source(
   // Recheck the independent current decisions after all fallible projection.
   match source.validate_current(account, result_name) {
     Err(issue) => Err(issue)
-    Ok(_) =>
+    Ok(current_resource) if current_resource == resource =>
       Ok({
         request: source.request(),
         materials,
@@ -244,6 +250,7 @@ pub fn prepare_local_sdk_read_originals_for_source(
         ceiling,
         egress,
       })
+    Ok(_) => Err(InvalidSelection)
   }
 }
 
@@ -279,7 +286,7 @@ pub fn prepare_local_sdk_read_originals(
   max_results : Int,
 ) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
   prepare_local_sdk_read_originals_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection=Some(selection)),
     account,
     original,
     selection,

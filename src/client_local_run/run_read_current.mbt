@@ -32,6 +32,21 @@ pub fn validate_local_preflight_result_read_current(
   account : @authorization.AdmittedAccountConfiguration,
   result_name : String,
 ) -> Result[Unit, LocalPublicationIntentIssue] {
+  local_preflight_result_read_resource(preflight, account, result_name, false).map(_ => {
+      ()
+    },
+  )
+}
+
+///|
+/// Reuse the original checked membership and Run/read decision before selecting
+/// the exact second Account tuple authorized for this retained read purpose.
+fn local_preflight_result_read_resource(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  result_name : String,
+  installed_original_result : Bool,
+) -> Result[String, LocalPublicationIntentIssue] {
   match validate_local_preflight_run_read_current(preflight, account) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -53,10 +68,11 @@ pub fn validate_local_preflight_result_read_current(
     resource: "result/" + result_name,
     operation: "read",
   }
-  if @authorization.evaluate_account(account, read_tuple)
-    is @authorization.Allow(_) {
-    Ok(())
-  } else {
-    Err(AuthorizationMismatch)
+  match
+    @authorization.local_result_read_authority_resource(
+      account, read_tuple, installed_original_result,
+    ) {
+    Some(resource) => Ok(resource)
+    None => Err(AuthorizationMismatch)
   }
 }
