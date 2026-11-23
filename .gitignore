@@ -3170,3 +3170,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/host/salesforce-resource-discovery.d.mts
 /adapters/connectors/salesforce/host/salesforce-resource-service.mjs
 /adapters/connectors/salesforce/host/salesforce-resource-service.d.mts
+/adapters/connectors/salesforce/host/salesforce-initialization-construction.mjs
+/adapters/connectors/salesforce/host/salesforce-initialization-construction.d.mts
+/adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs
+/adapters/connectors/salesforce/host/salesforce-effect-request-recovery.d.mts

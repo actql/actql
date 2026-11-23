@@ -11950,7 +11950,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "29d996cf18913af61e38cf8d9b09b26d93397afd48cf80cfe92f9b22dfbea0b5",
+      "sha256": "6c42d8066f184687f7978e095f186956ca13d37a38b5b1197fc6b4fd6a970510",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [
@@ -12063,7 +12063,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "does not restore apply or credential authority"
               },
               {
@@ -12073,7 +12073,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "recoverCapturedSalesforceSingleRequests"
               },
               {
@@ -12093,7 +12093,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "the caller retains Run, cancellation"
               },
               {
@@ -12103,7 +12103,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "Synchronous, bounded reconstruction only"
               },
               {
@@ -12113,7 +12113,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "InvalidSalesforceCapturedRequestRecovery"
               },
               {
@@ -12123,7 +12123,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "current authorization, response custody and physical send responsibilities"
               },
               {
@@ -12133,7 +12133,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mts",
                 "anchor": "maxRetainedBytes"
               },
               {

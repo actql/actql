@@ -4,20 +4,58 @@ import {recoverRetainedSalesforceCatalog} from
 import {recoverNamedSalesforceObservation} from
   '../site/salesforce-named-describe.mjs';
 
-const fail = code => {
+import type {ResourceBinding, ResourceResolutionRuntime} from './salesforce-resource-resolver.mjs';
+
+type NamedRecovery = Parameters<typeof recoverNamedSalesforceObservation>[0];
+type CatalogRecovery = Parameters<typeof recoverRetainedSalesforceCatalog>[0];
+type Resize = Parameters<NonNullable<NamedRecovery['beforeRecover']>>;
+type RecoveryQuote = Readonly<{evidence: Resize[0]; bodies: Resize[1]}> | Readonly<{fallback: true}>;
+type Runtime = Readonly<{
+  salesforceAdmitRecoveryPreview(wire: string, run: string, context: string, bytes: number, nodes: number, depth: number): unknown;
+  salesforceRecoveryPreviewMemberCount(preview: unknown): number;
+  salesforceRecoveryPreviewRowCount(preview: unknown, member: number): number;
+  salesforceRecoverSingleWriteRequest(preview: unknown, member: number, row: number, projection: unknown,
+    apiVersion: string, bodyBytes: number, bodyNodes: number, bodyDepth: number, pathBytes: number, targetBytes: number,
+    requestBytes: number, identityBytes: number, origin: string, canonicalRequestCid: string): unknown;
+}>;
+type Claim = Readonly<{canonicalRequestCid?: string}>;
+type PreparedMember = Readonly<{projection: unknown; apiVersion: string; resourceOrigin: string; claims: readonly Claim[]}>;
+type RecoveryInputs = Readonly<{
+  previewWire: string; runIdentityCid: string; authoringContextCid: string; maxMembers: number; maxRows: number;
+  previewLimits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+  bodyLimits: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
+  requestLimits: Readonly<{maxPathBytes: number; maxTargetBytes: number; maxBodyBytes: number}>;
+  memberIndexes?: readonly number[];
+}>;
+type Prepared = RecoveryInputs & Readonly<{moon: Runtime; members: readonly PreparedMember[]; maxIdentityBytes?: number}>;
+type CaptureEntry = Readonly<{memberIndex: number; kind: string; wire: string; observationCid: string}>;
+type Captured = RecoveryInputs & Readonly<{
+  moon: Runtime & NamedRecovery['moon'] & CatalogRecovery['moon'] & Pick<ResourceResolutionRuntime, 'salesforcePrepareWriteProjection'>;
+  recovered: Readonly<{connectorRecovery: readonly CaptureEntry[]}>;
+  recorded: Readonly<{members: readonly Pick<PreparedMember, 'claims'>[]}>;
+  maxRetainedBytes: number; reserveRecoveryInput?: (memberIndex: number, quote: RecoveryQuote) => unknown;
+}>;
+type Preview = Readonly<{invocation_cid: string; effects: readonly Readonly<{effect_kind: string;
+  write_footprint?: Readonly<{resource_kind: string}>}>[]}>;
+type CaptureProfile = Readonly<{
+  operation: string; resourceName: string; apiVersion: string; resourceOrigin: string; externalTargetField: string;
+  fieldNames: readonly string[]; evidence: NamedRecovery['evidence']; catalog: CatalogRecovery['retained'];
+}>;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
 // Select original positions in the unchanged whole Preview. Read the caller's
 // length and each selected index once, before invoking any Catalog decoder.
-function selectedMemberIndexes(value, count, maximum, code) {
+function selectedMemberIndexes(value: readonly number[] | undefined, count: number, maximum: number, code: string) {
   if (!Number.isSafeInteger(maximum) || maximum < 1 ||
       !Number.isSafeInteger(count) || count < 1 || count > maximum) fail(code);
   if (value === undefined) return Array.from({length: count}, (_, index) => index);
   if (!Array.isArray(value)) fail(code);
   const length = value.length;
   if (!Number.isSafeInteger(length) || length < 1 || length > count) fail(code);
-  const selected = [];
+  const selected: number[] = [];
   let previous = -1;
   for (let index = 0; index < length; index++) {
     const memberIndex = value[index];
@@ -38,8 +76,8 @@ export function recoverPreparedSalesforceSingleRequests({
   moon, previewWire, runIdentityCid, authoringContextCid, members,
   previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,
   maxIdentityBytes = 4096, memberIndexes,
-}) {
-  const positive = value => Number.isSafeInteger(value) && value > 0;
+}: Prepared) {
+  const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
   if (!moon || typeof previewWire !== 'string' ||
       typeof runIdentityCid !== 'string' ||
       typeof authoringContextCid !== 'string' ||
@@ -79,7 +117,7 @@ export function recoverPreparedSalesforceSingleRequests({
   if (selected.length !== members.length) {
     fail('InvalidSalesforcePreparedRequestRecovery');
   }
-  const requests = members.map((member, selectedIndex) => {
+  const requests = members.map((member: PreparedMember, selectedIndex) => {
     const memberIndex = selected[selectedIndex];
     if (moon.salesforceRecoveryPreviewRowCount(preview, memberIndex) !==
         member.claims.length) {
@@ -111,7 +149,7 @@ export function recoverCapturedSalesforceSingleRequests({
   moon, recovered, recorded, previewWire, runIdentityCid,
   authoringContextCid, previewLimits, bodyLimits, requestLimits,
   maxMembers, maxRows, maxRetainedBytes, memberIndexes, reserveRecoveryInput,
-}) {
+}: Captured) {
   if (!Array.isArray(recovered?.connectorRecovery) ||
       !Array.isArray(recorded?.members) ||
       (memberIndexes === undefined &&
@@ -122,8 +160,8 @@ export function recoverCapturedSalesforceSingleRequests({
       maxRetainedBytes < 1) {
     fail('InvalidSalesforceCapturedRequestRecovery');
   }
-  let previewBody;
-  try { previewBody = JSON.parse(previewWire); }
+  let previewBody: Preview | undefined;
+  try { previewBody = JSON.parse(previewWire) as Preview; }
   catch { fail('InvalidSalesforceCapturedRequestRecovery'); }
   if (!Array.isArray(previewBody.effects) ||
       previewBody.effects.length !== recorded.members.length) {
@@ -131,7 +169,7 @@ export function recoverCapturedSalesforceSingleRequests({
   }
   const selected = selectedMemberIndexes(memberIndexes,
     recorded.members.length, maxMembers, 'InvalidSalesforceCapturedRequestRecovery');
-  const retainedByIndex = new Map();
+  const retainedByIndex = new Map<number, CaptureEntry>();
   let originalPosition = 0;
   for (const entry of recovered.connectorRecovery) {
     const index = entry?.memberIndex;
@@ -145,7 +183,7 @@ export function recoverCapturedSalesforceSingleRequests({
     }
     retainedByIndex.set(index, entry);
   }
-  const catalogs = [];
+  const catalogs: unknown[] = [];
   const members = selected.map(memberIndex => {
     const entry = retainedByIndex.get(memberIndex);
     if (entry?.memberIndex !== memberIndex ||
@@ -154,15 +192,15 @@ export function recoverCapturedSalesforceSingleRequests({
         typeof entry.wire !== 'string') {
       fail('InvalidSalesforceCapturedRequestRecovery');
     }
-    let profile;
+    let profile: CaptureProfile;
     try { profile = JSON.parse(entry.wire); }
     catch { fail('InvalidSalesforceCapturedRequestRecovery'); }
     const operation = new Map([
       ['create', 0], ['update', 1], ['upsert', 2],
     ]).get(profile.operation);
     if (operation === undefined ||
-        previewBody.effects[memberIndex].effect_kind !== profile.operation ||
-        previewBody.effects[memberIndex].write_footprint?.resource_kind !==
+        previewBody!.effects[memberIndex].effect_kind !== profile.operation ||
+        previewBody!.effects[memberIndex].write_footprint?.resource_kind !==
           profile.resourceName ||
         typeof profile.apiVersion !== 'string' ||
         typeof profile.resourceOrigin !== 'string' ||
@@ -181,14 +219,14 @@ export function recoverCapturedSalesforceSingleRequests({
       fail('InvalidSalesforceCapturedRequestRecovery');
     }
     const catalog = named ? {observation: recoverNamedSalesforceObservation({
-      moon, evidence: retained, expectedObservationCid: entry.observationCid,
+      moon, evidence: retained as NamedRecovery['evidence'], expectedObservationCid: entry.observationCid,
       ...(reserveRecoveryInput === undefined ? {} : {beforeRecover: (evidence, bodies) =>
         reserveRecoveryInput(memberIndex, {evidence, bodies})})})}
-      : (reserveRecoveryInput?.(memberIndex, {fallback: true}), recoverRetainedSalesforceCatalog({moon, retained,
+      : (reserveRecoveryInput?.(memberIndex, {fallback: true}), recoverRetainedSalesforceCatalog({moon, retained: retained as CatalogRecovery['retained'],
         expectedObservationCid: entry.observationCid, maxRetainedBytes}));
-    const binding = JSON.parse(retained.observationJson).binding;
+    const binding = JSON.parse(retained.observationJson).binding as ResourceBinding;
     if (binding.resource_origin !== profile.resourceOrigin ||
-        binding.run_invocation_cid !== previewBody.invocation_cid) {
+        binding.run_invocation_cid !== previewBody!.invocation_cid) {
       fail('ForeignSalesforceCapturedRequestRecovery');
     }
     const projection = checked(moon.salesforcePrepareWriteProjection(

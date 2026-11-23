@@ -3,6 +3,14 @@
 // reserves capacity, installs authorization, or manages a Site lifetime.
 import {types} from 'node:util';
 
+type Limits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
+type Initialization = Readonly<{generation: unknown; siteBinding: unknown; declarationLimits?: Limits}>;
+type Declaration = Initialization & Readonly<{dimensions: readonly unknown[]}>;
+type Mapping = Readonly<{generation: unknown; write: unknown; mappingLimits?: Limits}>;
+type Constructor = 'clientProgramSalesforceOriginalInitializationConstructionCapacity' |
+  'clientProgramSalesforceObservationConstructionCapacity' | 'clientProgramSalesforceDeclarationConstructionCapacity' |
+  'clientProgramSalesforceExecutionMappingConstructionCapacity';
+
 const intMax = 2_147_483_647;
 const revision = 'salesforce/0.1';
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -10,35 +18,35 @@ const defaultDeclarationLimits = Object.freeze({maxBytes: 4_000_000,
   maxNodes: 400_000, maxDepth: 64});
 const defaultMappingLimits = Object.freeze({maxBytes: 400_000,
   maxNodes: 40_000, maxDepth: 64});
-const fail = () => { throw Object.assign(new Error('InvalidSalesforceConstructionOriginal'),
+const fail: () => never = () => { throw Object.assign(new Error('InvalidSalesforceConstructionOriginal'),
   {code: 'InvalidSalesforceConstructionOriginal'}); };
-const object = value => {
+const object = (value: unknown) => {
   if (value === null || typeof value !== 'object' || types.isProxy(value)) fail();
   return value;
 };
-const own = (value, key, optional = false) => {
+const own = (value: unknown, key: PropertyKey, optional = false): unknown => {
   const descriptor = Object.getOwnPropertyDescriptor(object(value), key);
   if (descriptor === undefined && optional) return undefined;
   if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) fail();
   return descriptor.value;
 };
-const string = value => { if (typeof value !== 'string') fail(); return value; };
-const integer = (value, minimum = 0) => {
-  if (!Number.isSafeInteger(value) || value < minimum || value > intMax) fail();
-  return value;
+const string = (value: unknown) => { if (typeof value !== 'string') fail(); return value; };
+const integer = (value: unknown, minimum = 0) => {
+  if (!Number.isSafeInteger(value) || (value as number) < minimum || (value as number) > intMax) fail();
+  return value as number;
 };
-const add = (a, b) => integer(a + b);
-const array = value => {
+const add = (a: number, b: number) => integer(a + b);
+const array = (value: unknown) => {
   if (!Array.isArray(object(value))) fail();
   integer(own(value, 'length'));
-  return value;
+  return value as readonly unknown[];
 };
-const limits = value => [integer(own(value, 'maxBytes'), 1),
+const limits = (value: unknown) => [integer(own(value, 'maxBytes'), 1),
   integer(own(value, 'maxNodes'), 1), integer(own(value, 'maxDepth'), 1)];
 
 // Validate exact canonical spelling and padding bits without allocating a
 // Buffer or using the provider decoder. Unavailable outcomes have null bodies.
-function bodyBytes(encoded, maxBytes) {
+function bodyBytes(encoded: string | null, maxBytes: number) {
   if (encoded === null) return 0;
   string(encoded);
   if (encoded.length % 4 !== 0 || encoded.length > 4 * Math.ceil(maxBytes / 3)) fail();
@@ -46,14 +54,14 @@ function bodyBytes(encoded, maxBytes) {
   for (let index = 0; index < encoded.length - padding; index += 1) {
     if (alphabet.indexOf(encoded[index]) < 0) fail();
   }
-  if ((padding === 2 && (alphabet.indexOf(encoded.at(-3)) & 15) !== 0) ||
-      (padding === 1 && (alphabet.indexOf(encoded.at(-2)) & 3) !== 0)) fail();
+  if ((padding === 2 && (alphabet.indexOf(encoded.at(-3)!) & 15) !== 0) ||
+      (padding === 1 && (alphabet.indexOf(encoded.at(-2)!) & 3) !== 0)) fail();
   const bytes = integer(encoded.length / 4 * 3 - padding);
   if (bytes > maxBytes) fail();
   return bytes;
 }
 
-function evidenceGeometry(generation) {
+function evidenceGeometry(generation: unknown) {
   const evidence = own(generation, 'evidence');
   const names = array(own(evidence, 'names'));
   const bodies = array(own(evidence, 'describeBodyBase64'));
@@ -64,13 +72,13 @@ function evidenceGeometry(generation) {
   const describe = own(evidence, 'describeLimits');
   const describeLimits = [...limits(describe), integer(own(describe, 'maxFields'), 1),
     integer(own(describe, 'maxNameUnits'), 1)];
-  const bodyLengths = [];
-  const encodedBodies = [];
-  const nameLengths = [];
+  const bodyLengths: number[] = [];
+  const encodedBodies: (string | undefined)[] = [];
+  const nameLengths: number[] = [];
   let encodedUnits = 0;
   for (let index = 0; index < names.length; index += 1) {
     const name = string(own(names, String(index)));
-    const encoded = own(bodies, String(index));
+    const encoded = own(bodies, String(index)) as string | null;
     nameLengths.push(integer(name.length));
     bodyLengths.push(bodyBytes(encoded, describeLimits[0]));
     encodedBodies.push(encoded === null ? undefined : encoded);
@@ -84,7 +92,7 @@ function evidenceGeometry(generation) {
     connectorUnits: integer(string(own(generation, 'connector_id')).length)};
 }
 
-function quote(common, exportName, args) {
+function quote(common: unknown, exportName: Constructor, args: readonly unknown[]) {
   const callable = own(common, exportName);
   if (typeof callable !== 'function') fail();
   const capacity = Reflect.apply(callable, common, args);
@@ -95,19 +103,19 @@ function quote(common, exportName, args) {
   return capacity;
 }
 
-export function salesforceInitializationConstructionCapacity(common, options) {
+export function salesforceInitializationConstructionCapacity(common: unknown, options: Initialization) {
   return initializationCapacity(common, options,
     'clientProgramSalesforceOriginalInitializationConstructionCapacity');
 }
 
-export function salesforceObservationConstructionCapacity(common, options) {
+export function salesforceObservationConstructionCapacity(common: unknown, options: Initialization) {
   return initializationCapacity(common, options,
     'clientProgramSalesforceObservationConstructionCapacity');
 }
 
-export function salesforceDeclarationConstructionCapacity(common, options) {
+export function salesforceDeclarationConstructionCapacity(common: unknown, options: Declaration) {
   const dimensions = array(own(options, 'dimensions'));
-  const measured = [];
+  const measured: number[] = [];
   for (let index = 0; index < dimensions.length; index++) {
     measured.push(integer(own(dimensions, String(index))));
   }
@@ -115,8 +123,8 @@ export function salesforceDeclarationConstructionCapacity(common, options) {
     'clientProgramSalesforceDeclarationConstructionCapacity', measured);
 }
 
-function initializationCapacity(common,
-  {generation, siteBinding, declarationLimits = defaultDeclarationLimits}, exportName, dimensions) {
+function initializationCapacity(common: unknown,
+  {generation, siteBinding, declarationLimits = defaultDeclarationLimits}: Initialization, exportName: Constructor, dimensions?: readonly number[]) {
   const geometry = evidenceGeometry(generation);
   // The observation's original text bounds its binding without JSON.parse.
   // Current Site string fields are independent: a mismatched binding can fail
@@ -133,11 +141,11 @@ function initializationCapacity(common,
   ]);
 }
 
-export function salesforceExecutionMappingConstructionCapacity(common,
-  {generation, write, mappingLimits = defaultMappingLimits}) {
+export function salesforceExecutionMappingConstructionCapacity(common: unknown,
+  {generation, write, mappingLimits = defaultMappingLimits}: Mapping) {
   const geometry = evidenceGeometry(generation);
   const resource = string(own(write, 'resource'));
-  let bodyLength;
+  let bodyLength: number | undefined;
   for (let index = 0; index < geometry.names.length; index += 1) {
     if (own(geometry.names, String(index)) === resource) {
       if (bodyLength !== undefined) fail();
