@@ -164,9 +164,14 @@ fn bounded_string_group_cast_capacity(
     bounded_string_group_number_cast(expression) else {
     return Some(0L)
   }
-  // The group row limit constrains its output, including when the input
-  // has more rows. Only the shared nonrefilling cast debit bounds this count.
-  let count = (limits.max_work / scalar_cast_work).to_int64()
+  // The group can consume more rows than it emits. Each completed cast
+  // retained beyond its Fragment keeps its contributor source and value
+  // slots through permutation and reduction. A cast that cannot reserve
+  // the pair still fits in the existing transient Fragment quote.
+  let count = Int::min(
+    limits.max_work / scalar_cast_work,
+    limits.rows.operation_entries / aggregate_contributor_slots,
+  ).to_int64()
   guard checked_preparation_add_product(
       0L,
       count,

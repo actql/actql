@@ -1,4 +1,7 @@
 ///|
+let aggregate_contributor_slots : Int = 2
+
+///|
 /// Collection preserves authored member order and filter-before-argument
 /// demand. Successful arrays transfer to the enclosing aggregate workspace.
 priv struct AggregateContributorExecution[T] {
@@ -165,7 +168,7 @@ fn[T : IndexedRows] advance_aggregate_contributors_impl(
     }
   }
   state.expression = None
-  if !reserve_slots(state.workspace, 2) {
+  if !reserve_slots(state.workspace, aggregate_contributor_slots) {
     return Err(RowLimit)
   }
   state.sources.push(source)

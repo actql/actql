@@ -223,6 +223,26 @@ test "ordered Number CAST retains its staged contributor text and the original e
     { unit: DecodedTextBytes, count: 128L, copies: 1, },
   ])
   assert_eq(bounded_string_group_cast_capacity(kernel, limited), expected)
+  // The implementation holds two workspace slots for each retained
+  // contributor, including during its stable ordering and reduction.
+  let workspace_limited = {
+    ..limited,
+    rows: { ..limited.rows, operation_entries: 3, },
+  }
+  assert_eq(
+    bounded_string_group_cast_capacity(kernel, workspace_limited),
+    execution_capacity_inventory_bytes([
+      { unit: ValueNodeSlots, count: 1L, copies: 1, },
+      { unit: DecodedTextBytes, count: 64L, copies: 1, },
+    ]),
+  )
+  assert_eq(
+    bounded_string_group_cast_capacity(kernel, {
+      ..workspace_limited,
+      max_work: 63,
+    }),
+    Some(0L),
+  )
   let schema =
     #|{"id":{"type":"number","nullable":false},"v":{"type":"number","nullable":false}}
   let rows =
