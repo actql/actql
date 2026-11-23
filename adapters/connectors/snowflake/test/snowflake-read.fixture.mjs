@@ -9,6 +9,7 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -43,8 +44,9 @@ async function originalRowOwner(descriptionBody) {
   const publication = JSON.stringify({environmentCid: environment.evidenceCid,
     aliases: [{name: 'snowflake.usage_30d', sourceRef: view.source_ref,
       sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
+  // This fixture uses QueryMaterial, which requires a scan-filter-select prefix.
   const outcome = moon.clientProgramPrepareSourceWithParameters(
-    'SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d',
+    'SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d WHERE TRUE',
     'sql', check, publication, undefined, undefined);
   const program = moon.clientProgramPreparationReady(outcome);
   assert.ok(program, `ordinary SQL must prepare the original declared input: ${
@@ -81,6 +83,13 @@ async function originalRowOwner(descriptionBody) {
       {code: 'MoonBitHostFailure'}),
     captureRows() {
       checked(moon.clientProgramRowSourceFinish(run));
+      checked(moon.clientProgramRowSourceCaptureBegin(run));
+      let done = false;
+      for (let advance = 0; advance < 1000 && !done; advance += 1) {
+        const progress = checked(moon.clientProgramRowSourceCaptureAdvance(run, 1));
+        done = runtimeField(progress, 0) === true;
+      }
+      assert.ok(done, 'the original capture completes within the fixture work bound');
       const captured = checked(moon.clientProgramRowSourceCapture(run));
       const source = checked(moon.clientProgramRowSourceCaptureSource(captured));
       const exported = checked(moon.clientProgramExportSourceCapture(source,
