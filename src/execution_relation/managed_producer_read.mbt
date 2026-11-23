@@ -227,6 +227,28 @@ pub fn[T] managed_producer_read_column(
 }
 
 ///|
+/// Bound the complete ordered canonical row transfer from the source receipt.
+/// The bridge admits the full source row before applying the receiving view.
+/// This quote neither pins the source nor authorizes any transfer.
+pub fn[T] managed_producer_read_wire_transfer_bound(
+  input : ManagedProducerRead[T],
+  max_columns : Int,
+  max_bytes : Int,
+) -> Int64? {
+  if !managed_producer_read_available(input) {
+    return None
+  }
+  let receipt = input.output.material.receipt
+  if receipt.rows == 0 {
+    return Some(0L)
+  }
+  managed_output_value_row_wire_bound(receipt, None, max_columns, max_bytes).map(bound => {
+      receipt.rows.to_int64() * bound.to_int64()
+    },
+  )
+}
+
+///|
 /// Exact receiving use-site identity, not content or output occurrence equality.
 pub fn[T] managed_producer_read_same_binding(
   left : ManagedProducerRead[T],
