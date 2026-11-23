@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3b08b1ed4bf0a4ace99c9984862d4beac9d026526bc1e4378aa713c56feba4fa",
+      "sha256": "02cd6d25e1d73daf8bb93644147ed70aa78efa7b64902512d8488202689767e8",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32465,19 +32465,6 @@
           "async": false
         },
         {
-          "name": "buildLocalPublicationPlan/plan/plan",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectPublicationAdmission/selectRetention/selectRetention",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "inferTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -32501,13 +32488,6 @@
           "name": "inferTaskRunAdmission",
           "parameters": [
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "keyedInputRetentionSelection",
-          "parameters": [
-            "acquired"
           ],
           "async": false
         },
@@ -32562,14 +32542,6 @@
           "parameters": [
             "original",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "retentionDependencies/retentionDependencies",
-          "parameters": [
-            "kind",
-            "name"
           ],
           "async": false
         },
@@ -32785,15 +32757,11 @@
             "acquiredMultiTaskPublicationPlan/whole/whole",
             "acquiredTaskPublicationPlan",
             "acquiredTaskRunAdmission",
-            "buildLocalPublicationPlan/plan/plan",
-            "effectPublicationAdmission/selectRetention/selectRetention",
             "inferTaskPublicationPlan",
             "inferTaskRunAdmission",
-            "keyedInputRetentionSelection",
             "prepareAcquiredEffectSourceUnits",
             "prepareAcquiredEffectSourceUnits/evidence/evidence",
             "prepareAcquiredEffectSourceUnits/selected/selected",
-            "retentionDependencies/retentionDependencies",
             "selectInstalledSerializationGraph",
             "serializationTaskPublicationPlan",
             "serializationTaskPublicationPlan/input/input",
@@ -35260,8 +35228,257 @@
         "./infer-effect-observation.mjs",
         "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs",
         "./local-query-invocation.mjs",
         "./local-values-capacity.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-publication-plan.mjs",
+      "sha256": "465219919ffbc3685432c13963d95ec71bdfa6be5311d6cba73eab9e0b81a170",
+      "exports": [
+        "buildLocalPublicationPlan",
+        "effectPublicationAdmission",
+        "keyedInputRetentionSelection",
+        "localPublicationPlan",
+        "localRetentionTimes",
+        "managedProgramInitialRetention",
+        "managedProgramPublicationCurrent",
+        "retentionDependencies"
+      ],
+      "operations": [
+        {
+          "name": "buildLocalPublicationPlan",
+          "parameters": [
+            "control",
+            "admission",
+            "runDefinition",
+            "invocation",
+            "observation",
+            "compiledPlanCid",
+            "programDefinitionCid",
+            "inputRelationCids",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "dataPolicyCid",
+            "createdAt",
+            "now",
+            "resultCount",
+            "retainUntil",
+            "compiled",
+            "preparedProgram",
+            "publicationOriginal",
+            "authoringContextOriginal",
+            "effectCompilation",
+            "preparedEffect",
+            "moon",
+            "modelEvidence",
+            "outputLimits",
+            "retentionSelection",
+            "originalRetention"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildLocalPublicationPlan/plan/plan",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectPublicationAdmission",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "compilation",
+            "allowed",
+            "definition",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "resultDataPolicy",
+            "queryTimePreparation",
+            "queryTime",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectPublicationAdmission/selectRetention/selectRetention",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "keyedInputRetentionSelection",
+          "parameters": [
+            "acquired"
+          ],
+          "async": false
+        },
+        {
+          "name": "localPublicationPlan",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "localRetentionTimes",
+          "parameters": [
+            "now",
+            "retainUntil"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedProgramInitialRetention",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "admitted",
+            "managed",
+            "policy",
+            "now",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedProgramPublicationCurrent",
+          "parameters": [
+            "moon",
+            "prepared",
+            "admitted",
+            "managed",
+            "owner",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "retentionDependencies/retentionDependencies",
+          "parameters": [
+            "kind",
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "buildLocalPublicationPlan",
+            "buildLocalPublicationPlan/plan/plan",
+            "effectPublicationAdmission",
+            "effectPublicationAdmission/selectRetention/selectRetention",
+            "keyedInputRetentionSelection",
+            "localPublicationPlan",
+            "localRetentionTimes",
+            "managedProgramInitialRetention",
+            "managedProgramPublicationCurrent",
+            "retentionDependencies/retentionDependencies"
+          ],
+          "exports": [
+            "buildLocalPublicationPlan",
+            "effectPublicationAdmission",
+            "keyedInputRetentionSelection",
+            "localPublicationPlan",
+            "localRetentionTimes",
+            "managedProgramInitialRetention",
+            "managedProgramPublicationCurrent",
+            "retentionDependencies"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "export function buildLocalPublicationPlan<Retention>("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "const plan = Object.freeze({admission, runDefinition, invocation, observation,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "scopeCid: runDefinition.identity,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "control.issueProgramInitialRetention(owner, prepared, request, policy,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "throw new TypeError('OriginalProgramRetentionOwnerRequired');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "if (retentionFailed) throw retentionFailure;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "outputLimits, contractLimits: limits, now,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-publication-plan.mts",
+                "anchor": "return {plan, retention, retentionDependencies};"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual Values and Tasks initial-retention callers forward only their same managed original"
+              },
+              {
+                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "anchor": "one admitted Effect retains its original input retention after the Model clock advances"
+              },
+              {
+                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "anchor": "publication reads the same original before admission and after its move to the live Run"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./local-publication-limits.mjs",
+        "./local-query-invocation.mjs",
         "node:crypto"
       ],
       "compilerFields": [],
