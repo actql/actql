@@ -12,10 +12,13 @@ pub fn Journal::read_funded_initial_catalog_use(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   if !physical_equal(self, custody.journal) ||
     !custody.accepted ||
     custody.cleanup_started ||
-    custody.removal_confirmed ||
+    custody.removal is RemovalConfirmed ||
     !@resources.capacity_reservation_open(custody.reservation) {
     return Err(StateCollision)
   }

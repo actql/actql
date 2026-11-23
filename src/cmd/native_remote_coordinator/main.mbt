@@ -77,6 +77,10 @@ fn coordinator_issue(issue : @journal.NativeRemoteJournalIssue) -> String {
       "Coordinator journal observation history required"
     @journal.Protocol(_) => "Coordinator protocol state was rejected"
     @journal.Physical(_) => "Coordinator journal persistence failed"
+    @journal.TransactionFenced => "Coordinator journal requires reconciliation"
+    @journal.TransactionCommit(_) => "Coordinator journal commit reply failed"
+    @journal.TransactionStop(_, _) =>
+      "Coordinator journal transaction cleanup pending"
     @journal.InitializationCleanupPending(_, _, _) =>
       "Coordinator journal inspection cleanup pending"
   }

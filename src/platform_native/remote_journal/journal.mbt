@@ -4,6 +4,12 @@ pub(all) enum NativeRemoteJournalIssue {
   Closed
   CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
+  TransactionFenced
+  TransactionCommit(@sqlite.NativeSqliteJournalCommitFailure)
+  TransactionStop(
+    NativeRemoteJournalIssue?,
+    @sqlite.NativeSqliteTransactionStopFailure
+  )
   Protocol(@remote.DispatchIssue)
   StaleSiteBinding
   MissingDispatch

@@ -1607,6 +1607,10 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   }
   match self.owners.get(identity) {
     Some(owner) => {
+      match self.journal.require_operational() {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
+      }
       self.admitting[identity] = true
       let observed = observe_accepted(owner.record)
       ignore(self.admitting.remove(identity))
@@ -1615,6 +1619,10 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
       }
       if !observed {
         return Err(AcceptanceUnconfirmed)
+      }
+      match self.journal.require_operational() {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
       }
       guard self.owners.get(identity) is Some(current) else {
         return Err(DispatchAlreadyStarted)
