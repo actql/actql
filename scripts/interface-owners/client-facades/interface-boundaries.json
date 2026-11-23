@@ -1081,8 +1081,8 @@
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/connector-layout.md",

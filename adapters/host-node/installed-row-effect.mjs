@@ -92,7 +92,7 @@ import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-c
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -104,6 +104,7 @@ import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-phys
 import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 import {createInstalledRowEffectCaptureEntry} from './installed-row-effect-capture-entry.mjs';
 import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
+import {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreview,
   createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
@@ -490,100 +491,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         artifact: sourceSet.members[index].payload.localResultArtifact,
         limits, assertCurrent});
       if (contentOf !== undefined) contentBorrowers.push(contentOf);
-      let memberEntries;
-      const constructRows = async () => {
-        const selectedCreate = member.kind === 'create'
-          ? prepareInstalledCreateRows(moon, proposals[index], limits.preview) : undefined;
-        const rows = selectedCreate?.rows ?? proposals[index].map(proposal => {
-          const changes = JSON.parse(proposal.changesWire);
-          return {value: changes.value, selector: targeted(member.kind)
-            ? JSON.parse(proposal.selectorWire) : undefined};
-        });
-        const createRows = selectedCreate?.createRows;
-        let entries;
-        const recipe = recipeOf(member);
-        const constructor = recipe?.requestConstruction;
-        if (constructor !== undefined && (managedEffect?.runtime !== moon ||
-            managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
-          fail('ForeignInstalledEffectManagedRun');
-        }
-        if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
-          const preparedEntries = [];
-          for (const [rowIndex, row] of rows.entries()) {
-            // Export already bounds the total proposal rows. Member/control
-            // children share the same retainer but do not consume a row slot.
-            if (rowIndex >= limits.maxRowsPerMember) fail('InstalledRowEffectRowLimit');
-            const context = {member, value: row.value, selector: row.selector,
-              ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
-                proposalWire: row.proposalWire} : {}),
-              current: description, content: commandContentRow(contentOf, rowIndex), signal,
-              ...(contentOwner === undefined ? {} : {contentOwner}),
-              ...resourceFields(member),
-              ...(guarded(member.kind) ? {rowIndex, assertCurrent,
-                ...(updateWriteSlot === undefined ?
-                  {authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} : {})} :
-                {authorizationForRow: reads[index]?.authorizationForRow})};
-            const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
-              create: () => constructor === undefined ? owned.prepareRequestChild(context) :
-                (owned.prepareRequestChild === undefined ? prepareInstalledEffectRequestChild :
-                  prepareInstalledEffectOwnedRequestChild)({run: managedEffect, memberIndex: member.memberIndex,
-                  rowIndex, operationIndex: constructor.operationIndex,
-                  operation: recipe.rowOperations[constructor.operationIndex].operation,
-                  ...(constructor.inputExtent === undefined ? {} : {inputExtent: () =>
-                    controlConstruction(undefined, constructor.inputExtent, [proposals[index][rowIndex]])}),
-                  ...(owned.prepareRequestChild === undefined
-                    ? {construct: () => owned.prepareRequest(context)}
-                    : {constructChild: () => owned.prepareRequestChild(context)}),
-                  requestsRetired: retireRequestAliases}),
-              assertCurrent, signal});
-            // The Native constructor has returned, but requestFacts can still
-            // parse its returned JSON. Use the SAME existing control frame for
-            // that synchronous projection, before publishing the row entry.
-            preparedEntries.push(controlConstruction === undefined
-              ? requestEntry(member, row, preparedRequest)
-              : constructor === undefined || controlConstruction.requestProjection === undefined
-                ? controlConstruction(undefined, requestEntry, [member, row, preparedRequest])
-                : controlConstruction.requestProjection(member.memberIndex, constructor.operationIndex, rowIndex,
-                  undefined, requestEntry, [member, row, preparedRequest]));
-          }
-          entries = Object.freeze(preparedEntries);
-        } else entries = requestsOf(member, rows, description, contentOf, createRows);
-        memberEntries = entries;
-        if (member.kind === 'create') {
-          // Reuse the SAME Common inventory for Preview and requests.
-          for (const [row, entry] of entries.entries()) {
-            createRows[row].entry = entry;
-            Object.freeze(createRows[row]);
-          }
-          rowsOf[index] = Object.freeze(createRows);
-          observations[index] = undefined;
-          return;
-        }
-        if (member.kind === 'command') {
-          await owned.recheckRequests({member, entries, current: description, controlConstruction, ...resourceFields(member)});
-          assertCurrent?.();
-          rowsOf[index] = Object.freeze(entries.map(entry => Object.freeze({entry})));
-          observations[index] = undefined;
-          return;
-        }
-        const observed = await observeRows({member, entries,
-          current: description, read: reads[index], signal, assertCurrent, physicalOperations, operationPhase: 'capture',
-          runInvocationCid, dispatchRequestCid: dispatches[index]});
-        assertCurrent?.();
-        observations[index] = observed;
-        rowsOf[index] = Object.freeze(entries.map((entry, row) => Object.freeze({
-          entry, state: observed[row].state, versionCid: observed[row].versionCid,
-          before: observed[row].before})));
-      };
+      const {constructRows, recoverObservedRows} = createInstalledRowEffectCaptureRows({
+        member, index, owned, updateWriteSlot, description, contentOf, moon, proposals, limits, recipeOf,
+        managedEffect, prepared, identity, reads, controlConstruction, runInvocationCid, dispatches, signal,
+        assertCurrent, contentOwner, resourceFields, physicalOperations, guarded, targeted, requestChildren,
+        rowsOf, observations, prepareInstalledCreateRows, commandContentRow, requestEntry, requestsOf,
+        observeRows, retireRequestAliases, fail,
+      });
       const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
       if (observedCapture) {
         // The proposal Strings are borrowed from the completed original Read.
         // Its same constructor now funds every native map/parse/request below
         // BEFORE entry and joins the actual asynchronous task before completion.
-        rowsOf[index] = async () => {
-          await constructRows();
-          return owned.recoveryEntry?.({member, current: description, entries: memberEntries});
-        };
+        rowsOf[index] = recoverObservedRows;
         observations[index] = await memberCaptures[index].prepare();
       } else await constructRows();
     }

@@ -2346,6 +2346,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-capture-entry.d.mts
 /adapters/host-node/installed-row-effect-capture-inputs.mjs
 /adapters/host-node/installed-row-effect-capture-inputs.d.mts
+/adapters/host-node/installed-row-effect-capture-rows.mjs
+/adapters/host-node/installed-row-effect-capture-rows.d.mts
 /adapters/host-node/installed-row-effect-capture-values.mjs
 /adapters/host-node/installed-row-effect-capture-values.d.mts
 /adapters/host-node/installed-effect-definition-data.test.mjs

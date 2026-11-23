@@ -481,7 +481,7 @@
               "anchor": "Physical callbacks retain"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -641,7 +641,7 @@
               "anchor": "Physical callbacks retain"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -1120,7 +1120,7 @@
               "anchor": "Physical callbacks retain"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -1463,7 +1463,7 @@
               "anchor": "Physical callbacks retain"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -1814,7 +1814,7 @@
               "anchor": "The clear driver uses the existing"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -2005,7 +2005,7 @@
               "anchor": "Physical callbacks retain"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],
@@ -5374,7 +5374,7 @@
               "anchor": "The clear driver uses the existing"
             },
             {
-              "path": "adapters/host-node/installed-row-effect.mjs",
+              "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
               "anchor": "await owned.recheckRequests"
             }
           ],

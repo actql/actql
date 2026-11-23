@@ -14,6 +14,7 @@ import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-re
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
+import {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -21,7 +22,7 @@ import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-bind
 import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -234,7 +235,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     ownerOf,cidPattern:/^sha256:[0-9a-f]{64}$/u,targeted:()=>false,
     sameEffectValue:(_kind,a,b)=>same(a,b),sameValue:same,resourceFields,commandContentRow,fail,
   });
-  const ports={...readPorts(ownerOf, resourceFields),controlConstruction:controlFrame ? (receiver, method, args) => {
+  const ports={...readPorts(ownerOf, resourceFields),createInstalledRowEffectCaptureRows,controlConstruction:controlFrame ? (receiver, method, args) => {
     assert.equal(projecting, false);projecting = true;
     try {return Reflect.apply(method, receiver, args);} finally {projecting = false;}
   } : undefined,physicalOperations:()=>assert.fail('No physical call in constructor-only fixture'),
@@ -244,8 +245,8 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     resourceFields,currents:[],rowsOf:[],observations:[],commandContentBorrower:()=>assert.fail('No Command borrow'),
     control:{},prepared,identity,inputs:{},sourceSet:{members:[{payload:{}}]},limits,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
-    requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
-    managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
+    requestChildren,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
+    managedEffect,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   if (requestProjection) ports.controlConstruction.requestProjection = (actualMember, operation, row, receiver, method, args) => {
     assert.deepEqual([actualMember, operation, row], [0, 1, projections]);
     assert.equal(activeConstructor, undefined);

@@ -5648,6 +5648,216 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-capture-rows.mjs",
+      "sha256": "6ef99379295483d9b6d4ebd98546ea8a12eba72cddcf450969b82179da337ac3",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectCaptureRows"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectCaptureRows",
+          "parameters": [
+            "member",
+            "index",
+            "owned",
+            "updateWriteSlot",
+            "description",
+            "contentOf",
+            "moon",
+            "proposals",
+            "limits",
+            "recipeOf",
+            "managedEffect",
+            "prepared",
+            "identity",
+            "reads",
+            "controlConstruction",
+            "runInvocationCid",
+            "dispatches",
+            "signal",
+            "assertCurrent",
+            "contentOwner",
+            "resourceFields",
+            "physicalOperations",
+            "guarded",
+            "targeted",
+            "requestChildren",
+            "rowsOf",
+            "observations",
+            "prepareInstalledCreateRows",
+            "commandContentRow",
+            "requestEntry",
+            "requestsOf",
+            "observeRows",
+            "retireRequestAliases",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/constructRows",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/constructRows#2",
+          "parameters": [
+            "entry",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/context/context",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/constructRows/constructRows/rows/rows",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureRows/recoverObservedRows/recoverObservedRows",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectCaptureRows",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/constructRows",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/constructRows#2",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/context/context",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
+            "createInstalledRowEffectCaptureRows/constructRows/constructRows/rows/rows",
+            "createInstalledRowEffectCaptureRows/recoverObservedRows/recoverObservedRows"
+          ],
+          "exports": [
+            "createInstalledRowEffectCaptureRows"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "export function createInstalledRowEffectCaptureRows"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "const selectedCreate = member.kind"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "rowsOf[index] = Object.freeze(createRows!);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "createRowIdentity: createRows![rowIndex].identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "await prepareInstalledRowCaptureChild({children: requestChildren,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "controlConstruction.requestProjection(member.memberIndex"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "fail('ForeignInstalledEffectManagedRun')"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "fail('InstalledRowEffectRowLimit')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "assertCurrent, signal});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "rowIndex >= limits.maxRowsPerMember"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "return owned.recoveryEntry?.({member, current: description, entries: memberEntries});"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "actual managed row loop completes each original workspace"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "actual managed row loop stops on the same failed constructor"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./installed-effect-plan.mjs",
+        "./installed-row-capture-cleanup.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-capture-values.mjs",
       "sha256": "02e26150631144d2b96fa35fc142fc0bf1ed859dea727ccc3e85d41335708e2d",
       "responsibilityFacet": "primary",
@@ -11489,7 +11699,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "e44b630417ee04b3ad5c947f675d418f55d38e190b9b2b6c81f239cb86901bdd",
+      "sha256": "35ca31ced8f0d3e1035ff32a67fece4a2c1b4a3a4919231ce04d103f70ec146d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -11742,13 +11952,6 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [],
           "async": true
         },
@@ -11759,28 +11962,30 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#3",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#4",
           "parameters": [
             "rows"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
+          "name": "createRowEffectStage/captureStage/captureStage#4",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -11793,15 +11998,15 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#8",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#9",
           "parameters": [
             "member"
           ],
           "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#9",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/claims/claims",
@@ -11822,53 +12027,6 @@
           "parameters": [
             "name",
             "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/constructRows#2",
-          "parameters": [
-            "entry",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/context/context",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows/rows/rows",
-          "parameters": [
-            "proposal"
           ],
           "async": false
         },
@@ -12118,7 +12276,6 @@
             "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage#10",
-            "createRowEffectStage/captureStage/captureStage#11",
             "createRowEffectStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/captureStage#5",
@@ -12373,8 +12530,8 @@
                 "anchor": "pub fn publication_cleanup_owner_action_code("
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -13434,8 +13591,8 @@
                 "anchor": "pub fn publication_cleanup_owner_action_code("
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -14416,8 +14573,8 @@
                 "anchor": "pub fn publication_cleanup_owner_action_code("
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -15072,8 +15229,8 @@
                 "anchor": "pub fn publication_cleanup_owner_action_code("
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -15700,8 +15857,8 @@
                 "anchor": "pub fn publication_cleanup_owner_action_code("
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+                "path": "adapters/host-node/installed-row-effect-capture-rows.mts",
+                "anchor": "authorizationForRow: () => reads[index]!.authorizationForRow(rowIndex)"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -16548,16 +16705,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
-            "createRowEffectStage/captureStage/constructRows/constructRows/constructRows#2",
-            "createRowEffectStage/captureStage/constructRows/constructRows/context/context",
-            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
-            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
-            "createRowEffectStage/captureStage/constructRows/constructRows/rows/rows"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -16815,6 +16963,7 @@
         "./installed-row-effect-authorization.mjs",
         "./installed-row-effect-capture-entry.mjs",
         "./installed-row-effect-capture-inputs.mjs",
+        "./installed-row-effect-capture-rows.mjs",
         "./installed-row-effect-capture-values.mjs",
         "./installed-row-effect-claims.mjs",
         "./installed-row-effect-commit.mjs",
