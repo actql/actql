@@ -3036,3 +3036,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/github/site/github-issue-graphql-read.d.mts
 /adapters/connectors/github/test/github-comment-marker.test.mjs
 /adapters/connectors/github/test/github-comment-marker.test.d.mts
+/adapters/connectors/github/site/github-issue-read.mjs
+/adapters/connectors/github/site/github-issue-read.d.mts

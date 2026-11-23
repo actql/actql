@@ -6988,7 +6988,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de1e253e2db38b9c5e7376e482001789e8b2cb0a356ad7a7c48580c27a96c345",
+      "sha256": "8f54c765212ce2f8b978c7947e28ccba2d00e6f86ffdc9392dadac980aef4088",
       "role": "physical-io",
       "owner": "REST Issue pagination and scoped exchange; provider MoonBit owns projection, Link and failure classification",
       "exports": [
@@ -7077,43 +7077,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "readGitHubIssues"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "githubIssueListPath"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "unfetched locator kept"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "authorizationFor"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
-                "anchor": "stopped ="
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
+                "anchor": "const stopped:"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-read.mts",
                 "anchor": "checkLimits"
               }
             ],
