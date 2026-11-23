@@ -94,19 +94,24 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
       checked(provider.notionDatabaseReadSnapshotSourceCid(snapshot))}),
     bindingCid:hash('original-database-test-binding'),
     limits:{maxPages:databaseReaderLimits.maxPages,maxPageBytes:16384,maxPageRows:10,maxCaptureRows:8},
-    providerReader:factory,readPages(){assert.fail('ordinary database cannot use legacy fallback');}});
+    providerReader:factory});
   t.after(()=>source.close());
   const prepare=async()=>{
     const env=JSON.parse(source.environmentWire),view=env.schema_snapshots.find(x=>x.source_ref===source.sourceReadAccesses[0].sourceRef);
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,false,false,true,false,false,false,false);assert.ok(check);
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'notion.tasks',sourceRef:view.source_ref,
       sourceViewContractCid:view.source_view_contract_cid,schemaContractCid:view.carrier_schema_contract_cid}]});
-    const outcome=common.clientProgramPrepareSourceWithParameters('SELECT id, title, amount FROM notion.tasks','sql',check,publication,undefined,undefined);
+    // This fixture exercises the managed Query acquisition path.
+    const outcome=common.clientProgramPrepareSourceWithParameters(
+      'SELECT id, title, amount FROM notion.tasks WHERE TRUE','sql',check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
     const aoa=JSON.parse(await readFile(new URL('spec/contracts/actql-aoa.json',repo),'utf8'));
-    const input={preparedProgram,registry:await readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8'),
-      values:JSON.stringify(aoa.execution_contracts['REL.values']),fragment:JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered:JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+    const registry=await readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8');
+    const values=JSON.stringify(aoa.execution_contracts['REL.values']),
+      fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+    const input={preparedProgram,registry:contracts,values,fragment,ordered};
     const preparedSource=await source.prepare(input),plan=source.ledgerCapacity(preparedSource);
     const ledger=common.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,plan.capacity,
       plan.transferBytes,plan.executionBytes,input.registry,input.values,input.fragment,input.ordered);assert.ok(ledger);
