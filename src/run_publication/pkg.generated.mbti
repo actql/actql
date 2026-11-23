@@ -1757,7 +1757,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
 type EffectCaptureHoldingBinding
 
 pub struct EffectFileOperation {
-  deleting : Bool
+  kind : String
   effect_preview_cid : String
   member_preview_cid : String
   row_preview_cid : String
@@ -1767,7 +1767,7 @@ pub struct EffectFileOperation {
   dispatch_entry_cid : String
   authorization_context_cid : String
   resolution_cid : String
-  target_version_cid : String
+  target_version_cid : String?
 }
 
 pub struct EffectFileOperationReceipt {

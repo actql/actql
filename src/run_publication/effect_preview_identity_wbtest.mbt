@@ -412,6 +412,95 @@ test "file CREATE storage keys preserve Run and equal-content occurrences" {
     ).unwrap(),
     one_key,
   )
+  let dispatch = preview_identity_test_cid("4")
+  let target = effect_file_target_cid(
+    installation,
+    "/mock",
+    "data.json",
+    "Account",
+    "\"" + zero_key + "\"",
+    8192,
+    512,
+    12,
+  ).unwrap()
+  let operation = prepare_effect_file_operation(
+    readmitted, 0, 0, installation, target, dispatch, dispatch, installation, installation,
+    "",
+  ).unwrap()
+  assert_eq(operation.kind, "create")
+  assert_eq(operation.target_version_cid, None)
+  assert_true(
+    prepare_effect_file_operation(
+      readmitted, 0, 0, installation, target, dispatch, dispatch, installation, installation,
+      installation,
+    )
+    is Err(InvalidDispatch),
+  )
+  let replacement = @utf8.encode(
+    "{\"items\":[{\"Name\":\"After\",\"id\":\"" + zero_key + "\"}]}",
+  )
+  let evidence = admit_effect_file_replacement_evidence(
+    replacement,
+    "1",
+    "44",
+    replacement.length().to_int64(),
+    8192,
+  ).unwrap()
+  let outcome = "{\"result\":{\"id\":\"" +
+    zero_key +
+    "\"},\"state\":\"applied\"}"
+  let receipt = prepare_effect_file_operation_receipt(
+    operation, evidence, outcome, 8192, 512, 12,
+  ).unwrap()
+  assert_true(
+    @json.object_field(receipt.contract.value, "target_version_cid") is None,
+  )
+  let saved = admit_saved_effect_file_operation_receipt(
+    effect_file_operation_receipt_wire(receipt),
+    replacement,
+    8192,
+    8192,
+    512,
+    12,
+  ).unwrap()
+  assert_eq(saved.operation.kind, "create")
+  assert_true(
+    issue_effect_row_outcome_receipt_from_file(
+      readmitted, 0, 0, dispatch, saved, 8192, 512, 12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt_from_file(
+      readmitted, 0, 1, dispatch, saved, 8192, 512, 12,
+    )
+    is Err(ForeignRow),
+  )
+  let receipt_body = @json.object_without_field(
+    receipt.contract.value,
+    "receipt_cid",
+  ).unwrap()
+  let data = @json.stringify_value(receipt_body, 8192, 512, 12)
+  for
+    invalid in [
+      data.replace(
+        old="\"operation_kind\":\"create\"",
+        new="\"operation_kind\":\"update\"",
+      ),
+      data.replace(
+        old="\"operation_kind\":\"create\"",
+        new="\"operation_kind\":\"delete\"",
+      ),
+      "{\"target_version_cid\":null," + data[1:].to_owned(),
+      "{\"target_version_cid\":\"" + installation + "\"," + data[1:].to_owned(),
+    ] {
+    assert_true(
+      seal_publication_contract(
+        "effect_local_operation_receipt", invalid, 8192, 512, 12,
+      )
+      is Err(_),
+    )
+  }
   let (_, independent) = author_effect_preview_semantic_wire(
     draft.replace(
       old="\"run_identity_cid\":\"\{run}\"",

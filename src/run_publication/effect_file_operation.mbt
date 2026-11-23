@@ -2,7 +2,7 @@
 /// Original file-operation binding DATA. Context and Resolution are bindings,
 /// not grants, write-use proofs or permission to replace a target.
 pub struct EffectFileOperation {
-  deleting : Bool
+  kind : String
   effect_preview_cid : String
   member_preview_cid : String
   row_preview_cid : String
@@ -12,7 +12,7 @@ pub struct EffectFileOperation {
   dispatch_entry_cid : String
   authorization_context_cid : String
   resolution_cid : String
-  target_version_cid : String
+  target_version_cid : String?
 }
 
 ///|
@@ -192,15 +192,20 @@ pub fn prepare_effect_file_operation(
   for
     cid in [
       installation_cid, target_cid, canonical_request_cid, dispatch_entry_cid, authorization_context_cid,
-      resolution_cid, target_version_cid,
+      resolution_cid,
     ] {
     if !valid_contract_cid(cid) {
       return Err(InvalidDispatch)
     }
   }
-  let deleting = match effect_preview_member_kind(preview, member_index) {
-    Some("update") => false
-    Some("delete") => true
+  let (kind, version) = match
+    effect_preview_member_kind(preview, member_index) {
+    Some("update") if valid_contract_cid(target_version_cid) =>
+      ("update", Some(target_version_cid))
+    Some("delete") if valid_contract_cid(target_version_cid) =>
+      ("delete", Some(target_version_cid))
+    Some("create") if target_version_cid.is_empty() => ("create", None)
+    Some("update" | "delete" | "create") => return Err(InvalidDispatch)
     _ => return Err(ForeignRow)
   }
   guard effect_preview_member_identity(preview, member_index)
@@ -216,11 +221,11 @@ pub fn prepare_effect_file_operation(
     effect_preview_member_authority_scope_cid(preview, member_index) ==
     Some(authorization_context_cid) &&
     effect_preview_row_guard_version_cid(preview, member_index, raw_row_index) ==
-    Some(target_version_cid) else {
+    version else {
     return Err(ForeignRow)
   }
   Ok({
-    deleting,
+    kind,
     effect_preview_cid: effect_preview_semantic_identity(preview),
     member_preview_cid,
     row_preview_cid,
@@ -230,7 +235,7 @@ pub fn prepare_effect_file_operation(
     dispatch_entry_cid,
     authorization_context_cid,
     resolution_cid,
-    target_version_cid,
+    target_version_cid: version,
   })
 }
 
@@ -308,7 +313,7 @@ pub fn prepare_effect_file_operation_receipt(
       (name, value) in [
         ("version", "actql-local-effect-operation-receipt/0.1"),
         ("backend_kind", "json_file"),
-        ("operation_kind", if operation.deleting { "delete" } else { "update" }),
+        ("operation_kind", operation.kind),
         ("replacement_status", "acknowledged"),
         ("effect_preview_cid", operation.effect_preview_cid),
         ("effect_member_preview_cid", operation.member_preview_cid),
@@ -319,7 +324,6 @@ pub fn prepare_effect_file_operation_receipt(
         ("dispatch_entry_cid", operation.dispatch_entry_cid),
         ("authorization_context_cid", operation.authorization_context_cid),
         ("resolution_cid", operation.resolution_cid),
-        ("target_version_cid", operation.target_version_cid),
         ("replacement_physical_sha256", evidence.physical_sha256),
         (
           "typed_outcome_cid",
@@ -327,6 +331,9 @@ pub fn prepare_effect_file_operation_receipt(
         ),
       ] {
       local_operation_text(writer, name, value)
+    }
+    if operation.target_version_cid is Some(version) {
+      local_operation_text(writer, "target_version_cid", version)
     }
     @encode.key(writer, "replacement_byte_count")
     @encode.number_value(writer, evidence.byte_count.to_double())
@@ -429,12 +436,12 @@ pub fn issue_effect_row_outcome_receipt_from_file(
       dispatch_entry_cid,
       operation.authorization_context_cid,
       operation.resolution_cid,
-      operation.target_version_cid,
+      operation.target_version_cid.unwrap_or(""),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if operation.deleting != expected.deleting ||
+  if operation.kind != expected.kind ||
     operation.effect_preview_cid != expected.effect_preview_cid ||
     operation.member_preview_cid != expected.member_preview_cid ||
     operation.row_preview_cid != expected.row_preview_cid ||
@@ -523,9 +530,12 @@ pub fn admit_saved_effect_file_operation_receipt(
       _ => None
     }
   }
-  let deleting = match text(value, "operation_kind") {
-    Some("update") => false
-    Some("delete") => true
+  let version = text(value, "target_version_cid")
+  let kind = match text(value, "operation_kind") {
+    Some("update") if version is Some(_) => "update"
+    Some("delete") if version is Some(_) => "delete"
+    Some("create") if @json.object_field(value, "target_version_cid") is None =>
+      "create"
     _ => return Err(ForeignResponse)
   }
   guard text(value, "backend_kind") == Some("json_file") &&
@@ -538,7 +548,6 @@ pub fn admit_saved_effect_file_operation_receipt(
     text(value, "dispatch_entry_cid") is Some(dispatch_entry_cid) &&
     text(value, "authorization_context_cid") is Some(authorization_context_cid) &&
     text(value, "resolution_cid") is Some(resolution_cid) &&
-    text(value, "target_version_cid") is Some(target_version_cid) &&
     @json.object_field(value, "replacement_generation") is Some(generation) &&
     text(generation, "device") is Some(device) &&
     text(generation, "inode") is Some(inode) &&
@@ -578,7 +587,7 @@ pub fn admit_saved_effect_file_operation_receipt(
     _ => return Err(Encoding)
   }
   let operation : EffectFileOperation = {
-    deleting,
+    kind,
     effect_preview_cid,
     member_preview_cid,
     row_preview_cid,
@@ -588,7 +597,7 @@ pub fn admit_saved_effect_file_operation_receipt(
     dispatch_entry_cid,
     authorization_context_cid,
     resolution_cid,
-    target_version_cid,
+    target_version_cid: version,
   }
   Ok({ operation, evidence, contract, typed_outcome_wire, })
 }

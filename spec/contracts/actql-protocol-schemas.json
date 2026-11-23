@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:df5991827836c2e67e5cf8f7ee799d967bd2a63a0037cf6942d3c7c59a74b83e",
+  "artifact_registry_cid": "sha256:0339db77a80dd92b1b0924226305af51fbc0d1c8426c254f3e89d41d79f8dca1",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17516,7 +17516,7 @@
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
     "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c",
     "installation_publication_storage_binding": "sha256:99aa1c53014df8cb2bbaeef9768d461d55a7fcf0e765f8cc1d7c0ee496565b0d",
-    "effect_local_operation_receipt": "sha256:285bc022729dbc31c236e58504211da98e85a14d14e3bf88a6953bd4b8840e6d"
+    "effect_local_operation_receipt": "sha256:d3b5cddcf6c48beba73b64981011288c01284b1a5e4746bf2af5e3e123fcc3e0"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -110315,7 +110315,6 @@
             "dispatch_entry_cid",
             "authorization_context_cid",
             "resolution_cid",
-            "target_version_cid",
             "typed_outcome_cid",
             "receipt_cid",
             "backend_kind",
@@ -110366,10 +110365,6 @@
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
-            "target_version_cid": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            },
             "typed_outcome_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
@@ -110384,8 +110379,13 @@
             "operation_kind": {
               "enum": [
                 "update",
-                "delete"
+                "delete",
+                "create"
               ]
+            },
+            "target_version_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "replacement_status": {
               "const": "acknowledged"
@@ -110436,6 +110436,28 @@
                 "result": {}
               }
             }
+          },
+          "if": {
+            "required": [
+              "operation_kind"
+            ],
+            "properties": {
+              "operation_kind": {
+                "const": "create"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "target_version_cid"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "target_version_cid"
+            ]
           }
         }
       ]
