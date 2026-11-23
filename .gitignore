@@ -2342,6 +2342,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-physical-route.d.mts
 /adapters/host-node/installed-row-effect-recovery.mjs
 /adapters/host-node/installed-row-effect-recovery.d.mts
+/adapters/host-node/installed-row-effect-capture-entry.mjs
+/adapters/host-node/installed-row-effect-capture-entry.d.mts
+/adapters/host-node/installed-row-effect-capture-values.mjs
+/adapters/host-node/installed-row-effect-capture-values.d.mts
 /adapters/host-node/installed-effect-definition-data.test.mjs
 /adapters/host-node/installed-effect-definition-data.test.d.mts
 /adapters/host-node/installed-effect-owned-operation.mjs

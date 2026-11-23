@@ -5398,7 +5398,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {

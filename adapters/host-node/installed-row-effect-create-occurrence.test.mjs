@@ -12,6 +12,7 @@ import {createInstalledRowEffectFootprint, createInstalledRowEffectPreviewContex
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
@@ -175,7 +176,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     assert.deepEqual(wires,input.map(value=>JSON.stringify({state:'present',value})));
     assert.deepEqual([count,bytes,nodes,depth],[3,10000,100,10]);
     if(inventoryError)throw inventoryError;
-    return {ok:[1,2,0].map((index,i)=>runtimeTupleFromFields({0:index,1:JSON.stringify(issued[i])}))};
+    return {$tag:1,_0:[1,2,0].map((index,i)=>runtimeTupleFromFields({0:index,1:JSON.stringify(issued[i])}))};
   }};
   const prepare=context=>{
     assert.equal(inventoryCalls,1,'Common original identity must exist before provider preparation');
@@ -225,10 +226,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
   const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3,maxRowsPerMember:3};
-  const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
-  const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
-    `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
-      expression('parseExactJson',{fail}));
+  const {prepareInstalledCreateRows}=createInstalledRowEffectCaptureValues(fail);
   const resourceFields=value=>{assert.strictEqual(value,member);return {runOriginal};};
   const commandContentRow=()=>undefined;
   const {entryOf,requestEntry,requestsOf}=createInstalledRowEffectRequests({
@@ -647,11 +645,8 @@ test('CREATE inventory consumes the original checked proposal wire before any lo
   const originalIdentity=Object.freeze({content_cid:cid('a'),occurrence:0});
   const moon={clientProgramEffectCreateRowInventory(wires,count){
     assert.deepEqual(wires,[wire]);assert.equal(count,1);
-    return {ok:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
-  const declaration=nodes.find(({node})=>node.type==='FunctionDeclaration'&&
-    node.id.name==='prepareInstalledCreateRows').node;
-  const prepare=Function('checked','runtimeField','fail','parseExactJson',
-    `return (${source.slice(declaration.start,declaration.end)});`)(checked,runtimeField,fail,JSON.parse);
+    return {$tag:1,_0:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
+  const {prepareInstalledCreateRows:prepare}=createInstalledRowEffectCaptureValues(fail);
   const result=prepare(moon,[Object.freeze({changesWire:wire})],
     {maxWireBytes:10000,maxNodes:100,maxDepth:10});
   assert.strictEqual(result.rows[0],result.createRows[0].entry);

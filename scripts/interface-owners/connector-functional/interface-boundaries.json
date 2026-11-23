@@ -5228,6 +5228,398 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-row-effect-capture-entry.mjs",
+      "sha256": "92fe5ceb8979d68ba623658fcb07c49fb789a520bd0ba1cc4694e0f15534f511",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectCaptureEntry"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectCaptureEntry",
+          "parameters": [
+            "moon",
+            "assertPrepared",
+            "installedRowEffectUnit",
+            "membersOf",
+            "runLimits",
+            "bindRunResources",
+            "selectionFence",
+            "memberDispatch",
+            "captureStage",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured/dispatches/dispatches",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#3",
+          "parameters": [
+            "release",
+            "finish"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#4",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectCaptureEntry",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured/dispatches/dispatches",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#2",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#3",
+            "createInstalledRowEffectCaptureEntry/prepareCaptured/prepareCaptured#4"
+          ],
+          "exports": [
+            "createInstalledRowEffectCaptureEntry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "async function prepareCaptured("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "return await captureStage("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "const runInvocationCid = plan.invocation.identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "ownChildren: value => { requestChildren = value; }"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "finally { finishCapture?.(); }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "reject('InvalidInstalledEffectCapture')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "const storedResults = await storeCompletedRunResultSet"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-entry.mts",
+                "anchor": "await releaseCompletedRunPreparedPayloads(storedResults, control)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-resources.test.mjs",
+                "anchor": "capture binds its original Run before capture Store or target work"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-result-work.mjs",
+        "./installed-row-capture-cleanup.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-row-effect-capture-values.mjs",
+      "sha256": "02e26150631144d2b96fa35fc142fc0bf1ed859dea727ccc3e85d41335708e2d",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
+      "exports": [
+        "createInstalledRowEffectCaptureValues"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledRowEffectCaptureValues",
+          "parameters": [
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow",
+          "parameters": [
+            "row",
+            "inputName"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "parameters": [
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/prior/prior",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentBorrower/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentRow",
+          "parameters": [
+            "port",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/commandContentRow/commandContentRow",
+          "parameters": [
+            "inputName"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows",
+          "parameters": [
+            "moon",
+            "proposals",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/createRows/createRows",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/prepareInstalledCreateRows",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/prepareInstalledCreateRows#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/wires/wires",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledRowEffectCaptureValues",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:borrow/init:borrow/prior/prior",
+            "createInstalledRowEffectCaptureValues/commandContentBorrower/init:release/init:release",
+            "createInstalledRowEffectCaptureValues/commandContentRow",
+            "createInstalledRowEffectCaptureValues/commandContentRow/commandContentRow",
+            "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows",
+            "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/createRows/createRows",
+            "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/prepareInstalledCreateRows",
+            "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/prepareInstalledCreateRows#2",
+            "createInstalledRowEffectCaptureValues/prepareInstalledCreateRows/wires/wires"
+          ],
+          "exports": [
+            "createInstalledRowEffectCaptureValues"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "function commandContentBorrower("
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "function prepareInstalledCreateRows("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "rows: createRows.map(item => item.entry)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "const wires = proposals.map(proposal => proposal.changesWire)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "current.control.borrowEffectCommandContent("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "if (original !== current)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "reject('InvalidInstalledRowEffectInventory')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "current.assertCurrent?.();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "reject('InstalledRowEffectContentBorrowLimit')"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-values.mts",
+                "anchor": "function commandContentRow("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "CREATE materialization consumes the same admitted wires once in original Common order"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-row-effect-claims.mjs",
       "sha256": "a6fb32b8dcd8a87d4b68094b8f45b44062aaa3b9d619f8cc872aedb7faf26611",
       "responsibilityFacet": "primary",
@@ -10833,7 +11225,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "8460ab6dfbe469d31ab9914564b5cfae6ce7087ebbff54528c0a01a3f8b0f70b",
+      "sha256": "1fb5d102bca8b90fd984bc5baf0a8bbfc05a0f9e63317f1a21587e288f601c99",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10858,78 +11250,6 @@
           "name": "cid/cid",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow",
-          "parameters": [
-            "row",
-            "inputName"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
-          "parameters": [
-            "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:borrow/init:borrow/prior/prior",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentRow",
-          "parameters": [
-            "port",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentRow/commandContentRow",
-          "parameters": [
-            "inputName"
           ],
           "async": false
         },
@@ -11091,6 +11411,35 @@
             "route"
           ],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage",
+          "parameters": [
+            "control",
+            "store",
+            "execution",
+            "checkedHost",
+            "prepared",
+            "identity",
+            "plan",
+            "previewContext",
+            "unit",
+            "members",
+            "runInvocationCid",
+            "dispatches",
+            "requestScope",
+            "storedResults",
+            "signal",
+            "targetReads",
+            "contentOwner",
+            "managedEffect",
+            "updateTargetSelections",
+            "own",
+            "ownInputs",
+            "ownChildren",
+            "assertCurrent"
+          ],
+          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/capabilities/capabilities",
@@ -11432,47 +11781,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareCaptured",
-          "parameters": [
-            "facts"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareCaptured/dispatches/dispatches",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCaptured/prepareCaptured",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCaptured/prepareCaptured#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCaptured/prepareCaptured#3",
-          "parameters": [
-            "release",
-            "finish"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/projectOwnedResponse/projectOwnedResponse",
           "parameters": [
             "member",
@@ -11545,34 +11853,6 @@
           "name": "optionalFunction/optionalFunction",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledCreateRows/createRows/createRows",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledCreateRows/prepareInstalledCreateRows",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledCreateRows/wires/wires",
-          "parameters": [
-            "proposal"
           ],
           "async": false
         },
@@ -11685,25 +11965,14 @@
             "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/verified/verified",
-            "createRowEffectStage/prepareCaptured",
-            "createRowEffectStage/prepareCaptured/dispatches/dispatches",
-            "createRowEffectStage/prepareCaptured/prepareCaptured",
-            "createRowEffectStage/prepareCaptured/prepareCaptured#2",
-            "createRowEffectStage/prepareCaptured/prepareCaptured#3",
-            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes",
             "guarded/guarded",
             "optionalFunction/optionalFunction",
-            "prepareInstalledCreateRows/createRows/createRows",
-            "prepareInstalledCreateRows/prepareInstalledCreateRows",
-            "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
-            "prepareInstalledCreateRows/wires/wires",
             "retainInstalledRowEffectAdapter",
             "cid/cid",
             "createRowEffectStage",
             "createRowEffectStage/ownerOf/ownerOf",
-            "commandContentRow",
             "createRowEffectStage/retainMember/retainMember",
             "sameEffectValue/sameEffectValue",
             "sameValue/sameValue",
@@ -11712,7 +11981,8 @@
             "createRowEffectStage/recoveryCid/recoveryCid",
             "createRowEffectStage/projectOwnedResponse/projectOwnedResponse",
             "createRowEffectStage/memberDispatch/memberDispatch",
-            "createRowEffectStage/openLedger/openLedger"
+            "createRowEffectStage/openLedger/openLedger",
+            "createRowEffectStage/captureStage"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -12573,17 +12843,6 @@
         },
         {
           "operations": [
-            "commandContentBorrower/init:borrow/init:borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
-            "commandContentBorrower/init:borrow/init:borrow/prior/prior",
-            "commandContentBorrower/init:release/init:release",
-            "commandContentRow/commandContentRow",
             "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact"
           ],
           "exports": [],
@@ -16387,12 +16646,13 @@
         "./effect-input-export.mjs",
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
-        "./effect-result-work.mjs",
         "./installed-effect-ledger-open.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
         "./installed-row-effect-authorization.mjs",
+        "./installed-row-effect-capture-entry.mjs",
+        "./installed-row-effect-capture-values.mjs",
         "./installed-row-effect-claims.mjs",
         "./installed-row-effect-commit.mjs",
         "./installed-row-effect-construction.mjs",

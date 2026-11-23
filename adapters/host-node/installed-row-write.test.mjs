@@ -13,6 +13,7 @@ import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './installed-row-effect-standard-write.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
+import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
@@ -20,7 +21,6 @@ import {prepareGitHubCommentRequest, sendGitHubIssueComment,
 import * as githubComment from '../connectors/github/site/github-comment-create.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
@@ -36,14 +36,15 @@ const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...
 
 // Actual private member constructor and existing exact-JSON decoder. The
 // explicit Core port counts work/ordering; no admission or identity is issued.
-function createRowsFixture(parse) {
-  const named = name => rowTree.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === name));
-  const fn = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareInstalledCreateRows');
-  assert(fn);
-  return new Function('runtimeField', 'checked', 'JSON',
-    [named('fail'), named('parseExactJson')].map(node => rowSource.slice(node.start, node.end)).join('\n') +
-    '\nreturn (' + rowSource.slice(fn.start, fn.end) + ');')(runtimeField, checked, {parse, stringify: JSON.stringify});
+function createRowsFixture(t, observe) {
+  const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+  const {prepareInstalledCreateRows} = createInstalledRowEffectCaptureValues(fail);
+  const parse = JSON.parse;
+  return (...args) => {
+    const monitored = t.mock.method(JSON, 'parse', wire => {observe(wire); return parse(wire);});
+    try {return prepareInstalledCreateRows(...args);}
+    finally {monitored.mock.restore();}
+  };
 }
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
@@ -777,9 +778,9 @@ test('standard construction facts distinguish no check from an original legacy c
   assert.equal(typeof legacy.driver.checkRequest, 'function');
 });
 
-test('same Common CREATE inventory refuses before Host JSON materialization without another check', () => {
+test('same Common CREATE inventory refuses before Host JSON materialization without another check', t => {
   const calls = [], primary = new Error('original Common inventory refusal');
-  const construct = createRowsFixture(wire => {calls.push('host-parse'); return JSON.parse(wire);});
+  const construct = createRowsFixture(t, () => calls.push('host-parse'));
   const wire = '{not a Host JSON document';
   const moon = {clientProgramEffectCreateRowInventory(wires, rows, bytes, nodes, depth) {
     assert.deepEqual(wires, [wire]); assert.deepEqual([rows, bytes, nodes, depth], [1, 101, 17, 5]);
@@ -790,7 +791,7 @@ test('same Common CREATE inventory refuses before Host JSON materialization with
   assert.deepEqual(calls, ['same-common-inventory']);
 });
 
-test('CREATE materialization consumes the same admitted wires once in original Common order', () => {
+test('CREATE materialization consumes the same admitted wires once in original Common order', t => {
   const a = '{"state":"present","value":{"name":"first"}}';
   const b = '{"state":"present","value":{"name":"second"}}';
   const aIdentity = '{"content_cid":"first","occurrence":0}';
@@ -799,7 +800,7 @@ test('CREATE materialization consumes the same admitted wires once in original C
   const first = {get changesWire() {reads++; return a;}};
   const second = {get changesWire() {reads++; return b;}};
   const parsed = [];
-  const construct = createRowsFixture(wire => {parsed.push(wire); return JSON.parse(wire);});
+  const construct = createRowsFixture(t, wire => parsed.push(wire));
   const moon = {clientProgramEffectCreateRowInventory(wires, rows, bytes, nodes, depth) {
     checks++; assert.equal(parsed.length, 0); assert.deepEqual(wires, [a, b]);
     assert.deepEqual([rows, bytes, nodes, depth], [2, 101, 17, 5]);
@@ -817,8 +818,8 @@ test('CREATE materialization consumes the same admitted wires once in original C
   });
 });
 
-test('CREATE original Common failures and empty inventory do not start Host JSON construction', () => {
-  const construct = createRowsFixture(() => assert.fail('No Host parse after a Common failure or for zero rows'));
+test('CREATE original Common failures and empty inventory do not start Host JSON construction', t => {
+  const construct = createRowsFixture(t, () => assert.fail('No Host parse after a Common failure or for zero rows'));
   const primary = new Error('same original typed issue');
   assert.throws(() => construct({clientProgramEffectCreateRowInventory: () => ({$tag: 0, _0: primary})},
     [{changesWire: 'original'}], {maxWireBytes: 101, maxNodes: 17, maxDepth: 5}),
