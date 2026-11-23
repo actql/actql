@@ -6,7 +6,8 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_storage import (ByteFence, ByteWrite, LocalByteStore,
-                                      LocalStorageError, LocalStorageCommitUnknown, StoredBytes)
+                                      LocalStorageError, LocalStorageCommitUnknown,
+                                      LocalStorageWriteCleanupPending, StoredBytes)
 
 # Independent opaque byte fixtures. The physical adapter neither parses their
 # labels nor issues phase, identity, permission or execution facts.
@@ -110,6 +111,8 @@ class LocalFencedBatchTests(unittest.TestCase):
                     with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange_many_fenced(_WRITES, _FENCES, current=self.current)
                     self.assertIs(caught.exception.cleanup_store, store)
+                    self.assertFalse(caught.exception.commit_confirmed)
+                    self.assertIsNone(caught.exception.cleanup_error)
                     self.assertIsInstance(caught.exception.__cause__, OSError)
                     self.assertEqual(str(caught.exception.__cause__), 'original COMMIT reply lost')
                     self.assertEqual(store._connection.writes, before + 3)
@@ -121,6 +124,148 @@ class LocalFencedBatchTests(unittest.TestCase):
                     store.compare_exchange('run', 0, _RUN)
                     self.assertIsNone(store.read_exchange_many_fenced(
                         _WRITES, _FENCES, current=self.current))
+
+    def test_lost_release_commit_reply_preserves_the_original_result_without_retry(self) -> None:
+        class LostReply(sqlite3.Connection):
+            lose = False
+            commit_count = 0
+
+            def execute(self, sql, *args, **kwargs):
+                result = super().execute(sql, *args, **kwargs)
+                if sql == 'COMMIT':
+                    self.commit_count += 1
+                    if self.lose:
+                        self.lose = False
+                        raise primary
+                return result
+
+        connect = sqlite3.connect
+        primary = OSError('original COMMIT response lost')
+        with TemporaryDirectory(prefix='actql-local-fence-release-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            with patch('actql_sdk._local_storage.sqlite3.connect',
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostReply}))):
+                with self.store(path) as store:
+                    self.assertTrue(store.reserve_capacity('space', 'item', 5, 1, 10, 2))
+                    self.assertTrue(store.reserve_capacity('space', 'other', 3, 1, 10, 2))
+                    before = store._connection.commit_count
+                    store._connection.lose = True
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
+                        store.release_capacity('space', 'item', 5, 1)
+                    self.assertIs(caught.exception.cleanup_store, store)
+                    self.assertIs(caught.exception.__cause__, primary)
+                    self.assertFalse(caught.exception.commit_confirmed)
+                    self.assertIsNone(caught.exception.cleanup_error)
+                    self.assertFalse(store._connection.in_transaction)
+                    self.assertEqual(store._connection.commit_count, before + 1)
+            with self.store(path) as reopened:
+                self.assertIsNone(reopened.read_capacity('space', 'item'))
+                other = reopened.read_capacity('space', 'other')
+                self.assertIsNotNone(other)
+                self.assertEqual((other.reserved_bytes, other.reserved_objects), (3, 1))
+
+    def test_failed_commit_preserves_primary_when_rollback_or_state_read_fails(self) -> None:
+        class FailedCommit(sqlite3.Connection):
+            armed = False
+            refused = False
+            rollback_count = 0
+            begin_count = 0
+
+            @property
+            def in_transaction(self):
+                if self.refused and mode == 'state':
+                    self.refused = False
+                    raise cleanup
+                return super().in_transaction
+
+            def execute(self, sql, *args, **kwargs):
+                if sql == 'BEGIN IMMEDIATE':
+                    self.begin_count += 1
+                if sql == 'COMMIT' and self.armed:
+                    self.refused = True
+                    raise primary
+                if sql == 'ROLLBACK' and self.armed:
+                    self.rollback_count += 1
+                    raise cleanup
+                return super().execute(sql, *args, **kwargs)
+
+        connect = sqlite3.connect
+        primary = sqlite3.IntegrityError('original COMMIT refused')
+        cleanup = OSError('original transaction stop unconfirmed')
+        for mode in ('rollback', 'state'):
+            with self.subTest(mode=mode), TemporaryDirectory(
+                    prefix='actql-local-fence-combined-') as directory:
+                path = Path(directory) / 'core.sqlite'
+                with patch('actql_sdk._local_storage.sqlite3.connect',
+                           side_effect=lambda *a, **k: connect(*a, **(k | {'factory': FailedCommit}))):
+                    with self.store(path) as store:
+                        store._connection.armed = True
+                        with self.assertRaises(LocalStorageCommitUnknown) as caught:
+                            store.compare_exchange_many((ByteWrite('row', None, _RUN),))
+                        self.assertIs(caught.exception.cleanup_store, store)
+                        self.assertIs(caught.exception.__cause__, primary)
+                        self.assertIs(caught.exception.cleanup_error, cleanup)
+                        self.assertFalse(caught.exception.commit_confirmed)
+                        self.assertTrue(store._connection.in_transaction)
+                        self.assertEqual(store._connection.rollback_count, int(mode == 'rollback'))
+                        before = store._connection.begin_count
+                        with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+                            store.read('row')
+                        with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+                            store.reserve_capacity('space', 'item', 5, 1, 10, 2)
+                        self.assertEqual(store._connection.begin_count, before)
+                with self.store(path) as reopened:
+                    self.assertIsNone(reopened.read('row'))
+                    self.assertEqual(reopened.capacity_usage('space').reserved_objects, 0)
+
+    def test_precommit_failure_with_lost_rollback_reply_fences_even_after_stop(self) -> None:
+        class LostRollback(sqlite3.Connection):
+            armed = False
+            rollback_count = 0
+            commit_count = 0
+
+            def execute(self, sql, *args, **kwargs):
+                result = super().execute(sql, *args, **kwargs)
+                if sql == 'COMMIT':
+                    self.commit_count += 1
+                if sql == 'ROLLBACK' and self.armed:
+                    self.rollback_count += 1
+                    raise cleanup
+                return result
+
+        connect = sqlite3.connect
+        primary = PermissionError('original pre-COMMIT refusal')
+        cleanup = OSError('original ROLLBACK response lost')
+
+        calls = 0
+
+        def current():
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise primary
+
+        with TemporaryDirectory(prefix='actql-local-fence-lost-rollback-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            with patch('actql_sdk._local_storage.sqlite3.connect',
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostRollback}))):
+                with self.store(path) as store:
+                    self.initialize(store)
+                    store._connection.armed = True
+                    before = store._connection.commit_count
+                    with self.assertRaises(LocalStorageWriteCleanupPending) as caught:
+                        store.compare_exchange_many_fenced(_WRITES, _FENCES, current=current)
+                    self.assertIs(caught.exception.cleanup_store, store)
+                    self.assertIs(caught.exception.__cause__, primary)
+                    self.assertIs(caught.exception.cleanup_error, cleanup)
+                    self.assertFalse(store._connection.in_transaction)
+                    self.assertEqual(store._connection.rollback_count, 1)
+                    self.assertEqual(store._connection.commit_count, before)
+                    with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+                        store.read('run')
+            with self.store(path) as reopened:
+                self.assertIsNone(reopened.read('run'))
+                self.assertEqual(reopened.read('count'), StoredBytes(0, b'0'))
 
     def test_current_refusal_before_commit_rolls_back_and_after_commit_is_unknown(self) -> None:
         for refuse_at in (1, 2, 3):
@@ -141,6 +286,8 @@ class LocalFencedBatchTests(unittest.TestCase):
                             store.compare_exchange_many_fenced(_WRITES, _FENCES, current=current)
                         if refuse_at == 3:
                             self.assertIs(caught.exception.cleanup_store, store)
+                            self.assertTrue(caught.exception.commit_confirmed)
+                            self.assertIsNone(caught.exception.cleanup_error)
                             self.assertIsInstance(caught.exception.__cause__, PermissionError)
                         self.assertEqual(calls, refuse_at)
                         expected = None if refuse_at < 3 else _OBSERVED

@@ -64927,6 +64927,7 @@
         "LocalStorageCommitUnknown",
         "LocalStorageError",
         "LocalStorageInitializationError",
+        "LocalStorageWriteCleanupPending",
         "OriginalStoreReconciliation",
         "Path",
         "RLock",
@@ -65030,6 +65031,16 @@
           "parameters": [
             "self",
             "namespace"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_classify_failed_write",
+          "parameters": [
+            "self",
+            "failure",
+            "commit_attempted",
+            "commit_confirmed"
           ]
         },
         {
@@ -65853,7 +65864,9 @@
           "name": "LocalStorageCommitUnknown/__init__",
           "parameters": [
             "self",
-            "cleanup_store"
+            "cleanup_store",
+            "commit_confirmed",
+            "cleanup_error"
           ]
         },
         {
@@ -65876,6 +65889,20 @@
         },
         {
           "async": false,
+          "name": "LocalStorageWriteCleanupPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalStorageWriteCleanupPending/__init__",
+          "parameters": [
+            "self",
+            "cleanup_store",
+            "cleanup_error"
+          ]
+        },
+        {
+          "async": false,
           "name": "StoredBytes",
           "parameters": []
         },
@@ -65886,11 +65913,11 @@
         },
         {
           "async": false,
-          "name": "_ProjectedWriteConflict",
+          "name": "_PhysicalWriteConflict",
           "parameters": []
         }
       ],
-      "sha256": "2ef099fab0cb0002868c2e62c049acf77d522b6c157a8c57e46447daa2844417",
+      "sha256": "c46bac9170be921703d3700d5fd4ed009ae12fcd99094630dd00e72b0a5d236c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66439,6 +66466,7 @@
             "LocalByteStore/_capacity_amount",
             "LocalByteStore/_capacity_name",
             "LocalByteStore/_capacity_usage_locked",
+            "LocalByteStore/_classify_failed_write",
             "LocalByteStore/_close_descriptor",
             "LocalByteStore/_compare_exchange_many",
             "LocalByteStore/_exchange_write_keys",
@@ -67068,10 +67096,13 @@
         {
           "operations": [
             "LocalStorageCommitUnknown",
-            "LocalStorageCommitUnknown/__init__"
+            "LocalStorageCommitUnknown/__init__",
+            "LocalStorageWriteCleanupPending",
+            "LocalStorageWriteCleanupPending/__init__"
           ],
           "exports": [
-            "LocalStorageCommitUnknown"
+            "LocalStorageCommitUnknown",
+            "LocalStorageWriteCleanupPending"
           ],
           "attributes": {
             "responsibility": [
@@ -67082,6 +67113,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "inputsOutputs": [
@@ -67092,6 +67127,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "identity": [
@@ -67106,6 +67145,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "ownership": [
@@ -67120,6 +67163,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "synchronization": [
@@ -67130,6 +67177,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "failure": [
@@ -67144,6 +67195,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "cancellation": [
@@ -67154,6 +67209,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "resources": [
@@ -67168,6 +67227,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "extension": [
@@ -67178,6 +67241,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "verification": [
@@ -67196,6 +67263,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_fenced.py",
+                "anchor": "def test_failed_commit_preserves_primary_when_rollback_or_state_read_fails("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_fenced.py",
+                "anchor": "def test_precommit_failure_with_lost_rollback_reply_fences_even_after_stop("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ]
           }
@@ -67797,14 +67876,14 @@
         },
         {
           "operations": [
-            "_ProjectedWriteConflict"
+            "_PhysicalWriteConflict"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67814,7 +67893,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67828,7 +67907,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67842,7 +67921,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67856,7 +67935,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "failure": [
@@ -67866,7 +67945,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67880,7 +67959,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "resources": [
@@ -67890,7 +67969,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67904,7 +67983,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "verification": [
@@ -67922,7 +68001,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ]
           }

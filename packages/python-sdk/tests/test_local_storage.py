@@ -10,8 +10,10 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from actql_sdk._local_storage import (LocalByteStore, LocalStorageError,
-                                      LocalStorageInitializationError, StoredBytes)
+from actql_sdk._local_storage import (
+    LocalByteStore, LocalStorageCommitUnknown, LocalStorageError,
+    LocalStorageInitializationError, StoredBytes,
+)
 
 
 class LocalPhysicalStorageTests(unittest.TestCase):
@@ -102,8 +104,9 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
-                    with self.assertRaises(OSError):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange('original', None, b'original-wire')
+                    self.assertIs(caught.exception.cleanup_store, store)
                     self.assertEqual(store.read('original'), StoredBytes(0, b'original-wire'))
                     self.assertEqual(store._connection.inserts, 1)
 
@@ -123,8 +126,9 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': PendingTransaction}))):
                 store = self.store(path)
             store._connection.refuse = True
-            with self.assertRaises(OSError):
+            with self.assertRaises(LocalStorageCommitUnknown) as caught:
                 store.compare_exchange('original', None, b'not-committed')
+            self.assertIs(caught.exception.cleanup_store, store)
             with self.assertRaises(LocalStorageError):
                 store.read('original')
             with self.assertRaises(LocalStorageError):

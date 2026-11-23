@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     ByteWrite, CapacityReservation, CapacityUsage, LocalByteStore, StoredBytes,
+    LocalStorageCommitUnknown,
 )
 
 
@@ -149,8 +150,9 @@ class ReservedByteCASTests(unittest.TestCase):
                     observation = self.original(store)
                     write = ByteWrite('material', 0, b'next')
                     store._connection.lose = True
-                    with self.assertRaises(OSError):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange_reserved(write, observation)
+                    self.assertIs(caught.exception.cleanup_store, store)
                     self.assertEqual(store.read_exchange(write), StoredBytes(1, b'next'))
                     self.assertEqual(store.read_capacity('publication_payload', 'material'), observation)
                     self.assertEqual(store._connection.updates, 1)

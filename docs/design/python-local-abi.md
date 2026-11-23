@@ -637,13 +637,16 @@ apply to importing or using the Remote Client.
 
 Transactions use SQLite's existing exclusive write serialization and FULL
 synchronization. Competing generations cannot replace one another. A failed
-commit acknowledgement remains an exception; the adapter neither reports success
-nor repeats the write. The Host must read the same original bytes and let Core
-decide the next operation. If both commit and rollback fail, the retained connection cannot return its
-uncommitted bytes or accept another write. Only its pending cleanup may proceed.
-Close releases the connection, preserves persisted records and performs no Run
-cancellation or recovery. Failed close retains its
-exact cleanup handle, including initialization failures.
+write COMMIT acknowledgement retains the original cause and Store, regardless
+of whether the write uses a current callback. SQL confirmation and later
+current refusal are separate observations. Transaction-state inspection and
+rollback failures retain their own cause. Without a confirmed stop, the same
+connection remains fenced from ordinary reads and writes until close.
+An observed inactive connection may be reusable, while continuation of the
+original operation still requires exact readback and the original Core decision.
+Close releases the connection and preserves persisted records. Run cancellation
+and recovery remain with their existing Owners. Failed close retains its exact
+cleanup handle, including initialization failures.
 
 Record count, individual byte length and aggregate payload length have explicit
 physical ceilings. Oversized retained rows are refused before returning their
