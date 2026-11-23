@@ -1747,7 +1747,7 @@
                 "anchor": "### Original installation metadata HTTPS binding"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "useCid: response.useCid"
               }
             ],
@@ -1765,7 +1765,7 @@
                 "anchor": "### Original installation metadata HTTPS binding"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "It has no physical send callback or credential."
               }
             ],
@@ -1869,35 +1869,35 @@
                 "anchor": "test('kintone driver does not discard an observed write on late abort or retry a lost response'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared row UPDATE admits only bounded HTTP DATA under the original Host authority'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('invalid async UPDATE encoding settles inside its original invocation without a physical send'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads stay within the original observation lifetime'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads preserve a swallowed original child failure'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads preserve the original child failure when the provider throws a replacement'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads await cleanup without replacing an earlier observation failure'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target reads refuse non-read methods before selecting a grant'"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.test.mjs",
+                "path": "adapters/host-common/owned-invocation-context.test.mts",
                 "anchor": "test('declared UPDATE target encoding waits for its bounded original child'"
               }
             ]

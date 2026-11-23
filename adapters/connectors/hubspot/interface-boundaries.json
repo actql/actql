@@ -135,8 +135,8 @@
                 "anchor": "export class HubSpotAccountObservationFailure"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.mjs",
-                "anchor": "finish(useCid, outcome)"
+                "path": "adapters/site-node/sqlite-credential-journal.mts",
+                "anchor": "finish(useCid: string, outcome: Outcome)"
               }
             ],
             "cancellation": [
@@ -457,8 +457,8 @@
                 "anchor": "export class HubSpotObjectReadFailure"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.mjs",
-                "anchor": "finish(useCid, outcome)"
+                "path": "adapters/site-node/sqlite-credential-journal.mts",
+                "anchor": "finish(useCid: string, outcome: Outcome)"
               }
             ],
             "cancellation": [
@@ -2439,7 +2439,7 @@
                 "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]
@@ -3161,7 +3161,7 @@
                 "anchor": "test('wide HubSpot Effect keeps the admitted Source Catalog limit"
               },
               {
-                "path": "adapters/host-node/effect-control-native.test.mjs",
+                "path": "adapters/host-node/effect-control-native.test.mts",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
               }
             ]

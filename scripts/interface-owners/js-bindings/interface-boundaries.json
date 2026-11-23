@@ -72258,25 +72258,25 @@
                 "anchor": "assertStaticEffectExplanationOriginal(request) {"
               },
               {
-                "path": "adapters/host-node/local-result-authorization.mjs",
+                "path": "adapters/host-node/local-result-authorization.mts",
                 "anchor": "const account = observeInstalledAccount(moon, authorization);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "      const decision = authorizeEgress(request);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "throw staticExplanationFailure('StaticExplanationAccessDenied');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],

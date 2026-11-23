@@ -3080,7 +3080,7 @@
             ],
             "extension": [
               {
-                "path": "scripts/package-release.mjs",
+                "path": "scripts/package-release.mts",
                 "anchor": "payload(after), payload(before)"
               }
             ],
@@ -3203,13 +3203,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "function releaseVersion"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "function compareReleaseVersions"
               }
             ],
@@ -3230,7 +3230,7 @@
             },
             "failure": [
               {
-                "path": "scripts/release-version.mjs",
+                "path": "scripts/release-version.mts",
                 "anchor": "Use X.Y.Z"
               }
             ],
@@ -3248,8 +3248,8 @@
             ],
             "verification": [
               {
-                "path": "scripts/release-version-schema.test.mjs",
-                "anchor": "release version"
+                "path": "scripts/release-version-schema.test.mts",
+                "anchor": "test('actual schema version regex and shared parser match independent literal version oracles'"
               }
             ]
           }

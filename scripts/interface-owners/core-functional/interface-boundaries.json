@@ -36376,7 +36376,7 @@
                 "anchor": "@canonical.object_field(view, \"facts\")"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
@@ -36486,7 +36486,7 @@
                 "anchor": "@canonical.object_field(view, \"facts\")"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
@@ -36594,7 +36594,7 @@
                 "anchor": "@canonical.object_field(view, \"facts\")"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
@@ -36704,7 +36704,7 @@
                 "anchor": "@canonical.object_field(view, \"facts\")"
               },
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "checkedContext(original, view.facts, view.context, saved);"
               }
             ],
@@ -73436,7 +73436,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "path": "adapters/host-node/client-interactive-plan.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],

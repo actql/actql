@@ -10293,7 +10293,7 @@
                 "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               },
               {
-                "path": "packages/sdk/internal/plan.mjs",
+                "path": "packages/sdk/internal/plan.mts",
                 "anchor": "explain: (input, options) => read('static-explanation', input, options),"
               }
             ],

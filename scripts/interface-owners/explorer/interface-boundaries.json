@@ -3157,7 +3157,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
@@ -3169,25 +3169,25 @@
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -3199,13 +3199,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -3978,7 +3978,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
@@ -3990,25 +3990,25 @@
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -4020,13 +4020,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -5681,25 +5681,25 @@
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -5711,13 +5711,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -6291,7 +6291,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
@@ -6303,25 +6303,25 @@
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6333,13 +6333,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
@@ -6785,7 +6785,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "export function staticExplanationReadModel("
               }
             ],
@@ -6797,25 +6797,25 @@
             ],
             "identity": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "binding.logical_map_cid !== story.logicalMapCid"
               }
             ],
             "ownership": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const view = await client.explain(input, boundedProjectionOptions(options));"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/explorer/browser-source.mjs",
-                "anchor": "const value = await read('static-explanation',"
+                "path": "packages/explorer/browser-source.mts",
+                "anchor": "const value = await read<StaticExplanation>('static-explanation',"
               }
             ],
             "failure": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "if (sources.has(key) || ports.length !== item.consuming_ports.length"
               }
             ],
@@ -6827,13 +6827,13 @@
             ],
             "resources": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "withinResultDescriptionLimits(view, projectionLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/explorer-ui/read-model.mjs",
+                "path": "packages/explorer-ui/read-model.mts",
                 "anchor": "const narrative = render(view, locale);"
               }
             ],
