@@ -266,7 +266,7 @@
                 "anchor": "pub fn bind_record_read_cleanup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "processing = false;"
               }
             ],
@@ -276,7 +276,7 @@
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "currentBeforeSend: () => current(operation)"
               }
             ],
@@ -296,7 +296,7 @@
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -493,7 +493,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-read.mjs",
-      "sha256": "46c49f762008b2c617686af1312ee69b961aa1c204e5166157a969fe495faa5c",
+      "sha256": "d84448e5d0c4dbf04791209128158c5ed8d45c57ab1576a3f2be1c52920c2d3b",
       "exports": [
         "KINTONE_FORM_READ_OPERATION",
         "KINTONE_RECORD_READ_OPERATION",
@@ -604,7 +604,7 @@
                 "anchor": "pub fn bind_record_read_cleanup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "processing = false;"
               }
             ],
@@ -614,7 +614,7 @@
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "currentBeforeSend: () => current(operation)"
               }
             ],
@@ -634,7 +634,7 @@
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -682,7 +682,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-delete.mjs",
-      "sha256": "7b7d3560de2f4789f58593148bb41b9f06f2a3f7740bcbeb10c552cb3fe56838",
+      "sha256": "644c3e32b1be8ae3e07590b00535a880bd08dde1f55942b44aea4163122c44af",
       "exports": [
         "KINTONE_RECORD_DELETE_OPERATION",
         "KINTONE_TARGET_READ_OPERATION",
@@ -1604,7 +1604,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-write.mjs",
-      "sha256": "1aca4d5c544fb4ddfddabc9d11775bdb0d71f80b8757c139a12f05f9154b2db7",
+      "sha256": "526c32d1e2266e5185b5643a93cdb52c917e71068a4bffb08700fed53cb06fc0",
       "exports": [
         "KINTONE_RECORD_CREATE_OPERATION",
         "KINTONE_RECORD_UPDATE_OPERATION",

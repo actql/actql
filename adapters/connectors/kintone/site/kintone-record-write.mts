@@ -5,34 +5,72 @@ import {callHttpsCredentialResource} from '../../../site-node/https-credential-r
 import {KINTONE_FORM_READ_OPERATION} from './kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from './kintone-record-delete.mjs';
 
+import type {KintoneFormAndPageRuntime, KintoneInvocation, KintoneObservationCause,
+  KintoneResourceInput, KintoneResourceCall, KintoneResponse, KintoneScope} from './kintone-record-read.mjs';
+
 export const KINTONE_RECORD_CREATE_OPERATION = 'kintone:records:create';
 export const KINTONE_RECORD_UPDATE_OPERATION = 'kintone:records:update';
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const commonPorts = ['clientProgramKintoneFormLimits', 'clientProgramKintonePageLimits',
-  'clientProgramKintoneMutationLimits'];
+  'clientProgramKintoneMutationLimits'] as const;
 const limitNames = ['maxResponseBytes', 'maxRequestBytes', 'maxNodes', 'maxDepth',
   'maxFields', 'maxNameUnits', 'maxRows', 'maxColumns', 'maxCells',
-  'maxTableRows', 'maxComparisonWork', 'maxIdentityBytes'];
+  'maxTableRows', 'maxComparisonWork', 'maxIdentityBytes'] as const;
 
-function writePorts(moon, kind) {
+type Ports = Readonly<{App(request: unknown): string; Count(request: unknown): number;
+  Body(request: unknown): string; Response(request: unknown, status: number, body: Uint8Array, bounds: unknown): unknown}>;
+type PortBindings<Kind extends 'Create' | 'Update'> =
+  {readonly [Name in keyof Ports as `clientProgramKintone${Kind}${Name}`]: Ports[Name]};
+type Native = KintoneFormAndPageRuntime & PortBindings<'Create' | 'Update'> & Readonly<{
+  clientProgramKintoneMutationLimits(rows: number, identity: number, comparison: number,
+    bytes: number, nodes: number, depth: number): unknown;
+  clientProgramKintoneCreateRecheckForm(request: unknown, body: Uint8Array, form: unknown): unknown;
+  clientProgramKintoneUpdateObservation(request: unknown, bounds: unknown): unknown;
+  clientProgramKintoneDeleteObservationBody(request: unknown, fields: number, bytes: number,
+    nodes: number, depth: number): unknown;
+  clientProgramKintoneDeleteRecheckForm(request: unknown, body: Uint8Array, form: unknown): unknown;
+  clientProgramKintoneDeleteRecheckRecords(request: unknown, body: Uint8Array, page: unknown,
+    fields: number, comparison: number): unknown;
+}>;
+type Kind = 'create' | 'update';
+type Observation = Readonly<{moon: Native; kind: Kind; request: unknown; observation: KintoneResponse; limits: Limits}>;
+type Phase = 'preparation' | 'form' | 'target' | Kind;
+type Limits = Readonly<Record<(typeof limitNames)[number], number>>;
+type Callbacks = Readonly<{
+  authorizationFor(input: Readonly<{operation: string; index: number; appId: string}>): unknown;
+  current(operation: string): unknown; chargeResponse(body: Uint8Array): unknown;
+  consumeObservation(charge: unknown): unknown; callResource: KintoneResourceCall;
+}>;
+type PhysicalMutation = Omit<Callbacks, 'callResource'> & Readonly<{
+  moon: Native; kind: Kind; request: unknown; originalAppId: string; limits: Limits;
+  initialAuthorization: unknown; credential: Readonly<{binding?: unknown}>;
+  guestSpaceId?: string; signal?: AbortSignal; callResource?: KintoneResourceCall;
+}>;
+type HeaderPairs = readonly (readonly [name: string, value: string])[];
+
+function writePorts(moon: Native, kind: Kind) {
   if (kind !== 'create' && kind !== 'update') fail('InvalidKintoneWriteKind');
   const prefix = kind === 'create' ? 'Create' : 'Update';
-  const ports = Object.fromEntries(['App', 'Count', 'Body', 'Response'].map(name =>
+  const ports = Object.fromEntries((['App', 'Count', 'Body', 'Response'] as const).map(name =>
     [name, moon?.[`clientProgramKintone${prefix}${name}`]]));
   if (Object.values(ports).some(port => typeof port !== 'function') ||
       commonPorts.some(name => typeof moon?.[name] !== 'function') ||
       (kind === 'create' && typeof moon?.clientProgramKintoneCreateRecheckForm !== 'function') ||
-      (kind === 'update' && ['clientProgramKintoneUpdateObservation',
+      (kind === 'update' && (['clientProgramKintoneUpdateObservation',
         'clientProgramKintoneDeleteObservationBody', 'clientProgramKintoneDeleteRecheckForm',
-        'clientProgramKintoneDeleteRecheckRecords'].some(name => typeof moon?.[name] !== 'function'))) {
+        'clientProgramKintoneDeleteRecheckRecords'] as const).some(name => typeof moon?.[name] !== 'function'))) {
     fail('KintoneWriteRuntimeUnavailable');
   }
-  return Object.freeze(ports);
+  return Object.freeze(ports) as Ports;
 }
 
 export class KintoneWriteFailure extends Error {
-  constructor(cause, observations, phase) {
+  declare readonly code: unknown;
+  declare readonly phase: Phase;
+  declare readonly observations: readonly KintoneResponse[];
+
+  constructor(cause: KintoneObservationCause, observations: readonly KintoneResponse[], phase: Phase) {
     super(cause?.message ?? 'KintoneWriteFailed', {cause});
     this.code = cause?.code ?? 'KintoneWriteFailed';
     // Diagnostic position is not a send, commit, stop or cleanup decision.
@@ -41,7 +79,7 @@ export class KintoneWriteFailure extends Error {
   }
 }
 
-export function projectKintoneWriteObservation({moon, kind, request, observation, limits}) {
+export function projectKintoneWriteObservation({moon, kind, request, observation, limits}: Observation) {
   const ports = writePorts(moon, kind);
   if (!(observation?.body instanceof Uint8Array) || !Number.isInteger(observation.statusCode) ||
       !limitNames.every(key => positive(limits?.[key]))) fail('InvalidKintoneWriteObservation');
@@ -49,10 +87,10 @@ export function projectKintoneWriteObservation({moon, kind, request, observation
     limits.maxIdentityBytes, limits.maxComparisonWork, limits.maxResponseBytes,
     limits.maxNodes, limits.maxDepth);
   try {
-    return Object.freeze({kind: `typed-${kind}-response`, observation,
-      response: checked(ports.Response(request, observation.statusCode, observation.body, bounds))});
+    return Object.freeze({kind: `typed-${kind}-response` as const, observation,
+      response: checked(ports.Response(request, observation.statusCode!, observation.body, bounds))});
   } catch (cause) {
-    return Object.freeze({kind: 'unclassified-response', observation, cause});
+    return Object.freeze({kind: 'unclassified-response' as const, observation, cause});
   }
 }
 
@@ -63,7 +101,7 @@ export function projectKintoneWriteObservation({moon, kind, request, observation
 export async function sendRawKintoneWrite({moon, kind, originalAppId, request,
   initialAuthorization, credential, authorizationFor, current, limits,
   chargeResponse, consumeObservation, guestSpaceId, signal,
-  callResource = callHttpsCredentialResource}) {
+  callResource = callHttpsCredentialResource}: PhysicalMutation) {
   const ports = writePorts(moon, kind);
   if (!limitNames.every(key => positive(limits?.[key])) || limits.maxRows > 100 ||
       limits.maxFields > 998 || !/^[1-9][0-9]*$/u.test(originalAppId ?? '') ||
@@ -72,7 +110,7 @@ export async function sendRawKintoneWrite({moon, kind, originalAppId, request,
         .some(value => typeof value !== 'function') ||
       !credential?.binding || typeof credential.binding !== 'object') fail('InvalidKintoneWrite');
   const context = ownInvocationContext({authorization: initialAuthorization, credential, limits,
-    callbacks: {authorizationFor, current, chargeResponse, consumeObservation, callResource}});
+    callbacks: {authorizationFor, current, chargeResponse, consumeObservation, callResource}}) as KintoneInvocation<Limits, Callbacks>;
   if (context.scope.connectorRegistration !== 'kintone' ||
       context.scope.operation !== KINTONE_FORM_READ_OPERATION ||
       ports.App(request) !== originalAppId) fail('ForeignKintoneWriteInstallation');
@@ -91,18 +129,19 @@ export async function sendRawKintoneWrite({moon, kind, originalAppId, request,
   const target = kind === 'update'
     ? checked(moon.clientProgramKintoneUpdateObservation(request, mutationLimits)) : undefined;
   const targetBody = kind === 'update' ? checked(moon.clientProgramKintoneDeleteObservationBody(target,
-    context.limits.maxFields, context.limits.maxRequestBytes, context.limits.maxNodes, context.limits.maxDepth)) : undefined;
+    context.limits.maxFields, context.limits.maxRequestBytes, context.limits.maxNodes, context.limits.maxDepth)) as string : undefined;
   const operation = kind === 'create' ? KINTONE_RECORD_CREATE_OPERATION : KINTONE_RECORD_UPDATE_OPERATION;
   const prefix = guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${guestSpaceId}/v1/`;
-  const observations = [];
-  let phase = 'preparation';
-  const verify = async selected => {
+  const observations: KintoneResponse[] = [];
+  let phase: Phase = 'preparation';
+  const verify = async (selected: string) => {
     signal?.throwIfAborted(); await context.callbacks.current(selected); signal?.throwIfAborted();
   };
-  const receive = async (selected, index, path, method, payload, headers = []) => {
+  const receive = async (selected: string, index: number, path: string, method: string, payload: string | undefined, headers: HeaderPairs = []) => {
     await verify(selected);
     const authorization = ownInvocationAuthorization(await context.callbacks.authorizationFor(
-      Object.freeze({operation: selected, index, appId: originalAppId})));
+      Object.freeze({operation: selected, index, appId: originalAppId}))) as
+      ReturnType<typeof ownInvocationAuthorization> & {scope: KintoneScope};
     if (authorization.scope.operation !== selected ||
         !invocationBindingsMatch(authorization.scope, context.scope)) fail('ForeignKintoneWriteAuthorization');
     await verify(selected);
@@ -110,14 +149,14 @@ export async function sendRawKintoneWrite({moon, kind, originalAppId, request,
       credential: context.credential, operation: selected, method, path: prefix + path,
       body: payload, query: [], headers, responseHeaders: [],
       maxRequestBytes: context.limits.maxRequestBytes, maxResponseBytes: context.limits.maxResponseBytes,
-      signal, callResource: options => context.callbacks.callResource({...options,
-        currentBeforeSend: () => verify(selected)})});
+      signal, callResource: (options: KintoneResourceInput) => context.callbacks.callResource({...options,
+        currentBeforeSend: () => verify(selected)})}) as KintoneResponse;
     observations.push(response);
     // Charge the original received body before another awaited fence or decode.
     const charge = context.callbacks.chargeResponse(response.body);
     return {response, charge};
   };
-  const observedRead = async (selected, index, path, payload, check) => {
+  const observedRead = async (selected: string, index: number, path: string, payload: string | undefined, check: (bytes: Uint8Array) => unknown) => {
     const {response, charge} = await receive(selected, index, path, 'POST', payload,
       [['x-http-method-override', 'GET']]);
     if (response.statusCode !== 200) {
@@ -145,7 +184,9 @@ export async function sendRawKintoneWrite({moon, kind, originalAppId, request,
     context.callbacks.consumeObservation(charge); await verify(operation);
     return Object.freeze({observation: response, observations: Object.freeze(observations.slice())});
   } catch (cause) {
-    if (cause?.observation && !observations.includes(cause.observation)) observations.push(cause.observation);
-    throw new KintoneWriteFailure(cause, observations, phase);
+    if ((cause as KintoneObservationCause)?.observation &&
+        !observations.includes((cause as NonNullable<KintoneObservationCause>).observation!))
+      observations.push((cause as NonNullable<KintoneObservationCause>).observation!);
+    throw new KintoneWriteFailure(cause as KintoneObservationCause, observations, phase);
   }
 }

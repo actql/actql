@@ -3110,3 +3110,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/hubspot/test/hubspot-account.fixture.d.mts
 /adapters/connectors/hubspot/host/hubspot-schema-after-lifetime.test.mjs
 /adapters/connectors/hubspot/host/hubspot-schema-after-lifetime.test.d.mts
+/adapters/connectors/kintone/site/kintone-record-read.mjs
+/adapters/connectors/kintone/site/kintone-record-read.d.mts
+/adapters/connectors/kintone/site/kintone-record-delete.mjs
+/adapters/connectors/kintone/site/kintone-record-delete.d.mts
+/adapters/connectors/kintone/site/kintone-record-write.mjs
+/adapters/connectors/kintone/site/kintone-record-write.d.mts
