@@ -1452,19 +1452,80 @@ pub fn Database::remove_exact(
 }
 
 ///|
+fn Database::transaction_step_code(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+) -> Int {
+  match step {
+    BeginDeferred => database_begin_deferred_ffi(self)
+    BeginImmediate => database_begin_immediate_ffi(self)
+    Commit => database_commit_ffi(self)
+    Rollback => database_rollback_ffi(self)
+  }
+}
+
+///|
+fn Database::transaction_step_result(
+  self : Database,
+  code : Int,
+) -> Result[Unit, NativeSqliteIssue] {
+  match code {
+    0 => Ok(())
+    -2 => Err(DatabaseClosed)
+    -1 => Err(Physical("SQLite transaction statement not issued"))
+    _ =>
+      match code & 0xFF {
+        5 | 6 => Err(Busy) // SQLITE_BUSY / SQLITE_LOCKED
+        _ => Err(Physical(decode_diagnostic(database_error_ffi(self))))
+      }
+  }
+}
+
+///|
+/// Execute a fixed transaction step on this same Database. Keep the original
+/// SQLite result across a later routing failure without reading a mutable
+/// error code after cleanup or issuing any new SQL.
+pub fn Database::transaction_step(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+) -> Result[Unit, NativeSqliteTransactionFailure] {
+  let mut code = -1
+  let result = self.with_original_store_sql(true, fn() {
+    code = self.transaction_step_code(step)
+    self.transaction_step_result(code)
+  })
+  match result {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      let reply = match code {
+        0 => SqlConfirmed
+        -3 => SqlReplyLost
+        value if value > 0 =>
+          SqlRejected({ primary: value & 0xFF, extended: value, })
+        _ => SqlNotIssued
+      }
+      Err({ step, reply, issue, })
+    }
+  }
+}
+
+///|
+fn Database::transaction_step_compat(
+  self : Database,
+  step : NativeSqliteTransactionStep,
+) -> Result[Unit, NativeSqliteIssue] {
+  self.with_original_store_sql(true, fn() {
+    self.transaction_step_result(self.transaction_step_code(step))
+  })
+}
+
+///|
 /// Start a deferred physical snapshot on this same connection, without a
 /// write or COMMIT. The caller must explicitly stop the original transaction.
 pub fn Database::begin_deferred(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    let code = database_begin_deferred_ffi(self)
-    if code == 0 {
-      Ok(())
-    } else {
-      Err(operation_issue(self, code))
-    }
-  })
+  self.transaction_step_compat(BeginDeferred)
 }
 
 ///|
@@ -1473,28 +1534,14 @@ pub fn Database::begin_deferred(
 pub fn Database::begin_immediate(
   self : Database,
 ) -> Result[Unit, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    let code = database_begin_immediate_ffi(self)
-    if code == 0 {
-      Ok(())
-    } else {
-      Err(operation_issue(self, code))
-    }
-  })
+  self.transaction_step_compat(BeginImmediate)
 }
 
 ///|
 /// Commit the current physical transaction. Application state must still be
 /// committed separately by the portable owner after this succeeds.
 pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    let code = database_commit_ffi(self)
-    if code == 0 {
-      Ok(())
-    } else {
-      Err(operation_issue(self, code))
-    }
-  })
+  self.transaction_step_compat(Commit)
 }
 
 ///|
@@ -1529,7 +1576,8 @@ pub fn Database::transaction_state(
     match database_transaction_state_ffi(self) {
       0 => Ok(NoActiveSqliteTransaction)
       1 => Ok(ActiveSqliteTransaction)
-      _ => Err(DatabaseClosed)
+      -2 => Err(DatabaseClosed)
+      _ => Err(Physical("SQLite transaction state unavailable"))
     }
   })
 }
@@ -1537,14 +1585,7 @@ pub fn Database::transaction_state(
 ///|
 /// Roll back the current physical transaction after a failed adapter step.
 pub fn Database::rollback(self : Database) -> Result[Unit, NativeSqliteIssue] {
-  self.with_original_store_sql(true, fn() {
-    let code = database_rollback_ffi(self)
-    if code == 0 {
-      Ok(())
-    } else {
-      Err(operation_issue(self, code))
-    }
-  })
+  self.transaction_step_compat(Rollback)
 }
 
 ///|

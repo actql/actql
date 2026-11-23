@@ -19530,7 +19530,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3c0e549c8db65249999222720284602037a6e985895d52ed76269e1e49995e83"
+      "sha256": "5028c9572cee6c5ed72e6a887a59cdde7bb2ac883d7a9d00f7743dcf03578fee"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -72633,7 +72633,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "57a9f8e8e0ba5cdfab2b578aba0fca3f5acc5b2bfd32dd7f9d6df6cdf09c2df8",
+      "sha256": "d3bc6d8ff0e9bb524303b233cb036e160da9e40c8f73c3d9ed2c5dd230027bf5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -72840,6 +72840,10 @@
           "declaration": "client_program_serialization_input_identity_start ( input : @ publication_host . ClientSerializationInput , limits : @ publication_host . PublicationOutputExportLimits , max_work : Int , max_workspace_slots : Int , ) - > Result [ @ execution . CompletedRelationIdentityScan , @ execution . CompletedExportIssue , ]"
         },
         {
+          "name": "client_program_serialization_input_is_row_limit",
+          "declaration": "client_program_serialization_input_is_row_limit ( issue : @ publication_host . ClientSerializationInputIssue , ) - > Bool"
+        },
+        {
           "name": "client_program_serialization_input_row",
           "declaration": "client_program_serialization_input_row ( input : @ publication_host . ClientSerializationInput , row : Int , ) - > Result [ Unit , @ publication_host . ClientSerializationInputIssue ]"
         },
@@ -73024,6 +73028,7 @@
             "client_program_serialization_input_identity_finish",
             "client_program_serialization_input_identity_receipt_cancel",
             "client_program_serialization_input_identity_start",
+            "client_program_serialization_input_is_row_limit",
             "client_program_serialization_input_row",
             "client_program_serialization_input_rows",
             "client_program_serialization_json_leaf_field_count",
@@ -107657,7 +107662,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "0b317e1e8997bc84bfe2a48ba4f6ab1bb8b37d7cc4f708379a7a254f07459881",
+      "sha256": "5a94d6327ba31affb8b751772a48bded27d4768720ca91f26b2de116b4271948",
       "exports": [
         "dispatchFailureCodeSite",
         "dispatchFailureSnapshot",
@@ -111141,10 +111146,11 @@
     },
     {
       "module": "adapters/host-common/dispatch-failure-observation.mjs",
-      "sha256": "49605dd0d0548c1b9be427729b06697bd358f649c5f7f24c3b55ac189ceb6f7b",
+      "sha256": "d93a01f8124135ea560061f2978e8f6800706827896e3072efc3644862b7176f",
       "exports": [
         "originalDispatchFailureSnapshot",
-        "rememberOriginalDispatchFailure"
+        "rememberOriginalDispatchFailure",
+        "rememberOriginalSerializationRowLimit"
       ],
       "operations": [
         {
@@ -111166,6 +111172,13 @@
           "name": "rememberOriginalDispatchFailure/assessments/assessments",
           "parameters": [
             "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "rememberOriginalSerializationRowLimit",
+          "parameters": [
+            "error"
           ],
           "async": false
         }
@@ -111254,6 +111267,76 @@
               {
                 "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
                 "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "rememberOriginalSerializationRowLimit"
+          ],
+          "exports": [
+            "rememberOriginalSerializationRowLimit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "anchor": "const serializationRowLimitMessage ="
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_serialization_bridge.mbt",
+                "anchor": "pub fn client_program_serialization_input_is_row_limit("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "rememberOriginalSerializationRowLimit(cause);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainBudgetFailureObservation(entry) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "anchor": "control.physical_stop !== 'confirmed') return undefined;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_serialization_bridge.mbt",
+                "anchor": "RowLimit | Encoding(@publication.ContentRowLimit) => true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (message === undefined || !entry.stopObserved) return;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "input = control.bindInput(barrier, output, encoder);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
+                "anchor": "if (message === serializationRowLimitMessage) return message;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-run.test.mjs",
+                "anchor": "failure preserves the original Run without partial Content"
               }
             ]
           }
