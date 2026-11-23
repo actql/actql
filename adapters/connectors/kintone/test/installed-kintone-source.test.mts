@@ -4,6 +4,11 @@ import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
+import https from 'node:https';
+import {syncBuiltinESMExports} from 'node:module';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import type {ClientRequest} from 'node:http';
 
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledKintoneSource} from '../host/installed-kintone-source.mjs';
@@ -27,6 +32,71 @@ const common = await import(new URL('../../../../_build/js/release/build/connect
 
 const assertReleased = (ledger: unknown) => assert.deepEqual(
   ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
+
+type TransportObservation = {requestClosed: boolean; socketClosed: boolean; responseObserved: boolean; failure?: Error};
+
+function observeOriginalRecordsRequest(origin: string) {
+  const originalRequest = https.request;
+  const host = new URL(origin).host;
+  const records: TransportObservation[] = [];
+  https.request = function (this: typeof https, ...args: unknown[]): ClientRequest {
+    const request: ClientRequest = Reflect.apply(originalRequest, this, args);
+    if (request.getHeader('host') !== host || request.method !== 'POST' || request.path !== '/k/v1/records.json') {
+      return request;
+    }
+    const observed: TransportObservation = {requestClosed: false, socketClosed: false, responseObserved: false};
+    records.push(observed);
+    request.once('error', error => {observed.failure = error;});
+    request.once('close', () => {observed.requestClosed = true;});
+    request.once('socket', socket => socket.once('close', () => {observed.socketClosed = true;}));
+    request.once('response', () => {observed.responseObserved = true;});
+    return request;
+  } as typeof https.request;
+  syncBuiltinESMExports();
+  return {
+    records,
+    restore() {
+      https.request = originalRequest;
+      syncBuiltinESMExports();
+    },
+  };
+}
+
+function assertStoppedWithoutResponse(error: AcquisitionError, code: string, records: readonly TransportObservation[]) {
+  assert.equal(error.code, code);
+  assert.equal(error.outcome, 'stopped');
+  assert.equal(error.recovery, undefined);
+  assert.equal(records.length, 1);
+  const [original] = records;
+  assert.equal(original.requestClosed, true);
+  assert.equal(original.socketClosed, true);
+  assert.equal(original.responseObserved, false);
+  assert.ok(original.failure instanceof Error);
+  const causes: unknown[] = [];
+  let cause = error.cause;
+  while (cause !== undefined && !causes.includes(cause) && causes.length < 6) {
+    causes.push(cause);
+    cause = (cause as AcquisitionError | null)?.cause;
+  }
+  assert.ok(causes.includes(original.failure), 'retain the original transport error in the cause chain');
+  return true;
+}
+
+function assertOriginalCredentialOutcomes(journalRoot: string) {
+  const database = new DatabaseSync(join(journalRoot, 'credential-journal.sqlite3'), {readOnly: true});
+  try {
+    const rows = database.prepare(`
+      SELECT json_extract(grant_json, '$.operation') AS operation, outcome
+      FROM credential_uses JOIN credential_grants USING (grant_cid)
+      ORDER BY credential_uses.rowid
+    `).all();
+    // Credential journal outcome 1 is Succeeded and 3 is Unknown.
+    assert.deepEqual(rows.map(row => [row.operation, row.outcome]),
+      [['kintone:form:read', 1], ['kintone:records:read', 3]]);
+  } finally {
+    database.close();
+  }
+}
 
 test('installed kintone prepares original typed metadata without provider or secret lookup', async t => {
   const f = await fixture(t), source = await f.load();
@@ -91,13 +161,20 @@ test('kintone repeated cross-page IDs abort instead of treating totalCount as co
   assertReleased(ledger);
 });
 
-test('a kintone reply loss remains Unknown with one physical request and no automatic retry', async t => {
+test('a kintone reply loss stops the transport and retains the one original Unknown use', async t => {
   const f = await fixture(t, {faults: [{kind: 'lose-reply', method: 'POST', pathname: '/k/v1/records.json'}]}),
     source = await f.load(), ledger = f.ledger();
-  await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), error => {
-    assert.equal((error as AcquisitionError).outcome, 'unknown');assert.equal((error as AcquisitionError).code, 'ECONNRESET');return true;
-  });
-  assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
+  const transport = observeOriginalRecordsRequest(f.tls.origin);
+  try {
+    await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), error =>
+      assertStoppedWithoutResponse(error as AcquisitionError, 'ECONNRESET', transport.records));
+  } finally {
+    transport.restore();
+  }
+  assert.deepEqual(f.tls.seen().map(({method, pathname}) => [method, pathname]),
+    [['POST', '/k/v1/app/form/fields.json'], ['POST', '/k/v1/records.json']]);
+  assert.equal(f.state.resolutions, 2);
+  assertOriginalCredentialOutcomes(f.site.journalRoot);
   assertReleased(ledger);
 });
 
@@ -141,15 +218,26 @@ test('canceling an awaited kintone page retains its original reservation until t
   const response = new Promise<void>(resolve => {resume = resolve;});
   f.state.page = async () => {seen();await response;return {records: [], totalCount: null};};
   const controller = new AbortController();
-  const opening = source.openCapture({...await f.prepare(source), ledger, signal: controller.signal});
-  const rejected = assert.rejects(opening, error => {
-    assert.equal((error as AcquisitionError).code, 'ABORT_ERR');assert.equal((error as AcquisitionError).outcome, 'unknown');return true;
-  });
-  await observed;
-  assert.ok(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).reservedExecutionBytes > 0n);
-  controller.abort();resume!();
-  await rejected;
-  assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
+  const transport = observeOriginalRecordsRequest(f.tls.origin);
+  try {
+    const opening = source.openCapture({...await f.prepare(source), ledger, signal: controller.signal});
+    const rejected = assert.rejects(opening, error =>
+      assertStoppedWithoutResponse(error as AcquisitionError, 'ABORT_ERR', transport.records));
+    await observed;
+    const [original] = transport.records;
+    const pendingAtCancel = original !== undefined && !original.requestClosed && !original.socketClosed && !original.responseObserved;
+    const reservedBeforeClose = ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).reservedExecutionBytes;
+    controller.abort();resume!();
+    await rejected;
+    assert.equal(pendingAtCancel, true);
+    assert.ok(reservedBeforeClose > 0n);
+  } finally {
+    transport.restore();
+  }
+  assert.deepEqual(f.tls.seen().map(({method, pathname}) => [method, pathname]),
+    [['POST', '/k/v1/app/form/fields.json'], ['POST', '/k/v1/records.json']]);
+  assert.equal(f.state.resolutions, 2);
+  assertOriginalCredentialOutcomes(f.site.journalRoot);
   assertReleased(ledger);
 });
 

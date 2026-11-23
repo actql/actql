@@ -283,7 +283,7 @@
             "failure": [
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
-                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+                "anchor": "a kintone reply loss stops the transport and retains the one original Unknown use"
               },
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
@@ -621,7 +621,7 @@
             "failure": [
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
-                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+                "anchor": "a kintone reply loss stops the transport and retains the one original Unknown use"
               },
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
