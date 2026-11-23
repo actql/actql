@@ -69,9 +69,9 @@ export function projectHubSpotRecordWriteObservation({moon, request, observation
     const response = checked(moon.hubspotProjectRecordWriteSuccess(request,
       observation.statusCode, observation.body, limits.maxResponseBytes,
       limits.maxNodes, limits.maxDepth, limits.maxRows));
-    return Object.freeze({kind: 'typed-success-response', observation, response});
+    return Object.freeze({kind: 'typed-success-response' as const, observation, response});
   } catch (cause) {
-    return Object.freeze({kind: 'unclassified-response', observation, cause});
+    return Object.freeze({kind: 'unclassified-response' as const, observation, cause});
   }
 }
 

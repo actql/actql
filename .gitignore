@@ -3094,3 +3094,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/hubspot/site/hubspot-record-write.d.mts
 /adapters/connectors/hubspot/site/hubspot-target-read.mjs
 /adapters/connectors/hubspot/site/hubspot-target-read.d.mts
+/adapters/connectors/hubspot/host/hubspot-update-observations.mjs
+/adapters/connectors/hubspot/host/hubspot-update-observations.d.mts
+/adapters/connectors/hubspot/host/hubspot-update-driver.mjs
+/adapters/connectors/hubspot/host/hubspot-update-driver.d.mts

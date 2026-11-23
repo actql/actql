@@ -9,43 +9,94 @@ import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {projectHubSpotAccountIdentity, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
+import type {HubSpotResourceInput, HubSpotResponse, HubSpotObservationCause} from '../site/hubspot-account-read.mjs';
+import type {createHubSpotUpdateRequestAdapter, HubSpotUpdateMember, InstalledHubSpotUpdateMapping} from './hubspot-update-request.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const encode = value => canonicalJson(value, {dataKeys: true});
-const cid = value => 'sha256:' + createHash('sha256').update(encode(value)).digest('hex');
-const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+type Native = Readonly<{
+  hubspotRecheckAccountIdentityJson: Parameters<typeof projectHubSpotAccountIdentity>[0]['moon']['hubspotRecheckAccountIdentityJson'];
+  hubspotProjectProperties(bytes: Uint8Array, objectType: string, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxProperties: number, maxNameUnits: number): unknown;
+  hubspotRecheckPropertyCatalog(original: unknown, current: unknown, maxProperties: number): unknown;
+  hubspotPropertyCatalogObjectType(catalog: unknown): string;
+  hubspotRecordReadBody(request: unknown): string;
+  hubspotRecheckRecordReadRequest(request: unknown, catalog: unknown, maxProperties: number): unknown;
+  hubspotProjectRecordRead(request: unknown, bytes: Uint8Array, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxRows: number, maxColumns: number, maxCursorUnits: number, maxValueNodes: number,
+    maxValueTextBytes: number, maxOutputBytes: number, maxOutputNodes: number, maxOutputDepth: number): unknown;
+  hubspotRecordReadWire(observation: unknown): string;
+  hubspotPreparePropertyResponseSource(bytes: Uint8Array, path: string, objectType: string, maxBytes: number,
+    maxNodes: number, maxDepth: number, maxProperties: number, maxNameUnits: number): unknown;
+  hubspotPropertyResponseSourceGeometryData(original: unknown): readonly number[];
+  hubspotConsumePropertyResponseSource(original: unknown, path: string, bytes: Uint8Array): unknown;
+  hubspotRetirePropertyResponseSource(original: unknown): void;
+}>;
+type RequestPorts = Pick<ReturnType<typeof createHubSpotUpdateRequestAdapter>, 'requestFacts' | 'nativeTargetRead' | 'objectType'>;
+type Limits = Readonly<Record<(typeof limitNames)[number], number>>;
+type Options = Readonly<{moon: unknown; portalId: string; installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping;
+  requests: RequestPorts; limits: unknown; maxRows?: number}>;
+type CatalogSlot = 'schema' | 'schema-before' | 'schema-after';
+export type HubSpotReadSlot = 'account' | CatalogSlot | 'target';
+type HttpMethod = 'GET' | 'POST';
+type Request = Readonly<{method: HttpMethod; path: string; query: readonly (readonly string[])[];
+  headers: readonly (readonly string[])[]; body?: string}>;
+type Preparation = Readonly<{prepare(body: Uint8Array): readonly number[]; retire(): void}>;
+type Project<Value> = ((bytes: Uint8Array) => Value) & Readonly<{responsePreparation?: Preparation}>;
+type Consume<Value> = (response: HubSpotResponse) => Value;
+type RequestInput = Pick<HubSpotResourceInput, 'grant' | 'useId' | 'operations' | 'maxRequestBytes' |
+  'maxResponseBytes' | 'returnRejectedResponse' | 'signal' | 'currentBeforeSend'>;
+export type HubSpotReadAuthorization = Readonly<{useId: string; grant?: unknown; originalAuthorization?: unknown}>;
+type ReadScope = Readonly<{authorizationFor(slot: HubSpotReadSlot, row: number): HubSpotReadAuthorization | PromiseLike<HubSpotReadAuthorization>;
+  readChild<Value>(authorization: unknown, input: RequestInput, row: number, slot: HubSpotReadSlot,
+    consume: Consume<Value>): Value | PromiseLike<Value>;
+  readTarget?<Value>(row: number, request: Request, consume: Consume<Value>, verify: () => Promise<void>): Value | PromiseLike<Value>;
+  verify(slot: HubSpotReadSlot): unknown; signal?: AbortSignal}>;
+type Read = <Value>(slot: HubSpotReadSlot, operation: string, method: HttpMethod, path: string, body: string | undefined,
+  rowIndex: number, project: Project<Value>) => Promise<Value>;
+type Selection = Pick<InstalledHubSpotUpdateMapping, 'catalog' | 'resource' | 'mappingCid' | 'mappingRef'> &
+  Readonly<{objectType: string}>;
+export type HubSpotUpdateCurrent = Readonly<{identity: ReturnType<typeof projectHubSpotAccountIdentity>; catalog: unknown}>;
+type Describe = ReadScope & Readonly<{member: HubSpotUpdateMember}>;
+type ObserveTargets = Describe & Readonly<{current: HubSpotUpdateCurrent; entries: readonly Readonly<{request: unknown}>[]}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const encode = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const cid = (value: unknown) => 'sha256:' + createHash('sha256').update(encode(value)).digest('hex');
+const segment = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => '%' + unit.charCodeAt(0).toString(16).toUpperCase());
 const limitNames = ['maxResponseBytes', 'maxRequestBytes', 'maxNodes', 'maxDepth', 'maxProperties',
   'maxNameUnits', 'maxRows', 'maxColumns', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
-  'maxOutputBytes', 'maxOutputNodes', 'maxOutputDepth', 'maxRequestNodes', 'maxRequestDepth'];
-const capture = (object, names) => {
+  'maxOutputBytes', 'maxOutputNodes', 'maxOutputDepth', 'maxRequestNodes', 'maxRequestDepth'] as const;
+const capture = <Key extends string,>(object: unknown, names: readonly Key[]) => {
   if (!object || nodeTypes.isProxy(object)) fail('InvalidHubSpotUpdateObservation');
   return Object.fromEntries(names.map(name => {
     const field = Object.getOwnPropertyDescriptor(object, name);
     if (!field || !Object.hasOwn(field, 'value')) fail('InvalidHubSpotUpdateObservation');
     return [name, field.value];
-  }));
+  })) as Record<Key, unknown>;
 };
 
 export class HubSpotUpdateObservationFailure extends Error {
-  constructor(cause, observations) {
+  declare readonly code: unknown;
+  declare readonly observations: readonly HubSpotResponse[];
+
+  constructor(cause: HubSpotObservationCause, observations: readonly HubSpotResponse[]) {
     super('HubSpotUpdateObservationFailed', {cause});
     this.code = cause?.code ?? 'HubSpotUpdateObservationFailed';
     Object.defineProperty(this, 'observations', {value: Object.freeze(observations.slice())});
   }
 }
 
-export function createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits, maxRows}) {
+export function createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits, maxRows}: Options) {
   if (!/^[1-9][0-9]{0,10}$/u.test(portalId ?? '') || typeof installedFor !== 'function' ||
       nodeTypes.isProxy(installedFor) || nodeTypes.isAsyncFunction(installedFor)) fail('InvalidHubSpotUpdateObservation');
   const native = capture(moon, ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
     'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
     'hubspotRecordReadBody', 'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead', 'hubspotRecordReadWire',
     'hubspotPreparePropertyResponseSource', 'hubspotPropertyResponseSourceGeometryData',
-    'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource']);
+    'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource']) as Native;
   if (Object.values(native).some(method => typeof method !== 'function' || nodeTypes.isProxy(method) ||
       nodeTypes.isAsyncFunction(method))) fail('InvalidHubSpotUpdateObservation');
-  const policy = Object.freeze(capture(limits, limitNames));
+  const policy = Object.freeze(capture(limits, limitNames)) as Limits;
   // One physical batch-read decodes one target. The checked member may own
   // several serial target rows, each with its own current/grant/child slots.
   const rowLimit = maxRows === undefined ? policy.maxRows : maxRows;
@@ -53,13 +104,13 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       policy.maxRows > 100 || !Number.isSafeInteger(rowLimit) || rowLimit < 1 || rowLimit > 100) {
     fail('InvalidHubSpotUpdateObservation');
   }
-  const request = Object.freeze(capture(requests, ['requestFacts', 'nativeTargetRead', 'objectType']));
+  const request = Object.freeze(capture(requests, ['requestFacts', 'nativeTargetRead', 'objectType'])) as RequestPorts;
   if (Object.values(request).some(method => typeof method !== 'function')) fail('InvalidHubSpotUpdateObservation');
-  const currents = new WeakMap();
-  const selected = member => {
+  const currents = new WeakMap<HubSpotUpdateCurrent, Selection>();
+  const selected = (member: HubSpotUpdateMember) => {
     const original = installedFor(member);
     if (!original || !Object.isFrozen(original) || nodeTypes.isProxy(original)) fail('ForeignHubSpotUpdateMapping');
-    const fields = capture(original, ['catalog', 'resource', 'mappingCid', 'mappingRef']);
+    const fields = capture(original, ['catalog', 'resource', 'mappingCid', 'mappingRef']) as Omit<Selection, 'objectType'>;
     if (member?.kind !== 'update' || fields.resource !== member.resource ||
         fields.mappingCid !== member.mapping?.mappingCid || fields.mappingRef !== member.mapping?.mappingRef) {
       fail('ForeignHubSpotUpdateMapping');
@@ -69,14 +120,15 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
         objectType.length > policy.maxNameUnits) fail('ForeignHubSpotUpdateCatalog');
     return {...fields, objectType};
   };
-  const scope = ({authorizationFor, readChild, readTarget, verify, signal}, observations) => {
+  const scope = ({authorizationFor, readChild, readTarget, verify, signal}: ReadScope, observations: HubSpotResponse[]) => {
     if ([authorizationFor, readChild, verify].some(value => typeof value !== 'function')) {
       fail('HubSpotUpdateReadChildUnavailable');
     }
-    const current = async slot => {signal?.throwIfAborted(); await verify(slot); signal?.throwIfAborted();};
-    return async (slot, operation, method, path, body, rowIndex, project) => {
+    const current = async (slot: HubSpotReadSlot) => {signal?.throwIfAborted(); await verify(slot); signal?.throwIfAborted();};
+    return async <Value,>(slot: HubSpotReadSlot, operation: string, method: HttpMethod, path: string,
+      body: string | undefined, rowIndex: number, project: Project<Value>) => {
       await current(slot);
-      const consume = response => {
+      const consume = (response: HubSpotResponse) => {
         // The original child retains failed response custody. Snapshot and
         // decode before that child's projection-complete/shrink boundary.
         observations.push(response);
@@ -103,7 +155,7 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       }
       const authorization = original === undefined ? selectedAuthorization : original.value;
       const http = ownHttpRequest(request);
-      const input = {grant: authorization.grant, useId: selectedAuthorization.useId,
+      const input: RequestInput = {grant: authorization.grant, useId: selectedAuthorization.useId,
         operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
           headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,
@@ -113,15 +165,15 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       return result;
     };
   };
-  const account = (read, rowIndex) => read('account', HUBSPOT_ACCOUNT_DETAILS_OPERATION,
+  const account = (read: Read, rowIndex: number) => read('account', HUBSPOT_ACCOUNT_DETAILS_OPERATION,
     'GET', '/account-info/v3/details', undefined, rowIndex,
     body => projectHubSpotAccountIdentity({moon: native, body, originalPortalId: portalId, limits: policy}));
-  const catalog = (read, slot, original, rowIndex) => {
+  const catalog = (read: Read, slot: CatalogSlot, original: Selection, rowIndex: number) => {
     const path='/crm/v3/properties/'+segment(original.objectType);
     // This original per-read projector retains the same provider cursor on a
     // refused grow. It is neither a shared Catalog cache nor a Resource owner.
-    let prepared,retired=false;
-    const project = body => {
+    let prepared: unknown,retired=false;
+    const project = (body: Uint8Array) => {
       if(retired)fail('HubSpotPropertyResponseRetired');
       const current=checked(prepared===undefined
         ? native.hubspotProjectProperties(body,original.objectType,
@@ -133,7 +185,7 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       return slot === 'schema-after' ? undefined : current;
     };
     const responsePreparation=Object.freeze({
-      prepare(body){
+      prepare(body: Uint8Array){
         if(retired||prepared!==undefined)fail('HubSpotPropertyResponseAlreadyPrepared');
         // Keep a failed Result until accepted/status, preserving refusal order.
         prepared=native.hubspotPreparePropertyResponseSource(body,path,original.objectType,
@@ -150,18 +202,18 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
     return read(slot,HUBSPOT_PROPERTIES_READ_OPERATION,'GET',path,undefined,rowIndex,project);
   };
   return Object.freeze({
-    async describe(options) {
-      const original = selected(options.member), observations = [];
+    async describe(options: Describe) {
+      const original = selected(options.member), observations: HubSpotResponse[] = [];
       try {
         const read = scope(options, observations), identity = await account(read, 0);
         const current = await catalog(read, 'schema', original, 0);
         const result = Object.freeze({identity, catalog: current});
         currents.set(result, original);
         return result;
-      } catch (cause) {throw new HubSpotUpdateObservationFailure(cause, observations);}
+      } catch (cause) {throw new HubSpotUpdateObservationFailure(cause as HubSpotObservationCause, observations);}
     },
-    async observeTargets(options) {
-      const original = selected(options.member), prior = currents.get(options.current), observations = [];
+    async observeTargets(options: ObserveTargets) {
+      const original = selected(options.member), prior = currents.get(options.current), observations: HubSpotResponse[] = [];
       if (!prior || prior.catalog !== original.catalog || prior.mappingCid !== original.mappingCid ||
           prior.mappingRef !== original.mappingRef || !Array.isArray(options.entries) ||
           options.entries.length > rowLimit) fail('ForeignHubSpotUpdateCurrent');
@@ -194,7 +246,7 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
           rows.push(observed);
         }
         return Object.freeze(rows);
-      } catch (cause) {throw new HubSpotUpdateObservationFailure(cause, observations);}
+      } catch (cause) {throw new HubSpotUpdateObservationFailure(cause as HubSpotObservationCause, observations);}
     },
   });
 }

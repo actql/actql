@@ -14,6 +14,57 @@ import {projectHubSpotRecordWriteObservation} from '../site/hubspot-record-write
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
+import type {RowEffectMember, RowEffectKind} from '../../../../packages/local-node/connector-installation.js';
+import type {InstalledHubSpotUpdateMapping} from './hubspot-update-request.mjs';
+import type {HubSpotReadAuthorization, HubSpotReadSlot, HubSpotUpdateCurrent} from './hubspot-update-observations.mjs';
+import type {createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
+
+type Member = RowEffectMember<'update'>;
+type Installed = InstalledHubSpotUpdateMapping & Readonly<{fields: readonly string[]}>;
+type Requests = ReturnType<typeof createHubSpotUpdateRequestAdapter>;
+type ObservationAdapter = ReturnType<typeof createHubSpotUpdateObservationAdapter>;
+type DescribeInputs = Parameters<ObservationAdapter['describe']>[0];
+type Native = Readonly<{
+  hubspotRecheckRecordBatch(request: unknown, catalog: unknown, maxProperties: number): unknown;
+  hubspotRecordBatchBody(request: unknown): string;
+  hubspotPropertyCatalogObjectType(catalog: unknown): string;
+  hubspotProjectRecordWriteSuccess: Parameters<typeof projectHubSpotRecordWriteObservation>[0]['moon']['hubspotProjectRecordWriteSuccess'];
+  hubspotRecordWriteResponseRows(response: unknown): unknown;
+}>;
+type Physical = Readonly<{
+  issueReadGrant(facts: Readonly<{operation: string; decision: unknown; resource: string;
+    runInvocationCid: string; dispatchRequestCid: string; maxUses: number}>): unknown;
+  admitCheckpointEffectTargetRead(decision: unknown, binding: Readonly<Record<string, unknown>>, operation: string): unknown;
+}>;
+type Authorize = Awaited<ReturnType<typeof createLocalAuthorizationGate>>['authorize'];
+type Control = <Args extends readonly unknown[], Result>(receiver: unknown, project: (...args: Args) => Result,
+  args: Args, capacity?: unknown) => Result;
+type ControlConstruction = Control & Readonly<{grant?: Control}>;
+type DriverOptions = Readonly<{moon: unknown; site: unknown; authorization: unknown; connection: string; origin: string;
+  portalId: string; connectorId: string; siteBindingCid: string; generationCid: string;
+  installedFor(member: Member): Installed; metadataResources: object; requestLimits: object; readLimits: object;
+  writeLimits: object; maxRows: number; maxMembers: number; maxRecoveryBytes: number; requestRecheckCapacity: unknown}>;
+type WritePolicy = Parameters<typeof projectHubSpotRecordWriteObservation>[0]['limits'] & Readonly<{maxRequestBytes: number}>;
+type CurrentFrame = Readonly<{original: Installed; member: Member; runInvocationCid: string; dispatchRequestCid: string;
+  controlConstruction?: ControlConstruction}>;
+type ScopedMember = Omit<CurrentFrame, 'original'> & Readonly<{
+  signal?: AbortSignal; targetAuthorization?(rowIndex: number): HubSpotReadAuthorization | PromiseLike<HubSpotReadAuthorization>}>;
+type TransportOptions = Pick<DescribeInputs, 'readChild' | 'readTarget' | 'signal'>;
+type Describe = ScopedMember & TransportOptions;
+type Entry = Readonly<{request: unknown; requestCid: string}>;
+type CurrentWithEntries = Readonly<{member: Member; current: HubSpotUpdateCurrent; entries: readonly Entry[];
+  controlConstruction?: ControlConstruction}>;
+type ObserveTargets = CurrentWithEntries & TransportOptions &
+  Readonly<{authorizationForRow: NonNullable<ScopedMember['targetAuthorization']>}>;
+type Claims = Parameters<typeof assertInstalledRowUpdateClaim>[2];
+type Changes = Parameters<typeof assertInstalledRowUpdateClaim>[3];
+type Saved = NonNullable<Parameters<typeof unpackInstalledRowUpdateRecovery>[0]> & Readonly<{memberIndex: number}>;
+type RecoveryContext = Readonly<{members: readonly RowEffectMember<RowEffectKind>[];
+  recorded: Readonly<{members: readonly Readonly<{claims?: Claims}>[]}>;
+  durable: Readonly<{connectorRecovery: readonly Saved[]}>; memberIndexes?: readonly number[];
+  body?: Readonly<{effects?: readonly Readonly<{changes?: Changes}>[]}>;
+  requestTags?: readonly (readonly string[])[]}>;
+type Recovery = Readonly<{version: unknown; binding: unknown; member: unknown; requests: readonly unknown[]}>;
 
 export const HUBSPOT_INSTALLED_UPDATE_OPERATION = 'hubspot:objects:batch-update';
 export const HUBSPOT_UPDATE_TARGET_VERSION = 'actql-installed-hubspot-effect-target-read/0.1';
@@ -22,37 +73,37 @@ const updatePathSuffix = '/batch/update';
 export const hubspotUpdatePathFixedBytes = updatePathPrefix.length + updatePathSuffix.length;
 const recoveryKind = 'hubspot-update-requests';
 const recoveryVersion = 'actql-installed-hubspot-update-recovery/0.1';
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const encode = value => canonicalJson(value, {dataKeys: true});
-const wireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
-const cid = value => wireCid(encode(value));
-const isCid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const encode = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const wireCid = (wire: string) => 'sha256:' + createHash('sha256').update(wire).digest('hex');
+const cid = (value: unknown) => wireCid(encode(value));
+const isCid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
+const segment = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => '%' + unit.charCodeAt(0).toString(16).toUpperCase());
-const memberFacts = member => Object.freeze({effectId: member.effectId, memberIndex: member.memberIndex,
+const memberFacts = (member: Member) => Object.freeze({effectId: member.effectId, memberIndex: member.memberIndex,
   kind: member.kind, resource: member.resource, mappingRef: member.mapping?.mappingRef,
   mappingCid: member.mapping?.mappingCid});
-const capture = (receiver, names) => {
+const capture = <Name extends string,>(receiver: unknown, names: readonly Name[]) => {
   if (!receiver || nodeTypes.isProxy(receiver)) fail('InvalidHubSpotUpdateDriver');
   return Object.freeze(Object.fromEntries(names.map(name => {
     const field = Object.getOwnPropertyDescriptor(receiver, name);
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
         nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) fail('InvalidHubSpotUpdateDriver');
-    return [name, (...args) => Reflect.apply(field.value, receiver, args)];
-  })));
+    return [name, (...args: unknown[]) => Reflect.apply(field.value, receiver, args)];
+  }))) as Readonly<Record<Name, (...args: unknown[]) => unknown>>;
 };
 
 export function hubspotUpdateDriver({moon, site, authorization, connection, origin, portalId, connectorId,
   siteBindingCid, generationCid, installedFor, metadataResources, requestLimits, readLimits, writeLimits,
-  maxRows, maxMembers, maxRecoveryBytes, requestRecheckCapacity}) {
+  maxRows, maxMembers, maxRecoveryBytes, requestRecheckCapacity}: DriverOptions) {
   if (typeof connection !== 'string' || !connection || !isCid(siteBindingCid) || !isCid(generationCid) ||
       !positive(maxRows) || maxRows > 100 || !positive(maxMembers) || !positive(maxRecoveryBytes) ||
       typeof installedFor !== 'function' || !metadataResources || nodeTypes.isProxy(metadataResources)) {
     fail('InvalidHubSpotUpdateDriver');
   }
-  const resources = {};
-  for (const key of ['account', 'properties']) {
+  const resources = {} as Record<'account' | 'properties', string>;
+  for (const key of ['account', 'properties'] as const) {
     const field = Object.getOwnPropertyDescriptor(metadataResources, key);
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string' || !field.value) {
       fail('InvalidHubSpotUpdateDriver');
@@ -61,17 +112,17 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
   }
   if (resources.account === resources.properties) fail('InvalidHubSpotUpdateDriver');
   Object.freeze(resources);
-  const physical = capture(site, ['issueReadGrant', 'admitCheckpointEffectTargetRead']);
+  const physical = capture(site, ['issueReadGrant', 'admitCheckpointEffectTargetRead']) as Physical;
   // Authorization is asynchronous by contract; capture the original receiver
   // rather than treating its pending result as a synchronous native resource.
   const gate = Object.getOwnPropertyDescriptor(authorization ?? {}, 'authorize');
   if (!gate || !Object.hasOwn(gate, 'value') || typeof gate.value !== 'function' ||
       nodeTypes.isProxy(gate.value)) fail('InvalidHubSpotUpdateDriver');
-  const authorize = (...args) => Reflect.apply(gate.value, authorization, args);
+  const authorize = (...args: Parameters<Authorize>): ReturnType<Authorize> => Reflect.apply(gate.value, authorization, args);
   const native = capture(moon, ['hubspotRecheckRecordBatch', 'hubspotRecordBatchBody',
-    'hubspotPropertyCatalogObjectType', 'hubspotProjectRecordWriteSuccess', 'hubspotRecordWriteResponseRows']);
+    'hubspotPropertyCatalogObjectType', 'hubspotProjectRecordWriteSuccess', 'hubspotRecordWriteResponseRows']) as Native;
   const responsePolicy = Object.freeze(Object.fromEntries(['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows', 'maxRequestBytes']
-    .map(name => [name, Object.getOwnPropertyDescriptor(writeLimits ?? {}, name)?.value])));
+    .map(name => [name, Object.getOwnPropertyDescriptor(writeLimits ?? {}, name)?.value]))) as WritePolicy;
   if (!Object.values(responsePolicy).every(positive) || responsePolicy.maxRows !== 1) fail('InvalidHubSpotUpdateDriver');
   const maxProperties = Object.getOwnPropertyDescriptor(requestLimits ?? {}, 'maxProperties')?.value;
   if (!positive(maxProperties)) fail('InvalidHubSpotUpdateDriver');
@@ -81,10 +132,10 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
   const targetReadLimits = Object.freeze(Object.fromEntries(
     ['maxColumns', 'maxRequestBytes', 'maxRequestNodes', 'maxRequestDepth'].map(name =>
       [name, Object.getOwnPropertyDescriptor(readLimits, name)?.value])));
-  const currentFrames = new WeakMap();
+  const currentFrames = new WeakMap<HubSpotUpdateCurrent, CurrentFrame>();
   const binding = Object.freeze({connectorId, origin, portalId, siteBindingCid, generationCid});
   let occurrence = 0;
-  const selected = member => {
+  const selected = (member: Member) => {
     const original = installedFor(member);
     if (!original || nodeTypes.isProxy(original) || !Object.isFrozen(original) || member?.kind !== 'update' ||
         original.resource !== member.resource || original.mappingRef !== member.mapping?.mappingRef ||
@@ -94,18 +145,18 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     }
     return original;
   };
-  const frame = (member, current) => {
+  const frame = (member: Member, current: HubSpotUpdateCurrent) => {
     const value = currentFrames.get(current);
     if (!value || value.original !== selected(member) || value.member !== member) fail('ForeignHubSpotUpdateCurrent');
     return value;
   };
   const metadataReader = ({member, runInvocationCid, dispatchRequestCid, signal, controlConstruction,
-    targetAuthorization}) => {
+    targetAuthorization}: ScopedMember) => {
     if (!isCid(runInvocationCid) || !isCid(dispatchRequestCid)) fail('InvalidHubSpotUpdateReadScope');
-    const resourceFor = slot => slot === 'account' ? resources.account
+    const resourceFor = (slot: HubSpotReadSlot) => slot === 'account' ? resources.account
       : ['schema', 'schema-before', 'schema-after'].includes(slot) ? resources.properties
       : fail('ForeignHubSpotUpdateReadSlot');
-    const decision = async slot => {
+    const decision = async (slot: HubSpotReadSlot) => {
       signal?.throwIfAborted();
       const result = await authorize('acquisition', {connection, resource: resourceFor(slot), operation: 'read'}, {
         subjectCid: cid({binding, member: memberFacts(member), runInvocationCid, dispatchRequestCid, slot}), signal});
@@ -114,14 +165,14 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       return result;
     };
     return Object.freeze({
-      async verify(slot) {
+      async verify(slot: HubSpotReadSlot) {
         signal?.throwIfAborted();
         // Target authority is the original same-row grant and physical child's
         // retained current/Checkpoint entry fences, never a metadata decision.
         if (slot !== 'target') await decision(slot);
         signal?.throwIfAborted();
       },
-      async authorizationFor(slot, rowIndex) {
+      async authorizationFor(slot: HubSpotReadSlot, rowIndex: number) {
         if (slot === 'target') {
           if (typeof targetAuthorization !== 'function') fail('HubSpotTargetAuthorizationUnavailable');
           return targetAuthorization(rowIndex);
@@ -143,21 +194,21 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       },
     });
   };
-  const restore = context => restoreInstalledRowUpdateMembers(context, maxMembers,
+  const restore = (context: RecoveryContext) => restoreInstalledRowUpdateMembers(context, maxMembers,
     'InvalidHubSpotUpdateRecovery', ({recorded, members, body, requestTags}, index, saved) => {
-      const member = members[index]; selected(member);
+      const member = members[index] as Member; selected(member);
       const changes = body?.effects?.[index]?.changes,
         claims = recorded.members[index]?.claims;
       const value = unpackInstalledRowUpdateRecovery(saved, recoveryKind, maxRecoveryBytes,
-        changes, claims, maxRows, 'InvalidHubSpotUpdateRecovery');
-      if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
+        changes, claims, maxRows, 'InvalidHubSpotUpdateRecovery') as Recovery;
+      if (encode(value) !== saved!.wire || value.version !== recoveryVersion ||
           Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
           encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
-          !Array.isArray(value.requests) || value.requests.length !== changes.length) fail('InvalidHubSpotUpdateRecovery');
+          !Array.isArray(value.requests) || value.requests.length !== changes!.length) fail('InvalidHubSpotUpdateRecovery');
       return Object.freeze(value.requests.map((wire, row) => {
         const rebuilt = requests.restore({member, wire, requestTag: requestTags?.[index]?.[row]});
         const facts = requests.requestFacts(rebuilt.request);
-        assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, 'ForeignHubSpotUpdateRecovery');
+        assertInstalledRowUpdateClaim(rebuilt, facts, claims!, changes!, row, 'ForeignHubSpotUpdateRecovery');
         requests.prepareTargetRead(rebuilt.request, targetReadLimits);
         return rebuilt.request;
       }));
@@ -168,7 +219,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
     operation: HUBSPOT_INSTALLED_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
-    async describe(options) {
+    async describe(options: Describe) {
       const original = selected(options.member), read = metadataReader(options);
       const current = await observations.describe({...options, ...read});
       // Retain only the original scope and control callback needed by later
@@ -178,24 +229,24 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         controlConstruction: options.controlConstruction});
       return current;
     },
-    prepareRequest(options) {
+    prepareRequest(options: Parameters<Requests['prepare']>[0] & Readonly<{member: Member; current: HubSpotUpdateCurrent}>) {
       frame(options.member, options.current);
       const prepared = requests.prepare(options);
       requests.prepareTargetRead(prepared.request, targetReadLimits);
       return prepared;
     },
-    recheckRequests({member, entries, current, controlConstruction}) {
+    recheckRequests({member, entries, current, controlConstruction}: CurrentWithEntries) {
       frame(member, current);
       const check = () => {for (const entry of entries) checked(native.hubspotRecheckRecordBatch(
         requests.nativeRequest(entry.request), current.catalog, maxProperties));};
       return controlConstruction === undefined ? check() : controlConstruction(undefined, check, [], requestRecheckCapacity);
     },
-    observeTargets(options) {
+    observeTargets(options: ObserveTargets) {
       const original = frame(options.member, options.current);
       const read = metadataReader({...original, signal: options.signal, targetAuthorization: options.authorizationForRow});
       return observations.observeTargets({...options, ...read});
     },
-    admitTargetReadApproval({member, decision}) {
+    admitTargetReadApproval({member, decision}: Readonly<{member: Member; decision: unknown}>) {
       const original = selected(member), expected = {version: HUBSPOT_UPDATE_TARGET_VERSION,
         site_binding_cid: siteBindingCid, generation_cid: generationCid, effect_id: member.effectId,
         member_index: member.memberIndex, mapping_ref: original.mappingRef, mapping_cid: original.mappingCid,
@@ -203,12 +254,12 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
       return admitCheckpointPhysicalRead(decision, expected, HUBSPOT_OBJECT_BATCH_READ_OPERATION,
         physical.admitCheckpointEffectTargetRead, 'HubSpotTargetReadApprovalNotAdmitted');
     },
-    footprint({member}) {
+    footprint({member}: Readonly<{member: Member}>) {
       const original = selected(member);
       return Object.freeze({providerNamespace: 'hubspot', resourceKind: 'object',
         boundaryCid: cid({origin, portalId, objectType: native.hubspotPropertyCatalogObjectType(original.catalog)})});
     },
-    recoveryEntry({member, entries}) {
+    recoveryEntry({member, entries}: Readonly<{member: Member; entries: readonly Entry[]}>) {
       selected(member);
       const wires = installedRowUpdateRequestWires(entries, maxRows, requests,
         'InvalidHubSpotUpdateRecovery', 'ForeignHubSpotUpdateRequest');
@@ -216,7 +267,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'HubSpotUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    prepareUpdateWrite(member, request, current, resourceOrigin, _registration, signal) {
+    prepareUpdateWrite(member: Member, request: unknown, current: HubSpotUpdateCurrent, resourceOrigin: unknown,
+      _registration: unknown, signal?: AbortSignal) {
       frame(member, current);
       if (resourceOrigin !== origin) {
         fail('ForeignHubSpotUpdateOrigin');
@@ -229,7 +281,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         path: updatePathPrefix + segment(requests.objectType(request)) + updatePathSuffix,
         query: [], headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
-    project({request, observation}) {
+    project({request, observation}: Pick<Parameters<typeof projectHubSpotRecordWriteObservation>[0], 'request' | 'observation'>) {
       const result = projectHubSpotRecordWriteObservation({moon: native,
         request: requests.nativeRequest(request), observation, limits: responsePolicy});
       if (result.kind !== 'typed-success-response') return Object.freeze({kind: result.kind});
