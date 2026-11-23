@@ -8,6 +8,6 @@
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
   "files": ["_internal", "index.mjs", "index.d.ts", "LICENSE", "npm-shrinkwrap.json", "README.md"],
-  "dependencies": {"@ai-sdk/anthropic": "4.0.107", "@ai-sdk/google": "4.0.124", "@ai-sdk/openai": "4.0.91", "@ai-sdk/provider": "4.0.26", "@ai-sdk/provider-utils": "5.0.58", "@ai-sdk/typesafe-ai": "3.0.13", "undici": "7.30.0"},
+  "dependencies": {"@ai-sdk/anthropic": "4.0.107", "@ai-sdk/google": "4.0.124", "@ai-sdk/mistral": "4.0.89", "@ai-sdk/openai": "4.0.91", "@ai-sdk/provider": "4.0.26", "@ai-sdk/provider-utils": "5.0.58", "@ai-sdk/typesafe-ai": "3.0.13", "undici": "7.30.0"},
   "peerDependencies": {"zod": "4.6.5"}
 }
