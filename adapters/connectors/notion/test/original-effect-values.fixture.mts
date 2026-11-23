@@ -6,13 +6,58 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {inspect} from 'node:util';
 import {canonicalText} from '../../../../scripts/check-canonical-json.mjs';
-import {moon, publicationEvidence} from '../../../host-node/fixtures/command-original-key.fixture.mjs';
 import {runCapturedEffectComputation} from '../../../host-node/entry.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
+import type {contentGenerationControl} from '../../../host-common/content-generation-control.mjs';
+import type {exportPinnedEffectLocalResult} from '../../../host-node/effect-input-export.mjs';
+
+type EffectExport = Parameters<typeof exportPinnedEffectLocalResult>[0];
+type Execution = Awaited<ReturnType<typeof runCapturedEffectComputation>> & EffectExport['execution'];
+type OwnedEffect = Parameters<typeof runCapturedEffectComputation>[0];
+type PublicationEvidence = [template:unknown, invocation:unknown, authorization:unknown, plan:unknown];
+type ExportLimits = Pick<Parameters<typeof contentGenerationControl>[0],'clientProgramEffectInputExportLimits'>;
+type Common = EffectExport['moon'] & ExportLimits & {
+  clientProgramNotionDatabaseLimits(bytes:number,nodes:number,depth:number,dataSources:number,
+    properties:number,identityBytes:number,nameBytes:number):unknown;
+  clientProgramNotionProjectDatabase(body:Uint8Array,limits:unknown):unknown;
+  clientProgramNotionProjectDataSource(database:unknown,index:number,body:Uint8Array,limits:unknown):unknown;
+  clientProgramNotionPropertyWriteLimits(bytes:number,nodes:number,depth:number,properties:number,
+    items:number,textUnits:number,work:number):unknown;
+  clientProgramCheckEnvironment(wire:string,cid:string,textTime:boolean,veca:boolean,
+    rela:boolean,sga:boolean,tea:boolean,calendar:boolean,textRank:boolean):unknown;
+  clientProgramPrepareEffectComputationWithParameters(program:string,format:string,environment:unknown,
+    parameters:string|undefined,proofs:readonly unknown[]):unknown;
+  clientProgramEffectPreparationReady(outcome:unknown):unknown;
+  clientProgramEffectPreparationIssue(outcome:unknown):unknown;
+  clientProgramAdmitEffectPublication(prepared:unknown,...evidence:PublicationEvidence):unknown;
+  strategyIssueRunDefinition(admission:unknown,scope:string,run:string,artifacts:string,
+    created:string,expires:string,bytes:number,nodes:number,depth:number):unknown;
+  clientProgramBindEffectRun(prepared:unknown,admission:unknown,definition:unknown):unknown;
+  clientPrepareInstalledSequenceContracts(registry:string,values:string,fragment:string,ordered:string):unknown;
+  clientProgramOpenSourceFreeLocalEffectHost(bound:unknown,contracts:unknown,values:string,
+    runs:bigint,transfer:bigint,retained:bigint,execution:bigint,fragment:string,ordered:string):OwnedEffect|undefined;
+  clientProgramPinEffectSources(owned:OwnedEffect,maxInputs:number):unknown;
+  clientProgramEffectLocalResultCount(inputs:unknown):number;
+  clientProgramEffectLocalResultMatchesMember(inputs:unknown,index:number,member:number):boolean;
+  clientProgramReleaseEffectInputs(inputs:unknown):unknown;
+  clientProgramEffectProposalBegin(inputs:unknown,member:number,rows:number,work:number):unknown;
+  clientProgramEffectCheckedProposalRow(plan:unknown,exported:unknown,original:unknown,
+    fields:number,work:number,nodes:number,depth:number,text:number):unknown;
+  clientProgramEffectProposalFinish(plan:unknown,rows:number):unknown;
+  clientProgramEffectProposalCancel(plan:unknown):unknown;
+  clientProgramEffectNotionPropertyWrite(row:unknown,field:number,catalog:unknown,property:number,limits:unknown):unknown;
+  clientProgramEffectNotionWritesJson(row:unknown,catalog:unknown,writes:readonly unknown[],limits:unknown):unknown;
+  clientProgramEffectCheckedProposalRowRetire(row:unknown):unknown;
+};
+
+const {moon, publicationEvidence}:{
+  moon:Common;publicationEvidence(prepared:unknown):PublicationEvidence;
+}=await import(new URL('../../../host-node/fixtures/command-original-key.fixture.mjs',import.meta.url).href);
+
 export {moon};
-const cid = value => `sha256:${createHash('sha256').update(canonicalText(value)).digest('hex')}`;
-const ref = digit => `sha256:${digit.repeat(64)}`;
+const cid = (value:unknown) => `sha256:${createHash('sha256').update(canonicalText(value)).digest('hex')}`;
+const ref = (digit:string) => `sha256:${digit.repeat(64)}`;
 export const propertyWriteLimits = Object.freeze({maxBytes: 65536, maxNodes: 4096,
   maxDepth: 16, maxProperties: 4, maxItems: 100, maxTextUnits: 10000, maxWork: 100000});
 export const originalRowLimits = Object.freeze({maxRows: 2, maxFields: 10, maxWork: 100000,
@@ -34,7 +79,7 @@ export function writeLimits() {
 }
 
 export async function originalNotionEffectValuesFixture() {
-  const base = JSON.parse(await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const base = JSON.parse(await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8')) as Record<string,unknown>;
   const manifest = {version: 'actql-connectors/0.1', connectors: [
     {connector: 'notion', connector_id: 'notion', connector_version: 'fixture'}]};
   const catalogBody = {schema: 'actql.connector_catalog/0.1', connector_id: 'notion',
@@ -56,7 +101,7 @@ export async function originalNotionEffectValuesFixture() {
       End: {field: 'end', null_behavior: 'write_null'}, Plain: {field: 'plain', null_behavior: 'reject'},
       Start: {field: 'start', null_behavior: 'reject'}},
     target_schema: targetSchema, target_schema_identity: cid(targetSchema), writable_fields: names};
-  const body = {...base, connector_manifest: manifest, connector_catalogs: [catalog],
+  const body:Record<string,unknown> = {...base, connector_manifest: manifest, connector_catalogs: [catalog],
     mapping_contracts: [{...mappingBody, mapping_contract_cid: cid(mappingBody)}]};
   delete body.evidence_bundle_cid;
   const environmentCid = cid(body);
@@ -96,12 +141,13 @@ export async function originalNotionEffectValuesFixture() {
   const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound, contracts,
     values, 1n, 0n, 0n, 0n, fragment, ordered);
   assert(owned, 'same original source-free Effect Host');
-  let execution, inputs;
+  let execution:Execution|undefined, inputs:unknown;
   try {
-    execution = await runCapturedEffectComputation(owned);
+    // The Host's managedPhysicalSource returns an owner only when its withRows port is present.
+    execution = await runCapturedEffectComputation(owned) as Execution;
     assert.equal(execution.status, 'host-tasks-completed');
     inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
-    const indexes = [];
+    const indexes:number[] = [];
     for (let index = 0; index < moon.clientProgramEffectLocalResultCount(inputs); index++) {
       if (moon.clientProgramEffectLocalResultMatchesMember(inputs, index, 0)) indexes.push(index);
     }
@@ -110,12 +156,12 @@ export async function originalNotionEffectValuesFixture() {
       10, 1000, 10000, 100, 100, 10000, 100000, 64, 100000,
       100000, 10000, 64, 10, 10000, 100000, 10003, 66, 10, 100000, 10000, 64, 4096);
     assert(limits);
-    return {moon, owned, execution, inputs, limits, resultIndex: indexes[0],
+    return {moon, owned, execution, inputs, limits, resultIndex: indexes[0]!,
       originalRowLimits: {maxNodes: 1000, maxDepth: 64, maxUtf16Units: 10000},
       async close() {
         moon.clientProgramReleaseEffectInputs(inputs);
-        await execution.close();
-        assert.equal(execution.cleanupPending(), false);
+        await execution!.close();
+        assert.equal(execution!.cleanupPending(), false);
       }};
   } catch (cause) {
     if (inputs !== undefined) moon.clientProgramReleaseEffectInputs(inputs);
