@@ -393,9 +393,16 @@ def accept_installed_saved(run, consumer: Path, destination: Path,
     stopped = observed('installed-saved-fuel-interruption', interruption,
                        [fuel, source, '--without-fd-observer'], fuel)
     injections = stopped.get('injections')
-    if (type(injections) is not list or len(injections) != 1 or type(injections[0]) is not dict
-            or type(injections[0].get('before')) is not int or injections[0]['before'] <= 0
-            or injections[0].get('after') != 0 or injections[0].get('actualCurrentResult') != 0):
+    if type(injections) is not list or len(injections) != 1 or type(injections[0]) is not dict:
+        raise ValueError('Missing one actual Saved fuel injection under current')
+    injection = injections[0]
+    if (type(injection.get('before')) is not int or injection['before'] <= 0
+            or type(injection.get('after')) is not int or injection['after'] != 0
+            or type(injection.get('ticket')) is not int or injection['ticket'] <= 0
+            or type(injection.get('operation')) is not int or injection['operation'] <= 0
+            or type(injection.get('operationImport')) is not bool
+            or type(injection.get('actualCurrentResult')) is not int
+            or injection['actualCurrentResult'] != (injection['operation'] if injection['operationImport'] else 0)):
         raise ValueError('Missing one actual Saved fuel injection under current')
     if (stopped.get('passed') is not True or stopped.get('cases') != 1
             or stopped.get('originalTrapCode') != 12 or stopped.get('firstClose') is not True

@@ -2,7 +2,7 @@
 
 The caller supplies a new fixture's successful warm reference and its current
 normal wheel installation. This is not a pristine default-fuel success case:
-the test wraps two private call ports solely to reduce remaining fuel to zero
+the test wraps the Saved call and its physical current ports to reduce remaining fuel to zero
 inside the actual saved-binding validation's original current callback. It
 does not replace the Core, module, physical current result, or cleanup callback.
 The same instance must retain its physical duties and close explicitly.
@@ -63,7 +63,7 @@ def main():
         print(json.dumps({'stage': row}), flush=True)
 
     import actql
-    from actql_sdk._local_core import LocalCore
+    from actql_sdk._local_core import LocalCore, _Output
     from actql_sdk._local_distribution import installed_local_components
     from wasmtime import Trap
     fuel_trap_code = None
@@ -77,7 +77,7 @@ def main():
     report.update(module=installed.module_sha256, image=installed.image_sha256)
     report['versions'] = {name: metadata.version(name)
                           for name in ('actql', 'actql-sdk', 'actql-local-runtime', 'wasmtime')}
-    call, current = LocalCore._call, LocalCore._journal_current
+    call, current, current_operation = LocalCore._call, LocalCore._journal_current, LocalCore._journal_current_operation
     selected, entered, held = [False], [False], []
 
     def observed_call(self, family, name, *arguments):
@@ -89,10 +89,16 @@ def main():
                 'closing': self._closing,
             })
         if (selected[0] and family == 'publication_commit_export'
-                and name == 'validate_payload_binding'):
+                and name == 'validate_payload_binding' and len(arguments) == 5
+                and arguments[0] > 0 and arguments[1] > 0):
+            # The preceding zero-loan capability query never enters this
+            # selection. The input must be the live original Saved parent.
             selected[0] = False
             if entered[0] or held:
                 raise AssertionError('The same selected invocation must not repeat')
+            source, = [loan for loan in self._loans.values() if type(loan) is _Output
+                       and loan.handle == arguments[0] and loan.family == 'submission_lookup']
+            self._owned_output(source, 'submission_lookup')
             scope = self._host_operation_scope
             if not self._ordinary_host or self._host_fuel_phase != 'operation' or scope is None:
                 raise AssertionError('Original normal outer operation required')
@@ -104,24 +110,38 @@ def main():
                 entered[0] = False
         return call(self, family, name, *arguments)
 
-    def observed_current(self, ticket):
-        result = current(self, ticket)
-        if entered[0] and result == 0 and not report['injections']:
-            if not held or self is not held[0][0] or self._store is not held[0][1]:
-                raise AssertionError('Foreign Core or replacement Store')
-            if (not self._invoking or self._host_fuel_phase != 'operation'
-                    or self._host_operation_scope is not held[0][2] or self._host_operation_id != held[0][3]):
-                raise AssertionError('Original saved binding is not in flight in the same operation')
-            before = self._store.get_fuel()
-            if before <= 0:
-                raise AssertionError('Counter must reduce an available original budget')
-            self._store.set_fuel(0)
-            report['injections'].append({'before': before, 'after': self._store.get_fuel(),
-                                         'actualCurrentResult': result, 'ticket': ticket})
+    def interrupt(self, ticket, result, *, operation_import):
+        if not entered[0] or ticket <= 0 or report['injections']:
+            return result
+        original, store, scope, operation = held[0]
+        expected = operation if operation_import else 0
+        if result != expected:
+            return result
+        if self is not original or self._store is not store:
+            raise AssertionError('Foreign Core or replacement Store')
+        if (not self._invoking or self._host_fuel_phase != 'operation'
+                or self._host_operation_scope is not scope or self._host_operation_id != operation):
+            raise AssertionError('Original saved binding is not in flight in the same operation')
+        before = store.get_fuel()
+        if before <= 0:
+            raise AssertionError('Counter must reduce an available original budget')
+        store.set_fuel(0)
+        report['injections'].append({'before': before, 'after': store.get_fuel(),
+                                     'actualCurrentResult': result, 'ticket': ticket,
+                                     'operationImport': operation_import, 'operation': operation})
         return result
 
+    def observed_current(self, ticket):
+        return interrupt(self, ticket, current(self, ticket), operation_import=False)
+
+    def observed_current_operation(self, ticket):
+        result = current_operation(self, ticket)
+        return interrupt(self, ticket, result, operation_import=True)
+
     client, close_attempted = None, False
-    LocalCore._call, LocalCore._journal_current = observed_call, observed_current
+    LocalCore._call = observed_call
+    LocalCore._journal_current = observed_current
+    LocalCore._journal_current_operation = observed_current_operation
     try:
         event('public reopen original fresh installation')
         client = actql.open(state_dir=state)
@@ -183,7 +203,9 @@ def main():
                 client.close()
             except BaseException as error:
                 report['cleanupFailure'] = error_chain(error)
-        LocalCore._call, LocalCore._journal_current = call, current
+        LocalCore._call = call
+        LocalCore._journal_current = current
+        LocalCore._journal_current_operation = current_operation
         (directory / 'fresh-interruption-result.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(report), flush=True)
     return 0 if report['passed'] else 1
