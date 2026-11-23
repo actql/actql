@@ -17,6 +17,37 @@ priv struct LocalNativeMockEffectDirectSources {
 }
 
 ///|
+fn LocalNativeMockEffectDirectSources::publication_originals(
+  self : Self,
+) -> (@publication.RunEvidenceValue, @publication.PublicationContract)? {
+  match (self._retained_publication, self._retained_values_publication) {
+    (Some(publication), None) =>
+      Some(
+        (
+          @run_host.client_effect_direct_sources_publication_observation(
+            publication,
+          ),
+          @run_host.client_effect_direct_sources_publication_invocation(
+            publication,
+          ),
+        ),
+      )
+    (None, Some(publication)) =>
+      Some(
+        (
+          @run_host.client_effect_source_free_invocation_original_observation(
+            publication,
+          ),
+          @run_host.client_effect_source_free_invocation_original_invocation(
+            publication,
+          ),
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
 priv suberror LocalDirectSourceEvidenceStop {
   LocalDirectSourceEvidenceStop(LocalNativeMockSourceIdentityIssue)
 }

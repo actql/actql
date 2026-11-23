@@ -250,7 +250,7 @@ fn LocalProjectMockWriteInstallation::matches_file_operation(
   operation : String,
 ) -> Bool {
   match operation {
-    "update" | "delete" => self.write.operation == operation
+    "create" | "update" | "delete" => self.write.operation == operation
     _ => false
   }
 }

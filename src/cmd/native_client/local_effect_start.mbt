@@ -336,7 +336,10 @@ fn local_effect_prepare_start_with_clocks(
     Some(selected) if original._retained_models.length() == 1 ||
       (
         original._retained_models.is_empty() &&
-        !original._retained_sources.is_empty() &&
+        (
+          !original._retained_sources.is_empty() ||
+          (values_supported && original.is_mock_values_create())
+        ) &&
         selected.original.project is Some(project) &&
         project.mock_declarations is Some(_)
       ) => {

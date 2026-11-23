@@ -478,7 +478,6 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
     direct.captures.length() == direct.identities.length() &&
     state.proposals is Some(proposals) &&
     proposals.materials is Some(materials) &&
-    proposals._retained_combined_source_unit is Some(combined) &&
     proposals._retained_local_manifest is Some(manifest) &&
     proposals.invocation is Some(invocation) &&
     proposals.construction is Some(construction) &&
@@ -491,6 +490,22 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   }
   let prepared = state._retained_prepared
   let limits = @run_host.client_standard_effect_computation_limits().effects
+  let combined = proposals._retained_combined_source_unit
+  let values_scope = if combined is None {
+    guard state.first.is_mock_values_create() &&
+      direct._retained_values_publication is Some(publication) &&
+      proposals.members is [entry] &&
+      entry._retained_artifact is Some(artifact) &&
+      @run_host.client_effect_source_free_result_original_scope(
+        artifact, publication,
+      )
+      is Some(scope) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    Some(scope)
+  } else {
+    None
+  }
   let measuring = mock_effect_dependency_measurement_bytes(
     limits.max_admission_nodes,
     limits.max_admission_depth,
@@ -525,12 +540,15 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   let mut entries = retention.length().to_int64() +
     policy_bodies.length().to_int64() +
     2L * direct.identities.length().to_int64() +
-    @run_host.client_effect_combined_source_unit_dependency_body_count(combined)
-  let (_, source_stage, _) = @run_host.client_effect_combined_source_unit_catalog_subject(
-    combined,
-  )
+    combined
+    .map(@run_host.client_effect_combined_source_unit_dependency_body_count)
+    .unwrap_or(1L)
+  let source_stage = combined.map(value => {
+    @run_host.client_effect_combined_source_unit_catalog_subject(value).1
+  })
   if proposals.imports is Some(_) {
     guard proposals._retained_direct_source_manifest is Some(_) &&
+      source_stage is Some(stage) &&
       proposals.import_observations.length() == 1 else {
       stop("LocalOriginalEffectDependencyInventoryUnavailable")
     }
@@ -544,7 +562,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
         is Some(result) else {
         stop("LocalOriginalEffectDependencyInventoryUnavailable")
       }
-      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+      if @strategy.captured_effect_local_result_stage(result) == stage {
         guard entry._retained_dependency is Some(capture) else {
           stop("LocalOriginalEffectDependencyInventoryUnavailable")
         }
@@ -657,13 +675,24 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
       schema,
     )
   }
-  for
-    (kind, cid, wire) in @run_host.client_effect_combined_source_unit_dependency_bodies(
-      combined,
-    ) {
-    append(kind, cid, wire)
+  if combined is Some(combined) {
+    for
+      (kind, cid, wire) in @run_host.client_effect_combined_source_unit_dependency_bodies(
+        combined,
+      ) {
+      append(kind, cid, wire)
+    }
+  } else if values_scope is Some(scope) {
+    append(
+      "acquisition_scope",
+      @publication.publication_contract_identity(scope),
+      @publication.publication_contract_json(scope),
+    )
   }
   if proposals.imports is Some(imported) {
+    guard source_stage is Some(stage) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
     let source_manifest = proposals._retained_direct_source_manifest.unwrap()
     kinds.push("local_manifest")
     identities.push(
@@ -693,7 +722,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
         is Some(result) else {
         stop("LocalOriginalEffectDependencyInventoryUnavailable")
       }
-      if @strategy.captured_effect_local_result_stage(result) == source_stage {
+      if @strategy.captured_effect_local_result_stage(result) == stage {
         guard entry.artifact is Some(artifact) &&
           entry._retained_dependency is Some(capture) else {
           stop("LocalOriginalEffectDependencyInventoryUnavailable")

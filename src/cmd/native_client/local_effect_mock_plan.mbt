@@ -250,6 +250,23 @@ fn native_mock_effect_operations(
     }
     let deleting = descriptor.2 == "delete"
     let creating = descriptor.2 == "create"
+    if creating {
+      let candidate = @run_host.prepared_client_effect_computation_candidate(
+        prepared,
+      )
+      let program = @checked.effect_program_static_checked_computation(
+        candidate,
+      )
+      guard @checked.unit_count(program) == 1 &&
+        @run_host.client_effect_direct_acquisition_count(
+          prepared,
+          policy.effects.max_work,
+        )
+        is Ok(0) &&
+        @run_host.prepared_client_effect_infer_count(prepared) == Some(0) else {
+        stop("LocalOriginalEffectImplementationUnavailable")
+      }
+    }
     let physical = (if creating {
       // The Saved application prices the document after observing the actual
       // file length. The preparation Plan only needs fixed insertion controls.

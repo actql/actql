@@ -73,7 +73,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
         state.source_start is Some(_) &&
         business.request_run is Some(run) &&
         state.direct_sources is Some(direct) &&
-        direct._retained_publication is Some(publication) else {
+        direct.publication_originals() is Some((observation, invocation)) else {
         stop("LocalOriginalEffectPreviewUnavailable")
       }
       let max_bytes = native_mock_effect_record_bytes(installation)
@@ -93,19 +93,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
         installation.store_authority_cid,
         max_bytes,
         limits.max_result_fields,
-        () => {
-          (
-            @run_host.client_effect_direct_sources_publication_observation(
-              publication,
-            ),
-            @run_host.client_effect_direct_sources_publication_invocation(
-              publication,
-            ),
-            [],
-            direct.observations,
-            None,
-          )
-        },
+        () => (observation, invocation, [], direct.observations, None),
         report,
       )
       state.prepare_direct_mock_effect_dependencies(
