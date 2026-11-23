@@ -12,6 +12,7 @@ import * as common from '../../../../_build/js/release/build/connectors_builtin_
 import * as provider from '../../../../_build/js/release/build/connectors/slack/host_node/host_node.js';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {openHttpsCredentialBinding,closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
@@ -44,18 +45,22 @@ async function rowOwner(verifyTransport,format) {
   const view=declared.views[0];
   const publication=JSON.stringify({environmentCid:environment.evidenceCid,aliases:[{name:'slack.messages',
     sourceRef:view.source_ref,sourceViewContractCid:view.view_cid,schemaContractCid:view.carrier_schema_cid}]});
+  // This component uses the original Query acquisition, with no row filter.
   const preparation=common.clientProgramPrepareSourceWithParameters(
-    format==='sql'?'SELECT id, ts, reply_count, posted_at FROM slack.messages':'FROM slack.messages |> SELECT id, ts, reply_count, posted_at',
+    format==='sql'?'SELECT id, ts, reply_count, posted_at FROM slack.messages WHERE TRUE'
+      :'FROM slack.messages |> WHERE TRUE |> SELECT id, ts, reply_count, posted_at',
     format,check,publication,undefined,undefined);
   const program=common.clientProgramPreparationReady(preparation);
   assert.ok(program,common.clientProgramPreparationIssueCode(preparation));
   const [registry,aoa,query,evidence]=await Promise.all([read('spec/dependencies/aoa-pipeline-registry.json'),
     read('spec/contracts/actql-aoa.json').then(JSON.parse),read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement=checked(common.clientProgramPrepareLocalQueryRequirement(program,0,0,registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+  const requirement=checked(common.clientProgramPrepareLocalQueryRequirement(program,0,0,contracts,
+    values,fragment,ordered));
   const acquisition=checked(common.clientProgramRowSourcePrepareAcquisition(declaration,requirement,query,evidence));
   // Independent component reservations, not a normal installed reader supplier.
   const ledger=checked(common.clientProgramAcquisitionLedger(1,1,65536n,100000000n,100000000n,0));
@@ -65,7 +70,10 @@ async function rowOwner(verifyTransport,format) {
     observe:charge=>checked(common.clientProgramRowSourceConsumeObservationCharge(run,charge)),
     page:(rows,charge)=>checked(common.clientProgramRowSourceAcceptChargedPage(run,charge,Buffer.from(JSON.stringify(rows)))),
     finish:()=>checked(common.clientProgramRowSourceFinish(run)),
-    captureCount:()=>{const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount:()=>{
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      while(!runtimeField(checked(common.clientProgramRowSourceCaptureAdvance(run,64)),0)) {}
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture:()=>assert.throws(()=>checked(common.clientProgramRowSourceCapture(run)),{code:'MoonBitHostFailure'}),
