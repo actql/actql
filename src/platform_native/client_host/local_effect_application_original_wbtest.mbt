@@ -101,6 +101,38 @@ test "Native saved file request measures the same original canonical subtrees be
 }
 
 ///|
+test "Native saved file create request uses the assigned key without a before image or version" {
+  let value = @canonical.from_json(
+    { "Name": "日😀" },
+    8,
+    3,
+    256,
+    data_keys=true,
+  )
+  let key = "33cbd34e407306183290fe3d37d1093e2abe0f21521250a9cc587293255f5743"
+  let expected = "{\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":\"" +
+    key +
+    "\",\"value\":{\"Name\":\"日😀\"}}"
+  let bytes = @utf8.encode(expected).length()
+  let result = native_local_effect_file_create_request_wire(
+    "binding", "mapping", key, value, bytes, 8, 3,
+  )
+  assert_eq(result.unwrap(), expected)
+  assert_true(
+    native_local_effect_file_create_request_wire(
+      "binding",
+      "mapping",
+      key,
+      value,
+      bytes - 1,
+      8,
+      3,
+    )
+    is Err(_),
+  )
+}
+
+///|
 // Authored two-row input from scripts/fixtures/effect-file-operation-vectors.mjs.
 // Pure immutable-key projection only; no Host, Account, signer or IO is admitted.
 fn native_application_projection_fixture() -> (

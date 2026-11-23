@@ -607,6 +607,19 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
   )
   let mapped_wire = "{\"value\":3}"
   let original_bytes = target_io_fixture_text.length()
+  let (initial, _) = native_relation_file_target_insert_construction(
+    provider,
+    None,
+    mapped_wire,
+  ).unwrap()
+  assert_true(
+    native_relation_file_target_insert_construction(
+      provider,
+      Some(provider.limits.page.max_bytes),
+      mapped_wire,
+    )
+    is None,
+  )
   let placed = Ref(0)
   let insert = prepare_native_relation_file_target_insert_io(
     provider,
@@ -615,13 +628,16 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
     "target-insert-stage",
     bytes => {
       placed.val = bytes
-      @rows.relation_target_insert_workspace_inventory(
-        provider.prepared_contract,
-        provider.selection.items_path.length(),
-        bytes,
-        mapped_wire.length(),
-      )
-      is Some(_)
+      guard native_relation_file_target_insert_construction(
+          provider,
+          Some(bytes),
+          mapped_wire,
+        )
+        is Some((actual, _)) else {
+        return false
+      }
+      @execution.execution_capacity_execution_bytes(actual) >
+      @execution.execution_capacity_execution_bytes(initial)
     },
   ).unwrap()
   target_io_fixture_run(insert)

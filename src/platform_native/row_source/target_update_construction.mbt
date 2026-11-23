@@ -27,6 +27,125 @@ pub fn native_relation_file_target_delete_construction(
 }
 
 ///|
+/// Back the original locked insertion in two phases. Before observation only
+/// transport custody is live. Once the same file size is known, include its
+/// document and the Common insertion workspace before opening the Reader.
+pub fn native_relation_file_target_insert_construction(
+  provider : NativeRelationFilePreparedProvider,
+  observed_bytes : Int?,
+  mapped_wire : String,
+) -> (@execution.ExecutionCapacity, Int64)? {
+  let limits = provider.limits
+  let response_bytes = observed_bytes.unwrap_or(0)
+  guard response_bytes >= 0 &&
+    response_bytes < limits.page.max_bytes &&
+    !mapped_wire.is_empty() &&
+    mapped_wire.length() <= limits.page.max_bytes &&
+    file_capture_metadata_capacity(
+      provider.selection,
+      limits,
+      prepared_provider=Some(provider),
+    )
+    is Some(controls) &&
+    @files.native_filesystem_write_layout() is Some(writer) &&
+    @files.native_filesystem_read_layout() is Some(reader) else {
+    return None
+  }
+  let empty : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let (document, document_units, insertion) = if observed_bytes is None {
+    (0L, empty, empty)
+  } else {
+    let contract = @rows.relation_document_prepared_contract(
+      provider.prepared_contract,
+    )
+    guard file_capture_provider_construction(
+        provider.selection,
+        limits,
+        contract,
+        prepared_contract=Some(provider.prepared_contract),
+        response_bytes=Some(response_bytes),
+      )
+      is Some((extent, units)) else {
+      return None
+    }
+    let insertion = if response_bytes == 0 {
+      // Empty input still reaches the bounded original document refusal.
+      empty
+    } else {
+      guard @rows.relation_target_insert_workspace_inventory(
+          provider.prepared_contract,
+          provider.selection.items_path.length(),
+          response_bytes,
+          mapped_wire.length(),
+        )
+        is Some(workspace) else {
+        return None
+      }
+      workspace
+    }
+    (@execution.execution_capacity_execution_bytes(extent), units, insertion)
+  }
+  // Root/Reader transport is already in the live document quote. Before the
+  // observation only its fixed custody/path layout is needed.
+  guard file_capture_transport_capacity(
+      provider.selection,
+      { ..limits, page: { ..limits.page, max_bytes: 0, }, chunk_bytes: 0, },
+      reader,
+    )
+    is Some(fixed_transport) else {
+    return None
+  }
+  let native = 2L *
+    (writer.writer_payload_bytes + writer.external_object_overhead_bytes) +
+    8L * provider.selection.name.length().to_int64() +
+    8L * 64L +
+    10L * 17L +
+    10L * limits.diagnostic_ceiling.to_int64() +
+    2L
+  let carrier : @execution.PreparationRepresentationUnits = {
+    // Staging, lock, typed insertion variant, callback and original ACK.
+    record_headers: 22L,
+    reference_slots: 54L,
+    scalar_words: 28L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.compose_preparation_representation([carrier, insertion])
+    is Some(write) &&
+    @execution.preparation_representation_cost(write) is Some(write_bytes) &&
+    @execution.checked_preparation_add_product(
+      controls +
+      native +
+      (if observed_bytes is None { fixed_transport } else { document }),
+      write_bytes,
+      1L,
+    )
+    is Some(total) &&
+    @execution.execution_capacity(total, total) is Some(capacity) &&
+    @execution.compose_preparation_representation([
+      document_units,
+      write,
+      {
+        ..empty,
+        owned_wire_bytes: limits.chunk_bytes.to_int64() +
+        2L * response_bytes.to_int64(),
+      },
+    ])
+    is Some(raw_units) &&
+    target_update_native_placement(raw_units, fixed_transport + native)
+    is Some(raw) else {
+    return None
+  }
+  Some((capacity, raw))
+}
+
+///|
 fn native_relation_file_target_write_construction(
   provider : NativeRelationFilePreparedProvider,
   writable_fields : Int,

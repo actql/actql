@@ -71,6 +71,7 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
   declaration : @rows.RowDeclaration,
   mapping : @rows.RowMapping,
   installation_binding_cid : String,
+  operation : String,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   guard self.prepared &&
     !self.retired &&
@@ -145,8 +146,12 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
     )
     is Ok(descriptor) &&
     descriptor.0 == member_index &&
-    descriptor.2 ==
-    (if mapping.write_fields.is_empty() { "delete" } else { "update" }) &&
+    descriptor.2 == operation &&
+    (match operation {
+      "delete" => mapping.write_fields.is_empty()
+      "create" | "update" => !mapping.write_fields.is_empty()
+      _ => false
+    }) &&
     @publication.effect_preview_member_kind(preview, member_index) ==
     Some(descriptor.2) &&
     descriptor.3 ==

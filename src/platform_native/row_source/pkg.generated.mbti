@@ -38,6 +38,8 @@ pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclara
 
 pub fn native_relation_file_target_delete_construction(NativeRelationFilePreparedProvider, Int) -> (@execution_relation.ExecutionCapacity, Int64)?
 
+pub fn native_relation_file_target_insert_construction(NativeRelationFilePreparedProvider, Int?, String) -> (@execution_relation.ExecutionCapacity, Int64)?
+
 pub fn native_relation_file_target_io_capacity(NativeRelationFilePreparedProvider, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn native_relation_file_target_read_io_capacity(NativeRelationFilePreparedProvider, Int, response_bytes? : Int?) -> @execution_relation.ExecutionCapacity?
