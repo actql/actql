@@ -96,7 +96,7 @@ test "private usage is not durable and lost commit is reconciled by original loo
   |> ignore
   database.insert("原", "row", b"saved").unwrap() |> ignore
   usage_test_lose_commit_reply(database, 1)
-  assert_true(database.commit() is Err(BodyTooLarge))
+  assert_true(database.commit() is Err(Physical(_)))
   assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
   let committed = database.database_usage().unwrap()
   assert_eq(committed.record_count, 1L)
