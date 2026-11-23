@@ -261,7 +261,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "f8f0a27cf918d7abd79eac710b1be2701aa801b6144ffbbfec19467329b5edb8",
+      "sha256": "1704eab98fa1040dde634c4315265136ffed46b38adb6f23fdac784426367c4f",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -509,7 +509,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "export async function loadInstalledSlackSource("
               },
               {
@@ -525,7 +525,7 @@
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -535,7 +535,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
               },
               {
@@ -609,7 +609,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -621,7 +621,7 @@
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -661,7 +661,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "BigInt(limits.maxTotalResponseBytes)>"
               },
               {
@@ -691,7 +691,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "providerReader=services('createSourceReader'"
               },
               {
@@ -699,7 +699,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
@@ -780,7 +780,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -790,7 +790,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "export async function loadInstalledSlackSource("
               },
               {
@@ -806,7 +806,7 @@
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -814,7 +814,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -824,7 +824,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
               },
               {
@@ -848,7 +848,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -882,7 +882,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -912,7 +912,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -922,7 +922,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -934,7 +934,7 @@
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -946,7 +946,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -976,7 +976,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -990,7 +990,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "BigInt(limits.maxTotalResponseBytes)>"
               },
               {
@@ -1014,7 +1014,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1028,7 +1028,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "providerReader=services('createSourceReader'"
               },
               {
@@ -1036,7 +1036,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
@@ -1044,7 +1044,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1098,7 +1098,7 @@
                 "anchor": "test('installed Slack channels Account permission cannot substitute"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1555,7 +1555,7 @@
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -1639,7 +1639,7 @@
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -1705,7 +1705,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
