@@ -206,18 +206,27 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             changes = store._connection.total_changes
             observe = fact._root.observe_original
             physical_current = observation._binding._physical_current
+            callback = observation._binding._current
+            produced_in = []
+            state['on_port'] = lambda: produced_in.append(core._journal_callbacks(callback.ticket).reader)
+
+            def read_material(output):
+                self.assertIs(holder._payload_outputs[request.ticket], output)
+                self.assertIs(core._journal_callbacks(callback.ticket).reader, produced_in[-1])
+                self.assertTrue(store._connection.in_transaction)
+                return b'original'
             with patch.object(fact._root, 'observe_original', wraps=observe) as physical, patch.object(
                     observation._binding, '_physical_current', wraps=physical_current) as current:
                 holder.prepare_original_input(request, clock)
-                output = holder.produce_original_chunk(request, chunk, clock, eof=True)
-                with patch.object(core, 'read_publication_commit_material', return_value=b'original'):
-                    self.assertEqual(holder.read_original_chunk(
-                        request, chunk, clock, output, eof=True), b'original')
+                with patch.object(core, 'read_publication_commit_material', side_effect=read_material):
+                    output, material = holder.produce_original_chunk(request, chunk, clock, eof=True)
+                    self.assertIs(holder._payload_outputs[request.ticket], output)
+                    self.assertEqual(material, b'original')
                 holder.observe_original_terminal(request, clock)
-                self.assertEqual(physical.call_count, 12)
-                self.assertGreaterEqual(current.call_count, 4)
+                self.assertEqual(physical.call_count, 9)
+                self.assertGreaterEqual(current.call_count, 3)
             self.assertEqual(calls[before:], ['prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
-                                           'produce_sdk_payload_chunk', 'observe_sdk_terminal'])
+                                           'observe_sdk_terminal'])
             state['port'] = -35
             with self.assertRaises(LocalCoreError):
                 holder.prepare_original_input(request, clock)
@@ -225,6 +234,38 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertIs(holder.original_first_output(request), first)
             self.assertEqual(store._connection.total_changes, changes)
             self.assertFalse(store._connection.in_transaction)
+
+    def test_file_change_during_output_copy_refuses_without_retiring_the_original(self):
+        with self.fixture() as (holder, observation, fact, store, core, request, first,
+                                clock, chunk, _, calls, _, _, _):
+            holder.bind_original_payload(request, clock, fact)
+            changes = store._connection.total_changes
+            selected = observation._binding._selected[0]
+            root = observation._binding._source._root
+            children = []
+
+            def copy_then_change(output):
+                children.append(output)
+                self.assertTrue(store._connection.in_transaction)
+                fd = os.open(selected.name, os.O_WRONLY, dir_fd=root._open())
+                try:
+                    self.assertEqual(os.pwrite(fd, b'!', 0), 1)
+                finally:
+                    os.close(fd)
+                return b'original'
+
+            with patch.object(core, 'read_publication_commit_material', side_effect=copy_then_change):
+                with self.assertRaises(LocalFileError):
+                    holder.produce_original_chunk(request, chunk, clock, eof=True)
+            self.assertEqual(calls.count('produce_sdk_payload_chunk'), 1)
+            self.assertEqual(len(children), 1)
+            self.assertIs(holder._payload_outputs[request.ticket], children[0])
+            self.assertIs(core._loans[children[0].ticket], children[0])
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertIsNone(fact._original_material)
+            self.assertEqual(store._connection.total_changes, changes)
+            self.assertFalse(store._connection.in_transaction)
+            self.assertTrue(holder.close_original_payload_output(request))
 
     def test_sealed_pair_only_falls_back_when_the_capability_query_is_unsupported(self):
         for capability, code, refused in (

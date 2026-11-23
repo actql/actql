@@ -60555,26 +60555,6 @@
         },
         {
           "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk",
-          "parameters": [
-            "self",
-            "request",
-            "chunk",
-            "clock",
-            "output",
-            "eof"
-          ]
-        },
-        {
-          "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk/read",
-          "parameters": [
-            "first",
-            "configuration"
-          ]
-        },
-        {
-          "async": false,
           "name": "OriginalSDKDeliveryStore/selected_original_payload",
           "parameters": [
             "self",
@@ -60626,7 +60606,7 @@
           ]
         }
       ],
-      "sha256": "97754eb140b37933b9682638cfcd54bef65a88bf2adbcf01bc2f44202ccea1f1",
+      "sha256": "911fa75414d2fd5888f3716e908ce26f8baf2bb184c88f99640c9ce55988d835",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60667,8 +60647,6 @@
             "OriginalSDKDeliveryStore/produce_original_chunk/produce",
             "OriginalSDKDeliveryStore/produce_original_receipt",
             "OriginalSDKDeliveryStore/produce_original_receipt/produce",
-            "OriginalSDKDeliveryStore/read_original_chunk",
-            "OriginalSDKDeliveryStore/read_original_chunk/read",
             "OriginalSDKDeliveryStore/selected_original_payload",
             "OriginalSDKDeliveryStore/_selected_original_payload"
           ],
@@ -61698,7 +61676,7 @@
           ]
         }
       ],
-      "sha256": "6179d179c8fd5cbdc6c3e076e610ae3bedbe4f29b19eec14a9dd6187ed082d7c",
+      "sha256": "36dad7ebfea7177148f040806299032547760443366a3fcbfe488370cd3a2558",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
