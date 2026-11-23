@@ -6290,7 +6290,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/original-effect-property-codec.mjs",
-      "sha256": "d90f105275024c19a19cb6c8d85e0424d4258592d0a753e26b4b38dc4b5099c6",
+      "sha256": "918b092611e28deceddd906192cee704b52dc16dffd376a215b77a71eab4e101",
       "exports": [
         "createNotionOriginalEffectPropertyCodec"
       ],

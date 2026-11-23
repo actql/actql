@@ -27146,7 +27146,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/project-connection.mjs",
-      "sha256": "3512374cbbb94ab95c3efbcb7e71bb55d8d6448fa1e63b89cf2c1e5db50a54c0",
+      "sha256": "91f7439bbd11ecb9b33e48e5cc903f3231c76da1b675ea94ed0b4a2aa4d9aa4d",
       "exports": [
         "loadInstalledNotionProjectConnection"
       ],
@@ -27275,13 +27275,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/host/project-connection.mjs",
+                "path": "adapters/connectors/notion/host/project-connection.mts",
                 "anchor": "export async function loadInstalledNotionProjectConnection"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/notion/host/project-connection.mjs",
+                "path": "adapters/connectors/notion/host/project-connection.mts",
                 "anchor": "originalViews.get(this)!==state"
               }
             ],
@@ -27333,7 +27333,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/original-effect-property-codec.mjs",
-      "sha256": "d90f105275024c19a19cb6c8d85e0424d4258592d0a753e26b4b38dc4b5099c6",
+      "sha256": "918b092611e28deceddd906192cee704b52dc16dffd376a215b77a71eab4e101",
       "exports": [
         "createNotionOriginalEffectPropertyCodec"
       ],

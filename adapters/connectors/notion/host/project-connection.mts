@@ -5,77 +5,87 @@ import {types} from 'node:util';
 import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
-const fail=code=>{throw Object.assign(new Error(code),{code});};
+const fail: (code: string) => never=code=>{throw Object.assign(new Error(code),{code});};
 const limitsKeys=['maxConnections','maxSelectionWork','maxDatabases','maxCredentialReferenceBytes',
   'maxBytes','maxNodes','maxDepth','maxDataSources','maxProperties','maxIdentityBytes','maxNameBytes',
-  'maxContractNodes','maxContractDepth','maxContractTextBytes','maxColumns','maxWork'];
+  'maxContractNodes','maxContractDepth','maxContractTextBytes','maxColumns','maxWork'] as const;
 const projectPorts=['clientProjectConnectionsCount','clientProjectConnectionsName',
-  'clientProjectConnectionsConnector','clientProjectConnectionsEntryOriginalJson'];
-const providerPorts=['notionReadPublicConnection'];
-const originalViews=new WeakMap();
-const positive=value=>Number.isSafeInteger(value)&&value>0&&value<=2147483647;
-const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!value.includes('\0');
-function ports(receiver,names){
+  'clientProjectConnectionsConnector','clientProjectConnectionsEntryOriginalJson'] as const;
+const providerPorts=['notionReadPublicConnection'] as const;
+type LoadedConnections = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
+type Project = Parameters<typeof loadInstalledProjectConnections>[1];
+type Runtime = Parameters<typeof loadInstalledProjectConnections>[0];
+type Connections = ReturnType<LoadedConnections['originalsForRuntime']>;
+type ConnectionRecord = Readonly<{project: Project; projectConnections: Connections;
+  name: string; index: number; wire: string; connection: unknown}>;
+type ViewState = {references?: {moon: Runtime; providerMoon: unknown; acquisition: LoadedConnections;
+    originals: Connections; record: ConnectionRecord}; retired: boolean; failure: unknown};
+type Port = (...args: unknown[]) => unknown;
+
+const originalViews=new WeakMap<object, ViewState>();
+const positive=(value: unknown): value is number=>Number.isSafeInteger(value)&&(value as number)>0&&(value as number)<=2147483647;
+const text=(value: unknown): value is string=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!value.includes('\0');
+function ports<Name extends string>(receiver: unknown,names: readonly Name[]){
   if(receiver===null||typeof receiver!=='object'||types.isProxy(receiver))fail('NotionProjectConnectionRuntimeUnavailable');
   return Object.freeze(Object.fromEntries(names.map(name=>{
     const d=Object.getOwnPropertyDescriptor(receiver,name);
     if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function')fail('NotionProjectConnectionRuntimeUnavailable');
     return[name,d.value];
-  })));
+  }))) as Readonly<Record<Name, Port>>;
 }
-function readLimits(value){
+function readLimits(value: unknown){
   if(value===null||typeof value!=='object'||types.isProxy(value)||
       Object.getPrototypeOf(value)!==Object.prototype)fail('InvalidNotionProjectConnectionLimits');
   const descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(descriptors);
-  if(keys.length!==limitsKeys.length||keys.some(key=>!limitsKeys.includes(key)))fail('InvalidNotionProjectConnectionLimits');
+  if(keys.length!==limitsKeys.length||keys.some(key=>!(limitsKeys as readonly PropertyKey[]).includes(key)))fail('InvalidNotionProjectConnectionLimits');
   return Object.freeze(Object.fromEntries(limitsKeys.map(key=>{
     const d=descriptors[key];
     if(!d?.enumerable||!Object.hasOwn(d,'value')||!positive(d.value))fail('InvalidNotionProjectConnectionLimits');
     return[key,d.value];
-  })));
+  }))) as Readonly<Record<typeof limitsKeys[number], number>>;
 }
-function current(state){
+function current(state: ViewState){
   if(state.retired)fail('NotionProjectConnectionRetired');
   if(state.failure!==undefined)throw state.failure;
   try{
-    const value=state.references.acquisition.originalsForRuntime(state.references.moon);
-    if(value!==state.references.originals)fail('ForeignNotionProjectConnection');
+    const value=state.references!.acquisition.originalsForRuntime(state.references!.moon);
+    if(value!==state.references!.originals)fail('ForeignNotionProjectConnection');
   }catch(cause){state.failure=cause;throw cause;}
 }
 
 // Only this acquisition issues a view. Returned fields are configuration DATA;
 // even the original Project, entry and typed Connector value issue no authority.
-export async function loadInstalledNotionProjectConnection(moon,providerMoon,project,name,options){
+export async function loadInstalledNotionProjectConnection(moon: Runtime,providerMoon: unknown,project: Project,name: unknown,options: unknown){
   if(options===null||typeof options!=='object'||types.isProxy(options)||
       Object.getPrototypeOf(options)!==Object.prototype)fail('InvalidNotionProjectConnection');
   const descriptors=Object.getOwnPropertyDescriptors(options),keys=Reflect.ownKeys(descriptors);
-  if(keys.some(key=>!['limits','assertCurrent','openFile'].includes(key))||
+  if(keys.some(key=>!(['limits','assertCurrent','openFile'] as readonly PropertyKey[]).includes(key))||
       ['limits','assertCurrent'].some(key=>!descriptors[key]?.enumerable||!Object.hasOwn(descriptors[key],'value'))||
-      keys.some(key=>!Object.hasOwn(descriptors[key],'value')))fail('InvalidNotionProjectConnection');
+      keys.some(key=>!Object.hasOwn(descriptors[key as string],'value')))fail('InvalidNotionProjectConnection');
   const limits=descriptors.limits.value,assertCurrent=descriptors.assertCurrent.value,
     openFile=descriptors.openFile===undefined?open:descriptors.openFile.value;
   if(typeof name!=='string'||name.length===0||typeof assertCurrent!=='function'||typeof openFile!=='function')fail('InvalidNotionProjectConnection');
   const bounded=readLimits(limits);
-  let work=bounded.maxSelectionWork,index;
-  const spend=amount=>{if(amount>work)fail('NotionProjectConnectionSelectionLimit');work-=amount;};
+  let work=bounded.maxSelectionWork,index: number | undefined;
+  const spend=(amount: number)=>{if(amount>work)fail('NotionProjectConnectionSelectionLimit');work-=amount;};
   // Charge before scanning the supplied name or opening its selected file.
   spend(1);spend(name.length);
   if(!text(name))fail('InvalidNotionProjectConnection');
   const common=ports(moon,projectPorts),provider=ports(providerMoon,providerPorts);
-  const call=(method,...args)=>Reflect.apply(common[method],moon,args);
+  const call=(method: typeof projectPorts[number],...args: unknown[])=>Reflect.apply(common[method],moon,args);
   const fence=()=>{
     const result=Reflect.apply(assertCurrent,options,[]);
     if(result!==undefined){
-      if(typeof result?.then==='function')void Promise.resolve(result).catch(()=>{});
+      if(typeof (result as {then?: unknown} | null)?.then==='function')void Promise.resolve(result).catch(()=>{});
       fail('InvalidNotionProjectConnectionCurrentFence');
     }
   };
   fence();
   const acquisition=await loadInstalledProjectConnections(moon,project,{assertCurrent:fence,
-    openFile:(...args)=>Reflect.apply(openFile,options,args)});
+    openFile:(...args: unknown[])=>Reflect.apply(openFile,options,args)});
   const originals=acquisition.originalsForRuntime(moon);
   if(originals.connections===undefined)fail('NotionProjectConnectionUnavailable');
-  const count=call('clientProjectConnectionsCount',originals.connections);
+  const count=call('clientProjectConnectionsCount',originals.connections) as number;
   if(!Number.isSafeInteger(count)||count<0||count>bounded.maxConnections)fail('NotionProjectConnectionSelectionLimit');
   for(let i=0;i<count;i++){
     spend(1);
@@ -102,13 +112,13 @@ export async function loadInstalledNotionProjectConnection(moon,providerMoon,pro
     bounded.maxContractTextBytes,bounded.maxColumns,bounded.maxWork,bounded.maxDatabases,bounded.maxCredentialReferenceBytes]));
   if(acquisition.originalsForRuntime(moon)!==originals)fail('ForeignNotionProjectConnection');
   const record=Object.freeze({project,projectConnections:originals,name,index,wire,connection});
-  const state={references:{moon,providerMoon,acquisition,originals,record},retired:false,failure:undefined};
+  const state: ViewState={references:{moon,providerMoon,acquisition,originals,record},retired:false,failure:undefined};
   const view=Object.freeze({
-    originalsForRuntime(commonRuntime,providerRuntime){
+    originalsForRuntime(commonRuntime: unknown,providerRuntime: unknown){
       if(originalViews.get(this)!==state)fail('ForeignNotionProjectConnection');
       if(state.retired)fail('NotionProjectConnectionRetired');
-      if(commonRuntime!==state.references.moon||providerRuntime!==state.references.providerMoon)fail('ForeignNotionProjectConnectionRuntime');
-      current(state);return state.references.record;
+      if(commonRuntime!==state.references!.moon||providerRuntime!==state.references!.providerMoon)fail('ForeignNotionProjectConnectionRuntime');
+      current(state);return state.references!.record;
     },
     retire(){
       if(originalViews.get(this)!==state)fail('ForeignNotionProjectConnection');

@@ -2389,7 +2389,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/database-metadata-targets.mjs",
-      "sha256": "f79d2a7a066415da6a3b2e38737e2bb68099dc302ef66572a27b43de2d4adb9d",
+      "sha256": "ca36a0a883de59eab600e9141fea445418dacb4bcce556da96da3e6498444bbc",
       "exports": [
         "prepareNotionDatabaseMetadataTargets"
       ],
@@ -2480,17 +2480,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "export function prepareNotionDatabaseMetadataTargets("
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "return Object.freeze({resource,operation,origin,method:'GET',path,bodyBytes:0});"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(this!==targetAuthority||originalDeclaration!==declaration)fail('ForeignNotionMetadataTarget');"
               },
               {
@@ -2504,7 +2504,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "selected=Object.freeze({...value,path});"
               },
               {
@@ -2514,17 +2514,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
-                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
+                "anchor": "(name: Name,...args: Parameters<MetadataPorts[Name]>)=>Reflect.apply(ports[name],moon,args);"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "const descriptors=Object.getOwnPropertyDescriptors(value),names=Reflect.ownKeys(descriptors);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(selected!==undefined)fail('NotionMetadataSourceAlreadySelected');"
               },
               {
@@ -2548,11 +2548,11 @@
                 "anchor": "The installer closure retains provider methods/receiver"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(id.length>maxTargetBytes)fail('NotionMetadataTargetLimit');"
               },
               {
-                "path": "adapters/connectors/notion/host/database-metadata-targets.mjs",
+                "path": "adapters/connectors/notion/host/database-metadata-targets.mts",
                 "anchor": "if(Buffer.byteLength(path)>maxTargetBytes)fail('NotionMetadataTargetLimit');"
               }
             ],

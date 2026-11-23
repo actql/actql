@@ -2792,3 +2792,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/site/user-list-read.d.mts
 /adapters/connectors/notion/host/installed-notion-source.mjs
 /adapters/connectors/notion/host/installed-notion-source.d.mts
+/adapters/connectors/notion/host/database-metadata-targets.mjs
+/adapters/connectors/notion/host/database-metadata-targets.d.mts
+/adapters/connectors/notion/host/project-connection.mjs
+/adapters/connectors/notion/host/project-connection.d.mts
+/adapters/connectors/notion/host/original-effect-property-codec.mjs
+/adapters/connectors/notion/host/original-effect-property-codec.d.mts
