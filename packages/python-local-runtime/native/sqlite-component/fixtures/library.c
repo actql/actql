@@ -196,7 +196,8 @@ int main(int argc, char **argv) {
             assert(actql_native_sqlite_database_insert(db, (moonbit_bytes_t)"ns", 2,
                 (moonbit_bytes_t)"key", 3, (moonbit_bytes_t)"original", 8) == 0);
             actql_native_sqlite_test_fail_commit_reply(db, 1);
-            assert(actql_native_sqlite_database_commit(db) == 4 && commits == 1);
+            assert(actql_native_sqlite_database_commit(db) == ACTQL_TRANSACTION_REPLY_LOST &&
+                commits == 1);
             actql_native_sqlite_database_fence_transactions(db);
             assert(actql_native_sqlite_database_read(db, (moonbit_bytes_t)"ns", 2,
                 (moonbit_bytes_t)"key", 3) == 0);

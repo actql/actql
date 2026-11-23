@@ -4618,6 +4618,8 @@ pub fn client_program_serialization_input_identity_receipt_cancel(@execution_rel
 
 pub fn client_program_serialization_input_identity_start(@run_publication_host.ClientSerializationInput, @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
 
+pub fn client_program_serialization_input_is_row_limit(@run_publication_host.ClientSerializationInputIssue) -> Bool
+
 pub fn client_program_serialization_input_row(@run_publication_host.ClientSerializationInput, Int) -> Result[Unit, @run_publication_host.ClientSerializationInputIssue]
 
 pub fn client_program_serialization_input_row_bound(@run_publication_host.ClientSerializationPlanGraph) -> Int
