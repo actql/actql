@@ -1,5 +1,6 @@
 import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, sameResourceMixedMockProject,
+  threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -357,15 +358,28 @@ export function runNativeSharedFileMockScenario({root, run, launcherTimings = 'o
     fixture, changes, decision: 'approve', run, launcherTimings});
 }
 
-export async function runNativeMixedFileMockScenarios({root, run, launcherTimings = 'optional'}) {
+export function runNativeMixedFileMockScenarios({root, run, launcherTimings = 'optional'}) {
   const fixture = mixedDeleteUpdateMockProject();
   const changes = [
     {kind: 'delete', resource: 'Account', id: 'a1'},
     {kind: 'update', resource: 'Contact', id: 'c1', after: 'C-new'},
   ];
+  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-mixed-file', fixture, changes);
+}
+
+export function runNativeSameResourceMockScenarios({root, run, launcherTimings = 'optional'}) {
+  const fixture = sameResourceMixedMockProject();
+  const changes = [
+    {kind: 'update', resource: 'Account', id: 'a2', after: 'A2-new'},
+    {kind: 'delete', resource: 'Account', id: 'a1'},
+  ];
+  return runNativeMixedFileDecisions({root, run, launcherTimings}, 'native-same-resource', fixture, changes);
+}
+
+async function runNativeMixedFileDecisions({root, run, launcherTimings}, projectName, fixture, changes) {
   const results = [];
   for (const decision of ['approve', 'reject']) {
-    const result = await runNativeSharedFileMutation({project: join(root, 'native-mixed-file-' + decision),
+    const result = await runNativeSharedFileMutation({project: join(root, projectName + '-' + decision),
       fixture, changes, decision, run, launcherTimings});
     results.push({decision, ...result});
   }
