@@ -30,26 +30,37 @@ fn explanation_summary_sources(
   text : ExplanationNarrativeText,
   indices : Array[Int],
 ) -> Unit raise ClientExplanationNarrativeIssue {
-  let seen : Map[String, Unit] = Map([])
+  let seen : Map[String, Map[String, Unit]] = Map([])
   let mut count = 0
   visit_explanation_narrative_array(value, text.budget, (index, item) => {
     if explanation_narrative_string(item, "kind") == "source" {
       indices.push(index)
       let view = explanation_narrative_field(item, "source_view")
       let connector = explanation_narrative_string(view, "connector")
-      if !seen.contains(connector) {
-        seen[connector] = ()
+      let resource = explanation_narrative_string(view, "resource")
+      let resources = match seen.get(connector) {
+        Some(resources) => resources
+        None => {
+          let resources = Map([])
+          seen[connector] = resources
+          resources
+        }
+      }
+      if !resources.contains(resource) {
+        resources[resource] = ()
         explanation_summary_append_separator(text, count)
         if count == 0 {
-          text.say("Read from ", "")
+          text.say("Read ", "")
         }
         text.quote(connector)
+        text.say(".", " の ")
+        text.quote(resource)
         count += 1
       }
     }
   })
   if count > 0 {
-    text.say("", " から読み取る")
+    text.say("", " を読む")
   }
 }
 
@@ -143,6 +154,7 @@ fn explanation_summary_effects(
 fn explain_narrative_summary(
   context : @canonical.CanonicalValue?,
   facts : @canonical.CanonicalValue,
+  example_filter : String?,
   budget : ExplanationNarrativeBudget,
 ) -> (
   String,
@@ -222,7 +234,13 @@ fn explain_narrative_summary(
     join.say("Join inputs", "入力を結合する")
   }
   if !filters.is_empty() {
-    filter.say("Filter rows", "行を絞り込む")
+    if example_filter is Some(address) {
+      filter.say("Filter on checks including ", "")
+      filter.append(address)
+      filter.say("", " などの条件で絞り込む")
+    } else {
+      filter.say("Filter rows", "行を絞り込む")
+    }
   }
   let clauses : Array[ClientExplanationSummaryClause] = []
   let summary : ExplanationNarrativeText = { budget, out: StringBuilder(), }

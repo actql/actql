@@ -317,12 +317,12 @@ fn explain_narrative_node_index(
 fn explain_narrative_predicate(
   value : @canonical.CanonicalValue,
   text : ExplanationNarrativeText,
-) -> Unit raise ClientExplanationNarrativeIssue {
+) -> String? raise ClientExplanationNarrativeIssue {
   if explanation_narrative_string(value, "state") == "not_projected" {
     text.say(
       "Predicate form not projected", "この述語形式の説明は未提供",
     )
-    return
+    return None
   }
   guard explanation_narrative_field(value, "nodes") is @canonical.Array(nodes) else {
     raise InvalidExplanation
@@ -473,6 +473,46 @@ fn explain_narrative_predicate(
     raise InvalidExplanation
   }
   text.append(result)
+  // Only a positive Boolean property can stand on its own as an example.
+  // Reuse the already bounded and validated field path. Other clauses stay
+  // in the full predicate detail, including any redacted literals.
+  fn property_address(
+    index : Int,
+  ) -> String? raise ClientExplanationNarrativeIssue {
+    let original = @canonical.array_at(nodes, index).unwrap()
+    if explanation_narrative_string(original, "form") == "property" &&
+      explanation_narrative_string(
+        explanation_narrative_field(original, "type"),
+        "kind",
+      ) ==
+      "boolean" &&
+      rendered[index] is Some(address) &&
+      address.length() <= 64 {
+      Some(address)
+    } else {
+      None
+    }
+  }
+  if property_address(root) is Some(address) {
+    return Some(address)
+  }
+  let original = @canonical.array_at(nodes, root).unwrap()
+  if @canonical.object_field(original, "operator")
+    is Some(@canonical.String("and")) &&
+    explanation_narrative_field(original, "children")
+    is @canonical.Array(children) {
+    for index in 0..<@canonical.array_count(children) {
+      text.budget.visit()
+      let child = explain_narrative_node_index(
+        @canonical.array_at(children, index).unwrap(),
+        count,
+      )
+      if property_address(child) is Some(address) {
+        return Some(address)
+      }
+    }
+  }
+  None
 }
 
 ///|
@@ -507,7 +547,7 @@ fn explain_narrative_fact(
   fact : @canonical.CanonicalValue,
   topology : ExplanationJoinTopology?,
   text : ExplanationNarrativeText,
-) -> Unit raise ClientExplanationNarrativeIssue {
+) -> String? raise ClientExplanationNarrativeIssue {
   let meaning = explanation_narrative_field(fact, "meaning")
   match explanation_narrative_string(meaning, "kind") {
     "input_output" =>
@@ -542,7 +582,7 @@ fn explain_narrative_fact(
     }
     "filter" => {
       text.say("Keep rows where: ", "この条件を満たす行を残す: ")
-      explain_narrative_predicate(
+      return explain_narrative_predicate(
         explanation_narrative_field(meaning, "predicate"),
         text,
       )
@@ -585,6 +625,7 @@ fn explain_narrative_fact(
     }
     _ => raise InvalidExplanation
   }
+  None
 }
 
 ///|
@@ -620,6 +661,7 @@ pub fn render_client_explanation_narrative(
   }
   let steps : Array[String] = []
   let mut topology = None
+  let mut example_filter = None
   visit_explanation_narrative_array(
     explanation_narrative_field(facts, "steps"),
     budget,
@@ -641,12 +683,15 @@ pub fn render_client_explanation_narrative(
           ),
         )
       }
-      explain_narrative_fact(fact, topology, text)
+      let example = explain_narrative_fact(fact, topology, text)
+      if example_filter is None {
+        example_filter = example
+      }
       steps.push(text.out.to_string())
     },
   )
   let (summary, clauses, items) = explain_narrative_summary(
-    context, facts, budget,
+    context, facts, example_filter, budget,
   )
   { context: context_items, steps, summary, clauses, items, }
 }

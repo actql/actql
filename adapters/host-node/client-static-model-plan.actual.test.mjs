@@ -148,16 +148,16 @@ test('installed static Explanation retains the original deal-review Source, Mode
       assert.doesNotMatch(JSON.stringify(presentation), /"(?:prompt|instructions)"|Review only the current stage/);
     }
     assert.equal(english.story.narrative.summary,
-      'Read from "salesforce", "drive". Join inputs. Ask "model-task:deal-review.v1". Filter rows. Return "updates". Plan to update "Opportunity" in "salesforce".');
+      'Read "salesforce"."Opportunity", "drive"."files", "drive"."contents". Join inputs. Ask "model-task:deal-review.v1". Filter on checks including "review"."value"."changed". Return "updates". Plan to update "Opportunity" in "salesforce".');
     assert.equal(japanese.story.narrative.summary,
-      '"salesforce"、"drive" から読み取る。入力を結合する。"model-task:deal-review.v1" に問い合わせる。行を絞り込む。"updates" を結果として返す。"salesforce" の "Opportunity" を更新する計画。');
+      '"salesforce" の "Opportunity"、"drive" の "files"、"drive" の "contents" を読む。入力を結合する。"model-task:deal-review.v1" に問い合わせる。"review"."value"."changed" などの条件で絞り込む。"updates" を結果として返す。"salesforce" の "Opportunity" を更新する計画。');
     for (const [presentation, redaction] of [[english, /\[redacted /u], [japanese, /\[非開示 /u]]) {
       const filter = presentation.story.occurrences.find(step => step.operator === 'filter');
       assert.equal(filter.explanation.meaning.predicate.state, 'projected');
       assert.match(filter.explanation.text, /"review"\."value"\."changed"/u);
       assert.match(filter.explanation.text, redaction);
       assert.doesNotMatch(filter.explanation.text, /"ok"/u);
-      assert.doesNotMatch(presentation.story.narrative.summary, /"ok"|"review"|aql_chain_column_/u);
+      assert.doesNotMatch(presentation.story.narrative.summary, /"ok"|"outcome"|\[redacted|\[非開示|aql_chain_column_/u);
     }
     const englishJoins = english.story.occurrences.filter(step => step.operator === 'join');
     const japaneseJoins = japanese.story.occurrences.filter(step => step.operator === 'join');
