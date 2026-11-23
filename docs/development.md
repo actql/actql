@@ -1204,7 +1204,11 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). An exact registered fixed-request test family adds
+aggregate `check`). Draft `lint` installs the pinned MoonBit toolchain and runs
+its Node-only checks, so a failure there is found before Ready starts the full
+run; checks that need Python, the DuckDB transport or the Explorer build stay
+Ready-only. An exact registered
+fixed-request test family adds
 its focused JS tests. Changes to normal Python packages, producers, acceptance
 fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
 automatically, including in Draft. Unrelated Draft changes do not start that
@@ -1365,8 +1369,9 @@ The original two-part local interface remains supported.
 The migration toward Linux for exhaustive common Native coverage starts with
 eight additional required Linux partitions in the same Core matrix. The pinned
 compiler's complete source, whitebox and blackbox import graph identifies Native
-command/platform packages, explicit C stubs and linker overrides, including all
-their importers. Every remaining compiler-owned common case is assigned once,
+command/platform packages and explicit C stubs, including all their importers.
+A package that only overrides the linker owns no platform code and is
+classified by its imports. Every remaining compiler-owned common case is assigned once,
 keeping whole package drivers and the existing release/strip, strict warnings,
 test-only generated-C optimization and serial test execution. Nested packages
 use original compiler-selected file inputs rather than admitting an unrelated

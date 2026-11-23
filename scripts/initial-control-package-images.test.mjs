@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {runInNewContext} from 'node:vm';
@@ -280,12 +280,43 @@ test('unprepared optional SDK coverage does not discard original mandatory packa
     version: '0.0.0-development', type: 'module', exports: './index.mjs', files: ['index.mjs'],
     dependencies: {'@actql/not-installed-fixture': '0.0.0-development'}}));
   f.put('packages/provider-ai-sdk/index.mjs', 'export const optional = true;\n');
+  f.options.prepareOptionalSdk = () => assert.fail('Unprepared optional SDK ran its emitter');
   const value = f.read(f.render());
   assert.equal(value.packages.length, 2);
   assert.equal(value.dependencies.length, 2);
   assert.equal(value.optionalSdk, null);
   assert.equal(value.optionalSdkCoverage, 'unprepared');
   assert.equal('dependencyCoverage' in value, false);
+});
+
+test('prepared optional SDK inventory binds the emitted adapters through the real package files list', t => {
+  const f = fixture(t), selected = 'packages/provider-ai-sdk';
+  const manifest = JSON.parse(readFileSync(new URL('../' + selected + '/package.json', import.meta.url)));
+  f.put(selected + '/package.json', JSON.stringify({...manifest, dependencies: {}, peerDependencies: {}}));
+  const generated = '_internal/mistral-chat.mjs';
+  const adapters = new Map([
+    ['_internal/openai-chat.mjs', 'export const chat = "openai";\n'],
+    ['_internal/anthropic-messages.mjs', 'export const messages = "anthropic";\n'],
+    ['_internal/google-generate-content.mjs', 'export const generate = "google";\n'],
+    [generated, 'export const chat = "mistral";\n'],
+  ]);
+  for (const [path, source] of adapters) {
+    if (path !== generated) f.put(selected + '/' + path, source);
+  }
+  let builds = 0;
+  f.options.prepareOptionalSdk = directory => {
+    assert.equal(directory, realpathSync(join(f.root, selected)));
+    builds++;
+    f.put(selected + '/' + generated, adapters.get(generated));
+  };
+  const value = f.read(f.render());
+  assert.equal(builds, 1);
+  assert.equal(value.optionalSdkCoverage, 'prepared');
+  const images = value.packages[value.optionalSdk].images;
+  for (const [path, source] of adapters) {
+    assert.deepEqual(images.find(image => image.path === path),
+      {path, bytes: Buffer.byteLength(source), sha256: sha(source)});
+  }
 });
 
 test('dependency reuse cannot conceal a foreign exact-version requirement', t => {

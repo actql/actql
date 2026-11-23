@@ -169,14 +169,13 @@ async function readAdditionalResults(run, effect) {
   return retained;
 }
 
-async function readOriginal(client, value, phase, save) {
-  const program = value.read;
+async function readOriginal(client, program, phase, expectedRows, save) {
   const run = await client.startSource(program.document, {format: program.format,
     parameterDeclarations: program.parameterDeclarations, parameters: program.parameters});
   await save(phase + '-ref', {ref: run.ref});
   assert.equal((await run.wait()).status, 'succeeded');
   const rows = await run.result(program.resultName).all();
-  assert.deepEqual(rows, phase === 'before' ? program.beforeRows : program.afterRows);
+  assert.deepEqual(rows, expectedRows);
   await save(phase, {ref: run.ref, rows});
 }
 
@@ -229,7 +228,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       assert.equal(summary.checkpointCid, state.checkpoint.checkpoint_cid);
       const review = await client.reviewCheckpoint(summary);
       checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')), summary, run.ref, value.review);
-      await readOriginal(client, value, 'before', save);
+      await readOriginal(client, value.read, 'before', value.read.beforeRows, save);
       await save('captured', {binding: originalBinding, ref: run.ref,
         runId: state.run_id, checkpointId: state.checkpoint.id, summary,
         reviewBase64: Buffer.from(review.bytes).toString('base64')});
@@ -268,8 +267,11 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         await saveRunObservation(save, phase + '-wait', run, terminal);
         assert.equal(terminal.run_id, captured.runId);
         assert.equal(terminal.status, rejecting ? 'cancelled' : loss?.approveStatus ?? 'succeeded');
-        if (rejecting) await save('rejected', {binding: originalBinding,
-          ref: run.ref, runId: captured.runId, status: terminal.status});
+        if (rejecting) {
+          await save('rejected', {binding: originalBinding,
+            ref: run.ref, runId: captured.runId, status: terminal.status});
+          await readOriginal(client, value.read, 'after-reject', value.read.beforeRows, save);
+        }
         if (loss !== undefined) await save('reply-loss', {binding: originalBinding,
           ref: run.ref, runId: captured.runId, status: terminal.status});
         if (terminal.status === 'succeeded') {
@@ -280,7 +282,9 @@ export async function runRecordUpdateApprovalPhase({phase, client,
             ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
           // The loss case observes the original operation only. Its parent
           // independently checks the provider target and complete control row.
-          if (loss === undefined) await readOriginal(client, value, 'after', save);
+          if (loss === undefined) {
+            await readOriginal(client, value.read, 'after', value.read.afterRows, save);
+          }
         }
       } else if (rejecting) {
         const rejected = await load('rejected');

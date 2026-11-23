@@ -18,7 +18,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed'].includes(phase));
+  'registered-google', 'registered-mixed', 'registered-mistral'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
@@ -44,7 +44,7 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
-  'registered-mixed': 'mixed'}[phase];
+  'registered-mixed': 'mixed', 'registered-mistral': 'mistral'}[phase];
 const selection = fresh ? {
   usage: phase === 'registered-mixed' ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
     : phase.startsWith('usage-') ? phase.slice(6) : null,
@@ -54,9 +54,11 @@ const selection = fresh ? {
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
-assert([undefined, 'anthropic', 'google', 'mixed'].includes(selection.provider));
+assert([undefined, 'anthropic', 'google', 'mixed', 'mistral'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
-const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal: mixed});
+const mistral = selection.provider === 'mistral';
+const trackOriginal = mixed || mistral;
+const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
   ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered', 'timeout', 'usage']);
@@ -83,6 +85,10 @@ const routeFixtures = {
     requestPath: '/v1beta/models/gemini-2.5-flash:generateContent', resolvedModelId: 'gemini-2.5-flash',
     path: '_internal/google-generate-content.mjs', version: '4.0.124', exportName: 'createGoogle',
     apiMode: 'generate_content', options: {structuredOutputs: true}},
+  mistral: {officialHost: 'api.mistral.ai', credentialReference: 'MISTRAL_API_KEY',
+    credentialHeader: 'authorization', credentialPrefix: 'Bearer ', requestPath: '/v1/chat/completions',
+    resolvedModelId: 'mistral-small-2603', path: '_internal/mistral-chat.mjs', version: '4.0.89',
+    exportName: 'createMistral', apiMode: 'chat_completions', options: {strictJsonSchema: true}},
 };
 const route = (name, providerId, index) => ({...routeFixtures[name], name, providerId, index,
   selector: name === 'anthropic' && mixed ? 'fixture-messages' : 'fixture-chat'});
@@ -249,6 +255,16 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     assert.deepEqual(body.systemInstruction, {parts: [{text: 'Return the exact boolean.'}]});
     schema = body.generationConfig.responseJsonSchema;
     promptText = body.contents[0].parts[0].text;
+  } else if (mistral) {
+    assert.equal(body.response_format.type, 'json_schema');
+    assert.equal(body.response_format.json_schema.strict, true);
+    assert.equal(body.tools, undefined);
+    assert.deepEqual(body.messages[0], {role: 'system', content: 'Return the exact boolean.'});
+    schema = body.response_format.json_schema.schema;
+    assert.equal(schema.properties.answer.type, 'boolean');
+    assert.equal(body.messages[1].content.length, 1);
+    assert.equal(body.messages[1].content[0].type, 'text');
+    promptText = body.messages[1].content[0].text;
   } else {
     if (registered) assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
     schema = body.response_format.json_schema.schema;
@@ -285,7 +301,7 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   response.end(JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
     model: resolvedModelId, content: [{type: 'text', text: JSON.stringify(value)}], stop_reason: 'end_turn',
     usage: {input_tokens: 2, output_tokens: 3}} : {id: 'installed-' + calls, object: 'chat.completion', created: 1,
-    model: 'fixture-chat', choices: [{index: 0,
+    model: resolvedModelId, choices: [{index: 0,
       message: {role: 'assistant', content: JSON.stringify(value)}, finish_reason: 'stop'}],
     ...(usageMode === 'absent' ? {} : {usage: usageMode === 'zero'
       ? {prompt_tokens: 0, completion_tokens: 0, total_tokens: 0}
@@ -544,8 +560,8 @@ try {
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const run = await client.attach(ref);
+    if (trackOriginal) originalRef = ref;
     if (mixed) {
-      originalRef = ref;
       await checkMixedResults(run);
       assert.equal((await run.status()).status, 'succeeded');
     } else if (timeoutMode === undefined) {
@@ -595,7 +611,7 @@ if (project) {
   assert.equal(unexpectedProjectConnection, false);
   assert.equal(projectTlsConnects, fresh ? routes.length : 0);
 }
-if (mixed) {
+if (trackOriginal) {
   const observed = work.forOriginal(originalRef);
   assert.equal(observed.complete, true);
   assert.equal(observed.modelCallStarts, fresh ? routes.length : 0);
@@ -606,7 +622,8 @@ await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOE
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
   ...(registered ? {registeredSdk: true} : {}),
   ...(mixed ? {mixedProviders: routes.map(original => original.providerId),
-    dispatchedProviders: [...dispatchedProviders].sort(), originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
+    dispatchedProviders: [...dispatchedProviders].sort()} : {}),
+  ...(trackOriginal ? {originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
     originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
   ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),

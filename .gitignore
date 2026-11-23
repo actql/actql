@@ -12,6 +12,10 @@ target/
 .toolchains/
 .moon/
 
+# Generated optional SDK adapter.
+/packages/provider-ai-sdk/_internal/mistral-chat.mjs
+/packages/provider-ai-sdk/_internal/mistral-chat.d.mts
+
 # Compiled runtime bundles are generated before tests and npm pack.
 /packages/run-host-core/dist/
 /packages/coordinator-core/dist/
