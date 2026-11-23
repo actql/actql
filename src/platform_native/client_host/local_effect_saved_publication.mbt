@@ -119,6 +119,7 @@ fn NativeLocalEffectResumeOriginal::saved_publication_service(
   publisher : NativeLocalPublisherBinding,
   store : @publication_store.Store,
   namespace_id : String,
+  recover_prepared? : Bool = false,
 ) -> Result[
   @native_publication.NativeRunPublicationService,
   NativeLocalSavedEffectPublicationIssue,
@@ -198,7 +199,8 @@ fn NativeLocalEffectResumeOriginal::saved_publication_service(
       .map_err(issue => NativeLocalSavedEffectPublicationIssue::Publisher(issue))
     }),
     fence_original=Some((binding, commit) => {
-      guard !self.settlement_only && self.action is Some(Claimed(claim)) else {
+      guard (!self.settlement_only || recover_prepared) &&
+        self.action is Some(Claimed(claim)) else {
         return Err(@native_publication.CommitFenceUnavailable)
       }
       // Retain a real committed/lost reply before the original Read return.

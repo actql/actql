@@ -429,6 +429,7 @@ pub fn NativeLocalEffectResumeOriginal::claim(
 fn NativeLocalEffectResumeOriginal::claim_original_resume(
   self : Self,
   lease_ms : Int64,
+  expected_revision? : Int64? = None,
 ) -> Result[
   NativeClientEffectResumeAction,
   NativeLocalInitialHostAttestationIssue,
@@ -463,6 +464,7 @@ fn NativeLocalEffectResumeOriginal::claim_original_resume(
             checkpoint.binding,
             lease_ms,
             Some(operations),
+            expected_revision~,
           )
           .map_err(issue => Journal(issue))
         }) {
@@ -472,7 +474,13 @@ fn NativeLocalEffectResumeOriginal::claim_original_resume(
       }
     None =>
       self
-      .claim_in_original_journal(key, checkpoint.binding, lease_ms, None)
+      .claim_in_original_journal(
+        key,
+        checkpoint.binding,
+        lease_ms,
+        None,
+        expected_revision~,
+      )
       .map_err(issue => HostAttestationJournal(issue))
   }
 }
@@ -630,6 +638,7 @@ fn NativeLocalEffectResumeOriginal::claim_in_original_journal(
   binding : @checkpoint.ResumeBinding,
   lease_ms : Int64,
   operations : NativeClientJournalOperationAccess?,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   let result = self.host.journal.claim_effect_resume_with_operations(
     self.request,
@@ -651,6 +660,7 @@ fn NativeLocalEffectResumeOriginal::claim_in_original_journal(
       (@values.epoch_milliseconds_timestamp(now).unwrap_or(""), now)
     },
     operations,
+    expected_revision~,
   )
   match result {
     Ok(action) => {

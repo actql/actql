@@ -962,6 +962,81 @@ fn commit_native_fixture(
 }
 
 ///|
+test "native prepared publication locator is private and checks the original sealed payload" {
+  let (store, authority, _, _) = native_payload_fixture(
+    "prepared-publication-locator", 512L,
+  ).unwrap()
+  let fixture = native_commit_fixture(store, authority, "prepared-publication")
+  let definition = @publication.publication_contract_identity(
+    fixture.run_definition,
+  )
+  let scope = fixture.authority_scope_cid
+  let find = () => {
+    store.inspect_prepared_effectful_publication(
+      "namespace_id", scope, definition, 65536, 4096, 32,
+    )
+  }
+  assert_true(find().unwrap() is None)
+  let key = @publication.publication_index_storage_key(
+    fixture.index,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let body = @utf8.encode(
+    @publication.publication_contract_identity(fixture.index),
+  )
+  store
+  .retain_exact_publication_body("prepared_publication_index", key, body, false)
+  .unwrap()
+  // The locator alone supplies neither an admitted candidate nor publication.
+  assert_true(find() is Err(Database(@sqlite.NotFound)))
+  put_publication_contract(store, fixture.index).unwrap()
+  let stored = find().unwrap().unwrap()
+  assert_eq(
+    @publication.publication_contract_json(stored),
+    @publication.publication_contract_json(fixture.index),
+  )
+  assert_true(
+    store
+    .inspect_committed_publication(
+      "namespace_id", scope, definition, 65536, 4096, 32,
+    )
+    .unwrap()
+    is None,
+  )
+  let other = @publication.publication_index_scope_storage_key(
+    "other_namespace", scope, definition, 65536, 4096, 32,
+  ).unwrap()
+  store
+  .retain_exact_publication_body(
+    "prepared_publication_index", other, body, false,
+  )
+  .unwrap()
+  assert_true(
+    store.inspect_prepared_effectful_publication(
+      "other_namespace", scope, definition, 65536, 4096, 32,
+    )
+    is Err(StateCollision),
+  )
+  let payload = store.inspect_payload(fixture.material_generation_cid).unwrap()
+  store.verify_recovered_payload_digest_in_scope(payload, () => true).unwrap()
+  assert_true(
+    store.verify_recovered_payload_digest_in_scope(
+      { ..payload, physical_digest: native_payload_cid("different-bytes"), },
+      () => true,
+    )
+    is Err(DigestMismatch),
+  )
+  assert_true(
+    store.verify_recovered_payload_digest_in_scope(payload, () => false)
+    is Err(RecoveryRequired),
+  )
+  assert_true(store.pending_payload_verification is None)
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native publication commit is unique durable and restart-visible" {
   guard native_payload_fixture("publication-commit", 512L)
     is Some((store, authority, library, root)) else {

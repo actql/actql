@@ -17,6 +17,8 @@ pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationSe
 
 pub fn commit_prepared_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
+pub fn commit_recovered_effectful_index_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract, () -> Bool) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
 pub fn install_native_run_publication_context_authority((NativeRunPublicationAuthorization) -> Bool, (@actql/actql/run_publication.PublicationRequestContext, NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority

@@ -10,6 +10,7 @@ struct Store {
   // The exact acquired child stays here until the original return and that
   // child's cleanup are confirmed. A reader count cannot replace its custody.
   mut pending_result_delivery : ResultDelivery?
+  mut pending_payload_verification : NativePayloadVerificationCleanup?
   authority_cid : String
   journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
@@ -28,6 +29,12 @@ struct Store {
   mut allocation_observer : ((String) -> Unit)?
   // Whitebox fault injection at fallible allocation preparation boundaries.
   allocation_failure : Ref[((String) -> NativePublicationStoreIssue?)?]
+}
+
+///|
+priv enum NativePayloadVerificationCleanup {
+  Open(@filesystem.NativeReaderOpenFailure)
+  Reader(@filesystem.Reader)
 }
 
 ///|
@@ -215,6 +222,9 @@ fn[T] Store::with_original_read(
   final_close : Bool,
   call : () -> Result[T, NativePublicationStoreIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
+  if !cleanup_work && self.pending_payload_verification is Some(_) {
+    return Err(CleanupPending)
+  }
   guard self.operation_original is Some(original) else { return call() }
   if self.operation_body_active || self.operation_return_pending {
     return Err(CleanupPending)
@@ -1179,6 +1189,7 @@ fn open_store_owned_with_custody(
     operation_return_pending: false,
     operation_return_primary: None,
     pending_result_delivery: None,
+    pending_payload_verification: None,
     authority_cid,
     journal_identity,
     capacity_bytes,
@@ -2363,23 +2374,33 @@ fn[T] delivery_issuance(
 fn put_publication_contract(
   store : Store,
   contract : @publication.PublicationContract,
+  require_existing? : Bool = false,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let identity = @publication.publication_contract_identity(contract)
   let body = @utf8.encode(@publication.publication_contract_json(contract))
-  match store.database.insert("publication_contract", identity, body) {
-    Ok(_) => Ok(())
-    Err(@sqlite.Collision) => {
-      let existing = match
-        store.database.read("publication_contract", identity) {
-        Ok(value) => value
-        Err(issue) => return Err(Database(issue))
-      }
-      if existing.body == body {
-        Ok(())
-      } else {
-        Err(StateCollision)
-      }
+  store.retain_exact_publication_body(
+    "publication_contract", identity, body, require_existing,
+  )
+}
+
+///|
+fn Store::retain_exact_publication_body(
+  self : Store,
+  table : String,
+  key : String,
+  body : Bytes,
+  require_existing : Bool,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if !require_existing {
+    match self.database.insert(table, key, body) {
+      Ok(_) => return Ok(())
+      Err(@sqlite.Collision) => ()
+      Err(issue) => return Err(Database(issue))
     }
+  }
+  match self.database.read(table, key) {
+    Ok(existing) if existing.body == body => Ok(())
+    Ok(_) => Err(StateCollision)
     Err(issue) => Err(Database(issue))
   }
 }
@@ -2448,6 +2469,7 @@ fn put_result_schema(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  require_existing : Bool,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   match
     delivery_issuance(
@@ -2459,22 +2481,9 @@ fn put_result_schema(
     Err(issue) => return Err(issue)
   }
   let body = @utf8.encode(result_schema_wire)
-  match store.database.insert("result_schema", result_schema_cid, body) {
-    Ok(_) => Ok(())
-    Err(@sqlite.Collision) => {
-      let existing = match
-        store.database.read("result_schema", result_schema_cid) {
-        Ok(value) => value
-        Err(issue) => return Err(Database(issue))
-      }
-      if existing.body == body {
-        Ok(())
-      } else {
-        Err(StateCollision)
-      }
-    }
-    Err(issue) => Err(Database(issue))
-  }
+  store.retain_exact_publication_body(
+    "result_schema", result_schema_cid, body, require_existing,
+  )
 }
 
 ///|
@@ -2636,6 +2645,7 @@ pub fn Store::commit_publication(
   max_depth : Int,
   capture? : @local.ClientProgramCapture? = None,
   effectful? : @publication.EffectfulFinalRunEvidence? = None,
+  recover_prepared? : (() -> Bool)? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   self.with_original_read(false, false, fn() {
     self.commit_publication_in_scope(
@@ -2659,6 +2669,7 @@ pub fn Store::commit_publication(
       max_depth,
       capture~,
       effectful~,
+      recover_prepared~,
     )
   })
 }
@@ -2686,6 +2697,7 @@ fn Store::commit_publication_in_scope(
   max_depth : Int,
   capture? : @local.ClientProgramCapture? = None,
   effectful? : @publication.EffectfulFinalRunEvidence? = None,
+  recover_prepared? : (() -> Bool)? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
@@ -2693,7 +2705,9 @@ fn Store::commit_publication_in_scope(
   if self.retiring {
     return Err(CleanupPending)
   }
-  if bindings.length() != binding_schema_wires.length() {
+  let recovering = recover_prepared is Some(_)
+  if bindings.length() != binding_schema_wires.length() ||
+    (recovering && effectful is None) {
     return Err(InvalidConfiguration)
   }
   let checked = match effectful {
@@ -2747,7 +2761,17 @@ fn Store::commit_publication_in_scope(
   }
   match
     self.observe_publication_payload_facts_in_scope(
-      bindings, binding_schema_wires, max_wire_bytes, max_nodes, max_depth,
+      bindings,
+      binding_schema_wires,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      expected_attempt=if recovering {
+        Some(@publication.publication_contract_identity(attempt))
+      } else {
+        None
+      },
+      lease_current=recover_prepared,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -2760,6 +2784,15 @@ fn Store::commit_publication_in_scope(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let identity = @publication.publication_contract_identity(index)
+  let body = @utf8.encode(identity)
+  if recovering {
+    match self.database.read("prepared_publication_index", key) {
+      Ok(retained) if retained.body == body => ()
+      Ok(_) => return Err(PublicationCommitConflict)
+      Err(issue) => return Err(Database(issue))
+    }
   }
   let contracts : Array[@publication.PublicationContract] = [
     run_definition, invocation, manifest, receipt, captured_run, request, attempt,
@@ -2774,7 +2807,8 @@ fn Store::commit_publication_in_scope(
   }
   contracts.push(index)
   for contract in contracts {
-    match put_publication_contract(self, contract) {
+    match
+      put_publication_contract(self, contract, require_existing=recovering) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -2795,13 +2829,49 @@ fn Store::commit_publication_in_scope(
         max_wire_bytes,
         max_nodes,
         max_depth,
+        recovering,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
-  let identity = @publication.publication_contract_identity(index)
-  let body = @utf8.encode(identity)
+  if effectful is Some(_) && !recovering {
+    // The private row locates the fully persisted candidate. Its presence
+    // does not make any Result public or establish an original attempt.
+    match self.database.read("public_index", key) {
+      Ok(retained) if retained.body != body =>
+        return Err(PublicationCommitConflict)
+      Ok(_) => ()
+      Err(@sqlite.NotFound) =>
+        match
+          self.retain_exact_publication_body(
+            "prepared_publication_index", key, body, false,
+          ) {
+          Ok(_) => ()
+          Err(StateCollision) => return Err(PublicationCommitConflict)
+          Err(issue) => return Err(issue)
+        }
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  if recover_prepared is Some(lease_current) {
+    match self.database.read("public_index", key) {
+      Ok(retained) if retained.body == body =>
+        return Ok({
+          public_index_entry_cid: identity,
+          committed: false,
+          idempotent: true,
+        })
+      Ok(_) => return Err(PublicationCommitConflict)
+      Err(@sqlite.NotFound) => ()
+      Err(issue) => return Err(Database(issue))
+    }
+    // The owning Journal holds the exact claim fence across this Store
+    // flight. Recheck its issued deadline immediately before publication.
+    if !lease_current() {
+      return Err(RecoveryRequired)
+    }
+  }
   match self.database.insert("public_index", key, body) {
     Ok(_) =>
       Ok({
@@ -2849,6 +2919,31 @@ pub fn Store::inspect_committed_publication(
 }
 
 ///|
+/// Find the same scope's fully retained private candidate. This is DATA only.
+/// The caller still authenticates the original Run/attempt and current claim.
+pub fn Store::inspect_prepared_effectful_publication(
+  self : Store,
+  namespace_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    self.inspect_committed_publication_in_scope(
+      namespace_id,
+      authority_scope_cid,
+      run_definition_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared=true,
+    )
+  })
+}
+
+///|
 fn Store::inspect_committed_publication_in_scope(
   self : Store,
   namespace_id : String,
@@ -2857,6 +2952,7 @@ fn Store::inspect_committed_publication_in_scope(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared? : Bool = false,
 ) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
@@ -2874,7 +2970,12 @@ fn Store::inspect_committed_publication_in_scope(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let stored = match self.database.read("public_index", key) {
+  let table = if prepared {
+    "prepared_publication_index"
+  } else {
+    "public_index"
+  }
+  let stored = match self.database.read(table, key) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Database(issue))
@@ -4779,6 +4880,15 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
       }
     }
   }
+  if self.pending_payload_verification is Some(_) {
+    match
+      self.with_original_read(true, false, fn() {
+        self.finish_payload_verification_cleanup()
+      }) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   // A rejected close must not spend the original Read while an existing
   // writer or reader still needs that same normal operation to finish.
   if self.closed {
@@ -4799,6 +4909,10 @@ fn Store::close_in_scope(
   }
   if !self.active_writers.is_empty() || !self.active_readers.is_empty() {
     return Err(CleanupPending)
+  }
+  match self.finish_payload_verification_cleanup() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if !self.retiring {
     match self.recover_in_scope() {
@@ -4856,7 +4970,8 @@ pub fn Store::retained_data_current(
   if self.retiring ||
     self.operation_body_active ||
     self.operation_return_pending ||
-    self.pending_result_delivery is Some(_) {
+    self.pending_result_delivery is Some(_) ||
+    self.pending_payload_verification is Some(_) {
     return Err(CleanupPending)
   }
   match self.database.retained_data_current() {

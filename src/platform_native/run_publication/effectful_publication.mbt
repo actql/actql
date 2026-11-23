@@ -241,6 +241,21 @@ fn commit_new_effectful_run_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  commit_effectful_index_native(
+    service, evidence, intent, request, attempt, index,
+  )
+}
+
+///|
+fn commit_effectful_index_native(
+  service : NativeRunPublicationService,
+  evidence : NativeEffectfulPublicationEvidence,
+  intent : NativeRunPublicationIntent,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  recover_prepared? : (() -> Bool)? = None,
+) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   (service.commit_guard)(() => {
     match
       authorize(
@@ -274,6 +289,7 @@ fn commit_new_effectful_run_native(
       service.max_nodes,
       service.max_depth,
       effectful=Some(evidence.final_evidence),
+      recover_prepared~,
     )
     match committed {
       Ok(value) =>
@@ -288,6 +304,8 @@ fn commit_new_effectful_run_native(
           committed: value.committed,
           idempotent: value.idempotent,
         })
+      Err(@store.PublicationCommitConflict) if recover_prepared is Some(_) =>
+        Err(CommitConflict)
       Err(@store.PublicationCommitConflict) =>
         match
           inspect_existing_effectful_commit(service, evidence, intent, request) {
@@ -298,6 +316,29 @@ fn commit_new_effectful_run_native(
       Err(issue) => Err(Store(issue))
     }
   })
+}
+
+///|
+/// Reuse the original Request, attempt and index. The Store verifies the
+/// private locator and the original durable bodies again inside commit.
+pub fn commit_recovered_effectful_index_native(
+  service : NativeRunPublicationService,
+  evidence : NativeEffectfulPublicationEvidence,
+  intent : NativeRunPublicationIntent,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  lease_current : () -> Bool,
+) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
+  commit_effectful_index_native(
+    service,
+    evidence,
+    intent,
+    request,
+    attempt,
+    index,
+    recover_prepared=Some(lease_current),
+  )
 }
 
 ///|

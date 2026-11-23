@@ -325,14 +325,29 @@ pub fn Store::commit_publication(
   _max_depth : Int,
   capture? : @local.ClientProgramCapture? = None,
   effectful? : @publication.EffectfulFinalRunEvidence? = None,
+  recover_prepared? : (() -> Bool)? = None,
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   ignore(capture)
   ignore(effectful)
+  ignore(recover_prepared)
   Err(UnsupportedTarget)
 }
 
 ///|
 pub fn Store::inspect_committed_publication(
+  _self : Store,
+  _namespace_id : String,
+  _authority_scope_cid : String,
+  _run_definition_cid : String,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::inspect_prepared_effectful_publication(
   _self : Store,
   _namespace_id : String,
   _authority_scope_cid : String,
