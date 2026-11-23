@@ -72,6 +72,41 @@ pub(all) enum NativeSqliteTransactionState {
 } derive(Eq)
 
 ///|
+/// Fixed physical operations on the original connection. The owning Journal
+/// still decides durability, connection reuse, and whether it may continue.
+pub(all) enum NativeSqliteTransactionStep {
+  BeginDeferred
+  BeginImmediate
+  Commit
+  Rollback
+} derive(Eq)
+
+///|
+pub(all) struct NativeSqliteResultCode {
+  primary : Int
+  extended : Int
+} derive(Eq)
+
+///|
+/// The response to this physical step, before subsequent routing. A lost
+/// reply supplies no SQLite code or proof of the durable outcome.
+pub(all) enum NativeSqliteTransactionReply {
+  SqlNotIssued
+  SqlRejected(NativeSqliteResultCode)
+  SqlReplyLost
+  SqlConfirmed
+} derive(Eq)
+
+///|
+/// The reported issue can be a routing failure even when SQLite confirmed
+/// the operation. Cleanup reports its own result without replacing this one.
+pub struct NativeSqliteTransactionFailure {
+  step : NativeSqliteTransactionStep
+  reply : NativeSqliteTransactionReply
+  issue : NativeSqliteIssue
+}
+
+///|
 /// The original failed open and its existing physical Database owner. This
 /// opaque carrier cannot reopen a database, issue a request or settle capacity.
 struct NativeSqliteOpenFailure {
