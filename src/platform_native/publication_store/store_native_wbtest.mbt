@@ -962,8 +962,8 @@ fn commit_native_fixture(
 }
 
 ///|
-test "native prepared publication locator is private and checks the original sealed payload" {
-  let (store, authority, _, _) = native_payload_fixture(
+test "native File publication preparation retains the original occurrence and stays private" {
+  let (store, authority, library, root) = native_payload_fixture(
     "prepared-publication-locator", 512L,
   ).unwrap()
   let fixture = native_commit_fixture(store, authority, "prepared-publication")
@@ -977,25 +977,51 @@ test "native prepared publication locator is private and checks the original sea
     )
   }
   assert_true(find().unwrap() is None)
-  let key = @publication.publication_index_storage_key(
-    fixture.index,
-    65536,
-    4096,
-    32,
-  ).unwrap()
-  let body = @utf8.encode(
-    @publication.publication_contract_identity(fixture.index),
+  let later_generation = native_payload_cid("not-yet-persisted")
+  let preparation : NativePreparedFilePublication = {
+    request: fixture.request,
+    attempt: fixture.attempt,
+    receipt: fixture.receipt,
+    committed_at: @publication.public_index_committed_at(fixture.index).unwrap(),
+    material_generations: [fixture.material_generation_cid, later_generation],
+  }
+  store.retain_prepared_file_publication(preparation, 65536, 4096, 32).unwrap()
+  store.retain_prepared_file_publication(preparation, 65536, 4096, 32).unwrap()
+  assert_true(
+    store.retain_prepared_file_publication(
+      {
+        ..preparation,
+        material_generations: [
+          later_generation,
+          fixture.material_generation_cid,
+        ],
+      },
+      65536,
+      4096,
+      32,
+    )
+    is Err(StateCollision),
   )
-  store
-  .retain_exact_publication_body("prepared_publication_index", key, body, false)
-  .unwrap()
-  // The locator alone supplies neither an admitted candidate nor publication.
-  assert_true(find() is Err(Database(@sqlite.NotFound)))
-  put_publication_contract(store, fixture.index).unwrap()
   let stored = find().unwrap().unwrap()
   assert_eq(
-    @publication.publication_contract_json(stored),
-    @publication.publication_contract_json(fixture.index),
+    @publication.publication_contract_json(stored.request),
+    @publication.publication_contract_json(fixture.request),
+  )
+  assert_eq(
+    @publication.publication_contract_json(stored.attempt),
+    @publication.publication_contract_json(fixture.attempt),
+  )
+  assert_eq(
+    @publication.publication_contract_json(stored.receipt),
+    @publication.publication_contract_json(fixture.receipt),
+  )
+  assert_eq(stored.committed_at, preparation.committed_at)
+  assert_eq(stored.material_generations, [
+    fixture.material_generation_cid,
+    later_generation,
+  ])
+  assert_true(
+    store.inspect_payload(later_generation) is Err(Database(@sqlite.NotFound)),
   )
   assert_true(
     store
@@ -1008,10 +1034,18 @@ test "native prepared publication locator is private and checks the original sea
   let other = @publication.publication_index_scope_storage_key(
     "other_namespace", scope, definition, 65536, 4096, 32,
   ).unwrap()
+  // A well-formed different scoped row is not an original for this Run.
+  let original_key = @publication.publication_index_storage_key(
+    fixture.index,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let body = store.database
+    .read("prepared_publication_index", original_key)
+    .unwrap().body
   store
-  .retain_exact_publication_body(
-    "prepared_publication_index", other, body, false,
-  )
+  .retain_exact_publication_body("prepared_publication_index", other, body)
   .unwrap()
   assert_true(
     store.inspect_prepared_effectful_publication(
@@ -1033,7 +1067,37 @@ test "native prepared publication locator is private and checks the original sea
     is Err(RecoveryRequired),
   )
   assert_true(store.pending_payload_verification is None)
+  let legacy_scope = native_payload_cid("standalone-index-cid-locator")
+  let legacy_key = @publication.publication_index_scope_storage_key(
+    "namespace_id", legacy_scope, definition, 65536, 4096, 32,
+  ).unwrap()
+  store
+  .retain_exact_publication_body(
+    "prepared_publication_index",
+    legacy_key,
+    @utf8.encode(@publication.publication_contract_identity(fixture.index)),
+  )
+  .unwrap()
+  assert_true(
+    store.inspect_prepared_effectful_publication(
+      "namespace_id", legacy_scope, definition, 65536, 4096, 32,
+    )
+    is Err(StateCollision),
+  )
   assert_true(store.close().unwrap())
+  let reopened = open_store(library, root, authority, 512L, 8L, 65536L).unwrap()
+  let original = reopened
+    .inspect_prepared_effectful_publication(
+      "namespace_id", scope, definition, 65536, 4096, 32,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(original.material_generations, preparation.material_generations)
+  assert_eq(
+    @publication.publication_contract_identity(original.attempt),
+    @publication.publication_contract_identity(preparation.attempt),
+  )
+  assert_true(reopened.close().unwrap())
 }
 
 ///|

@@ -2374,13 +2374,10 @@ fn[T] delivery_issuance(
 fn put_publication_contract(
   store : Store,
   contract : @publication.PublicationContract,
-  require_existing? : Bool = false,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let identity = @publication.publication_contract_identity(contract)
   let body = @utf8.encode(@publication.publication_contract_json(contract))
-  store.retain_exact_publication_body(
-    "publication_contract", identity, body, require_existing,
-  )
+  store.retain_exact_publication_body("publication_contract", identity, body)
 }
 
 ///|
@@ -2389,14 +2386,11 @@ fn Store::retain_exact_publication_body(
   table : String,
   key : String,
   body : Bytes,
-  require_existing : Bool,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  if !require_existing {
-    match self.database.insert(table, key, body) {
-      Ok(_) => return Ok(())
-      Err(@sqlite.Collision) => ()
-      Err(issue) => return Err(Database(issue))
-    }
+  match self.database.insert(table, key, body) {
+    Ok(_) => return Ok(())
+    Err(@sqlite.Collision) => ()
+    Err(issue) => return Err(Database(issue))
   }
   match self.database.read(table, key) {
     Ok(existing) if existing.body == body => Ok(())
@@ -2469,7 +2463,6 @@ fn put_result_schema(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  require_existing : Bool,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   match
     delivery_issuance(
@@ -2481,9 +2474,7 @@ fn put_result_schema(
     Err(issue) => return Err(issue)
   }
   let body = @utf8.encode(result_schema_wire)
-  store.retain_exact_publication_body(
-    "result_schema", result_schema_cid, body, require_existing,
-  )
+  store.retain_exact_publication_body("result_schema", result_schema_cid, body)
 }
 
 ///|
@@ -2788,9 +2779,32 @@ fn Store::commit_publication_in_scope(
   let identity = @publication.publication_contract_identity(index)
   let body = @utf8.encode(identity)
   if recovering {
+    let material_generations = []
+    for binding in bindings {
+      guard @publication.project_durable_result_binding_read(binding)
+        is Ok(facts) else {
+        return Err(PublicationCommitConflict)
+      }
+      material_generations.push(facts.material_generation_cid)
+    }
+    guard @publication.public_index_committed_at(index) is Some(committed_at) &&
+      prepared_file_publication_wire(
+        @publication.publication_contract_identity(request),
+        @publication.publication_contract_identity(attempt),
+        @publication.publication_contract_identity(receipt),
+        committed_at,
+        material_generations,
+        Int::min(max_wire_bytes, self.max_record_bytes),
+        max_nodes,
+      )
+      is Ok(wire) else {
+      return Err(PublicationCommitConflict)
+    }
     match self.database.read("prepared_publication_index", key) {
-      Ok(retained) if retained.body == body => ()
+      Ok(prepared) if prepared.revision == 0L &&
+        prepared.body == @utf8.encode(wire) => ()
       Ok(_) => return Err(PublicationCommitConflict)
+      Err(@sqlite.NotFound) => return Err(RecoveryRequired)
       Err(issue) => return Err(Database(issue))
     }
   }
@@ -2807,8 +2821,7 @@ fn Store::commit_publication_in_scope(
   }
   contracts.push(index)
   for contract in contracts {
-    match
-      put_publication_contract(self, contract, require_existing=recovering) {
+    match put_publication_contract(self, contract) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -2829,29 +2842,9 @@ fn Store::commit_publication_in_scope(
         max_wire_bytes,
         max_nodes,
         max_depth,
-        recovering,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
-    }
-  }
-  if effectful is Some(_) && !recovering {
-    // The private row locates the fully persisted candidate. Its presence
-    // does not make any Result public or establish an original attempt.
-    match self.database.read("public_index", key) {
-      Ok(retained) if retained.body != body =>
-        return Err(PublicationCommitConflict)
-      Ok(_) => ()
-      Err(@sqlite.NotFound) =>
-        match
-          self.retain_exact_publication_body(
-            "prepared_publication_index", key, body, false,
-          ) {
-          Ok(_) => ()
-          Err(StateCollision) => return Err(PublicationCommitConflict)
-          Err(issue) => return Err(issue)
-        }
-      Err(issue) => return Err(Database(issue))
     }
   }
   if recover_prepared is Some(lease_current) {
@@ -2919,31 +2912,6 @@ pub fn Store::inspect_committed_publication(
 }
 
 ///|
-/// Find the same scope's fully retained private candidate. This is DATA only.
-/// The caller still authenticates the original Run/attempt and current claim.
-pub fn Store::inspect_prepared_effectful_publication(
-  self : Store,
-  namespace_id : String,
-  authority_scope_cid : String,
-  run_definition_cid : String,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
-  self.with_original_read(false, false, fn() {
-    self.inspect_committed_publication_in_scope(
-      namespace_id,
-      authority_scope_cid,
-      run_definition_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      prepared=true,
-    )
-  })
-}
-
-///|
 fn Store::inspect_committed_publication_in_scope(
   self : Store,
   namespace_id : String,
@@ -2952,7 +2920,6 @@ fn Store::inspect_committed_publication_in_scope(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  prepared? : Bool = false,
 ) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
@@ -2970,12 +2937,7 @@ fn Store::inspect_committed_publication_in_scope(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let table = if prepared {
-    "prepared_publication_index"
-  } else {
-    "public_index"
-  }
-  let stored = match self.database.read(table, key) {
+  let stored = match self.database.read("public_index", key) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Database(issue))

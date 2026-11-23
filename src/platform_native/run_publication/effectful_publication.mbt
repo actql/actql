@@ -43,6 +43,21 @@ fn require_effectful_publication_materials(
 }
 
 ///|
+/// The original private preparation was retained before any output writer.
+struct NativeEffectfulRunPublicationPreparation {
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+  material_generations : Array[String]
+}
+
+///|
+pub fn NativeEffectfulRunPublicationPreparation::publication_attempt(
+  self : Self,
+) -> @publication.PublicationContract {
+  self.attempt
+}
+
+///|
 /// Issue only the original Run's publication-operation request/attempt before
 /// payload persistence. Business Request/Model/Source originals are unchanged.
 pub fn prepare_effectful_run_publication_native(
@@ -50,7 +65,8 @@ pub fn prepare_effectful_run_publication_native(
   evidence : NativeEffectfulPublicationEvidence,
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
-) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue] {
+  material_generations : Array[String],
+) -> Result[NativeEffectfulRunPublicationPreparation, NativeRunPublicationIssue] {
   match require_effectful_publication_materials(service, evidence) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -94,7 +110,28 @@ pub fn prepare_effectful_run_publication_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ request, attempt, })
+  let prepared : @store.NativePreparedFilePublication = {
+    request,
+    attempt,
+    receipt: evidence.receipt,
+    committed_at: occurrence.committed_at,
+    material_generations,
+  }
+  match
+    service.store.retain_prepared_file_publication(
+      prepared,
+      service.max_wire_bytes,
+      service.max_nodes,
+      service.max_depth,
+    ) {
+    Ok(_) =>
+      Ok({
+        request,
+        attempt,
+        material_generations: material_generations.copy(),
+      })
+    Err(issue) => Err(Store(issue))
+  }
 }
 
 ///|
@@ -350,7 +387,7 @@ pub fn commit_prepared_effectful_run_publication_native(
   evidence : NativeEffectfulPublicationEvidence,
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
-  preparation : NativeRunPublicationPreparation,
+  preparation : NativeEffectfulRunPublicationPreparation,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   match require_effectful_publication_materials(service, evidence) {
     Ok(_) => ()

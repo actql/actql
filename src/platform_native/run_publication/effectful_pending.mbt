@@ -7,7 +7,7 @@ struct NativePreparedEffectfulRunPublication {
   evidence : NativeEffectfulPublicationEvidence
   intent : NativeRunPublicationIntent
   occurrence : NativeRunPublicationOccurrence
-  preparation : NativeRunPublicationPreparation
+  preparation : NativeEffectfulRunPublicationPreparation
   material_generation_cids : Array[String]
   reclaimed : Array[Bool]
   mut committed : NativeRunPublicationResult?
@@ -32,8 +32,11 @@ pub fn prepare_retained_effectful_run_publication_native(
   evidence : NativeEffectfulPublicationEvidence,
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
-  preparation : NativeRunPublicationPreparation,
+  preparation : NativeEffectfulRunPublicationPreparation,
 ) -> Result[NativePreparedEffectfulRunPublication, NativeRunPublicationIssue] {
+  if evidence.bindings.length() != preparation.material_generations.length() {
+    return Err(CommitConflict)
+  }
   match require_effectful_publication_materials(service, evidence) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -126,7 +129,7 @@ pub fn prepare_retained_effectful_run_publication_native(
     Ok(_) => ()
   }
   let generations = []
-  for binding in evidence.bindings {
+  for ordinal, binding in evidence.bindings {
     let facts = match
       @publication.project_durable_result_binding_read(binding) {
       Err(issue) => return Err(Projection(issue))
@@ -138,7 +141,9 @@ pub fn prepare_retained_effectful_run_publication_native(
       Ok(value) => value
     }
     if payload.publication_attempt_cid !=
-      @publication.publication_contract_identity(preparation.attempt) {
+      @publication.publication_contract_identity(preparation.attempt) ||
+      payload.material_generation_cid !=
+      preparation.material_generations[ordinal] {
       return Err(CommitConflict)
     }
     generations.push(payload.material_generation_cid)

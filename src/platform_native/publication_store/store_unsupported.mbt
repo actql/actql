@@ -347,6 +347,17 @@ pub fn Store::inspect_committed_publication(
 }
 
 ///|
+pub fn Store::retain_prepared_file_publication(
+  _self : Store,
+  _prepared : NativePreparedFilePublication,
+  _max_wire_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::inspect_prepared_effectful_publication(
   _self : Store,
   _namespace_id : String,
@@ -355,7 +366,7 @@ pub fn Store::inspect_prepared_effectful_publication(
   _max_wire_bytes : Int,
   _max_nodes : Int,
   _max_depth : Int,
-) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
+) -> Result[NativePreparedFilePublication?, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
 
