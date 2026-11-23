@@ -135,7 +135,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -159,8 +159,8 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               }
             ],
             "cancellation": [
@@ -173,7 +173,7 @@
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -211,7 +211,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               }
             ],
@@ -275,7 +275,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -343,16 +343,16 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
@@ -371,8 +371,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               }
             ]
           }
@@ -482,7 +482,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d7139f6ce4f468792ac933a0b50d349d4f060a1c52263d990a1931e4b1bf856a"
+      "sha256": "e1adb54f38bd5b24102d891543e150b602c7d23622b95575f1b899ffd8f8a123"
     },
     {
       "module": "adapters/connectors/gcs/host/gcs-upload-declaration.mjs",
@@ -579,7 +579,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -599,8 +599,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -1892,7 +1892,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-      "sha256": "30af23982f73dc05ca826fb30bd2934c9c76ed3a66935d2a8b149792a7ad8ec8",
+      "sha256": "a5da11c38919bb6af8558f8f6543f1b4d553cfde9d2b7ac6643cb46b36d08de6",
       "exports": [
         "admitGcsUploadObservation",
         "admitGcsUploadTargetObservation",
@@ -2149,11 +2149,11 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
@@ -2167,7 +2167,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -2189,7 +2189,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -2317,8 +2317,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -2392,7 +2392,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               }
             ],
@@ -2445,8 +2445,8 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               }
             ]
           }
@@ -4047,17 +4047,17 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -4075,7 +4075,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -4151,8 +4151,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -5093,7 +5093,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -5117,11 +5117,11 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
@@ -5186,7 +5186,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -5358,7 +5358,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -5574,16 +5574,16 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -5602,8 +5602,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -6306,7 +6306,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -6326,8 +6326,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -6432,7 +6432,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               }
             ],
@@ -6485,8 +6485,8 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               }
             ]
           }
@@ -7770,7 +7770,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -7794,11 +7794,11 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
@@ -7836,7 +7836,7 @@
                 "anchor": "physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -7906,7 +7906,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -8074,7 +8074,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -8298,16 +8298,16 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -8330,8 +8330,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -9141,7 +9141,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -9161,8 +9161,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -9333,11 +9333,11 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
@@ -9351,7 +9351,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -9373,7 +9373,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -9485,8 +9485,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",

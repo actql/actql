@@ -2,9 +2,13 @@
 // Content acquisition, an original ReferenceIssuer or a live upload.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {gcsUploadCommandDeclaration, gcsUploadCatalogDeclaration} from '../host/gcs-upload-declaration.mjs';
 import {prepareGcsCollectionTarget, gcsCollectionUploadMapping} from '../host/gcs-collection-target.mjs';
+
+type GcsCore = Parameters<typeof gcsUploadCommandDeclaration>[0] & Parameters<typeof prepareGcsCollectionTarget>[0];
+type CollectionOverrides = Partial<Parameters<typeof prepareGcsCollectionTarget>[1]>;
+const moon: GcsCore = await import(new URL(
+  '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js', import.meta.url).href);
 
 const limits = {maxBytes: 32768, maxNodes: 4096, maxDepth: 32};
 const catalogCid = 'sha256:74765512d8f6e59d807f87de33f97bf1bea07b40a7719731d6bbe33347e7786a';
@@ -20,7 +24,7 @@ function original() {
     evidence_schemas: [], evidence_capabilities: []});
 }
 const declared = () => gcsUploadCatalogDeclaration(moon, original(), 'exports', limits);
-const target = (wire, overrides) => prepareGcsCollectionTarget(moon, {
+const target = (wire: string, overrides?: CollectionOverrides) => prepareGcsCollectionTarget(moon, {
   project: 'project', bucket: 'bucket', prefix: 'in/é%2F/',
   targetRef: 'connector://exports/objects', resourceKind: 'file_collection',
   catalogCid: JSON.parse(wire).catalog_cid, installationCid: `sha256:${'b'.repeat(64)}`,
@@ -71,7 +75,7 @@ test('real original collection Mapping retains complete ContentRef and collectio
     assert.equal(rule.effect_kind, 'create');
     assert.equal(rule.selector_class, 'none');
   }
-  assert.equal(owner.referenceIssuer, undefined);
+  assert.equal((owner as typeof owner & {readonly referenceIssuer?: unknown}).referenceIssuer, undefined);
 });
 
 test('copied frames and changed kind-target-Catalog cannot substitute original collection binding', () => {
@@ -89,7 +93,7 @@ test('copied frames and changed kind-target-Catalog cannot substitute original c
 
 test('invalid numeric ABI limits are refused before the actual Moon entry is called', () => {
   let calls = 0;
-  const provider = {...moon, gcsUploadCommandJson(...args) { calls++; return moon.gcsUploadCommandJson(...args); }};
+  const provider = {...moon, gcsUploadCommandJson(...args: Parameters<GcsCore['gcsUploadCommandJson']>) { calls++; return moon.gcsUploadCommandJson(...args); }};
   for (const value of [0, -1, 0.5, Infinity, 2 ** 32 + 32768, Number.MAX_SAFE_INTEGER]) {
     for (const field of ['maxBytes', 'maxNodes', 'maxDepth']) {
       assert.throws(() => gcsUploadCommandDeclaration(provider, 'exports', {...limits, [field]: value}),

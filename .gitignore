@@ -2708,3 +2708,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/gmail/site/gmail-thread-limits.d.mts
 /scripts/js-compiler-binding-runtime.test.mjs
 /scripts/js-compiler-binding-runtime.test.d.mts
+/adapters/connectors/gcs/site/gcs-owned-upload-request.mjs
+/adapters/connectors/gcs/site/gcs-owned-upload-request.d.mts
+/adapters/connectors/gcs/host/gcs-collection-target.mjs
+/adapters/connectors/gcs/host/gcs-collection-target.d.mts
+/adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs
+/adapters/connectors/gcs/test/gcs-upload-declaration.test.d.mts
