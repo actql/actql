@@ -7,7 +7,7 @@ import unittest
 import httpx
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from actql_sdk import AsyncClient, Client, ClientError
-from actql_sdk._reader import retained_value_bytes
+from actql_sdk._values import _decode_result_value
 from fixtures import PROFILE, reference, ready
 
 
@@ -41,6 +41,21 @@ class Handler:
         if operation == 'read':
             return httpx.Response(200, stream=self.stream)
         return httpx.Response(200, json=ready(body))
+
+
+class FreshResultValueTests(unittest.TestCase):
+    def test_decoder_keeps_exact_depth_and_node_bounds(self):
+        exact_depth = b'[' * 64 + b'0' + b']' * 64
+        _, extent = _decode_result_value(exact_depth)
+        self.assertEqual(extent, len(exact_depth) + 65 * 64)
+        exact_nodes = b'[' + b'0,' * 99_998 + b'0]'
+        value, extent = _decode_result_value(exact_nodes)
+        self.assertEqual(len(value), 99_999)
+        self.assertEqual(extent, len(exact_nodes) + 100_000 * 64)
+        for raw in (b'[' + exact_depth + b']', b'[0,' + exact_nodes[1:]):
+            with self.assertRaises(ClientError) as caught:
+                _decode_result_value(raw)
+            self.assertEqual(caught.exception.code, 'InvalidHostResponse')
 
 
 class AsyncSchemaTests(unittest.IsolatedAsyncioTestCase):
@@ -124,12 +139,46 @@ class AsyncSchemaTests(unittest.IsolatedAsyncioTestCase):
         class Schema:
             def validate_python(self, value, *, strict):
                 return None
-        for options in ({'max_rows': 1}, {'max_retained_value_bytes': retained_value_bytes({'n': 1})}):
+        for options in ({'max_rows': 1}, {'max_retained_value_bytes': len(b'{"n":1}') + 4 * 64}):
             _, result, handler = await self.open(b'{"n":1}\n{"n":2}\n\x1e')
             with self.assertRaises(ClientError) as caught:
                 await result.all(schema=Schema(), **options)
             self.assertEqual(caught.exception.code, 'ResultRetainedLimit')
             self.assertEqual(handler.stream.closes, 1)
+
+    async def test_fresh_row_retention_uses_canonical_extent_and_original_members(self):
+        raw = b'{ "o": {"x":"\\u00e9\\n"}, "a": [1.0,null], "n": null }\n\x1e'
+        # 11 value/key nodes and 4 object members, including both null values.
+        retained = len('{"o":{"x":"é\\n"},"a":[1,null],"n":null}'.encode()) + 15 * 64
+        _, result, handler = await self.open(raw)
+        value, = await result.all(max_row_retained_value_bytes=retained, max_retained_value_bytes=retained)
+        self.assertEqual(value, {'o': {'x': 'é\n'}, 'a': [1.0, None], 'n': None})
+        self.assertIs(type(value['a'][0]), float)
+        self.assertEqual(handler.stream.closes, 1)
+        _, result, handler = await self.open(raw)
+        with self.assertRaises(ClientError) as caught:
+            await result.all(max_row_retained_value_bytes=retained - 1)
+        self.assertEqual((caught.exception.code, caught.exception.rows_yielded), ('ResultRowRetainedLimit', 0))
+        self.assertEqual(handler.operations.count('read'), 1)
+        self.assertEqual(handler.stream.closes, 1)
+
+    async def test_fresh_row_preserves_invalid_frame_and_scalar_refusals(self):
+        for line, code in (
+                (b'[]', 'InvalidResultFrame'),
+                (b'{"x":null,"\\u0078":1}', 'InvalidHostResponse'),
+                (b'{"x":"\xff"}', 'InvalidHostResponse'),
+                (b'{"x":"\\ud800"}', 'InvalidHostResponse'),
+                (b'{"x":-0}', 'InvalidHostResponse'),
+                (b'{"x":-0.0}', 'InvalidHostResponse'),
+                (b'{"x":9007199254740993}', 'InvalidHostResponse'),
+                (b'{"x":1e400}', 'InvalidHostResponse')):
+            with self.subTest(line=line):
+                _, result, handler = await self.open(line + b'\n\x1e')
+                with self.assertRaises(ClientError) as caught:
+                    await result.all()
+                self.assertEqual((caught.exception.code, caught.exception.rows_yielded), (code, 0))
+                self.assertEqual(handler.operations.count('read'), 1)
+                self.assertEqual(handler.stream.closes, 1)
 
     async def test_schema_does_not_supply_missing_transport_completion(self):
         _, result, _ = await self.open(b'{"n":1}\n')
