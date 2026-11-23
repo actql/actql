@@ -3,25 +3,41 @@
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {openEffectLedger} from './effect-ledger.mjs';
+// @ts-expect-error TS7016: the common runtime facade is still authored in JavaScript.
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {effectApplicationControl} from '../host-common/effect-application-control.mjs';
+import type {OwnerObservationRequest, OwnerObservationSource} from './client-owner-observations.mjs';
 
-export function installClientEffectObservations({moon,root,authorize,maxPending=4}) {
+type Ledger = ReturnType<typeof openEffectLedger>;
+type Control = ReturnType<typeof effectApplicationControl>;
+type Moon = Parameters<typeof openEffectLedger>[0]['moon'] & Readonly<{
+  clientRequestAuthorityScopeCid(identity: unknown): string;
+  clientRequestCallerId(identity: unknown): string;
+}>;
+type Options = Readonly<{moon: Moon; root: string;
+  authorize(request: OwnerObservationRequest): unknown; maxPending?: number}>;
+type CloseOwner = Pick<Ledger, 'close'> | Readonly<{close(): Promise<void>}>;
+type OpenFailure = Readonly<{cleanupPending?: boolean; cleanupHandle?: Readonly<{
+  retry(): unknown; status(): {pending?: boolean};
+}>}>;
+
+export function installClientEffectObservations({moon,root,authorize,maxPending=4}: Options) {
   if (typeof authorize !== 'function' || !Number.isSafeInteger(maxPending) || maxPending < 1 || maxPending > 4) {
     throw new TypeError('InvalidClientEffectObservations');
   }
-  const pending=new Set(),control=runtimeCore(moon).effectApplicationControl;
-  const withLedger=(identity,read)=>{
+  const pending=new Set<CloseOwner>(),control: Control=runtimeCore(moon).effectApplicationControl;
+  const withLedger=<Value,>(identity: unknown, read: (ledger: Ledger) => Value): Value=>{
     if (pending.size >= maxPending) throw new Error('EffectObservationCleanupPending');
-    let ledger;
+    let ledger: Ledger | undefined;
     try {
       ledger=openEffectLedger({moon,root,authorityScopeCid:moon.clientRequestAuthorityScopeCid(identity),
         callerRequestId:moon.clientRequestCallerId(identity)});
       return read(ledger);
     } catch (failure) {
-      if (ledger === undefined && failure.cleanupPending === true &&
-          typeof failure.cleanupHandle?.retry === 'function' && typeof failure.cleanupHandle?.status === 'function') {
-        pending.add({close:async()=>{await failure.cleanupHandle.retry();
-          if(failure.cleanupHandle.status().pending !== false)throw failure;}});
+      if (ledger === undefined && (failure as OpenFailure).cleanupPending === true &&
+          typeof (failure as OpenFailure).cleanupHandle?.retry === 'function' && typeof (failure as OpenFailure).cleanupHandle?.status === 'function') {
+        pending.add({close:async()=>{await (failure as OpenFailure).cleanupHandle!.retry();
+          if((failure as OpenFailure).cleanupHandle!.status().pending !== false)throw failure;}});
       }
       throw failure;
     } finally {
@@ -32,8 +48,8 @@ export function installClientEffectObservations({moon,root,authorize,maxPending=
     }
   };
   return Object.freeze({
-    sources(identity,request) {
-      const problem=kind=>({kind:'problem',ownerKind:'effect',problem:kind,authorize});
+    sources(identity: unknown, request: OwnerObservationRequest & {maxWireBytes: number}): OwnerObservationSource[] {
+      const problem=(kind: Extract<OwnerObservationSource, {kind:'problem'}>['problem']): OwnerObservationSource=>({kind:'problem',ownerKind:'effect',problem:kind,authorize});
       if (!existsSync(join(root,'effect-ledger.sqlite3'))) {
         // A caller's unadmitted token cannot certify that this stream ever
         // existed or that history was lost. The collector reports its request
@@ -47,7 +63,7 @@ export function installClientEffectObservations({moon,root,authorize,maxPending=
       try {page=withLedger(identity,ledger=>ledger.currentScopePage({maxItems:3,maxWireBytes:request.maxWireBytes}));}
       catch {return [problem('acquisition_failed')];}
       if (page.kind !== 'page') return [problem(page.kind)];
-      const result=page.entries.map(row=>{
+      const result=page.entries.map((row): OwnerObservationSource=>{
         const streamCid=row.logicalItemLocatorCid;
         return {owner:{kind:'effect',scopeCid,streamCid},history:'formal',authorize,
           readSnapshot:()=>withLedger(identity,ledger=>{
