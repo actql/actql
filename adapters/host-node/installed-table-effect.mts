@@ -119,8 +119,9 @@ type Plan = Pick<CaptureResult, 'runDefinition' | 'invocation' | 'results' | 'co
     outputLimits: OutputLimits; invocationOwner: unknown; effectInputRetention: Readonly<{identity: string}>;
     localEvidenceContext?: unknown; sourceFreeInvocationOriginal?: unknown;
   }>;
+type TableStore = CaptureResult['store'] & Parameters<typeof prepareRecoveredTableInput>[0]['store'];
 type CapturedFacts = Readonly<{
-  moon: Runtime; control: Control; store: CaptureResult['store']; execution: CaptureResult['execution'];
+  moon: Runtime; control: Control; store: TableStore; execution: CaptureResult['execution'];
   checkedHost: unknown; prepared: unknown; identity: unknown; compilation: unknown; unit?: Unit;
   definition?: unknown; publicationPlan?: Plan; plan?: Plan; previewContext?: PreviewContext;
   managedEffect?: Parameters<typeof prepareInstalledEffectResultProgress>[0] & Readonly<{controlConstruction?: unknown}>;
@@ -132,7 +133,7 @@ type StoredProvider = Readonly<{
   request: Publication['request']; attempt: Publication['attempt'];
 }>;
 type RecoveryFacts = Readonly<{
-  moon: Runtime; control: Control; store: CaptureResult['store'];
+  moon: Runtime; control: Control; store: TableStore;
   recovered: Readonly<{requestIdentity: unknown; requestScope: unknown; computation: DurableOptions['recovered'];
     recoveryResources?: DurableOptions['recoveryResources']}>;
   continuation: (Partial<StoredProvider> & Readonly<{provider?: StoredProvider}>) | undefined;
@@ -157,7 +158,7 @@ type CleanupOwner = Readonly<{
 }>;
 type StagedResults = Parameters<typeof prepareCompletedEffectfulPublication>[0]['storedResults'];
 type Stage<Results extends StagedResults> = Pick<Publication, 'request' | 'attempt' | 'now' | 'contractLimits'> & Readonly<{
-  control: Control; store: CaptureResult['store']; execution: CaptureResult['execution'] | null;
+  control: Control; store: TableStore; execution: CaptureResult['execution'] | null;
   storedResults: Results; computation: DurableOptions['recovered']['computation'];
   preview: IssueCapture['preview']; applyPreview: unknown; ledger: Ledger; body: PreviewBody;
   members: readonly Member[]; scopes: DispatchOwner['scopes']; owner: CleanupOwner; continuationWire: string;

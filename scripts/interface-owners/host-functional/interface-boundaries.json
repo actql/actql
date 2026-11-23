@@ -104159,7 +104159,7 @@
     {
       "module": "adapters/host-node/table-capture-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a3ad57b393ba224f462be0b7ead273cd6f60cd9cf1f70a8f915e6fee4a647eb",
+      "sha256": "6a2b4916d8f2f4302312b2104ac45bb39490132a5b364de731712cba9e7163ab",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [
@@ -104534,7 +104534,8 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/completed-run-publication.mjs",
-        "./effect-input-export.mjs"
+        "../host-common/run-publication.mjs",
+        "./effect-source-holdings.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

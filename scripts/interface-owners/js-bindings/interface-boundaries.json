@@ -47262,7 +47262,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c6a681a0f7fe2acc1b5919f45d9c082d5939d746eed252ac5c3fb42e4309ebfe",
+      "sha256": "50f53fb347d7e40ae5c4118e0685df548aade62ce970dd90f1295acce92ba655",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -47278,13 +47278,6 @@
         "retainPinnedEffectDependencyPayloads"
       ],
       "operations": [
-        {
-          "name": "commitPinnedEffectSourceHolding",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
         {
           "name": "exportPinnedEffectInput",
           "parameters": [
@@ -47395,77 +47388,6 @@
         },
         {
           "name": "preparePinnedEffectDependencyInventory/preparePinnedEffectDependencyInventory",
-          "parameters": [
-            "payload"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings",
-          "parameters": [
-            "sources",
-            "store",
-            "control",
-            "preview",
-            "invocation",
-            "resultArtifacts"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/entries/entries",
-          "parameters": [
-            "memberIndex",
-            "payload"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/holdings/holdings",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/init:commit/init:commit",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
-          "parameters": [
-            "holding"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/inventory/inventory",
-          "parameters": [
-            "memberIndex",
-            "artifact"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
           "parameters": [
             "payload"
           ],
@@ -47658,40 +47580,6 @@
           "async": false
         },
         {
-          "name": "readPinnedEffectTableInput",
-          "parameters": [
-            "holding",
-            "store",
-            "control",
-            "tableInput",
-            "identity",
-            "maxBytes",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "readRecoveredEffectTableInput",
-          "parameters": [
-            "store",
-            "control",
-            "source",
-            "artifact",
-            "tablePreview",
-            "maxBytes",
-            "signal",
-            "assertAvailable"
-          ],
-          "async": true
-        },
-        {
-          "name": "readRetainedTableRows/read/read",
-          "parameters": [
-            "chunk"
-          ],
-          "async": false
-        },
-        {
           "name": "retainPinnedEffectDependencyPayloads",
           "parameters": [
             "sources",
@@ -47714,126 +47602,6 @@
       "contracts": [
         {
           "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "admitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
-                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
-              },
-              {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "commitPinnedEffectSourceHolding"
-          ],
           "exports": [
             "commitPinnedEffectSourceHolding"
           ],
@@ -48612,18 +48380,7 @@
           }
         },
         {
-          "operations": [
-            "preparePinnedEffectSourceHoldings",
-            "preparePinnedEffectSourceHoldings/entries/entries",
-            "preparePinnedEffectSourceHoldings/holdings/holdings",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/inventory/inventory",
-            "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
-            "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings"
-          ],
+          "operations": [],
           "exports": [
             "preparePinnedEffectSourceHoldings"
           ],
@@ -49331,9 +49088,7 @@
           }
         },
         {
-          "operations": [
-            "readPinnedEffectTableInput"
-          ],
+          "operations": [],
           "exports": [
             "readPinnedEffectTableInput"
           ],
@@ -49445,9 +49200,7 @@
           }
         },
         {
-          "operations": [
-            "readRecoveredEffectTableInput"
-          ],
+          "operations": [],
           "exports": [
             "readRecoveredEffectTableInput"
           ],
@@ -49546,118 +49299,6 @@
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "readRecoveredEffectTableInput"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "readRetainedTableRows/read/read"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "readRetainedTableRows"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -50204,7 +49845,8 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mts",
+        "./effect-command-key.mjs",
+        "./effect-source-holdings.mjs",
         "node:crypto",
         "node:timers/promises",
         "node:util"
@@ -52831,6 +52473,369 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/effect-source-holdings.mjs",
+      "sha256": "ce318399e47cf82b6c0e2ba846ea1b6d67aa71aaa9cc41c22a7350c0e5787d9f",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "responsibilityFacet": "supplemental",
+      "exports": [
+        "createPinnedEffectSourceHoldings",
+        "readRecoveredEffectTableInput"
+      ],
+      "operations": [
+        {
+          "name": "createPinnedEffectSourceHoldings",
+          "parameters": [
+            "preparedEffectSourceOwners",
+            "preparedEffectSourceSets",
+            "adoptedEffectSourceDependencies"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/commitPinnedEffectSourceHolding",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
+          "parameters": [
+            "sources",
+            "store",
+            "control",
+            "preview",
+            "invocation",
+            "resultArtifacts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/entries/entries",
+          "parameters": [
+            "memberIndex",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/holdings/holdings",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
+          "parameters": [
+            "holding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/inventory/inventory",
+          "parameters": [
+            "memberIndex",
+            "artifact"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
+          "parameters": [
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourceHoldings/readPinnedEffectTableInput",
+          "parameters": [
+            "holding",
+            "store",
+            "control",
+            "tableInput",
+            "identity",
+            "maxBytes",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "readRecoveredEffectTableInput",
+          "parameters": [
+            "store",
+            "control",
+            "source",
+            "artifact",
+            "tablePreview",
+            "maxBytes",
+            "signal",
+            "assertAvailable"
+          ],
+          "async": true
+        },
+        {
+          "name": "readRetainedTableRows/read/read",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPinnedEffectSourceHoldings",
+            "createPinnedEffectSourceHoldings/commitPinnedEffectSourceHolding",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/entries/entries",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/holdings/holdings",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/inventory/inventory",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
+            "createPinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings"
+          ],
+          "exports": [
+            "createPinnedEffectSourceHoldings"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "function admitPinnedEffectSourceHolding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "const holding = Object.freeze({source, memberIndex,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "resultArtifact !== payload.localResultArtifact"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "pinnedEffectSourceHoldings.set(holding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "if (flight !== undefined) return flight"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "TypeError('IncompleteEffectDependencyHoldings')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The original physical holding preparation and same-record Store reconciliation use the existing Store operation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "await store.retainEffectCaptureCustody(owner.runDefinition,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "await share(first, holding.record)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/table-approved-commit.test.mjs",
+                "anchor": "commit uses one operation per member"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPinnedEffectSourceHoldings/readPinnedEffectTableInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "async function readPinnedEffectTableInput"
+              },
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "async function readRetainedTableRows"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "return readRetainedTableRows({store, holdingCid: holding.holdingCid"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "owner?.store !== store || owner?.control !== control"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "pinnedEffectSourceHoldings.get(holding)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "await store.consumePhysicalHolding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "TypeError('ForeignTableSourceBytes')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "RangeError('TableSourceByteLimit')"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "new TextDecoder"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/table-scope-binding.test.mjs",
+                "anchor": "Table reads refuse a holding from a separate Source owner before Store I/O"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readRecoveredEffectTableInput",
+            "readRetainedTableRows/read/read"
+          ],
+          "exports": [
+            "readRecoveredEffectTableInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "async function readRecoveredEffectTableInput"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "control.recoveredTablePreviewMatchesSource"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "control.capturedEffectSourceArtifactCid(source) !== artifact.identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "await store.inspectPhysicalHolding(holdingCid)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "assertAvailable();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "TypeError('UnavailableRecoveredTableSource')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "maxBytes, signal});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "holding.objects[0].byte_count > maxBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-holdings.mts",
+                "anchor": "const body = JSON.parse(artifact.wire)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/table-durable-capture.test.mjs",
+                "anchor": "semantic Preview in a new process"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",

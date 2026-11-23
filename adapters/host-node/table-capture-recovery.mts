@@ -3,8 +3,7 @@
 import {prepareCompletedEffectfulPublication, prepareCompletedEffectSourceMembers,
   confirmCompletedEffectfulApplySources, type recoverCompletedEffectfulComputation}
   from '../host-common/completed-run-publication.mjs';
-// @ts-expect-error TS7016: Effect input export still has a JavaScript entry.
-import {readRecoveredEffectTableInput} from './effect-input-export.mjs';
+import {readRecoveredEffectTableInput} from './effect-source-holdings.mjs';
 import {constructEffectfulPublication} from '../host-common/run-publication.mjs';
 
 import type {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
@@ -31,7 +30,8 @@ type RecoveryControl = PublicationOptions['control'] &
     checkRecoveredTableSchemaWire(preview: RecoveredPreview, wire: string, limits: MaterialLimits): string;
     recoveredTablePreviewMatchesSource(preview: RecoveredPreview, source: PublicationInventory['effectSources'][number]): boolean;
 }>;
-type RecoveryOwner = Readonly<{recovered: Recovered; store: PublicationOptions['store'];
+type RecoveredTableStore = PublicationOptions['store'] & Parameters<typeof readRecoveredEffectTableInput>[0]['store'];
+type RecoveryOwner = Readonly<{recovered: Recovered; store: RecoveredTableStore;
   control: RecoveryControl; source: ReturnType<typeof prepareCompletedEffectSourceMembers>[number]}>;
 type PreparedInput = Readonly<{tablePreview: RecoveredPreview; operationWire: string; mappingWire: string; schemaWire: string}>;
 type RecoveryOptions = Omit<RecoveryOwner, 'source'> & Readonly<{
