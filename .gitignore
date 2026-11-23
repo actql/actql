@@ -2358,6 +2358,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-source-dependencies.d.mts
 /adapters/host-node/effect-input-export.mjs
 /adapters/host-node/effect-input-export.d.mts
+/adapters/host-common/runtime-execution-control.mjs
+/adapters/host-common/runtime-execution-control.d.mts
+/adapters/host-node/dispatch-failure-observation.test.mjs
+/adapters/host-node/dispatch-failure-observation.test.d.mts
 /adapters/host-common/installed-row-update-recovery.mjs
 /adapters/host-common/installed-row-update-recovery.d.mts
 /adapters/host-common/installation-publication-storage-metadata.mjs

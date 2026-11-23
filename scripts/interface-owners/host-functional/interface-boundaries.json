@@ -51893,7 +51893,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-execution-control.mts",
                 "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
               }
             ],
@@ -51921,7 +51921,7 @@
                 "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
               },
               {
-                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "path": "adapters/host-node/dispatch-failure-observation.test.mts",
                 "anchor": "test('actual imported next retains its original Err"
               }
             ]

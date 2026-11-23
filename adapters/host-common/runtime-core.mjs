@@ -1,5 +1,5 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
-import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {tuplePair} from './runtime-tuple.mjs';
 import {outputExportControl} from './output-export-control.mjs';
@@ -12,7 +12,7 @@ import {remoteBundleControl} from './remote-bundle-control.mjs';
 import {remoteTransferControl} from './remote-transfer-control.mjs';
 import {remoteSiteControl} from './remote-site-control.mjs';
 import {effectApplicationControl} from './effect-application-control.mjs';
-import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
+import {createRuntimeExecutionControls} from './runtime-execution-control.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationProgressControl} from './publication-progress-control.mjs';
@@ -6019,138 +6019,6 @@ export function runtimeCore(moon) {
     outputExportControl: outputExportControl(moon, publications),
     contentGenerationControl: contentGenerationControl(moon, publications),
     contentCaptureControl: contentCaptureControl(moon, publications),
-    count: moon.strategyHostCount,
-    programDefinitionCid: moon.strategyHostProgramDefinitionCid,
-    programHasEffects: moon.strategyHostHasEffects,
-    resultInventory(value) {
-      const names = moon.strategyHostResultNames(value);
-      if (!Array.isArray(names)) throw new TypeError('Invalid Result inventory');
-      if (names.length === 0) return Object.freeze([]);
-      const inventory = checked(moon.strategyHostPublicationInventory(value));
-      const count = moon.strategyHostPublicationInventoryCount(inventory);
-      if (count !== names.length) {
-        throw new TypeError('Invalid Result inventory projection');
-      }
-      return Object.freeze(Array.from({length: count}, (_, index) => {
-        const definitionContract = publications.admit(
-          'result_definition',
-          checked(moon.strategyHostPublicationInventoryDefinitionJson(
-            inventory, index,
-          )),
-          {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64},
-        );
-        const definition = JSON.parse(definitionContract.wire);
-        return Object.freeze({
-          name: checked(
-            moon.strategyHostPublicationInventoryName(inventory, index),
-          ),
-          task: checked(
-            moon.strategyHostPublicationInventoryTask(inventory, index),
-          ),
-          definition: Object.freeze(definition),
-          definitionContract,
-        });
-      }));
-    },
-    next: (value, observeFailure) => {
-      const result = moon.strategyHostNext(value);
-      try { return checked(result); }
-      catch (original) {
-        if (runtimeIsError(result) && typeof observeFailure === 'function') {
-          try { rememberOriginalDispatchFailure(original, observeFailure(value)); }
-          catch { /* Optional observation cannot replace this original failure. */ }
-        }
-        throw original;
-      }
-    },
-    nextTask: moon.strategyHostNextTask,
-    managedProducer: moon.strategyHostManagedProducer,
-    managedProducers: moon.strategyHostManagedProducers,
-    managedMatches: moon.strategyHostManagedOutputMatches,
-    managedCarrierMatches: moon.strategyHostCarrierManagedOutputMatches,
-    managedInputMatches: moon.strategyHostManagedInputMatchesMaterial,
-    selectManaged: moon.strategyHostSelectManagedRegistration,
-    task: moon.strategyHostTask,
-    taskCapacity: (value, task) => tuplePair(checked(
-      moon.strategyHostTaskCapacity(value, task),
-    )),
-    registration: moon.strategyHostRegistration,
-    completed: moon.strategyHostTaskCompleted,
-    finished: moon.strategyHostFinished,
-    stop: moon.strategyHostStop,
-    requireActivation: moon.strategyHostRequireActivation,
-    coverActivation: moon.strategyHostCoverActivation,
-    authorizeActivation: moon.strategyHostAuthorizeActivation,
-    closeOutputs: moon.strategyHostCloseOutputs,
-    output: moon.strategyHostOutput,
-    transferBegin: (value, source, transfer, retained, execution) => checked(
-      moon.strategyHostTransferBegin(
-        value, source, transfer, retained, execution,
-      ),
-    ),
-    transferCharge: (value, transfer, bytes) => checked(
-      moon.strategyHostTransferCharge(value, transfer, bytes),
-    ),
-    transferSettle: (value, transfer, confirmed) => checked(
-      moon.strategyHostTransferSettle(value, transfer, confirmed),
-    ),
-    transferComplete: (value, transfer, retained) => checked(
-      moon.strategyHostTransferComplete(value, transfer, retained),
-    ),
-    transferAbort: (value, transfer, confirmed) => checked(
-      moon.strategyHostTransferAbort(value, transfer, confirmed),
-    ),
-    transferRelease: (value, receipt) => checked(
-      moon.strategyHostTransferRelease(value, receipt),
-    ),
-    transferReceiptMatches: (receipt, transfer, source, bytes, retained) =>
-      moon.strategyHostTransferReceiptMatches(
-        receipt, transfer, source, bytes, retained,
-      ),
-    transferPending: moon.strategyHostTransferPending,
-    transferProgressBegin: transfer =>
-      moon.strategyHostBeginTransferProgress(transfer),
-    transferRecordSourceStop: progress =>
-      moon.strategyHostRecordTransferSourceStop(progress),
-    transferRecordSourceSiteSettlement: progress =>
-      moon.strategyHostRecordTransferSourceSiteSettlement(progress),
-    transferRecordDestinationCreated: progress =>
-      moon.strategyHostRecordTransferDestinationCreated(progress),
-    transferRecordDestinationAdmission: (progress, value) =>
-      moon.strategyHostRecordTransferDestinationAdmission(
-        progress,
-        value.distinctMaterial,
-        value.distinctGeneration,
-        value.rows,
-        value.batches,
-        value.maxBatchRows,
-        value.maxBatchBytes,
-        value.transferredBytes,
-        value.retainedBytes,
-        value.transferLimit,
-        value.retentionLimit,
-      ),
-    transferRecordDestinationHolding: progress =>
-      moon.strategyHostRecordTransferDestinationHolding(progress),
-    transferRecordDestinationReclaimed: progress =>
-      moon.strategyHostRecordTransferDestinationReclaimed(progress),
-    transferRecordDestinationSiteSettlement: progress =>
-      moon.strategyHostRecordTransferDestinationSiteSettlement(progress),
-    transferRecordDestinationCleanupRelease: progress =>
-      moon.strategyHostRecordTransferDestinationCleanupRelease(progress),
-    transferRecordSiteHoldingRelease: progress =>
-      moon.strategyHostRecordTransferSiteHoldingRelease(progress),
-    transferCommitAction: progress => checked(
-      moon.strategyHostTransferCommitAction(progress),
-    ),
-    transferCleanupAction: progress => checked(
-      moon.strategyHostTransferCleanupAction(progress),
-    ),
-    transferReceipt: moon.strategyHostTransferReceipt,
-    explain: (value, bytes, nodes) => JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes))),
-    preparationUsageIsolated: (value, holder) =>
-      typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
-      moon.clientProgramPreparationBorrowUsageIsolated(holder, moon.strategyHostRun(value)) === true,
-    usage: value => ledgerUsageSnapshot(moon.strategyHostUsage(value)),
+    ...createRuntimeExecutionControls(moon, publications),
   });
 }
