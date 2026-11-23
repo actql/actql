@@ -1375,6 +1375,8 @@ pub fn validate_run_publication_chain(PublicationContract, PublicationContract, 
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
+pub fn verify_model_attempt_reported_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_slot_attachment_admission(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]

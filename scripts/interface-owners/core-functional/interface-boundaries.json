@@ -26126,7 +26126,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
+      "sha256": "381f5821813769f2c89b14712043229721e2e5c58a4a941e530e90c549545e69",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -26575,6 +26575,14 @@
           "async": false
         },
         {
+          "name": "installNodeModelContinuation/readSettled/readSettled#4",
+          "parameters": [
+            "_bytes",
+            "raw"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeModelContinuation/release",
           "parameters": [
             "token"
@@ -26796,7 +26804,8 @@
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
             "select/select/select",
-            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
+            "installNodeModelContinuation/readSettled/readSettled#4"
           ],
           "exports": [
             "installNodeModelContinuation"

@@ -42,6 +42,36 @@ export function modelAttemptEvidenceSchemas() {
   // Historical authority and response originals remain readable for no-send
   // replay. Every new delegated send semantically requires this exact scope.
   authority.properties.model_invocation_scope_cid = cid;
+  const outcome = schema('model_attempt_outcome', {
+    attempt_cid: cid, slot_cid: cid,
+    category: {enum: ['ok', 'provider_failure', 'contract_violation',
+      'cancelled', 'result_unknown']},
+    failure: {anyOf: [{enum: ['rate_limit', 'timeout', 'provider_error',
+      'refusal', 'schema_invalid', 'safety_rejected', 'truncated',
+      'output_identity', 'output_value', 'cancelled', 'deadline',
+      'result_unknown', 'budget_exceeded']}, {type: 'null'}]},
+  });
+  const reportedText = {...text, maxLength: 256};
+  // A report can describe an adopted provider failure. Cancellation,
+  // Unknown and a contract violation carry their own original outcome.
+  outcome.if = {type: 'object', required: ['reported_response']};
+  outcome.then = {type: 'object', properties: {
+    category: {const: 'provider_failure'},
+    failure: {enum: ['rate_limit', 'timeout', 'provider_error', 'refusal',
+      'schema_invalid', 'safety_rejected', 'truncated']},
+  }};
+  outcome.properties.reported_response = {
+    type: 'object', additionalProperties: false,
+    required: ['raw_response_artifact_cid', 'response_profile_cid', 'observed_at'],
+    properties: {
+      raw_response_artifact_cid: cid, response_profile_cid: cid,
+      observed_at: {...text, maxLength: 64},
+      provider_reported_model_id: reportedText, provider_request_id: reportedText,
+      finish_reason: reportedText, response_complete: {type: 'boolean'},
+      provider_metadata: {type: 'object', minProperties: 1, maxProperties: 1,
+        propertyNames: {minLength: 1}, additionalProperties: reportedText},
+    },
+  };
   return {
     model_attachment_admission: schema('model_attachment_admission', {
       slot_cid: cid, model_task_cid: cid, fixed_request_cid: cid,
@@ -70,15 +100,7 @@ export function modelAttemptEvidenceSchemas() {
       attempt: {...count, minimum: 1}, provider_id: text,
     }),
     model_attempt_accounting: accounting,
-    model_attempt_outcome: schema('model_attempt_outcome', {
-      attempt_cid: cid, slot_cid: cid,
-      category: {enum: ['ok', 'provider_failure', 'contract_violation',
-        'cancelled', 'result_unknown']},
-      failure: {anyOf: [{enum: ['rate_limit', 'timeout', 'provider_error',
-        'refusal', 'schema_invalid', 'safety_rejected', 'truncated',
-        'output_identity', 'output_value', 'cancelled', 'deadline',
-        'result_unknown', 'budget_exceeded']}, {type: 'null'}]},
-    }),
+    model_attempt_outcome: outcome,
   };
 }
 
@@ -99,8 +121,7 @@ export function checkModelAttemptEvidenceSchemas(registry) {
   assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
 }
 
-// Register generated schema pins with their existing normative owner. No
-// existing schema or identity preimage is rewritten by this additive update.
+// Update generated schema pins under their existing normative owner.
 function registerPins(registry) {
   const manifestPath = 'spec/spec-family.json';
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -116,13 +137,14 @@ function registerPins(registry) {
     const pin = registry.artifact_schema_cids[name];
     const existing = owner.machine_contracts.find(ref =>
       ref.path === 'spec/contracts/actql-protocol-schemas.json' && ref.pointer === pointer);
-    if (existing) {
+    if (existing && existing.cid !== pin) {
       const previousLine = `../../../spec/contracts/actql-protocol-schemas.json#${pointer} ${existing.cid}`;
+      assert.ok(source.includes(previousLine));
       source = source.replace(previousLine,
         `../../../spec/contracts/actql-protocol-schemas.json#${pointer} ${pin}`);
       existing.cid = pin;
     }
-    else owner.machine_contracts.push({path: 'spec/contracts/actql-protocol-schemas.json',
+    else if (!existing) owner.machine_contracts.push({path: 'spec/contracts/actql-protocol-schemas.json',
       pointer, cid: pin, version: registry.version});
     const pinLine = `../../../spec/contracts/actql-protocol-schemas.json#${pointer} ${pin}`;
     if (!source.includes(pinLine)) additions.push(pinLine);
