@@ -4,22 +4,30 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
-const fail = code => {throw Object.assign(new TypeError(code), {code});};
-const method = (receiver, name) => {
+type Bounds = readonly [maxProperties: number, maxFields: number, maxNameBytes: number,
+  maxBytes: number, maxNodes: number, maxDepth: number];
+type NativeMapping = Readonly<{resource: string; fields: readonly string[]; mapping: unknown;
+  body: string; mappingRef: string; mappingCid: string}>;
+type NativeInput = Readonly<{capacity(): unknown; project(): NativeMapping}>;
+type Options = Readonly<{construction: unknown; moon: unknown; providerMoon: unknown;
+  connectorId: string; declared: unknown; catalogFor(resource: string): unknown; writes: unknown; limits: unknown}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new TypeError(code), {code});};
+const method = <Args extends readonly unknown[], Value>(receiver: unknown, name: string) => {
   if (!receiver || nodeTypes.isProxy(receiver)) fail('HubSpotEffectMappingUnavailable');
   const field = Object.getOwnPropertyDescriptor(receiver, name);
   if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
       nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
     fail('HubSpotEffectMappingUnavailable');
   }
-  return (...args) => Reflect.apply(field.value, receiver, args);
+  return (...args: Args): Value => Reflect.apply(field.value, receiver, args);
 };
 
 // The installing profile must already be captured by its funded configuration
 // reader. No readable field is treated as writable: the original provider
 // Catalog constructor checks every selected property's exact writable type.
 export function prepareInstalledHubSpotUpdateMappings({construction, moon, providerMoon,
-  connectorId, declared, catalogFor, writes, limits}) {
+  connectorId, declared, catalogFor, writes, limits}: Options) {
   if (!Array.isArray(writes) || nodeTypes.isProxy(writes) || !Object.isFrozen(writes) ||
       writes.length === 0 || typeof catalogFor !== 'function' ||
       nodeTypes.isProxy(catalogFor) || nodeTypes.isAsyncFunction(catalogFor) ||
@@ -32,22 +40,24 @@ export function prepareInstalledHubSpotUpdateMappings({construction, moon, provi
   }
   // Capture original callable receivers before any original reserve/current
   // callback can reenter and mutate a caller's export table.
-  const prepareNativeInput = method(construction, 'prepareNativeInput');
-  const prepareNativeMappings = method(construction, 'prepareNativeMappings');
-  const capacity = method(moon, 'clientProgramHubSpotMappingConstructionCapacity');
-  const prepare = method(providerMoon, 'hubspotPrepareExecutionMapping');
-  const body = method(providerMoon, 'hubspotExecutionMappingBody');
-  const mappingRef = method(providerMoon, 'hubspotExecutionMappingRef');
-  const mappingCid = method(providerMoon, 'hubspotExecutionMappingCid');
+  const prepareNativeInput = method<[projection: NativeInput], NativeMapping>(construction, 'prepareNativeInput');
+  const prepareNativeMappings = method<[declared: unknown, originals: readonly NativeMapping[]], unknown>(construction, 'prepareNativeMappings');
+  const capacity = method<[fields: number, sources: number, units: bigint, ...Bounds], unknown>(moon, 'clientProgramHubSpotMappingConstructionCapacity');
+  const prepare = method<[catalog: unknown, connectorId: string, manifestCid: string, resource: string,
+    kind: number, key: string, fields: readonly string[], sources: readonly unknown[], ...Bounds], unknown>(
+    providerMoon, 'hubspotPrepareExecutionMapping');
+  const body = method<[mapping: unknown], string>(providerMoon, 'hubspotExecutionMappingBody');
+  const mappingRef = method<[mapping: unknown], string>(providerMoon, 'hubspotExecutionMappingRef');
+  const mappingCid = method<[mapping: unknown], string>(providerMoon, 'hubspotExecutionMappingCid');
   const names = ['maxProperties', 'maxFields', 'maxNameBytes', 'maxBytes', 'maxNodes', 'maxDepth'];
   const bounds = names.map(name => {
     const field = Object.getOwnPropertyDescriptor(limits, name);
     if (!field || !Object.hasOwn(field, 'value') || !Number.isSafeInteger(field.value) ||
         field.value < 1 || field.value > 2147483647) fail('InvalidHubSpotEffectMappingLimits');
     return field.value;
-  });
+  }) as unknown as Bounds;
   const manifestCid = manifest.value;
-  const originals = [];
+  const originals: NativeMapping[] = [];
   for (let i = 0; i < writes.length; i++) {
     const entry = Object.getOwnPropertyDescriptor(writes, String(i));
     const write = entry?.value;

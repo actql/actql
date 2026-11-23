@@ -3082,3 +3082,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/slack/test/channel-list-read.fixture.d.mts
 /adapters/connectors/slack/test/message-history-read.fixture.mjs
 /adapters/connectors/slack/test/message-history-read.fixture.d.mts
+/adapters/connectors/hubspot/host/hubspot-update-request.mjs
+/adapters/connectors/hubspot/host/hubspot-update-request.d.mts
+/adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs
+/adapters/connectors/hubspot/host/hubspot-effect-mappings.d.mts

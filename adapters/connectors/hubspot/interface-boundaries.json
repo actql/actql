@@ -1403,7 +1403,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs",
-      "sha256": "9f90e8c6ab24bda39678f40e85a2bbd9723be9b5253e4f5b15e011db0f770dc1",
+      "sha256": "b6c4301101830416fb3ab46864803c70d773980c781239b029546b2ae24282d8",
       "exports": [
         "prepareInstalledHubSpotUpdateMappings"
       ],
@@ -1530,7 +1530,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-request.mjs",
-      "sha256": "4007e1c527b290bce0dd55bbefad9d69406cb51828f7c90dbdeefddc66003bef",
+      "sha256": "9467f758779225a5a46354140400517d79bb2c17cf3b0dae1337f1038aedaacd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
