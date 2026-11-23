@@ -349,7 +349,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -496,7 +496,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -651,7 +651,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -767,7 +767,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -866,15 +866,15 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "macOS version uses one bounded kernel query when available"
               },
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "macOS version never replaces a valid unsupported version or admits missing replies"
               },
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "macOS version agrees with the existing OS service and ignores compatibility spelling"
               }
             ]
@@ -1143,7 +1143,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1286,7 +1286,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1431,7 +1431,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1570,7 +1570,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1711,7 +1711,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1850,7 +1850,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -1989,7 +1989,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -2132,7 +2132,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -2275,7 +2275,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -2418,7 +2418,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -2564,7 +2564,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {
@@ -2682,7 +2682,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-release.test.mjs",
+                "path": "scripts/native-cli-release.test.mts",
                 "anchor": "admitInstalledBinary"
               },
               {

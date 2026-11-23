@@ -8,8 +8,11 @@ import {join} from 'node:path';
 import {platformKey, macOSProductVersion, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
 import {admitNativeArtifact, sharedRuntimeSourceDelta, requireLinuxLocalReleaseArtifacts} from './native-cli-release.mjs';
 import {inspectNativeAbi} from './native-cli-artifact.mjs';
+import type {BinaryLike} from 'node:crypto';
 
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+type ProductVersionReply = ReturnType<NonNullable<Parameters<typeof macOSProductVersion>[0]>>;
+
+const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 const binary = Buffer.alloc(32);
 binary.writeUInt32LE(0xfeedfacf, 0); binary.writeUInt32LE(0x0100000c, 4);
 const sourceSha = 'a'.repeat(40);
@@ -40,14 +43,14 @@ test('explicit Local release profile requires its already admitted Linux Local a
 });
 
 test('macOS version uses one bounded kernel query when available', () => {
-  const calls = [];
+  const calls: object[] = [];
   assert.equal(macOSProductVersion((command, args, options) => {
     calls.push({command, args, options: {encoding: options.encoding,
       maxBuffer: options.maxBuffer, timeout: options.timeout},
-    compatibility: options.env.SYSTEM_VERSION_COMPAT,
+    compatibility: options.env!.SYSTEM_VERSION_COMPAT,
     environmentCloned: options.env !== process.env,
-    inheritedPathMatches: options.env.PATH === process.env.PATH});
-    return {status: 0, signal: null, stdout: '26.2\n'};
+    inheritedPathMatches: options.env!.PATH === process.env.PATH});
+    return {status: 0, signal: null, stdout: '26.2\n'} as ProductVersionReply;
   }), '26.2');
   assert.deepEqual(calls, [{command: '/usr/sbin/sysctl', args: ['-n', 'kern.osproductversion'],
     options: {encoding: 'utf8', maxBuffer: 1024, timeout: 1000},
@@ -57,10 +60,10 @@ test('macOS version uses one bounded kernel query when available', () => {
 test('macOS version retains sw_vers for an unavailable kernel service', () => {
   for (const first of [{error: {code: 'ENOENT'}}, {status: 1, stdout: '26.2'},
     {status: 0, signal: 'SIGTERM', stdout: '26.2'}]) {
-    const calls = [];
+    const calls: object[] = [];
     const version = macOSProductVersion((command, args) => {
       calls.push({command, args});
-      return calls.length === 1 ? first : {status: 0, stdout: '26.2\n'};
+      return (calls.length === 1 ? first : {status: 0, stdout: '26.2\n'}) as ProductVersionReply;
     });
     assert.equal(version, '26.2');
     assert.deepEqual(calls, [{command: '/usr/sbin/sysctl', args: ['-n', 'kern.osproductversion']},
@@ -71,14 +74,14 @@ test('macOS version retains sw_vers for an unavailable kernel service', () => {
 test('macOS version never replaces a valid unsupported version or admits missing replies', () => {
   for (const stdout of ['25.9', 'unavailable', '26.2\n26.1', '1'.repeat(48) + '.0', Buffer.from('26.2')]) {
     let calls = 0;
-    const macOS = macOSProductVersion(() => {calls++; return {status: 0, stdout};});
+    const macOS = macOSProductVersion(() => {calls++; return {status: 0, stdout} as unknown as ProductVersionReply;});
     assert.equal(calls, 1);
     assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}),
-      error => error.exitCode === 64);
+      error => (error as {exitCode?: number}).exitCode === 64);
   }
-  assert.equal(macOSProductVersion(() => ({status: 1, stdout: ''})), undefined);
+  assert.equal(macOSProductVersion(() => ({status: 1, stdout: ''} as ProductVersionReply)), undefined);
   assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary,
-    macOS: macOSProductVersion(() => ({status: 1, stdout: ''}))}), error => error.exitCode === 64);
+    macOS: macOSProductVersion(() => ({status: 1, stdout: ''} as ProductVersionReply))}), error => (error as {exitCode?: number}).exitCode === 64);
 });
 
 test('macOS version agrees with the existing OS service and ignores compatibility spelling', {skip: process.platform !== 'darwin'}, () => {
@@ -100,7 +103,7 @@ test('platform selection refuses other CPUs, musl and unknown libc without fallb
   for (const value of [{platform: 'win32', arch: 'x64'}, {platform: 'darwin', arch: 'x64'},
     {platform: 'linux', arch: 'arm64', glibc: '2.36'}, {platform: 'linux', arch: 'x64'},
     {platform: 'linux', arch: 'x64', glibc: 'musl'}]) {
-    assert.throws(() => platformKey(value), error => error.exitCode === 64);
+    assert.throws(() => platformKey(value), error => (error as {exitCode?: number}).exitCode === 64);
   }
 });
 
@@ -109,7 +112,7 @@ test('installed binary remains bound to source, platform and bytes', () => {
   for (const changed of [{...metadata, sourceSha: 'd'.repeat(40)}, {...metadata, platform: 'linux-x64-gnu'},
     {...metadata, binaryBytes: binary.length + 1}, {...metadata, binarySha256: 'e'.repeat(64)}]) {
     assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata: changed, binary}),
-      error => error.exitCode === 65);
+      error => (error as {exitCode?: number}).exitCode === 65);
   }
   assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary: Buffer.alloc(32)}));
 });
@@ -123,7 +126,7 @@ test('macOS deployment bound is extracted and checked before Native starts', () 
     admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS});
   }
   for (const macOS of ['25.9', undefined, 'unavailable']) {
-    assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}), error => error.exitCode === 64);
+    assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}), error => (error as {exitCode?: number}).exitCode === 64);
   }
 });
 
@@ -132,7 +135,7 @@ test('Linux executable glibc bound is checked independently of binary integrity'
   admitInstalledBinary({key: linux.platform, expected, metadata: linux, binary, glibc: '2.36'});
   for (const glibc of ['2.33', '1.99', undefined, 'musl']) {
     assert.throws(() => admitInstalledBinary({key: linux.platform, expected, metadata: linux, binary, glibc}),
-      error => error.exitCode === 64);
+      error => (error as {exitCode?: number}).exitCode === 64);
   }
 });
 
@@ -144,14 +147,14 @@ test('ABI extraction records executable symbol requirements and shared libraries
   });
   assert.equal(abi.minimumGlibc, '2.34'); assert.deepEqual(abi.sharedLibraries, ['libm.so.6', 'libc.so.6']);
   assert.equal(abi.httpLibraryBundled, false);
-  assert.match(abi.httpLibraryRequirements, /newer glibc/u);
+  assert.match(abi.httpLibraryRequirements!, /newer glibc/u);
 });
 
 test('producer record rejects foreign SHA, wrong CPU, unknown fields and changed binary', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cli-artifact-unit-'));
   try {
     await writeFile(join(directory, 'actql-native-client'), binary);
-    const save = value => writeFile(join(directory, 'artifact.json'), JSON.stringify(value));
+    const save = (value: object) => writeFile(join(directory, 'artifact.json'), JSON.stringify(value));
     await save(metadata); assert.deepEqual(await admitNativeArtifact(directory, sourceSha), metadata);
     await assert.rejects(admitNativeArtifact(directory, 'd'.repeat(40)));
     await save({...metadata, surplus: true}); await assert.rejects(admitNativeArtifact(directory, sourceSha));
@@ -173,7 +176,7 @@ test('source CLI metadata has no install hook and only exact OS binary dependenc
 test('combined CLI acceptance detects SDK and generated wire changes outside src', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-cli-cohort-source-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  const git = (...args) => execFileSync('git', ['-c', 'user.name=Fixture',
+  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=Fixture',
     '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', ...args],
     {cwd: root, encoding: 'utf8'}).trim();
   const commit = () => {git('add', '.'); git('commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD');};

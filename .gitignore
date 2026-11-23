@@ -2736,5 +2736,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-approval-performance.d.mts
 /scripts/native-cli-release.mjs
 /scripts/native-cli-release.d.mts
+/scripts/native-cli-release.test.mjs
+/scripts/native-cli-release.test.d.mts
 /scripts/test-native-approval-performance.mjs
 /scripts/test-native-approval-performance.d.mts

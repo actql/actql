@@ -103,7 +103,7 @@ export async function prepareNativeCliRelease(destination: string, artifacts: re
 
 // Profile selection after original artifact admission, not another receipt or
 // a substitute for installed acceptance. Generic/Remote preparation is intact.
-export function requireLinuxLocalReleaseArtifacts(records: readonly Pick<Artifact, 'platform' | 'localRuntime'>[]) {
+export function requireLinuxLocalReleaseArtifacts(records: readonly {platform: string; localRuntime?: unknown}[]) {
   assert(Array.isArray(records));
   const linux = records.filter(record => record.platform === 'linux-x64-gnu');
   assert.equal(linux.length, 1, 'Local release selection requires one Linux x64 artifact');
