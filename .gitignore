@@ -2518,6 +2518,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/keyed-content-run-recovery.d.mts
 /adapters/host-node/generated-content-run-recovery.mjs
 /adapters/host-node/generated-content-run-recovery.d.mts
+/adapters/host-node/installed-content-run.mjs
+/adapters/host-node/installed-content-run.d.mts
+/adapters/host-node/installed-content-preparation.test.mjs
+/adapters/host-node/installed-content-preparation.test.d.mts
 /adapters/host-node/stored-content-consumption.test.mjs
 /adapters/host-node/stored-content-consumption.test.d.mts
 /adapters/host-node/local-values-retention-original.test.mjs

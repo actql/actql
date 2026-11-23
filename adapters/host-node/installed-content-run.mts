@@ -15,11 +15,227 @@ import {installRunKeyedContentCapture} from './installed-keyed-content-capture.m
 import {createKeyedContentRunRecovery} from './keyed-content-run-recovery.mjs';
 import {createGeneratedContentRunRecovery} from './generated-content-run-recovery.mjs';
 
+import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import type {managedProgramInitialRetention} from './local-publication-plan.mjs';
+
+type Control = ReturnType<typeof contentGenerationControl>;
+type Prefix = Parameters<Control['prefixCancel']>[0];
+type Input = Parameters<Control['inputCancel']>[0];
+type Bodies = Parameters<Control['prefix']>[3];
+type PrefixLimits = Parameters<Control['prefix']>[4];
+type Workspace = ReturnType<Control['workspaceCapacity']>;
+type GenerationLimits = Parameters<Control['encoder']>[1];
+type ReferenceLimits = Parameters<Control['recoveryCandidate']>[2];
+type ContractLimits = Parameters<Control['inputIdentityFinish']>[2];
+type Demand = ReturnType<Control['prepareRequestOutputDemand']>;
+type OutputLimits = Demand['outputLimits'];
+type Capacity = ReturnType<Control['prefixCapacity']>;
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Writer = ReturnType<Store['createPreparedObjectWriter']>;
+type Physical = Awaited<ReturnType<Writer['seal']>>;
+type Holding = Readonly<{
+  version: 'actql-local-physical-holding/0.1';
+  namespace: 'content';
+  holding_cid: string;
+  manifest_cid: string;
+  objects: readonly Readonly<{cid: string; byte_count: number}>[];
+}>;
+type Retirement = Awaited<ReturnType<Store['retirePhysicalHolding']>>['cleanup'];
+type CommonObject = Prefix;
+type HeldEvidence = Awaited<ReturnType<typeof retainGeneratedContentEvidence>>;
+type Serialize = Parameters<typeof serializationPublicationExecution>[0];
+type Complete = Parameters<typeof publishCompletedEffectFreeRun>[0];
+type PublicationPlan = Parameters<typeof serializationTaskPublicationPlan<Complete['results'][number]['retention']>>[0];
+type Publication = ReturnType<typeof serializationTaskPublicationPlan<Complete['results'][number]['retention']>> &
+  Omit<Complete, 'execution' | 'store' | 'control' | 'signal'>;
+type CaptureSetup = Parameters<typeof installRunKeyedContentCapture>[0];
+type CapturedFrame = ReturnType<typeof installRunKeyedContentCapture>;
+type CaptureOptions = Omit<CaptureSetup, 'moon' | 'publications' | 'control' | 'namespaceId' |
+  'authorityScopeCid' | 'storeAuthorityCid' | 'ownerPrincipal' | 'now' | 'authorize'>;
+type Family = Parameters<typeof installEffectContentFamily>[0];
+type ManagedFamily = NonNullable<Family['managedOriginal']>;
+type RecoveryDispatch = Parameters<typeof createContentRecoveryDispatch>[0];
+type GeneratedRecovery = Parameters<typeof createGeneratedContentRunRecovery>[0];
+type PrepareGraph = Family['plan']['serializationGraph'];
+type RunDefinition = PublicationPlan['admitted']['runDefinition'];
+type RunPlan = PublicationPlan['admitted'] & Readonly<{serializationGraph?: PrepareGraph; inferGraph?: unknown}>;
+type PreparationInputs = Readonly<{preparedProgram: CommonObject; plan: RunPlan; request: unknown}>;
+type Managed = Parameters<typeof managedProgramInitialRetention>[4] & Readonly<{
+  selectedKeyed?: unknown;
+  serialization?: unknown;
+  contentCompilation?: unknown;
+}>;
+type ModelPreparation = {
+  compiled: RunPlan['compiled'];
+  runDefinition: RunDefinition;
+  graph: unknown;
+  serializationGraph: PrepareGraph;
+  contentPreparation?: Preparation;
+};
+type Preparation = {
+  prepared: CommonObject;
+  plan: RunPlan;
+  request: unknown;
+  attempted: boolean;
+  capacity?: Capacity;
+  managed?: Managed;
+  inputHolder?: unknown;
+  localPreparation?: Readonly<{releaseAliases(managed: Managed | undefined, inputHolder: unknown): unknown}>;
+  releaseSelection?: (prepared: CommonObject) => unknown;
+  contentControl: Control;
+  retired: boolean;
+  failed: boolean;
+  failure?: unknown;
+  model?: ModelPreparation;
+  prefixLimits?: PrefixLimits;
+  generationLimits?: GenerationLimits;
+  outputLimits?: OutputLimits;
+  identitySlots?: number;
+  workspace?: Workspace;
+  acquiredLedgerAttempted?: boolean;
+  acquiredLedger?: CommonObject;
+};
+type KeyedRecipe = Bodies & PrepareGraph & Readonly<{keyedAcquisition: unknown; prefixLimits: PrefixLimits; workspace: Workspace}>;
+type KeyedPreparation = Omit<Preparation, 'plan'> & {
+  plan?: RunPlan;
+  serializationGraph: PrepareGraph;
+  keyedAcquisition: unknown;
+  recipe?: KeyedRecipe;
+};
+type LedgerCapacity = Readonly<{capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
+type KeyedCapacity = LedgerCapacity & Readonly<{maxBytes: number; maxWork: number}>;
+type AcquiredContent = Readonly<{
+  ledger: CommonObject;
+  captured: Readonly<{capture: Readonly<{source(): CommonObject; originalRowCapture(): unknown}>}>;
+  keyedLookup?: CommonObject;
+  keyedContent?: CapturedFrame;
+  sourceEvidence?: unknown;
+  keyedSourceEvidence?: unknown;
+}>;
+type Execution = Readonly<{
+  close(): Promise<boolean>;
+  cleanup(): Promise<boolean>;
+  cleanupPending(): boolean;
+  resourceUsage(): unknown;
+  cumulativeWork(): bigint;
+}>;
+type ContentStore = Complete['store'] & Parameters<typeof retainGeneratedContentEvidence>[0]['store'] &
+  Parameters<typeof issueStoredGeneratedContent>[0]['store'] &
+  Pick<Store, 'createPreparedObjectWriter' | 'confirmCommittedIndex' | 'retirePhysicalHolding'>;
+type ExecuteOptions = Readonly<{
+  preparedProgram: CommonObject; plan: RunPlan; store: ContentStore; principalId: string;
+  signal?: AbortSignal; retainExecution(execution: Execution): unknown; acquiredContent?: AcquiredContent;
+}>;
+type CleanupHandle = Readonly<{retry(): Readonly<{pending: boolean}> | PromiseLike<Readonly<{pending: boolean}>>}>;
+type CleanupFailure = Readonly<{cleanupPending?: unknown; cleanupHandle?: CleanupHandle}> | null | undefined;
+type EffectFacts = Readonly<{
+  modelCompiled?: unknown; allowed: unknown; runDefinition: Family['plan']['runDefinition'];
+  prepared: unknown; compilation: unknown;
+}>;
+type Generated = Readonly<{
+  generation: ReturnType<Control['complete']>;
+  capturedContentRecovery: ReturnType<CapturedFrame['recoveryInventory']>;
+  capturedContentBinding: CapturedFrame['sourceBinding'];
+  sourceEvidence: readonly unknown[];
+  recoveryBindings: HeldEvidence['bindings'];
+  recovery: Readonly<{referenceWire: string; binding: Readonly<Record<string, unknown>>;
+    byteHoldingCid: string; bindings: HeldEvidence['bindings']}>;
+}>;
+type KeyedPreparationInputs = PreparationInputs & Readonly<{keyedAcquisition: unknown}>;
+type KeyedCompilationInputs = Omit<KeyedPreparationInputs, 'plan'> & Readonly<{serializationGraph: PrepareGraph}>;
+type AcquiredLedgerInputs = Pick<PreparationInputs, 'preparedProgram' | 'plan'> &
+  Readonly<{sourceCapacity: LedgerCapacity & {managedRun?: unknown}}>;
+type KeyedLedgerInputs = Pick<PreparationInputs, 'preparedProgram' | 'plan'> & Readonly<{
+  direct: LedgerCapacity; acquisition: unknown; capacity: KeyedCapacity; capturedContent?: boolean;
+}>;
+type EffectSetup = Readonly<{facts: EffectFacts; store: Family['store']; principalId: string; retainCleanup: Family['retainCleanup']}>;
+type EffectOptions = Pick<Family, 'prepared' | 'plan' | 'store' | 'principalId' | 'signal' | 'restored' | 'retainCleanup' | 'managedOriginal'>;
+
+type EffectSelection = Readonly<{
+  family: ReturnType<typeof installEffectContentFamily>;
+  plan: Family['plan'] & Readonly<{kind: 'effect'}>;
+  preparation: ReturnType<typeof installEffectContentFamily>['preparation'];
+}>;
+type ContentRun = Readonly<{
+  (options: ExecuteOptions): Promise<Generated | undefined>;
+  prepareRun(options: PreparationInputs): void;
+  prepareModelRun(options: PreparationInputs & Readonly<{model: ModelPreparation}>): void;
+  generate(options: ExecuteOptions): Promise<Generated | undefined>;
+  prepareManagedKeyedCompilation(options: KeyedCompilationInputs): unknown;
+  prepareManagedKeyedRun(options: KeyedPreparationInputs): void;
+  captureKeyed(options: CaptureOptions): CapturedFrame;
+  recoverKeyed: ReturnType<typeof createKeyedContentRunRecovery>;
+  prepareEffectFamily(options: EffectSetup): EffectSelection;
+  effectFamily(options: EffectOptions): ReturnType<typeof installEffectContentFamily>;
+  prepareRecoveredCommandContent: ReturnType<typeof createContentRecoveryDispatch>;
+  prepareAcquiredLedger(options: AcquiredLedgerInputs): CommonObject;
+  prepareKeyedLedger(options: KeyedLedgerInputs): CommonObject;
+  recover: ReturnType<typeof createGeneratedContentRunRecovery>;
+}>;
+
+type Publications = PublicationPlan['control'] & Complete['control'] &
+  Serialize['core']['publicationControl'] & CaptureSetup['publications'] & Family['publications'] &
+  RecoveryDispatch['publications'] & GeneratedRecovery['publications'] & Readonly<{
+    compiledSerializationPolicy(compiled: unknown): Readonly<{cid: string; wire: string}> | undefined;
+    bindCheckedClientSerializationCapture(prepared: unknown, graph: PrepareGraph,
+      captured: AcquiredContent['captured'], acquired: AcquiredContent): unknown;
+    compiledSerializationGraph(compiled: unknown): PrepareGraph;
+    checkedClientSerializationInputRows(compiled: unknown, graph: PrepareGraph): number;
+    prepareCheckedClientEffectContentOriginal(prepared: unknown, compiled: unknown, compilation: unknown,
+      definition: EffectFacts['runDefinition'], graph: PrepareGraph, bodies: Bodies,
+      ...args: Parameters<ManagedFamily['prepare']>): ReturnType<ManagedFamily['prepare']>;
+  }>;
+type Moon = PublicationPlan['moon'] & CaptureSetup['moon'] & Family['moon'] & Readonly<{
+  clientProgramAcquisitionCount(prepared: unknown): number;
+  clientProgramPreparationBorrowRead(holder: unknown): unknown;
+  clientProgramPreparationBorrowRetirementStarted(holder: unknown): boolean;
+  clientProgramMultiCapturedLedgerUsage(ledger: unknown): unknown;
+  clientProgramInstalledManagedRunAccounting(run: unknown): unknown;
+  clientRequestScopeCid(request: unknown): unknown;
+  clientRequestIntentCid(request: unknown): unknown;
+  clientProgramInstalledManagedRunPrepareLedger?(parent: unknown, prepared: unknown, request: unknown,
+    capacities: readonly unknown[], transfers: readonly bigint[], executions: readonly bigint[],
+    registry: Bodies['registry'], values: Bodies['values'], fragment: Bodies['fragment'], ordered: Bodies['ordered']): unknown;
+  clientProgramPrepareSerializationCapturedLedger(prepared: unknown, task: number, capacity: unknown,
+    transferBytes: bigint, executionBytes: bigint, retainedBytes: bigint, executionSpace: bigint,
+    registry: Bodies['registry'], values: Bodies['values'], fragment: Bodies['fragment'], ordered: Bodies['ordered']): CommonObject | undefined;
+  clientProgramPrepareKeyedSerializationCapturedLedger(prepared: unknown, directCapacity: unknown,
+    acquisition: unknown, keyedCapacity: unknown, transfers: readonly bigint[], executions: readonly bigint[],
+    maxBytes: number, maxWork: number, registry: Bodies['registry'], values: Bodies['values'], fragment: Bodies['fragment'],
+    ordered: Bodies['ordered'], task: number, step: number, retainedBytes: bigint, executionSpace: bigint,
+    capturedContent: boolean): CommonObject | undefined;
+}>;
+type Setup = Bodies & Pick<CaptureSetup, 'namespaceId' | 'authorityScopeCid' | 'storeAuthorityCid' |
+  'ownerPrincipal' | 'now' | 'authorize'> & Readonly<{
+  moon: Moon;
+  core: Readonly<{
+    contentGenerationControl: Control;
+    publicationControl: Publications;
+    contentCaptureControl: CaptureSetup['control'] & RecoveryDispatch['core']['contentCaptureControl'];
+    outputExportControl: Serialize['core']['outputExportControl'];
+  }>;
+  faultInjection?: (step: string, facts: unknown) => unknown;
+  assertRunCurrent?: () => undefined;
+  preparedRunRequired?: boolean;
+  prepareKeyedManagedRun?: (prepared: CommonObject, request: unknown, graph: PrepareGraph,
+    recipe: KeyedRecipe, original: KeyedPreparation) => Managed | undefined;
+  borrowKeyedManagedLedger?: (prepared: CommonObject, request: unknown, recipe: KeyedRecipe | undefined,
+    direct: LedgerCapacity, keyed: unknown, capacity: KeyedCapacity) => CommonObject | undefined;
+  prepareSerializationManagedRun?: (prepared: CommonObject, request: unknown, plan: RunPlan,
+    limits: PrefixLimits, workspace: Workspace | undefined, original: Preparation) => Managed | undefined;
+  prepareModelManagedRun?: (prepared: CommonObject, request: unknown, model: ModelPreparation) => Managed | undefined;
+  retainPreparation?: (prepared: CommonObject, original: Preparation | KeyedPreparation) => unknown;
+  prepareSerializationOutputDemand?: (prepared: CommonObject, compiled: unknown, selection: PrepareGraph | undefined,
+    generation: GenerationLimits, reference: ReferenceLimits, contract: ContractLimits, output: OutputLimits,
+    identitySlots: number) => Demand;
+}>;
+
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
   faultInjection, assertRunCurrent, preparedRunRequired = false,
   prepareKeyedManagedRun, borrowKeyedManagedLedger, prepareSerializationManagedRun,
-  prepareModelManagedRun, retainPreparation, prepareSerializationOutputDemand}) {
+  prepareModelManagedRun, retainPreparation, prepareSerializationOutputDemand}: Setup): ContentRun {
   const control = core.contentGenerationControl;
   const publications = core.publicationControl;
   const bodies = {registry, values, fragment, ordered};
@@ -38,11 +254,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   const workspace = control.workspaceCapacity({generation: generationLimits,
     reference: referenceLimits, contract: localContractLimits,
     output: localOutputLimits, identitySlots});
-  const acquiredLedgers = new WeakMap();
-  const preparedRuns = new WeakMap();
-  const preparedKeyedRuns = new WeakMap();
+  const acquiredLedgers = new WeakMap<CommonObject, RunPlan['compiled']>();
+  const preparedRuns = new WeakMap<CommonObject, Preparation>();
+  const preparedKeyedRuns = new WeakMap<CommonObject, KeyedPreparation>();
   let preparedRunCount = 0;
-  function releasePreparationAliases(managed, inputHolder) {
+  function releasePreparationAliases(this: Preparation | KeyedPreparation, managed: Managed | undefined, inputHolder: unknown) {
     const original = this;
     if (original.retired === true) return;
     const prepared = original.prepared;
@@ -68,25 +284,25 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     // reaches this point only through the SAME Request abort/holder fence.
     if (typeof original.releaseSelection !== 'function') throw new TypeError('ForeignInstalledContentRun');
     Reflect.apply(original.releaseSelection, undefined, [prepared]);
-    for (const key of Object.keys(original)) original[key] = undefined;
+    for (const key of Object.keys(original)) (original as Record<string, unknown>)[key] = undefined;
     original.retired = true;
     preparedRunCount--;
   }
-  function retainOriginalPreparation(prepared, original) {
+  function retainOriginalPreparation(prepared: CommonObject, original: Preparation | KeyedPreparation) {
     Object.defineProperty(original, 'releaseAliases', {value: releasePreparationAliases});
-    try { retainPreparation(prepared, original); }
+    try { retainPreparation!(prepared, original); }
     catch (cause) {
       // The fixed retainer refuses before taking this record. No constructor
       // or physical child has started; its unaccepted slot is not a Run.
       if (original.inputHolder === undefined) {
-        for (const key of Object.keys(original)) original[key] = undefined;
+        for (const key of Object.keys(original)) (original as Record<string, unknown>)[key] = undefined;
         original.retired = true; preparedRunCount--;
       }
       throw cause;
     }
   }
-  const installedBinding = plan => {
-    const definition = JSON.parse(plan.runDefinition.wire);
+  const installedBinding = (plan: Pick<Family['plan'], 'compiled' | 'runDefinition'>) => {
+    const definition = JSON.parse(plan.runDefinition.wire) as Readonly<{valid_until: string}>;
     const graphPolicy = publications.compiledSerializationPolicy(plan.compiled);
     if (graphPolicy === undefined) throw new Error('ContentPolicyMissing');
     return {graphPolicy, binding: {
@@ -96,14 +312,14 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       availability_evidence_cid: contentCid({version: 'actql-installed-local-policy/0.1',
         name: 'content-availability', storeAuthorityCid, runDefinitionCid: plan.runDefinition.identity,
         expiresAt: definition.valid_until}), effective_data_policy_cid: graphPolicy.cid,
-      data_classification: JSON.parse(graphPolicy.wire).classification,
+      data_classification: (JSON.parse(graphPolicy.wire) as Readonly<{classification: string}>).classification,
       issuer_contract_cid: contentCid({version: 'actql-installed-local-policy/0.1',
         name: 'content-issuer', storeAuthorityCid, authorityScopeCid}),
       capture_authority_cid: authorityScopeCid,
     }};
   };
   const execute = async ({preparedProgram, plan, store, principalId, signal, retainExecution,
-    acquiredContent}, intermediate = false) => {
+    acquiredContent}: ExecuteOptions, intermediate = false): Promise<Generated | undefined> => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (plan.kind !== (intermediate ? 'infer' : 'serialization') ||
         plan.serializationGraph === undefined || principalId !== ownerPrincipal ||
@@ -111,16 +327,16 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw new TypeError('InvalidInstalledContentRun');
     }
     const {task, step} = plan.serializationGraph;
-    let selectedOutputLimits = localOutputLimits, selectedIdentitySlots = identitySlots;
-    let selectedGenerationLimits = generationLimits;
-    const definition = JSON.parse(plan.runDefinition.wire);
+    let selectedOutputLimits: OutputLimits = localOutputLimits, selectedIdentitySlots = identitySlots;
+    let selectedGenerationLimits: GenerationLimits = generationLimits;
+    const definition = JSON.parse(plan.runDefinition.wire) as Readonly<{valid_until: string}>;
     const key = {namespaceId, authorityScopeCid, runDefinitionCid: plan.runDefinition.identity};
     let retired = false;
     const live = () => !retired && store.status().closed === false &&
       Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
     if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
     const source = acquiredContent?.captured.capture.source();
-    let ledger, managed, capacity, selectedKeyed;
+    let ledger: CommonObject | undefined, managed: Managed | undefined, capacity: Capacity | undefined, selectedKeyed: unknown;
     if (acquiredContent === undefined || intermediate) {
       const original = preparedRuns.get(preparedProgram);
       if (original === undefined || original.retired || original.plan !== plan || original.attempted ||
@@ -138,11 +354,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       {
         if (original.generationLimits === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
         selectedGenerationLimits = original.generationLimits;
-        selectedOutputLimits = original.outputLimits;
-        selectedIdentitySlots = original.identitySlots;
+        selectedOutputLimits = original.outputLimits!;
+        selectedIdentitySlots = original.identitySlots!;
       }
       original.attempted = true;
-      assertRunCurrent();
+      assertRunCurrent!();
       managed = original.managed; capacity = original.capacity;
       if (acquiredContent !== undefined) ledger = acquiredContent.ledger;
     } else if (preparedRunRequired) {
@@ -160,7 +376,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       // bindings. Consume before fallible current/data projection; no old
       // capacity/start reconstruction or scalar Ledger can recover a failure.
       original.attempted = true;
-      assertRunCurrent();
+      assertRunCurrent!();
       managed = original.managed; selectedKeyed = managed.selectedKeyed;
       capacity = control.requestKeyedPrefixCapacity(selectedKeyed);
       ledger = acquiredContent.ledger;
@@ -174,25 +390,28 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       // remaining explicit acquired route borrows its original Source Ledger.
       ledger = acquiredContent.ledger;
     }
-    if (acquiredContent !== undefined && acquiredLedgers.get(ledger) !== plan.compiled) {
+    if (acquiredContent !== undefined && acquiredLedgers.get(ledger!) !== plan.compiled) {
       throw new TypeError('Foreign Content acquisition ledger');
     }
-    let prefix, input, writer, physical, byteHolding, retained, publication;
-    let failureCleanup, cleanupFlight, cleaned = false, generatedRetained = false;
+    let prefix: Prefix | undefined, input: Input | undefined, writer: Writer | undefined,
+      physical: Physical | undefined, byteHolding: Holding | undefined,
+      retained: HeldEvidence | undefined, publication: Publication | undefined;
+    let failureCleanup: CleanupHandle | undefined, cleanupFlight: Promise<boolean> | undefined,
+      cleaned = false, generatedRetained = false;
     let work = 0n;
     const remainingWork = () => Number(BigInt(prefixLimits.maxWork) - work);
-    const chargeWork = delta => {
+    const chargeWork = (delta: number) => {
       if (!Number.isInteger(delta) || delta < 0) throw new Error('InvalidGeneratedContentWork');
       work += BigInt(delta);
       return work <= BigInt(prefixLimits.maxWork);
     };
-    const retirement = new Map();
+    const retirement = new Map<string, Retirement>();
     // Retain this composition before allocating any child. Failed children and
     // Store retirement keep their original handles; retry never redispatches.
     const cleanup = () => {
       if (cleaned) return Promise.resolve(true);
       if (cleanupFlight !== undefined) return cleanupFlight;
-      let flight;
+      let flight: Promise<boolean>;
       // Install the existing flight before entering any callback, including
       // synchronous cancellation. Reentry joins this same cleanup operation.
       flight = Promise.resolve().then(async () => {
@@ -228,7 +447,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         if (committed === undefined && !generatedRetained) {
           retired = true;
           for (const cid of [byteHolding?.holding_cid,
-            ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
+            ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean) as string[]) {
             let child = retirement.get(cid);
             if (child === undefined) {
               child = (await store.retirePhysicalHolding(cid)).cleanup;
@@ -285,7 +504,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
             : control.startRequestAcquiredPrefix(managed.value, preparedProgram, managed.serialization,
               acquiredContent.captured.capture.originalRowCapture())
           : control.startRequestKeyedPrefix(managed.value, preparedProgram, selectedKeyed,
-            source, acquiredContent.keyedLookup);
+            source, acquiredContent!.keyedLookup);
       await faultInjection?.('content_workspace_reserved', {capacity});
       const output = await runGeneratedContentPrefix({control, prefix, remainingWork, chargeWork, signal});
       const barrier = control.prepare(preparedProgram, task, step, 10000);
@@ -329,35 +548,35 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           capturedContentBinding: acquiredContent?.keyedContent?.sourceBinding,
           sourceEvidence: acquiredContent === undefined ? [] :
             [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean),
-          recoveryBindings: retained.bindings,
+          recoveryBindings: retained!.bindings,
           // The Model fixed-input receipt authenticates this exact inventory
           // together with its original rows. It is not fresh generation proof.
           recovery: Object.freeze({referenceWire: description.wire,
             binding: Object.freeze({...binding}), byteHoldingCid: byteHolding.holding_cid,
-            bindings: Object.freeze(retained.bindings.map(value => Object.freeze({...value})))})});
+            bindings: Object.freeze(retained!.bindings.map(value => Object.freeze({...value})))})});
       }
-      publication = serializationTaskPublicationPlan({moon, control: publications,
+      publication = serializationTaskPublicationPlan<Complete['results'][number]['retention']>({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
         namespaceId, storeAuthorityCid, now, managedPublication: managed, assertCurrent: assertRunCurrent,
         sourceEvidence: acquiredContent === undefined ? [] :
-          [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean)});
+          [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean)}) as Publication;
       const execution = serializationPublicationExecution({moon, core, compiled: plan.compiled,
         preparedProgram, generation, contractLimits: localContractLimits, remainingWork, chargeWork});
       await publishCompletedEffectFreeRun({...publication, execution, store, control: publications, signal});
     } catch (error) {
-      if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
-        failureCleanup = error.cleanupHandle;
+      if ((error as CleanupFailure)?.cleanupPending === true && (error as NonNullable<CleanupFailure>).cleanupHandle !== undefined) {
+        failureCleanup = (error as NonNullable<CleanupFailure>).cleanupHandle;
       }
       throw error;
     }
   };
-  function selectOriginalOutputDemand(prepared, original) {
+  function selectOriginalOutputDemand(prepared: CommonObject, original: Preparation) {
     if (typeof prepareSerializationOutputDemand !== 'function') {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
     }
     const selected = prepareSerializationOutputDemand(prepared, original.plan.compiled, original.plan.serializationGraph,
       generationLimits, referenceLimits, localContractLimits, localOutputLimits, identitySlots);
-    assertRunCurrent();
+    assertRunCurrent!();
     if (preparedRuns.get(prepared) !== original || original.retired || original.prepared !== prepared) {
       throw new TypeError('ForeignInstalledContentRun');
     }
@@ -368,12 +587,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     original.identitySlots = selected.identitySlots;
     original.workspace = selected.workspace;
   }
-  const run = options => execute(options);
+  const run = (options: ExecuteOptions) => execute(options);
   // The ordinary trusted Host prepares this exact checked Run before durable
   // admission. This Ledger expresses managed limits; platform allocation is
   // the supplier, and no successful allocation, authority or physical ACK is
   // inferred from these numbers. Store/native children keep their own duties.
-  run.prepareRun = ({preparedProgram, plan, request}) => {
+  run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
         typeof prepareSerializationManagedRun !== 'function' || typeof retainPreparation !== 'function' || request === undefined) {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
@@ -392,7 +611,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {prepared: preparedProgram, plan, request, attempted: false, capacity: undefined, managed: undefined,
+    const original: Preparation = {prepared: preparedProgram, plan, request, attempted: false, capacity: undefined, managed: undefined,
       inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined, contentControl: control,
       retired: false, failed: false, failure: undefined};
     preparedRuns.set(preparedProgram, original);
@@ -411,7 +630,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // Intermediate Model generation uses the same Request/Run as its Model
   // Scope. Retain the original Content record before the Host constructor;
   // no separate Content completion, adoption or scalar Ledger is selected.
-  run.prepareModelRun = ({preparedProgram, plan, request, model}) => {
+  run.prepareModelRun = ({preparedProgram, plan, request, model}: PreparationInputs & Readonly<{model: ModelPreparation}>) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
         typeof prepareModelManagedRun !== 'function' || typeof retainPreparation !== 'function' ||
         request === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
@@ -433,7 +652,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {prepared: preparedProgram, plan, request, model, attempted: false,
+    const original: Preparation = {prepared: preparedProgram, plan, request, model, attempted: false,
       capacity: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined,
       releaseSelection: undefined, contentControl: control, prefixLimits,
       generationLimits: undefined, outputLimits: undefined, identitySlots: undefined,
@@ -451,11 +670,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       assertRunCurrent();
     } catch (error) {if (!original.retired) {original.failed = true; original.failure = error;} throw error;}
   };
-  run.generate = options => execute(options, true);
+  run.generate = (options: ExecuteOptions) => execute(options, true);
   // The selected existing Source owner creates the same-Run Content parent
   // before durable admission or I/O. This finite prefix recipe is DATA; the
   // callback must retain its real Resource original and partial cleanup.
-  run.prepareManagedKeyedCompilation = ({preparedProgram, serializationGraph, request, keyedAcquisition}) => {
+  run.prepareManagedKeyedCompilation = ({preparedProgram, serializationGraph, request, keyedAcquisition}:
+    KeyedCompilationInputs) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function' || request === undefined ||
         typeof prepareKeyedManagedRun !== 'function' || typeof borrowKeyedManagedLedger !== 'function' ||
         typeof retainPreparation !== 'function') {
@@ -471,14 +691,14 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       if (prior.retired || prior.serializationGraph !== serializationGraph || prior.keyedAcquisition !== keyedAcquisition ||
           prior.request !== request) throw new TypeError('ForeignInstalledContentRun');
       if (prior.failed) throw prior.failure;
-      if (prior.managed.closed || prior.managed.contentCompilation === undefined) {
+      if (prior.managed!.closed || prior.managed!.contentCompilation === undefined) {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
       }
-      return prior.managed.contentCompilation;
+      return prior.managed!.contentCompilation;
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition, attempted: false,
+    const original: KeyedPreparation = {prepared: preparedProgram, serializationGraph, plan: undefined, request, keyedAcquisition, attempted: false,
       recipe: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined, releaseSelection: undefined,
       contentControl: control, retired: false, failed: false, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);
@@ -498,7 +718,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   };
   // Compilation/adoption belongs to the original Request before Run definition.
   // This later call only binds the SAME issuer's completed plan to that holder.
-  run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}) => {
+  run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}: KeyedPreparationInputs) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function') {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
     }
@@ -515,23 +735,23 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw new TypeError('ForeignInstalledContentRun');
     }
     if (original.failed) throw original.failure;
-    if (original.managed.closed || original.managed.value === undefined) {
+    if (original.managed!.closed || original.managed!.value === undefined) {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
     }
     original.plan = plan;
   };
-  run.captureKeyed = options => installRunKeyedContentCapture({moon, publications,
+  run.captureKeyed = (options: CaptureOptions) => installRunKeyedContentCapture({moon, publications,
     control: core.contentCaptureControl, namespaceId, authorityScopeCid, storeAuthorityCid,
     ownerPrincipal, now, authorize, ...options});
   run.recoverKeyed = createKeyedContentRunRecovery({publications, run});
-  run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}) => {
+  run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}: EffectSetup) => {
     // The Model compilation already retains this same serialization component.
     // Reuse its original holder instead of issuing a second compiled Run.
     const compiled = facts.modelCompiled ??
       publications.adoptCheckedClientEffectSerializationRun(facts.allowed, facts.runDefinition);
-    const plan = Object.freeze({kind: 'effect', compiled, runDefinition: facts.runDefinition,
+    const plan = Object.freeze({kind: 'effect' as const, compiled, runDefinition: facts.runDefinition,
       serializationGraph: publications.compiledSerializationGraph(compiled)});
-    const managedOriginal = Object.freeze({
+    const managedOriginal = Object.freeze<ManagedFamily>({
       inputRows: publications.checkedClientSerializationInputRows(compiled, plan.serializationGraph),
       prepare(workspace, physical, retain) {
       return publications.prepareCheckedClientEffectContentOriginal(facts.prepared, compiled,
@@ -541,7 +761,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       retainCleanup, managedOriginal});
     return Object.freeze({family, plan, preparation: family.preparation});
   };
-  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup, managedOriginal}) =>
+  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup, managedOriginal}: EffectOptions) =>
     installEffectContentFamily({moon, control, publications, bodies,
       prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal, managedOriginal,
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
@@ -552,7 +772,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     installedBinding, referenceLimits});
   // Resolve this before physical acquisition. The selected Source capacity is
   // opaque and requirement-bound in the common owner, never estimated from rows.
-  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {
+  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}:
+    AcquiredLedgerInputs) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (preparedRunRequired) {
       const original = preparedRuns.get(preparedProgram), managed = original?.managed;
@@ -566,7 +787,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       original.acquiredLedgerAttempted = true;
       const parent = managed.value, request = original.request;
       try {
-        assertRunCurrent();
+        assertRunCurrent!();
         if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
             original.plan !== plan || original.request !== request ||
             original.managed !== managed || managed.closed || managed.value !== parent) {
@@ -574,7 +795,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         }
         const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(parent,
           preparedProgram, request, [sourceCapacity.capacity], [sourceCapacity.transferBytes],
-          [sourceCapacity.executionBytes], registry, values, fragment, ordered));
+          [sourceCapacity.executionBytes], registry, values, fragment, ordered)) as CommonObject;
         // This getter borrows the existing Ledger, so a callback that retired
         // the record creates no new child. Never resurrect its spent aliases.
         if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
@@ -583,7 +804,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           throw new TypeError('ForeignInstalledContentRun');
         }
         original.acquiredLedger = ledger;
-        assertRunCurrent();
+        assertRunCurrent!();
         if (preparedRuns.get(preparedProgram) !== original || original.retired || original.failed ||
             original.plan !== plan || original.request !== request ||
             original.managed !== managed || managed.closed || managed.value !== parent) {
@@ -596,7 +817,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
         throw cause;
       }
     }
-    const {task, step} = plan.serializationGraph;
+    const {task, step} = plan.serializationGraph!;
     const prefix = control.prefixCapacity(preparedProgram, task, step,
       bodies, prefixLimits, workspace, true);
     const ledger = moon.clientProgramPrepareSerializationCapturedLedger(preparedProgram,
@@ -606,7 +827,8 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     acquiredLedgers.set(ledger, plan.compiled);
     return ledger;
   };
-  run.prepareKeyedLedger = ({preparedProgram, plan, direct, acquisition, capacity, capturedContent = false}) => {
+  run.prepareKeyedLedger = ({preparedProgram, plan, direct, acquisition, capacity, capturedContent = false}:
+    KeyedLedgerInputs) => {
     publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     if (preparedRunRequired) {
       const original = preparedKeyedRuns.get(preparedProgram);
@@ -614,15 +836,15 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           !capturedContent || typeof borrowKeyedManagedLedger !== 'function') {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
       }
-      assertRunCurrent();
+      assertRunCurrent!();
       const ledger = borrowKeyedManagedLedger(preparedProgram, original.request, original.recipe,
         direct, acquisition, capacity);
       if (ledger === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
-      assertRunCurrent();
+      assertRunCurrent!();
       acquiredLedgers.set(ledger, plan.compiled);
       return ledger;
     }
-    const {task, step} = plan.serializationGraph;
+    const {task, step} = plan.serializationGraph!;
     const prefix = control.prefixCapacity(preparedProgram, task, step,
       bodies, prefixLimits, workspace, true);
     const ledger = moon.clientProgramPrepareKeyedSerializationCapturedLedger(preparedProgram,

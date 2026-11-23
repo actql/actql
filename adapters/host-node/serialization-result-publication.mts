@@ -4,14 +4,19 @@
 import {storeCompletedResultPublicationPayload} from
   '../host-common/durable-result-payload.mjs';
 
+import type {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
 import type {outputExportControl} from '../host-common/output-export-control.mjs';
 
 type Payload = Parameters<typeof storeCompletedResultPublicationPayload>;
 type PayloadPublication = Payload[5];
+type CompletedExecution = Parameters<typeof publishCompletedEffectFreeRun>[0]['execution'];
+type StoredResult = Awaited<ReturnType<CompletedExecution['storePublicationResult']>>;
+// The installed publication owner issues the complete original contracts.
+type PublishedPayload = Awaited<ReturnType<typeof storeCompletedResultPublicationPayload>> & Omit<StoredResult, 'occurrence'>;
 type ContentControl = ReturnType<typeof contentGenerationControl>;
 type Publication = Pick<PayloadPublication, 'runDefinition' | 'invocation' | 'retention' | 'evidenceContext'> &
-  Readonly<{outputLimits: Payload[4]; contractLimits: Parameters<ContentControl['resultOccurrence']>[3]}>;
+  Readonly<{outputLimits: unknown; contractLimits: Parameters<ContentControl['resultOccurrence']>[3]}>;
 type Compiled = Parameters<ContentControl['resultOccurrence']>[0];
 type SerializationPublicationOptions = Readonly<{
   moon: Readonly<{clientProgramResultCount(preparedProgram: unknown): number}>;
@@ -92,7 +97,7 @@ export function serializationPublicationExecution({moon, core, compiled,
           await yieldToHost();
         }
         const stored = await storeCompletedResultPublicationPayload(store,
-          core.outputExportControl, undefined, index, publication.outputLimits,
+          core.outputExportControl, undefined, index, publication.outputLimits as Payload[4],
           {control: core.publicationControl, definition: occurrence.definitionContract,
             runDefinition: publication.runDefinition, invocation: publication.invocation,
             retention: publication.retention, evidenceContext: publication.evidenceContext,
@@ -127,7 +132,7 @@ export function serializationPublicationExecution({moon, core, compiled,
               if (next.work === 0) throw issue('InvalidGeneratedContentAdvance');
               await yieldToHost();
             }
-          });
+          }) as PublishedPayload;
         return Object.freeze({...stored, occurrence: Object.freeze({name: occurrence.name,
           task: occurrence.task, definition: occurrence.definitionContract})});
       } finally { control.resultCancel(selection); }

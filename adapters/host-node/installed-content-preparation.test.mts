@@ -2,23 +2,47 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeContentRun} from './installed-content-run.mjs';
 
+type Setup = Parameters<typeof installNodeContentRun>[0];
+type Run = ReturnType<typeof installNodeContentRun>;
+type Plan = Parameters<Run['prepareRun']>[0]['plan'];
+type Compile = Parameters<Run['prepareManagedKeyedCompilation']>[0];
+type KeyedLedger = Parameters<Run['prepareKeyedLedger']>[0];
+type KeyedPreparation = NonNullable<Setup['prepareKeyedManagedRun']>;
+type SerializePreparation = NonNullable<Setup['prepareSerializationManagedRun']>;
+type ManagedFixture = Omit<NonNullable<ReturnType<SerializePreparation>>, 'runtime' | 'prepared' | 'request'>;
+type Control = Setup['core']['contentGenerationControl'];
+type FixtureSetup = Omit<Partial<Setup>, 'moon' | 'core' | 'prepareKeyedManagedRun' | 'prepareSerializationManagedRun'> & {
+  moon: Pick<Setup['moon'], 'clientRequestScopeCid' | 'clientRequestIntentCid' |
+    'clientProgramKeyedAcquisitionMatchesProgram' | 'clientProgramAcquisitionCount'> & {
+    clientProgramAcquisitionLedger(attempts: number, holdings: number, transfer: bigint,
+      retained: bigint, execution: bigint, planning: number): unknown;
+  };
+  core: {
+    contentGenerationControl: Pick<Control, 'workspaceCapacity' | 'requestPrefixCapacity' | 'prefixCapacity'>;
+    publicationControl: Pick<Setup['core']['publicationControl'], 'checkClientCompiledRunOwner'>;
+  };
+  prepareKeyedManagedRun?: (...args: Parameters<KeyedPreparation>) => ManagedFixture;
+  prepareSerializationManagedRun?: (...args: Parameters<SerializePreparation>) => ManagedFixture;
+};
+
 function fixture(keyed = false) {
   const preparedProgram = Object.freeze({}), compiled = Object.freeze({});
   const plan = Object.freeze({kind: 'serialization', compiled,
-    serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})});
-  let currentFailure, constructionFailure, ledgerCount = 0, acquisitions = 0, quotes = 0;
-  let currentCalls = 0, failAt, managedPreparations = 0;
+    serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})}) as unknown as Plan & Readonly<{serializationGraph: Compile['serializationGraph']}>;
+  let currentFailure: unknown, constructionFailure: unknown, ledgerCount = 0, acquisitions = 0, quotes = 0;
+  let currentCalls = 0, failAt: number | undefined, managedPreparations = 0;
   const managed = {value: {}, serialization: {}, selectedKeyed: {}, contentCompilation: {}, closed: false};
   const request = {scope: 'sha256:' + 'a'.repeat(64), intent: 'sha256:' + 'b'.repeat(64)},
-    ledger = {}, direct = {}, acquisition = {}, capacity = {};
-  let retainedRecipe, keyedPreparations = 0, keyedBorrows = 0, keyedFailure;
-  const current = () => {
+    ledger = {}, direct = {} as KeyedLedger['direct'], acquisition = {}, capacity = {} as KeyedLedger['capacity'];
+  let retainedRecipe: Parameters<KeyedPreparation>[3] | undefined, keyedPreparations = 0, keyedBorrows = 0, keyedFailure: unknown;
+  const current = (): undefined => {
     currentCalls++;
     if (currentFailure !== undefined && (failAt === undefined || currentCalls === failAt)) throw currentFailure;
   };
+  // The exercised routes use these bounded preparation ports only.
   const run = installNodeContentRun({moon: {
-    clientRequestScopeCid: value => value.scope,
-    clientRequestIntentCid: value => value.intent,
+    clientRequestScopeCid: value => (value as Partial<typeof request>).scope,
+    clientRequestIntentCid: value => (value as Partial<typeof request>).intent,
     clientProgramKeyedAcquisitionMatchesProgram: (value, program) => value === acquisition && program === preparedProgram,
     clientProgramAcquisitionCount(value) {assert.strictEqual(value, preparedProgram); return acquisitions;},
     clientProgramAcquisitionLedger(attempts, holdings, transfer, retained, execution, planning) {
@@ -70,17 +94,17 @@ function fixture(keyed = false) {
     assert.strictEqual(recipe, retainedRecipe); assert.strictEqual(actualDirect, direct);
     assert.strictEqual(actualAcquisition, acquisition); assert.strictEqual(actualCapacity, capacity);
     keyedBorrows++; return ledger;
-  }} : {})});
+  }} : {})} satisfies FixtureSetup as unknown as Setup);
   return {run, preparedProgram, plan, serializationGraph: plan.serializationGraph,
-    compile(changes = {}) {return run.prepareManagedKeyedCompilation({preparedProgram, request, serializationGraph: plan.serializationGraph, keyedAcquisition: acquisition, ...changes});},
+    compile(changes: Partial<Compile> = {}) {return run.prepareManagedKeyedCompilation({preparedProgram, request, serializationGraph: plan.serializationGraph, keyedAcquisition: acquisition, ...changes});},
     managedPreparations: () => managedPreparations, counts: () => ({ledgerCount, quotes}),
-    failCurrent(error) {currentFailure = error;},
-    failCurrentAt(count, error) {failAt = count; currentFailure = error;},
-    failConstruction(error) {constructionFailure = error;},
-    acquisitions(count) {acquisitions = count;},
+    failCurrent(error: unknown) {currentFailure = error;},
+    failCurrentAt(count: number, error: unknown) {failAt = count; currentFailure = error;},
+    failConstruction(error: unknown) {constructionFailure = error;},
+    acquisitions(count: number) {acquisitions = count;},
     request, ledger, direct, acquisition, keyedAcquisition: acquisition, capacity,
     keyedCounts: () => ({keyedPreparations, keyedBorrows}),
-    failKeyed(error) {keyedFailure = error;}};
+    failKeyed(error: unknown) {keyedFailure = error;}};
 }
 
 test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger', () => {

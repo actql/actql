@@ -67390,7 +67390,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "00c67f6a1bd9fb2da4070073b9c49f1b302bb862231fe0c50a1b4a1ddaa8e007",
+      "sha256": "e9466c4cf1b0cc5072d7ccee0a83fe0e81c0d27bd189c34ea1264a7bd1eabeeb",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -67661,7 +67661,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -67699,7 +67699,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -67715,8 +67715,8 @@
                 "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}) => {"
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -67727,8 +67727,8 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}) => {"
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -67749,7 +67749,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// Installed transport for the original checked Content component. Compute,"
               },
               {
@@ -67765,7 +67765,7 @@
                 "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (original === undefined || original.retired || original.plan !== plan || original.attempted ||"
               },
               {
@@ -67777,7 +67777,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (original === undefined || original.retired || original.plan !== plan || original.attempted ||"
               },
               {
@@ -67799,7 +67799,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// byte laws, identity and publication remain in their existing common owners."
               },
               {
@@ -67815,11 +67815,11 @@
                 "anchor": "The installed serialization family keeps the exact candidate, issued checked"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "preparedRuns.set(preparedProgram, original);"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (physical?.prepared.status().pending === true) return false;"
               },
               {
@@ -67849,7 +67849,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -67865,7 +67865,7 @@
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.attempted = true;"
               },
               {
@@ -67895,7 +67895,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (graphPolicy === undefined) throw new Error('ContentPolicyMissing');"
               },
               {
@@ -67911,7 +67911,7 @@
                 "anchor": "Legacy restoration without this original receiver cannot"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (prior.failed) throw prior.failure;"
               },
               {
@@ -67923,7 +67923,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (prior.failed) throw prior.failure;"
               },
               {
@@ -67945,7 +67945,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "writeGeneratedContent, stopGeneratedContentPrefix} from './generated-content-write.mjs';"
               },
               {
@@ -67961,7 +67961,7 @@
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;"
               },
               {
@@ -67991,7 +67991,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "import {localOutputLimits, localContractLimits,"
               },
               {
@@ -68011,7 +68011,7 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.capacity = control.requestPrefixCapacity(original.managed.serialization);"
               },
               {
@@ -68023,7 +68023,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.capacity = control.requestPrefixCapacity(original.managed.serialization);"
               },
               {
@@ -68045,7 +68045,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// Installed transport for the original checked Content component. Compute,"
               },
               {
@@ -68103,7 +68103,7 @@
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
-                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "path": "adapters/host-node/installed-content-preparation.test.mts",
                 "anchor": "test('ordinary Content preserves the original preparation failure without a new Ledger attempt'"
               },
               {
@@ -68167,8 +68167,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}) => {"
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}: KeyedPreparationInputs) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -68185,11 +68185,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "scope !== moon.clientRequestScopeCid(original.request)"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "scope !== moon.clientRequestScopeCid(original.request)"
               },
               {
@@ -68207,7 +68207,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "preparedKeyedRuns.set(preparedProgram, original);"
               },
               {
@@ -68225,11 +68225,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.managed = prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original);"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "prepareKeyedManagedRun(preparedProgram, request, serializationGraph, original.recipe, original)"
               },
               {
@@ -68247,11 +68247,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "catch (cause) {if (!original.retired) {original.failed = true; original.failure = cause;} throw cause;}"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "catch (cause) {if (!original.retired) {original.failed = true; original.failure = cause;} throw cause;}"
               },
               {
@@ -68269,7 +68269,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "const cleanup = () => {"
               },
               {
@@ -68287,7 +68287,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original);"
               },
               {
@@ -68323,7 +68323,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "path": "adapters/host-node/installed-content-preparation.test.mts",
                 "anchor": "test('ordinary keyed Content retains the original preparation failure without reissuing'"
               },
               {
@@ -68353,7 +68353,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68375,7 +68375,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68397,7 +68397,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68419,7 +68419,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68441,7 +68441,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68463,7 +68463,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68485,7 +68485,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68507,7 +68507,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68529,7 +68529,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "run.prepareRecoveredCommandContent"
               },
               {
@@ -68581,7 +68581,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68599,7 +68599,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68617,7 +68617,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68635,7 +68635,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68653,7 +68653,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68671,7 +68671,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68689,7 +68689,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68707,7 +68707,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68725,7 +68725,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  run.prepareManagedKeyedCompilation = "
               },
               {
@@ -68769,7 +68769,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68783,7 +68783,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68797,7 +68797,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68811,7 +68811,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68825,7 +68825,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68839,7 +68839,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68853,7 +68853,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68867,7 +68867,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68881,7 +68881,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "  function releasePreparationAliases("
               },
               {
@@ -68917,7 +68917,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -68955,7 +68955,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -68971,8 +68971,8 @@
                 "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}) => {"
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -68983,8 +68983,8 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "run.prepareRun = ({preparedProgram, plan, request}) => {"
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "run.prepareRun = ({preparedProgram, plan, request}: PreparationInputs) => {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -69005,7 +69005,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// Installed transport for the original checked Content component. Compute,"
               },
               {
@@ -69021,7 +69021,7 @@
                 "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (original === undefined || original.retired || original.plan !== plan || original.attempted ||"
               },
               {
@@ -69033,7 +69033,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (original === undefined || original.retired || original.plan !== plan || original.attempted ||"
               },
               {
@@ -69055,7 +69055,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// byte laws, identity and publication remain in their existing common owners."
               },
               {
@@ -69071,11 +69071,11 @@
                 "anchor": "The installed serialization family keeps the exact candidate, issued checked"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "preparedRuns.set(preparedProgram, original);"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (physical?.prepared.status().pending === true) return false;"
               },
               {
@@ -69105,7 +69105,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "export function installNodeContentRun({moon, core, registry, values, fragment, ordered,"
               },
               {
@@ -69121,7 +69121,7 @@
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.attempted = true;"
               },
               {
@@ -69151,7 +69151,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (graphPolicy === undefined) throw new Error('ContentPolicyMissing');"
               },
               {
@@ -69167,7 +69167,7 @@
                 "anchor": "Legacy restoration without this original receiver cannot"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (prior.failed) throw prior.failure;"
               },
               {
@@ -69179,7 +69179,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (prior.failed) throw prior.failure;"
               },
               {
@@ -69201,7 +69201,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "writeGeneratedContent, stopGeneratedContentPrefix} from './generated-content-write.mjs';"
               },
               {
@@ -69217,7 +69217,7 @@
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;"
               },
               {
@@ -69247,7 +69247,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "import {localOutputLimits, localContractLimits,"
               },
               {
@@ -69267,7 +69267,7 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.capacity = control.requestPrefixCapacity(original.managed.serialization);"
               },
               {
@@ -69279,7 +69279,7 @@
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               },
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "original.capacity = control.requestPrefixCapacity(original.managed.serialization);"
               },
               {
@@ -69301,7 +69301,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "// Installed transport for the original checked Content component. Compute,"
               },
               {
@@ -69359,7 +69359,7 @@
                 "anchor": "test('ordinary actual Host serializes bounded CSV on its original Run and closes'"
               },
               {
-                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "path": "adapters/host-node/installed-content-preparation.test.mts",
                 "anchor": "test('ordinary Content preserves the original preparation failure without a new Ledger attempt'"
               },
               {
@@ -69405,7 +69405,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69415,7 +69415,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69425,7 +69425,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69435,7 +69435,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69445,7 +69445,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69455,7 +69455,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69465,7 +69465,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69475,7 +69475,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {
@@ -69485,7 +69485,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
+                "path": "adapters/host-node/installed-content-run.mts",
                 "anchor": "managedOriginal"
               },
               {

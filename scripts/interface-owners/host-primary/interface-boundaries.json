@@ -15271,7 +15271,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "path": "adapters/host-node/installed-content-preparation.test.mts",
                 "anchor": "test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger'"
               },
               {
