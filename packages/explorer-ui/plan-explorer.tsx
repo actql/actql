@@ -98,7 +98,8 @@ export function PlanExplorer({model, scopeKey, initialView = 'list', workspace}:
 function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerProps, 'scopeKey'>) {
   const flow = useMemo(() => flowPresentation(model) as {nodes: LogicalNode[]; edges: Edge[]}, [model]);
   const [selected, select] = useState<string | undefined>();
-  const [mode, show] = useState<'flow' | 'list'>(initialView ?? 'list');
+  const [view, show] = useState<'flow' | 'list'>(initialView ?? 'list');
+  const mode = workspace ? 'flow' : view;
   const canvas = useRef<HTMLDivElement>(null);
   const [canvasWidth, setCanvasWidth] = useState(0);
   // This bounded presentation key excludes labels/observations. Repeated reads
@@ -177,10 +178,10 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
         <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
         <p>{workspace && model.inputs.length > 0 ? 'Projected dependencies only · ' : 'Data dependencies · '}
           layout does not indicate execution order.</p></div>
-      <nav aria-label="Plan presentation">
+      {!workspace && <nav aria-label="Plan presentation">
         <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
         <Button aria-pressed={mode === 'flow'} onClick={() => show('flow')}><Workflow aria-hidden/>Flow</Button>
-      </nav>
+      </nav>}
     </header>
     {mode === 'list' && originalMetadata}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div ref={canvas} className="actql-explorer-flow">
@@ -195,7 +196,8 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
       </ReactFlow>}
     </div> : <p role="status" className="actql-explorer-unavailable">
       {currentLayout?.state === 'unavailable'
-        ? 'Flow layout unavailable. Use List to inspect the original occurrences.'
+        ? workspace ? 'Graph layout unavailable. Use Steps to inspect the original occurrences.'
+          : 'Flow layout unavailable. Use List to inspect the original occurrences.'
         : 'Placing original logical ports…'}</p> : <table className="actql-explorer-table"><caption>Original logical occurrences</caption>
       <thead><tr><th scope="col">Operation</th><th scope="col">Identity</th><th scope="col">Ports</th></tr></thead>
       <tbody>{model.nodes.map(node => <tr key={node.id}><td>

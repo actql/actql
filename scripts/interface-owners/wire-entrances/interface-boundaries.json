@@ -12027,7 +12027,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "d8da79008a4c98f7dc48595a9e55de74549a8b55aa9cbdaa073bf6bf15ebd63c",
+      "sha256": "4af6a9e3ba8b5fadd07671bb628110db9c280ca725773b97baca204684126c20",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",

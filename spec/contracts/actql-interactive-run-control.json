@@ -3765,6 +3765,33 @@
           "additionalProperties": false,
           "required": [
             "form",
+            "name",
+            "receiver",
+            "type"
+          ],
+          "properties": {
+            "form": {
+              "const": "property"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "receiver": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "type": {
+              "$ref": "#/schemas/explanation_type"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
             "operator",
             "children",
             "type"
@@ -5631,7 +5658,7 @@
     "effectful_static_plan_view": "sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645",
     "explanation_type": "sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3",
     "explanation_schema": "sha256:83f1ada252d57d81b8f64b4b7522ab3dff14b489a89e0f3aae29e5610a388b4b",
-    "explanation_expression_node": "sha256:aee03171bcde6e78fba8c658d7131c8bce6743b9c15da441bd51a1bde105109c",
+    "explanation_expression_node": "sha256:94384e11128cb1984bad30bd7f3a8867ab73cdfce8a18ded1dd17e4f0cdc00bd",
     "explanation_predicate": "sha256:764b56c14af42f3f8c3f6adee77272e18483d67a156782321941742cb50db10f",
     "explanation_meaning": "sha256:9e82adf26acb09fee7542facadca2b5511c0362979a12376c7ec3b59d42403c6",
     "explanation_step": "sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a",
@@ -5772,5 +5799,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:e35d6fd107b8ab453c24ed1d822e8733b7c9d96c7e08862377599989bb152b11"
+  "registry_cid": "sha256:6a15d7d0066c647c9a8cafe676e722b2af9a01e1a3dcce6fae380b27266324f3"
 }

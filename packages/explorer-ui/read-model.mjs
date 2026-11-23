@@ -167,6 +167,7 @@ function checkExplanationFacts(story, facts) {
       for (const node of meaning.predicate.nodes) {
         if (node?.form === 'operation' && (!Array.isArray(node.children) ||
             (edges += node.children.length) > explanationLimits.nodes)) refuse('ExplorerExplanationLimit');
+        if (node?.form === 'property' && ++edges > explanationLimits.nodes) refuse('ExplorerExplanationLimit');
       }
     }
     const collection = meaning?.schema?.fields ?? meaning?.fields ?? meaning?.keys ?? [];

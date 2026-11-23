@@ -183,6 +183,12 @@ kbd { border: 1px solid #bbc8c5; border-radius: 4px; font-size: 10px; padding: 0
 }
 .story-row[data-state='Observed'] .step-marker { color: #165899; background: #e3eef9; }
 .story-card { min-width: 0; overflow: hidden; }
+.expected-columns { overflow-x: auto; padding-bottom: 4px; }
+.expected-columns table { border-collapse: collapse; }
+.expected-columns caption { text-align: left; font-weight: 600; margin-bottom: 4px; }
+.expected-columns th { border: 1px solid var(--border); padding: 5px 8px; white-space: nowrap; }
+.model-fields dd { margin: 0 0 8px; }
+.model-fields ul { margin: 4px 0; padding-left: 18px; }
 .story-card[data-selected='true'] { border-color: #87b4e0; box-shadow: 0 0 0 2px #dceaf7; }
 .story-card > summary {
   display: grid; gap: 3px; position: relative; list-style: none;

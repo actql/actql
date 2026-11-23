@@ -2049,7 +2049,7 @@
     {
       "module": "packages/explorer-ui/plan-explorer.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "909003c09f9dd0ececb980c0a67ce2a4911e6dc3b7d928d986b7acbde4d10559",
+      "sha256": "689931317c515c3a1ac755ecaf6a8fd5b187c14b7c5a76c8c1c172f13ff671db",
       "exports": [
         "CancellationPanel",
         "CheckpointPanel",
@@ -3262,7 +3262,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13d43539b8c743efb3c65479f37383148c0ccd420218e223c142134a74988ab6",
+      "sha256": "875a7f700d21eaf33dcefd49fb2980c5dfc8b7210622974457d013edd6e78463",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -4705,7 +4705,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "1b39a0b43554e63c1c3974c4d08dcc3ef6aa22614421a491c5eb608134d241e4",
+      "sha256": "1132b6e35e82e12ac27f4e9ecdd765a4b4aa3c98131518ef14d89a27b9c35d9e",
       "exports": [],
       "operations": [
         {
@@ -5144,11 +5144,39 @@
           "result": null
         },
         {
+          "name": "graphStepLabels/<call>#7",
+          "parameters": [
+            "{origin}"
+          ],
+          "result": null
+        },
+        {
           "name": "graphStepLabels/add",
           "parameters": [
             "index: Map<string, T[]>",
             "stepId: string",
             "value: T"
+          ],
+          "result": null
+        },
+        {
+          "name": "ModelFields",
+          "parameters": [
+            "{origin, locale}: {\n  origin: Extract<StoryContext[number]['origin'], {kind: 'model_task'}>; locale: 'en' | 'ja';\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ModelFields/<call>",
+          "parameters": [
+            "{role, binding, type}"
+          ],
+          "result": null
+        },
+        {
+          "name": "ModelFields/<call>#2",
+          "parameters": [
+            "{name, type}"
           ],
           "result": null
         },
@@ -5328,6 +5356,13 @@
           "result": null
         },
         {
+          "name": "StoryHeading/<call>#4",
+          "parameters": [
+            "{declaration}"
+          ],
+          "result": null
+        },
+        {
           "name": "storyProjections",
           "parameters": [
             "story: ExplanationStoryModel",
@@ -5423,20 +5458,25 @@
         },
         {
           "name": "StorySteps/<call>/<call>",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>/<call>",
           "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#2",
-          "parameters": [
-            "port"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#3",
           "parameters": [
-            "item"
+            "port"
           ],
           "result": null
         },
@@ -5449,18 +5489,25 @@
         },
         {
           "name": "StorySteps/<call>/<call>#5",
-          "parameters": [],
-          "result": null
-        },
-        {
-          "name": "StorySteps/<call>/<call>#6",
           "parameters": [
             "item"
           ],
           "result": null
         },
         {
+          "name": "StorySteps/<call>/<call>#6",
+          "parameters": [],
+          "result": null
+        },
+        {
           "name": "StorySteps/<call>/<call>#7",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#8",
           "parameters": [
             "{origin, text}",
             "index"
@@ -5468,7 +5515,7 @@
           "result": null
         },
         {
-          "name": "StorySteps/<call>/<call>#8",
+          "name": "StorySteps/<call>/<call>#9",
           "parameters": [
             "{declaration,write_fields}",
             "position"
@@ -5681,7 +5728,8 @@
             "PlanSteps/<call>/<call>",
             "PlanSteps/<call>/<call>#2",
             "PlanSteps/<call>/<call>#3",
-            "PlanSteps/select"
+            "PlanSteps/select",
+            "graphStepLabels/<call>#7"
           ],
           "exports": [],
           "attributes": {
@@ -5920,7 +5968,13 @@
             "storyProjections/kept/<call>#3",
             "storyProjections/kept/<call>#4",
             "StorySteps/<call>/<call>#7",
-            "StorySteps/<call>/<call>#8"
+            "StorySteps/<call>/<call>#8",
+            "ModelFields",
+            "ModelFields/<call>",
+            "ModelFields/<call>#2",
+            "StoryHeading/<call>#4",
+            "StorySteps/<call>/<call>#9",
+            "StorySteps/<call>/<call>/<call>"
           ],
           "exports": [],
           "attributes": {

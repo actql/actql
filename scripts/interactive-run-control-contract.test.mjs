@@ -49,6 +49,19 @@ test('ExplanationFacts preserves parameter names/types without bound values or l
   assert.equal(wire.validWireExplanationFactsShape(value), false);
 });
 
+test('ExplanationFacts records a checked property without the selected value', () => {
+  const value = structuredClone(explanationFacts);
+  const predicate = value.steps[0].meaning.predicate;
+  const type = {projection: 'shape_and_nullability', kind: 'boolean', nullable: false};
+  predicate.nodes = [
+    {form: 'property', receiver: 1, name: 'changed', type},
+    {form: 'field', scope: 'fields', name: 'review', type: {...type, kind: 'object'}},
+  ];
+  assert.equal(wire.validWireExplanationFactsShape(value), true);
+  predicate.nodes[0].value = true;
+  assert.equal(wire.validWireExplanationFactsShape(value), false);
+});
+
 test('ExplanationFacts missing retained original is explicit and cannot carry repaired facts', () => {
   assert.equal(wire.validWireRunExplanationViewShape(runExplanation), true);
   assert.equal(wire.validWireRunExplanationViewShape(unprojectedRunExplanation), true);
@@ -104,7 +117,7 @@ test('private Relation Sample seals retain every existing public schema and iden
   }
   assert.equal(Object.keys(remainingSchemas).length, 47);
   assert.equal(hash(remainingSchemas),
-    'sha256:9fd8c42d629037b073e2fb06f6b1030085a6b77e8641b7f7a43350adf0dc71ab');
+    'sha256:575598d3b9a42c7bd69216c037c6096df9603cca44aad2f02cf890a1be7f7236');
   assert.equal(Object.keys(remainingDomains).length, 10);
   assert.equal(hash(remainingDomains),
     'sha256:ce704655344fa81848b6c89770abffdd99513a3c640b4dff51dd1ff574d50a50');

@@ -33,12 +33,16 @@ function StoryText({text}: {text: string}) {
 function StoryHeading({story, context}: {story: ExplanationStoryModel; context: StoryContext}) {
   const sources = context.filter(({origin}) => origin.kind === 'source').length;
   const models = context.filter(({origin}) => origin.kind === 'model_task').length;
-  const effects = context.some(({origin}) => origin.kind === 'effect_set' && origin.members.length > 0);
+  const effects = context.flatMap(({origin}) => origin.kind === 'effect_set' ? origin.members : []);
+  const requiresApproval = effects.some(({declaration}) => declaration.minimum_approval.kind === 'contract_minimum' &&
+    declaration.minimum_approval.value === 'required');
   const ja = story.locale === 'ja';
   return <>
     <h1><StoryText text={story.narrative.summary}/></h1>
     <div className="story-chips">
-      {effects && <span className="workspace-chip" data-tone="amber">{ja ? '書き込みを宣言 · 判断は未確認' : 'Effect declared · decision unknown'}</span>}
+      {effects.length > 0 && <span className="workspace-chip" data-tone="amber">{requiresApproval
+        ? ja ? '書き込み先を宣言 · 承認が必要な操作あり' : 'Write declared · approval required for at least one operation'
+        : ja ? '書き込み先を宣言 · 承認要否は未確認' : 'Write declared · approval requirement unknown'}</span>}
       {sources > 0 && <span className="workspace-chip" data-tone="teal">{ja ? `読み取り元 ${sources} 件` :
         `${sources} declared ${sources === 1 ? 'source' : 'sources'}`}</span>}
       {models > 0 && <span className="workspace-chip" data-tone="lilac">{ja ? `モデルタスク ${models} 件 · 入力行ごと` :
@@ -98,6 +102,20 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
       labels.set(step.stepId, {title: ja ? 'フィールドを選択' : 'Select fields'});
     } else if (step.operator === 'filter') {
       labels.set(step.stepId, {title: ja ? '行を絞り込む' : 'Filter rows'});
+    }
+  }
+  if (story) {
+    const reads = context.filter(({origin}) => origin.kind === 'source');
+    const {source, model} = storyProjections(story, reads, context, stageResultLinks);
+    for (const [index, {step}] of source) {
+      const {origin} = reads[index];
+      if (origin.kind !== 'source') continue;
+      const {resource, connector} = origin.source_view;
+      labels.set(step.stepId, {kind: connector, title: ja ? `${resource} を読む` : `Read ${resource}`, sourceInput: true});
+    }
+    for (const [id, {step}] of model) {
+      const related = labels.get(id);
+      if (related) labels.set(step.stepId, related);
     }
   }
   return labels;
@@ -249,6 +267,28 @@ function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
   return {source, model, claimed};
 }
 
+function ModelFields({origin, locale}: {
+  origin: Extract<StoryContext[number]['origin'], {kind: 'model_task'}>; locale: 'en' | 'ja';
+}) {
+  const ja = locale === 'ja';
+  return <>
+    <dl className="model-fields">
+      <dt>{ja ? '入力' : 'Inputs'}</dt>
+      <dd>{origin.input_bindings.length ? <ul>{origin.input_bindings.map(({role, binding, type}) =>
+        <li key={role}><code>{role}</code>
+          {binding.state === 'field' && binding.name !== role && <> ← <code>{binding.name}</code></>}
+          {' · '}{type.kind}{type.nullable ? ja ? '（NULL 可）' : ' · nullable' : ''}</li>)}</ul>
+        : ja ? '未投影' : 'Unprojected'}</dd>
+      <dt>{ja ? '出力' : 'Outputs'}</dt>
+      <dd>{origin.output_fields.length ? <ul>{origin.output_fields.map(({name, type}) =>
+        <li key={name}><code>{name}</code>{' · '}{type.kind}
+          {type.nullable ? ja ? '（NULL 可）' : ' · nullable' : ''}</li>)}</ul>
+        : ja ? '未投影' : 'Unprojected'}</dd>
+    </dl>
+    <details><summary>Original ModelTask contract</summary><code>{origin.contract_cid}</code></details>
+  </>;
+}
+
 function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph, labels, stageResultLinks}: {
   story: ExplanationStoryModel; context: StoryContext; saved: boolean;
   boundary?: {stepId: string; state: StepState}; selectedStep?: string;
@@ -270,7 +310,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
   }
   const groups: Step[][] = [];
   for (const step of story.occurrences) {
-    if (!graph && projections.claimed.has(step.stepId)) continue;
+    if (projections.claimed.has(step.stepId)) continue;
     const current = groups.at(-1);
     if (step.operator === 'join' && current?.[0]?.operator === 'join') current.push(step);
     else groups.push([step]);
@@ -286,20 +326,28 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
   });
   return <section aria-label={graph ? 'Selected Step' : 'Original story'}>
     <ol className="story-steps">
-      {!graph && sources.map(({origin,text}, index)=>{
+      {sources.map(({origin,text}, index)=>{
         if (origin.kind !== 'source') return null;
         const projection = projections.source.get(index);
         const step = projection?.step;
         const selected = step !== undefined && step.stepId === selectedStep;
         const observed = step !== undefined && step.stepId === boundary?.stepId;
+        const controls = card(`source-${index}`, !saved && index === 0 || selected || observed, step?.stepId);
+        const ja = story.locale === 'ja';
+        if (graph && !selected) return null;
         return <StoryCard
           key={`source-${origin.stage_input.stage_ordinal}-${origin.stage_input.input_port_ordinal}`}
-          {...card(`source-${index}`, !saved && index === 0 || selected || observed, step?.stepId)}
-          selected={selected}
-          label="Read" title={`Read "${origin.source_view.resource}"`} detail={text}
+          {...controls} selected={selected}
+          label={ja ? '読取' : 'Read'}
+          title={ja ? `"${origin.source_view.resource}" を読む` : `Read "${origin.source_view.resource}"`} detail={text}
           system={origin.source_view.connector} state={step ? stepState(step.stepId, saved, boundary) : unobserved}>
           <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
-          {projection && <p>{story.locale === 'ja' ? '保持する列' : 'Selected columns'} · {projection.columns.join(', ')}</p>}
+          {projection && <div className="expected-columns">
+            <table>
+              <caption>{ja ? '予定される列' : 'Expected columns'}</caption>
+              <thead><tr>{projection.columns.map(name=><th key={name} scope="col"><code>{name}</code></th>)}</tr></thead>
+            </table>
+          </div>}
           {step && <StepOrigin step={step} label={labels.get(step.stepId)?.title} select={()=>selectStep(step.stepId)}/>}
           <p>Bounded Source data is not available in this view.</p>
           <details><summary>Original Source and links</summary>
@@ -314,19 +362,19 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
         const first = group[0];
         const selected = group.find(item=>item.stepId===selectedStep);
         const observed = group.find(item=>item.stepId===boundary?.stepId);
-        const step = graph ? selected ?? first : observed ?? selected ?? first;
+        const step = selected ?? observed ?? first;
         const tasks = models.get(step.stepId) ?? [];
         const title = tasks.length === 1 ? tasks[0].text : tasks.length > 1 ? `Ask ${tasks.length} declared model tasks` :
-          group.length > 1 && !graph ? (story.locale === 'ja' ? '入力を結合' : 'Join inputs') :
+          group.length > 1 ? (story.locale === 'ja' ? '入力を結合' : 'Join inputs') :
           stepTitle(step, labels.get(step.stepId)?.title);
-        const projection = graph ? undefined : projections.model.get(step.stepId);
+        const projection = projections.model.get(step.stepId);
         const projectedStep = projection?.step;
         const selectedProjection = projectedStep !== undefined && projectedStep.stepId === selectedStep;
         const observedProjection = projectedStep !== undefined && projectedStep.stepId === boundary?.stepId;
         const focusedStep = (selectedProjection || observedProjection) && projectedStep ? projectedStep : step;
         const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined ||
           selectedProjection || observedProjection, focusedStep.stepId);
-        if (graph && !selected) return null;
+        if (graph && !selected && !selectedProjection) return null;
         return <StoryCard key={first.stepId} {...controls} selected={!!selected || selectedProjection}
           label={tasks.length ? 'Ask model' : step.operator === 'join' ? 'Combine' : 'Compute'}
           state={stepState(focusedStep.stepId, saved, boundary)} title={title}
@@ -334,11 +382,12 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
           {saved && <p>Sample data is unavailable for this step.</p>}
           {projection && <StepOrigin step={projection.step} label={labels.get(projection.step.stepId)?.title}
             select={()=>selectStep(projection.step.stepId)}/>}
-          {(graph ? [step] : group).map(item=><StepOrigin key={item.stepId} step={item}
-            label={labels.get(item.stepId)?.title}/>)}
+          {group.map(item=><StepOrigin key={item.stepId} step={item}
+            label={labels.get(item.stepId)?.title}
+            select={group.length > 1 ? ()=>selectStep(item.stepId) : undefined}/>)}
           {tasks.map(({origin, text}, index)=>origin.kind === 'model_task' && <div key={index}>
             <p><StoryText text={text}/></p>
-            <details><summary>Original ModelTask contract</summary><code>{origin.contract_cid}</code></details>
+            <ModelFields origin={origin} locale={story.locale}/>
           </div>)}
         </StoryCard>;
       })}
@@ -356,7 +405,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
               {write_fields.state === 'declared' && <p>Fields: {write_fields.fields.join(', ')}</p>}
             </li>)}</ul></details></> :
           origin.kind === 'result' ? <p>Declared output <code>{origin.name}</code> · stage {origin.stage_ordinal + 1}</p> :
-          origin.kind === 'model_task' && <details><summary>Original ModelTask contract</summary><code>{origin.contract_cid}</code></details>}
+          origin.kind === 'model_task' && <ModelFields origin={origin} locale={story.locale}/>}
       </StoryCard>)}
     </ol>
   </section>;

@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "8fb927677a9b0d16f82781efa3974eb3c8cea03c11a3bdfd8cfad425475f5ca2",
+      "sha256": "4dfe120f9e619e7d93db650f153cc6e2f225c46bc0a3074351c2f90da2a2de75",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "0fc46c49a6ea987c57778cfbddb4ed21a78f552aa5fb0ff0dfe87cb63385d6cf",
+      "sha256": "2ea251976f0a7598df9f3b57e92a447e453c657135214c2c3c7496a8ec76e189",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",

@@ -338,6 +338,25 @@ fn explain_narrative_predicate(
   let active = Array::make(count, false)
   let rendered : Array[String?] = Array::make(count, None)
   let heights = Array::make(count, 0)
+  // A property receiver is part of the same checked field path. Its type
+  // stays in Facts without interrupting the visible dotted name.
+  let path_receivers = Array::make(count, false)
+  for index in 0..<count {
+    text.budget.visit()
+    let node = @canonical.array_at(nodes, index).unwrap()
+    if explanation_narrative_string(node, "form") == "property" {
+      let receiver = explain_narrative_node_index(
+        explanation_narrative_field(node, "receiver"),
+        count,
+      )
+      let original = @canonical.array_at(nodes, receiver).unwrap()
+      let form = explanation_narrative_string(original, "form")
+      if form != "field" && form != "property" {
+        raise InvalidExplanation
+      }
+      path_receivers[receiver] = true
+    }
+  }
   fn render(
     index : Int,
     depth : Int,
@@ -373,18 +392,33 @@ fn explain_narrative_predicate(
       }
       "field" | "parameter" as form => {
         if form == "field" {
-          part.append(explanation_narrative_string(original, "scope"))
-          part.append(".")
+          let scope = explanation_narrative_string(original, "scope")
+          if !path_receivers[index] || scope != "fields" {
+            part.append(scope)
+            part.append(".")
+          }
           part.quote(explanation_narrative_string(original, "name"))
         } else {
           part.append("$")
           part.append(explanation_narrative_string(original, "name"))
         }
-        part.append(":")
-        explain_narrative_type(
-          explanation_narrative_field(original, "type"),
-          part,
+        if !path_receivers[index] {
+          part.append(":")
+          explain_narrative_type(
+            explanation_narrative_field(original, "type"),
+            part,
+          )
+        }
+      }
+      "property" => {
+        let receiver = explain_narrative_node_index(
+          explanation_narrative_field(original, "receiver"),
+          count,
         )
+        part.append(render(receiver, depth + 1))
+        part.append(".")
+        part.quote(explanation_narrative_string(original, "name"))
+        height = heights[receiver] + 1
       }
       "operation" => {
         let operator = explanation_narrative_string(original, "operator")

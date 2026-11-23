@@ -33,6 +33,7 @@ export function explanationFactSchemas({logicalOperators, effectDeclaration}) {
     object({form: {const: 'field'}, scope: choice('fields', 'left', 'right'),
       name: text, type: ref('explanation_type')}),
     object({form: {const: 'parameter'}, name: text, type: ref('explanation_type')}),
+    object({form: {const: 'property'}, name: text, receiver: integer, type: ref('explanation_type')}),
     object({form: {const: 'operation'}, operator: choice(...explanationPredicateOperators),
       children: list(integer), type: ref('explanation_type')}),
   ]};

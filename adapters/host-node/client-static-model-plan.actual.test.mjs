@@ -150,6 +150,16 @@ test('installed static Explanation retains the original deal-review Source, Mode
     assert.match(english.story.narrative.summary, /Read "Opportunity" from "salesforce"/u);
     assert.match(english.story.narrative.summary, /"drive".*Ask "model-task:deal-review.v1"/u);
     assert.match(english.story.narrative.summary, /Return "updates".*"StageName"/u);
+    for (const presentation of [english, japanese]) {
+      const filter = presentation.story.occurrences.find(step => step.operator === 'filter');
+      assert.equal(filter.explanation.meaning.predicate.state, 'projected');
+      assert.match(filter.explanation.text, /"review"\."value"\."changed"/u);
+      assert.match(presentation.story.narrative.summary, /"review"\."value"\."changed"/u);
+      assert.doesNotMatch(filter.explanation.text, /"ok"/u);
+      assert.doesNotMatch(presentation.story.narrative.summary, /"ok"/u);
+    }
+    assert.match(english.story.narrative.summary, /\[redacted /u);
+    assert.match(japanese.story.narrative.summary, /\[非開示 /u);
     assert.match(japanese.story.narrative.summary, /"salesforce" の "Opportunity".*"name"/u);
     assert.match(english.story.narrative.summary, /Match "Opportunity" from "salesforce" with "files" from "drive" on "name"/u);
     assert.match(english.story.narrative.summary, /the joined rows with "contents" from "drive" on the Source keys "resource", "version"/u);

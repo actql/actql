@@ -54,12 +54,12 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:c9937c7bba87027df33dd40a574c45c0bd6d7f5c158fd1db90181dde2a9054c9 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:2b0a23342b9435b2aabb38f4a8c453c7e475b551a574af5e541442585b8d6e9e -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_plan_view sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/effectful_static_plan_view sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_type sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_schema sha256:83f1ada252d57d81b8f64b4b7522ab3dff14b489a89e0f3aae29e5610a388b4b -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_expression_node sha256:aee03171bcde6e78fba8c658d7131c8bce6743b9c15da441bd51a1bde105109c -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_expression_node sha256:94384e11128cb1984bad30bd7f3a8867ab73cdfce8a18ded1dd17e4f0cdc00bd -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_predicate sha256:764b56c14af42f3f8c3f6adee77272e18483d67a156782321941742cb50db10f -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_meaning sha256:9e82adf26acb09fee7542facadca2b5511c0362979a12376c7ec3b59d42403c6 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_step sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a -->

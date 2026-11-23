@@ -21285,6 +21285,65 @@ const schemas = {
                                                 "type": "object",
                                                 "required": [
                                                   "form",
+                                                  "name",
+                                                  "receiver",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "property"
+                                                  },
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                  },
+                                                  "receiver": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 2147483647
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
                                                   "operator",
                                                   "children",
                                                   "type"
