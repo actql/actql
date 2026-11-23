@@ -1929,6 +1929,8 @@ function publicationControl(moon) {
   const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
   const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
+  const reserveRelationSampleStart = moon.clientProgramReserveRelationSampleStart;
+  const acknowledgeRelationSampleStart = moon.clientProgramAcknowledgeRelationSampleStart;
   const originalInferRunTokens = new WeakMap();
   const restoredInferRuns = new WeakSet();
   const serializationPlanTokens = new WeakMap();
@@ -2674,6 +2676,30 @@ function publicationControl(moon) {
       return compiledRunResult(project(checkedProgram, compiled,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostStaticPlanRejected');
+    },
+    reserveClientRelationSampleStart(run, request, executionOwner, definition, setup) {
+      const compiled = compiledRunTokens.get(executionOwner?.compiled);
+      const prepared = executionOwner?.program;
+      if (compiled === undefined || prepared === undefined ||
+          typeof reserveRelationSampleStart !== 'function') {
+        throw new TypeError('Foreign Client Relation Sample start');
+      }
+      // The fixed bootstrap calls the original owner positionally. The
+      // dynamic argument vector for acknowledgement is allocated after this.
+      compiledRunResult(reserveRelationSampleStart.call(moon,
+        run, prepared, request, compiled, token(definition), setup),
+      'RunHostRelationSampleStartCapacityRejected');
+    },
+    acknowledgeClientRelationSampleStart(run, request, executionOwner, definition, captured, revision) {
+      const compiled = compiledRunTokens.get(executionOwner?.compiled);
+      const prepared = executionOwner?.program;
+      if (compiled === undefined || prepared === undefined ||
+          typeof acknowledgeRelationSampleStart !== 'function') {
+        throw new TypeError('Foreign Client Relation Sample start');
+      }
+      compiledRunResult(Reflect.apply(acknowledgeRelationSampleStart, moon,
+        [run, prepared, request, compiled, token(definition), captured, revision]),
+      'RunHostRelationSampleStartRejected');
     },
     prepareClientLogicalObservation(run, executionOwner, definition, limits) {
       issuanceLimits(limits, 'Original logical boundary');

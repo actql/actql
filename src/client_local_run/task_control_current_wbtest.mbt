@@ -193,6 +193,14 @@ test "Core owner control pause during actual work parks after its output and ter
   outputs[0] = control_finish(first, 0, available)
   retained.push(first)
   assert_eq(control_state(host), (3, @strategy.Paused))
+  let committed = @strategy.captured_dag_generation(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_true(
+    (first.complete)(0, first.storage_bytes, () => available.val) is Err(_),
+  )
+  assert_eq(@strategy.captured_dag_generation(run), committed)
+  assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)), usage)
+  assert_eq(control_state(host), (3, @strategy.Paused))
   assert_true(@strategy.next_captured_task(run) is None)
   control_command(host, 3, @strategy.ResumeTerminal).unwrap()
   for task in 1..<3 {
@@ -231,10 +239,10 @@ test "Core owner control pause during actual work parks after its output and ter
 }
 
 ///|
-test "Core owner control prepays all three original completion scans or refuses before state construction" {
+test "Core owner control prepays one update per original completion or refuses before state construction" {
   // Configuration has its own existing charged work. Measure that unchanged
-  // baseline independently; the new three checks plus nine completion-slot
-  // visits are a fixed authored expectation, not read from the product quote.
+  // baseline independently. The three boundary checks plus three commit
+  // updates are a fixed expectation independent of the product quote.
   let witness_root = capacity_boundary_root(100000L, 100000L)
   let witness = source_free_shared_host(
     plan(
@@ -247,7 +255,7 @@ test "Core owner control prepays all three original completion scans or refuses 
   let baseline = @resources.ledger_usage(witness_root).planning_work
   @strategy.stop_captured_dag(local_compute_run(witness))
   @strategy.refresh_captured_retention(local_compute_run(witness))
-  for (work, succeeds) in [(baseline + 11, false), (baseline + 12, true)] {
+  for (work, succeeds) in [(baseline + 5, false), (baseline + 6, true)] {
     let root = @resources.create_ledger({
       planning_work: work,
       attempts: 10,
@@ -271,7 +279,7 @@ test "Core owner control prepays all three original completion scans or refuses 
     assert_eq(
       @resources.ledger_usage(root).planning_work,
       if succeeds {
-        baseline + 12
+        baseline + 6
       } else {
         baseline
       },

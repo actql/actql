@@ -61,6 +61,7 @@ import {
 import {
   "actql/actql/client_infer_host" @infer_host,
   "actql/actql/capacity_host_witness" @binding_host,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
   "moonbitlang/core/encoding/utf8",

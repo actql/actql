@@ -268,7 +268,11 @@ fn record_captured_task_boundary_before(run : CapturedDAG, task : Int) -> Unit {
 
 ///|
 // Reservation settlement and output visibility remain the same atomic commit.
-fn record_captured_task_boundary_commit(run : CapturedDAG, task : Int) -> Unit {
+fn record_captured_task_boundary_commit(
+  run : CapturedDAG,
+  task : Int,
+  reservation : @resources.Reservation,
+) -> Unit {
   if run.activation is Observed(hooks) &&
     !hooks.closing &&
     hooks.original is Some(original) &&
@@ -278,7 +282,7 @@ fn record_captured_task_boundary_commit(run : CapturedDAG, task : Int) -> Unit {
       generation: run.generation,
       strategy_revision: run.revisions,
     })
-    commit_captured_task_control(run, hooks, task)
+    commit_captured_task_control(run, hooks, task, reservation)
   }
 }
 

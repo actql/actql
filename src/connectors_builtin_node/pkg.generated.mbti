@@ -254,6 +254,8 @@ pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCa
 
 pub fn client_program_acknowledge_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
+pub fn client_program_acknowledge_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
 
 pub fn client_program_acknowledge_saved_infer_raw_capture(@model_execution.ModelRawCaptureSave) -> Result[@model_execution.ModelSavedRawReceipt, @model_execution.ModelRawCaptureSaveIssue]
@@ -4197,6 +4199,8 @@ pub fn client_program_reserve_installed_source_construction(@physical_resources.
 pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
 
 pub fn client_program_reserve_publication(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@client_local_host.ClientProgramPublication, @client_local_host.ClientClosedValuesPreparationIssue]
+
+pub fn client_program_reserve_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
 
 pub fn client_program_reserve_request_effect_capture_decoded(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

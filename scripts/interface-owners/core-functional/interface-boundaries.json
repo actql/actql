@@ -9795,7 +9795,9 @@
         },
         {
           "operations": [
-            "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation"
+            "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation",
+            "publicationControl/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+            "publicationControl/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart"
           ],
           "exports": [],
           "attributes": {
@@ -9857,6 +9859,10 @@
               {
                 "path": "adapters/host-node/logical-task-observation.test.mjs",
                 "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
               }
             ]
           }
@@ -11632,6 +11638,18 @@
           "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
           "parameters": [
             "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "captured",
+            "revision"
           ],
           "async": false
         },
@@ -16586,6 +16604,17 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "setup"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
           "parameters": [
             "parent",
@@ -19530,7 +19559,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "856a6cc0e0e2fd986ba9d5c459b80f8a0be5a5387c64ab8957460b66ae110548"
+      "sha256": "cbe5bd6d4790eec33a7c58a332302bbb5b241062e9306c6e66fa4a04e9e3789b"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -65025,7 +65054,9 @@
             "strategy_begin_original_effect_free_captured_run",
             "strategy_captured_run_preparation_limits",
             "client_program_prepare_request_declared_file_model_graph",
-            "prepare_request_model_graph_with_file_declarations"
+            "prepare_request_model_graph_with_file_declarations",
+            "client_program_acknowledge_relation_sample_start",
+            "client_program_reserve_relation_sample_start"
           ],
           "exports": [],
           "attributes": {
@@ -65223,6 +65254,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
               }
             ]
           }
@@ -68314,6 +68349,10 @@
           "declaration": "client_program_acknowledge_original_explanation_capture ( original : @ client_local_host . ClientOriginalExplanationCapture , ) - > Result [ Unit , @ client_local_host . ClientOriginalExplanationCaptureIssue ]"
         },
         {
+          "name": "client_program_acknowledge_relation_sample_start",
+          "declaration": "client_program_acknowledge_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , captured : @ strategy . CapturedDAG , revision : Int , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
+        },
+        {
           "name": "client_program_adopt_request_capture_preparation",
           "declaration": "client_program_adopt_request_capture_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -68922,6 +68961,10 @@
           "declaration": "client_program_reserve_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , encrypted_bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_reserve_relation_sample_start",
+          "declaration": "client_program_reserve_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_effect_capture_recovery",
           "declaration": "client_program_reserve_request_effect_capture_recovery ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , encrypted_bytes : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -69014,7 +69057,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "a25733a0be59a8aa5af82b40b077dc178b3578210eeb829543a7fd54846a1f63"
+      "sha256": "b90229e5b24b7675453c9439a7ba7980581d845e263f4f8e055cd88baa5b0a71"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -77511,7 +77554,7 @@
           }
         }
       ],
-      "sha256": "41ce70e467312babca3c97e3242d4c6e5e60975eb8c5d034216afe480610ad21",
+      "sha256": "f72001680baa9a29fbb07637e0eef716adf2002968e515268d55ee3dcd6b724e",
       "exports": [],
       "operations": [
         {
@@ -92702,7 +92745,8 @@
             "settle_execution_reservation",
             "settle_reservation",
             "settle_reservation_current",
-            "charge_planning_current"
+            "charge_planning_current",
+            "completed_output_attempt_sequence"
           ],
           "exports": [],
           "attributes": {
@@ -92804,12 +92848,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/completed_output_current_wbtest.mbt",
+                "anchor": "test \"completed attempts preserve first-use order across reversed reservation order and retries\""
               }
             ]
           }
         }
       ],
-      "sha256": "044dc7b97a688db7762fb847173cbbe031c5da80fc0bf44c03e7347b5c1c9839",
+      "sha256": "1527488acbc928f82a7464b193f74a136de3e544167474a9a06888af7df3e937",
       "operations": [
         {
           "name": "charge_planning",
@@ -92826,6 +92874,10 @@
         {
           "name": "charge_transfer_current",
           "declaration": "charge_transfer_current ( ledger : Ledger , reservation : Reservation , bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "completed_output_attempt_sequence",
+          "declaration": "completed_output_attempt_sequence ( ledger : Ledger , reservation : Reservation , ) - > Int"
         },
         {
           "name": "consume_reserved_attempt",
@@ -93295,7 +93347,7 @@
           }
         }
       ],
-      "sha256": "d871f81105b9f565866d0beec5b86d03db13359bafb2cf98a707e088c810a73f",
+      "sha256": "202f81b50623c785414b5b3fe53dd22e06f81fac5a3bcb6e1b58eeca6590a7ad",
       "operations": [
         {
           "name": "back_reservation_bytes_current",

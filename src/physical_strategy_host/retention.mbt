@@ -926,6 +926,28 @@ pub fn pin_captured_task_output(
 }
 
 ///|
+/// Match the already retained Relation to the existing commit witness. No
+/// loan, callback or Sample authority is issued. A consumer still needs its
+/// original Debug admission and availability check before reading any cells.
+pub fn captured_task_output_pin_matches_committed_relation(
+  run : CapturedDAG,
+  boundary : CapturedTaskBoundary,
+  pin : CapturedOutputPin,
+) -> Bool {
+  guard boundary.phase != Before &&
+    pin.live &&
+    physical_equal(pin.run, run) &&
+    pin.task == boundary.task &&
+    captured_task_boundary_current(run, boundary) &&
+    captured_control_boundary_available(run.graph, pin.task) &&
+    run.outputs[pin.task] is Some(Materialized(output)) else {
+    return false
+  }
+  physical_equal(output, pin.output) &&
+  @execution.completed_has_cell_access(output)
+}
+
+///|
 /// Read a materialized Relation through this exact live pin. The returned
 /// alias is revoked when the pin is released, even if the caller retains it.
 /// A loss of the original completion remains observable independently.

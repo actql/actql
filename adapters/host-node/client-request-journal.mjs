@@ -4338,7 +4338,7 @@ export function openClientRequestJournal(directory, {
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
     reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization,
-      captureSourceOperation, localExecutionOwner},
+      captureSourceOperation, localExecutionOwner, captureSampleStart},
       requestControl, publicationControl) {
       ensureOpen();
       if (!text(namespaceId) || !text(ref?.namespaceId) ||
@@ -4350,6 +4350,17 @@ export function openClientRequestJournal(directory, {
       }
       const fields = checkedIdentity(identity, requestControl);
       let sourceOriginal, captureOriginal, captureReceiver;
+      let sampleCapture, sampleProgram, sampleCompiled;
+      if (captureSampleStart !== undefined) {
+        sampleCapture = captureSampleStart?.captureRevision;
+        sampleProgram = captureSampleStart?.program;
+        sampleCompiled = captureSampleStart?.compiled;
+        if (typeof sampleCapture !== 'function' || captureSourceOperation !== undefined ||
+            localExecutionOwner === undefined || sampleProgram !== localExecutionOwner.program ||
+            sampleCompiled !== localExecutionOwner.compiled) {
+          fail('ClientRunSampleStartOriginalUnavailable');
+        }
+      }
       if (captureSourceOperation !== undefined) {
         if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
         const {program, compiled, capture, store} = captureSourceOperation;
@@ -4432,6 +4443,21 @@ export function openClientRequestJournal(directory, {
             action === 5 ? 'ClientRunPhysicalStartDenied' :
             'ClientRequestJournalCorrupt');
         }
+        let sampleRevision;
+        if (sampleCapture !== undefined) {
+          if (requestControl.clientProgramMatchesRequestIdentity(sampleProgram, identity) !== true) {
+            fail('ClientRunSampleStartOriginalUnavailable');
+          }
+          publicationControl.checkClientCompiledRunOwner(sampleCompiled, sampleProgram);
+          publicationControl.checkClientCompiledRunDefinition(sampleCompiled, definition);
+          if (!Number.isInteger(row.revision) || row.revision < 0 ||
+              row.revision >= 2147483647) {
+            fail('ClientRunSampleStartRevisionExhausted');
+          }
+          // This transaction still owns the same row and the fixed UPDATE
+          // increments its revision once. Hand over the winning value only.
+          sampleRevision = row.revision + 1;
+        }
         if (localOwnerProgram !== undefined) {
           publicationControl.checkClientCompiledRunOwner(localOwnerCompiled, localOwnerProgram);
           publicationControl.checkClientCompiledRunDefinition(localOwnerCompiled, definition);
@@ -4450,14 +4476,16 @@ export function openClientRequestJournal(directory, {
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
-        return true;
+        return sampleRevision ?? true;
       });
-      // No lookup/recovery API exposes this issuer. In particular a lost COMMIT
-      // response throws before a scope can reach physical Source dispatch.
-      if (started && sourceOriginal !== undefined) {
+      // No lookup/recovery API exposes these handoffs. A lost COMMIT reply
+      // throws before either receiver can receive its original.
+      if (started === false) return false;
+      if (sourceOriginal !== undefined) {
         Reflect.apply(captureOriginal, captureReceiver, [sourceOperations.issue(sourceOriginal)]);
       }
-      return started;
+      if (sampleCapture !== undefined) Reflect.apply(sampleCapture, captureSampleStart, [started]);
+      return true;
     },
     // Persist the original checked activation BEFORE its first physical
     // attempt. An existing/uncertain entry never authorizes another send.

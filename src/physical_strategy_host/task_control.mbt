@@ -43,6 +43,10 @@ priv struct CapturedTaskControl {
   mut binding : CapturedTaskControlBinding?
   mut revision : Int
   mut phase : CapturedTaskControlPhase
+  mut remaining : Int
+  // Companion scalar for hooks.committed, written only by that same slot.
+  mut committed_attempt_sequence : Int
+  mut sample_start_revision : Int
   mut changing : Bool
   mut cleanup_issue : @resources.LedgerIssue?
 }
@@ -65,9 +69,10 @@ let captured_task_control_bytes : Int64 = @execution.preparation_representation_
     // Control ledger/token/binding/phase/cleanup5; binding tuple/subject/context3;
     // retained Some2; snapshot2; refusal2; cleanup1; carrier1.
     reference_slots: 5L + 3L + 2L + 2L + 2L + 1L + 1L,
-    // Revision/fence2; binding/control tags2; OLD+NEW phase tags/payload4;
-    // snapshot2; refusal3; cleanup1; other result tags3.
-    scalar_words: 2L + 2L + 4L + 2L + 3L + 1L + 3L,
+    // Revision/remaining/committed sequence/start revision/fence5;
+    // binding/control tags2; OLD+NEW phase tags/payload4; snapshot2;
+    // refusal3; cleanup1; other result tags3.
+    scalar_words: 5L + 2L + 4L + 2L + 3L + 1L + 3L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -178,14 +183,13 @@ pub fn prepare_captured_task_control(
   hooks.admitting_control = true
   let generation = run.generation
   let tasks = run.done.length()
-  // Validate each original task once, and prepay at most tasks full completion
-  // scans of tasks slots. This bounds all later Debug-only commit work BEFORE
-  // execution; no resource callback is introduced after atomic output commit.
-  if tasks > (2147483647 - tasks) / tasks {
+  // Prepay each boundary check and one update per original task. Control is
+  // admitted only before any task is committed, with no captured prefix.
+  if tasks > 2147483647 / 2 {
     hooks.admitting_control = false
     return Err(Resource(@resources.PlanningLimit))
   }
-  let admitted = @resources.charge_planning(run.ledger, tasks + tasks * tasks)
+  let admitted = @resources.charge_planning(run.ledger, tasks * 2)
   if admitted is Err(issue) {
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)
@@ -217,6 +221,9 @@ pub fn prepare_captured_task_control(
     binding: Some({ tuple, subject_cid, context_cid, }),
     revision: 0,
     phase: Paused,
+    remaining: tasks,
+    committed_attempt_sequence: 0,
+    sample_start_revision: 0,
     changing: false,
     cleanup_issue: None,
   })
@@ -381,26 +388,31 @@ fn captured_task_control_allows_activation(run : CapturedDAG) -> Bool {
 }
 
 ///|
-// Called ONLY by the existing successful atomic output commit. Before and
-// settled are the two phases of ONE operation credit. No callback or fallible
-// construction is introduced after that output becomes visible.
+// Called only for the original slot's first successful output commit. Before
+// and settled are the two phases of one operation credit. The same already
+// funded Debug control owns the remaining count.
 fn commit_captured_task_control(
   run : CapturedDAG,
   hooks : CapturedTaskBoundaryHooks,
   task : Int,
+  reservation : @resources.Reservation,
 ) -> Unit {
   guard hooks.control is Some(control) else { return }
   if !captured_control_owner_matches(run, hooks) || control.binding is None {
     return
   }
-  let mut completed = true
-  for index in captured_compute_first_task(run)..<run.done.length() {
-    if !run.done[index] {
-      completed = false
-      break
-    }
+  // Keep only a scalar from the actual consumed attempt. A materialized
+  // output without a started reservation still commits with legacy behavior,
+  // but cannot become this Debug producer's Sample origin.
+  control.committed_attempt_sequence = if run.outputs[task]
+    is Some(Materialized(output)) &&
+    @execution.completed_has_cell_access(output) {
+    @resources.completed_output_attempt_sequence(run.ledger, reservation)
+  } else {
+    0
   }
-  if completed {
+  control.remaining -= 1
+  if control.remaining == 0 {
     control.phase = Completed
     control.revision += 1
   } else if control.phase == Stepping(task) || control.phase == PausePending {
@@ -424,6 +436,8 @@ fn retire_captured_task_control(hooks : CapturedTaskBoundaryHooks) -> Unit {
   hooks.admitting_control = true
   hooks.control = None
   control.binding = None
+  control.committed_attempt_sequence = 0
+  control.sample_start_revision = 0
   control.phase = Retired // Scalar tombstone, never a Run outcome.
   match @resources.settle_capacity(control.ledger, control.reservation) {
     Err(issue) => {

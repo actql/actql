@@ -333,9 +333,9 @@ test "handed off capacity growth refuses changed charges and replacement tokens"
   token.attempt_reserved = true
   reject()
   token.attempt_reserved = false
-  token.attempt_started = true
+  token.attempt_sequence = 1
   reject()
-  token.attempt_started = false
+  token.attempt_sequence = 0
   token.cleanup_pending = true
   reject()
   token.cleanup_pending = false

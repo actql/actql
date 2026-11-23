@@ -5,6 +5,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {sourceFreeValuesPlan} from './local-values-plan.mjs';
 
 function fixture({reserved = true, failCleanup = false, unresolved = false} = {}) {
   const ref = {runDefinitionCid: 'source-free-setup-custody'};
@@ -111,13 +112,16 @@ for (const reason of ['reservation', 'resume-gate']) {
 function originalDispatchFixture({source = false, managed = true, retained = false,
   lease = true, borrow = 'owned', host = 'owned', sourceCapacity = 'owned',
   sourceLedger = 'owned', cleanupReady = true, physicalStart = false,
-  whole = false, capture = false, placement = 'owned'} = {}) {
+  whole = false, capture = false, placement = 'owned', sampleStart = false,
+  sampleStartCoreFailure = false, sampleStartCapacityFailure = false,
+  sampleStartMissingReady = false, normalCompute = false} = {}) {
   const prepared = {}, request = {}, run = {}, holder = {}, setup = {}, capacity = {}, ledger = {};
   const ref = {runDefinitionCid: 'original-dispatch-custody'};
   const runDefinition = {wire: 'definition'}, failures = [];
   const calls = {borrowed: 0, returned: 0, opened: 0, closed: 0,
     leaseRetired: 0, sourceRetired: 0, physicalClaims: 0, managedLedger: 0, legacyLedger: 0,
-    wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0, retention: 0};
+    wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0, retention: 0,
+    computed: 0, preDispatchFailures: 0};
   const marker = new Error('OriginalResourceParked');
   const bindingFailure = new Error('OriginalCaptureBindingStopped');
   const sourceOriginal = {}, capturedIdentity = {}, compiled = {}, dag = {};
@@ -304,13 +308,66 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       compiledRunResultTransformation: () => undefined,
     });
   }
+  const sampleEvents = [];
+  if (sampleStart) {
+    moon.strategyHostRun = value => { assert.equal(value, setup); return dag; };
+    control.reserveClientRelationSampleStart = (owner, identity, execution, definition, configured) => {
+      assert.equal(owner, run);
+      assert.equal(identity, request);
+      assert.equal(execution.program, prepared);
+      assert.equal(definition, runDefinition);
+      assert.equal(configured, setup);
+      assert.equal(held.prepareSampleStart, undefined, 'The same Run transferred the receiver before funding');
+      sampleEvents.push('reserve');
+      if (sampleStartCapacityFailure) throw marker;
+    };
+    control.acknowledgeClientRelationSampleStart = (owner, identity, execution, definition, captured, revision) => {
+      assert.equal(owner, run);
+      assert.equal(identity, request);
+      assert.equal(execution.program, prepared);
+      assert.equal(definition, runDefinition);
+      assert.equal(captured, dag);
+      assert.equal(revision, 2);
+      sampleEvents.push('core');
+      if (sampleStartCoreFailure) throw marker;
+    };
+  }
+  const samplePlan = sampleStart ? sourceFreeValuesPlan({
+    // Real Plan association and dispatch with explicit component ports for
+    // the compiler and setup. This test observes scheduling and custody.
+    moon: {clientProgramPreparedLocalPublicationLimits: () => resultOutputLimitFields.map(() => 1),
+      clientProgramDefinitionCid: () => 'fixture-program', clientProgramResultCount: () => 0},
+    control: {
+      prepareCheckedClientCompiledRun: () => ({compiledPlan: {identity: 'fixture-compiled'},
+        preparedEvidence: {wire: ''}, authorization: {wire: ''}}),
+      defineCheckedClientCompiledRun: () => runDefinition,
+      issueCheckedClientCompiledInvocation: () => ({}),
+      seal: (_kind, wire) => ({wire}),
+      preparedClientNormalizationEvidence: () => ({}),
+      preparedClientAuthoringContextEvidence: () => ({}),
+      captureOriginalClientRunPlan: () => ({}),
+    },
+    preparedProgram: prepared, publicationOriginal: {kind: 'preparation', value: {}},
+    namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope',
+    now: () => '2026-11-15T00:00:00.000Z',
+  }) : undefined;
   const owner = installNodeClientDispatchOwner({moon,
     control,
     journal: {
-      reservePhysicalStart() { calls.physicalClaims++; return physicalStart; },
+      reservePhysicalStart(_request, options) {
+        calls.physicalClaims++;
+        if (sampleStart && !sampleStartMissingReady) {
+          const capture = options.captureSampleStart;
+          assert.equal(capture.program, prepared);
+          assert.equal(capture.compiled, options.localExecutionOwner.compiled);
+          sampleEvents.push('claim');
+          if (physicalStart) capture.captureRevision(2);
+        } else assert.equal(Object.hasOwn(options, 'captureSampleStart'), false);
+        return physicalStart;
+      },
       lookupRunDefinition: () => frame,
       lookupReconciliationState: () => undefined,
-      markPreDispatchFailure(value) { assert.equal(value, ref); },
+      markPreDispatchFailure(value) { assert.equal(value, ref); calls.preDispatchFailures++; },
       markPhysicalClose(value, outcome, original) {
         assert.equal(physicalStart, true); assert.equal(value, ref);
         assert.equal(original, frame); assert.equal(frame.physicalCloseConfirmed, false);
@@ -322,27 +379,54 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       assert.equal(submission.preparedProgram, prepared);
       return lease ? {preparedProgram: prepared, retire() { calls.leaseRetired++; }} : undefined;
     }},
-    store: {confirmCommittedIndex: async () => undefined},
+    store: {confirmCommittedIndex: async () => calls.computed === 1 ? {} : undefined},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
-    planFor: () => ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
+    planFor: () => samplePlan ?? ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
       publicationPreparation, requestIdentity: request, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
       createdAt: '2026-11-15T00:00:00.000Z'}),
     sourceProfile: adapter,
     prepareAcquisition() { assert.fail('The same prepared Source must not be reacquired'); },
     observed(name, detail) { if (name === 'dispatch_failed') { failures.push(detail); failed(detail); } },
     async faultInjection(name) {
-      if (physicalStart && name === 'physical_start_reserved') { entered(); await physicalBarrier; }
+      if (physicalStart && name === 'physical_start_reserved') {
+        if (sampleStart) sampleEvents.push('reservation-observed');
+        entered(); await physicalBarrier;
+      }
     },
     registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     managedComputeRequired: true, retainedRelationOutput: retained,
-    runPublished() { assert.fail('Refused physical start must not enter Compute'); },
+    runPublished(actual, _publication, _config, _signal, _before, retain) {
+      calls.computed++;
+      assert.equal(normalCompute, true, 'Refused physical start must not enter Compute');
+      assert.equal(actual, setup);
+      const completed = {
+        close() {calls.closed++;},
+        cleanup() {return true;},
+        cleanupPending() {return false;},
+      };
+      retain(completed);
+      return completed;
+    },
     namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope',
     now: () => '2026-11-15T00:00:00.000Z',
   });
   const held = {...(managed ? {managedRun: run} : {}),
+    ...(sampleStart ? {prepareSampleStart(actual, managedRun, execution, actualRef, actualDefinition) {
+      assert.equal(actual, setup);
+      assert.equal(managedRun, run);
+      assert.equal(execution.program, prepared);
+      assert.equal(actualRef, ref);
+      assert.equal(actualDefinition, runDefinition);
+      sampleEvents.push('prepared');
+      if (sampleStartMissingReady) return undefined;
+      return revision => {
+        assert.equal(revision, 2);
+        sampleEvents.push('received');
+      };
+    }} : {}),
     ...(source ? {preparedSource, preparedSourceAccess: sourceAccess} : {})};
-  return {owner, moon, calls, marker, failures, failure, ref, stops, physicalEntered,
+  return {owner, moon, calls, marker, failures, failure, ref, stops, physicalEntered, sampleEvents,
     ready() { ready = true; },
     resume,
     cancel() {
@@ -353,6 +437,86 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       connection: {}, requestId: 'fixture-request'}, request,
     {ref, runDefinition, dispatchReserved: false, cancellationRequested: false}, held); }};
 }
+
+test('Sample start revision reaches the pending managed setup before activity and only on a confirmed start', async () => {
+  for (const physicalStart of [false, true]) {
+    const f = originalDispatchFixture({sampleStart: true, physicalStart});
+    assert.equal(await f.start(), physicalStart ? 'started' : 'not_started');
+    if (physicalStart) {
+      await f.physicalEntered;
+      assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim', 'received', 'core', 'reservation-observed']);
+      f.cancel();
+      f.resume();
+      await f.owner.operation(f.ref);
+    } else assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim']);
+    await f.owner.drain();
+    assert.equal(f.calls.opened, 1);
+    assert.equal(f.calls.returned, 1);
+  }
+});
+
+test('refused Sample handoff after a durable start closes the same setup before Compute', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, sampleStartCoreFailure: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, f.marker.message);
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim', 'received', 'core']);
+  assert.equal(f.calls.physicalClaims, 1);
+  assert.equal(f.calls.opened, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.stops, ['failed']);
+  assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('Sample start capacity refusal never calls the preparer or attempts the physical claim', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, sampleStartCapacityFailure: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, f.marker.message);
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, ['reserve']);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.opened, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.stops, []);
+  assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('selected Sample receiver without ready refuses before physical start and returns the original setup', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, sampleStartMissingReady: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'InvalidClientRunSampleStartReceiver');
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, ['reserve', 'prepared']);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.preDispatchFailures, 1);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.closed, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.stops, []);
+  assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('Normal dispatch without a Sample receiver starts and enters Compute with the same setup', async () => {
+  const f = originalDispatchFixture({physicalStart: true, normalCompute: true});
+  assert.equal(await f.start(), 'started');
+  await f.physicalEntered;
+  const operation = f.owner.operation(f.ref);
+  f.resume();
+  await operation;
+  await f.owner.drain();
+  assert.equal(f.calls.physicalClaims, 1);
+  assert.equal(f.calls.preDispatchFailures, 0);
+  assert.equal(f.calls.computed, 1);
+  assert.equal(f.calls.closed, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.sampleEvents, []);
+  assert.deepEqual(f.failures, []);
+  assert.deepEqual(f.stops, [null]);
+});
 
 // Keep the compiled cancellation projection separate from the explicit Node
 // fixture's opaque resource ports; no fixture port can issue a cancellation.

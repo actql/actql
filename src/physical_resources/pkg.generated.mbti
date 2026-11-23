@@ -230,6 +230,8 @@ pub fn[P, E] complete_prepared_run_operation_response_projection(PreparedRunAdmi
 
 pub fn complete_shared_capacity_growth_after_acquisition(SharedCapacityGrowth) -> Result[Unit, LedgerIssue]
 
+pub fn completed_output_attempt_sequence(Ledger, Reservation) -> Int
+
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
 
 pub fn consume_execution_delegation_attempt(Ledger, ExecutionDelegation) -> Result[Unit, LedgerIssue]

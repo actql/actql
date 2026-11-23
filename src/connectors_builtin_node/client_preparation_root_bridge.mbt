@@ -3279,6 +3279,42 @@ pub fn client_program_request_explanation_read_issue_code(
 }
 
 ///|
+#export_name("clientProgramReserveRelationSampleStart")
+pub fn client_program_reserve_relation_sample_start(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  @client_local_host.reserve_installed_relation_sample_start(
+    owner,
+    prepared,
+    request,
+    compiled,
+    definition,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+  )
+}
+
+///|
+#export_name("clientProgramAcknowledgeRelationSampleStart")
+pub fn client_program_acknowledge_relation_sample_start(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captured : @strategy.CapturedDAG,
+  revision : Int,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  @client_local_host.acknowledge_installed_relation_sample_start(
+    owner, prepared, request, compiled, definition, captured, revision,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareLogicalObservation")
 pub fn client_program_prepare_logical_observation(
   run : @client_local_host.ClientInstalledManagedRun,

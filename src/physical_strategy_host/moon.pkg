@@ -31,3 +31,7 @@ import {
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/execution_authorization" @authorization,
 }
+
+options(
+  targets: { "task_completion_current_js_wbtest.mbt": [ "js" ] },
+)

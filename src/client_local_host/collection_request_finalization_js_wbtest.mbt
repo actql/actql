@@ -1,4 +1,14 @@
 ///|
+test "Relation Sample start reuses exact installed Request, Definition and setup" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+  )
+}
+
+///|
 test "collection original Request publishes 9999 with its same live output" {
   collection_request_publication_case(9999, false)
 }
@@ -101,6 +111,7 @@ fn collection_request_publication_case(
   actual_request_profile? : Bool = false,
   giant_elements? : Int? = None,
   diagnostic_failure? : Ref[LocalValuesExecutionIssue?]? = None,
+  check_sample_start? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -190,7 +201,11 @@ fn collection_request_publication_case(
     assert_true(
       finish_program_check_preparation(check).unwrap() is @checked.Checked(_),
     )
-    compile_program_check_preparation(check, limits).unwrap()
+    compile_program_check_preparation(
+      check,
+      limits,
+      execution_profile=if check_sample_start { Debug } else { Normal },
+    ).unwrap()
   }
   if observed is Some(samples) {
     samples.push(@resources.ledger_usage(parent.ledger))
@@ -335,6 +350,182 @@ fn collection_request_publication_case(
     )
     .unwrap()
     .unwrap()
+  if check_sample_start {
+    let captured = run.source_free_captured.unwrap()
+    let foreign_definition = @publication.admit_publication_contract(
+      "run_definition",
+      @publication.publication_contract_json(definition),
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    assert_true(
+      acknowledge_installed_relation_sample_start(
+        run, prepared, request, compiled, foreign_definition, captured, 2,
+      )
+      is Err(ForeignSampleStart),
+    )
+    let foreign_request = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "same-request-finalization-" + count.to_string(),
+    ).unwrap()
+    assert_true(
+      acknowledge_installed_relation_sample_start(
+        run, prepared, foreign_request, compiled, definition, captured, 2,
+      )
+      is Err(ForeignSampleStart),
+    )
+    let ledger = run.ledger.unwrap()
+    let foreign_run = @strategy.open_source_free_dag(
+      @strategy.captured_dag_graph(captured),
+      ledger,
+    ).unwrap()
+    assert_true(
+      acknowledge_installed_relation_sample_start(
+        run, prepared, request, compiled, definition, foreign_run, 2,
+      )
+      is Err(ForeignSampleStart),
+    )
+    @strategy.stop_captured_dag(foreign_run)
+    // The independent header/reference/word inventory costs 1376 bytes in
+    // both dimensions on this SAME original preparation reservation.
+    let start_bytes = 1376L
+    let original_holder = managed_run_publication_body(run, prepared).unwrap()
+    let (retained, execution) = @resources.preparation_body_borrow_reserved_extents(
+      original_holder,
+    ).unwrap()
+    let used = @resources.ledger_usage(ledger)
+    let limits = @resources.ledger_limits(ledger)
+    let retention_blocker = limits.retained_bytes -
+      used.held_bytes -
+      used.reserved_retention_bytes -
+      start_bytes
+    let execution_blocker = limits.execution_bytes -
+      used.reserved_execution_bytes -
+      start_bytes
+    for retention in [true, false] {
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        retention_blocker + (if retention { 1L } else { 0L }),
+        execution_blocker + (if retention { 0L } else { 1L }),
+      ).unwrap()
+      let declined = reserve_installed_relation_sample_start(
+        run, prepared, request, compiled, definition, captured,
+      )
+      assert_true(
+        if retention {
+          declined is Err(SampleStartCapacity(Resource(RetentionLimit)))
+        } else {
+          declined is Err(SampleStartCapacity(Resource(ExecutionLimit)))
+        },
+      )
+      assert_eq(
+        @resources.preparation_body_borrow_reserved_extents(original_holder),
+        Ok((retained, execution)),
+      )
+      @resources.settle_capacity(ledger, blocker).unwrap()
+    }
+    let blocker = @resources.reserve_capacity(
+      ledger, retention_blocker, execution_blocker,
+    ).unwrap()
+    assert_true(
+      reserve_installed_relation_sample_start(
+        run, prepared, foreign_request, compiled, definition, captured,
+      )
+      is Err(ForeignSampleStart),
+    )
+    reserve_installed_relation_sample_start(
+      run, prepared, request, compiled, definition, captured,
+    ).unwrap()
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(original_holder),
+      Ok((retained + start_bytes, execution + start_bytes)),
+    )
+    @resources.settle_capacity(ledger, blocker).unwrap()
+    // Exact originals alone cannot substitute for the selected controller.
+    assert_true(
+      acknowledge_installed_relation_sample_start(
+        run, prepared, request, compiled, definition, captured, 2,
+      )
+      is Err(SampleStartControl(@strategy.NotPrepared)),
+    )
+    let hooks = @strategy.prepare_captured_task_boundary_hooks(
+      captured,
+      @strategy.captured_dag_graph(captured),
+      @strategy.captured_dag_strategy_revision(captured),
+    ).unwrap()
+    let account = @authorization.admit_account_configuration({
+      account_id: "sample-test",
+      entries: [
+        {
+          entry_id: "sample-test-control",
+          outcome: Allow,
+          scope: {
+            principal: All,
+            connection: All,
+            resource: All,
+            operation: AnyOf(["pause", "resume"]),
+          },
+          exclusions: [],
+        },
+      ],
+      bootstrap: None,
+    }).unwrap()
+    let pause : @authorization.AccessTuple = {
+      principal: "sample-fixture",
+      connection: "node",
+      resource: "run",
+      operation: "pause",
+    }
+    let subject = @publication.publication_contract_identity(definition)
+    let context = @publication.run_publication_execution_context(
+      @publication_host.client_compiled_run_admission(compiled),
+    )
+    let bound = fn(tuple) {
+      @authorization.bind_dispatch_authorization(
+        account,
+        tuple,
+        Activation,
+        subject,
+        context,
+      ).unwrap()
+    }
+    match
+      @strategy.prepare_captured_task_control(
+        captured,
+        hooks,
+        bound(pause),
+        account,
+        pause,
+        subject,
+        context,
+      ) {
+      Ok(_) => ()
+      Err(issue) => fail("Original Debug setup: " + @debug.to_string(issue))
+    }
+    acknowledge_installed_relation_sample_start(
+      run, prepared, request, compiled, definition, captured, 2,
+    ).unwrap()
+    assert_true(
+      acknowledge_installed_relation_sample_start(
+        run, prepared, request, compiled, definition, captured, 3,
+      )
+      is Err(SampleStartControl(@strategy.AlreadyStarted)),
+    )
+    let resume_access = { ..pause, operation: "resume", }
+    @strategy.command_captured_task_control(
+      captured,
+      hooks,
+      0,
+      ResumeTerminal,
+      bound(resume_access),
+      account,
+      resume_access,
+      subject,
+      context,
+    ).unwrap()
+  }
   let ledger = parent.ledger
   let result = collection_node_callback_order(
     setup,

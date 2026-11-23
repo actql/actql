@@ -207,6 +207,8 @@ pub fn client_program_accumulate_model_task_construction_capacity(@execution_rel
 
 pub fn client_program_acknowledge_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
+pub fn client_program_acknowledge_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
@@ -2380,6 +2382,8 @@ pub fn client_program_requires_task_compilation(@run_publication_host.PreparedCl
 pub fn client_program_reserve_installed_effect_capture_decoded(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_reserve_relation_sample_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
 
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

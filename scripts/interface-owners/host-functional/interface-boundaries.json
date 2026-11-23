@@ -28667,7 +28667,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "41e276101a43819160e070b7c29b90784ca65974f86bf7afe927eefef6fd0540",
+      "sha256": "2d4b49d380ed33b1d3fb646960afbeef0785649d0ff049acf94a3c2a7c0a781a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29969,6 +29969,7 @@
             "currentAuthorization",
             "captureSourceOperation",
             "localExecutionOwner",
+            "captureSampleStart",
             "requestControl",
             "publicationControl"
           ],

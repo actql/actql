@@ -51,6 +51,10 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
   const start = (selection = capture) => journal.reservePhysicalStart(request,
     {namespaceId: options.namespaceId, ref, currentAuthorization: true,
       captureSourceOperation: selection}, control, publication);
+  const startSample = (selection, currentAuthorization = true) => journal.reservePhysicalStart(request,
+    {namespaceId: options.namespaceId, ref, currentAuthorization,
+      localExecutionOwner: {program, compiled}, captureSampleStart: selection},
+    control, publication);
   t.after(() => journal.close());
   const frame = Object.freeze({run: {}, acquisition: {}, requestId: 'original-attempt',
     runInvocationCid: 'sha256:' + '6'.repeat(64), dispatchRequestCid: 'sha256:' + '7'.repeat(64)});
@@ -67,7 +71,7 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
   const registerJob = original => {jobs.set(original.jobRead, original); records.set(original.record, original.wire);};
   registerJob(original);
   return {directory, ref, program, compiled, prepared, control, publication, frame, moon, occurrence, original, store,
-    get journal() {return journal;}, get scope() {return scope;}, start,
+    get journal() {return journal;}, get scope() {return scope;}, start, startSample,
     source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, journal, store, program, selected, value);},
     port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
@@ -176,6 +180,68 @@ test('lost first physical-start COMMIT reply cannot issue a live Source scope', 
   finally {DatabaseSync.prototype.exec = exec;}
   assert.equal(f.scope, undefined); f.reopen(); assert.equal(f.start(), false);
   assert.equal(f.scope, undefined); assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), undefined);
+});
+
+test('Sample first-start handoff receives the original checked revision once after COMMIT', t => {
+  const f = fixture(t);
+  const revisions = [];
+  const selection = {program: f.program, compiled: f.compiled, captureRevision(revision) {
+    assert.equal(this, selection);
+    assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).physicalStartReserved, true);
+    assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).revision, revision);
+    revisions.push(revision);
+  }};
+  assert.throws(() => f.startSample({...selection, program: {}}),
+    {code: 'ClientRunSampleStartOriginalUnavailable'});
+  assert.throws(() => f.startSample(selection, false), {code: 'ClientRunPhysicalStartDenied'});
+  assert.deepEqual(revisions, []);
+  assert.equal(f.startSample(selection), true);
+  assert.deepEqual(revisions, [2]);
+  f.mutate('UPDATE client_requests SET revision = revision + 1');
+  f.reopen();
+  assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).revision, 3);
+  assert.equal(f.startSample(selection), false);
+  assert.deepEqual(revisions, [2]);
+  assert.equal(f.scope, undefined);
+});
+
+test('Sample first-start checks representability before the original write', t => {
+  for (const revision of [2147483646, 2147483647]) {
+    const f = fixture(t);
+    f.mutate('UPDATE client_requests SET revision = ' + revision);
+    let issued;
+    const selection = {program: f.program, compiled: f.compiled, captureRevision(value) {issued = value;}};
+    if (revision === 2147483646) {
+      assert.equal(f.startSample(selection), true);
+      assert.equal(issued, 2147483647);
+    } else {
+      assert.throws(() => f.startSample(selection), {code: 'ClientRunSampleStartRevisionExhausted'});
+      assert.equal(issued, undefined);
+      const row = f.journal.lookupRunDefinition(f.ref, f.control, f.publication);
+      assert.equal(row.revision, revision);
+      assert.equal(row.physicalStartReserved, false);
+    }
+  }
+});
+
+test('Sample first-start loss of COMMIT reply issues no revision on this or later openings', t => {
+  const f = fixture(t);
+  const selection = {program: f.program, compiled: f.compiled,
+    captureRevision() {assert.fail('The original start has no acknowledged response');}};
+  const exec = DatabaseSync.prototype.exec;
+  let injected = false;
+  DatabaseSync.prototype.exec = function(sql) {
+    const value = Reflect.apply(exec, this, [sql]);
+    if (sql === 'COMMIT' && !injected) {injected = true; throw new Error('PhysicalStartCommitReplyLost');}
+    return value;
+  };
+  try {
+    assert.throws(() => f.startSample(selection), {code: 'ClientRunPhysicalStartUnknown', outcome: 'unknown'});
+  } finally { DatabaseSync.prototype.exec = exec; }
+  assert.equal(injected, true);
+  f.reopen();
+  assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).physicalStartReserved, true);
+  assert.equal(f.startSample(selection), false);
 });
 
 test('current cancellation after scope issue refuses before recording or physical send', t => {

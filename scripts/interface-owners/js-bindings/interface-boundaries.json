@@ -25479,7 +25479,9 @@
         },
         {
           "operations": [
-            "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation"
+            "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation",
+            "publicationControl/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+            "publicationControl/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart"
           ],
           "exports": [],
           "attributes": {
@@ -25541,6 +25543,10 @@
               {
                 "path": "adapters/host-node/logical-task-observation.test.mjs",
                 "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
               }
             ]
           }
@@ -27316,6 +27322,18 @@
           "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
           "parameters": [
             "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:acknowledgeClientRelationSampleStart/init:acknowledgeClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "captured",
+            "revision"
           ],
           "async": false
         },
@@ -32270,6 +32288,17 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:reserveClientRelationSampleStart/init:reserveClientRelationSampleStart",
+          "parameters": [
+            "run",
+            "request",
+            "executionOwner",
+            "definition",
+            "setup"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
           "parameters": [
             "parent",
@@ -35214,7 +35243,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "856a6cc0e0e2fd986ba9d5c459b80f8a0be5a5387c64ab8957460b66ae110548"
+      "sha256": "cbe5bd6d4790eec33a7c58a332302bbb5b241062e9306c6e66fa4a04e9e3789b"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -40219,6 +40248,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/start/start/start/init:captureRevision/init:captureRevision",
+          "parameters": [
+            "revision"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/start/start/start/init:close/init:close",
           "parameters": [],
           "async": true
@@ -40523,6 +40559,11 @@
         },
         {
           "name": "installNodeClientDispatchOwner/track/track/track#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "invalidSampleStartReceiver/invalidSampleStartReceiver",
           "parameters": [],
           "async": false
         },
@@ -41225,7 +41266,9 @@
             "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
             "installNodeClientDispatchOwner/settleCredentialRefusal/settleCredentialRefusal",
             "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry",
-            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2"
+            "installNodeClientDispatchOwner/settleRetainedEntry/settleRetainedEntry#2",
+            "installNodeClientDispatchOwner/start/start/start/init:captureRevision/init:captureRevision",
+            "invalidSampleStartReceiver/invalidSampleStartReceiver"
           ],
           "exports": [
             "installNodeClientDispatchOwner"
@@ -41449,6 +41492,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
                 "anchor": "test('retained dispatch cannot substitute a copied request for the timed-plan original'"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('selected Sample receiver without ready refuses before physical start and returns the original setup'"
               }
             ]
           }
@@ -42778,7 +42825,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "44b8a8deaf6c57657a1535d5a002f9ca263748458958b68284cecd90b24d1a8f",
+      "sha256": "0fa8b2d0ef995ab1b477985daadb364976da8aa3ecb62bc559dec9e3fc2dcafe",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

@@ -206,6 +206,11 @@ async function observeNodeRunStop(facts, {failureObserved}) {
   throw new Error('ClientRunStopObservationChanged');
 }
 
+function invalidSampleStartReceiver(value) {
+  if (typeof value?.then === 'function') void Promise.resolve(value).catch(() => {});
+  throw new TypeError('InvalidClientRunSampleStartReceiver');
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
@@ -1010,24 +1015,79 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           return;
         }
       }
-      entry.physicalStartClaimAttempted = true;
-      if (!journal.reservePhysicalStart(requested, {
-        namespaceId, ref: accepted.ref,
-        currentAuthorization: hostConnection({principalId: actual,
-          connection, ref: accepted.ref}),
-        ...(!acquiring && !inferring && !serializing && !generatingContent ? {
-          localExecutionOwner: sourceFreePlanExecutionOwner(held.plan),
-        } : {}),
-        ...(acquiring && journal.sourceOperationConfigured === true ? {
-          captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
-            capture(scope) {entry.sourceOperationScope = scope;}},
-        } : {}),
-      }, moon, control)) {
+      let physicalStarted;
+      {
+        // The selected synchronous receiver, revision callback and original
+        // aliases have no lifetime across the supervisor's following awaits.
+        let sampleReady, sampleStartSelection, sampleStartRevision;
+        let sampleRun, sampleExecution, sampleDefinition, sampleCaptured;
+        const prepareSampleStart = held.prepareSampleStart;
+        if (prepareSampleStart !== undefined) {
+          // The already selected Run transfers its preparation receiver once.
+          // Merely installing the shared dispatcher never selects a Normal Run.
+          held.prepareSampleStart = undefined;
+          if (typeof prepareSampleStart !== 'function' || gate !== undefined ||
+              accepted.dispatchReserved === true || preparationLease === undefined ||
+              acquiring || inferring || serializing || generatingContent ||
+              held.managedRun === undefined || setup === undefined ||
+              entry.pendingSetup !== setup || entry.preparationHostBorrow === undefined) {
+            throw new Error('ClientRunSampleStartOriginalUnavailable');
+          }
+          const execution = sourceFreePlanExecutionOwner(held.plan);
+          if (execution === undefined ||
+              typeof capturedRun !== 'function' ||
+              typeof control.reserveClientRelationSampleStart !== 'function' ||
+              typeof control.acknowledgeClientRelationSampleStart !== 'function') {
+            throw new Error('ClientRunSampleStartOriginalUnavailable');
+          }
+          sampleRun = held.managedRun;
+          sampleDefinition = accepted.runDefinition;
+          control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup);
+          entry.abort.signal.throwIfAborted();
+          sampleReady = prepareSampleStart(setup, sampleRun, execution, accepted.ref, sampleDefinition);
+          if (typeof sampleReady !== 'function') invalidSampleStartReceiver(sampleReady);
+          sampleExecution = execution;
+          sampleCaptured = Reflect.apply(capturedRun, moon, [setup]);
+          if (sampleCaptured === undefined) throw new Error('ClientRunSampleStartOriginalUnavailable');
+          sampleStartSelection = {captureSampleStart: {program: execution.program, compiled: execution.compiled,
+            captureRevision(revision) { sampleStartRevision = revision; }}};
+          entry.abort.signal.throwIfAborted();
+        }
+        entry.physicalStartClaimAttempted = true;
+        physicalStarted = journal.reservePhysicalStart(requested, {
+          namespaceId, ref: accepted.ref,
+          currentAuthorization: hostConnection({principalId: actual,
+            connection, ref: accepted.ref}),
+          ...(!acquiring && !inferring && !serializing && !generatingContent ? {
+            localExecutionOwner: sourceFreePlanExecutionOwner(held.plan),
+          } : {}),
+          ...(acquiring && journal.sourceOperationConfigured === true ? {
+            captureSourceOperation: {program: preparedProgram, compiled: held.plan.compiled, store,
+              capture(scope) {entry.sourceOperationScope = scope;}},
+          } : {}),
+          ...sampleStartSelection,
+        }, moon, control);
+        if (physicalStarted) {
+          // A refusal in the receiver cannot erase the committed start.
+          entry.physicalStarted = true;
+          entry.finishPending = true;
+          if (sampleReady !== undefined) {
+            if (!Number.isInteger(sampleStartRevision) || sampleStartRevision <= 0 ||
+                sampleStartRevision > 2147483647) {
+              throw new Error('ClientRunSampleStartOriginalUnavailable');
+            }
+            const result = sampleReady(sampleStartRevision);
+            if (result !== undefined) invalidSampleStartReceiver(result);
+            entry.abort.signal.throwIfAborted();
+            control.acknowledgeClientRelationSampleStart(sampleRun, requested, sampleExecution,
+              sampleDefinition, sampleCaptured, sampleStartRevision);
+          }
+        }
+      }
+      if (!physicalStarted) {
         await settleCleanup(entry);
         return;
       }
-      entry.physicalStarted = true;
-      entry.finishPending = true;
       gate?.started();
       reached('started');
       await step('physical_start_reserved', {ref: accepted.ref});
