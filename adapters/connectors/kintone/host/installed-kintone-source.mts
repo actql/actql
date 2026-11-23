@@ -12,63 +12,121 @@ import {createKintoneManagedSequence} from '../site/kintone-managed-sequence.mjs
 import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {invocationScopeFields} from '../../../host-common/owned-invocation-context.mjs';
 
+import type {KintoneManagedInput} from '../site/kintone-managed-sequence.mjs';
+import type {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import type {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+
+type Limits = Readonly<Record<(typeof limitKeys)[number], number>>;
+export type KintoneInstalledSource = Readonly<{
+  version: typeof INSTALLED_KINTONE_SOURCE_VERSION; connectorId: string; appId: string;
+  resource: string; formResource: string; fieldCodes: readonly string[]; metadataPath: string;
+  siteProfilePath: string; accountConfigurationWire: string; limits: Limits;
+}>;
+type Site = Readonly<Record<Exclude<(typeof siteKeys)[number], 'siteGeneration'>, string> &
+  {siteGeneration: number; caPath?: string; guestSpaceId?: string}>;
+type Metadata = Readonly<{version: string; connectorId: string; appId: string; apiOrigin: string; formBody: string}>;
+type ReadJson = (path: string) => unknown;
+type Readers = Readonly<{readJson: ReadJson; readOriginalBytes?(path: string): unknown}>;
+type Managed = Parameters<typeof createKintoneManagedSequence>[0];
+type Native = import('../site/kintone-record-read.mjs').KintoneFormAndPageRuntime & Readonly<{
+  clientProgramKintoneReadDeclarationConstructionCapacity(bodyBytes: number, encodedUnits: number, fields: number,
+    fieldUnits: number, appUnits: number, resourceUnits: number, connectorUnits: number, revisionUnits: number,
+    formLimits: unknown, valueLimits: unknown, declarationLimits: unknown): unknown;
+  clientProgramKintoneMetadataIdentityCapacity(base: unknown, encodedUnits: number,
+    connectorUnits: number, appUnits: number, originUnits: number): unknown;
+  clientProgramKintoneValueLimits(columns: number, names: number, nodes: number, depth: number, text: number): unknown;
+  clientProgramKintoneDeclarationLimits(bytes: number, nodes: number, depth: number, views: number, columns: number): unknown;
+  clientProgramKintoneProjectForm(body: Uint8Array, app: string, limits: unknown): unknown;
+  clientProgramKintoneDeclareRecords(form: unknown, prior: unknown, fields: readonly string[], connector: string,
+    revision: string, resource: string, values: unknown, declaration: unknown): unknown;
+  clientProgramKintoneRecordDeclaration(original: unknown): unknown;
+}>;
+type Declared = Readonly<{views: readonly Readonly<{fields: readonly string[]}>[]}>;
+type NativeDeclaration = Readonly<{original: unknown; metadataCid: string}>;
+export type KintoneMaterialsConstruction = Readonly<{
+  configurationReader: Readers;
+  prepareNativeDeclaration(input: Readonly<{capacity(): unknown; project(): NativeDeclaration & Readonly<{
+    form: Uint8Array; formCatalog: unknown; declaration: unknown}>}>):
+    NativeDeclaration & Readonly<{declared: Declared}>;
+}>;
+type MaterialOptions = Readonly<{moon: Native; construction?: KintoneMaterialsConstruction; runtimePorts?: readonly string[]}>;
+type Reader = ReturnType<typeof createInstalledCredentialSourceReader>;
+type RowSource = Awaited<ReturnType<typeof createInstalledRowSource>>;
+type Authorization = Readonly<{context: Readonly<{contextCid: string}>; authorize(kind: 'acquisition',
+  resource: Readonly<{connection: string; resource: string; operation: 'read'}>,
+  context: Readonly<{subjectCid: string; signal: AbortSignal}>): unknown}>;
+type Grant = Readonly<Record<string, unknown>>;
+type OpenedSite = Readonly<{authorization: Authorization;
+  site: Readonly<{credential: Readonly<{control: unknown}>; issueReadGrant(input: Readonly<Record<string, unknown>>): Grant}>}>;
+type Implementation = Readonly<{capacity: unknown; runAcquisitionLimits: unknown}>;
+type Construction = KintoneMaterialsConstruction & Readonly<{
+  openRowSite(options: Readonly<Record<string, unknown>>): PromiseLike<OpenedSite>;
+  createRowSource(options: Readonly<Record<string, unknown>>): RowSource | PromiseLike<RowSource>;
+  sourceReaderImplementation(options: Readonly<Record<string, unknown>>): Implementation;
+  createSourceReader(options: Readonly<{implementation: Implementation;
+    prepareReadSequence(input: KintoneManagedInput): ReturnType<ReturnType<typeof createKintoneManagedSequence>>}>): Reader;
+}>;
+type LoadOptions = Readonly<{moon: Native; runtimeBundleCid: string; resolveSecret?: unknown;
+  installation?: Readonly<{responseHeaders?: readonly string[]}>; construction?: Construction}>;
+type Scope = Readonly<{runInvocationCid: string; dispatchRequestCid: string}>;
+
 export const INSTALLED_KINTONE_SOURCE_VERSION = 'actql-installed-kintone-source/0.1';
 export const INSTALLED_KINTONE_SITE_VERSION = 'actql-installed-kintone-site/0.1';
 const registration = 'kintone', revision = 'kintone/0.1';
 const profileKeys = ['version', 'connectorId', 'appId', 'resource', 'formResource',
-  'fieldCodes', 'metadataPath', 'siteProfilePath', 'accountConfigurationWire', 'limits'];
+  'fieldCodes', 'metadataPath', 'siteProfilePath', 'accountConfigurationWire', 'limits'] as const;
 const siteKeys = ['version', 'apiOrigin', 'credentialAuthorityId', 'credentialKeyId',
   'credentialPrivateKeyPath', 'environment', 'journalRoot', 'namespaceId',
-  'siteGeneration', 'siteKey', 'tokenEnvironment'];
+  'siteGeneration', 'siteKey', 'tokenEnvironment'] as const;
 const limitKeys = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits',
   'maxColumns', 'maxCells', 'maxTableRows', 'maxValueNodes', 'maxValueDepth',
   'maxValueTextBytes', 'maxContractPairs', 'maxRequestBytes', 'maxRequests',
-  'maxPages', 'perPage', 'maxSecretBytes', 'maxRows', 'maxDeclarationBytes', 'maxDeclarationNodes'];
-const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
-const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
+  'maxPages', 'perPage', 'maxSecretBytes', 'maxRows', 'maxDeclarationBytes', 'maxDeclarationNodes'] as const;
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value);
-const absolute = value => text(value) && isAbsolute(value);
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const closed = (value, keys) => value !== null && typeof value === 'object' &&
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
+const closed = <Key extends string,>(value: unknown, keys: readonly Key[]): value is Record<Key, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const canonical = value => canonicalJson(value, {dataKeys: true});
-const cid = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const canonical = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const cid = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
-export function checkInstalledKintoneSourceProfile(profile) {
+export function checkInstalledKintoneSourceProfile(profile: unknown) {
   if (!closed(profile, profileKeys) || profile.version !== INSTALLED_KINTONE_SOURCE_VERSION ||
-      !text(profile.connectorId) || !/^[1-9][0-9]*$/u.test(profile.appId ?? '') ||
+      !text(profile.connectorId) || !/^[1-9][0-9]*$/u.test((profile.appId as string | null | undefined) ?? '') ||
       !text(profile.resource) || !text(profile.formResource) || profile.resource === profile.formResource ||
       !absolute(profile.metadataPath) || !absolute(profile.siteProfilePath) ||
       !text(profile.accountConfigurationWire) || !closed(profile.limits, limitKeys) ||
-      !limitKeys.every(key => positive(profile.limits[key])) ||
-      profile.limits.perPage > 500 || profile.limits.perPage > profile.limits.maxRows ||
-      profile.limits.maxPages > profile.limits.maxRequests || profile.limits.maxRequests > 10000 ||
+      !limitKeys.every(key => positive((profile.limits as Limits)[key])) ||
+      (profile.limits.perPage as number) > 500 || (profile.limits.perPage as number) > (profile.limits.maxRows as number) ||
+      (profile.limits.maxPages as number) > (profile.limits.maxRequests as number) || (profile.limits.maxRequests as number) > 10000 ||
       !Array.isArray(profile.fieldCodes) || profile.fieldCodes.length > 998 ||
       !profile.fieldCodes.every(text) || new Set(profile.fieldCodes).size !== profile.fieldCodes.length ||
       profile.fieldCodes.some(code => code === '$id' || code === '$revision')) {
     fail('InvalidInstalledKintoneSourceProfile');
   }
   return Object.freeze({...profile, fieldCodes: Object.freeze([...profile.fieldCodes]),
-    limits: Object.freeze({...profile.limits})});
+    limits: Object.freeze({...profile.limits})}) as KintoneInstalledSource;
 }
 
-function checkSite(value) {
-  const {caPath, guestSpaceId, ...site} = value ?? {};
-  let origin;
-  try {origin = new URL(site.apiOrigin);} catch { /* Closed refusal below. */ }
+function checkSite(value: unknown) {
+  const {caPath, guestSpaceId, ...site} = (value as Partial<Site> | null | undefined) ?? {};
+  let origin: URL | undefined;
+  try {origin = new URL(site.apiOrigin!);} catch { /* Closed refusal below. */ }
   if (!closed(site, siteKeys) || site.version !== INSTALLED_KINTONE_SITE_VERSION ||
       origin?.protocol !== 'https:' || origin.origin !== site.apiOrigin ||
-      !['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'].every(key => text(site[key])) ||
+      !(['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'] as const).every(key => text(site[key])) ||
       !absolute(site.credentialPrivateKeyPath) || !absolute(site.journalRoot) ||
       (caPath !== undefined && !absolute(caPath)) ||
       (guestSpaceId !== undefined && !/^[1-9][0-9]*$/u.test(guestSpaceId)) ||
-      !Number.isSafeInteger(site.siteGeneration) || site.siteGeneration < 0 ||
-      !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(site.tokenEnvironment)) fail('InvalidInstalledKintoneSite');
+      !Number.isSafeInteger(site.siteGeneration) || site.siteGeneration! < 0 ||
+      !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(site.tokenEnvironment!)) fail('InvalidInstalledKintoneSite');
   return Object.freeze({...site, ...(caPath === undefined ? {} : {caPath}),
-    ...(guestSpaceId === undefined ? {} : {guestSpaceId})});
+    ...(guestSpaceId === undefined ? {} : {guestSpaceId})}) as Site;
 }
 
-function metadataBodyBytes(encoded, maxBytes) {
+function metadataBodyBytes(encoded: unknown, maxBytes: number) {
   if (typeof encoded !== 'string' || encoded.length > Math.ceil(maxBytes / 3) * 4 ||
       !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(encoded)) {
     fail('InvalidInstalledKintoneMetadata');
@@ -83,13 +141,13 @@ function metadataBodyBytes(encoded, maxBytes) {
   return bytes;
 }
 
-function decodeMetadataBody(encoded, maxBytes) {
+function decodeMetadataBody(encoded: string, maxBytes: number) {
   const body = Buffer.from(encoded, 'base64');
   if (body.byteLength > maxBytes || body.toString('base64') !== encoded) fail('InvalidInstalledKintoneMetadata');
   return body;
 }
 
-async function inputs(profile, readers) {
+async function inputs(profile: unknown, readers: Readers) {
   const installed = checkInstalledKintoneSourceProfile(profile);
   const site = checkSite(await readers.readJson(installed.siteProfilePath));
   const metadata = await readers.readJson(installed.metadataPath);
@@ -101,18 +159,20 @@ async function inputs(profile, readers) {
     fail('InvalidInstalledKintoneMetadata');
   }
   metadataBodyBytes(metadata.formBody, installed.limits.maxResponseBytes);
-  return {installed, site, metadata};
+  return {installed, site, metadata: metadata as Metadata};
 }
 
-export async function installedKintoneSourceIdentityParts(profile, providerProfile, readJson, _entry, {configurationReader} = {}) {
+export async function installedKintoneSourceIdentityParts(profile: Readonly<Record<string, unknown> & {accountConfigurationWire: string}>,
+  providerProfile: unknown, readJson: ReadJson, _entry: unknown, {configurationReader}: {configurationReader?: Readers} = {}) {
+  // The capture helper preserves the selected readJson or the same typed fallback.
   const readers = captureConfigurationReaders(configurationReader, readJson,
-    () => fail('KintoneSourceConstructionUnavailable'));
+    () => fail('KintoneSourceConstructionUnavailable')) as unknown as Readers;
   const {site, metadata} = await inputs(providerProfile, readers);
   if (site.caPath !== undefined && configurationReader !== undefined && readers.readOriginalBytes === undefined) {
     fail('KintoneSourceConstructionUnavailable');
   }
   const ca = site.caPath === undefined ? undefined : await (configurationReader === undefined
-    ? readFile(site.caPath) : readers.readOriginalBytes(site.caPath));
+    ? readFile(site.caPath) : readers.readOriginalBytes!(site.caPath)) as Uint8Array | undefined;
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},
     site, {metadataCid: cid(metadata), ...(ca === undefined ? {} : {
       caSha256: createHash('sha256').update(ca).digest('hex')})}];
@@ -120,7 +180,7 @@ export async function installedKintoneSourceIdentityParts(profile, providerProfi
 
 // The same initialization owner prepares original Form/declaration DATA for
 // Source and Effect. No Site, credential resolution or physical read is opened.
-export async function prepareInstalledKintoneMaterials(profile, {moon, construction, runtimePorts = []}) {
+export async function prepareInstalledKintoneMaterials(profile: unknown, {moon, construction, runtimePorts = []}: MaterialOptions) {
   if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
       construction.configurationReader === undefined || !Array.isArray(runtimePorts) ||
       runtimePorts.some(name => typeof name !== 'string')) fail('KintoneSourceConstructionUnavailable');
@@ -131,7 +191,7 @@ export async function prepareInstalledKintoneMaterials(profile, {moon, construct
   for (const name of ['ReadDeclarationConstructionCapacity', 'MetadataIdentityCapacity',
     'FormLimits', 'PageLimits', 'ValueLimits', 'DeclarationLimits', 'ProjectForm', 'DeclareRecords',
     'RecordDeclaration', ...runtimePorts]) {
-    if (typeof moon?.[`clientProgramKintone${name}`] !== 'function') fail('KintoneOriginalReadUnavailable');
+    if (typeof (moon as Readonly<Record<string, unknown>>)?.[`clientProgramKintone${name}`] !== 'function') fail('KintoneOriginalReadUnavailable');
   }
   const formLimits = moon.clientProgramKintoneFormLimits(limits.maxResponseBytes, limits.maxNodes,
     limits.maxDepth, limits.maxFields, limits.maxNameUnits);
@@ -167,11 +227,12 @@ export async function prepareInstalledKintoneMaterials(profile, {moon, construct
     formLimits, valueLimits, pageLimits, declarationLimits});
 }
 
-export function installedKintoneSiteBinding({contextCid, runtimeBundleCid, metadataCid, site}) {
+export function installedKintoneSiteBinding({contextCid, runtimeBundleCid, metadataCid, site}:
+  Readonly<{contextCid: string; runtimeBundleCid: string; metadataCid: string; site: Site}>) {
   return cid({version: 'actql-installed-kintone-binding/0.1', contextCid, runtimeBundleCid, metadataCid, site});
 }
 
-export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCid, resolveSecret, installation, construction}) {
+export async function loadInstalledKintoneSource(profile: unknown, {moon, runtimeBundleCid, resolveSecret, installation, construction}: LoadOptions) {
   if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
       typeof construction.openRowSite !== 'function' || typeof construction.createRowSource !== 'function' ||
       typeof construction.sourceReaderImplementation !== 'function' || typeof construction.createSourceReader !== 'function' ||
@@ -184,11 +245,11 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
   const {limits} = installed;
   const readers = construction.configurationReader;
   const connection = `kintone:${installed.connectorId}`;
-  const target = (resource, fields) => Object.freeze({version: 'actql-installed-kintone-target/0.1',
+  const target = (resource: string, fields: readonly string[]) => Object.freeze({version: 'actql-installed-kintone-target/0.1',
     apiOrigin: siteProfile.apiOrigin, appId: installed.appId,
     ...(siteProfile.guestSpaceId === undefined ? {} : {guestSpaceId: siteProfile.guestSpaceId}),
     resource, metadataCid, fields: Object.freeze([...fields])});
-  const admitsApprovalTarget = (binding, resource) => resource === installed.resource &&
+  const admitsApprovalTarget = (binding: Readonly<{fields?: unknown}> | null | undefined, resource: string) => resource === installed.resource &&
     Array.isArray(binding?.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => declared.views[0].fields.includes(field)) &&
     canonical(binding) === canonical(target(resource, binding.fields));
@@ -227,7 +288,7 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
     readSequenceConstruction: Object.freeze({capacity, originalLimits: limits, sequence,
       maxRequestBytes: limits.maxRequestBytes})});
   if (siteProfile.caPath !== undefined && typeof readers.readOriginalBytes !== 'function') fail('KintoneSourceConstructionUnavailable');
-  const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
+  const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes!(siteProfile.caPath);
   const {site, authorization} = await construction.openRowSite({
     profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
     accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
@@ -242,8 +303,8 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
     prepareReadSequence(input) {
       if (input.resource !== installed.resource || input.responseBorrow === undefined ||
           input.originalAuthorization === undefined) fail('ForeignKintoneReadPreparation');
-      const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);
-      let formGrant, signal, formUses = 0;
+      const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control) as Scope;
+      let formGrant: Grant | undefined, signal: AbortSignal | undefined, formUses = 0;
       // Capture one original callback per reader. The generic separate-resource
       // binding retains this SAME callback and surrounds it with root current.
       const verifyCurrent = async () => {
@@ -251,12 +312,12 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
         signal.throwIfAborted();
         const decision = await Reflect.apply(authorize, authorization, ['acquisition',
           {connection, resource: installed.formResource, operation: 'read'},
-          {subjectCid: cid({binding: target(input.resource, input.columns), operation: KINTONE_FORM_READ_OPERATION}), signal}]);
+          {subjectCid: cid({binding: target(input.resource, input.columns), operation: KINTONE_FORM_READ_OPERATION}), signal}]) as Readonly<{action?: unknown}> | undefined;
         signal.throwIfAborted();
         if (decision?.action !== 'dispatch') fail('KintoneFormReadDenied');
         return decision;
       };
-      const authorizeForm = async (selected, selectedSignal) => {
+      const authorizeForm: Managed['authorizeForm'] = async (selected, selectedSignal) => {
         if (selected !== input || signal !== undefined && signal !== selectedSignal) fail('ForeignKintoneReadPreparation');
         signal = selectedSignal;
         if (formUses >= limits.maxRequests) fail('KintoneFormReadUseLimit');
@@ -276,7 +337,7 @@ export async function loadInstalledKintoneSource(profile, {moon, runtimeBundleCi
       return createKintoneManagedSequence({moon, original,
         bounds: Object.freeze({form: formLimits, page: pageLimits, values: valueLimits}),
         limits, guestSpaceId: siteProfile.guestSpaceId, authorizeForm, baseCapacity: capacity,
-        capacityForResponse(read, kind, bytes, previous) {
+        capacityForResponse(read: unknown, kind: 'form' | 'page', bytes: number, previous: unknown) {
           return Reflect.apply(responseMethod.value, moon, [read, previous, bytes,
             kind === 'form', formLimits]);
         }})(input);

@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-      "sha256": "41f3417e825acc015367ac41de3bbf39e02a60447187947fea109a4e0214f3b5",
+      "sha256": "ee387dc40079387cc8a60c389098da6070bbd94fb1a169a43064e91b35a80a42",
       "exports": [
         "INSTALLED_KINTONE_SITE_VERSION",
         "INSTALLED_KINTONE_SOURCE_VERSION",
@@ -246,7 +246,7 @@
                 "anchor": "client_program_kintone_prepare_read"
               },
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "export function checkInstalledKintoneSourceProfile"
               }
             ],
@@ -353,37 +353,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "prepareReadSequence(input) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "return createKintoneManagedSequence({moon, original,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-                "anchor": "const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);"
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
+                "anchor": "const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control) as Scope;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "binding retains this SAME callback and surrounds it with root current."
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const decision = await verifyCurrent();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "fail('KintoneFormReadUseLimit');"
               }
             ],
@@ -395,7 +395,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "maxTotalResponseBytes: Number(totalBytes)"
               }
             ],
@@ -584,7 +584,7 @@
                 "anchor": "client_program_kintone_prepare_read"
               },
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "export function checkInstalledKintoneSourceProfile"
               }
             ],
@@ -7361,13 +7361,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "await observeForm();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "fail('KintoneReadPageLimit');"
               }
             ],
@@ -7521,7 +7521,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
-      "sha256": "2394008efd862b458d41bf6e2910204a4fbb43d7481a4b177da801cbf7d6b3f8",
+      "sha256": "9414457a157befa8087e3cb65461aef350da32935a7057a5291f0d0b0fac4916",
       "exports": [
         "createKintoneManagedSequence"
       ],
@@ -7647,37 +7647,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "No credential, physical transport, RowRun, charge or cleanup ACK is created here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
-                "anchor": "return function prepare(input){"
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
+                "anchor": "return function prepare(input: KintoneManagedInput){"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "input.responseBorrow"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "retired=true;read=columns=capacity=kind=undefined;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "await observeForm();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "fail('KintoneReadPageLimit');"
               }
             ],
@@ -7689,7 +7689,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "capacity=Reflect.apply(capacityForResponse,undefined,[read,kind,bytes,capacity]);"
               }
             ],
@@ -7761,7 +7761,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],
@@ -7886,7 +7886,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],

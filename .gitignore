@@ -3116,3 +3116,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/kintone/site/kintone-record-delete.d.mts
 /adapters/connectors/kintone/site/kintone-record-write.mjs
 /adapters/connectors/kintone/site/kintone-record-write.d.mts
+/adapters/connectors/kintone/site/kintone-managed-sequence.mjs
+/adapters/connectors/kintone/site/kintone-managed-sequence.d.mts
+/adapters/connectors/kintone/host/installed-kintone-source.mjs
+/adapters/connectors/kintone/host/installed-kintone-source.d.mts
