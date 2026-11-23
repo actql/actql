@@ -101,9 +101,35 @@ pub fn[I] check_request_retained_submitted_intent(
     Err(issue) => return Err(Preparation(issue))
     Ok(_) => ()
   }
+  check_request_owned_submitted_intent(
+    owner,
+    input,
+    environment,
+    publication,
+    public_primary~,
+  )
+}
+
+///|
+/// Continue an input already constructed on this Request. The same canonical
+/// intent supplies the Native-decoder input and the later Run correspondence.
+/// The caller still owns currentness, policy supplementation and compilation.
+pub fn[I] check_request_owned_submitted_intent(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  public_primary~ : Bool,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestRetainedIntentIssue,
+] {
   let limits = match reserve_request_retained_intent_source(owner, input) {
     Err(issue) => return Err(Preparation(issue))
     Ok(value) => value
+  }
+  guard request_submitted_intent_original(owner, input) is Some(intent) else {
+    return Err(Preparation(WrongPhase))
   }
   let source = match
     @source.parse_json_bytes_preserving(

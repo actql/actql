@@ -115786,12 +115786,16 @@
       "module": "src/client_local_host/preparation_request_retained_intent.mbt",
       "operations": [
         {
+          "name": "[I]check_request_owned_submitted_intent",
+          "declaration": "[ I ] check_request_owned_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        },
+        {
           "name": "[I]check_request_retained_submitted_intent",
           "declaration": "[ I ] check_request_retained_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
         }
       ],
       "exports": [],
-      "sha256": "5333d070f4667d46c53a30846946eb9ad953140a131fa425e051ba12be47679d",
+      "sha256": "3f21f95e4c58dff08c81de0f8e27dc172d3791d4255f2cb9526512edff02cadd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Original funded Local Request retained-intent check",
@@ -115799,6 +115803,7 @@
         {
           "operations": [
             "<module>",
+            "[I]check_request_owned_submitted_intent",
             "[I]check_request_retained_submitted_intent"
           ],
           "exports": [],
