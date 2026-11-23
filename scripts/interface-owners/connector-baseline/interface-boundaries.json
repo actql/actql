@@ -11019,7 +11019,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bab8a345a0cd43f28356ca2b35f4782858b76d6bd241393b062afb054be7ce40",
+      "sha256": "59d2a5631ab871a864aa093142c60fa3b9d8bbeaaabf66deb991da0228ea4daa",
       "role": "connector-semantics",
       "owner": "Opaque installed Site capability attestation and current exact write Mapping checks; no credential use grant",
       "exports": [
@@ -11085,31 +11085,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "issueSalesforceEffectCapability"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "owners.get(capability)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "attestations"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "currentGrant"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "InvalidSalesforceEffectCapability"
               }
             ],
@@ -11118,7 +11118,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-capability.mts",
                 "anchor": "maxRows"
               }
             ],

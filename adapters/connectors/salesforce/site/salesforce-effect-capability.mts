@@ -6,12 +6,50 @@ import {ownInvocationAuthorization} from
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 
-const owners = new WeakMap();
+import type {SalesforceRequestScope, SalesforceWriteScope} from './salesforce-single-write.mjs';
+
+type Runtime = Readonly<{
+  salesforceCatalogObservationJson(observation: unknown): string;
+  salesforceSingleWriteRequestOrgId(request: unknown): string;
+  salesforceSingleWriteRequestGrantOperation(request: unknown): string;
+  salesforceSingleWriteRequestScopeMatches(request: unknown, ...scope: SalesforceRequestScope): boolean;
+  salesforceCheckExecutionSingleWrite(mapping: unknown, request: unknown): unknown;
+  salesforcePrepareWriteCapability(request: unknown, runtimeBundleCid: string, collection: boolean, bytes: number): unknown;
+  salesforceCheckWriteCapabilityRequest(evidence: unknown, request: unknown, runtimeBundleCid: string): unknown;
+  salesforceRecheckWriteCapability(evidence: unknown, current: unknown): unknown;
+  salesforceWriteCapabilityIdentity(evidence: unknown): string;
+  salesforceWriteCapabilityBody(evidence: unknown): string;
+  salesforceWriteCapabilityRoute(evidence: unknown): number;
+}>;
+type CredentialOrg = NonNullable<Parameters<typeof matchesSalesforceCredentialOrg>[0]>;
+type GrantControl = Readonly<{identity(grant: unknown): string; projection(grant: unknown): readonly unknown[]}>;
+type Credential = CredentialOrg & Readonly<{
+  control: GrantControl;
+  journal: Readonly<{checkGrant(identity: string, now: bigint, scope: unknown, control: GrantControl): unknown}>;
+  now?: () => number | bigint;
+}>;
+type Authority = Readonly<{scope: object}>;
+type Current = () => string;
+type Authorization = ReturnType<typeof ownInvocationAuthorization>;
+type Capability = Readonly<{identity: string; wire: string}>;
+type Owner = {
+  moon: Runtime; maxRows: number; attested: Current | undefined;
+  credential: Credential & Readonly<{now(): number | bigint}>;
+  authorization: Authorization; evidence?: unknown;
+};
+type Issue = Readonly<{
+  moon: Runtime; requests: readonly unknown[]; currentObservation: unknown;
+  authorization?: Readonly<{grant?: unknown; scope: object}>; authority?: Authority;
+  credential: Credential; mapping: unknown; collection?: boolean; maxRows: number; maxBytes: number;
+}>;
+type Recheck = Readonly<{currentObservation?: unknown; collection?: boolean}>;
+
+const owners = new WeakMap<Capability, Readonly<Owner>>();
 // Site attestations of its installed runtime and connection for one Effect
 // dispatch, mapped to the Site's current check. Only these stand in for a
 // signed grant; a copied or constructed object cannot.
-const attestations = new WeakMap();
-const fail = () => {
+const attestations = new WeakMap<Authority, Current>();
+const fail: () => never = () => {
   throw Object.assign(new Error('InvalidSalesforceEffectCapability'), {
     code: 'InvalidSalesforceEffectCapability',
   });
@@ -22,7 +60,7 @@ const fail = () => {
 // returns the Site's runtime bundle while it is installed as attested and
 // throws otherwise. It grants no credential use; a write still needs its own
 // grant for an approved commit decision.
-export function attestSalesforceEffectCapabilityAuthority({scope, current}) {
+export function attestSalesforceEffectCapabilityAuthority({scope, current}: Authority & Readonly<{current: Current}>) {
   if (scope === null || typeof scope !== 'object' ||
       typeof current !== 'function') fail();
   const authority = Object.freeze({scope: Object.freeze({...scope})});
@@ -30,20 +68,20 @@ export function attestSalesforceEffectCapabilityAuthority({scope, current}) {
   return authority;
 }
 
-function currentGrant(owner) {
+function currentGrant(owner: Readonly<Owner>) {
   const {credential, authorization, attested} = owner;
   if (attested !== undefined) return attested();
   const {control, journal, now} = credential;
   const grant = journal.checkGrant(control.identity(authorization.grant),
     BigInt(now()), authorization.scope, control);
-  return control.projection(grant)[7];
+  return control.projection(grant)[7] as string;
 }
 
-function checkRequests(owner, requests, runtimeBundleCid) {
+function checkRequests(owner: Readonly<Owner>, requests: readonly unknown[], runtimeBundleCid: string) {
   if (!Array.isArray(requests) || requests.length === 0 ||
       requests.length > owner.maxRows) fail();
   const {moon, authorization, credential, evidence} = owner;
-  const scope = authorization.scope;
+  const scope = authorization.scope as SalesforceWriteScope;
   for (const request of requests) {
     if (!matchesSalesforceCredentialOrg(credential,
         moon.salesforceSingleWriteRequestOrgId(request)) ||
@@ -67,7 +105,7 @@ function checkRequests(owner, requests, runtimeBundleCid) {
 // decided; no secret is resolved and no credential use is consumed.
 export function issueSalesforceEffectCapability({moon, requests,
   currentObservation, authorization, authority, credential, mapping,
-  collection = false, maxRows, maxBytes}) {
+  collection = false, maxRows, maxBytes}: Issue) {
   const attested = authority === undefined ? undefined
     : attestations.get(authority);
   if ((authority === undefined) === (authorization === undefined) ||
@@ -81,7 +119,7 @@ export function issueSalesforceEffectCapability({moon, requests,
       (credential.now !== undefined && typeof credential.now !== 'function')) {
     fail();
   }
-  const owner = {
+  const owner: Owner = {
     moon, maxRows, attested,
     credential: Object.freeze({...credential, now: credential.now ?? Date.now}),
     authorization: ownInvocationAuthorization({...(authority ?? authorization),
@@ -108,8 +146,8 @@ export function issueSalesforceEffectCapability({moon, requests,
   return result;
 }
 
-export function inspectSalesforceEffectCapability(capability, requests,
-  {currentObservation, collection} = {}) {
+export function inspectSalesforceEffectCapability(capability: Capability, requests: readonly unknown[],
+  {currentObservation, collection}: Recheck = {}) {
   const owner = owners.get(capability);
   if (!owner) fail();
   const runtimeBundleCid = currentGrant(owner);
