@@ -226,6 +226,8 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
       current.account,
       current.tuple,
       current.context_cid,
+      // The existing input driver copies only the original parent's canonical row.
+      canonical_managed_rows=true,
     ) {
     Ok(Some(operations)) => record.operations = Some(operations)
     Ok(None) => record.issue = Some(@local_run.UnsupportedCapability)

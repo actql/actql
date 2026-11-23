@@ -161,7 +161,7 @@ test "unconfirmed Catalog acceptance stays pending until the same funded accepta
 
 ///|
 test "lost funded Catalog claim response and missing stamp cannot become another initial claim" {
-  let (_, _, journal) = initial_catalog_fixture("funded-reply-loss")
+  let (library, path, journal) = initial_catalog_fixture("funded-reply-loss")
   let request = test_request("funded-reply-loss")
   let ledger = initial_catalog_test_ledger()
   let (_, _, retained) = journal
@@ -175,30 +175,32 @@ test "lost funded Catalog claim response and missing stamp cannot become another
   let before = @resources.ledger_usage(ledger)
   test_fail_cancel_commit_reply(journal.database, 1)
   assert_true(journal.claim_funded_initial_catalog_use(custody) is Err(_))
-  journal.require_initial_catalog_use(request, 1L).unwrap() |> ignore
   assert_true(
-    journal.read_funded_initial_catalog_use(custody) is Err(StateCollision),
+    journal.read_funded_initial_catalog_use(custody) is Err(TransactionFenced),
   )
   assert_true(
-    journal.claim_funded_initial_catalog_use(custody) is Err(StateCollision),
+    journal.claim_funded_initial_catalog_use(custody) is Err(TransactionFenced),
   )
+  assert_true(journal.close())
+
+  let exact = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let saved = exact.require_initial_catalog_use(request, 1L).unwrap()
+  assert_true(exact.claim_initial_catalog_use(request) is Err(StateCollision))
+  // A fixture-only loss of the exact stamp cannot mint a new eligibility.
   let cid = @remote.dispatch_request_identity(request)
-  let saved = journal.database.read("site_initial_catalog_use", cid).unwrap()
-  journal.database.begin_immediate().unwrap()
-  journal.database
+  exact.database.begin_immediate().unwrap()
+  exact.database
   .remove_exact("site_initial_catalog_use", cid, saved.revision, saved.body)
   .unwrap()
   |> ignore
-  journal.database.commit().unwrap()
+  exact.database.commit().unwrap()
   assert_true(
-    journal.read_funded_initial_catalog_use(custody)
-    is Err(Physical(@sqlite.NotFound)),
+    exact.claim_initial_catalog_use(request) is Err(Physical(@sqlite.NotFound)),
   )
   assert_true(
-    journal.claim_funded_initial_catalog_use(custody)
-    is Err(Physical(@sqlite.NotFound)),
+    exact.claim_funded_initial_catalog_use(custody) is Err(StateCollision),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(initial_catalog_use_custody_pending(custody))
-  assert_true(journal.close())
+  assert_true(exact.close())
 }

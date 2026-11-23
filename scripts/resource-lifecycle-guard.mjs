@@ -34,7 +34,7 @@ export const keyedScanConstructionInventory = Object.freeze([
   entry('client_keyed_native_sources', 'build_client_keyed_native_whole_source_evidence'),
 ].map(Object.freeze));
 const serialDependencyFunding = new Set([
-  'reserve_keyed_dependency_serial_controls', 'grow_keyed_dependency_body',
+  'begin_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body',
 ]);
 const serialDependencyModule = directory + 'client_keyed_dependency_serial_cursor.mbt';
 const measuredDependencyRange = 'ReturnedKeyedDependencyRange';
@@ -53,7 +53,7 @@ const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keye
 const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|measured_bodies|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|begin_keyed_dependency_serial_cursor|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|measured_bodies|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
@@ -68,7 +68,7 @@ const lowOwners = new Set([
 // retained at an independently owned predecessor/physical lifetime. The four
 // finished scan portions now use their separate original managed construction.
 const bodyGrowthOwners = new Map([
-  [...entry('client_keyed_dependency_serial_cursor', 'reserve_keyed_dependency_serial_controls'), 'temporary serial cursor and funding closures'],
+  [...entry('client_keyed_dependency_serial_cursor', 'begin_keyed_dependency_serial_cursor'), 'temporary serial cursor and funding closures'],
   [...entry('client_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body'), 'same-lookup body and cursor allowance'],
   [...entry('client_keyed_protocol_construction', 'with_keyed_body_construction'), 'original scan first-entry backing'],
   [...entry('client_keyed_protocol_construction', 'grow_keyed_body_construction'), 'latched original scan grow port'],
