@@ -15,7 +15,7 @@ priv enum KeyedProtocolDependencies {
   Unmeasured(Array[@publication.CapturedEffectDependencyBody])
   Measured(
     Array[@publication.CapturedEffectDependencyBody],
-    KeyedDependencyMeasuredBodies
+    KeyedDependencySerialCompletion
   )
 }
 
@@ -42,7 +42,7 @@ fn[T] keyed_protocol_built(
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
   dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
-  measured_bodies? : KeyedDependencyMeasuredBodies? = None,
+  measured_bodies? : KeyedDependencySerialCompletion? = None,
 ) -> KeyedProtocolBuilt[T] {
   let dependencies = match (dependency_bodies, measured_bodies) {
     (Some(bodies), Some(measured)) => Measured(bodies, measured)

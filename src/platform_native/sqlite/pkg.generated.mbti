@@ -20,6 +20,7 @@ pub fn publication_construction_block_bound(Int, Int, Int) -> Int64
 type Database
 pub fn Database::begin_deferred(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::begin_journal_write(Self) -> Result[Unit, NativeSqliteTransactionFailure]
 pub fn Database::bind_original_store_operation(Self, NativeStoreOperationOriginal) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
@@ -32,6 +33,7 @@ pub fn Database::client_run_definition_schema(Self) -> Result[Int, NativeSqliteI
 pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::commit_journal_write(Self) -> Result[Unit, NativeSqliteJournalCommitFailure]
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::compare_exchange_with_body_extent(Self, String, String, Int64, Bytes, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::current_component_matches_heap(Self, Int64) -> Bool
@@ -63,6 +65,7 @@ pub fn Database::reserve_capacity(Self, String, String, Int64, Int64, Int64, Int
 pub fn Database::reserve_capacity_in_transaction(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::retained_data_current(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::rollback(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::rollback_journal_write(Self) -> Result[Unit, NativeSqliteTransactionStopFailure]
 pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::scan_after_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::scan_exact_body_extent(Self, String, String, String, NativeJournalHeader) -> Result[NativeJournalEntry, NativeSqliteIssue]
@@ -137,6 +140,12 @@ pub(all) enum NativeOrdinalClaim {
   Retained(Int64)
 }
 
+pub(all) enum NativeSqliteCommitOutcome {
+  CommitConfirmed
+  CommitNotApplied
+  CommitUnknown
+} derive(Eq)
+
 pub(all) enum NativeSqliteIssue {
   UnsupportedTarget
   InvalidName
@@ -152,6 +161,12 @@ pub(all) enum NativeSqliteIssue {
   Physical(String)
   OperationRoutingBefore(Int)
   OperationRoutingAfter(NativeSqliteIssue?, Int)
+}
+
+pub struct NativeSqliteJournalCommitFailure {
+  primary : NativeSqliteTransactionFailure
+  outcome : NativeSqliteCommitOutcome
+  cleanup_failure : NativeSqliteTransactionStopFailure?
 }
 
 pub(all) enum NativeSqliteLibraryLoadError {
@@ -197,6 +212,11 @@ pub(all) enum NativeSqliteTransactionStep {
   Commit
   Rollback
 } derive(Eq)
+
+pub struct NativeSqliteTransactionStopFailure {
+  rollback : Result[Unit, NativeSqliteTransactionFailure]?
+  state : Result[NativeSqliteTransactionState, NativeSqliteIssue]
+}
 
 type NativeStoreOperationOriginal
 pub fn NativeStoreOperationOriginal::activate(Self) -> Result[Unit, NativeSqliteIssue]

@@ -96,8 +96,8 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
   let request = test_request("effect-ledger-claim")
   native_effect_ledger_ready(journal, request)
   let (scope, locator, key, basis) = native_effect_ledger_fixture()
-  let claim = () => {
-    journal.claim_effect_ledger_dispatch(
+  let claim = (owner : Journal) => {
+    owner.claim_effect_ledger_dispatch(
       request,
       scope,
       locator,
@@ -108,7 +108,7 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
     )
   }
   test_fail_cancel_commit(journal.database, 1)
-  assert_true(claim() is Err(Physical(_)))
+  assert_true(claim(journal) is Err(TransactionCommit(_)))
   assert_true(
     journal.database.read(
       "site_effect_ledger_head",
@@ -118,8 +118,11 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
   )
   // Commit succeeded but its reply was lost: no send permission is returned.
   test_fail_cancel_commit_reply(journal.database, 1)
-  assert_true(claim() is Err(Physical(_)))
-  let (won, dispatching) = claim().unwrap()
+  assert_true(claim(journal) is Err(TransactionCommit(_)))
+  assert_true(claim(journal) is Err(TransactionFenced))
+  assert_true(journal.close())
+  let exact = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let (won, dispatching) = claim(exact).unwrap()
   assert_false(won)
   assert_eq(
     @effect.effect_row_recovery_action_from_entry(
@@ -132,15 +135,15 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
     ),
     3,
   )
-  let head = journal.database
+  let head = exact.database
     .read("site_effect_ledger_head", @effect.logical_item_locator_cid(locator))
     .unwrap()
   assert_eq(head.revision, 0L)
   assert_true(
-    journal.effect_ledger_response(request, dispatching).unwrap() is None,
+    exact.effect_ledger_response(request, dispatching).unwrap() is None,
   )
   assert_true(
-    journal.claim_effect_ledger_dispatch(
+    exact.claim_effect_ledger_dispatch(
       request,
       scope,
       locator,
@@ -164,7 +167,7 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
     is Err(StateCollision),
   )
   assert_eq(
-    journal.database
+    exact.database
     .read("site_effect_ledger_head", @effect.logical_item_locator_cid(locator))
     .unwrap().body,
     head.body,
@@ -184,7 +187,7 @@ test "native Effect Ledger claim uncertainty never permits a second dispatch" {
     .unwrap().0,
   )
   assert_true(other.close())
-  assert_true(journal.close())
+  assert_true(exact.close())
   let reopened = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
   let replay = reopened
     .claim_effect_ledger_dispatch(
@@ -241,8 +244,8 @@ test "native Effect Ledger saves raw response before interpretation and preserve
     status_code: 409,
     body: b"\x00\xffe\xcc\x81\r\n",
   }
-  let save = (value : NativeEffectSavedResponse) => {
-    journal.record_effect_ledger_response(
+  let save = (owner : Journal, value : NativeEffectSavedResponse) => {
+    owner.record_effect_ledger_response(
       request,
       dispatching,
       scope,
@@ -253,22 +256,29 @@ test "native Effect Ledger saves raw response before interpretation and preserve
     )
   }
   test_fail_cancel_commit(journal.database, 1)
-  assert_true(save(response) is Err(Physical(_)))
+  assert_true(save(journal, response) is Err(TransactionCommit(_)))
   assert_true(
     journal.effect_ledger_response(request, dispatching).unwrap() is None,
   )
   // Sending may have preceded cancellation. Raw response custody is still due.
   journal.request_cancellation(request).unwrap() |> ignore
   test_fail_cancel_commit_reply(journal.database, 1)
-  assert_true(save(response) is Err(Physical(_)))
-  save(response).unwrap()
-  assert_true(save({ ..response, body: b"other", }) is Err(StateCollision))
-  assert_true(save({ ..response, status_code: 200, }) is Err(StateCollision))
+  assert_true(save(journal, response) is Err(TransactionCommit(_)))
+  assert_true(save(journal, response) is Err(TransactionFenced))
+  assert_true(journal.close())
+  let exact = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  save(exact, response).unwrap()
   assert_true(
-    save({ ..response, credential_use_cid: "sha256:" + "8".repeat(64), })
+    save(exact, { ..response, body: b"other", }) is Err(StateCollision),
+  )
+  assert_true(
+    save(exact, { ..response, status_code: 200, }) is Err(StateCollision),
+  )
+  assert_true(
+    save(exact, { ..response, credential_use_cid: "sha256:" + "8".repeat(64), })
     is Err(StateCollision),
   )
-  let stored = journal
+  let stored = exact
     .effect_ledger_response(request, dispatching)
     .unwrap()
     .unwrap()
@@ -276,14 +286,14 @@ test "native Effect Ledger saves raw response before interpretation and preserve
   assert_eq(stored.status_code, 409)
   let cid = @effect.effect_ledger_entry_cid(dispatching)
   assert_eq(
-    journal.database.read("site_effect_response_bytes", cid).unwrap().revision,
+    exact.database.read("site_effect_response_bytes", cid).unwrap().revision,
     0L,
   )
   assert_eq(
-    journal.database.read("site_effect_response_meta", cid).unwrap().revision,
+    exact.database.read("site_effect_response_meta", cid).unwrap().revision,
     0L,
   )
-  assert_true(journal.close())
+  assert_true(exact.close())
   let control = test_control(test_site())
   let twin = open_journal(library, path, 262144L, control).unwrap()
   assert_eq(
@@ -449,9 +459,12 @@ test "native Effect Ledger custody reconstruction reads original claims without 
   )
   // An uncertain read-only commit returns no custody fact and creates no claim.
   test_fail_cancel_commit_reply(journal.database, 1)
-  assert_true(read(journal) is Err(Physical(_)))
-  assert_true(read(journal).unwrap() is None)
-  let (won, dispatching) = journal
+  assert_true(read(journal) is Err(TransactionCommit(_)))
+  assert_true(read(journal) is Err(TransactionFenced))
+  assert_true(journal.close())
+  let exact = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  assert_true(read(exact).unwrap() is None)
+  let (won, dispatching) = exact
     .claim_effect_ledger_dispatch(
       request,
       scope,
@@ -463,10 +476,10 @@ test "native Effect Ledger custody reconstruction reads original claims without 
     )
     .unwrap()
   assert_true(won)
-  let original = journal.database
+  let original = exact.database
     .read("site_effect_ledger_head", @effect.logical_item_locator_cid(locator))
     .unwrap()
-  assert_true(journal.close())
+  assert_true(exact.close())
   let reopened = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
   let before = read(reopened).unwrap().unwrap()
   assert_eq(

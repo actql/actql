@@ -88,6 +88,9 @@ pub fn Journal::effect_ledger_custody(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   if limits.max_nodes < 1 {
     return Err(StateCollision)
   }
@@ -198,10 +201,7 @@ pub fn Journal::effect_ledger_custody(
     StorageIssue(issue) => Err(issue)
   }
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(issue)
-    }
+    Err(issue) => self.abort_write(Err(issue))
     Ok(value) =>
       match self.finish_effect_checkpoint_mutation(Ok(())) {
         Ok(_) => Ok(value)
