@@ -9,7 +9,9 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'acorn';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
-import {copyConnectorAdditionHostSource, assertConnectorAdditionHostSource} from './connector-addition-source.mjs';
+import {
+  assertConnectorAdditionHostSource, connectorAdditionNativeSourcePaths, copyConnectorAdditionHostSource,
+} from './connector-addition-source.mjs';
 
 const repository = fileURLToPath(new URL('../',import.meta.url));
 const temporary = t => {
@@ -21,7 +23,8 @@ function fixture(t) {
   const root = temporary(t);
   for (const path of ['src/connectors_builtin/local_carrier_dispatch.mbt',
     'src/connectors_builtin_node/local_carrier_bridge.mbt','src/connectors_builtin_node/authorization_bridge.mbt',
-    'src/connectors_builtin_node/client-program-dependencies.json','src/connectors_builtin_node/client-execution-dependencies.json']) {
+    'src/connectors_builtin_node/client-program-dependencies.json','src/connectors_builtin_node/client-execution-dependencies.json',
+    ...connectorAdditionNativeSourcePaths]) {
     mkdirSync(dirname(join(root,path)),{recursive:true});writeFileSync(join(root,path),path);
   }
   return root;
@@ -124,6 +127,34 @@ test('connector isolation preserves the actual common Client declaration package
   assert.equal(existsSync(join(destination,'src/connectors_builtin_node/moon.pkg')),false);
   assert(readdirSync(join(destination,'src/connectors_builtin_node')).every(name => !/_(?:wb)?test\.mbt$/u.test(name)));
   assertConnectorAdditionHostSource(destination,inputs);
+});
+
+test('connector isolation retains exactly the transitive Native bootstrap and SQLite inputs', t => {
+  const destination = temporary(t);
+  const inputs = copyConnectorAdditionHostSource(repository, destination);
+  const nativePackage = 'packages/python-local-runtime/';
+  const remaining = [
+    'src/platform_native/host_bootstrap/bootstrap_stub.c',
+    'src/platform_native/host_bootstrap_domain_conformance/domain_probe_stub.c',
+    'src/platform_native/sqlite/sqlite_stub.c',
+  ];
+  const included = new Set();
+  for (const source of remaining) {
+    const body = readFileSync(join(repository, source), 'utf8');
+    for (const [, locator] of body.matchAll(/^\s*#\s*include\s*"([^"]+)"/gmu)) {
+      const resolved = join(dirname(source), locator);
+      if (resolved.startsWith(nativePackage) && !included.has(resolved)) {
+        included.add(resolved);
+        remaining.push(resolved);
+      }
+    }
+  }
+  assert.deepEqual(inputs.map(input => input.path).filter(path => path.startsWith(nativePackage)).sort(),
+    [...included].sort());
+  const header = join(destination, nativePackage, 'native/sqlite-component/api.h');
+  writeFileSync(header, 'changed isolated header');
+  assert.throws(() => assertConnectorAdditionHostSource(destination, inputs),
+    /Changed retained common Host source bytes/u);
 });
 
 test('connector source copy retains other-owner generated production data but excludes tests and assembly outputs', t => {

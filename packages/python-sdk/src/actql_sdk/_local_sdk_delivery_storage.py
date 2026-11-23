@@ -342,20 +342,6 @@ class OriginalSDKDeliveryStore:
             self._core.prepare_publication_sdk_payload_input(first, clock, configuration),
             original=self._payload_binding_originals.get(request.ticket))
 
-    def read_original_chunk(self, request: _Input, chunk: _Input, clock: _Input,
-                            output: _Output, *, eof: bool) -> bytes:
-        """Recheck the cached original chunk in the same frame before disclosure."""
-        with self._core._lock:
-            self._nominal()
-            if self._payload_outputs.get(request.ticket) is not output:
-                raise ValueError('Foreign original SDK payload output')
-            def read(first: _Output, configuration: int) -> bytes:
-                self._core.produce_publication_sdk_payload_chunk(
-                    output, first, chunk, clock, configuration, eof=eof)
-                return self._core.read_publication_commit_material(output)
-            return self._payload_observation(request, clock, read,
-                original=self._payload_binding_originals.get(request.ticket))
-
     def _reserve_payload_output(self, request: _Input) -> _Output:
         if request.ticket in self._payload_outputs or request.ticket in self._uncertain_payload:
             raise RuntimeError('Original SDK payload cleanup is pending')
@@ -376,17 +362,17 @@ class OriginalSDKDeliveryStore:
         return output
 
     def produce_original_chunk(self, request: _Input, chunk: _Input, clock: _Input,
-                               *, eof: bool) -> _Output:
-        """Offer one bounded chunk; no sink confirmation or Store ACK occurs."""
+                               *, eof: bool) -> tuple[_Output, bytes]:
+        """Produce and copy the exact output within one original read frame."""
         with self._core._lock:
             self._core._owned_input(chunk)
             if type(eof) is not bool or chunk.length > 65536:
                 raise ValueError('Invalid original SDK payload chunk')
-            def produce(first: _Output, configuration: int) -> _Output:
+            def produce(first: _Output, configuration: int) -> tuple[_Output, bytes]:
                 output = self._reserve_payload_output(request)
                 self._core.produce_publication_sdk_payload_chunk(
                     output, first, chunk, clock, configuration, eof=eof)
-                return output
+                return output, self._core.read_publication_commit_material(output)
             return self._payload_observation(request, clock, produce,
                 original=self._payload_binding_originals.get(request.ticket))
 

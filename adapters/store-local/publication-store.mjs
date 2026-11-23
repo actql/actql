@@ -4431,11 +4431,8 @@ async function openOriginalLocalPublicationStore(
       key.fill(0);
     }
   };
-  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume, beforeRead) => {
-    if (consume === undefined) {
-      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
-      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
-    }
+  const readScopedPrivateEvidence = async (name, semanticCid, holdingCid,
+    consume, beforeRead, objectCount, maxEnvelopeBytes) => {
     active();
     if (typeof consume !== 'function') fail('InvalidPublicationPrivateEvidence');
     cidHex(holdingCid);
@@ -4475,11 +4472,13 @@ async function openOriginalLocalPublicationStore(
         return operation;
       }});
     try {
-      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, 1,
+      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, objectCount,
         undefined, original => {
           record = original;
+          const size = original.objects[0].byte_count;
+          if (maxEnvelopeBytes !== undefined && size > maxEnvelopeBytes) fail('PublicationObjectLimit');
           if (beforeRead !== undefined) {
-            if (typeof beforeRead !== 'function' || beforeRead(original.objects[0].byte_count) !== undefined) {
+            if (typeof beforeRead !== 'function' || beforeRead(size) !== undefined) {
               fail('InvalidPublicationPrivateEvidence');
             }
           }
@@ -4495,6 +4494,20 @@ async function openOriginalLocalPublicationStore(
       release();
     }
   };
+  const readPrivateEvidence = async (name, semanticCid, holdingCid, consume, beforeRead) => {
+    if (consume === undefined) {
+      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
+      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
+    }
+    return readScopedPrivateEvidence(name, semanticCid, holdingCid, consume, beforeRead, 1);
+  };
+  // The Common descriptor writer admits at most 8192 plaintext bytes.
+  // Its AES-GCM Base64 envelope fits within 12288 bytes. This read borrows
+  // only that descriptor from the same two-object encrypted Raw holding.
+  const readModelRawResponseDescriptor = (semanticCid, holdingCid, consume, beforeRead) =>
+    readScopedPrivateEvidence('model_raw_descriptor', semanticCid, holdingCid,
+      consume, beforeRead, 2, 12288);
+
   const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
@@ -9338,6 +9351,7 @@ async function openOriginalLocalPublicationStore(
     confirmPrivateEvidence,
     prepareModelRawEvidence,
     readModelRawEvidence,
+    readModelRawResponseDescriptor,
     confirmModelRawEvidence,
     prepareLookupRawEvidence,
     readLookupRawEvidence,
