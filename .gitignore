@@ -3076,3 +3076,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/slack/site/message-history-read.d.mts
 /adapters/connectors/slack/host/installed-slack-source.mjs
 /adapters/connectors/slack/host/installed-slack-source.d.mts
+/adapters/connectors/slack/test/user-list-read.fixture.mjs
+/adapters/connectors/slack/test/user-list-read.fixture.d.mts
+/adapters/connectors/slack/test/channel-list-read.fixture.mjs
+/adapters/connectors/slack/test/channel-list-read.fixture.d.mts
+/adapters/connectors/slack/test/message-history-read.fixture.mjs
+/adapters/connectors/slack/test/message-history-read.fixture.d.mts
