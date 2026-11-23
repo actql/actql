@@ -142811,11 +142811,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "import test from 'node:test';"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "live capture uses SAME adopted Run"
               },
               {
@@ -142888,7 +142888,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "cold prepared DATA stays with the original Read through failed schema cleanup and is cut before parent settlement"
               }
             ]
@@ -143046,31 +143046,31 @@
                 "anchor": "validation exact execution boundary succeeds and one short preserves its failed original prefix"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "retained validation funding and callback failures keep the original primary and unfinished cleanup"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "test('final publication validator uses the same captured Read, exact receiver and original argument inventory'"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "test('final publication funding refusal keeps the original primary before validator work'"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "test('publication construction preserves full Read funding for nonlive and older Core resources'"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "path": "adapters/host-node/effect-capture-resources.test.mts",
                 "anchor": "publication class checks captured identity and reentry while unknown methods keep full validation"
               }
             ]

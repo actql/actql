@@ -3,36 +3,68 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import resources from './ordinary-node-resource-runtime.cjs';
 import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type Options = Parameters<typeof prepareEffectCaptureResources>[0];
+type View = ReturnType<typeof prepareEffectCaptureResources>;
+type Original = ReturnType<View['admitCapturedRun']>;
+type Mutable<Value> = {-readonly [Key in keyof Value]: Value[Key]};
+type FixtureRuntime = Omit<Mutable<Options['moon']>,
+  'clientProgramPreparationBorrowRetirementStarted' | 'clientProgramPreparationBorrowReturn'> & {
+  clientProgramBeginInstalledEffectCaptureRecovery(value: unknown): unknown;
+  clientProgramCompleteInstalledEffectCaptureRecovery(value: unknown): unknown;
+  clientProgramBeginInstalledEffectCaptureValidation?(value: unknown): unknown;
+  clientProgramBeginInstalledEffectCapturePublication?: () => never;
+  clientProgramInstalledEffectCapturePublicationInputLimit?: () => never;
+};
+type PublicationNotice = Readonly<{issue: boolean; args: readonly unknown[]; additional: unknown}>;
+type FixtureControl = Mutable<Options['control']> & {
+  beginEffectfulPublicationConstruction?(actual: unknown, issue: boolean, args: readonly unknown[], additional: unknown): void;
+  issueEffectfulFinalRunReceipt?(...args: unknown[]): SynchronousRuntimeData;
+  effectfulCommitValid?(...args: unknown[]): SynchronousRuntimeData;
+};
+type FixtureOptions = Readonly<{
+  live?: boolean; beginFailure?: unknown; reserveFailure?: unknown; retireFailure?: unknown;
+  retirementCurrent?: boolean; complete?: () => void; begin?: () => void; decodedFailure?: unknown;
+  admitFailure?: unknown; preparedAvailable?: boolean; validation?: () => void;
+  validationFailure?: unknown; publicationAvailable?: boolean;
+  publication?: (notice: PublicationNotice) => void; publicationFailure?: unknown;
+  publicationInvoke?: (args: readonly unknown[]) => SynchronousRuntimeData;
+}>;
+type Admission = {original: object; ports: ReturnType<typeof resources.prepareOriginalLocalPreparationPorts>};
+type Input = Readonly<{request: unknown; runDefinition: unknown}>;
+type Event = string | readonly [string, unknown];
 
 // Existing actual Node Resource supplier and original child callbacks. Core
 // phase results are explicit ports, not a matching Common or quota proof.
-const ok = value => ({$tag:1, _0:value});
+const ok = <Value,>(value: Value) => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   retirementCurrent = false, complete, begin, decodedFailure, admitFailure,
   preparedAvailable = true, validation, validationFailure,
-  publicationAvailable = false, publication, publicationFailure, publicationInvoke} = {}) {
-  const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
-  let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
+  publicationAvailable = false, publication, publicationFailure, publicationInvoke}: FixtureOptions = {}) {
+  const events: Event[] = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
+  let view: View | undefined, admission: Admission | undefined, originalInput: object | undefined,
+    retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
-    assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0), 0);
-    assert.equal(admission.ports.status(2), 0);
+    assert.equal(admission!.ports!.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0), 0);
+    assert.equal(admission!.ports!.status(2), 0);
     stopped = true;
   };
-  const moon = {
+  const moon: FixtureRuntime = {
     clientLocalResourcePolicyOriginal() {assert.equal(this, moon); return policy;},
     clientProgramRequestPreparationControl(actual) {assert.equal(actual, policy); return [1024n,0n];},
     clientLocalPreparationResourceLimits(actual) {
       assert.equal(actual, policy); return [100n,100n,100n,100000n,1000000n,1000000n];
     },
     clientProgramPrepareLocalPreparationAdmission(original, input) {
-      assert.equal(view.status().pending, true); originalInput = input;
+      assert.equal(view!.status().pending, true); originalInput = input;
       admission = {original, ports:resources.prepareOriginalLocalPreparationPorts(original, input)};
       events.push('initial'); return ok(admission);
     },
     clientProgramBeginRequestPreparation(actual, input, selected) {
       assert.equal(actual, admission); assert.equal(input, originalInput); assert.equal(selected, policy);
       events.push('parent'); if (beginFailure !== undefined) throw beginFailure;
-      assert.equal(admission.ports.status(0), 0); return ok(parent);
+      assert.equal(admission!.ports!.status(0), 0); return ok(parent);
     },
     clientProgramAbortRequestPreparation(actual) {
       assert.equal(actual, parent); events.push('abort');
@@ -42,7 +74,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
         // A consumed-return retry sees the already closed original instead.
         if (retirementCurrent) {
           const before = events.filter(value => value === 'current').length;
-          assert.equal(admission.ports.status(1), 0);
+          assert.equal(admission!.ports!.status(1), 0);
           assert.equal(events.filter(value => value === 'current').length, before + 1);
         }
         stop();
@@ -52,12 +84,12 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     },
     clientProgramCleanupLocalPreparationAdmission(actual) {
       assert.equal(actual, admission); events.push('cancel-initial');
-      assert.equal(admission.ports.cancelUnpublished(), 0); return ok(undefined);
+      assert.equal(admission!.ports!.cancelUnpublished(), 0); return ok(undefined);
     },
     clientProgramPrepareInstalledEffectCaptureRecovery(run, prepared, identity, originalDefinition, wire, nodes, depth) {
-      assert.equal(this, moon); assert.equal(view.status().pending, true);
-      assert.equal(run, managed.value); assert.equal(prepared, managed.prepared);
-      assert.equal(identity, request); assert.equal(originalDefinition, managed.definitionOriginal.definition);
+      assert.equal(this, moon); assert.equal(view!.status().pending, true);
+      assert.equal(run, managed!.value); assert.equal(prepared, managed!.prepared);
+      assert.equal(identity, request); assert.equal(originalDefinition, managed!.definitionOriginal.definition);
       assert.deepEqual([wire,nodes,depth], [limits.maxWireBytes,limits.maxNodes,limits.maxDepth]);
       events.push('live-fixed');
       if (beginFailure !== undefined) throw beginFailure;
@@ -65,12 +97,12 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     },
     clientProgramBeginInstalledEffectCaptureRecovery(actual) {
       assert.equal(this, moon); assert.equal(actual, value);
-      assert.equal(view.status().busy, true); events.push('live-begin');
+      assert.equal(view!.status().busy, true); events.push('live-begin');
       begin?.(); return ok(undefined);
     },
     clientProgramBeginInstalledEffectCaptureValidation(actual) {
       assert.equal(this, moon); assert.equal(actual, value);
-      assert.equal(view.status().busy, true); events.push('live-validation');
+      assert.equal(view!.status().busy, true); events.push('live-validation');
       validation?.();
       if (validationFailure !== undefined) throw validationFailure;
       return ok(undefined);
@@ -91,7 +123,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     },
     clientProgramCompleteInstalledEffectCaptureRecovery(actual) {
       assert.equal(this, moon);assert.equal(actual, value);
-      assert.equal(view.status().busy, true);events.push('live-complete');
+      assert.equal(view!.status().busy, true);events.push('live-complete');
       complete?.();
       return ok(undefined);
     },
@@ -103,8 +135,8 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   };
   const limits = Object.freeze({maxWireBytes:10000, maxNodes:1000, maxDepth:64});
   const managed = live ? {value:{}, prepared:{}, request, definitionOriginal:{definition:{}}} : undefined;
-  const captured = Object.freeze({name:'captured_run', wire:'original captured'});
-  const control = {
+  const captured = Object.freeze({name:'captured_run', wire:'original captured'}) as Original;
+  const control: FixtureControl = {
     admit(name, wire, selected) {
       assert.equal(this, control); assert.equal(name, 'captured_run');
       assert.equal(wire, captured.wire); assert.deepEqual(selected, limits);
@@ -136,7 +168,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     },
     reserveEffectCaptureRecovery(owner, input, identity, runDefinition, bytes, selected) {
       assert.equal(this, control); assert.equal(owner, parent); assert.equal(input, originalInput);
-      assert.equal(input.request, request); assert.equal(input.runDefinition, definition);
+      assert.equal((input as Input).request, request); assert.equal((input as Input).runDefinition, definition);
       assert.equal(identity, request); assert.equal(runDefinition, definition);
       assert.deepEqual(selected, limits); events.push(['cold-grow', bytes]);
       if (reserveFailure !== undefined) throw reserveFailure;
@@ -149,7 +181,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     moon.clientProgramInstalledEffectCapturePublicationInputLimit = () => assert.fail('control owns the Core limit');
     control.beginEffectfulPublicationConstruction = function (actual, issue, args, additional) {
       assert.strictEqual(this, control); assert.strictEqual(actual, value);
-      assert.equal(view.status().busy, true); events.push(issue ? 'publication-issue' : 'publication-commit');
+      assert.equal(view!.status().busy, true); events.push(issue ? 'publication-issue' : 'publication-commit');
       publication?.({issue, args, additional});
       if (publicationFailure !== undefined) throw publicationFailure;
     };
@@ -163,12 +195,12 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
     };
   }
   return {events, request, definition, control, moon, captured,
-    open(options = {}) {
+    open(options: Partial<Options> = {}) {
       return prepareEffectCaptureResources({moon, control, request, runDefinition:definition,
         contractLimits:limits, managed, assertCurrent() {events.push('current');},
         retain(original) {assert.equal(view, undefined); view = original; events.push('retain');},
-        retired(original) {assert.equal(original, view); retired++; events.push('retired');}, ...options});
-    }, get view() {return view;}, get retired() {return retired;}};
+        retired(original) {assert.equal(original, view); retired++; events.push('retired');}, ...options} as Options);
+    }, get view() {return view!;}, get retired() {return retired;}};
 }
 
 test('cold saved Request retains before opening and grows SAME parent before the original read', async () => {
@@ -196,7 +228,7 @@ test('live capture uses SAME adopted Run and never opens a second Request Resour
 
 test('adopted recovery selects the encrypted envelope and prepared admission ports on the SAME Read', async () => {
   const f = fixture({live:true}), encrypted = f.moon.clientProgramReserveInstalledEffectCaptureRecovery;
-  let readOwner;
+  let readOwner: unknown;
   f.moon.clientProgramReserveInstalledEffectCaptureEncrypted = function (owner, bytes) {
     assert.equal(this, f.moon); readOwner = owner; f.events.push('encrypted-port');
     return Reflect.apply(encrypted, this, [owner, bytes]);
@@ -269,7 +301,7 @@ test('ordinary cold capture admission binds its exact returned original to the S
   assert.equal(await view.close(), true);
 });
 
-function returnedLiveCapture(f) {
+function returnedLiveCapture(f: ReturnType<typeof fixture>) {
   const view = f.open(); view.begin(); view.reserve(123);
   view.reserveDecoded('{"original":true}');
   view.admitCapturedRun(f.captured.wire); view.finish(false);
@@ -322,7 +354,7 @@ test('retained validation funding and callback failures keep the original primar
 });
 
 test('retained validation current callback closing the same Read cannot enter validation or issue a finish', async () => {
-  let closing;
+  let closing: ReturnType<View['close']> | undefined;
   const f = fixture({live: true, validation() {closing = f.view.close();}}), view = returnedLiveCapture(f);
   let entered = false;
   assert.throws(() => view.constructCapturedValidation(f.captured, undefined, () => {entered = true;}),
@@ -392,7 +424,7 @@ test('consumed original parent return failure retries SAME duty without another 
 });
 
 test('close during original current check refuses BEFORE any recovery resource constructor', async () => {
-  const f = fixture(); let closing;
+  const f = fixture(); let closing: ReturnType<View['close']> | undefined;
   assert.throws(() => f.open({assertCurrent() {closing = f.view.close();}}),
     {code:'EffectCaptureResourceUnavailable'});
   assert.equal(await closing, true); assert.equal(f.events.includes('initial'), false);
@@ -477,7 +509,7 @@ test('cold capture retirement retains original current until SAME Request settle
 
 
 test('live re-admission funds SAME Definition before consuming and preserves original growth refusal', async () => {
-  let refusal;
+  let refusal: Error | undefined;
   const f = fixture({live:true, begin() {if (refusal !== undefined) throw refusal;}}), view = f.open();
   view.begin();view.reserve(32);view.finish(false);
   refusal = new Error('original fixed Definition growth refused');
@@ -546,17 +578,17 @@ test('final publication validator uses the same captured Read, exact receiver an
   view.finish(false);
   const receiver = {}, args = [{}, {}, {}, {}, {}, {}, {}], result = {};
   const before = f.events.length;
-  assert.strictEqual(constructEffectfulPublication(view, f.captured, receiver, function (...actual) {
+  assert.strictEqual(constructEffectfulPublication(view, f.captured, receiver, function (this: typeof receiver, ...actual: typeof args) {
     assert.strictEqual(this, receiver); assert.deepEqual(actual, args);
     actual.forEach((value, index) => assert.strictEqual(value, args[index]));
     assert.equal(view.status().busy, true);
     return result;
   }, args), result);
   assert.deepEqual(f.events.slice(before), ['live-validation', 'live-complete']);
-  assert.throws(() => constructEffectfulPublication(view, {...f.captured}, receiver,
+  assert.throws(() => constructEffectfulPublication<typeof args, never>(view, {...f.captured}, receiver,
     () => assert.fail('Foreign capture cannot validate'), args), {code:'EffectCaptureResourceUnavailable'});
   assert.equal(await view.close(), true);
-  assert.throws(() => constructEffectfulPublication(view, f.captured, receiver,
+  assert.throws(() => constructEffectfulPublication<typeof args, never>(view, f.captured, receiver,
     () => assert.fail('Retired Read cannot validate'), args), {code:'EffectCaptureResourceUnavailable'});
 });
 test('final publication funding refusal keeps the original primary before validator work', async () => {
@@ -572,14 +604,14 @@ test('final publication funding refusal keeps the original primary before valida
 });
 
 test('final publication selects original closed issue and commit methods on the same completed Read', async () => {
-  const observed = [];
+  const observed: PublicationNotice[] = [];
   const f = fixture({live:true, publicationAvailable:true, publication(value) {observed.push(value);}});
-  const issue = f.control.issueEffectfulFinalRunReceipt, commit = f.control.effectfulCommitValid;
+  const issue = f.control.issueEffectfulFinalRunReceipt!, commit = f.control.effectfulCommitValid!;
   const view = f.open();
   view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
   assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
   view.finish(false);
-  const chain = {capturedRun:f.captured}, preview = {}, receipts = {}, limits = {}, artifacts = [{}];
+  const chain = {capturedRun:f.captured}, preview = {}, receipts = {}, limits = {}, artifacts = [{}] as Original[];
   const issueArgs = [chain, preview, receipts, limits];
   const commitArgs = [chain, preview, receipts, {}, {}, {}, limits];
   const before = f.events.length;
@@ -601,28 +633,28 @@ test('publication class refusal preserves primary without generic retry or issue
   view.admitCapturedRun(f.captured.wire); view.finish(false);
   const before = f.events.length;
   assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
-    f.control.issueEffectfulFinalRunReceipt, [{capturedRun:f.captured}, {}, {}, {}], []), error => error === primary);
+    f.control.issueEffectfulFinalRunReceipt!, [{capturedRun:f.captured}, {}, {}, {}], []), error => error === primary);
   assert.deepEqual(f.events.slice(before), ['publication-issue']);
   assert.equal(await view.close(), true);
 });
 test('publication class checks captured identity and reentry while unknown methods keep full validation', async () => {
-  let view, f, args;
+  let view: View, f: ReturnType<typeof fixture>, args: unknown[];
   f = fixture({live:true, publicationAvailable:true, publication() {
     assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
-      f.control.issueEffectfulFinalRunReceipt, args, []), {code:'EffectCaptureResourceUnavailable'});
+      f.control.issueEffectfulFinalRunReceipt!, args, []), {code:'EffectCaptureResourceUnavailable'});
   }});
   view = f.open();
   view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
   view.admitCapturedRun(f.captured.wire); view.finish(false);
   args = [{capturedRun:f.captured}, {}, {}, {}];
   assert.throws(() => constructEffectfulPublication(view, {...f.captured}, f.control,
-    f.control.issueEffectfulFinalRunReceipt, args, []), {code:'EffectCaptureResourceUnavailable'});
+    f.control.issueEffectfulFinalRunReceipt!, args, []), {code:'EffectCaptureResourceUnavailable'});
   assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
-    f.control.issueEffectfulFinalRunReceipt, [{capturedRun:{...f.captured}}, {}, {}, {}], []),
+    f.control.issueEffectfulFinalRunReceipt!, [{capturedRun:{...f.captured}}, {}, {}, {}], []),
     {code:'EffectCaptureResourceUnavailable'});
-  constructEffectfulPublication(view, f.captured, f.control, f.control.issueEffectfulFinalRunReceipt, args, []);
+  constructEffectfulPublication(view, f.captured, f.control, f.control.issueEffectfulFinalRunReceipt!, args, []);
   const before = f.events.length, receiver = {};
-  assert.equal(constructEffectfulPublication(view, f.captured, receiver, function () {
+  assert.equal(constructEffectfulPublication<typeof args, number>(view, f.captured, receiver, function (this: typeof receiver) {
     assert.strictEqual(this, receiver); return 17;
   }, args), 17);
   assert.deepEqual(f.events.slice(before), ['live-validation', 'live-complete']);
@@ -641,9 +673,11 @@ test('publication construction preserves full Read funding for nonlive and older
     assert.equal(await view.close(), true);
   }
   const captured = {}, result = {};
-  const original = {constructCaptured(actual, receiver, method, args) {
+  const original: Parameters<typeof constructEffectfulPublication>[0] = {
+    constructCaptured(actual: unknown, receiver: unknown, method: (...args: never[]) => SynchronousRuntimeData,
+      args: unknown) {
     assert.strictEqual(this, original); assert.strictEqual(actual, captured);
     return Reflect.apply(method, receiver, [args]);
   }};
-  assert.strictEqual(constructEffectfulPublication(original, captured, undefined, () => result, []), result);
+  assert.strictEqual(constructEffectfulPublication(original, captured as Original, undefined, () => result, []), result);
 });

@@ -34,10 +34,16 @@ type PublicationOriginal = (...args: never[]) => unknown;
 type CaptureContext = Readonly<{runtime: CaptureRuntime}>;
 type PublicationConstructor = <Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
   captured: unknown, receiver: unknown, method: (...args: Args) => Value, args: Args,
-  additionalContracts: readonly unknown[]) => Value;
-type CaptureRead = <Receiver, Input, Output>(captured: unknown, receiver: Receiver,
-  method: (this: Receiver, argument: Input) => Output, argument: Input) => Output;
+  additionalContracts?: readonly unknown[]) => Value;
+type CaptureRead = {
+  <Receiver, Output>(captured: unknown, receiver: Receiver, method: (this: Receiver) => Output): Output;
+  <Receiver, Input, Output>(captured: unknown, receiver: Receiver,
+    method: (this: Receiver, argument: Input) => Output, argument: Input): Output;
+};
 type CaptureCleanup = () => unknown;
+// The original error descriptor can carry a foreign value. Project its two
+// members only at the existing retry fence, where the function checks apply.
+type ChildCarrierView = Readonly<{status?: unknown; retry?: unknown}>;
 type CaptureRecovery = Readonly<{
   reserve(encryptedBytes: number): undefined;
   reserveEnvelope(wire: string): undefined;
@@ -48,7 +54,7 @@ type CaptureRecovery = Readonly<{
   constructCapturedForPublication: PublicationConstructor;
   retainCleanup(operation: CaptureCleanup): undefined;
   begin(): undefined;
-  finish(failed: boolean, cause: unknown): undefined;
+  finish(failed: boolean, cause?: unknown): undefined;
   close(): Promise<boolean>;
   status(): Readonly<{pending: boolean; busy: boolean}>;
 }>;
@@ -67,7 +73,7 @@ type RecoveryState = Omit<RequestPreparationState, 'context'> & {
   input?: Readonly<{request: unknown; runDefinition: unknown}>;
   value?: unknown; closeFlight?: Promise<boolean>;
   capturedRun?: CapturedRun; capturedPrepared?: boolean;
-  child?: Readonly<{status?: unknown; retry?: unknown}>; childStatus?: unknown; childRetry?: unknown;
+  child?: unknown; childStatus?: unknown; childRetry?: unknown;
   resultCleanup?: CaptureCleanup;
   begin?: CaptureStep; beginValidation?: CaptureStep; complete?: CaptureStep;
   beginPublication?: (value: unknown, issue: boolean, args: readonly unknown[], additionalContracts: unknown) => unknown;
@@ -140,8 +146,8 @@ function recoveryView(state: RecoveryState) {
     const flight = Promise.resolve().then(async () => {
       if (state.busy || state.preparing || state.unknownChild) return false;
       if (state.child !== undefined) {
-        state.childStatus ??= state.child.status;
-        state.childRetry ??= state.child.retry;
+        state.childStatus ??= (state.child as ChildCarrierView).status;
+        state.childRetry ??= (state.child as ChildCarrierView).retry;
         if (typeof state.childStatus !== 'function' || typeof state.childRetry !== 'function') return false;
         if (pending(Reflect.apply(state.childStatus, state.child, []))) {
           await Reflect.apply(state.childRetry, state.child, []);
@@ -248,13 +254,13 @@ function recoveryView(state: RecoveryState) {
       finally {state.preparing = false;}
     },
     constructCaptured<Receiver, Input, Output>(captured: unknown, receiver: Receiver,
-      method: (this: Receiver, argument: Input) => Output, argument: Input): Output {
+      method: (this: Receiver, argument: Input) => Output, argument?: Input): Output {
       if (captured !== state.capturedRun || captured === undefined ||
           typeof method !== 'function') fail('EffectCaptureResourceUnavailable');
       view.begin();
       let failed = true, cause;
       try {
-        const value = Reflect.apply(method, receiver, [argument]);
+        const value = Reflect.apply(method, receiver, [argument as Input]);
         if (captured !== state.capturedRun || state.closing || state.closed) {
           fail('EffectCaptureResourceUnavailable');
         }
@@ -265,7 +271,7 @@ function recoveryView(state: RecoveryState) {
     },
     constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
       captured: unknown, receiver: unknown, method: (...args: Args) => Value, args: Args,
-      additionalContracts: readonly unknown[]): Value {
+      additionalContracts?: readonly unknown[]): Value {
       // Only synchronous publication construction uses the completed Read.
       // A live validation refusal is final; it never retries physical Read.
       if (typeof method !== 'function' || !Array.isArray(args)) fail('EffectCaptureResourceUnavailable');
@@ -300,7 +306,7 @@ function recoveryView(state: RecoveryState) {
       return Reflect.apply(construct, view, [captured, receiver, invokePublication, {method, args}]) as Value;
     },
     constructCapturedValidation<Receiver, Input, Output>(captured: unknown, receiver: Receiver,
-      method: (this: Receiver, argument: Input) => Output, argument: Input): Output {
+      method: (this: Receiver, argument: Input) => Output, argument?: Input): Output {
       if (captured !== state.capturedRun || captured === undefined ||
           typeof method !== 'function' || !state.live ||
           typeof state.beginValidation !== 'function' ||
@@ -312,7 +318,7 @@ function recoveryView(state: RecoveryState) {
       try {
         checked(Reflect.apply(state.beginValidation, state.context!.runtime, [state.value]));
         if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
-        const value = Reflect.apply(method, receiver, [argument]);
+        const value = Reflect.apply(method, receiver, [argument as Input]);
         if (captured !== state.capturedRun || state.closing || state.closed) {
           fail('EffectCaptureResourceUnavailable');
         }
@@ -341,7 +347,7 @@ function recoveryView(state: RecoveryState) {
         throw cause;
       }
     },
-    finish(failed: boolean, cause: unknown): undefined {
+    finish(failed: boolean, cause?: unknown): undefined {
       if (!state.busy) fail('EffectCaptureResourceUnavailable');
       try {
         if (failed) captureFailure(state, cause);
