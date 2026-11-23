@@ -43,6 +43,24 @@ struct Journal {
 }
 
 ///|
+/// A dispatch caller may use existing in-memory state only while this same
+/// physical Database admits normal Journal work.
+pub fn Journal::require_operational(
+  self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
+  Ok(())
+}
+
+///|
 fn[T] Journal::abort_write(
   self : Journal,
   result : Result[T, NativeRemoteJournalIssue],
@@ -352,14 +370,9 @@ fn Journal::accept_with_initial_custody(
   (@remote.DispatchAcceptance, @remote.DispatchRecord),
   NativeRemoteJournalIssue,
 ] {
-  if self.closed {
-    return Err(Closed)
-  }
-  if self.retiring {
-    return Err(CleanupPending)
-  }
-  if self.database.transaction_fenced() {
-    return Err(TransactionFenced)
+  match self.require_operational() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -604,14 +617,9 @@ pub fn Journal::require(
   self : Journal,
   request : @remote.DispatchRequest,
 ) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
-  if self.closed {
-    return Err(Closed)
-  }
-  if self.retiring {
-    return Err(CleanupPending)
-  }
-  if self.database.transaction_fenced() {
-    return Err(TransactionFenced)
+  match self.require_operational() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value

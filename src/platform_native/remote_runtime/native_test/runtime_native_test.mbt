@@ -506,6 +506,16 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(accepted[0], 3)
   assert_eq(executions[0], 1)
   assert_eq(file_handoffs.val, 1)
+  let cached = runtime
+    .start_after_acceptance(first, input_binding, record => {
+      accepted[0] += 1
+      @remote.dispatch_record_matches_request(record, first)
+    })
+    .unwrap()
+  assert_eq(cached.evidence_cid, completion.evidence_cid)
+  assert_eq(accepted[0], 4)
+  assert_eq(executions[0], 1)
+  assert_eq(file_handoffs.val, 1)
   assert_true(
     runtime.open_output_reader(first, "foreign-material", 1)
     is Err(@runtime.OutputReaderUnavailable),
