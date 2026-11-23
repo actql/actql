@@ -16,6 +16,7 @@ import {createRuntimeExecutionControls} from './runtime-execution-control.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationProgressControl} from './publication-progress-control.mjs';
+import {createResultDeliveryControls} from './runtime-result-delivery-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -549,6 +550,9 @@ function publicationControl(moon) {
       cancel(preparation);
     }
   };
+  const {resultReadControls, resultRetentionControls, resultDeliveryControls} =
+    createResultDeliveryControls(moon, {token, inspect, issuanceLimits, captureContractLimits,
+      issuedDeliveryGrants, issuedDeliveryAttempts, originalDeliveryAttempts});
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -5529,172 +5533,7 @@ function publicationControl(moon) {
         ),
       ), limits);
     },
-    deliveryTransition(previous, next) {
-      return moon.strategyDeliveryRecordTransition(
-        previous === undefined ? undefined : token(previous),
-        token(next),
-      );
-    },
-    deliverySuccessValid(attempt, receipt, record) {
-      return moon.strategyDeliverySuccessValid(
-        token(attempt), token(receipt), token(record),
-      );
-    },
-    resultSerializationContractCid(format, limits) {
-      issuanceLimits(limits, 'Result serialization');
-      return checked(moon.strategyResultSerializationContractCid(
-        format,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      ));
-    },
-    describeCommittedResult(index, manifest, resultName, bindings,
-      definition, schemaWire, format, limits) {
-      issuanceLimits(limits, 'Result description');
-      return JSON.parse(checked(moon.strategyDescribeCommittedResult(
-        token(index), token(manifest), resultName, bindings.map(token),
-        token(definition), schemaWire, format, limits.maxWireBytes,
-        limits.maxNodes, limits.maxDepth)));
-    },
-    issueManifestReadGrant(index, manifest, grant, limits) {
-      limits = captureContractLimits(limits, 'Manifest read grant');
-      if (grant === null || typeof grant !== 'object') {
-        throw new TypeError('Invalid Manifest read grant');
-      }
-      return inspect(checked(moon.strategyIssueManifestReadGrant(
-        token(index),
-        token(manifest),
-        grant.principalId,
-        grant.purpose,
-        grant.dataCeilingCid,
-        grant.maxBytes,
-        grant.maxUses,
-        grant.expiresAt,
-        grant.authorizationContextCid,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    issueResultReadGrant(index, manifest, grant, limits) {
-      limits = captureContractLimits(limits, 'Result read grant');
-      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
-        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
-      if (grant === null || typeof grant !== 'object' ||
-          !Array.isArray(grant.resultNames) ||
-          !Array.isArray(grant.formats)) {
-        throw new TypeError('Invalid Result read grant');
-      }
-      const result = inspect(checked(moon.strategyIssueResultReadGrant(
-        token(index),
-        token(manifest),
-        grant.resultNames,
-        grant.formats,
-        grant.principalId,
-        grant.purpose,
-        grant.dataCeilingCid,
-        grant.maxBytes,
-        grant.maxUses,
-        grant.expiresAt,
-        grant.authorizationContextCid,
-        grant.egressAdmissionCid,
-        bounds.maxWireBytes,
-        bounds.maxNodes,
-        bounds.maxDepth,
-      )), limits);
-      issuedDeliveryGrants.set(result, bounds);
-      return result;
-    },
-    issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
-      limits = captureContractLimits(limits, 'Delivery Attempt');
-      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
-        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
-      if (attempt === null || typeof attempt !== 'object') {
-        throw new TypeError('Invalid Delivery Attempt');
-      }
-      const result = inspect(checked(moon.strategyIssueDeliveryAttempt(
-        token(index),
-        token(manifest),
-        token(grant),
-        attempt.resultName,
-        attempt.format,
-        attempt.attemptId,
-        attempt.requestedAt,
-        bounds.maxWireBytes,
-        bounds.maxNodes,
-        bounds.maxDepth,
-      )), limits);
-      const original = Object.freeze({kind: 'issued-delivery-attempt'});
-      const facts = Object.freeze({index, manifest, grant, attempt: result,
-        request: Object.freeze({resultName: attempt.resultName, format: attempt.format,
-          attemptId: attempt.attemptId, requestedAt: attempt.requestedAt}),
-        limits: bounds});
-      issuedDeliveryAttempts.set(result, {original,
-        index: token(index), manifest: token(manifest), grant: token(grant)});
-      originalDeliveryAttempts.set(original, facts);
-      return result;
-    },
-    captureIssuedDeliveryAttempt(attempt, index, manifest, grant, limits) {
-      token(attempt);
-      const actualIndex = token(index), actualManifest = token(manifest), actualGrant = token(grant);
-      const issued = issuedDeliveryAttempts.get(attempt);
-      if (issued === undefined) return undefined;
-      if (issued.index !== actualIndex || issued.manifest !== actualManifest || issued.grant !== actualGrant) {
-        throw new TypeError('PublicationDeliveryOriginalMismatch');
-      }
-      issuanceLimits(limits, 'Delivery Attempt');
-      const grantLimits = issuedDeliveryGrants.get(grant);
-      const facts = originalDeliveryAttempts.get(issued.original);
-      if (grantLimits === undefined || ['maxWireBytes', 'maxNodes', 'maxDepth'].some(
-        key => limits[key] !== grantLimits[key] || limits[key] !== facts.limits[key])) return undefined;
-      return issued.original;
-    },
-    readIssuedDeliveryAttempt(original) {
-      const facts = originalDeliveryAttempts.get(original);
-      if (facts === undefined) throw new TypeError('ForeignPublicationDeliveryOriginal');
-      return facts;
-    },
-    deliveryResultDefinitionCid(manifest, attempt) {
-      return checked(moon.strategyDeliveryResultDefinitionCid(
-        token(manifest),
-        token(attempt),
-      ));
-    },
-    resultReadRetentionPolicyCid(manifest, resultName) {
-      if (typeof resultName !== 'string') {
-        throw new TypeError('Invalid Result retention request');
-      }
-      return checked(moon.strategyResultReadRetentionPolicyCid(
-        token(manifest), resultName,
-      ));
-    },
-    manifestResultNames(manifest, limits) {
-      issuanceLimits(limits, 'Manifest Result inventory');
-      const wire = checked(moon.strategyManifestResultNames(
-        token(manifest),
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      ));
-      let names;
-      try { names = JSON.parse(wire); }
-      catch (error) {
-        throw new TypeError('Invalid Manifest Result inventory', {cause: error});
-      }
-      if (!Array.isArray(names)) {
-        throw new TypeError('Invalid Manifest Result inventory');
-      }
-      return Object.freeze([...names]);
-    },
-    resultReadDefinitionCid(manifest, resultName) {
-      if (typeof resultName !== 'string') {
-        throw new TypeError('Invalid Result definition request');
-      }
-      return checked(moon.strategyResultReadDefinitionCid(
-        token(manifest), resultName,
-      ));
-    },
+    ...resultReadControls,
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
     },
@@ -5741,65 +5580,7 @@ function publicationControl(moon) {
       }
       return moon.clientRunCancellationConfirmed(...names.map(name => facts[name]));
     },
-    resultReadAvailability(manifest, resultName, retention, observedAt) {
-      if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
-        throw new TypeError('Invalid Result availability request');
-      }
-      return checked(moon.strategyResultReadAvailability(
-        token(manifest), resultName, token(retention), observedAt,
-      ));
-    },
-    resultMetadataRetentionState(retention, observedAt) {
-      if (typeof observedAt !== 'string') {
-        throw new TypeError('Invalid Result metadata retention request');
-      }
-      return checked(moon.strategyResultMetadataRetentionState(
-        token(retention), observedAt,
-      ));
-    },
-    issueResultRetentionExtension(
-      base, availableUntil, admittedAt, limits,
-    ) {
-      limits = captureContractLimits(limits, 'Result retention extension');
-      if (typeof availableUntil !== 'string' ||
-          typeof admittedAt !== 'string') {
-        throw new TypeError('Invalid Result retention extension');
-      }
-      return inspect(checked(moon.strategyIssueResultRetentionExtension(
-        token(base),
-        availableUntil,
-        admittedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    resultReadExtendedAvailability(
-      manifest, resultName, base, extension, observedAt,
-    ) {
-      if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
-        throw new TypeError('Invalid extended Result availability request');
-      }
-      return checked(moon.strategyResultReadExtendedAvailability(
-        token(manifest),
-        resultName,
-        token(base),
-        token(extension),
-        observedAt,
-      ));
-    },
-    resultRetentionClockContractCid(retention) {
-      return checked(moon.strategyResultRetentionClockContractCid(
-        token(retention),
-      ));
-    },
-    trustedClockNotBefore(previous, observedAt) {
-      if (previous !== undefined && typeof previous !== 'string' ||
-          typeof observedAt !== 'string') {
-        return false;
-      }
-      return moon.strategyTrustedClockNotBefore(previous, observedAt);
-    },
+    ...resultRetentionControls,
     projectCommittedPublicationState(record, index) {
       return checked(moon.strategyPublicationSnapshotState(
         record === undefined ? undefined : token(record),
@@ -5845,156 +5626,7 @@ function publicationControl(moon) {
         limits.maxDepth,
       ));
     },
-    resultReadGrantAllowsBytes(grant, byteCount) {
-      if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;
-      return moon.strategyResultReadGrantAllowsBytes(
-        token(grant), byteCount,
-      );
-    },
-    manifestReadGrantAllowsBytes(grant, byteCount) {
-      if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;
-      return moon.strategyManifestReadGrantAllowsBytes(
-        token(grant), byteCount,
-      );
-    },
-    manifestReadGrantValidAt(grant, observedAt) {
-      if (typeof observedAt !== 'string') return false;
-      return moon.strategyManifestReadGrantValidAt(
-        token(grant), observedAt,
-      );
-    },
-    resultReadGrantValidAt(grant, observedAt) {
-      if (typeof observedAt !== 'string') return false;
-      return moon.strategyResultReadGrantValidAt(
-        token(grant), observedAt,
-      );
-    },
-    issueResultDeliveryReceipt(index, manifest, grant, attempt, delivered,
-      limits) {
-      limits = captureContractLimits(limits, 'Result delivery receipt');
-      if (delivered === null || typeof delivered !== 'object') {
-        throw new TypeError('Invalid Result delivery receipt');
-      }
-      return inspect(checked(moon.strategyIssueResultDeliveryReceipt(
-        token(index),
-        token(manifest),
-        token(grant),
-        token(attempt),
-        delivered.byteCount,
-        delivered.sha256,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    issueDeliveryRecord(attempt, previous, update, limits) {
-      limits = captureContractLimits(limits, 'Delivery Record');
-      if (update === null || typeof update !== 'object' ||
-          !Array.isArray(update.cleanupOwnerCids)) {
-        throw new TypeError('Invalid Delivery Record');
-      }
-      return inspect(checked(moon.strategyIssueDeliveryRecord(
-        token(attempt),
-        previous === undefined ? undefined : token(previous),
-        update.state,
-        update.confirmedByteCount,
-        update.exposure,
-        update.possibleUnconfirmedMaxBytes,
-        update.deliveredSha256,
-        update.receipt === undefined ? undefined : token(update.receipt),
-        update.failureCid,
-        update.observedAt,
-        update.cleanupOwnerCids,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
-      issuanceLimits(limits, 'Result delivery serializer');
-      if (typeof schemaWire !== 'string' || !Array.isArray(fields)) {
-        throw new TypeError('Invalid Result delivery serializer');
-      }
-      return checked(moon.strategyPrepareResultDeliverySerializer(
-        format,
-        schemaWire,
-        fields,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      ));
-    },
-    beginResultDelivery(serializer) {
-      return checked(moon.strategyBeginResultDelivery(serializer));
-    },
-    nextResultDeliveryRow(serializer, rowWire) {
-      if (typeof rowWire !== 'string') {
-        throw new TypeError('Invalid Result delivery row');
-      }
-      return checked(moon.strategyNextResultDeliveryRow(serializer, rowWire));
-    },
-    finishResultDelivery(serializer) {
-      return checked(moon.strategyFinishResultDelivery(serializer));
-    },
-    prepareDurableResultRowFrames(limits) {
-      if (limits === null || typeof limits !== 'object' ||
-          !Number.isSafeInteger(limits.maxBytes) || limits.maxBytes < 0 ||
-          !Number.isSafeInteger(limits.maxRows) || limits.maxRows < 0 ||
-          !Number.isSafeInteger(limits.maxRowBytes) ||
-          limits.maxRowBytes < 1 ||
-          !Number.isSafeInteger(limits.maxDepth) || limits.maxDepth < 1 ||
-          !Number.isSafeInteger(limits.maxFrameBytes) ||
-          limits.maxFrameBytes < 1) {
-        throw new TypeError('Invalid durable Result row-frame limits');
-      }
-      return checked(moon.strategyPrepareDurableResultRowFrames(
-        limits.maxBytes,
-        limits.maxRows,
-        limits.maxRowBytes,
-        limits.maxDepth,
-        limits.maxFrameBytes,
-      ));
-    },
-    prepareGrowingDurableResultRowFrames(limits) {
-      for (const name of ['maxBytes', 'maxRows', 'maxRowBytes', 'maxDepth', 'maxFrameBytes']) {
-        if (!Number.isSafeInteger(limits?.[name]) || limits[name] < 0 || limits[name] > 2147483647) {
-          throw new TypeError('Invalid growing durable Result row-frame limits');
-        }
-      }
-      return checked(moon.strategyPrepareGrowingDurableResultRowFrames(
-        limits.maxBytes, limits.maxRows, limits.maxRowBytes, limits.maxDepth, limits.maxFrameBytes));
-    },
-    durableResultRowFrameGrowth(frames, bytes) {
-      if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) {
-        throw new TypeError('Invalid durable Result row-frame chunk');
-      }
-      return checked(moon.strategyDurableResultRowFrameGrowth(frames, bytes));
-    },
-    growDurableResultRowFrameBuffer(frames, bytes) {
-      if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) {
-        throw new TypeError('Invalid durable Result row-frame capacity');
-      }
-      return checked(moon.strategyGrowDurableResultRowFrameBuffer(frames, bytes));
-    },
-    feedDurableResultRowFrames(frames, chunk) {
-      if (!(chunk instanceof Uint8Array)) {
-        throw new TypeError('Invalid durable Result row-frame chunk');
-      }
-      return checked(moon.strategyFeedDurableResultRowFrames(frames, chunk));
-    },
-    finishDurableResultRowFrames(frames) {
-      const summary = checked(
-        moon.strategyFinishDurableResultRowFrames(frames),
-      );
-      if (!Array.isArray(summary) || summary.length !== 2 ||
-          summary.some(value => !Number.isSafeInteger(value) || value < 0)) {
-        throw new TypeError('Invalid durable Result row-frame summary');
-      }
-      return Object.freeze({bytes: summary[0], rows: summary[1]});
-    },
-    cancelDurableResultRowFrames(frames) {
-      moon.strategyCancelDurableResultRowFrames(frames);
-    },
+    ...resultDeliveryControls,
   });
   publicationControls.set(moon, control);
   return control;

@@ -23229,7 +23229,7 @@
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -23506,7 +23506,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -24045,7 +24045,6 @@
             "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
             "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
             "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
-            "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
             "publicationControl/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
             "publicationControl/init:bindCheckedClientInferDispatch/init:bindCheckedClientInferDispatch",
@@ -24063,11 +24062,8 @@
             "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
-            "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -24132,10 +24128,6 @@
             "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
             "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
-            "publicationControl/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
-            "publicationControl/init:deliverySuccessValid/init:deliverySuccessValid",
-            "publicationControl/init:deliveryTransition/init:deliveryTransition",
-            "publicationControl/init:describeCommittedResult/init:describeCommittedResult",
             "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
             "publicationControl/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
             "publicationControl/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
@@ -24158,12 +24150,8 @@
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
-            "publicationControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
             "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
-            "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
-            "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
-            "publicationControl/init:finishResultDelivery/init:finishResultDelivery",
             "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
@@ -24189,8 +24177,6 @@
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
             "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
-            "publicationControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
-            "publicationControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
             "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
             "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
             "publicationControl/init:issueDurableResultBinding/init:issueDurableResultBinding",
@@ -24219,7 +24205,6 @@
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
-            "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
@@ -24232,10 +24217,7 @@
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
-            "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
-            "publicationControl/init:issueResultReadGrant/init:issueResultReadGrant",
-            "publicationControl/init:issueResultRetentionExtension/init:issueResultRetentionExtension",
             "publicationControl/init:issueRunDefinition/init:issueRunDefinition",
             "publicationControl/init:issueRunInvocation/init:issueRunInvocation",
             "publicationControl/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
@@ -24253,13 +24235,9 @@
             "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
             "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
-            "publicationControl/init:manifestReadGrantAllowsBytes/init:manifestReadGrantAllowsBytes",
-            "publicationControl/init:manifestReadGrantValidAt/init:manifestReadGrantValidAt",
-            "publicationControl/init:manifestResultNames/init:manifestResultNames",
             "publicationControl/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
-            "publicationControl/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
             "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
             "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
@@ -24282,7 +24260,6 @@
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
             "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
-            "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
@@ -24310,7 +24287,6 @@
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
-            "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
             "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationPreflightValid/init:publicationPreflightValid",
@@ -24326,7 +24302,6 @@
             "publicationControl/init:readCurrentClientRunView/init:readCurrentClientRunView",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
-            "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
@@ -24339,15 +24314,6 @@
             "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
             "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
-            "publicationControl/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
-            "publicationControl/init:resultReadAvailability/init:resultReadAvailability",
-            "publicationControl/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
-            "publicationControl/init:resultReadExtendedAvailability/init:resultReadExtendedAvailability",
-            "publicationControl/init:resultReadGrantAllowsBytes/init:resultReadGrantAllowsBytes",
-            "publicationControl/init:resultReadGrantValidAt/init:resultReadGrantValidAt",
-            "publicationControl/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
-            "publicationControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
-            "publicationControl/init:resultSerializationContractCid/init:resultSerializationContractCid",
             "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
             "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
@@ -24393,7 +24359,6 @@
             "publicationControl/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
             "publicationControl/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
             "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
-            "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence#2",
             "publicationControl/inspectEffectSource/inspectEffectSource",
@@ -24404,7 +24369,10 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+            "publicationControl/captureContractLimits/captureContractLimits",
+            "publicationControl/inspect/inspect",
+            "publicationControl/issuanceLimits/issuanceLimits"
           ],
           "exports": [],
           "attributes": {
@@ -26025,7 +25993,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -28018,7 +27986,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28349,84 +28317,6 @@
               {
                 "path": "src/query_integration/result_publication_custody_wbtest.mbt",
                 "anchor": "captured consumer retirement retains original Result pins through same retry"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
-            "publicationControl/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
-            "publicationControl/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/local-node/README.md",
-                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareGrowingDurableResultRowFrames(limits)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/preparation_request_result_read.mbt",
-                "anchor": "physical_equal(original, input)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-result-read-workspace.mts",
-                "anchor": "const entry = original(request);"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/result-delivery.mts",
-                "anchor": "}, async needed => {"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/run_publication/payload_frames.mbt",
-                "anchor": "return Err(DurableRowFrameByteLimit)"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/run_publication/payload_frames.mbt",
-                "anchor": "pub fn cancel_durable_result_row_frames("
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/preparation_request_result_read.mbt",
-                "anchor": "fn result_read_row_cost("
-              },
-              {
-                "path": "adapters/store-local/publication-result-reader.mts",
-                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/local-node/README.md",
-                "anchor": "caller limits can narrow reads or collection."
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
-                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
               }
             ]
           }
@@ -31205,6 +31095,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/captureContractLimits/captureContractLimits",
+          "parameters": [
+            "limits",
+            "label"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
           "parameters": [
             "compiled"
@@ -31681,13 +31579,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
-          "parameters": [
-            "serializer"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
           "parameters": [
             "checkedEffect",
@@ -32003,13 +31894,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
-          "parameters": [
-            "frames"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
           "parameters": [
             "issued",
@@ -32261,24 +32145,6 @@
           "name": "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
           "parameters": [
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-          "parameters": [
-            "attempt",
-            "index",
-            "manifest",
-            "grant",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-          "parameters": [
-            "key"
           ],
           "async": false
         },
@@ -32801,53 +32667,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
-          "parameters": [
-            "manifest",
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:deliverySuccessValid/init:deliverySuccessValid",
-          "parameters": [
-            "attempt",
-            "receipt",
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:deliveryTransition/init:deliveryTransition",
-          "parameters": [
-            "previous",
-            "next"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:describeCommittedResult/init:describeCommittedResult",
-          "parameters": [
-            "index",
-            "manifest",
-            "resultName",
-            "bindings",
-            "definition",
-            "schemaWire",
-            "format",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
-          "parameters": [
-            "frames",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
           "parameters": [
             "runDefinition",
@@ -33108,14 +32927,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
-          "parameters": [
-            "frames",
-            "chunk"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
           "parameters": [
             "compiled",
@@ -33137,41 +32948,12 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
-          "parameters": [
-            "frames"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:finishGenericEffectKeyedLookupPublicationInput/init:finishGenericEffectKeyedLookupPublicationInput",
           "parameters": [
             "parent",
             "lookup",
             "observedAt",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:finishResultDelivery/init:finishResultDelivery",
-          "parameters": [
-            "serializer"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
-          "parameters": [
-            "frames",
-            "bytes"
           ],
           "async": false
         },
@@ -33650,27 +33432,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
-          "parameters": [
-            "index",
-            "manifest",
-            "grant",
-            "attempt",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
-          "parameters": [
-            "attempt",
-            "previous",
-            "update",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
           "parameters": [
             "owner",
@@ -33954,16 +33715,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
-          "parameters": [
-            "index",
-            "manifest",
-            "grant",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
           "parameters": [
             "model",
@@ -34079,44 +33830,12 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
-          "parameters": [
-            "index",
-            "manifest",
-            "grant",
-            "attempt",
-            "delivered",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueResultManifest/init:issueResultManifest",
           "parameters": [
             "runDefinition",
             "invocation",
             "definitions",
             "artifacts",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueResultReadGrant/init:issueResultReadGrant",
-          "parameters": [
-            "index",
-            "manifest",
-            "grant",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueResultRetentionExtension/init:issueResultRetentionExtension",
-          "parameters": [
-            "base",
-            "availableUntil",
-            "admittedAt",
             "limits"
           ],
           "async": false
@@ -34319,30 +34038,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:manifestReadGrantAllowsBytes/init:manifestReadGrantAllowsBytes",
-          "parameters": [
-            "grant",
-            "byteCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:manifestReadGrantValidAt/init:manifestReadGrantValidAt",
-          "parameters": [
-            "grant",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:manifestResultNames/init:manifestResultNames",
-          "parameters": [
-            "manifest",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:modelOriginalResourceOriginField/init:modelOriginalResourceOriginField",
           "parameters": [
             "document",
@@ -34368,14 +34063,6 @@
             "entry",
             "role",
             "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
-          "parameters": [
-            "serializer",
-            "rowWire"
           ],
           "async": false
         },
@@ -35269,13 +34956,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "owner",
@@ -35301,13 +34981,6 @@
             "captures",
             "sources",
             "selection",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames",
-          "parameters": [
             "limits"
           ],
           "async": false
@@ -35621,16 +35294,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
-          "parameters": [
-            "format",
-            "schemaWire",
-            "fields",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
           "parameters": [
             "record",
@@ -35782,13 +35445,6 @@
           "name": "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
-          "parameters": [
-            "original"
           ],
           "async": false
         },
@@ -36167,14 +35823,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
-          "parameters": [
-            "retention",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
           "parameters": [
             "inputRelationCids",
@@ -36194,74 +35842,6 @@
           "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadAvailability/init:resultReadAvailability",
-          "parameters": [
-            "manifest",
-            "resultName",
-            "retention",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
-          "parameters": [
-            "manifest",
-            "resultName"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadExtendedAvailability/init:resultReadExtendedAvailability",
-          "parameters": [
-            "manifest",
-            "resultName",
-            "base",
-            "extension",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadGrantAllowsBytes/init:resultReadGrantAllowsBytes",
-          "parameters": [
-            "grant",
-            "byteCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadGrantValidAt/init:resultReadGrantValidAt",
-          "parameters": [
-            "grant",
-            "observedAt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
-          "parameters": [
-            "manifest",
-            "resultName"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
-          "parameters": [
-            "retention"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:resultSerializationContractCid/init:resultSerializationContractCid",
-          "parameters": [
-            "format",
-            "limits"
           ],
           "async": false
         },
@@ -36792,10 +36372,10 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
+          "name": "publicationControl/inspect/inspect",
           "parameters": [
-            "previous",
-            "observedAt"
+            "contract",
+            "limits"
           ],
           "async": false
         },
@@ -36817,6 +36397,14 @@
           "name": "publicationControl/inspectEffectSource/inspectEffectSource",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/issuanceLimits/issuanceLimits",
+          "parameters": [
+            "limits",
+            "label"
           ],
           "async": false
         },
@@ -36906,13 +36494,561 @@
         "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
         "./runtime-execution-control.mjs",
+        "./runtime-result-delivery-control.mjs",
         "./runtime-result.mjs",
         "./runtime-tuple.mjs",
         "./site-control.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1ea53ac5cb8dcfd454a95170c8b80a9d0fad8bb83239555b8661dd6c8956b9a5"
+      "sha256": "13fd46637d29ff978d5d471ef4c0d1319e903c3460c57c3f554ef482a6dccd83"
+    },
+    {
+      "module": "adapters/host-common/runtime-result-delivery-control.mjs",
+      "role": "physical-io",
+      "owner": "Existing Common Result issuance, retention, delivery and row framing through the original publication owner",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createResultDeliveryControls",
+            "createResultDeliveryControls/init:beginResultDelivery/init:beginResultDelivery",
+            "createResultDeliveryControls/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "createResultDeliveryControls/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "createResultDeliveryControls/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "createResultDeliveryControls/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
+            "createResultDeliveryControls/init:deliverySuccessValid/init:deliverySuccessValid",
+            "createResultDeliveryControls/init:deliveryTransition/init:deliveryTransition",
+            "createResultDeliveryControls/init:describeCommittedResult/init:describeCommittedResult",
+            "createResultDeliveryControls/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
+            "createResultDeliveryControls/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+            "createResultDeliveryControls/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+            "createResultDeliveryControls/init:finishResultDelivery/init:finishResultDelivery",
+            "createResultDeliveryControls/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
+            "createResultDeliveryControls/init:issueDeliveryRecord/init:issueDeliveryRecord",
+            "createResultDeliveryControls/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "createResultDeliveryControls/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
+            "createResultDeliveryControls/init:issueResultReadGrant/init:issueResultReadGrant",
+            "createResultDeliveryControls/init:issueResultRetentionExtension/init:issueResultRetentionExtension",
+            "createResultDeliveryControls/init:manifestReadGrantAllowsBytes/init:manifestReadGrantAllowsBytes",
+            "createResultDeliveryControls/init:manifestReadGrantValidAt/init:manifestReadGrantValidAt",
+            "createResultDeliveryControls/init:manifestResultNames/init:manifestResultNames",
+            "createResultDeliveryControls/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
+            "createResultDeliveryControls/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
+            "createResultDeliveryControls/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
+            "createResultDeliveryControls/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+            "createResultDeliveryControls/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
+            "createResultDeliveryControls/init:resultReadAvailability/init:resultReadAvailability",
+            "createResultDeliveryControls/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
+            "createResultDeliveryControls/init:resultReadExtendedAvailability/init:resultReadExtendedAvailability",
+            "createResultDeliveryControls/init:resultReadGrantAllowsBytes/init:resultReadGrantAllowsBytes",
+            "createResultDeliveryControls/init:resultReadGrantValidAt/init:resultReadGrantValidAt",
+            "createResultDeliveryControls/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
+            "createResultDeliveryControls/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
+            "createResultDeliveryControls/init:resultSerializationContractCid/init:resultSerializationContractCid",
+            "createResultDeliveryControls/init:trustedClockNotBefore/init:trustedClockNotBefore"
+          ],
+          "exports": [
+            "createResultDeliveryControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "export function createResultDeliveryControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "issueResultReadGrant(index: unknown, manifest: unknown, grant: ResultGrant, limits: Limits)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "issued.index !== actualIndex || issued.manifest !== actualManifest || issued.grant !== actualGrant"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const issuedDeliveryAttempts = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const token = value => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "return moon.strategyResultReadGrantValidAt("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "throw new TypeError('PublicationDeliveryOriginalMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "moon.strategyCancelDurableResultRowFrames(frames);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "limits.maxRowBytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Delivery profile and bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "actual READ parent batches ${format} with independent bytes/hash and stable outgoing aliases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createResultDeliveryControls/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
+            "createResultDeliveryControls/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
+            "createResultDeliveryControls/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-result-delivery-control.mts",
+                "anchor": "prepareGrowingDurableResultRowFrames(limits: FrameLimits)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "physical_equal(original, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mts",
+                "anchor": "const entry = original(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/result-delivery.mts",
+                "anchor": "}, async needed => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "return Err(DurableRowFrameByteLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost("
+              },
+              {
+                "path": "adapters/store-local/publication-result-reader.mts",
+                "anchor": "const admitted = await beforeBufferGrowth!(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "caller limits can narrow reads or collection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createResultDeliveryControls"
+      ],
+      "operations": [
+        {
+          "name": "createResultDeliveryControls",
+          "parameters": [
+            "moon",
+            "token",
+            "inspect",
+            "issuanceLimits",
+            "captureContractLimits",
+            "issuedDeliveryGrants",
+            "issuedDeliveryAttempts",
+            "originalDeliveryAttempts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:beginResultDelivery/init:beginResultDelivery",
+          "parameters": [
+            "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+          "parameters": [
+            "frames"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+          "parameters": [
+            "attempt",
+            "index",
+            "manifest",
+            "grant",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
+          "parameters": [
+            "manifest",
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:deliverySuccessValid/init:deliverySuccessValid",
+          "parameters": [
+            "attempt",
+            "receipt",
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:deliveryTransition/init:deliveryTransition",
+          "parameters": [
+            "previous",
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:describeCommittedResult/init:describeCommittedResult",
+          "parameters": [
+            "index",
+            "manifest",
+            "resultName",
+            "bindings",
+            "definition",
+            "schemaWire",
+            "format",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
+          "parameters": [
+            "frames",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
+          "parameters": [
+            "frames",
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+          "parameters": [
+            "frames"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:finishResultDelivery/init:finishResultDelivery",
+          "parameters": [
+            "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
+          "parameters": [
+            "frames",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
+          "parameters": [
+            "index",
+            "manifest",
+            "grant",
+            "attempt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueDeliveryRecord/init:issueDeliveryRecord",
+          "parameters": [
+            "attempt",
+            "previous",
+            "update",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueManifestReadGrant/init:issueManifestReadGrant",
+          "parameters": [
+            "index",
+            "manifest",
+            "grant",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
+          "parameters": [
+            "index",
+            "manifest",
+            "grant",
+            "attempt",
+            "delivered",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueResultReadGrant/init:issueResultReadGrant",
+          "parameters": [
+            "index",
+            "manifest",
+            "grant",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:issueResultRetentionExtension/init:issueResultRetentionExtension",
+          "parameters": [
+            "base",
+            "availableUntil",
+            "admittedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:manifestReadGrantAllowsBytes/init:manifestReadGrantAllowsBytes",
+          "parameters": [
+            "grant",
+            "byteCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:manifestReadGrantValidAt/init:manifestReadGrantValidAt",
+          "parameters": [
+            "grant",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:manifestResultNames/init:manifestResultNames",
+          "parameters": [
+            "manifest",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
+          "parameters": [
+            "serializer",
+            "rowWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames",
+          "parameters": [
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
+          "parameters": [
+            "format",
+            "schemaWire",
+            "fields",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultMetadataRetentionState/init:resultMetadataRetentionState",
+          "parameters": [
+            "retention",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadAvailability/init:resultReadAvailability",
+          "parameters": [
+            "manifest",
+            "resultName",
+            "retention",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadDefinitionCid/init:resultReadDefinitionCid",
+          "parameters": [
+            "manifest",
+            "resultName"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadExtendedAvailability/init:resultReadExtendedAvailability",
+          "parameters": [
+            "manifest",
+            "resultName",
+            "base",
+            "extension",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadGrantAllowsBytes/init:resultReadGrantAllowsBytes",
+          "parameters": [
+            "grant",
+            "byteCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadGrantValidAt/init:resultReadGrantValidAt",
+          "parameters": [
+            "grant",
+            "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
+          "parameters": [
+            "manifest",
+            "resultName"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
+          "parameters": [
+            "retention"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:resultSerializationContractCid/init:resultSerializationContractCid",
+          "parameters": [
+            "format",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createResultDeliveryControls/init:trustedClockNotBefore/init:trustedClockNotBefore",
+          "parameters": [
+            "previous",
+            "observedAt"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "f1fc2ea82383cfad311dff989793573555ddcf64f404ef1b35f0866e430caa43"
     },
     {
       "module": "adapters/host-common/ledger-usage.mjs",

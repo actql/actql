@@ -2530,3 +2530,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-owner-observations.d.mts
 /adapters/host-node/logical-task-observation.mjs
 /adapters/host-node/logical-task-observation.d.mts
+/adapters/host-common/runtime-result-delivery-control.mjs
+/adapters/host-common/runtime-result-delivery-control.d.mts
