@@ -13,6 +13,7 @@ import {installEffectContentFamily} from './installed-content-family.mjs';
 import {createContentRecoveryDispatch} from './content-recovery-dispatch.mjs';
 import {installRunKeyedContentCapture} from './installed-keyed-content-capture.mjs';
 import {createKeyedContentRunRecovery} from './keyed-content-run-recovery.mjs';
+import {createGeneratedContentRunRecovery} from './generated-content-run-recovery.mjs';
 
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
@@ -633,97 +634,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     acquiredLedgers.set(ledger, plan.compiled);
     return ledger;
   };
-  // Reopen only authenticated original Model-input custody. These handles
-  // borrow durable holdings; they cannot regenerate, recapture or retire bytes.
-  run.recover = async ({preparedProgram, preparedEffect, plan, store, principalId, signal,
-    restoredInput, retainExecution}) => {
-    if (preparedEffect !== undefined) {
-      preparedProgram = publications.checkedClientCompiledEffectProgram(plan.compiled, preparedEffect);
-    }
-    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
-    if ((plan.kind !== 'infer' && !(plan.kind === 'effect' && preparedEffect !== undefined)) ||
-        plan.serializationGraph === undefined ||
-        principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
-        typeof retainExecution !== 'function' || restoredInput?.savedScope === undefined) {
-      throw new TypeError('InvalidInstalledContentRecovery');
-    }
-    let retired = false;
-    const definition = JSON.parse(plan.runDefinition.wire);
-    const live = () => !retired && restoredInput.token.available === true &&
-      store.status().closed === false && Date.parse(now()) < Date.parse(definition.valid_until) &&
-      authorize(principalId) === true;
-    retainExecution(Object.freeze({cleanupPending: () => !retired,
-      async close() { retired = true; return true; },
-      async cleanup() { retired = true; return true; }}));
-    const recheck = () => {
-      signal?.throwIfAborted();
-      if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
-    };
-    recheck();
-    const original = restoredInput.snapshot.contentGeneration;
-    const closed = (value, fields) => value !== null && typeof value === 'object' &&
-      !Array.isArray(value) && Object.keys(value).sort().join(',') === fields.slice().sort().join(',');
-    const {graphPolicy, binding} = installedBinding(plan);
-    const fields = ['referenceWire', 'binding', 'byteHoldingCid', 'bindings'];
-    if (preparedEffect !== undefined) fields.push('completion');
-    if (!closed(original, fields) ||
-        preparedEffect !== undefined && (!closed(original.completion, ['binding', 'descriptorWire', 'rows']) ||
-          typeof original.completion.binding !== 'string' ||
-          typeof original.completion.descriptorWire !== 'string' ||
-          !Array.isArray(original.completion.rows) || original.completion.rows.length !== 1 ||
-          original.completion.rows.some(row => typeof row !== 'string')) ||
-        typeof original.referenceWire !== 'string' ||
-        !closed(original.binding, Object.keys(binding)) ||
-        Object.keys(binding).some(name => original.binding[name] !== binding[name]) ||
-        original.byteHoldingCid !== publications.checkedClientSerializationByteHoldingCid(
-          plan.compiled, plan.runDefinition, storeAuthorityCid) ||
-        !Array.isArray(original.bindings) || original.bindings.length !== 3 ||
-        original.bindings.some((value, index) =>
-          !closed(value, ['name', 'semanticCid', 'wire', 'holdingCid']) ||
-          value.name !== ['content_input_artifact', 'content_evidence', 'content_generation'][index])) {
-      throw new TypeError('InstalledContentRecoveryBindingMismatch');
-    }
-    const evidence = [];
-    for (const value of original.bindings) {
-      recheck();
-      if (await store.confirmPrivateEvidence(value) === undefined) {
-        throw new Error('InstalledContentRecoveryEvidenceUnavailable');
-      }
-      recheck();
-      evidence.push(publications.admitRunEvidence(value.name, value.wire,
-        {maxWireBytes: 16384, maxNodes: 256, maxDepth: 16}));
-      if (evidence.at(-1).identity !== value.semanticCid) {
-        throw new TypeError('InstalledContentRecoveryEvidenceMismatch');
-      }
-    }
-    const candidate = control.recoveryCandidate(original.referenceWire, binding, referenceLimits);
-    let storedOriginal;
-    const content = await issueStoredGeneratedContent({store, control, candidate,
-      holdingCid: original.byteHoldingCid, workspaceScopeCid: authorityScopeCid,
-      effectiveDataPolicyCid: graphPolicy.cid, available: live,
-      authorize: () => live(), limits: referenceLimits,
-      retainOriginal: value => { storedOriginal = value; }});
-    recheck();
-    const generation = control.recover(plan.compiled, plan.runDefinition, plan.inferGraph,
-      restoredInput.savedScope, original.bindings[2].semanticCid,
-      {input: evidence[0], derivation: evidence[1], generation: evidence[2]}, candidate, content);
-    const current = publications.checkedClientSerializationRecoveryBindings(
-      plan.compiled, generation, storeAuthorityCid);
-    if (current.length !== original.bindings.length || current.some((value, index) =>
-      ['name', 'semanticCid', 'wire', 'holdingCid'].some(name => value[name] !== original.bindings[index][name]))) {
-      throw new TypeError('InstalledContentRecoveryEvidenceMismatch');
-    }
-    recheck();
-    const completion = preparedEffect === undefined ? undefined
-      : publications.prepareCheckedClientRetainedContentOutput(plan.compiled, plan.runDefinition,
-        generation, storeAuthorityCid, original.completion, live);
-    await faultInjection?.('effect_content_generation_recovered', {
-      holdingCid: original.byteHoldingCid,
-    });
-    recheck();
-    return Object.freeze({generation, recovery: original, completion, storedOriginal,
-      capturedContentRecovery: restoredInput.capturedContent,
-      capturedContentBinding: restoredInput.capturedContentBinding});
-  };
+  run.recover = createGeneratedContentRunRecovery({publications, control, ownerPrincipal, storeAuthorityCid,
+    authorityScopeCid, now, authorize, installedBinding, referenceLimits, faultInjection});
   return Object.freeze(run);
 }

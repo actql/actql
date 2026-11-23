@@ -67390,7 +67390,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "65326046a204aab2aa51ff191f9818338bd1e02a6c87b9405f1b56fa45775002",
+      "sha256": "00c67f6a1bd9fb2da4070073b9c49f1b302bb862231fe0c50a1b4a1ddaa8e007",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -67515,83 +67515,6 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/closed/closed",
-          "parameters": [
-            "value",
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/content/content",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/content/content#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
-          "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
-          "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/live/live",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
           "parameters": [
             "workspace",
@@ -67611,20 +67534,6 @@
             "capturedContent"
           ],
           "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#11",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "plan",
-            "store",
-            "principalId",
-            "signal",
-            "restoredInput",
-            "retainExecution"
-          ],
-          "async": true
         },
         {
           "name": "installNodeContentRun/installNodeContentRun#2",
@@ -67738,17 +67647,6 @@
             "installNodeContentRun/execute/execute/remainingWork/remainingWork",
             "installNodeContentRun/installedBinding/installedBinding",
             "installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun/closed/closed",
-            "installNodeContentRun/installNodeContentRun/content/content",
-            "installNodeContentRun/installNodeContentRun/content/content#2",
-            "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
-            "installNodeContentRun/installNodeContentRun/init:close/init:close",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
-            "installNodeContentRun/installNodeContentRun/live/live",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun#5",
@@ -69501,8 +69399,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
-            "installNodeContentRun/installNodeContentRun#11"
+            "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare"
           ],
           "exports": [],
           "attributes": {
@@ -69607,118 +69504,6 @@
               }
             ]
           }
-        },
-        {
-          "operations": [
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#5"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/content-recovery-dispatch.mts",
-                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Source Command Content"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/recovered-source-content-control.test.mts",
-                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
-              },
-              {
-                "path": "adapters/host-node/recovered-source-command-content.test.mts",
-                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
-              },
-              {
-                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
-                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
-              }
-            ]
-          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -69727,6 +69512,7 @@
         "../host-common/runtime-result.mjs",
         "./content-recovery-dispatch.mjs",
         "./generated-content-holding.mjs",
+        "./generated-content-run-recovery.mjs",
         "./generated-content-write.mjs",
         "./installed-content-family.mjs",
         "./installed-keyed-content-capture.mjs",
@@ -69737,6 +69523,222 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/generated-content-run-recovery.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c100d694c4fbad43ec558324a0ccaadb08ddd3b17f30e42e4ef2b6ba152c57ce",
+      "role": "physical-io",
+      "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
+      "exports": [
+        "createGeneratedContentRunRecovery"
+      ],
+      "operations": [
+        {
+          "name": "createGeneratedContentRunRecovery",
+          "parameters": [
+            "publications",
+            "control",
+            "ownerPrincipal",
+            "storeAuthorityCid",
+            "authorityScopeCid",
+            "now",
+            "authorize",
+            "installedBinding",
+            "referenceLimits",
+            "faultInjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "plan",
+            "store",
+            "principalId",
+            "signal",
+            "restoredInput",
+            "retainExecution"
+          ],
+          "async": true
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/closed/closed",
+          "parameters": [
+            "value",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/content/content",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/content/content#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#4",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#5",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/live/live",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createGeneratedContentRunRecovery",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/closed/closed",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/content/content",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/content/content#2",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#2",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#3",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#4",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/createGeneratedContentRunRecovery#5",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/init:cleanup/init:cleanup",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/init:close/init:close",
+            "createGeneratedContentRunRecovery/createGeneratedContentRunRecovery/live/live"
+          ],
+          "exports": [
+            "createGeneratedContentRunRecovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "export function createGeneratedContentRunRecovery("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "restoredInput, retainExecution}: RecoveryInput"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "publications.checkedClientSerializationByteHoldingCid("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "const content = await issueStoredGeneratedContent({store, control, candidate,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "await store.confirmPrivateEvidence(value)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "throw new TypeError('InstalledContentRecoveryEvidenceMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "const candidate = control.recoveryCandidate(original.referenceWire, binding, referenceLimits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/generated-content-run-recovery.mts",
+                "anchor": "publications.prepareCheckedClientRetainedContentOutput(plan.compiled, plan.runDefinition,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-infer-public.test.mjs",
+                "anchor": "assert.equal(generations, 1, 'the original encoder must not run again');"
+              },
+              {
+                "path": "adapters/host-node/installed-content-infer-public.test.mjs",
+                "anchor": "assert.equal(host.reads(), 0, 'original Source must not be acquired again');"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./generated-content-holding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "rationale": "Generated Content recovery confirms the saved Model-input custody and readmits its original generation under the installed Content Run owner."
     },
     {
       "module": "adapters/host-node/keyed-content-run-recovery.mjs",
