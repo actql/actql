@@ -162,6 +162,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       cursor("true"),
       legacy,
       limits(),
+      [],
     )
     is Err({ kind: @graph_typing.IncompleteGraph, .. }),
   )

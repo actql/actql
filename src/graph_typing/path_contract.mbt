@@ -18,16 +18,6 @@ pub fn check_path_contract(
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
-) -> Result[CheckedPathContract, Issue] {
-  check_path_contract_fields(kind, source, input, limits, [])
-}
-
-///|
-fn check_path_contract_fields(
-  kind : PathOutput,
-  source : @decode.Cursor,
-  input : @carrier.Carrier,
-  limits : Limits,
   endpoint_properties : Array[TraversalEndpointProperty],
 ) -> Result[CheckedPathContract, Issue] {
   try {

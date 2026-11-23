@@ -1,5 +1,5 @@
 ///|
-priv struct TraversalEndpointProperty {
+struct TraversalEndpointProperty {
   at_start : Bool
   property : String
   name : String

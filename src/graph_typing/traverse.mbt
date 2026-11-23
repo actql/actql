@@ -343,7 +343,7 @@ fn check_traversal_profile(
       }
     }
     let output = match
-      check_path_contract_fields(
+      check_path_contract(
         emit,
         source,
         input,

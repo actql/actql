@@ -43,7 +43,7 @@ pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOpti
 
 pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
 
-pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
+pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits, Array[TraversalEndpointProperty]) -> Result[CheckedPathContract, Issue]
 
 pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
@@ -773,6 +773,8 @@ pub(all) enum SubtractionObligation {
   CanonicalSubtractionOrder
   ResolveSubtractionResources
 } derive(Eq, @debug.Debug)
+
+type TraversalEndpointProperty
 
 type TraversalHop
 
