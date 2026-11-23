@@ -387,6 +387,14 @@ pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
 
+pub fn traverse_endpoint_property_at(CheckedTraverse, Int) -> (Bool, String, String)?
+
+pub fn traverse_endpoint_property_count(CheckedTraverse) -> Int
+
+pub fn traverse_endpoint_property_index(CheckedTraverse, @relation_schema.FieldName) -> Int?
+
+pub fn traverse_endpoint_property_position(CheckedTraverse, Int, Int) -> Int?
+
 pub fn traverse_graph_path_mode(CheckedTraverse) -> GraphPathMode
 
 pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?

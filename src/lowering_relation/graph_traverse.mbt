@@ -68,6 +68,36 @@ pub fn graph_traverse_output_schema(
 }
 
 ///|
+pub fn graph_traverse_has_endpoint_properties(
+  value : PreparedGraphTraverse,
+) -> Bool {
+  @graph.traverse_endpoint_property_count(value.checked) > 0
+}
+
+///|
+pub fn graph_traverse_endpoint_at(
+  value : PreparedGraphTraverse,
+  field : @schema.FieldName,
+) -> (Int, Bool)? {
+  guard @graph.traverse_endpoint_property_index(value.checked, field)
+    is Some(index) &&
+    @graph.traverse_endpoint_property_at(value.checked, index)
+    is Some((start, _, _)) else {
+    return None
+  }
+  Some((index, start))
+}
+
+///|
+pub fn graph_traverse_endpoint_position(
+  value : PreparedGraphTraverse,
+  index : Int,
+  definition : Int,
+) -> Int? {
+  @graph.traverse_endpoint_property_position(value.checked, index, definition)
+}
+
+///|
 /// Whether the authored traversal uses an exact per-hop pattern.
 pub fn graph_traverse_patterned(value : PreparedGraphTraverse) -> Bool {
   @graph.traverse_patterned(value.checked)
@@ -582,6 +612,37 @@ fn emit_graph_traverse_node(
       "nodes"
     },
   )
+  let endpoint_count = @graph.traverse_endpoint_property_count(prepared.checked)
+  if endpoint_count > 0 {
+    @encode.key(out, "endpoint_properties")
+    @encode.begin_object(out)
+    for (start, role) in [(true, "start"), (false, "end")] {
+      let mut opened = false
+      for index in 0..<endpoint_count {
+        let (at_start, property, name) = @graph.traverse_endpoint_property_at(
+          prepared.checked,
+          index,
+        ).unwrap()
+        if at_start == start {
+          if !opened {
+            @encode.key(out, role)
+            @encode.begin_array(out)
+            opened = true
+          }
+          @encode.begin_object(out)
+          @encode.key(out, "property")
+          @encode.string_value(out, property)
+          @encode.key(out, "as")
+          @encode.string_value(out, name)
+          @encode.end_object(out)
+        }
+      }
+      if opened {
+        @encode.end_array(out)
+      }
+    }
+    @encode.end_object(out)
+  }
   if prepared.output_guard is Some(value) {
     @encode.key(out, "max_output_rows")
     @encode.number_value(out, value.to_double())
