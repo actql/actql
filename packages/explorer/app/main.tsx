@@ -30,75 +30,19 @@ function StoryText({text}: {text: string}) {
     ? <code key={index}>{part.slice(1, -1)}</code> : part)}</>;
 }
 
-function headlineLabels(labels: string[], locale: ExplanationStoryModel['locale']) {
-  const visible = labels.slice(0, 3).map(label=>`"${label}"`);
-  const extra = labels.length - visible.length;
-  if (extra) visible.push(locale === 'ja' ? `ほか ${extra} 件` : `${extra} more`);
-  return new Intl.ListFormat(locale).format(visible);
-}
-
-function declaredTargetLabel(target: string, locale: ExplanationStoryModel['locale']) {
-  // Show a short unambiguous connector/resource pair from the checked
-  // declaration. Leave more general target identifiers in the details.
-  const pair = /^connector:\/\/([\w.-]{1,48})\/([\w.-]{1,48})$/u.exec(target);
-  if (!pair) return '';
-  const [, connection, resource] = pair;
-  return locale === 'ja' ? `"${connection}" の "${resource}"` : `"${resource}" in "${connection}"`;
-}
-
-function computationSummary(story: ExplanationStoryModel) {
-  const joins = story.occurrences.flatMap(({explanation})=>
-    explanation.meaning.kind === 'join' ? [explanation.meaning] : []);
-  const key = joins.flatMap(join=>join.keys)
-    .find(({left, right})=>left === right && /^[\w.]{1,24}$/u.test(left) && !left.startsWith('aql_'));
-  const filter = story.occurrences.find(step=>step.operator === 'filter');
-  const condition = filter?.explanation;
-  const namedCondition = condition?.meaning.kind === 'filter' && condition.meaning.predicate.state === 'projected' &&
-    condition.text.length <= 84 && !/\baql_/u.test(condition.text) ? condition.text : undefined;
-  const ja = story.locale === 'ja';
-  const joinText = joins.length ? (ja ? `${joins.length}回の結合` :
-    `${joins.length} checked ${joins.length === 1 ? 'join' : 'joins'}`) +
-    (key ? (ja ? `（"${key.left}" で結合する箇所を含む）` : `, including a join on "${key.left}"`) : '') : '';
-  const filterText = filter ? namedCondition ?? (ja ? '行を絞り込む' : 'Filter rows') : '';
-  return [joinText, filterText].filter(Boolean).join(' · ');
-}
-
 function StoryHeading({story, context}: {story: ExplanationStoryModel; context: StoryContext}) {
-  const sources = context.flatMap(({origin})=>origin.kind === 'source' ? [origin.source_view.resource] : []);
-  const models = context.flatMap(({origin})=>origin.kind === 'model_task' ? [origin.task_id.replace(/^model-task:/u, '')] : []);
-  const outputs = context.flatMap(({origin})=>origin.kind === 'result' ? [origin.name] : []);
-  const effects = context.flatMap(({origin})=>origin.kind === 'effect_set' ? [...origin.members] : []);
-  const writes = effects.flatMap(({declaration, write_fields})=>declaration.contract.kind === 'mapping'
-    ? [{kind: declaration.effect_kind, target: declaration.contract.declared_target, fields: write_fields}] : []);
-  const commands = effects.length - writes.length;
-  const write = writes.length === 1 ? writes[0] : undefined;
-  const fields = write?.kind === 'update' && write.fields.state === 'declared' ? [...write.fields.fields] : [];
-  const {locale} = story, ja = locale === 'ja';
-  const target = write && declaredTargetLabel(write.target, locale);
-  const sourceSummary = sources.length && (ja ? `${headlineLabels(sources, locale)}を読む` : `Read ${headlineLabels(sources, locale)}`);
-  const modelSummary = models.length && (ja ? `${headlineLabels(models, locale)}を各入力行に適用` :
-    `Apply ${headlineLabels(models, locale)} to each input row`);
-  const resultSummary = outputs.length && (ja ? `${headlineLabels(outputs, locale)}を返す` : `Return ${headlineLabels(outputs, locale)}`);
-  const fieldList = fields.length && headlineLabels(fields, locale);
-  const writeSummary = writes.length && (fieldList ? ja ?
-    `${target ? target + ' の ' : ''}${fieldList}の更新を宣言` :
-    `Declare an update to ${fieldList}${target ? ' on ' + target : ''}` :
-    ja ? `${target ? target + ' への ' : ''}${writes.length} 件の書き込みを宣言` :
-    `Declare ${writes.length} ${writes.length === 1 ? 'write' : 'writes'}${target ? ' to ' + target : ''}`);
-  const commandSummary = commands && (ja ? `${commands} 件のコマンドを宣言` :
-    `Declare ${commands} ${commands === 1 ? 'command' : 'commands'}`);
-  const summary = [sourceSummary, modelSummary, resultSummary, writeSummary, commandSummary]
-    .filter((part): part is string=>!!part)
-    .map(part=>part + (ja ? '。' : '.'))
-    .join(ja ? '' : ' ');
-  const computation = computationSummary(story);
+  const sources = context.filter(({origin}) => origin.kind === 'source').length;
+  const models = context.filter(({origin}) => origin.kind === 'model_task').length;
+  const effects = context.some(({origin}) => origin.kind === 'effect_set' && origin.members.length > 0);
+  const ja = story.locale === 'ja';
   return <>
-    <h1>{summary ? <StoryText text={summary}/> : 'Original query narrative'}</h1>
-    {computation && <p className="story-computation"><StoryText text={computation}/></p>}
+    <h1><StoryText text={story.narrative.summary}/></h1>
     <div className="story-chips">
-      {effects.length > 0 && <span className="workspace-chip" data-tone="amber">Effect declared · decision unknown</span>}
-      {sources.length > 0 && <span className="workspace-chip" data-tone="teal">{sources.length} declared {sources.length === 1 ? 'source' : 'sources'}</span>}
-      {models.length > 0 && <span className="workspace-chip" data-tone="lilac">{models.length} Model {models.length === 1 ? 'task' : 'tasks'} · input rows</span>}
+      {effects && <span className="workspace-chip" data-tone="amber">{ja ? '書き込みを宣言 · 判断は未確認' : 'Effect declared · decision unknown'}</span>}
+      {sources > 0 && <span className="workspace-chip" data-tone="teal">{ja ? `読み取り元 ${sources} 件` :
+        `${sources} declared ${sources === 1 ? 'source' : 'sources'}`}</span>}
+      {models > 0 && <span className="workspace-chip" data-tone="lilac">{ja ? `モデルタスク ${models} 件 · 入力行ごと` :
+        `${models} Model ${models === 1 ? 'task' : 'tasks'} · input rows`}</span>}
     </div>
   </>;
 }

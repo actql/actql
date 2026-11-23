@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b1e0cf420a13bb885635ad0a85890bea181172a6148f05e3259360cc8ab0731e",
+      "sha256": "0edd15c067e5c025bb8d4c9d469decf6c2075f0682a8bb88905ea81ea40faa66",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -421,6 +421,7 @@
         "WireDeliveryAttempt",
         "WireDeliveryAttemptLookup",
         "WireDeliveryRecord",
+        "WireExplanationNarrative",
         "WireHeldRequest",
         "WireHostReleaseReceipt",
         "WireNamedSubmissionAttempt",
@@ -2278,7 +2279,8 @@
           ],
           "exports": [
             "validClientBody",
-            "validStaticExplanationBinding"
+            "validStaticExplanationBinding",
+            "WireExplanationNarrative"
           ],
           "attributes": {
             "responsibility": [
@@ -2369,6 +2371,10 @@
               {
                 "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
                 "anchor": "test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run'"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               }
             ]
           }

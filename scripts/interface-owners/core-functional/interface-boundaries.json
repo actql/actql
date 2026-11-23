@@ -31157,7 +31157,7 @@
     {
       "module": "packages/run-host-core/explanation-narrative.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "sha256": "0a0cc371f8fd72dc4e9fc86a831b4957f6ea8748a14e3d87c65c322d0d4e8dd6",
       "exports": [
         "StaticExplanationNarrative",
         "renderStaticExplanationNarrative"
@@ -31172,7 +31172,9 @@
           "result": "StaticExplanationNarrative"
         }
       ],
-      "imports": [],
+      "imports": [
+        "@actql/client-wire"
+      ],
       "compilerFields": [],
       "role": "observation-presentation",
       "owner": "existing Common structural Explanation renderer",
@@ -31211,7 +31213,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "@canonical.object_field(view, \"facts\")"
+                "anchor": "@canonical.object_field(decoded, \"facts\")"
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
@@ -31221,7 +31223,7 @@
             "ownership": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "owns no Host, Run or authorization"
+                "anchor": "cannot reopen the read"
               }
             ],
             "synchronization": {
@@ -31321,7 +31323,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "@canonical.object_field(view, \"facts\")"
+                "anchor": "@canonical.object_field(decoded, \"facts\")"
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
@@ -31331,7 +31333,7 @@
             "ownership": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "owns no Host, Run or authorization"
+                "anchor": "cannot reopen the read"
               }
             ],
             "synchronization": {
@@ -31375,7 +31377,7 @@
     {
       "module": "packages/local-node/explanation-narrative.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f78a583f603f3405522926e69ba2f013c2c90695849aa2129691bc53437e35d8",
+      "sha256": "0a0cc371f8fd72dc4e9fc86a831b4957f6ea8748a14e3d87c65c322d0d4e8dd6",
       "exports": [
         "StaticExplanationNarrative",
         "renderStaticExplanationNarrative"
@@ -31390,7 +31392,9 @@
           "result": "StaticExplanationNarrative"
         }
       ],
-      "imports": [],
+      "imports": [
+        "@actql/client-wire"
+      ],
       "compilerFields": [],
       "role": "observation-presentation",
       "owner": "existing Common structural Explanation renderer",
@@ -31429,7 +31433,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "@canonical.object_field(view, \"facts\")"
+                "anchor": "@canonical.object_field(decoded, \"facts\")"
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
@@ -31439,7 +31443,7 @@
             "ownership": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "owns no Host, Run or authorization"
+                "anchor": "cannot reopen the read"
               }
             ],
             "synchronization": {
@@ -31539,7 +31543,7 @@
             "identity": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "@canonical.object_field(view, \"facts\")"
+                "anchor": "@canonical.object_field(decoded, \"facts\")"
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
@@ -31549,7 +31553,7 @@
             "ownership": [
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
-                "anchor": "owns no Host, Run or authorization"
+                "anchor": "cannot reopen the read"
               }
             ],
             "synchronization": {

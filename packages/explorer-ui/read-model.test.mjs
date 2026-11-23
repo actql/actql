@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {connectInProcess} from '../sdk/host-port.mjs';
+import {canonicalJson, connectInProcess} from '../sdk/host-port.mjs';
+import {renderStaticExplanationNarrative} from '../local-node/explanation-narrative.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
@@ -16,6 +17,8 @@ import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
 const cid = unit => `sha256:${unit.repeat(64)}`;
 const sealed = body => ({...body, self_cid: `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`});
+const renderFacts = (facts, locale) => renderStaticExplanationNarrative(canonicalJson(facts, {dataKeys: true}), locale);
+const presentFacts = (view, facts, locale) => explanationStoryModel(view, facts, {locale, render: renderFacts});
 function fixture() {
   const plan = cid('a'), carrier = cid('b');
   const key = ordinal => sealed({version: 'actql-logical-step-key/0.1',
@@ -363,7 +366,7 @@ test('original explanation read rejects foreign bindings, disclosure additions a
 
 test('original presentation derives both models from the same Execution originals and captured locale', async () => {
   const view = fixture(), facts = explanationFixture(view), original = ref(), expected = {...original};
-  const options = {locale: 'ja'}, calls = [];
+  const options = {locale: 'ja', render: renderFacts}, calls = [];
   const execution = {explain(limits) {
     calls.push(['explain', limits]); assert.equal(this, execution);
     return {version: 'actql-run-explanation-view/0.1', run_ref: expected,
@@ -391,11 +394,11 @@ test('original presentation keeps absence and Owner failure separate without a P
   const absent = structuredClone(unprojectedRunExplanation);
   const model = await readExistingRunPresentation({attach: () => ({explain: () => absent,
     plan() {assert.fail('absence does not request another original or compile a replacement');}})},
-    absent.run_ref, undefined, ticket());
+    absent.run_ref, {render: renderFacts}, ticket());
   assert.deepEqual(model, {runRef: absent.run_ref, plan: null, explanation: absent.explanation});
   const primary = Object.assign(new Error('original egress refused'), {code: 'RunObservationAccessDenied'});
   await assert.rejects(readExistingRunPresentation({attach: () => ({explain() {throw primary;},
-    plan() {assert.fail('denial is not absence');}})}, absent.run_ref, undefined, ticket()), cause => cause === primary);
+    plan() {assert.fail('denial is not absence');}})}, absent.run_ref, {render: renderFacts}, ticket()), cause => cause === primary);
 });
 
 test('original presentation rejects changed map ports and late scopes across its two reads', async () => {
@@ -414,7 +417,7 @@ test('original presentation rejects changed map ports and late scopes across its
       if (mode === 'plan-denied') throw primary;
       return {version: 'actql-run-plan-view/0.1', run_ref: original, plan_view: view};
     }})};
-    await assert.rejects(readExistingRunPresentation(client, original, undefined, epoch.capture()),
+    await assert.rejects(readExistingRunPresentation(client, original, {render: renderFacts}, epoch.capture()),
       mode === 'plan-denied' ? cause => cause === primary
         : {code: mode.startsWith('scope') ? 'ExplorerStaleScope' : 'ExplorerInvalidExplanation'});
     assert.equal(planCalls, mode === 'scope-after-explain' ? 0 : 1);
@@ -699,7 +702,7 @@ const explanationPredicate = tail => ({kind: 'filter', predicate: {state: 'proje
 
 test('structural Story explains original fields and JOIN keys in EN/JA without observations', () => {
   const view = fixture(), facts = explanationFixture(view), before = structuredClone(facts);
-  const en = explanationStoryModel(view, facts), ja = explanationStoryModel(view, facts, {locale: 'ja'});
+  const en = presentFacts(view, facts), ja = presentFacts(view, facts, 'ja');
   assert.equal(en.occurrences[0].explanation.text,
     'Declared input fields: "id":number, "label":string (conditional)');
   assert.equal(en.occurrences[1].explanation.text,
@@ -718,13 +721,13 @@ test('structural Story explains original fields and JOIN keys in EN/JA without o
 test('structural Story renders original typed parameter and redacted literal without reconstructing values', () => {
   const view = explanationUnary('filter');
   const parameter = explanationPredicate({form: 'parameter', name: 'threshold', type: explanationType('number')});
-  assert.equal(explanationStoryModel(view, explanationFixture(view, parameter)).occurrences[1].explanation.text,
-    'Keep rows where: (fields."id":number > $threshold:number)');
+  assert.equal(presentFacts(view, explanationFixture(view, parameter)).occurrences[1].explanation.text,
+    'Keep rows where: (fields."id":number) > ($threshold:number)');
   const literal = explanationPredicate({form: 'literal_redacted', type: explanationType('number')});
-  assert.equal(explanationStoryModel(view, explanationFixture(view, literal)).occurrences[1].explanation.text,
-    'Keep rows where: (fields."id":number > [redacted number])');
-  assert.equal(explanationStoryModel(view, explanationFixture(view, literal), {locale: 'ja'}).occurrences[1].explanation.text,
-    'この条件を満たす行を残す: (fields."id":number > [非開示 number])');
+  assert.equal(presentFacts(view, explanationFixture(view, literal)).occurrences[1].explanation.text,
+    'Keep rows where: (fields."id":number) > ([redacted number])');
+  assert.equal(presentFacts(view, explanationFixture(view, literal), 'ja').occurrences[1].explanation.text,
+    'この条件を満たす行を残す: (fields."id":number) > ([非開示 number])');
 });
 
 test('structural Story renders a singleton AND or OR and refuses an absent operand', () => {
@@ -733,15 +736,15 @@ test('structural Story renders a singleton AND or OR and refuses an absent opera
     const type = explanationType('boolean');
     const meaning = {kind: 'filter', predicate: {state: 'projected', root: 0, nodes: [
       {form: 'operation', operator, children: [1], type},
-      {form: 'field', scope: 'fields', name: 'flag', type},
+      {form: 'field', scope: 'fields', name: 'flag', type: {...type}},
     ]}};
     const facts = explanationFixture(view, meaning);
-    assert.equal(explanationStoryModel(view, facts).occurrences[1].explanation.text,
+    assert.equal(presentFacts(view, facts).occurrences[1].explanation.text,
       'Keep rows where: (fields."flag":boolean)');
-    assert.equal(explanationStoryModel(view, facts, {locale: 'ja'}).occurrences[1].explanation.text,
+    assert.equal(presentFacts(view, facts, 'ja').occurrences[1].explanation.text,
       'この条件を満たす行を残す: (fields."flag":boolean)');
     meaning.predicate.nodes[0].children = [];
-    assert.throws(() => explanationStoryModel(view, explanationFixture(view, meaning)), {code: 'ExplorerInvalidExplanation'});
+    assert.throws(() => presentFacts(view, explanationFixture(view, meaning)), {code: 'ExplorerInvalidExplanation'});
   }
 });
 
@@ -749,15 +752,15 @@ test('structural Story keeps ordered projection semantics and explicit unproject
   for (const [operation, prefix] of [['select', 'Select output fields'], ['rename', 'Rename output fields'], ['drop', 'Output fields after dropping']]) {
     const view = explanationUnary(operation), meaning = {kind: 'projection', operation,
       fields: [{input: 'é', output: 'renamed'}, {input: 'id', output: 'id'}]};
-    assert.equal(explanationStoryModel(view, explanationFixture(view, meaning)).occurrences[1].explanation.text,
+    assert.equal(presentFacts(view, explanationFixture(view, meaning)).occurrences[1].explanation.text,
       `${prefix}: "renamed" ← "é", "id" ← "id"`);
   }
   const view = fixture(), missing = explanationFixture(view, {kind: 'not_projected', reason: 'operation_facts_not_projected'});
-  const explanation = explanationStoryModel(view, missing).occurrences[1].explanation;
+  const explanation = presentFacts(view, missing).occurrences[1].explanation;
   assert.equal(explanation.state, 'not_projected'); assert.equal(explanation.text, 'Meaning not projected');
   const filter = explanationUnary('filter');
   const predicateMissing = explanationFixture(filter, {kind: 'filter', predicate: {state: 'not_projected', reason: 'expression_form_not_projected'}});
-  assert.equal(explanationStoryModel(filter, predicateMissing).occurrences[1].explanation.text,
+  assert.equal(presentFacts(filter, predicateMissing).occurrences[1].explanation.text,
     'Keep rows where: Predicate form not projected');
 });
 
@@ -771,12 +774,12 @@ test('structural Story refuses foreign bindings keys port occurrences and raw di
     f => {f.steps[0].meaning.rows = [{id: 'private'}];},
   ]) {
     const changed = structuredClone(original); mutate(changed);
-    assert.throws(() => explanationStoryModel(view, changed), {code: 'ExplorerInvalidExplanation'});
+    assert.throws(() => presentFacts(view, changed), {code: 'ExplorerInvalidExplanation'});
   }
   const filtered = explanationUnary('filter'), literal = explanationFixture(filtered,
     explanationPredicate({form: 'literal_redacted', type: explanationType('number')}));
   literal.steps[1].meaning.predicate.nodes[2].value = 'PRIVATE';
-  assert.throws(() => explanationStoryModel(filtered, literal), {code: 'ExplorerInvalidExplanation'});
+  assert.throws(() => presentFacts(filtered, literal), {code: 'ExplorerInvalidExplanation'});
 });
 
 test('structural Story refuses malformed local references and finite predicate presentation overflow', () => {
@@ -786,17 +789,17 @@ test('structural Story refuses malformed local references and finite predicate p
     nodes => {nodes[0].children[0] = 0;}, nodes => {nodes[0].children[0] = 9;},
     nodes => {nodes.push({form: 'literal_redacted', type: explanationType('number')});},
   ]) {
-    const changed = structuredClone(original); mutate(changed.steps[1].meaning.predicate.nodes);
-    assert.throws(() => explanationStoryModel(view, changed), {code: 'ExplorerInvalidExplanation'});
+    const {self_cid: _, ...changed} = structuredClone(original); mutate(changed.steps[1].meaning.predicate.nodes);
+    assert.throws(() => presentFacts(view, sealed(changed)), {code: 'ExplorerInvalidExplanation'});
   }
   const expanded = structuredClone(original);
   expanded.steps[1].meaning.predicate.nodes[0].children = new Array(1025).fill(1);
-  assert.throws(() => explanationStoryModel(view, expanded), {code: 'ExplorerExplanationLimit'});
-  const deep = structuredClone(original);
+  assert.throws(() => presentFacts(view, expanded), {code: 'ExplorerExplanationLimit'});
+  const {self_cid: _, ...deep} = structuredClone(original);
   deep.steps[1].meaning.predicate.nodes = Array.from({length: 66}, (_, index) =>
     ({form: 'operation', operator: 'not', children: [index + 1], type: explanationType('boolean')}));
   deep.steps[1].meaning.predicate.nodes.push({form: 'literal_redacted', type: explanationType('boolean')});
-  assert.throws(() => explanationStoryModel(view, deep), {code: 'ExplorerExplanationLimit'});
+  assert.throws(() => presentFacts(view, sealed(deep)), {code: 'ExplorerExplanationLimit'});
 });
 
 test('structural construction admits long field and parameter text before quote or output allocation', () => {
@@ -808,13 +811,13 @@ test('structural construction admits long field and parameter text before quote 
       if (value === name) {oversizedQuoteCalls++; throw new Error('Quote called before admission');}
       return Reflect.apply(stringify, this, [value, ...options]);
     };
-    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.throws(() => presentFacts(view, facts), {code: 'ExplorerExplanationLimit'});
     assert.equal(oversizedQuoteCalls, 0);
   } finally {JSON.stringify = stringify;}
   const filtered = explanationUnary('filter');
   const parameter = explanationFixture(filtered,
     explanationPredicate({form: 'parameter', name, type: explanationType('number')}));
-  assert.throws(() => explanationStoryModel(filtered, parameter), {code: 'ExplorerExplanationLimit'});
+  assert.throws(() => presentFacts(filtered, parameter), {code: 'ExplorerExplanationLimit'});
 });
 
 test('structural construction admits shared-child copies before a large joined predicate exists', () => {
@@ -834,7 +837,7 @@ test('structural construction admits shared-child copies before a large joined p
       }
       return Reflect.apply(join, this, [separator]);
     };
-    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.throws(() => presentFacts(view, facts), {code: 'ExplorerExplanationLimit'});
     assert.equal(oversizedJoins, 0);
   } finally {Array.prototype.join = join;}
 });
@@ -850,7 +853,7 @@ test('structural construction admits escaped expansion before the native quote c
       if (value === name) {escapedQuoteCalls++; throw new Error('Escaping called before admission');}
       return Reflect.apply(stringify, this, [value, ...options]);
     };
-    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.throws(() => presentFacts(view, facts), {code: 'ExplorerExplanationLimit'});
     assert.equal(escapedQuoteCalls, 0);
   } finally {JSON.stringify = stringify;}
 });

@@ -1,3 +1,4 @@
+import type {WireExplanationNarrative} from '@actql/client-wire';
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
 import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts, WireRunExplanationView,
   WireExplanationContext, WireStaticExplanationView, WireRunExplanationContextView} from '@actql/client-wire';
@@ -40,18 +41,21 @@ export function planStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
   options?: {locale?: 'en' | 'ja'}): PlanStoryModel;
 export type ExplanationStoryModel = Omit<PlanStoryModel, 'occurrences'> & Readonly<{
   factsCid: string; parameterValuesCid: string;
+  narrative: Pick<WireExplanationNarrative, 'version' | 'summary' | 'clauses' | 'items'>;
   occurrences: readonly (PlanStoryModel['occurrences'][number] & Readonly<{
     explanation: Readonly<{state: 'projected' | 'not_projected'; text: string;
       meaning: WireExplanationFacts['steps'][number]['meaning']}>;
   }>)[];
 }>;
+type FactsPresentation = Readonly<{locale?: 'en' | 'ja';
+  render(facts: WireExplanationFacts, locale: 'en' | 'ja'): WireExplanationNarrative}>;
 export function explanationStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
-  facts: WireExplanationFacts, options?: {locale?: 'en' | 'ja'}): ExplanationStoryModel;
+  facts: WireExplanationFacts, presentation: FactsPresentation): ExplanationStoryModel;
 export type StaticExplanationReadModel = Readonly<{plan: PlanReadModel; story: ExplanationStoryModel;
   context: readonly Readonly<{origin: WireExplanationContext['items'][number]; text: string}>[]}>;
 type StaticExplanationPresentation = Readonly<{locale?: 'en' | 'ja';
   render(view: WireStaticExplanationView, locale: 'en' | 'ja'):
-    Readonly<{context: readonly string[]; steps: readonly string[]}>}>;
+    WireExplanationNarrative}>;
 export function staticExplanationReadModel(view: WireStaticExplanationView,
   presentation: StaticExplanationPresentation): StaticExplanationReadModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
@@ -77,7 +81,7 @@ export type OriginalRunPresentationReadModel = Readonly<{
 }> | Readonly<{runRef: RunReference; plan: null;
   explanation: Extract<WireRunExplanationView['explanation'], {state: 'not_projected'}>}>;
 export function readExistingRunPresentation(client: Pick<Client, 'attach'>,
-  ref: RunReference, options: {locale?: 'en' | 'ja'} | undefined,
+  ref: RunReference, presentation: FactsPresentation,
   ticket: ReadTicket): Promise<OriginalRunPresentationReadModel>;
 export type SavedExplanationReadModel = Readonly<{
   runRef: RunReference; plan: PlanReadModel;

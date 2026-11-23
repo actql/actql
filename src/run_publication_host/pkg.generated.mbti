@@ -1907,6 +1907,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn explanation_narrative_map(@canonical_json.CanonicalValue) -> @canonical_json.CanonicalValue?
+
 pub fn fail_client_keyed_request_io(ClientKeyedRequest) -> Unit
 
 pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Int, ClientKeyedRequestIssue]
@@ -2857,7 +2859,7 @@ pub fn release_recovered_client_effect_command_content(RecoveredClientEffectComm
 
 pub fn release_recovered_client_effect_source_command_content(RecoveredClientEffectSourceCommandContent) -> Unit
 
-pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, ClientExplanationLanguage, Int) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
+pub fn render_client_explanation_narrative(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue?, ClientExplanationLanguage, Int, logical_map? : @canonical_json.CanonicalValue?) -> ClientExplanationNarrative raise ClientExplanationNarrativeIssue
 
 pub fn render_client_static_explanation_narrative_wire(String, String) -> Result[String, Int]
 
@@ -3897,6 +3899,14 @@ pub enum ClientExplanationMeaning {
 pub struct ClientExplanationNarrative {
   context : Array[String]
   steps : Array[String]
+  summary : String
+  clauses : Array[ClientExplanationSummaryClause]
+  items : Array[ClientExplanationNarrativeItem]
+}
+
+pub enum ClientExplanationNarrativeItem {
+  ContextItem(Int)
+  FactStep(Int, String)
 }
 
 pub(all) struct ClientExplanationOccurrence {
@@ -3914,6 +3924,13 @@ pub(all) enum ClientExplanationProjectionIssue {
   MalformedCheckedExpression
   Encoding(@encode_core.EncodeFailure)
 } derive(Eq, @debug.Debug)
+
+pub struct ClientExplanationSummaryClause {
+  kind : String
+  text : String
+  context_items : Array[Int]
+  step_ids : Array[String]
+}
 
 type ClientHostSignerConfiguration
 pub fn ClientHostSignerConfiguration::has_explicit_signers(Self) -> Bool

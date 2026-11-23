@@ -274,11 +274,13 @@ export function createExplorerGateway({client, origin, assets = new Map(),
           data = await readExistingRunContext(client, body.ref, {locale: body.locale, render}, ticket);
           break;
         }
-        case 'run-presentation':
+        case 'run-presentation': {
           if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
               body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');
-          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale}, ticket);
+          const render = await loadExplanationRenderer(ticket);
+          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale, render}, ticket);
           break;
+        }
         case 'checkpoints':
           if(!exact(body,[]))fail('ExplorerInvalidRequest');
           data=await readWaitingCheckpoints(client,ticket);break;

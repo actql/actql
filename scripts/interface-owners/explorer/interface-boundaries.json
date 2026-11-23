@@ -2658,7 +2658,7 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ba0d28027d163fcca52e1b7fa208bf189c6b649e973b19bb7e8556cdafb0adab",
+      "sha256": "cfacd2e45d5d3921b91a403218dd9933d2c065c522561c9ab50fd33f4e8ef0d1",
       "exports": [
         "ExplanationStoryModel",
         "ExplorerReadError",
@@ -2722,7 +2722,7 @@
           "parameters": [
             "view: WirePlanView | WireEffectfulStaticPlanView",
             "facts: WireExplanationFacts",
-            "options?: {locale?: 'en' | 'ja'}"
+            "presentation: FactsPresentation"
           ],
           "result": "ExplanationStoryModel"
         },
@@ -2783,7 +2783,7 @@
           "parameters": [
             "client: Pick<Client, 'attach'>",
             "ref: RunReference",
-            "options: {locale?: 'en' | 'ja'} | undefined",
+            "presentation: FactsPresentation",
             "ticket: ReadTicket"
           ],
           "result": "Promise<OriginalRunPresentationReadModel>"
@@ -2822,10 +2822,18 @@
         {
           "name": "render",
           "parameters": [
+            "facts: WireExplanationFacts",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": "WireExplanationNarrative"
+        },
+        {
+          "name": "render#2",
+          "parameters": [
             "view: WireStaticExplanationView",
             "locale: 'en' | 'ja'"
           ],
-          "result": "Readonly<{context: readonly string[]; steps: readonly string[]}>"
+          "result": "WireExplanationNarrative"
         },
         {
           "name": "staticExplanationReadModel",
@@ -2859,7 +2867,8 @@
             "readExistingRun",
             "readExistingRunPlan",
             "readExistingRunStory",
-            "readStaticPlan"
+            "readStaticPlan",
+            "render#2"
           ],
           "exports": [
             "ExplanationStoryModel",
@@ -2983,6 +2992,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               }
             ]
           }
@@ -3206,7 +3219,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -3226,7 +3239,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17b4233a00e23e997b2f7609f452cfa1c8534911e6bb08c829ab6be08efad9e6",
+      "sha256": "fbea64e952c0504c0921f1b962649cf11e0d2c76bb78de9ac888138a0fc47d6e",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -3359,7 +3372,8 @@
           "parameters": [
             "view",
             "facts",
-            "locale"
+            "locale",
+            "render"
           ],
           "async": false
         },
@@ -3436,13 +3450,6 @@
           "async": false
         },
         {
-          "name": "predicateStory/predicateStory",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
           "name": "readExistingRun",
           "parameters": [
             "client",
@@ -3510,7 +3517,8 @@
           "parameters": [
             "client",
             "ref",
-            "options",
+            "locale",
+            "render",
             "ticket"
           ],
           "async": true
@@ -3563,6 +3571,46 @@
           "async": true
         },
         {
+          "name": "renderExplanation/exactSteps/exactSteps",
+          "parameters": [
+            "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation",
+          "parameters": [
+            "id"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation#3",
+          "parameters": [
+            "kind",
+            "text",
+            "context_items",
+            "step_ids"
+          ],
+          "async": false
+        },
+        {
+          "name": "renderExplanation/renderExplanation#4",
+          "parameters": [
+            "kind",
+            "index",
+            "step_id"
+          ],
+          "async": false
+        },
+        {
           "name": "sameDeclaration/sameDeclaration",
           "parameters": [
             "name"
@@ -3590,30 +3638,6 @@
             "view",
             "locale",
             "render"
-          ],
-          "async": false
-        },
-        {
-          "name": "storyConstructionBudget/init:text/init:text",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storyConstructionBudget/init:text/init:text/init:append/init:append",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "storyConstructionBudget/init:text/init:text/init:quote/init:quote",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -3649,7 +3673,6 @@
             "planStory/planStory",
             "planStory/planStory#2",
             "planStoryModel",
-            "predicateStory/predicateStory",
             "readExistingRun",
             "readExistingRun/readExistingRun",
             "readExistingRun/run/run",
@@ -3659,10 +3682,11 @@
             "readStaticPlan/readStaticPlan",
             "sameIds/sameIds/original/original",
             "sameIds/sameIds/sameIds",
-            "storyConstructionBudget/init:text/init:text",
-            "storyConstructionBudget/init:text/init:text/init:append/init:append",
-            "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
-            "storyConstructionBudget/init:text/init:text/init:quote/init:quote"
+            "renderExplanation/exactSteps/exactSteps",
+            "renderExplanation/renderExplanation",
+            "renderExplanation/renderExplanation#2",
+            "renderExplanation/renderExplanation#3",
+            "renderExplanation/renderExplanation#4"
           ],
           "exports": [
             "ExplorerReadError",
@@ -3792,6 +3816,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "structural construction admits escaped expansion before the native quote call"
+              },
+              {
+                "path": "packages/explorer/test/static-explanation.actual.test.mjs",
+                "anchor": "test('Static Context renders deterministic EN and JA from one unchanged Plan'"
               }
             ]
           }
@@ -4027,7 +4055,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -4598,7 +4626,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "d41c97abfc07948d9b85c3ec110c91e78d81145c8a1fbb353f19737e3dd233d6",
+      "sha256": "7a5cee5a4f3d9c5aae12d3b753b6bc77bec25de38adf5d86497ff56e572d20ba",
       "exports": [],
       "operations": [
         {
@@ -4947,49 +4975,6 @@
           "result": null
         },
         {
-          "name": "computationSummary",
-          "parameters": [
-            "story: ExplanationStoryModel"
-          ],
-          "result": null
-        },
-        {
-          "name": "computationSummary/<call>",
-          "parameters": [
-            "{explanation}"
-          ],
-          "result": null
-        },
-        {
-          "name": "computationSummary/<call>#2",
-          "parameters": [
-            "join"
-          ],
-          "result": null
-        },
-        {
-          "name": "computationSummary/<call>#3",
-          "parameters": [
-            "{left, right}"
-          ],
-          "result": null
-        },
-        {
-          "name": "computationSummary/<call>#4",
-          "parameters": [
-            "step"
-          ],
-          "result": null
-        },
-        {
-          "name": "declaredTargetLabel",
-          "parameters": [
-            "target: string",
-            "locale: ExplanationStoryModel['locale']"
-          ],
-          "result": null
-        },
-        {
           "name": "graphStepLabels",
           "parameters": [
             "story: ExplanationStoryModel | undefined",
@@ -5031,21 +5016,6 @@
             "index: Map<string, T[]>",
             "stepId: string",
             "value: T"
-          ],
-          "result": null
-        },
-        {
-          "name": "headlineLabels",
-          "parameters": [
-            "labels: string[]",
-            "locale: ExplanationStoryModel['locale']"
-          ],
-          "result": null
-        },
-        {
-          "name": "headlineLabels/<call>",
-          "parameters": [
-            "label"
           ],
           "result": null
         },
@@ -5160,34 +5130,6 @@
           "name": "StoryHeading/<call>#3",
           "parameters": [
             "{origin}"
-          ],
-          "result": null
-        },
-        {
-          "name": "StoryHeading/<call>#4",
-          "parameters": [
-            "{origin}"
-          ],
-          "result": null
-        },
-        {
-          "name": "StoryHeading/<call>#5",
-          "parameters": [
-            "{declaration, write_fields}"
-          ],
-          "result": null
-        },
-        {
-          "name": "StoryHeading/<call>#6",
-          "parameters": [
-            "part"
-          ],
-          "result": "part is string"
-        },
-        {
-          "name": "StoryHeading/<call>#7",
-          "parameters": [
-            "part"
           ],
           "result": null
         },
@@ -5431,18 +5373,12 @@
             "WorkspaceDialog/<call>#3",
             "WorkspaceDialog/close",
             "App/<call>#20",
-            "declaredTargetLabel",
             "graphStepLabels",
             "graphStepLabels/<call>",
             "graphStepLabels/<call>#2",
             "graphStepLabels/<call>#3",
             "graphStepLabels/add",
             "graphStepLabels/<call>#4",
-            "computationSummary",
-            "computationSummary/<call>",
-            "computationSummary/<call>#2",
-            "computationSummary/<call>#3",
-            "computationSummary/<call>#4",
             "StepOrigin/<call>#2",
             "stepTitle/<call>#2"
           ],
@@ -5628,8 +5564,6 @@
           "operations": [
             "App/readPlan",
             "App/readPlan/<call>",
-            "headlineLabels",
-            "headlineLabels/<call>",
             "StepOrigin",
             "StepOrigin/<call>",
             "stepState",
@@ -5642,10 +5576,6 @@
             "StoryHeading/<call>",
             "StoryHeading/<call>#2",
             "StoryHeading/<call>#3",
-            "StoryHeading/<call>#4",
-            "StoryHeading/<call>#5",
-            "StoryHeading/<call>#6",
-            "StoryHeading/<call>#7",
             "StorySteps",
             "StorySteps/<call>",
             "StorySteps/<call>/<call>",
@@ -5718,7 +5648,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -6340,7 +6270,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -6360,7 +6290,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3dbc895420a0beed5af89c1935c1a496f243c6a13660be9a02c04d00bdf350c1",
+      "sha256": "7774cff7aac57eb4666b33caaf8a3b887ca2164e82d62924372917e56e60ed2d",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -6834,7 +6764,7 @@
             "extension": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "const narrative = render(view, locale);"
+                "anchor": "narrative = render(wire, locale);"
               }
             ],
             "verification": [
@@ -7659,7 +7589,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95aee68ed16fab23e451e4cf5be4ce1a99f8c99208b7c31a84930ac009c4df0f",
+      "sha256": "808b5700a0dd5dd2c46d10a25c706f9679eb1eaac26f8c14b311bd7e4b6acf68",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",

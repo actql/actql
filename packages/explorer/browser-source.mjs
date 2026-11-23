@@ -29,6 +29,10 @@ function validNarrative(plan, story, context, locale) {
   return typeof plan?.logicalMapCid === 'string' && plan.logicalMapCid === story?.logicalMapCid &&
     plan.compiledPlanCid === story.compiledPlanCid && plan.programDefinitionCid === story.programDefinitionCid &&
     story.locale === locale && Array.isArray(story.occurrences) && Array.isArray(context) &&
+    story.narrative?.version === 'actql-explanation-narrative/0.1' &&
+    typeof story.narrative.summary === 'string' && story.narrative.summary.length > 0 &&
+    Array.isArray(story.narrative.clauses) && Array.isArray(story.narrative.items) &&
+    story.narrative.items.length === context.length + story.occurrences.length &&
     context.every(item => typeof item?.text === 'string' && item.origin != null);
 }
 
@@ -163,6 +167,13 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           value.runRef.namespaceId !== original.namespaceId ||
           value.runRef.authorityScopeCid !== original.authorityScopeCid ||
           value.runRef.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      const {plan, explanation} = value;
+      if (explanation?.state === 'projected') {
+        if (!validNarrative(plan, explanation.story, [], locale)) refused('ExplorerInvalidReply');
+      } else if (plan !== null || explanation?.state !== 'not_projected' ||
+          !['not_retained', 'profile_not_supported'].includes(explanation.reason)) {
+        refused('ExplorerInvalidReply');
+      }
       return value;
     },
     describe(ref, name) {return read('result', {ref, name});},

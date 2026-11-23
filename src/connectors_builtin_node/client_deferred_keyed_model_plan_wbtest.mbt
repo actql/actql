@@ -594,9 +594,13 @@ test "Static Effect Facts keep the original Source JOINs and INFER join-back" {
 test "Portable narrative renders the original deal-review Facts and Context in both languages" {
   let (owner, _, model) = deferred_keyed_model_fixture()
   let compiled = client_program_compile_local_effects_with_infer(owner, model).unwrap()
-  let (original, _) = @publication_host.capture_client_static_effect_explanation_original(
+  let (original, plan_wire) = @publication_host.capture_client_static_effect_explanation_original(
     owner, compiled, 65536, 8192, 64,
   ).unwrap()
+  let plan = @publication.parse_interactive_run_control_shape(
+    "effectful_static_plan_view", plan_wire, 65536, 8192, 64,
+  ).unwrap()
+  let map = @publication_host.explanation_narrative_map(plan).unwrap()
   let writer = @encode.writer(65536, 8192, 64)
   @publication_host.write_client_static_effect_explanation_context(
     original, owner, compiled, writer, 10000,
@@ -620,16 +624,34 @@ test "Portable narrative renders the original deal-review Facts and Context in b
   ).unwrap()
   let english = @publication_host.render_client_explanation_narrative(
     facts,
-    context,
+    Some(context),
     English,
     65536,
+    logical_map=Some(map),
   )
   let japanese = @publication_host.render_client_explanation_narrative(
     facts,
-    context,
+    Some(context),
     Japanese,
     65536,
+    logical_map=Some(map),
   )
+  assert_true(
+    english.summary.contains("Read \"Opportunity\" from \"salesforce\""),
+  )
+  assert_true(english.summary.contains("from \"drive\""))
+  assert_true(english.summary.contains("\"name\""))
+  assert_true(english.summary.contains("\"resource\""))
+  assert_true(
+    english.summary.contains("input origins not projected") ||
+    english.summary.contains("an input with no projected origin"),
+  )
+  assert_false(english.summary.contains("3 logical joins"))
+  assert_true(japanese.summary.contains("\"salesforce\" の \"Opportunity\""))
+  assert_true(japanese.summary.contains("\"name\""))
+  let joins = english.clauses.filter(clause => clause.kind == "join")
+  assert_eq(joins.length(), 1)
+  assert_eq(joins[0].step_ids.length(), 3)
   assert_eq(english.context.length(), 6)
   assert_eq(japanese.context.length(), 6)
   assert_true(english.context[0].contains("\"salesforce\".\"Opportunity\""))
@@ -664,9 +686,10 @@ test "Portable narrative renders the original deal-review Facts and Context in b
   )
   let repeated = @publication_host.render_client_explanation_narrative(
     facts,
-    context,
+    Some(context),
     English,
     65536,
+    logical_map=Some(map),
   )
   assert_eq(repeated.context, english.context)
   assert_eq(repeated.steps, english.steps)
@@ -674,7 +697,7 @@ test "Portable narrative renders the original deal-review Facts and Context in b
     ignore(
       @publication_host.render_client_explanation_narrative(
         facts,
-        context,
+        Some(context),
         English,
         1,
       ),

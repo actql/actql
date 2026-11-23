@@ -146,6 +146,13 @@ test('installed static Explanation retains the original deal-review Source, Mode
       assert.deepEqual(presentation.context.map(item => item.origin), context.items);
       assert.doesNotMatch(JSON.stringify(presentation), /"(?:prompt|instructions)"|Review only the current stage/);
     }
+    assert.match(english.story.narrative.summary, /Read "Opportunity" from "salesforce"/u);
+    assert.match(english.story.narrative.summary, /"drive".*Ask "model-task:deal-review.v1"/u);
+    assert.match(english.story.narrative.summary, /Return "updates".*"StageName"/u);
+    assert.match(japanese.story.narrative.summary, /"salesforce" の "Opportunity".*"name"/u);
+    assert.doesNotMatch(english.story.narrative.summary, /[0-9]+ logical joins/u);
+    assert.deepEqual(english.story.narrative.clauses.find(clause => clause.kind === 'join').step_ids,
+      facts.steps.filter(step => step.operator === 'join').map(step => step.step_id));
     assert.equal(english.context[3].text, 'Apply model task "model-task:deal-review.v1" to each input row');
     assert.equal(japanese.context[3].text, 'モデルタスク "model-task:deal-review.v1" を各入力行に適用');
     assert.equal(english.context[4].text, 'Declare Result "updates"');
