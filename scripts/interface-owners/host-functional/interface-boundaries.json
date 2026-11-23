@@ -128084,7 +128084,7 @@
     },
     {
       "module": "adapters/host-node/local-checkpoint-answer.mjs",
-      "sha256": "f766a1a82018cd77d72297a4f2317cbec6c301aa6da6c6644b5bd0d0579e4480",
+      "sha256": "c02f88aa94b4cdf8b026e297a331c92a29d4069d2b6c454841b700cb0edc6582",
       "exports": [
         "createLocalCheckpointAnswer",
         "createLocalSigningOriginalReader"

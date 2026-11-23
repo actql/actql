@@ -3132,3 +3132,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/kintone/test/installed-kintone.fixture.d.mts
 /adapters/connectors/kintone/test/installed-kintone-source.test.mjs
 /adapters/connectors/kintone/test/installed-kintone-source.test.d.mts
+/adapters/host-node/local-checkpoint-answer.mjs
+/adapters/host-node/local-checkpoint-answer.d.mts

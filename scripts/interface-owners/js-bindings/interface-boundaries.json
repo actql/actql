@@ -63893,7 +63893,7 @@
                 "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
               },
               {
-                "path": "adapters/host-node/local-checkpoint-answer.mjs",
+                "path": "adapters/host-node/local-checkpoint-answer.mts",
                 "anchor": "localSigningRecoveries.add(recovered);"
               },
               {
