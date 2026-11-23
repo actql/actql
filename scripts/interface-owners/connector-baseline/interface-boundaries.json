@@ -10935,7 +10935,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b618b51d154ac1e2d351f16f98227ec324cf2df15a7ab5274f0ec628702ab8ff",
+      "sha256": "0e1e3dbd5261c113ec6a27b79d7f556a833fe8c2361a9b7bdd764374b05fac5c",
       "role": "connector-semantics",
       "owner": "Non-secret exact org consistency predicate; credential Owner remains the grant/use authority",
       "exports": [
@@ -10963,19 +10963,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mts",
                 "anchor": "unrelated connection"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mts",
                 "anchor": "matchesSalesforceCredentialOrg"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mts",
                 "anchor": "credential?.orgId === orgId"
               }
             ],
@@ -10984,13 +10984,13 @@
             },
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mts",
                 "anchor": "connectionOrgId === orgId"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-credential-binding.mts",
                 "anchor": "return typeof orgId"
               }
             ],

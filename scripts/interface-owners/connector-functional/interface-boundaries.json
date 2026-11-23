@@ -4233,7 +4233,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
-      "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
+      "sha256": "dd712aa8d70b163e56a2ff03c6b1dcdf7f0b5a8d1c53e35ed1dd306ac163796b",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce incomplete-Catalog versus definitive Effect refusal classification; representation remains supplemental",
@@ -4271,37 +4271,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "A Catalog can finish with unavailable Resources"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "checkedSalesforceCatalogPreparation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "exact opaque MoonBit observation"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "caller-supplied metadata is not accepted"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "salesforceCatalogObservationJson(observation)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "checkedEffectPreparation(result)"
               }
             ],
@@ -4310,7 +4310,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mts",
                 "anchor": "listed_resources"
               }
             ],

@@ -59029,7 +59029,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               },
               {
@@ -59147,7 +59147,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               }
             ]

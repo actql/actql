@@ -5351,7 +5351,7 @@
                 "anchor": "## Verification"
               },
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "actual pinned MoonBit Result"
               },
               {
@@ -24251,7 +24251,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "test('actual pinned MoonBit Result preserves original payload and typed refusal', () => {"
               },
               {
@@ -24363,7 +24363,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
                 "anchor": "test('actual pinned MoonBit Result preserves original payload and typed refusal', () => {"
               },
               {

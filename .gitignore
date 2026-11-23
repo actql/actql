@@ -2698,3 +2698,13 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/fixtures/calendar-source-input.d.mts
 /scripts/calendar-source-input.test.mjs
 /scripts/calendar-source-input.test.d.mts
+/adapters/connectors/salesforce/site/salesforce-credential-binding.mjs
+/adapters/connectors/salesforce/site/salesforce-credential-binding.d.mts
+/adapters/connectors/salesforce/site/salesforce-effect-preparation-result.mjs
+/adapters/connectors/salesforce/site/salesforce-effect-preparation-result.d.mts
+/adapters/connectors/gcs/host/gcs-upload-declaration.mjs
+/adapters/connectors/gcs/host/gcs-upload-declaration.d.mts
+/adapters/connectors/gmail/site/gmail-thread-limits.mjs
+/adapters/connectors/gmail/site/gmail-thread-limits.d.mts
+/scripts/js-compiler-binding-runtime.test.mjs
+/scripts/js-compiler-binding-runtime.test.d.mts

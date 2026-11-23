@@ -643,7 +643,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "baef75746000fe59b629bd1eb7f269248b40c6a3d37c54adf13110ab5767f4f6"
+      "sha256": "665ba4c42de5e63f53b806169bc2465c746658ac8d115ac6c9e7164eb7617ab4"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-credential-site.mjs",

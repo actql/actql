@@ -2560,7 +2560,7 @@
     },
     {
       "module": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
-      "sha256": "3c23e96d40f7ea599b66a4594dfe9a9eeb90c20b282fc47f127c12834ddfe582",
+      "sha256": "51cf226b7a5ce2b8b774f60f70ffc7dd1281dabe509c37edadccd13f8bcbe09b",
       "exports": [
         "checkGmailThreadReaderLimits",
         "gmailThreadReaderLimitNames",
@@ -2625,17 +2625,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
-                "anchor": "export function gmailThreadReaderLimitsValid(limits)"
+                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mts",
+                "anchor": "export function gmailThreadReaderLimitsValid(limits:"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
-                "anchor": "export function checkGmailThreadReaderLimits(limits)"
+                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mts",
+                "anchor": "export function checkGmailThreadReaderLimits(limits:"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mts",
                 "anchor": "const bounded = Object.freeze({...limits});"
               },
               {
@@ -2657,7 +2657,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mts",
                 "anchor": "if (!gmailThreadReaderLimitsValid(bounded)) fail('InvalidGmailThreadReaderFactory');"
               }
             ],
@@ -2673,8 +2673,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mjs",
-                "anchor": "limits.maxPages <= 2147483647 - limits.maxThreads"
+                "path": "adapters/connectors/gmail/site/gmail-thread-limits.mts",
+                "anchor": "(limits.maxPages as number) <= 2147483647 - (limits.maxThreads as number)"
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",

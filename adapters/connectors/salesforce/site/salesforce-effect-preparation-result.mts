@@ -7,11 +7,12 @@ import {checkedEffectPreparation} from
 // rate limit or incomplete observation into a definitive write refusal.
 // The JSON comes from the exact opaque MoonBit observation used by the check;
 // caller-supplied metadata is not accepted here.
-export function checkedSalesforceCatalogPreparation(result, moon, observation) {
+export function checkedSalesforceCatalogPreparation<Observation>(result: unknown,
+  moon: {salesforceCatalogObservationJson(observation: Observation): string}, observation: Observation) {
   if (!runtimeIsError(result)) return checked(result);
   const {listed_resources: resources} = JSON.parse(
     moon.salesforceCatalogObservationJson(observation));
   const observed = Array.isArray(resources) && resources.length > 0 &&
-    resources.every(resource => resource.outcome === 'described');
+    resources.every((resource: {outcome: unknown}) => resource.outcome === 'described');
   return observed ? checkedEffectPreparation(result) : checked(result);
 }
