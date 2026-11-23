@@ -5858,7 +5858,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "62a66c8aac972a26bf520541d04e2e80cc3b78a1057469f239d33af4bf878f26",
+      "sha256": "aee47980164c0b808078a9b1f487ba9c9ff7c1ce0c80a83238df84a02592ec95",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6351,6 +6351,14 @@
             "name: string"
           ],
           "result": "Result"
+        },
+        {
+          "name": "Execution/sample",
+          "parameters": [
+            "selector: WireSampleSelector",
+            "options?: Readonly<{signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}>"
+          ],
+          "result": "Promise<WireRunSample>"
         },
         {
           "name": "Execution/status",
@@ -7545,6 +7553,102 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.explainContext reads one original projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/sample"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/index.d.ts",
+                "anchor": "sample(selector: WireSampleSelector"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/index.d.ts",
+                "anchor": "sample(selector: WireSampleSelector"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }
@@ -11787,7 +11891,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb049c2654e93f6ffabe3371b5138d89f8380b01e036495c272a9c8e70f1192b",
+      "sha256": "ca9ad2e3b518ceebf8969d7eda321ddd2549534693253421dacbbfb76c31e075",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11921,6 +12025,17 @@
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/init:explainContext/init:explainContext",
           "parameters": [
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:sample/init:sample",
+          "parameters": [
+            "selector",
             "signal",
             "maxWireBytes",
             "maxNodes",
@@ -12369,6 +12484,102 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.explainContext reads one original projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/init:sample/init:sample"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async sample(selector,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async sample(selector,"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }

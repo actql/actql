@@ -5208,7 +5208,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "3d3d46da96bf05e81eea8f8a3a7719cfb024cde384ce152b49d00d1ae8b00674",
+      "sha256": "dba4ac808863a5395b65a16582c092aea8dbdac0d477851dac63aa5ab089615b",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -25664,6 +25664,105 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const runSample = preparation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const runSample = preparation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -27425,6 +27524,37 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#2",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#3",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#4",
+          "parameters": [
+            "ref",
+            "selected",
+            "custody"
           ],
           "async": false
         },
@@ -29937,7 +30067,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "fab2ea761f1672aa9fb27f80b8dce3d8c0d4b2323841ccf40a9cd9d8c62b9207"
+      "sha256": "b5a395d74e2470d7e7f5c1d8d5b6c6bf64a4ebab70dc0c04b9d23f2bba7c3355"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

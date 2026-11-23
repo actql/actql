@@ -422,6 +422,32 @@ fn inspect_interactive_relation_sample_selection(
 }
 
 ///|
+fn interactive_terminal_execution(
+  profile : RunEvidenceValue,
+) -> @json.CanonicalValue? {
+  guard profile.name == "control_profile" &&
+    @json.object_field(profile.value, "execution") is Some(execution) &&
+    evidence_string(execution, "default_until") == Some("terminal") &&
+    @json.object_field(execution, "breakpoints")
+    is Some(@json.Array(breakpoints)) &&
+    @json.array_count(breakpoints) == 0 &&
+    @json.object_field(execution, "guards") is Some(@json.Null) else {
+    return None
+  }
+  Some(execution)
+}
+
+///|
+/// The admitted profile must allow the entire terminal interval and
+/// explicitly disable the entry stop before using the unattended starter.
+pub fn interactive_profile_allows_unattended_terminal(
+  profile : RunEvidenceValue,
+) -> Bool {
+  interactive_terminal_execution(profile) is Some(execution) &&
+  @json.object_field(execution, "stop_on_entry") is Some(@json.Bool(false))
+}
+
+///|
 /// Look up the original logical output in the set already checked during
 /// admission. Permission and physical output remain separate.
 pub fn interactive_relation_sample_output_limits(
@@ -433,6 +459,155 @@ pub fn interactive_relation_sample_output_limits(
   } else {
     None
   }
+}
+
+///|
+/// Resolve an explicitly installed all-output Sample profile on the original
+/// accepted Run. The Host supplies the authenticated Journal reference, and
+/// funds emission and validation before entering this structural issuer.
+/// This profile leaves control commands to the existing Run owner.
+pub fn issue_interactive_relation_sample_admission(
+  run : PublicationContract,
+  plan : PublicationContract,
+  prepared : RunEvidenceValue,
+  authorization : RunEvidenceValue,
+  requested : RunEvidenceValue,
+  map : RunEvidenceValue,
+  reference_wire : String,
+  fingerprint_cid : String,
+  authority_scope_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (RunEvidenceValue, RunEvidenceValue, RunEvidenceValue),
+  RunEvidenceValueIssue,
+] {
+  guard reference_wire.length() <= Int::min(4096, max_bytes) &&
+    valid_contract_cid(fingerprint_cid) &&
+    valid_contract_cid(authority_scope_cid) else {
+    return Err(
+      RunEvidenceReferenceMismatch("control_admission.original_request"),
+    )
+  }
+  guard validate_original_interactive_run_evidence(run, prepared, authorization)
+    is Ok(_) &&
+    contract_string(run, "compiled_plan_cid") == Some(plan.identity) &&
+    contract_string(run, "scope_id") is Some(namespace_id) &&
+    evidence_string(authorization.value, "host_policy_cid") is Some(policy_cid) else {
+    return Err(RunEvidenceReferenceMismatch("control_admission.original_run"))
+  }
+  match check_interactive_profile_bounds(requested) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard interactive_terminal_execution(requested) is Some(_) &&
+    @json.object_field(requested.value, "retain") is Some(retain) &&
+    @json.object_field(retain, "intermediate") is None &&
+    @json.object_field(retain, "samples") is Some(samples) &&
+    evidence_string(samples, "capture_scope") == Some("all_outputs") else {
+    return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
+  }
+  // Read the admitted map here. The same-Run consumer still checks full
+  // key and port binding before it can issue a physical start ticket.
+  guard map.name == "logical_map" &&
+    evidence_string(map.value, "compiled_plan_cid") == Some(plan.identity) &&
+    evidence_string(map.value, "program_definition_cid") ==
+    evidence_string(plan.value, "program_definition_cid") &&
+    @json.object_field(map.value, "steps") is Some(@json.Array(steps)) else {
+    return Err(RunEvidenceReferenceMismatch("control_admission.plan_map"))
+  }
+  let (resolved_wire, run_ref_wire) = try {
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    @encode.begin_object(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-resolved-control-profile/0.1")
+    @encode.key(writer, "requested_profile_cid")
+    @encode.string_value(writer, requested.identity)
+    @encode.key(writer, "effective_profile_cid")
+    @encode.string_value(writer, requested.identity)
+    @encode.key(writer, "compiled_plan_cid")
+    @encode.string_value(writer, plan.identity)
+    @encode.key(writer, "logical_map_cid")
+    @encode.string_value(writer, map.identity)
+    @encode.key(writer, "breakpoints")
+    @encode.begin_array(writer)
+    @encode.end_array(writer)
+    @encode.key(writer, "sample_output_port_ids")
+    @encode.begin_array(writer)
+    for i in 0..<@json.array_count(steps) {
+      let step = @json.array_at(steps, i).unwrap()
+      guard @json.object_field(step, "ports") is Some(@json.Array(ports)) else {
+        return Err(RunEvidenceInvalidShape)
+      }
+      for j in 0..<@json.array_count(ports) {
+        let port = @json.array_at(ports, j).unwrap()
+        if evidence_string(port, "role") == Some("output") {
+          @encode.string_value(
+            writer,
+            evidence_string(port, "port_id").unwrap(),
+          )
+        }
+      }
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    let resolved_wire = @encode.finish(writer)
+    let reference = @encode.writer(max_bytes, max_nodes, max_depth)
+    @encode.begin_object(reference)
+    @encode.key(reference, "namespaceId")
+    @encode.string_value(reference, namespace_id)
+    @encode.key(reference, "authorityScopeCid")
+    @encode.string_value(reference, authority_scope_cid)
+    @encode.key(reference, "runDefinitionCid")
+    @encode.string_value(reference, run.identity)
+    @encode.end_object(reference)
+    (resolved_wire, @encode.finish(reference))
+  } catch {
+    _ => return Err(RunEvidenceEncoding)
+  }
+  let intent_wire = "{\"version\":\"actql-control-request-intent/0.1\",\"submission_ref\":" +
+    reference_wire +
+    ",\"legacy_request_fingerprint_cid\":\"" +
+    fingerprint_cid +
+    "\",\"requested_profile_cid\":\"" +
+    requested.identity +
+    "\",\"expected_plan_cid\":null}"
+  let intent = match
+    seal_run_evidence_value(
+      "control_request_intent", intent_wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let resolved = match
+    seal_run_evidence_value(
+      "resolved_control_profile", resolved_wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let admission_wire = "{\"version\":\"actql-control-admission/0.1\",\"run_ref\":" +
+    run_ref_wire +
+    ",\"request_intent_cid\":\"" +
+    intent.identity +
+    "\",\"compiled_plan_cid\":\"" +
+    plan.identity +
+    "\",\"logical_map_cid\":\"" +
+    map.identity +
+    "\",\"resolved_profile_cid\":\"" +
+    resolved.identity +
+    "\",\"policy_revision_cid\":\"" +
+    policy_cid +
+    "\"}"
+  let admission = match
+    seal_run_evidence_value(
+      "control_admission", admission_wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  Ok((intent, resolved, admission))
 }
 
 ///|

@@ -14,6 +14,7 @@ import {
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/logical_request_scope",
@@ -84,6 +85,8 @@ pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Re
 pub fn advance_installed_effect_dependency_capture(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.CapturedRunIssuancePreparation, Int) -> Result[Bool, ClientInstalledManagedRunIssue]
 
 pub fn advance_installed_effect_result_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.CapturedClientResultTransformation, Int) -> Result[(Bool, Int), ClientInstalledEffectResultPublicationIssue]
+
+pub fn advance_installed_relation_sample_start_control(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, Bool) -> Result[Unit, InstalledRelationSampleStartIssue]
 
 pub fn advance_program_capture(ClientProgramCapture, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
@@ -868,6 +871,8 @@ pub fn issue_installed_effect_initial_retention(ClientInstalledManagedRun, @run_
 pub fn issue_installed_effect_keyed_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientKeyedLookupInput, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
 pub fn issue_installed_effect_multi_captured_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
+
+pub fn issue_installed_relation_sample_profile_journal_reference(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, ClientLogicalObservation, String, String, Int, Int, Int) -> Result[ClientCheckedRelationSampleProfile, InstalledRelationSampleProfileIssue]
 
 pub fn issue_program_captured_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], @run_publication_host.ClientKeyedLookupObservation?, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
@@ -2407,6 +2412,7 @@ pub(all) struct InstalledRelationSampleRetention {
 
 pub(all) enum InstalledRelationSampleStartIssue {
   ForeignSampleStart
+  SampleStartRequiresControl
   SampleStartRun(ClientInstalledManagedRunIssue)
   SampleStartCapacity(@physical_resources.PreparationCapacityIssue)
   SampleStartControl(@physical_strategy_host.CapturedTaskControlIssue)

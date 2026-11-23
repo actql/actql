@@ -20,9 +20,9 @@ export function createSqliteTransaction(database, prefix) {
       return {active: undefined, stateCause};
     }
   };
-  const run = body => {
+  const transact = (body, begin) => {
     assertUsable();
-    try { database.exec('BEGIN IMMEDIATE'); }
+    try { database.exec(begin); }
     catch (cause) {
       const state = inspect();
       if (state.active === false) throw cause;
@@ -58,7 +58,10 @@ export function createSqliteTransaction(database, prefix) {
       });
     }
   };
-  return Object.freeze({run, assertUsable,
+  return Object.freeze({
+    run: body => transact(body, 'BEGIN IMMEDIATE'),
+    read: body => transact(body, 'BEGIN'),
+    assertUsable,
     get connectionUsable() { return !unusable; }});
 }
 

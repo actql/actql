@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "dd4a19277afd5027655c4fc2981d57fd3c751b16de0e02e723091475ad88a48e",
+      "sha256": "6279a3d26f4e3a3e0a32a704e71e9a40c07148d8b16dec1a71f36649c6f151d2",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "0edd15c067e5c025bb8d4c9d469decf6c2075f0682a8bb88905ea81ea40faa66",
+      "sha256": "98b5995bdb2cd071c2e0872e00b78af3ee80bbb14995561d13d9d2a4f638168d",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -5535,7 +5535,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f68b136cc23ac92ed78ad83ff9524aef0f8948dd39646cc9245abfc32fe9a4f6",
+      "sha256": "31703993ce9dcde7cf03533e5cebc210f13c6dd6bcf3360372c57bc1f1118786",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",

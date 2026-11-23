@@ -19861,7 +19861,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "10f001cb4caaacd1670ee42af9b3e65e61f5d8d998790092484e81b5cfa12066"
+      "sha256": "bca32a0cafd0916fbd15d61b156801910e748d5f1fedcf9a3fada654edb13d99"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -68230,7 +68230,8 @@
             "client_program_prepare_logical_observation",
             "client_program_return_logical_observation",
             "client_program_return_logical_observation_record",
-            "client_program_check_relation_sample_profile"
+            "client_program_check_relation_sample_profile",
+            "client_program_issue_relation_sample_profile"
           ],
           "exports": [],
           "attributes": {
@@ -68328,6 +68329,10 @@
               {
                 "path": "src/client_local_host/preparation_logical_observation_overlap_js_wbtest.mbt",
                 "anchor": "test \"ordinary manager admission registry dispatch and Host holders"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "issue_installed_relation_sample_profile_journal_reference("
               }
             ]
           }
@@ -69139,6 +69144,10 @@
           "declaration": "client_program_installed_node_model_sdk_v4_request_capacity ( max_rows : Int , max_request_bytes : Int , projection_nodes : Int , projection_depth : Int , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_issue_relation_sample_profile",
+          "declaration": "client_program_issue_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , installed_profile_wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
+        },
+        {
           "name": "client_program_logical_observation_cleanup",
           "declaration": "client_program_logical_observation_cleanup ( result : Result [ @ client_local_host . ClientLogicalObservation , @ client_local_host . ClientLogicalObservationIssue , ] , ) - > @ client_local_host . ClientLogicalObservation ?"
         },
@@ -69647,7 +69656,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "64d37eb5a35fa8d9f763f034bf03ed2a280606bb834b4af28f6c35a22eecd80d"
+      "sha256": "3e8cf1ce93f5d9dce0534664d3932b8e06d7ecef3b5773a25fe2dd9e27f64bc3"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -106749,7 +106758,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
-      "sha256": "c55eee6814f6f29c633b8c00a6f97558d5b9a7f2dad7210bb1a1e5b86243469f",
+      "sha256": "bce656e809d04034fbf0e3444020011eac493870be7718e80415cbd41d2aa5ba",
       "exports": [],
       "operations": [
         {
@@ -106759,6 +106768,10 @@
         {
           "name": "client_program_account_read_control_bytes",
           "declaration": "client_program_account_read_control_bytes ( ) - > Int64"
+        },
+        {
+          "name": "client_program_advance_relation_sample_start_control",
+          "declaration": "client_program_advance_relation_sample_start_control ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , account : AuthorizationAccount , principal : String , connection : String , start_acknowledged : Bool , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
         },
         {
           "name": "client_program_close_account_read",
@@ -106961,6 +106974,74 @@
               {
                 "path": "adapters/host-node/account-construction.test.mjs",
                 "anchor": "test('129 simultaneous completed Account gates retain DATA and cleanup while releasing constructor scratch'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_advance_relation_sample_start_control"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn advance_installed_relation_sample_start_control("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramAdvanceRelationSampleStartControl\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "physical_equal(profile.captured, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_profile_current(owner, profile)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "control.acknowledgeClientRelationSampleStart(sampleRun"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "return Err(SampleStartRequiresControl)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "One installed Account/tuple binding and its synchronous two-phase receiver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "The ordinary wire Debug intent does not opt in to unattended resume."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "ordinary Debug does not opt into the unattended Sample starter"
               }
             ]
           }

@@ -11,7 +11,7 @@ import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCa
   validCancellationLookup, validCancellationRef, validClientBody,
   validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
   validWireRunViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape,
-  withinResultDescriptionLimits} from '@actql/client-wire';
+  validWireRunSampleShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 async function validateExplanationFacts(facts) {
   const {self_cid: observed, ...body} = facts;
@@ -262,6 +262,23 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
               binding.parameter_values_cid !== facts.parameter_values_cid ||
               await contentCid(map) !== mapCid) fail('InvalidClientHostRunExplanationView');
           await validateExplanationFacts(facts);
+        }
+        signal?.throwIfAborted();
+        return freezeInput(view);
+      },
+      async sample(selector, {signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, selector, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('run-sample', {connection: selected.wire, ...input})) {
+          fail('InvalidRunSampleRequest');
+        }
+        const response = await runRequest('run-sample', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        if (!withinResultDescriptionLimits(view, input) || !validWireRunSampleShape(view) ||
+            view.state === 'available' && (structuralKey(view.source.run_ref) !== structuralKey(ref) ||
+              view.source.role !== input.selector.role ||
+              input.selector.step.by === 'id' && view.source.step_id !== input.selector.step.step_id ||
+              input.selector.input_port_id !== undefined && view.source.port_id !== input.selector.input_port_id)) {
+          fail('InvalidClientHostRunSample');
         }
         signal?.throwIfAborted();
         return freezeInput(view);

@@ -199,7 +199,7 @@ test('public wire accepts the exact connected request shapes', () => {
   assert.deepEqual([...clientHostOperations].sort(), [
     'connect', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission',
     'check', 'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
-    'run-explanation-context', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
+    'run-explanation-context', 'run-sample', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
     'lookup-cancellation', 'reconcile', 'read', 'result-describe',
     'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
     'cancel-request', 'resources', 'resource-inspect', 'resource-peek',
@@ -220,6 +220,11 @@ test('public wire accepts the exact connected request shapes', () => {
     assert.equal(validClientBody('static-explanation', {...staticPlan, ...change}), false);
   }
   const inspectRun = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+  const sample = {...inspectRun, selector: {step: {by: 'name', name: 'original'}, role: 'output'}};
+  assert.equal(validClientBody('run-sample', sample), true);
+  assert.equal(validClientBody('run-sample', inspectRun), false);
+  assert.equal(validClientBody('run-sample', {...sample,
+    selector: {...sample.selector, input_port_id: ref.runDefinitionCid}}), false);
   assert.equal(validClientBody('run-explanation-context', {...inspectRun, ref: undefined}), false);
   assert.equal(validClientBody('run-explanation-context',
     {...inspectRun, ref: {...ref, extra: true}}), false);

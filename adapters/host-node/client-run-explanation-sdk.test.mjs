@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {installClientRunSample} from './client-run-plan.mjs';
 import {validClientBody} from '../../packages/client-wire/index.mjs';
 import {runExplanation, unprojectedRunExplanation} from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 import {effectfulStaticExplanationFixture} from '../../scripts/fixtures/effectful-static-plan-vectors.mjs';
@@ -120,4 +121,110 @@ test('Execution.explainContext reads one original projection and independently c
   assert.deepEqual(await run.explainContext(), supplied);
   assert.equal(validClientBody('run-explanation-context', {connection, ref,
     maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64, reconstruct: true}), false);
+});
+
+test('Execution.sample uses the original producer port and repeats current egress before returning data', async t => {
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const compiledPlan = cid('b'), logicalMap = cid('c'), producerId = cid('1'), consumerId = cid('2');
+  const outputId = cid('3'), inputId = cid('4'), carrier = cid('a');
+  const selector = {step: {by: 'id', step_id: consumerId}, role: 'input', input_port_id: inputId};
+  const planWire = JSON.stringify({logical_map: {compiled_plan_cid: compiledPlan, self_cid: logicalMap, steps: [
+    {step_id: producerId, ports: [{port_id: outputId, role: 'output', carrier: 'relation', carrier_contract_cid: carrier}]},
+    {step_id: consumerId, ports: [{port_id: inputId, role: 'input', carrier: 'relation', carrier_contract_cid: carrier,
+      source: {kind: 'logical_output', step_id: producerId, output_port_id: outputId}}]},
+  ]}});
+  const definitionWire = 'owned original Run';
+  const saved = {compiledPlanWire: 'owned original Plan', planViewWire: planWire};
+  const original = {definitionWire, ...saved, programDefinitionCid: cid('d')};
+  let planOriginal = original, replacement;
+  const source = {run_ref: ref, compiled_plan_cid: compiledPlan, logical_map_cid: logicalMap,
+    carrier: 'relation', carrier_contract_cid: carrier, self_cid: cid('5')};
+  const relation = {version: 'actql-sample-relation/0.1', kind: 'relation', schema_cid: cid('e'),
+    ordering_evidence_cid: null, columns: [{position: 0, name: 'n', value_contract_cid: cid('f'), required: true}],
+    rows: [[{presence: 'present', value_contract_cid: cid('f'), value: 7}]]};
+  const admissions = new Set(), allocations = [];
+  let retainedKind = 'available';
+  let authorized = false, probes = 0, reads = 0, planReads = 0, revokeAtEgress = false;
+  const runSample = installClientRunSample({
+    authorize: () => authorized,
+    probeOriginal(run) {probes++; assert.deepEqual(run, ref); return {storedBytes: 1400};},
+    lookupOriginal(run) {
+      planReads++;
+      assert.deepEqual(run, ref);
+      if (revokeAtEgress && planReads === 2) authorized = false;
+      return replacement !== undefined && planReads === 2 ? replacement : planOriginal;
+    },
+    control: {
+      admit(name, wire) {
+        assert.equal(name, 'run_definition'); assert.equal(wire, definitionWire);
+        return {identity: ref.runDefinitionCid};
+      },
+      readStoredRunPlanOriginal(value) {assert.deepEqual(value, saved); return planWire;},
+    },
+    readRetained(run, output, {current, reserve}) {
+      assert.deepEqual(run, ref);
+      assert.deepEqual(output, {compiledPlanCid: compiledPlan, logicalMapCid: logicalMap,
+        stepId: producerId, outputPortId: outputId, carrierContractCid: carrier, maxBytes: 65536});
+      assert.equal(current(), true);
+      reserve(2400);
+      reads++;
+      if (retainedKind === 'expired') return {kind: 'expired', sampleRefCid: cid('8')};
+      if (retainedKind === 'unknown') {
+        throw Object.assign(new Error('ClientRelationSampleReadUnknown'), {
+          code: 'ClientRelationSampleReadUnknown', outcome: 'unknown',
+        });
+      }
+      return {kind: 'available', source, capture: {strategy: 'execution_prefix', self_cid: cid('6')},
+        emission: {sampled_items: '1', total: {kind: 'unknown', unit: 'rows', reason: 'count_not_observed'},
+          completeness: 'partial', truncation: 'unknown', self_cid: cid('7')},
+        reference: {self_cid: cid('8')}, receipt: {receiptCid: cid('9')}, relation};
+    },
+    readWorkspace: {
+      begin(request) {admissions.add(request);},
+      metadata(request, bytes) {assert.ok(admissions.has(request)); allocations.push(bytes);},
+      close(request) {assert.ok(admissions.delete(request));},
+    },
+  });
+  const port = createNodeInProcessClientHost({authenticate: () => 'caller', authorizeConnection: () => true,
+    negotiate: () => profile, maxRowBytes: 1024,
+    attach: value => ({ref: value.ref, durability: 'volatile', revision: 0}),
+    runSample});
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
+  t.after(() => client.close());
+  const run = await client.attach(ref);
+  assert.deepEqual(await run.sample(selector), {state: 'forbidden'});
+  assert.equal(probes, 0, 'forbidden callers cannot probe the original');
+  authorized = true;
+  const value = await run.sample(selector);
+  assert.equal(value.state, 'available');
+  assert.equal(value.source.step_id, consumerId);
+  assert.equal(value.source.port_id, inputId);
+  assert.deepEqual(value.source.producer, {kind: 'logical_output', step_id: producerId, output_port_id: outputId});
+  assert.deepEqual(value.data, relation);
+  assert.equal(Object.isFrozen(value.data.rows[0]), true);
+  assert.equal(reads, 1);
+  assert.deepEqual(allocations, [1024, 2800, 2400]);
+  revokeAtEgress = true; planReads = 0;
+  assert.deepEqual(await run.sample(selector), {state: 'forbidden'});
+  assert.equal(reads, 2);
+  revokeAtEgress = false; authorized = true;
+  retainedKind = 'expired';
+  assert.deepEqual(await run.sample(selector), {state: 'expired'});
+  retainedKind = 'unknown';
+  assert.deepEqual(await run.sample(selector), {state: 'unknown', reason: 'sample_read_unknown'});
+  retainedKind = 'available';
+  planReads = 0;
+  replacement = {...original, compiledPlanWire: original.compiledPlanWire.replace('owned', 'other')};
+  assert.equal(replacement.compiledPlanWire.length, original.compiledPlanWire.length);
+  await assert.rejects(run.sample(selector), {code: 'ClientHostFailure'});
+  assert.equal(planReads, 2, 'a same-size replacement must be refused during the final original read');
+  replacement = undefined;
+  planOriginal = {...original, admissionEvidenceWire: JSON.stringify({logicalPlanOriginal: saved})};
+  const beforeMixed = reads;
+  await assert.rejects(run.sample(selector), {code: 'ClientHostFailure'});
+  assert.equal(reads, beforeMixed, 'mixed inline and companion originals cannot select a Sample');
+  planOriginal = {definitionWire, admissionEvidenceWire: JSON.stringify({logicalPlanOriginal: saved}),
+    programDefinitionCid: original.programDefinitionCid};
+  assert.deepEqual((await run.sample(selector)).data, relation);
+  assert.equal(admissions.size, 0);
 });

@@ -13,7 +13,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
-  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireRunSampleShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
 import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
@@ -109,7 +109,7 @@ export function createNodeInProcessClientHost({
   attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, staticEffectExplanation,
-  inspectRun, runPlan, runExplanation, runExplanationContext, maxRowBytes, observe,
+  inspectRun, runPlan, runExplanation, runExplanationContext, runSample, maxRowBytes, observe,
   performInstalledRequest,
   captureResultObservation,
   captureResultOperation,
@@ -276,13 +276,18 @@ export function createNodeInProcessClientHost({
         return view;
       }
       if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
-            operation === 'static-explanation') {
+            operation === 'static-explanation' || operation === 'run-sample') {
         const staticRead = operation === 'static-explanation';
         const contextRead = operation === 'run-explanation-context';
-        const reader = staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const sampleRead = operation === 'run-sample';
+        const reader = sampleRead ? runSample
+          : staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
         const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
         return await invoke(reader, undefined, view => {
-          if (staticRead) {
+          if (sampleRead) {
+            if (!validWireRunSampleShape(view) || view.state === 'available' &&
+                Object.keys(ref).some(key => view.source.run_ref[key] !== ref[key])) fail('InvalidClientHostRunSample');
+          } else if (staticRead) {
             if (!validWireStaticExplanationViewShape(view)) fail('InvalidClientHostStaticExplanationView');
           } else if (!validateRun(view) ||
               Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunExplanationView');
@@ -290,7 +295,7 @@ export function createNodeInProcessClientHost({
           // admitted. Only the independent caller value crosses this boundary.
           const wire = JSON.stringify(view);
           if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) {
-            fail(staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
+            fail(sampleRead ? 'RunSampleReadLimit' : staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
           }
           return JSON.parse(wire);
         });

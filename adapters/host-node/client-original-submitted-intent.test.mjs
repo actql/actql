@@ -683,6 +683,120 @@ test('Relation Sample adoption retains one exact prefix and stable receipt under
     sample.cid, custody, publication), {kind: 'unobserved'});
 });
 
+test('cold Relation Sample read checks current access, bound evidence and the original receipt', async t => {
+  let now = Date.now();
+  const {f, ref, adopt, retire} = await relationSampleWriter(t, {submissionEpochNow: () => now});
+  const sample = committedRelationSample(ref);
+  const access = {current: () => true, reserve(bytes) {assert.ok(bytes > 0);}};
+  const receipt = adopt(sample.wires, access);
+  f.reopen();
+
+  const selection = {sampleRefCid: sample.cid, compiledPlanCid: cid('4'), logicalMapCid: cid('5'),
+    stepId: cid('6'), outputPortId: cid('7'), carrierContractCid: cid('a'), maxBytes: 1024};
+  const read = (selected = selection, custody = access, run = ref, control = publication) =>
+    f.journal.readRetainedRelationSample(run, selected, custody, control);
+  const update = (set, ...arguments_) => f.update(
+    `UPDATE client_relation_sample_adoptions SET ${set} WHERE sample_ref_cid = ?`, ...arguments_, sample.cid);
+
+  const byPort = {...selection, sampleRefCid: undefined};
+  for (const sampleRefCid of [sample.cid, cid('d'), undefined]) {
+    assert.throws(() => read({...selection, sampleRefCid}, {
+      current: () => false, reserve() {assert.fail('denied access may not reserve an extent');},
+    }), {code: 'ClientRelationSampleDenied'});
+  }
+  assert.deepEqual(read(selection, access, {...ref, namespaceId: 'foreign-scope'}), {kind: 'unobserved'});
+
+  let live = true;
+  assert.throws(() => read(selection, {
+    current: () => live, reserve() {live = false;},
+  }), {code: 'ClientRelationSampleDenied'});
+  let funded = 0;
+  const {kind, source, relation, receipt: originalReceipt} = read(selection, {
+    current: () => true, reserve(bytes) {funded += bytes;},
+  });
+  assert.equal(kind, 'available');
+  assert.deepEqual(source.run_ref, ref);
+  assert.equal(source.output_port_id, selection.outputPortId);
+  assert.deepEqual(relation, JSON.parse(sample.wires.relation));
+  assert.deepEqual(originalReceipt, receipt);
+  assert.deepEqual(read(byPort).receipt, receipt, 'the exact port selects its original receipt after reopening');
+  const writer = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    writer.exec('BEGIN IMMEDIATE');
+    writer.prepare('UPDATE client_relation_sample_adoptions SET relation_wire = ? WHERE sample_ref_cid = ?')
+      .run(sample.wires.relation.replace('"value":7', '"value":8'), sample.cid);
+    const observed = read(byPort);
+    assert.deepEqual(observed.receipt, receipt, 'another writer cannot hide this committed receipt');
+    assert.deepEqual(observed.relation, JSON.parse(sample.wires.relation));
+    writer.exec('ROLLBACK');
+  } finally {writer.close();}
+  assert.deepEqual(read({...byPort, outputPortId: cid('e')}), {kind: 'unobserved'});
+  assert.deepEqual(read(byPort, access, {...ref, namespaceId: 'foreign-scope'}), {kind: 'unobserved'});
+  let reserves = 0;
+  assert.throws(() => read(byPort, {...access, reserve(bytes) {
+    assert.ok(bytes > 0);
+    if (++reserves === 2) update('original_capture_cid = ?', cid('e'));
+  }}), {code: 'ClientRelationSampleOriginalChanged'},
+  'the second original proof catches a changed association after funding');
+  update('original_capture_cid = ?', JSON.parse(sample.wires.capture).self_cid);
+  let storedReceiptBytes;
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    storedReceiptBytes = db.prepare('SELECT length(CAST(receipt_wire AS BLOB)) AS bytes FROM client_relation_sample_adoptions WHERE sample_ref_cid = ?')
+      .get(sample.cid).bytes;
+  } finally {db.close();}
+  assert.equal(funded, storedReceiptBytes + Object.values(sample.wires).reduce((sum, wire) => sum + Buffer.byteLength(wire), 0));
+  assert.throws(() => read({...selection, outputPortId: cid('e')}), {code: 'ClientRelationSampleOriginalChanged'});
+  update('relation_wire = ?', sample.wires.relation.replace('"value":7', '"value":8'));
+  assert.throws(() => read(), {code: 'ClientRelationSampleOriginalChanged'});
+  update('source_generation_wire = NULL, capture_wire = NULL, emission_wire = NULL, reference_wire = NULL, relation_wire = NULL');
+  assert.throws(() => read(), {code: 'ClientRelationSampleInvalidOriginal'});
+  assert.throws(() => read(byPort), {code: 'ClientRelationSampleInvalidOriginal'},
+    'the same future-expiry row without payload is corrupt even with a proven output association');
+  update('source_generation_wire = ?, capture_wire = ?, emission_wire = ?, reference_wire = ?, relation_wire = ?',
+    sample.wires.generation, sample.wires.capture, sample.wires.emission, sample.wires.reference, sample.wires.relation);
+
+  // The clock can reach expiry while the read tariff is admitted. Only the
+  // unchanged original receipt is materialized in the subsequent transaction.
+  const admittedAfterQuote = [];
+  const trackAdmission = (name, ...arguments_) => {
+    admittedAfterQuote.push(name);
+    return publication.admitRunEvidence(name, ...arguments_);
+  };
+  assert.deepEqual(read(selection, {current: () => true, reserve() {now = receipt.expiresAt;}},
+    ref, {admitRunEvidence: trackAdmission}), {kind: 'expired', sampleRefCid: sample.cid});
+  assert.deepEqual(admittedAfterQuote, ['sample_adoption_receipt']);
+
+  // Even before retirement, expiry only loads the receipt, with no step or
+  // port status inferred from it. The one-byte payload limit cannot admit
+  // the actual retained Relation.
+  now = receipt.expiresAt;
+  const admitted = [];
+  const admitRunEvidence = (...arguments_) => {
+    admitted.push(arguments_[0]);
+    return publication.admitRunEvidence(...arguments_);
+  };
+  assert.deepEqual(read({...selection, maxBytes: 1}, {current: () => true,
+    reserve(bytes) {assert.equal(bytes, storedReceiptBytes);}}, ref, {admitRunEvidence}),
+  {kind: 'expired', sampleRefCid: sample.cid});
+  assert.deepEqual(admitted, ['sample_adoption_receipt']);
+  assert.equal(retire(sample.cid, access), true);
+  f.reopen();
+  assert.deepEqual(read(), {kind: 'expired', sampleRefCid: sample.cid});
+  const selectedEvidence = [];
+  const sealRunEvidence = (name, ...arguments_) => {
+    selectedEvidence.push(name);
+    return publication.sealRunEvidence(name, ...arguments_);
+  };
+  assert.deepEqual(read({...byPort, maxBytes: 1}, access, ref, {admitRunEvidence, sealRunEvidence}),
+    {kind: 'expired', sampleRefCid: sample.cid});
+  assert.deepEqual(selectedEvidence, ['sample_reference', 'sample_reference']);
+  assert.deepEqual(admitted, ['sample_adoption_receipt', 'sample_adoption_receipt']);
+  update('emission_provenance_cid = ?', cid('e'));
+  assert.throws(() => read(byPort), {code: 'ClientRelationSampleOriginalChanged'},
+    'an expired receipt alone cannot authenticate a damaged port association');
+});
+
 test('Relation Sample adoption with an uncertain COMMIT resolves only the original durable key', async t => {
   for (const committed of [true, false]) {
     const {f, adopt, ref, lookup} = await relationSampleWriter(t);
@@ -764,6 +878,10 @@ test('Relation Sample retirement leaves other rows and durable receipt limits in
   assert.equal(a.retire(a1.cid, access), false);
   now = initial + 1000;
   const next = a.adopt(a2.wires, access);
+  const selectedPort = {compiledPlanCid: cid('4'), logicalMapCid: cid('5'), stepId: cid('6'),
+    outputPortId: cid('7'), carrierContractCid: cid('a'), maxBytes: 1024};
+  assert.deepEqual(a.f.journal.readRetainedRelationSample(a.ref, selectedPort, access, publication),
+    {kind: 'ambiguous'}, 'more than one generation cannot select a replacement for this output port');
   assert.throws(() => a.adopt(a3.wires, access), {code: 'ClientRelationSampleCapacity'});
   now = initial + 2000;
   const other = b.adopt(b1.wires, access);

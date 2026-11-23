@@ -33,6 +33,7 @@ struct ClientCheckedRelationSampleProfile {
   definition : @publication.PublicationContract
   captured : @strategy.CapturedDAG
   selection : @publication.InteractiveRelationSampleSelection
+  unattended_start : Bool
   driver_outputs : Map[Int, (String, String, String)]
   control_admission_cid : String
   resolved_profile_cid : String
@@ -332,6 +333,7 @@ fn check_installed_relation_sample_profile_original(
   max_nodes : Int,
   max_depth : Int,
   decode_original~ : Bool,
+  use_exact_map_nodes? : Bool = false,
 ) -> Result[
   ClientCheckedRelationSampleProfile,
   InstalledRelationSampleProfileIssue,
@@ -434,8 +436,14 @@ fn check_installed_relation_sample_profile_original(
     ) else {
     return Err(ForeignSampleProfile)
   }
-  // The borrowed scanner visits each step and port once, within max_nodes.
-  match @resources.charge_planning(ledger, max_nodes) {
+  // For a freshly issued same-owner Map, its admitted canonical geometry
+  // bounds both scans. An external evidence call retains its original bound.
+  guard @publication.run_evidence_value_wire_usage(records.map)
+    is Some((_, map_nodes, _)) else {
+    return Err(SampleProfileLimits)
+  }
+  let map_visit_limit = if use_exact_map_nodes { map_nodes } else { max_nodes }
+  match @resources.charge_planning(ledger, map_visit_limit) {
     Err(issue) => return Err(SampleProfileWork(issue))
     Ok(_) => ()
   }
@@ -503,7 +511,7 @@ fn check_installed_relation_sample_profile_original(
   // Two admission passes, the bounded selector/name scan and both resolved
   // lists. A refused profile never opens the physical task index.
   let visits = 2L * (binding.steps.to_int64() + binding.ports.to_int64()) +
-    max_nodes.to_int64() +
+    map_visit_limit.to_int64() +
     resolved_nodes.to_int64()
   if visits > 2147483647L {
     return Err(SampleProfileLimits)
@@ -565,6 +573,9 @@ fn check_installed_relation_sample_profile_original(
     definition,
     captured,
     selection,
+    unattended_start: @publication.interactive_profile_allows_unattended_terminal(
+      records.effective,
+    ),
     driver_outputs,
     control_admission_cid: @publication.run_evidence_value_identity(
       records.admission,

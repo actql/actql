@@ -19,7 +19,7 @@ export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs'
 export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
 export {snapshotInitialControlHostInput as readInitialControlHostInput}
   from './initial-control-host-input.mjs';
-import {installClientRunPlan} from './client-run-plan.mjs';
+import {installClientRunPlan, installClientRunSample} from './client-run-plan.mjs';
 import {installClientRunExplanation} from './client-run-explanation.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
@@ -2648,7 +2648,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       hostConnection({principalId: actual, connection, ref})});
   const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
     runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan,
-    sampleCaptureImmediate} = createLocalReadAuthorizations({
+    sampleCaptureImmediate, sampleReadImmediate} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -6494,6 +6494,17 @@ async function openInstalledHost(originalInstallation, preparation) {
       probeOriginal: ref => journal.probeRunExplanationContextOriginal(ref),
       lookupOriginal: (ref, extent) => journal.readRunExplanationContextOriginal(ref, extent),
       readWorkspace: preparation.resultReadWorkspace(moon)}) : undefined;
+  const runSample = preparation === undefined ? undefined : installClientRunSample({
+    authorize: request => {
+      const access = {principalId: request.principalId, indexKey: request.ref};
+      return hostConnection(request) && authorizeLocalRunImmediate(access, undefined) === true &&
+        sampleReadImmediate(access) === true;
+    }, control,
+    probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
+    lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
+    readRetained: (ref, selected, custody) => journal.readRetainedRelationSample(ref, selected, custody, control),
+    readWorkspace: preparation.resultReadWorkspace(moon),
+  });
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
@@ -6518,7 +6529,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
     // Explanation's Account gate runs only after its own fixed read admission,
     // before even the scalar Journal probe. Other read entry rules stay intact.
-    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, attach,
+    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, runSample, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},

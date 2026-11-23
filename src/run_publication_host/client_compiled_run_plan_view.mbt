@@ -99,7 +99,7 @@ fn capture_client_compiled_static_plan_original(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed : Bool,
-) -> Result[(String, @canonical.CanonicalValue), ClientCompiledRunPlanIssue] {
+) -> Result[(String, @publication.RunEvidenceValue), ClientCompiledRunPlanIssue] {
   if !client_compiled_run_matches(compiled, original) {
     return Err(ForeignCompilation)
   }
@@ -118,7 +118,7 @@ fn capture_client_compiled_static_plan_original(
     }
     Effects(_) => return Err(UnsupportedCompilation)
   }
-  let retained : Ref[@canonical.CanonicalValue?] = Ref(None)
+  let retained : Ref[@publication.RunEvidenceValue?] = Ref(None)
   let wire = match
     issue_client_static_plan_view(
       original,
@@ -132,6 +132,6 @@ fn capture_client_compiled_static_plan_original(
     Err(issue) => return Err(Projection(issue))
     Ok(value) => value
   }
-  guard retained.val is Some(view) else { return Err(Projection(Encoding)) }
-  Ok((wire, view))
+  guard retained.val is Some(map) else { return Err(Projection(Encoding)) }
+  Ok((wire, map))
 }

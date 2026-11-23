@@ -1114,6 +1114,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // The remaining synchronous aliases end before the following awaits.
         let sampleReady, sampleStartSelection, sampleStartRevision;
         let sampleRun, sampleExecution, sampleDefinition, sampleCaptured;
+        // Only the installed owner can provide this private receiver.
+        // The ordinary wire Debug intent does not opt in to unattended resume.
         const prepareSampleStart = held.prepareSampleStart;
         const sampleProfile = held.sampleProfile;
         if (prepareSampleStart !== undefined || sampleProfile !== undefined) {
@@ -1186,11 +1188,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               throw new Error('ClientRunSampleStartOriginalUnavailable');
             }
             entry.sampleAdoption.requireWriter();
+            control.acknowledgeClientRelationSampleStart(sampleRun, requested, sampleExecution,
+              sampleDefinition, sampleCaptured, sampleStartRevision);
+            entry.abort.signal.throwIfAborted();
             const result = sampleReady(sampleStartRevision, entry.sampleAdoption.adopt);
             if (result !== undefined) invalidSampleStartReceiver(result);
             entry.abort.signal.throwIfAborted();
-            control.acknowledgeClientRelationSampleStart(sampleRun, requested, sampleExecution,
-              sampleDefinition, sampleCaptured, sampleStartRevision);
             entry.sampleAdoption.arm();
           }
         }

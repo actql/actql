@@ -1,3 +1,4 @@
+import type {WireSampleSelector} from './interactive-control.generated.js';
 export * from './interactive-control.generated.js';
 import type {WireStaticExplanationView} from './interactive-control.generated.js';
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
@@ -133,6 +134,7 @@ export type WireClientBodyByOperation = Readonly<{
   'run-plan': WireClientBodyByOperation['inspect-run'];
   'run-explanation': WireClientBodyByOperation['inspect-run'];
   'run-explanation-context': WireClientBodyByOperation['inspect-run'];
+  'run-sample': WireClientBodyByOperation['inspect-run'] & Readonly<{selector: WireSampleSelector}>;
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;

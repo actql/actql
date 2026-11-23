@@ -2075,7 +2075,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a0adaff85c7bfb7685e62978a1fd6537f6bfd917c1b60799d81f20a489a1ddb",
+      "sha256": "6d31e50c16865244785eab5aab0c044aa669c49120577ac9aa9a895b80afcc34",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -2096,14 +2096,21 @@
         },
         {
           "name": "createSqliteTransaction/createSqliteTransaction",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSqliteTransaction/run/run",
           "parameters": [
             "body"
           ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/createSqliteTransaction#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSqliteTransaction/createSqliteTransaction#3",
+          "parameters": [],
           "async": false
         },
         {
@@ -2139,11 +2146,12 @@
             "createSqliteTransaction",
             "createSqliteTransaction/assertUsable/assertUsable",
             "createSqliteTransaction/createSqliteTransaction",
-            "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
             "throwSqliteInitializationFailure/close/close",
             "throwSqliteInitializationFailure/retry/retry",
-            "throwSqliteInitializationFailure/status/status"
+            "throwSqliteInitializationFailure/status/status",
+            "createSqliteTransaction/createSqliteTransaction#2",
+            "createSqliteTransaction/createSqliteTransaction#3"
           ],
           "exports": [
             "createSqliteTransaction",

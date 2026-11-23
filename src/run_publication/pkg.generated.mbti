@@ -619,6 +619,10 @@ pub fn interactive_logical_map_binding_construction(RunEvidenceValue, Publicatio
 
 pub fn interactive_logical_map_binding_scanner_controls() -> (@decode_shape.CollectionConstructionExtent, Int, Int)
 
+pub fn interactive_logical_map_original(RunEvidenceValue) -> @canonical_json.CanonicalValue?
+
+pub fn interactive_profile_allows_unattended_terminal(RunEvidenceValue) -> Bool
+
 pub fn interactive_relation_sample_output_limits(InteractiveRelationSampleSelection, String) -> InteractiveRelationSampleLimits?
 
 pub fn interactive_submission_reference_limits() -> (Int, Int, Int)
@@ -688,6 +692,8 @@ pub fn issue_file_lookup_transport(PublicationContract, @encode_core.EncodedDocu
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_initial_result_retention(String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
+pub fn issue_interactive_relation_sample_admission(PublicationContract, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue), RunEvidenceValueIssue]
 
 pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -1266,6 +1272,8 @@ pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Resu
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
+pub fn seal_typed_run_evidence_value(String, @canonical_json.CanonicalValue, Int, Int, Int, (Int) -> Bool) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
 

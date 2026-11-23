@@ -269,30 +269,69 @@ fn check_relation_sample_profile_on_collection(
         @resources.ledger_usage(ledger).planning_work - before_wire,
         codec_work + 12,
       )
-      let valid_wire = check_installed_relation_sample_profile_journal_reference(
-        run, request, definition, observation, reference_wire, records, 65536, max_nodes,
-        64,
+      let selected_wire = @publication.run_evidence_value_json(profile)
+      let namespace_id = @publication.run_definition_namespace(definition).unwrap()
+      let issuance_quote = installed_sample_issuance_capacity(
+        @identity.array_count(steps),
+        reference_wire.length(),
+        selected_wire.length(),
+        6 * namespace_id.length(),
+      ).unwrap()
+      let used = @resources.ledger_usage(ledger)
+      let before_issuance = used.planning_work
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        issuance_quote +
+        1L,
+        0L,
+      ).unwrap()
+      assert_true(
+        issue_installed_relation_sample_profile_journal_reference(
+          run, request, definition, observation, reference_wire, selected_wire, 1000000,
+          100000, 64,
+        )
+        is Err(SampleProfileCapacity(Resource(RetentionLimit))),
+      )
+      assert_eq(@resources.ledger_usage(ledger).planning_work, before_issuance)
+      @resources.settle_capacity(ledger, blocker).unwrap()
+      let valid_wire = issue_installed_relation_sample_profile_journal_reference(
+        run, request, definition, observation, reference_wire, selected_wire, 1000000,
+        100000, 64,
       )
       match valid_wire {
-        Ok(checked) =>
+        Ok(checked) => {
+          assert_eq(checked.resolved_profile_cid, resolved_cid)
           admitted = Some(
-            (
-              checked,
-              @publication.run_evidence_value_identity(admission),
-              resolved_cid,
-            ),
+            (checked, checked.control_admission_cid, resolved_cid),
           )
-        Err(ForeignSampleProfile) =>
-          fail("the exact canonical original reference was refused")
-        Err(SampleProfileCapacity(_)) =>
-          fail("the second codec reservation did not fit the fixture")
-        Err(SampleProfileWork(_)) =>
-          fail("the second codec work charge did not fit the fixture")
-        Err(_) => fail("the exact original profile did not bind")
+        }
+        Err(SampleProfileCapacity(issue)) =>
+          fail("original issuer capacity: " + @debug.to_string(issue))
+        Err(SampleProfileWork(issue)) =>
+          fail(
+            "original issuer work: " +
+            @debug.to_string(issue) +
+            " after " +
+            @resources.ledger_usage(ledger).planning_work.to_string() +
+            " of " +
+            @resources.ledger_limits(ledger).planning_work.to_string(),
+          )
+        Err(SampleProfileBinding(issue)) =>
+          fail("original issuer evidence: " + @debug.to_string(issue))
+        Err(_) => fail("the original issuer did not bind the explicit profile")
       }
-      assert_eq(
-        @resources.ledger_usage(ledger).planning_work - before_wire,
+      assert_true(
+        @resources.ledger_usage(ledger).planning_work - before_wire >
         2 * codec_work + 12 + expected,
+      )
+      println(
+        "sample-ledger issuance and binding " +
+        before_issuance.to_string() +
+        " -> " +
+        @resources.ledger_usage(ledger).planning_work.to_string(),
       )
       assert_false(observation.reading || run.source_free_opening)
     }
@@ -572,6 +611,7 @@ fn check_collection_committed_relation_sample(
     )
     let readbacks : Ref[Result[Unit, Error]?] = Ref(None)
     let escaped_current : Ref[(() -> Bool)?] = Ref(None)
+    let before_adoption = @resources.ledger_usage(ledger).planning_work
     let outcome = with_installed_relation_sample_journal(
       owner,
       profile,
@@ -694,6 +734,12 @@ fn check_collection_committed_relation_sample(
     assert_eq(after.reserved_retention_bytes, reserved.reserved_retention_bytes)
     assert_eq(after.reserved_execution_bytes, reserved.reserved_execution_bytes)
     assert_eq(visits.val, 1)
+    println(
+      "sample-ledger accepted adoption " +
+      before_adoption.to_string() +
+      " -> " +
+      after.planning_work.to_string(),
+    )
   } else {
     let work = @resources.ledger_usage(ledger).planning_work
     assert_true(
@@ -704,6 +750,12 @@ fn check_collection_committed_relation_sample(
     )
     let after = @resources.ledger_usage(ledger)
     assert_true(after.planning_work > work + 1)
+    println(
+      "sample-ledger refused adoption " +
+      work.to_string() +
+      " -> " +
+      after.planning_work.to_string(),
+    )
     assert_eq(after.live_reservations, reserved.live_reservations)
     assert_eq(after.reserved_retention_bytes, reserved.reserved_retention_bytes)
     assert_eq(after.reserved_execution_bytes, reserved.reserved_execution_bytes)
@@ -1113,13 +1165,18 @@ fn collection_request_publication_case(
       is Err(ForeignSampleStart),
     )
     @strategy.stop_captured_dag(foreign_run)
-    // The independent header/reference/word inventory costs 7456 bytes in
-    // both dimensions on this SAME original preparation reservation.
+    // The original H/R/W tariff plus the installed Account/tuple frame's
+    // independent 24 headers, 56 references and 22 words on both dimensions.
+    let initial_start_bytes = 7456L + 24L * 16L + 56L * 8L + 22L * 8L
     let journal_bytes = 1024
     let journal_charge = installed_relation_sample_journal_bytes(journal_bytes).unwrap()
     assert_true(journal_charge > journal_bytes.to_int64())
     let original_holder = managed_run_publication_body(run, prepared).unwrap()
-    for (stored, start_bytes) in [(0, 7456L), (journal_bytes, journal_charge)] {
+    for
+      (stored, start_bytes) in [
+        (0, initial_start_bytes),
+        (journal_bytes, journal_charge),
+      ] {
       let (retained, execution) = @resources.preparation_body_borrow_reserved_extents(
         original_holder,
       ).unwrap()
@@ -1206,11 +1263,6 @@ fn collection_request_publication_case(
       )
       is Err(SampleStartControl(@strategy.NotPrepared)),
     )
-    let hooks = @strategy.prepare_captured_task_boundary_hooks(
-      captured,
-      @strategy.captured_dag_graph(captured),
-      @strategy.captured_dag_strategy_revision(captured),
-    ).unwrap()
     let account = @authorization.admit_account_configuration({
       account_id: "sample-test",
       entries: [
@@ -1228,38 +1280,15 @@ fn collection_request_publication_case(
       ],
       bootstrap: None,
     }).unwrap()
-    let pause : @authorization.AccessTuple = {
-      principal: "sample-fixture",
-      connection: "node",
-      resource: "run",
-      operation: "pause",
-    }
-    let subject = @publication.publication_contract_identity(definition)
-    let context = @publication.run_publication_execution_context(
-      @publication_host.client_compiled_run_admission(compiled),
+    assert_true(
+      advance_installed_relation_sample_start_control(
+        profile, run, captured, account, "sample-fixture", "node", true,
+      )
+      is Err(SampleStartRequiresControl),
     )
-    let bound = fn(tuple) {
-      @authorization.bind_dispatch_authorization(
-        account,
-        tuple,
-        Activation,
-        subject,
-        context,
-      ).unwrap()
-    }
-    match
-      @strategy.prepare_captured_task_control(
-        captured,
-        hooks,
-        bound(pause),
-        account,
-        pause,
-        subject,
-        context,
-      ) {
-      Ok(_) => ()
-      Err(issue) => fail("Original Debug setup: " + @debug.to_string(issue))
-    }
+    advance_installed_relation_sample_start_control(
+      profile, run, captured, account, "sample-fixture", "node", false,
+    ).unwrap()
     acknowledge_installed_relation_sample_start(
       run, prepared, request, compiled, definition, captured, 2,
     ).unwrap()
@@ -1269,17 +1298,8 @@ fn collection_request_publication_case(
       )
       is Err(SampleStartControl(@strategy.AlreadyStarted)),
     )
-    let resume_access = { ..pause, operation: "resume", }
-    @strategy.command_captured_task_control(
-      captured,
-      hooks,
-      0,
-      ResumeTerminal,
-      bound(resume_access),
-      account,
-      resume_access,
-      subject,
-      context,
+    advance_installed_relation_sample_start_control(
+      profile, run, captured, account, "sample-fixture", "node", true,
     ).unwrap()
     Some(profile)
   } else {

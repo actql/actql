@@ -1997,6 +1997,7 @@ function publicationControl(moon) {
   const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
   const checkRelationSampleProfile = moon.clientProgramCheckRelationSampleProfile;
+  const issueRelationSampleProfile = moon.clientProgramIssueRelationSampleProfile;
   const matchRelationSampleAdoption = moon.clientProgramRelationSampleAdoptionMatchesProfile;
   const visitRelationSampleJournal = moon.clientProgramWithRelationSampleJournal;
   const reserveRelationSampleStart = moon.clientProgramReserveRelationSampleStart;
@@ -2749,10 +2750,11 @@ function publicationControl(moon) {
     },
     checkClientRelationSampleProfile(run, request, definition, observation, referenceWire, records, limits) {
       issuanceLimits(limits, 'Original Relation Sample profile');
-      if (typeof checkRelationSampleProfile !== 'function') {
+      const check = typeof records === 'string' ? issueRelationSampleProfile : checkRelationSampleProfile;
+      if (typeof check !== 'function') {
         throw new TypeError('ClientRunSampleProfileUnavailable');
       }
-      const original = compiledRunResult(checkRelationSampleProfile.call(moon, run, request, token(definition),
+      const original = compiledRunResult(check.call(moon, run, request, token(definition),
         observation, referenceWire, records, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostRelationSampleProfileRejected');
       const prepared = runtimeField(original, 3), compiled = runtimeField(original, 4);

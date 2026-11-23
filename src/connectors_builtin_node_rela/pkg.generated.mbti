@@ -1303,6 +1303,8 @@ pub fn client_program_issue_publication_plan_facts(@run_publication_host.Prepare
 
 pub fn client_program_issue_publication_witnesses(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationWitnesses, @run_publication_host.ClientPublicationWitnessIssue]
 
+pub fn client_program_issue_relation_sample_profile(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @client_local_host.ClientLogicalObservation, String, String, Int, Int, Int) -> Result[(@client_local_host.ClientCheckedRelationSampleProfile, String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun), @client_local_host.InstalledRelationSampleProfileIssue]
+
 pub fn client_program_issue_request_effect_prepared_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Result[String, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_issue_request_effect_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[String, ClientRequestProgramModuleBridgeIssue]

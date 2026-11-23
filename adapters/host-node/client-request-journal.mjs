@@ -2312,8 +2312,8 @@ export function openClientRequestJournal(directory, {
   // Created only for a checked selected Sample. A ticket never escapes the
   // scope of the prepared start, even if Common retains its separate profile.
   let relationSampleStarts;
-  const transact = (operation, unknownCode, known, action) => {
-    try { return transaction.run(action); }
+  const transact = (operation, unknownCode, known, action, {readOnly = false} = {}) => {
+    try { return readOnly ? transaction.read(action) : transaction.run(action); }
     catch (error) {
       const transactionFailure = [
         'ClientRequestJournalCommitOutcomeUnknown',
@@ -4686,6 +4686,12 @@ export function openClientRequestJournal(directory, {
         fail('ClientRelationSampleInvalidOriginal');
       }
       return sampleStorage().lookup(ref, sampleRefCid, publicationControl, custody);
+    },
+    readRetainedRelationSample(ref, selected, custody, publicationControl) {
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
+        fail('ClientRelationSampleInvalidOriginal');
+      }
+      return sampleStorage().readRetained(ref, selected, publicationControl, custody);
     },
     // Host retention of the same original Sample, independent of public
     // disclosure and the receipt used to reconcile an uncertain adoption.

@@ -116,7 +116,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   sampleStartCoreFailure = false, sampleStartCapacityFailure = false,
   sampleStartMissingReady = false, sampleProfileFailure = false,
   missingSampleProfile = false, sampleReadCapacityFailure = false, normalCompute = false,
-  sampleWriterMissing = false} = {}) {
+  sampleWriterMissing = false, ordinaryDebug = false} = {}) {
   const prepared = {}, request = {}, run = {}, holder = {}, setup = {}, capacity = {}, ledger = {};
   const ref = {runDefinitionCid: 'original-dispatch-custody'};
   const runDefinition = {wire: 'definition'}, failures = [];
@@ -519,7 +519,8 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       owner.cancel(ref);
     },
     start() { return owner.start({preparedProgram: prepared, principalId: 'owner',
-      connection: {}, requestId: 'fixture-request'}, request,
+      connection: {}, requestId: 'fixture-request',
+      ...(ordinaryDebug ? {executionProfile: 'debug'} : {})}, request,
     {ref, runDefinition, dispatchReserved: false, cancellationRequested: false}, held); }};
 }
 
@@ -532,7 +533,7 @@ test('Sample start revision reaches the pending managed setup before activity an
     assert.equal(await f.start(), physicalStart ? 'started' : 'not_started');
     if (physicalStart) {
       await f.physicalEntered;
-      assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core', 'reservation-observed']);
+      assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'core', 'received', 'reservation-observed']);
       f.cancel();
       f.resume();
       await f.owner.operation(f.ref);
@@ -554,7 +555,7 @@ test('selected dispatch uses only its acknowledged Journal writer during Compute
   await f.owner.drain();
   assert.equal(f.calls.computed, 1);
   assert.equal(f.calls.returned, 1);
-  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core',
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'core', 'received',
     'reservation-observed', 'visit-prefix', 'journal-adopted']);
   assert.throws(f.adoptSample, /ClientRunSampleStartOriginalUnavailable/u);
 });
@@ -576,7 +577,7 @@ test('refused Sample handoff after a durable start closes the same setup before 
   assert.equal(await f.start(), 'not_started');
   assert.equal((await f.failure).code, f.marker.message);
   await f.owner.drain();
-  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core']);
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'core']);
   assert.equal(f.calls.physicalClaims, 1);
   assert.equal(f.calls.opened, 1);
   assert.equal(f.calls.returned, 1);
@@ -663,6 +664,21 @@ test('a selected Sample without admitted profile evidence refuses without openin
   assert.deepEqual(f.sampleEvents, []);
   assert.equal(f.calls.computed, 0);
   assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+});
+
+test('ordinary Debug does not opt into the unattended Sample starter', async () => {
+  const f = originalDispatchFixture({physicalStart: true, normalCompute: true, ordinaryDebug: true});
+  assert.equal(await f.start(), 'started');
+  await f.physicalEntered;
+  assert.deepEqual(f.sampleEvents, []);
+  const operation = f.owner.operation(f.ref);
+  f.resume();
+  await operation;
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, []);
+  assert.equal(f.calls.physicalClaims, 1);
   assert.equal(f.calls.returned, 1);
   assert.equal(f.calls.leaseRetired, 1);
 });

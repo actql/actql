@@ -29,6 +29,7 @@ import {
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/physical_resources" @resources,
   "actql/actql/remote_credential" @credential,
   "actql/actql/execution_query" @query,
@@ -61,7 +62,6 @@ import {
 import {
   "actql/actql/client_infer_host" @infer_host,
   "actql/actql/capacity_host_witness" @binding_host,
-  "actql/actql/execution_authorization" @authorization,
   "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
   "moonbitlang/core/encoding/utf8",

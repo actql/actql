@@ -426,6 +426,8 @@ pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChat
 
 pub fn client_program_advance_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], Int) -> Result[@source_value.JsonSourcePreflightPoll, @client_local_host.ClientProgramJsonPreparationIssue]
 
+pub fn client_program_advance_relation_sample_start_control(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String, Bool) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue]
+
 pub fn client_program_advance_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Bool, Int, Int), @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_advance_snapshot(@client_local_host.ClientProgramSnapshot, Int) -> Result[(Bool, Int), @client_local_host.ClientClosedValuesPreparationIssue]
@@ -2445,6 +2447,8 @@ pub fn client_program_issue_publication_invocation(@client_local_host.ClientInst
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
 
 pub fn client_program_issue_publication_witnesses(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationWitnesses, @run_publication_host.ClientPublicationWitnessIssue]
+
+pub fn client_program_issue_relation_sample_profile(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @client_local_host.ClientLogicalObservation, String, String, Int, Int, Int) -> Result[(@client_local_host.ClientCheckedRelationSampleProfile, String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun), @client_local_host.InstalledRelationSampleProfileIssue]
 
 pub fn client_program_issue_request_effect_prepared_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Result[String, ClientRequestProgramModuleBridgeIssue]
 

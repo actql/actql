@@ -103,3 +103,30 @@ pub fn execution_authorization_admit_prepared(
       Some({ state: Missing, issue: @debug.to_string(issue), })
   }
 }
+
+///|
+#export_name("clientProgramAdvanceRelationSampleStartControl")
+pub fn client_program_advance_relation_sample_start_control(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  account : AuthorizationAccount,
+  principal : String,
+  connection : String,
+  start_acknowledged : Bool,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  guard account.state is @authorization.Admitted(original) else {
+    return Err(
+      @client_local_host.SampleStartControl(@strategy.AuthorizationMismatch),
+    )
+  }
+  @client_local_host.advance_installed_relation_sample_start_control(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    original,
+    principal,
+    connection,
+    start_acknowledged,
+  )
+}

@@ -6,6 +6,7 @@ pub struct ClientStructuralExplanationOriginal {
   compiled : ClientCompiledRun
   prepared : PreparedClientProgram
   map : @canonical.CanonicalValue
+  sealed_map : @publication.RunEvidenceValue
 }
 
 ///|
@@ -56,17 +57,17 @@ pub fn capture_client_structural_explanation_plan_original(
   (ClientStructuralExplanationOriginal, String),
   ClientExplanationFactsIssue,
 ] {
-  let (wire, view) = match
+  let (wire, sealed_map) = match
     capture_client_compiled_static_plan_original(
       compiled, prepared, max_bytes, max_nodes, max_depth, false,
     ) {
     Ok(value) => value
     Err(issue) => return Err(OriginalPlan(issue))
   }
-  guard @canonical.object_field(view, "logical_map") is Some(map) else {
+  guard @publication.interactive_logical_map_original(sealed_map) is Some(map) else {
     return Err(Encoding(@encode.InvalidStructure))
   }
-  Ok(({ compiled, prepared, map, }, wire))
+  Ok(({ compiled, prepared, map, sealed_map, }, wire))
 }
 
 ///|

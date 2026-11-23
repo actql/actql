@@ -40,7 +40,7 @@ fn installed_sample_adoption_construction(
     return None
   }
   @execution.preparation_representation_cost({
-    // Co-held bodies, four sealers (including their retained canonical
+    // Co-held typed bodies, four sealers (including their retained canonical
     // trees), the verbatim prefix hash, and the synchronous admission
     // frame, return latch, decimal strings and constructor results.
     record_headers: 4L * (evidence.record_headers + body.record_headers) +
@@ -61,57 +61,88 @@ fn installed_sample_adoption_construction(
 }
 
 ///|
-fn write_installed_sample_field(
-  writer : @encode.Writer,
-  name : String,
-  value : String,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.key(writer, name)
-  @encode.string_value(writer, value)
+fn installed_sample_run_ref(
+  profile : ClientCheckedRelationSampleProfile,
+  namespace_id : String,
+) -> Json {
+  {
+    "namespaceId": namespace_id,
+    "authorityScopeCid": @publication_host.client_request_authority_scope_cid(
+      profile.request,
+    ),
+    "runDefinitionCid": @publication.publication_contract_identity(
+      profile.definition,
+    ),
+  }
 }
 
 ///|
-fn write_installed_sample_run_ref(
-  writer : @encode.Writer,
-  profile : ClientCheckedRelationSampleProfile,
-  namespace_id : String,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.key(writer, "run_ref")
-  @encode.begin_object(writer)
-  write_installed_sample_field(writer, "namespaceId", namespace_id)
-  write_installed_sample_field(
-    writer,
-    "authorityScopeCid",
-    @publication_host.client_request_authority_scope_cid(profile.request),
-  )
-  write_installed_sample_field(
-    writer,
-    "runDefinitionCid",
-    @publication.publication_contract_identity(profile.definition),
-  )
-  @encode.end_object(writer)
-}
+// Complete canonical record geometry, including the 71-byte self CID.
+// Decimal strings cover their signed machine-width upper bounds, and
+// profile numbers are safe integers (at most 16 decimal digits).
+// Generation and reference separately add the escaped original namespace.
+let installed_sample_generation_bytes = 992
+
+///|
+let installed_sample_capture_bytes = 600
+
+///|
+let installed_sample_emission_bytes = 791
+
+///|
+let installed_sample_reference_bytes = 629
+
+///|
+let installed_sample_generation_nodes = 18
+
+///|
+let installed_sample_capture_nodes = 12
+
+///|
+let installed_sample_emission_nodes = 16
+
+///|
+let installed_sample_reference_nodes = 10
 
 ///|
 fn seal_installed_sample_evidence(
   name : String,
-  version : String,
+  body : Json,
   bytes : Int,
-  emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
+  nodes : Int,
+  ledger : @resources.Ledger,
 ) -> Result[@publication.RunEvidenceValue, InstalledRelationSampleAdoptionIssue] {
-  let wire = try {
-    let writer = @encode.writer(bytes, 31, 4)
-    @encode.begin_object(writer)
-    write_installed_sample_field(writer, "version", version)
-    emit(writer)
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    issue => return Err(SampleAdoptionEncoding(issue))
+  // The DATA keys are static ASCII. The byte bound pays two UTF-16 visits
+  // for canonical admission, including key hashing. The fixed node charge
+  // covers construction, ordered field insertion and both checked shapes.
+  match @resources.charge_planning(ledger, 2 * bytes + 64 * nodes) {
+    Err(issue) => return Err(SampleAdoptionWork(issue))
+    Ok(_) => ()
   }
-  @publication.seal_run_evidence_value(name, wire, bytes, 32, 4).map_err(issue => {
-    SampleAdoptionEvidence(issue)
-  })
+  let original = @identity.from_json(body, nodes - 1, 4, bytes, data_keys=true) catch {
+    _ => return Err(SampleAdoptionEvidence(@publication.RunEvidenceInvalidWire))
+  }
+  let failed : Ref[@resources.LedgerIssue?] = Ref(None)
+  let evidence = @publication.seal_typed_run_evidence_value(
+    name,
+    original,
+    bytes,
+    nodes,
+    4,
+    units => {
+      match @resources.charge_planning(ledger, units) {
+        Ok(_) => true
+        Err(issue) => {
+          failed.val = Some(issue)
+          false
+        }
+      }
+    },
+  )
+  match failed.val {
+    Some(issue) => Err(SampleAdoptionWork(issue))
+    None => evidence.map_err(issue => SampleAdoptionEvidence(issue))
+  }
 }
 
 ///|
@@ -166,7 +197,8 @@ pub fn with_installed_relation_sample_adoption(
   }
   // One possibly escaped namespace_id and bounded CID/decimal fields per seal.
   // Count the full namespace_id independently of whether it needs escaping.
-  let record_bound = 1024L + 6L * namespace_id.length().to_int64()
+  let record_bound = installed_sample_generation_bytes.to_int64() +
+    6L * namespace_id.length().to_int64()
   let (prefix_bytes, prefix_nodes, prefix_depth) = @encode.document_usage(
     document,
   )
@@ -246,15 +278,9 @@ fn visit_installed_relation_sample_adoption(
     return Err(SampleAdoptionOriginalUnavailable)
   }
   let (_, prefix_nodes, prefix_depth) = @encode.document_usage(document)
-  // For each closed record count text output, lexical/UTF-8 input and
-  // canonical processing (including key comparisons, hash and final wire),
-  // plus both generated schema walks at 8 visits/node. Hash the original
-  // canonical Relation once. Cap the four actual record writers separately.
-  let escaped_namespace = 6 * namespace_id.length()
-  let reference_bytes = 640 + escaped_namespace
-  let work = 8L * (bytes + 640 + 800 + reference_bytes).to_int64() +
-    4L * 2L * 8L * 32L +
-    prefix_bytes.to_int64()
+  // Fund all fixed receipts and the borrowed prefix hash frame before
+  // constructing their DATA. Each sealer also debits its own canonical work.
+  let work = 2L * prefix_bytes.to_int64() + 256L
   if work > 2147483647L {
     return Err(SampleAdoptionLimits)
   }
@@ -267,48 +293,30 @@ fn visit_installed_relation_sample_adoption(
     physical_equal(current, document) else {
     return Err(SampleAdoptionOriginalUnavailable)
   }
+  let run_ref = installed_sample_run_ref(profile, namespace_id)
+  let plan = @publication_host.client_compiled_run_plan(profile.compiled)
   let source_generation = match
     seal_installed_sample_evidence(
       "sample_source_generation",
-      "actql-sample-source-generation/0.1",
-      bytes,
-      writer => {
-        write_installed_sample_run_ref(writer, profile, namespace_id)
-        let plan = @publication_host.client_compiled_run_plan(profile.compiled)
-        write_installed_sample_field(
-          writer,
-          "compiled_plan_cid",
-          @publication.publication_contract_identity(plan),
-        )
-        write_installed_sample_field(
-          writer,
-          "logical_map_cid",
-          profile.logical_map_cid,
-        )
-        write_installed_sample_field(writer, "step_id", step_id)
-        write_installed_sample_field(writer, "output_port_id", port_id)
-        write_installed_sample_field(writer, "carrier", "relation")
-        write_installed_sample_field(writer, "carrier_contract_cid", contract)
-        @encode.key(writer, "producer_occurrence")
-        @encode.begin_object(writer)
-        write_installed_sample_field(writer, "kind", "first_physical_start")
-        write_installed_sample_field(
-          writer,
-          "start_revision",
-          revision.to_string(),
-        )
-        write_installed_sample_field(
-          writer,
-          "attempt_sequence",
-          attempt.to_string(),
-        )
-        @encode.end_object(writer)
-        write_installed_sample_field(
-          writer,
-          "committed_generation",
-          generation.to_string(),
-        )
+      {
+        "version": "actql-sample-source-generation/0.1",
+        "run_ref": run_ref,
+        "compiled_plan_cid": @publication.publication_contract_identity(plan),
+        "logical_map_cid": profile.logical_map_cid,
+        "step_id": step_id,
+        "output_port_id": port_id,
+        "carrier": "relation",
+        "carrier_contract_cid": contract,
+        "producer_occurrence": {
+          "kind": "first_physical_start",
+          "start_revision": revision.to_string(),
+          "attempt_sequence": attempt.to_string(),
+        },
+        "committed_generation": generation.to_string(),
       },
+      bytes,
+      installed_sample_generation_nodes,
+      ledger,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -320,44 +328,26 @@ fn visit_installed_relation_sample_adoption(
   let capture = match
     seal_installed_sample_evidence(
       "sample_original_capture",
-      "actql-sample-original-capture/0.1",
-      640,
-      writer => {
-        write_installed_sample_field(
-          writer, "source_generation_cid", generation_cid,
-        )
-        write_installed_sample_field(
-          writer,
-          "control_admission_cid",
-          retention.control_admission_cid,
-        )
-        write_installed_sample_field(
-          writer,
-          "resolved_profile_cid",
-          retention.resolved_profile_cid,
-        )
-        write_installed_sample_field(writer, "strategy", "execution_prefix")
-        @encode.key(writer, "max_items")
-        @encode.number_value(writer, limits.max_items.to_double())
-        write_installed_sample_field(
-          writer,
-          "max_bytes",
-          limits.max_bytes.to_string(),
-        )
-        @encode.key(writer, "max_artifacts")
-        @encode.number_value(writer, limits.max_artifacts.to_double())
-        @encode.key(writer, "ttl_seconds")
-        @encode.number_value(writer, limits.ttl_seconds.to_double())
-        @encode.key(writer, "required")
-        @encode.bool_value(writer, limits.required)
+      {
+        "version": "actql-sample-original-capture/0.1",
+        "source_generation_cid": generation_cid,
+        "control_admission_cid": retention.control_admission_cid,
+        "resolved_profile_cid": retention.resolved_profile_cid,
+        "strategy": "execution_prefix",
+        "max_items": limits.max_items.to_double(),
+        "max_bytes": limits.max_bytes.to_string(),
+        "max_artifacts": limits.max_artifacts.to_double(),
+        "ttl_seconds": limits.ttl_seconds.to_double(),
+        "required": limits.required,
       },
+      installed_sample_capture_bytes,
+      installed_sample_capture_nodes,
+      ledger,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
   let capture_cid = @publication.run_evidence_value_identity(capture)
-  // The typed prefix emitter already emits canonical JSON, including every
-  // admitted cell value. Hash those bytes without converting it to a row tree.
   let relation_cid = try {
     let hash = @encode.hashing_writer(prefix_bytes, prefix_nodes, prefix_depth)
     @encode.emit_document(hash, document)
@@ -368,48 +358,34 @@ fn visit_installed_relation_sample_adoption(
   let emission = match
     seal_installed_sample_evidence(
       "sample_emission_provenance",
-      "actql-sample-emission-provenance/0.1",
-      800,
-      writer => {
-        write_installed_sample_field(
-          writer, "original_capture_cid", capture_cid,
-        )
-        write_installed_sample_field(
-          writer, "source_generation_cid", generation_cid,
-        )
-        write_installed_sample_field(
-          writer, "relation_prefix_cid", relation_cid,
-        )
-        @encode.key(writer, "ordering_evidence_cid")
-        @encode.null_value(writer)
-        write_installed_sample_field(writer, "sampled_items", items.to_string())
-        @encode.key(writer, "total")
-        @encode.begin_object(writer)
-        write_installed_sample_field(writer, "kind", "exact")
-        write_installed_sample_field(writer, "value", total.to_string())
-        write_installed_sample_field(writer, "unit", "rows")
-        write_installed_sample_field(writer, "scope_cid", port_id)
-        write_installed_sample_field(writer, "basis_cid", generation_cid)
-        @encode.end_object(writer)
-        write_installed_sample_field(
-          writer,
-          "completeness",
-          if items == total {
-            "complete"
-          } else {
-            "partial"
-          },
-        )
-        write_installed_sample_field(
-          writer,
-          "truncation",
-          if items == total {
-            "not_truncated"
-          } else {
-            "confirmed"
-          },
-        )
+      {
+        "version": "actql-sample-emission-provenance/0.1",
+        "original_capture_cid": capture_cid,
+        "source_generation_cid": generation_cid,
+        "relation_prefix_cid": relation_cid,
+        "ordering_evidence_cid": Json::null(),
+        "sampled_items": items.to_string(),
+        "total": {
+          "kind": "exact",
+          "value": total.to_string(),
+          "unit": "rows",
+          "scope_cid": port_id,
+          "basis_cid": generation_cid,
+        },
+        "completeness": if items == total {
+          "complete"
+        } else {
+          "partial"
+        },
+        "truncation": if items == total {
+          "not_truncated"
+        } else {
+          "confirmed"
+        },
       },
+      installed_sample_emission_bytes,
+      installed_sample_emission_nodes,
+      ledger,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -417,20 +393,18 @@ fn visit_installed_relation_sample_adoption(
   let reference = match
     seal_installed_sample_evidence(
       "sample_reference",
-      "actql-sample-reference/0.1",
-      reference_bytes,
-      writer => {
-        write_installed_sample_run_ref(writer, profile, namespace_id)
-        write_installed_sample_field(writer, "output_port_id", port_id)
-        write_installed_sample_field(
-          writer, "original_capture_cid", capture_cid,
-        )
-        write_installed_sample_field(
-          writer,
-          "emission_provenance_cid",
-          @publication.run_evidence_value_identity(emission),
-        )
+      {
+        "version": "actql-sample-reference/0.1",
+        "run_ref": run_ref,
+        "output_port_id": port_id,
+        "original_capture_cid": capture_cid,
+        "emission_provenance_cid": @publication.run_evidence_value_identity(
+          emission,
+        ),
       },
+      installed_sample_reference_bytes + 6 * namespace_id.length(),
+      installed_sample_reference_nodes,
+      ledger,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

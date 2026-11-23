@@ -1,6 +1,7 @@
 ///|
 pub(all) enum InstalledRelationSampleStartIssue {
   ForeignSampleStart
+  SampleStartRequiresControl
   SampleStartRun(ClientInstalledManagedRunIssue)
   SampleStartCapacity(@resources.PreparationCapacityIssue)
   SampleStartControl(@strategy.CapturedTaskControlIssue)
@@ -50,10 +51,13 @@ fn installed_relation_sample_start_matches(
 // H24/R64/W32. The prefix and SQL construction keep their own scoped quote.
 // The installed Driver route, authorization packet and revocable Owner and
 // profile getters remain live through Compute (H18/R42/W26).
+// One installed Account/tuple binding and its synchronous two-phase receiver
+// borrow the same setup before and after ACK, including bridge arguments
+// and before/after current observations (H24/R56/W22).
 let installed_relation_sample_start_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 144L,
-    reference_slots: 454L,
-    scalar_words: 190L,
+    record_headers: 168L,
+    reference_slots: 510L,
+    scalar_words: 212L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -213,5 +217,81 @@ pub fn acknowledge_installed_relation_sample_start(
       @publication_host.client_compiled_run_admission(compiled),
     ),
     revision,
+  ).map_err(issue => SampleStartControl(issue))
+}
+
+///|
+/// An explicitly unattended Sample profile prepares the existing live
+/// controller before the Journal claim. Its first resume uses the same
+/// controller only after the Journal's acknowledged revision was latched.
+pub fn advance_installed_relation_sample_start_control(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  start_acknowledged : Bool,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
+  if !physical_equal(profile.captured, captured) ||
+    !installed_relation_sample_profile_current(owner, profile) {
+    return Err(ForeignSampleStart)
+  }
+  if !profile.unattended_start ||
+    @strategy.captured_relation_sample_start_selected(captured) !=
+    start_acknowledged {
+    return Err(SampleStartRequiresControl)
+  }
+  let subject = @publication.publication_contract_identity(profile.definition)
+  let context = @publication.run_publication_execution_context(
+    @publication_host.client_compiled_run_admission(profile.compiled),
+  )
+  let tuple : @authorization.AccessTuple = {
+    principal,
+    connection,
+    resource: "run",
+    operation: if start_acknowledged {
+      "resume"
+    } else {
+      "pause"
+    },
+  }
+  guard @authorization.bind_dispatch_authorization(
+      account,
+      tuple,
+      Activation,
+      subject,
+      context,
+    )
+    is Ok(authorized) else {
+    return Err(SampleStartControl(@strategy.AuthorizationMismatch))
+  }
+  if start_acknowledged {
+    guard @strategy.captured_task_boundary_hooks(captured) is Some(hooks) else {
+      return Err(SampleStartControl(@strategy.NotPrepared))
+    }
+    return @strategy.command_captured_task_control(
+      captured,
+      hooks,
+      0,
+      ResumeTerminal,
+      authorized,
+      account,
+      tuple,
+      subject,
+      context,
+    ).map_err(issue => SampleStartControl(issue))
+  }
+  let hooks = match
+    @strategy.prepare_captured_task_boundary_hooks(
+      captured,
+      @strategy.captured_dag_graph(captured),
+      @strategy.captured_dag_strategy_revision(captured),
+    ) {
+    Err(_) => return Err(SampleStartControl(@strategy.NotPrepared))
+    Ok(value) => value
+  }
+  @strategy.prepare_captured_task_control(
+    captured, hooks, authorized, account, tuple, subject, context,
   ).map_err(issue => SampleStartControl(issue))
 }

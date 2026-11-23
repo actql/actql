@@ -1,3 +1,4 @@
+import {validWireSampleSelectorShape} from './interactive-control.generated.js';
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 export {validRunWaitContract} from './client-host.generated.js';
 export * from './interactive-control.generated.js';
@@ -399,7 +400,7 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   body = {...body, connection};
   if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations',
     'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
-    'run-explanation-context'].includes(operation)) {
+    'run-explanation-context', 'run-sample'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -408,6 +409,10 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   // The structural read's original ref cannot change during awaited Host
   // authentication/authorization. This is its already-captured private copy.
   if (operation === 'run-explanation' || operation === 'run-explanation-context') Object.freeze(body.ref);
+  if (operation === 'run-sample') {
+    Object.freeze(body.ref);
+    freezeCapturedRequest(body.selector);
+  }
   if (retainSnapshot === true) {
     if (!snapshotted) {
       try { body = snapshotClientRequest(body); }
@@ -468,8 +473,9 @@ export function validClientBody(operation, body) {
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
   if (operation === 'inspect-run' || operation === 'run-plan' ||
-      operation === 'run-explanation' || operation === 'run-explanation-context') {
+      operation === 'run-explanation' || operation === 'run-explanation-context' || operation === 'run-sample') {
     return validRunRef(body.ref) &&
+      (operation !== 'run-sample' || validWireSampleSelectorShape(body.selector)) &&
       Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
       Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
       Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;

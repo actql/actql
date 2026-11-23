@@ -3332,6 +3332,39 @@ pub fn client_program_relation_sample_adoption_matches_profile(
 }
 
 ///|
+#export_name("clientProgramIssueRelationSampleProfile")
+pub fn client_program_issue_relation_sample_profile(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  observation : @client_local_host.ClientLogicalObservation,
+  original_reference_wire : String,
+  installed_profile_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @client_local_host.ClientCheckedRelationSampleProfile,
+    String,
+    String,
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientCompiledRun,
+  ),
+  @client_local_host.InstalledRelationSampleProfileIssue,
+] {
+  @client_local_host.issue_installed_relation_sample_profile_journal_reference(
+    owner, request, definition, observation, original_reference_wire, installed_profile_wire,
+    max_bytes, max_nodes, max_depth,
+  ).map(profile => {
+    let (admission, resolved, prepared, compiled) = @client_local_host.installed_relation_sample_profile_start_original(
+      profile,
+    )
+    (profile, admission, resolved, prepared, compiled)
+  })
+}
+
+///|
 #export_name("clientProgramWithRelationSampleJournal")
 pub fn client_program_with_relation_sample_journal(
   owner : @client_local_host.ClientInstalledManagedRun,

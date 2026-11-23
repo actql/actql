@@ -14,6 +14,9 @@ const sql = Object.freeze([
   run_definition_cid TEXT NOT NULL REFERENCES client_relation_sample_starts(run_definition_cid) ON DELETE CASCADE,
   sample_ref_cid TEXT NOT NULL,
   source_generation_cid TEXT NOT NULL,
+  output_port_id TEXT NOT NULL,
+  original_capture_cid TEXT NOT NULL,
+  emission_provenance_cid TEXT NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > 0),
   journal_receipt_ordinal INTEGER NOT NULL CHECK (journal_receipt_ordinal > 0),
   run_receipt_ordinal INTEGER NOT NULL CHECK (run_receipt_ordinal > 0),
@@ -29,6 +32,7 @@ const sql = Object.freeze([
     (relation_wire IS NULL) = (reference_wire IS NULL)),
   PRIMARY KEY (run_definition_cid, sample_ref_cid),
   UNIQUE (run_definition_cid, source_generation_cid),
+  UNIQUE (run_definition_cid, output_port_id, sample_ref_cid),
   UNIQUE (journal_receipt_ordinal),
   UNIQUE (run_definition_cid, run_receipt_ordinal)
 ) STRICT`,

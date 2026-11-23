@@ -21734,6 +21734,14 @@ const operationKeys = {
     "maxWireBytes",
     "maxNodes",
     "maxDepth"
+  ],
+  "run-sample": [
+    "connection",
+    "ref",
+    "selector",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
   ]
 };
 

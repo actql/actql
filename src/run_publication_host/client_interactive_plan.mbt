@@ -179,7 +179,7 @@ fn issue_client_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed : Bool,
-  retained_original? : Ref[@canonical.CanonicalValue?]? = None,
+  retained_original? : Ref[@publication.RunEvidenceValue?]? = None,
   bounded_capture? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
@@ -510,7 +510,7 @@ fn issue_client_static_plan_view(
   // Optional internal first-capture output only. The old static-only entry
   // passes None and allocates no additional holder, tuple or root field.
   if retained_original is Some(retained) {
-    retained.val = Some(value)
+    retained.val = Some(map)
   }
   Ok(wire)
 }

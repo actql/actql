@@ -23308,7 +23308,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9509731abff99e15916713c27f98d501fafe9e4eb0afa581fea1722c89a079af",
+      "sha256": "c266e805c4160a3f7317a4228f1f449fd6114081ec7f50b05baa786bd29aa729",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23355,6 +23355,7 @@
             "runPlan",
             "runExplanation",
             "runExplanationContext",
+            "runSample",
             "maxRequestBytes",
             "observe",
             "loopbackHttp",
@@ -23425,13 +23426,20 @@
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#3",
           "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
+          "parameters": [
             "resolve",
             "reject"
           ],
           "async": false
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
           "parameters": [
             "error"
           ],
@@ -25150,6 +25158,102 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without dispatch', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }
@@ -28673,11 +28777,19 @@
         "relationSampleAdoptionTable"
       ],
       "imports": [
+        "../../packages/client-wire/index.mjs",
         "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
         {
           "name": "clientRelationSampleAdoptionStorage",
           "parameters": [
@@ -28752,6 +28864,82 @@
           "async": false
         },
         {
+          "name": "clientRelationSampleAdoptionStorage/probe/probe/probe",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained",
+          "parameters": [
+            "ref",
+            "selected",
+            "control",
+            "current",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/amounts/amounts",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#2",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#3",
+          "parameters": [
+            "column"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained",
+          "parameters": [
+            "size",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained#2",
+          "parameters": [
+            "total",
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/receipt/receipt",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "inspectRelationSampleAdoptionStorage",
           "parameters": [
             "database"
@@ -28776,7 +28964,7 @@
           "async": false
         }
       ],
-      "sha256": "af1d9411b78d4a574375901104150bf0c6dd663a90aaf542ebe2ba875a620e7e",
+      "sha256": "504648ce4ddd0865c8689fd03c79995cd46019ac0518d3e3b94d1d64891802da",
       "role": "physical-io",
       "owner": "Existing Client Request Journal and original Relation Sample custody",
       "responsibilityFacet": "primary",
@@ -29011,13 +29199,91 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cid/cid",
+            "clientRelationSampleAdoptionStorage/probe/probe/probe",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/amounts/amounts",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#2",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/observation/observation/observation#3",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained",
+            "clientRelationSampleAdoptionStorage/readRetained/readRetained/readRetained#2",
+            "clientRelationSampleAdoptionStorage/receipt/receipt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The persisted receipt key selects only one Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "readRetainedRelationSample(ref, selected, custody, publicationControl)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "reference.self_cid !== sampleRefCid || source.self_cid !== row.source_generation_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "transact('relation_sample_read'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const expiredAtRead = extent.expires_at <= checkedAt;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!expired && extent.relation_wire === null) fail('ClientRelationSampleInvalidOriginal')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const observation = transact("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "reserveOriginal(reserve, amounts.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Only the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "cold Relation Sample read checks current access, bound evidence and the original receipt"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7ecdf8a6f4071546841f5881ca8e23742ed86f04127c0341f356adea1e3f071",
+      "sha256": "303cf43a4a60a3269fa679dbb8928969c1f19cf9cd6b717fd68fa1d57f5cd837",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -30197,6 +30463,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample",
+          "parameters": [
+            "ref",
+            "selected",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:readRunExplanationContextOriginal/init:readRunExplanationContextOriginal",
           "parameters": [
             "ref",
@@ -30590,7 +30866,8 @@
             "operation",
             "unknownCode",
             "known",
-            "action"
+            "action",
+            "readOnly"
           ],
           "async": false
         },
@@ -35473,6 +35750,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:readRetainedRelationSample/init:readRetainedRelationSample"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The persisted receipt key selects only one Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "readRetainedRelationSample(ref, selected, custody, publicationControl)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "reference.self_cid !== sampleRefCid || source.self_cid !== row.source_generation_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "transact('relation_sample_read'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const expiredAtRead = extent.expires_at <= checkedAt;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!expired && extent.relation_wire === null) fail('ClientRelationSampleInvalidOriginal')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const observation = transact("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "reserveOriginal(reserve, amounts.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Only the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "cold Relation Sample read checks current access, bound evidence and the original receipt"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -36509,11 +36854,12 @@
     {
       "module": "adapters/host-node/client-run-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a9ff072a89afa3d05be985df56e5e75bcb41857fe93d8ea69e9fa19f325126db",
+      "sha256": "2475f8bb5cc5ef1e204639d476867c9562ce33e3b0b4f4801048302c9fe54a9e",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
-        "installClientRunPlan"
+        "installClientRunPlan",
+        "installClientRunSample"
       ],
       "operations": [
         {
@@ -36531,6 +36877,78 @@
             "request"
           ],
           "async": true
+        },
+        {
+          "name": "installClientRunSample",
+          "parameters": [
+            "authorize",
+            "probeOriginal",
+            "lookupOriginal",
+            "readRetained",
+            "readWorkspace",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/installClientRunSample",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/installClientRunSample#2",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "installClientRunSample/readOwned/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installClientRunSample/readOwned/readOwned",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/ports/ports",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/producerPort/producerPort",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/producerStep/producerStep",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "samplePortSelection/steps/steps",
+          "parameters": [
+            "step"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -36821,6 +37239,113 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installClientRunSample",
+            "installClientRunSample/installClientRunSample",
+            "installClientRunSample/installClientRunSample#2",
+            "installClientRunSample/readOwned/current/current",
+            "installClientRunSample/readOwned/current/current/current",
+            "installClientRunSample/readOwned/readOwned",
+            "samplePortSelection/ports/ports",
+            "samplePortSelection/producerPort/producerPort",
+            "samplePortSelection/producerStep/producerStep",
+            "samplePortSelection/steps/steps"
+          ],
+          "exports": [
+            "installClientRunSample"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "export function installClientRunSample("
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "export function installClientRunSample("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }
@@ -48651,7 +49176,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "39d9e80f4a36925048f13abc579bf304bff7699719a70794279e5b7c25037ec8",
+      "sha256": "cc23dfe2a92072e25a2f92c31bad4b1ec33213e2edc71fdf67eea3e912378a42",
       "exports": [
         "commonjs:sql"
       ],
@@ -50091,7 +50616,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "104caebc258c9f1cf9490a8bb51289c3c9346bf4a41a9351b588fa0b2c7dcc9f",
+      "sha256": "9126b76c4bf65ffd969ff89c3ac36f705a3bbaa5a46ff2a5284ae8ebca649dbc",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -50136,6 +50661,7 @@
             "runPlan",
             "runExplanation",
             "runExplanationContext",
+            "runSample",
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
@@ -50160,6 +50686,13 @@
         },
         {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#2",
           "parameters": [
             "key"
           ],
@@ -51674,6 +52207,102 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const sampleRead = operation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }
@@ -121610,7 +122239,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a9d5902a906a96879f6b8e317b13be7713da696225546d94e36563c14ff3d588",
+      "sha256": "10edf5c46c2dcaf73ac2c3bd816e16d97e001e5cb3841c6f2198ce6a2726996d",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -121676,6 +122305,13 @@
         },
         {
           "name": "createLocalReadAuthorizations/init:sampleCaptureImmediate/init:sampleCaptureImmediate",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:sampleReadImmediate/init:sampleReadImmediate",
           "parameters": [
             "facts"
           ],
@@ -122160,6 +122796,102 @@
               {
                 "path": "adapters/host-node/local-run-authorization.test.mjs",
                 "anchor": "Sample read never grants capture"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:sampleReadImmediate/init:sampleReadImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "sampleReadImmediate("
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "sampleReadImmediate("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
               }
             ]
           }

@@ -5701,6 +5701,7 @@ pub struct ClientStructuralExplanationOriginal {
   compiled : ClientCompiledRun
   prepared : PreparedClientProgram
   map : @canonical_json.CanonicalValue
+  sealed_map : @run_publication.RunEvidenceValue
 }
 
 pub struct ClientSubmissionEpochToken {
