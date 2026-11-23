@@ -16,7 +16,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
+import {admitInstalledLocalRuntime, installedLocalRuntimeEnvironment} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 import {assertPublicQueryRows, dateLiteralOriginal, timestampLiteralOriginal,
@@ -28,6 +28,7 @@ import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/proje
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
 import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
+import {observeInstalledNativeModel} from './native-cli-model-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 
@@ -1097,14 +1098,19 @@ async function observeInstalledSourceFree(input, observationPath) {
     const originalBinary = await readFile(join(platformRoot, 'bin/actql-native-client'));
     assert.equal(originalBinary.length, expected.binaryBytes);
     assert.equal(createHash('sha256').update(originalBinary).digest('hex'), expected.binarySha256);
-    verifyInstalledOriginals=async()=>{
-      assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
-      assert.deepEqual(checkoutState(repository), source);
-    };
     // Reuse this same installed cohort and its actual launcher/runtime. The
     // Remote-only CLI harness cannot supply the Local preparation constructor.
-    const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
-      expected:{sourceSha:manifest.sourceSha,platform,localRuntimeSha256:artifact.localRuntime.sha256}});
+    const runtimeIdentity = {sourceSha: manifest.sourceSha, platform, localRuntimeSha256: artifact.localRuntime.sha256};
+    const localRuntime = admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
+      expected:runtimeIdentity});
+    verifyInstalledOriginals = async () => {
+      assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
+      assert.deepEqual(admitInstalledLocalRuntime({root: platformRoot, metadata: artifact.localRuntime,
+        expected: runtimeIdentity}), localRuntime);
+      assert.deepEqual(checkoutState(repository), source);
+    };
+    const modelImage = localRuntime.libraries.find(item => item.role === 'model-http');
+    assert(modelImage, 'Required installed Model HTTPS member is unavailable');
     runIngress=async()=>{
       env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER=launcher;
       env.ACTQL_TEST_NATIVE_CLIENT_BINARY=join(platformRoot,'bin/actql-native-client');
@@ -1210,25 +1216,38 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
+    const runtimeWire = await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8');
+    const controlledModel = await phase('controlled-model', async () => {
+      const platformFacts = platform === 'darwin-arm64'
+        ? {macOS: (await execute('/usr/bin/sw_vers', ['-productVersion'], {timeout: 5000})).stdout.trim()}
+        : {glibc};
+      const environment = installedLocalRuntimeEnvironment({root: platformRoot, expected: runtimeIdentity,
+        metadata: artifact.localRuntime, platformFacts, environment: {
+          HOME: env.HOME, TMPDIR: env.TMPDIR, PATH: env.PATH,
+          ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1',
+        }});
+      return observeInstalledNativeModel({root: join(root, 'controlled-model'),
+        binary: join(platformRoot, 'bin/actql-native-client'), modelImage, environment,
+        runtimeSha256: artifact.localRuntime.sha256, assets: numericAssets, records,
+        prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
+          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true})});
+    });
     const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
-      cli, assets: numericAssets, libraries: numericLibraries, environment: env,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+      cli, assets: numericAssets, libraries: numericLibraries, environment: env, runtimeWire}));
     const numericScale = await phase('numeric-scale', async () => observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
-      cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+      cli, assets: numericAssets, libraries: numericLibraries, runtimeWire}));
     const resourceShapes = await phase('resource-shapes', async () => observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
-      cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+      cli, assets: numericAssets, libraries: numericLibraries, runtimeWire}));
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, defaultUnionRows, fileSourceNumeric, fileTaskBoundary,
-      namedResults, journalExhaustion, numericScale, resourceShapes,
+      controlledModel, namedResults, journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
-      unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
+      unverified: ['Mock or live Connector bindings', 'Model failure matrix and live service', 'Effect approval', 'other platforms']};
   } catch (error) {
     failure = error;
     if (diagnoseFailure && /LocalSubmissionAcceptanceUnknown/u.test(error.message)) {
