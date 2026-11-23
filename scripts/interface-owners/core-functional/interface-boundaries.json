@@ -7174,6 +7174,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/effectRecoveryControls/effectRecoveryControls",
             "publicationControl/publicationControl",
             "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
             "publicationControl/localEffectContext/localEffectContext",
@@ -7195,13 +7196,11 @@
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
             "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
-            "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
             "publicationControl/init:admitOriginal/init:admitOriginal",
             "publicationControl/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
             "publicationControl/init:admitRunEvidence/init:admitRunEvidence",
             "publicationControl/init:admitRunPublication/init:admitRunPublication",
             "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
-            "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
             "publicationControl/init:adoptCheckedClientEffectInferRun/init:adoptCheckedClientEffectInferRun",
             "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
@@ -7213,18 +7212,12 @@
             "publicationControl/init:bindCheckedClientInferRun/init:bindCheckedClientInferRun",
             "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
             "publicationControl/init:bindIssuedClientInferInvocation/init:bindIssuedClientInferInvocation",
-            "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
-            "publicationControl/init:bindTableInput/init:bindTableInput",
-            "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
@@ -7270,8 +7263,6 @@
             "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
             "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
             "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
-            "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
-            "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
@@ -7296,7 +7287,6 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
-            "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
             "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
             "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
@@ -7314,12 +7304,6 @@
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
-            "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
-            "publicationControl/init:tableInputSchemaWire/init:tableInputSchemaWire",
-            "publicationControl/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
-            "publicationControl/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
-            "publicationControl/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
-            "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence#2",
             "publicationControl/inspectEffectSource/inspectEffectSource",
@@ -8979,167 +8963,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
-            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "recoverEffectCommandContent({compiled, prepared, definition, captured, preview,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "moon.clientProgramRecoverEffectCommandContent("
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const run = compiledContent(compiled);"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "let retained = original;"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "retained === original;"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "Recovered Effect Content unavailable"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "moon.clientProgramRecoveredEffectCommandContentRelease(view);"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "issuanceLimits(limits,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "computationPreviewTokens.get(preview)"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Saved Command Content"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/run_publication/content_generation_recovery_test.mbt",
-                "anchor": "test \"saved Content generation needs original identity"
-              },
-              {
-                "path": "adapters/host-node/recovered-command-content.test.mts",
-                "anchor": "test('recovered Command retains the same Store original"
-              },
-              {
-                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
-                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
-              },
-              {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE cold capture retains Source artifact and saved Run ownership'"
-              },
-              {
-                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
-                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal"
           ],
           "exports": [],
@@ -10407,13 +10230,7 @@
             "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
             "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
             "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
-            "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
-            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire"
+            "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -12778,6 +12595,11 @@
           "async": false
         },
         {
+          "name": "publicationControl/effectRecoveryControls/effectRecoveryControls",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "publicationControl/effectSourceToken/effectSourceToken",
           "parameters": [
             "value"
@@ -12918,14 +12740,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
-          "parameters": [
-            "wire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:admitOriginal/init:admitOriginal",
           "parameters": [
             "original",
@@ -12993,14 +12807,6 @@
           "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
           "parameters": [
             "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
-          "parameters": [
-            "preview",
-            "claim"
           ],
           "async": false
         },
@@ -13160,46 +12966,6 @@
             "execution",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "source",
-            "capturedRun",
-            "scope",
-            "mappingWire",
-            "storeAuthorityCid",
-            "limits",
-            "tableLimits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindTableInput/init:bindTableInput",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "artifact",
-            "identity",
-            "scope",
-            "operationWire",
-            "mappingWire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindTablePreview/init:bindTablePreview",
-          "parameters": [
-            "input",
-            "capturedPreview",
-            "memberIndex"
           ],
           "async": false
         },
@@ -13370,39 +13136,10 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-          "parameters": [
-            "preview",
-            "wire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
           "parameters": [
             "restored",
             "checkedProgram"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-          "parameters": [
-            "owner",
-            "inputs",
-            "wire",
-            "runIdentityCid",
-            "authoringContextCid",
-            "identities",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
-          "parameters": [
-            "identity"
           ],
           "async": false
         },
@@ -13888,23 +13625,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
-          "parameters": [
-            "artifact",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
-          "parameters": [
-            "responseWire",
-            "statusCode",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
           "parameters": [
             "definition",
@@ -14281,64 +14001,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
-          "parameters": [
-            "preview",
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
-          "parameters": [
-            "compiled",
-            "prepared",
-            "definition",
-            "captured",
-            "preview",
-            "invocation",
-            "source",
-            "storeAuthorityCid",
-            "generationIndex",
-            "memberIndex",
-            "row",
-            "inputName",
-            "candidate",
-            "issued",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys",
           "parameters": [
             "run",
@@ -14358,56 +14020,6 @@
             "maxKeyDepth",
             "construction"
           ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
-          "parameters": [
-            "sourceOriginal",
-            "prepared",
-            "request",
-            "definition",
-            "captured",
-            "preview",
-            "invocation",
-            "source",
-            "storeAuthorityCid",
-            "memberIndex",
-            "row",
-            "inputName",
-            "candidate",
-            "issued",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire",
-          "parameters": [],
           "async": false
         },
         {
@@ -14606,53 +14218,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
-          "parameters": [
-            "input",
-            "artifact",
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:tableInputSchemaWire/init:tableInputSchemaWire",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
-          "parameters": [
-            "preview",
-            "responseWire",
-            "statusCode",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
-          "parameters": [
-            "preview"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
-          "parameters": [
-            "preview"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
           "parameters": [
             "capture"
@@ -14840,6 +14405,7 @@
         "./runtime-effect-artifact-control.mjs",
         "./runtime-effect-capture-control.mjs",
         "./runtime-effect-preparation-control.mjs",
+        "./runtime-effect-recovery-control.mjs",
         "./runtime-effect-unit-result-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-infer-original-read-control.mjs",
@@ -14854,7 +14420,671 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dbb43e3e8c80b1a74e5bc12250905cc324bc01e208000ffab9a845a8d0ceac20"
+      "sha256": "2ff36e8cfb0d2a34564d8bc8b48cd64723ea23eb118d9b94f1a89c6793069f23"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-recovery-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect Content recovery and Table Preview custody",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectRecoveryControls",
+            "createEffectRecoveryControls/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
+            "createEffectRecoveryControls/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
+            "createEffectRecoveryControls/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
+            "createEffectRecoveryControls/init:bindTableInput/init:bindTableInput",
+            "createEffectRecoveryControls/init:bindTablePreview/init:bindTablePreview",
+            "createEffectRecoveryControls/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "createEffectRecoveryControls/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "createEffectRecoveryControls/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
+            "createEffectRecoveryControls/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
+            "createEffectRecoveryControls/init:localTableCommitResponse/init:localTableCommitResponse",
+            "createEffectRecoveryControls/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
+            "createEffectRecoveryControls/init:tableInputMatchesSource/init:tableInputMatchesSource",
+            "createEffectRecoveryControls/init:tableInputSchemaWire/init:tableInputSchemaWire",
+            "createEffectRecoveryControls/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
+            "createEffectRecoveryControls/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
+            "createEffectRecoveryControls/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
+            "createEffectRecoveryControls/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding"
+          ],
+          "exports": [
+            "createEffectRecoveryControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "export function createEffectRecoveryControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "moon.clientProgramBindTableInput("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "recoveredTablePreviewTokens.set(value, issued);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const tableInputTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const recoveredTablePreviewTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "retained === original;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "throw new TypeError('Foreign recovered Table schema');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "moon.clientProgramRecoveredSourceEffectCommandContentRelease(view);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "limits.maxFields, limits.maxWork"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectRecoveryControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/table-scope-binding.test.mjs",
+                "anchor": "Table scope binding rejects foreign Preview keys and standalone saved settlement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+            "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "recoverEffectCommandContent({compiled, prepared, definition, captured, preview,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "moon.clientProgramRecoverEffectCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "const run = compiledContent(compiled);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "let retained: typeof original | undefined = original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "retained === original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "Recovered Effect Content unavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-recovery-control.mts",
+                "anchor": "moon.clientProgramRecoveredEffectCommandContentRelease(view);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issuanceLimits(limits,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "computationPreviewTokens.get(preview)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/content_generation_recovery_test.mbt",
+                "anchor": "test \"saved Content generation needs original identity"
+              },
+              {
+                "path": "adapters/host-node/recovered-command-content.test.mts",
+                "anchor": "test('recovered Command retains the same Store original"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
+                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold capture retains Source artifact and saved Run ownership'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
+            "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectRecoveryControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectRecoveryControls",
+          "parameters": [
+            "moon",
+            "computationPreviewTokens",
+            "localEffectArtifactTokens",
+            "localEffectIdentityTokens",
+            "tableInputTokens",
+            "tablePreviewTokens",
+            "recoveredTablePreviewTokens",
+            "compiledContent",
+            "issuanceLimits",
+            "token",
+            "effectSourceToken",
+            "currentControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
+          "parameters": [
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
+          "parameters": [
+            "preview",
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "source",
+            "capturedRun",
+            "scope",
+            "mappingWire",
+            "storeAuthorityCid",
+            "limits",
+            "tableLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:bindTableInput/init:bindTableInput",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "artifact",
+            "identity",
+            "scope",
+            "operationWire",
+            "mappingWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:bindTablePreview/init:bindTablePreview",
+          "parameters": [
+            "input",
+            "capturedPreview",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+          "parameters": [
+            "preview",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+          "parameters": [
+            "owner",
+            "inputs",
+            "wire",
+            "runIdentityCid",
+            "authoringContextCid",
+            "identities",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
+          "parameters": [
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
+          "parameters": [
+            "artifact",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:localTableCommitResponse/init:localTableCommitResponse",
+          "parameters": [
+            "responseWire",
+            "statusCode",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
+          "parameters": [
+            "preview",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "compiled",
+            "prepared",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "storeAuthorityCid",
+            "generationIndex",
+            "memberIndex",
+            "row",
+            "inputName",
+            "candidate",
+            "issued",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+          "parameters": [
+            "sourceOriginal",
+            "prepared",
+            "request",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "storeAuthorityCid",
+            "memberIndex",
+            "row",
+            "inputName",
+            "candidate",
+            "issued",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tableInputMatchesSource/init:tableInputMatchesSource",
+          "parameters": [
+            "input",
+            "artifact",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tableInputSchemaWire/init:tableInputSchemaWire",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tablePreviewCommitOutcome/init:tablePreviewCommitOutcome",
+          "parameters": [
+            "preview",
+            "responseWire",
+            "statusCode",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectRecoveryControls/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "886cbc180f8ad3c76abe2ac6dd1352ff0c8ac1e9d605f9d15def07eb11f9676b"
     },
     {
       "module": "adapters/host-common/runtime-effect-artifact-control.mjs",
