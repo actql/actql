@@ -2996,3 +2996,17 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.d.mts
 /adapters/connectors/sheets/test/sheets-tabs-pages.test.mjs
 /adapters/connectors/sheets/test/sheets-tabs-pages.test.d.mts
+/adapters/connectors/sheets/test/sheets-clear-program.fixture.mjs
+/adapters/connectors/sheets/test/sheets-clear-program.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-range-program.fixture.mjs
+/adapters/connectors/sheets/test/sheets-range-program.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-replay.fixture.mjs
+/adapters/connectors/sheets/test/sheets-replay.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-replay-source.fixture.mjs
+/adapters/connectors/sheets/test/sheets-replay-source.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-replay-packed.fixture.mjs
+/adapters/connectors/sheets/test/sheets-replay-packed.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-clear-profile.test.mjs
+/adapters/connectors/sheets/test/sheets-clear-profile.test.d.mts
+/adapters/connectors/sheets/test/sheets-request-identity.test.mjs
+/adapters/connectors/sheets/test/sheets-request-identity.test.d.mts

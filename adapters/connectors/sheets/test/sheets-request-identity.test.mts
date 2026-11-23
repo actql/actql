@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import * as moon from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {prepareSheetsAppend} from '../site/sheets-exchange.mjs';
 import {sheetsRangeReference} from '../host/sheets-range-command.mjs';
 import {contentCid} from '../../../host-node/local-account-config.mjs';
-const original = JSON.parse(readFileSync(new URL('./fixtures/append-owned-baseline.json', import.meta.url)));
+type AppendInput = Parameters<typeof prepareSheetsAppend>[0];
+type Provider = AppendInput['moon'] & Parameters<typeof sheetsRangeReference>[0]['moon'];
+type AppendBaseline = Omit<AppendInput, 'moon'> & Readonly<{body: string; path: string; requestCid: string}>;
+const moon = await import(new URL('../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js', import.meta.url).href) as Provider;
+const original = JSON.parse(readFileSync(new URL('./fixtures/append-owned-baseline.json', import.meta.url), 'utf8')) as AppendBaseline;
 
 test('append shares the portable request preimage owner and original fixed bytes', () => {
   const request = prepareSheetsAppend({...original, moon});
@@ -40,7 +43,7 @@ test('append retains original pre-request refusal and literal value rules', () =
 });
 
 test('the original vector detects a same-typed path/body role swap at the real provider boundary', () => {
-  const mutant = {...moon, sheetsAppendRequestIdentity: (origin, path, body) =>
+  const mutant = {...moon, sheetsAppendRequestIdentity: (origin: string, path: string, body: string) =>
     moon.sheetsAppendRequestIdentity(origin, body, path)};
   const request = prepareSheetsAppend({...original, moon: mutant});
   assert.equal(request.body, original.body, 'fixture and real body codec remain valid');

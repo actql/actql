@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import type {Client, RunReference, RunState} from '@actql/sdk';
+import type {EmbeddedLocalOptions} from '@actql/node';
+
+type Installation = NonNullable<EmbeddedLocalOptions['installation']>;
+type ReplayInput = Readonly<{
+  ref: RunReference;
+  expectedStatus: RunState['status'];
+  expectedRows?: readonly unknown[];
+  installation: Installation;
+}>;
+type ConnectLocal = (options: EmbeddedLocalOptions & Readonly<{owner: 'local'; installation: Installation}>) =>
+  Promise<Pick<Client, 'attach' | 'close'>>;
 
 // Runs in a fresh process through the same public Local entry as initial use.
 // It has no saved internal Owner handles and reconstructs only from Host files.
-export async function replaySavedAppend(connectLocal, configPath) {
-  const {ref, expectedStatus, expectedRows, installation} = JSON.parse(await readFile(configPath, 'utf8'));
+export async function replaySavedAppend(connectLocal: ConnectLocal, configPath: string) {
+  const {ref, expectedStatus, expectedRows, installation} = JSON.parse(await readFile(configPath, 'utf8')) as ReplayInput;
   const client = await connectLocal({mode: 'local', owner: 'local', durability: 'durable',
     installation: {...installation, resolveEffectSecret: async () => 'fixture-only-secret',
       ...(installation.sourceProfilePath ? {resolveSourceSecret: async () => 'fixture-only-secret'} : {})}});

@@ -1,6 +1,8 @@
 // Independently authored Program: acquire a current range Ref, join one
 // explicitly typed rectangle, and approve it through the ordinary Command.
-export function rangeProgram(contract, rows, connectorId = 'sheet-book') {
+type RangeRow = Readonly<{text: string; number: number; flag: boolean}>;
+
+export function rangeProgram(contract: string, rows: readonly RangeRow[], connectorId = 'sheet-book') {
   const rowFields = {text: {type: 'string', nullable: false},
     number: {type: 'number', nullable: false}, flag: {type: 'boolean', nullable: false}};
   return JSON.stringify({version: 'actql/0.1', id: 'sheets-range-update', stages: [{

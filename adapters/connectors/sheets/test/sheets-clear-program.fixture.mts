@@ -1,6 +1,6 @@
 // Independently authored canonical Command. Its target is the acquired original
 // range Ref; the empty input cannot borrow update payload or a hidden row ID.
-export function clearProgram(contract, connectorId = 'sheet-book') {
+export function clearProgram(contract: string, connectorId = 'sheet-book') {
   return JSON.stringify({version: 'actql/0.1', id: 'sheets-range-clear', stages: [{
     id: 'capture', inputs: {range: {connector: connectorId, resource: 'range_target'}},
     steps: [{filter: 'true', as: 'scanned'}, {select: ['target'], as: 'out'}],
