@@ -12,9 +12,9 @@ priv struct StoredManagedTask {
   mut cleanup_issue : @managed.LocalDispatchIssue?
   mut operations : @managed.LocalManagedDispatchOperations[Int]?
   mut progress : @managed.LocalManagedAdvance?
-  producers : Array[Int]
-  positions : Array[Int]
-  finished_inputs : Array[Bool]
+  producer_handles : Array[Int]
+  mut input_port : Int
+  mut input_row : Int
   live : Ref[Bool]
   mut completed : @execution.ManagedCompletedOutput[Int]?
   mut finalization_invoked : Bool
@@ -22,21 +22,39 @@ priv struct StoredManagedTask {
 }
 
 ///|
-fn stored_producer(
+fn bind_managed_producer_handle(
   value : Instance,
   compute : Int,
   task : Int,
-) -> StoredManagedTask? {
-  guard value.computes.get(compute) is Some(original) &&
-    (task > 0 || (task == 0 && original.origin is SourceFree(_, _))) else {
-    return None
+) -> Int {
+  guard value.computes.get(compute) is Some(original) && task >= 0 else {
+    return -1
   }
-  for record in value.tasks.values() {
+  // Captured task zero is the Source prefix. Source-free task zero has its
+  // own registered handle, just like any other completed predecessor.
+  if task == 0 && original.origin is Captured(_) {
+    return 0
+  }
+  for handle, record in value.tasks {
     if record.compute == compute && record.task == task {
-      return Some(record)
+      return handle
     }
   }
-  None
+  -1
+}
+
+///|
+fn bound_managed_producer(
+  value : Instance,
+  compute : Int,
+  handle : Int,
+) -> StoredManagedTask? {
+  guard handle > 0 &&
+    value.tasks.get(handle) is Some(record) &&
+    record.compute == compute else {
+    return None
+  }
+  Some(record)
 }
 
 ///|
@@ -102,6 +120,15 @@ pub fn reserve_managed_task(
     return -3
   }
   let handle = value.next_handle
+  // The ready task's predecessors have already completed. Resolve their
+  // original registrations once in the fresh, port-ordered producer array.
+  // These handles are never recycled by this Instance.
+  let producer_handles = @local_run.local_compute_producers(host)
+  for index, producer in producer_handles {
+    producer_handles[index] = bind_managed_producer_handle(
+      value, compute, producer,
+    )
+  }
   value.tasks[handle] = {
     compute,
     current_configuration,
@@ -113,9 +140,9 @@ pub fn reserve_managed_task(
     cleanup_issue: None,
     operations: None,
     progress: None,
-    producers: @local_run.local_compute_producers(host),
-    positions: [],
-    finished_inputs: [],
+    producer_handles,
+    input_port: 0,
+    input_row: 0,
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
@@ -161,13 +188,11 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   }
   record.invoked = true
   let completed : Array[@execution.ManagedCompletedOutput[Int]] = []
-  for producer in record.producers {
-    // Only captured Compute uses zero as its already-retained Source prefix.
-    // Source-free task zero is an actual completed producer, not that prefix.
+  for producer in record.producer_handles {
     if producer == 0 && compute.origin is Captured(_) {
       continue
     }
-    guard stored_producer(value, record.compute, producer)
+    guard bound_managed_producer(value, record.compute, producer)
       is Some({ completed: Some(output), closing: false, .. }) else {
       record.issue = Some(@local_run.UnsupportedCapability)
       return 0
@@ -202,13 +227,7 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
       current.tuple,
       current.context_cid,
     ) {
-    Ok(Some(operations)) => {
-      record.operations = Some(operations)
-      for _ in operations.inputs {
-        record.positions.push(0)
-        record.finished_inputs.push(false)
-      }
-    }
+    Ok(Some(operations)) => record.operations = Some(operations)
     Ok(None) => record.issue = Some(@local_run.UnsupportedCapability)
     Err(issue) => record.issue = Some(issue)
   }
@@ -259,7 +278,7 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.finalization_invoked {
     return -5
   }
-  if record.finished_inputs.any(finished => !finished) {
+  if record.input_port < operations.inputs.length() {
     return -7
   }
   let code = managed_task_run_current(value, record)
@@ -300,7 +319,7 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
     }
     for other in value.tasks.values() {
       if other.compute == record.compute &&
-        other.producers.contains(record.task) {
+        other.producer_handles.contains(handle) {
         return 2L
       }
     }
@@ -363,7 +382,7 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
   if value.tasks
     .values()
     .any(other => {
-      other.compute == record.compute && other.producers.contains(record.task)
+      other.compute == record.compute && other.producer_handles.contains(handle)
     }) {
     return -9
   }
@@ -441,27 +460,22 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if code != 0 {
     return code
   }
-  if record.positions.length() != operations.inputs.length() {
-    record.issue = Some(@local_run.Configuration)
-    return -32
-  }
   for _ in 0..<quantum {
-    let mut port = 0
-    while port < record.finished_inputs.length() && record.finished_inputs[port] {
-      port += 1
-    }
-    if port == record.finished_inputs.length() {
+    let port = record.input_port
+    // The original dispatch supplies its fixed, ordered transfer inventory.
+    // Move the cursor only after the corresponding operation succeeds.
+    if port == operations.inputs.length() {
       return 0
     }
     let transfer = operations.inputs[port]
     let input = @execution.managed_producer_read_input_index(transfer.input)
-    guard record.producers.get(input) is Some(producer) && producer >= 0 else {
+    guard record.producer_handles.get(input) is Some(producer) && producer > 0 else {
       record.issue = Some(@local_run.UnsupportedCapability)
       return -32
     }
     record.pending = true
     let outcome : Result[Unit, @local_run.LocalComputeIssue] = match
-      stored_producer(value, record.compute, producer) {
+      bound_managed_producer(value, record.compute, producer) {
       Some({ completed: Some(output), operations: Some(parent), .. }) => {
         if !@execution.managed_producer_read_matches_reference(
             transfer.input,
@@ -471,17 +485,20 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
           record.issue = Some(@local_run.UnsupportedCapability)
           return -32
         }
-        let row = record.positions[port]
+        let row = record.input_row
         if row == @execution.managed_completed_output_row_count(output) {
           (transfer.finish)()
-          .map(_ => record.finished_inputs[port] = true)
+          .map(_ => {
+            record.input_port += 1
+            record.input_row = 0
+          })
           .map_err(issue => @local_run.Managed(issue))
         } else {
           match (parent.output_row)(row) {
             Err(issue) => Err(@local_run.Managed(issue))
             Ok(wire) =>
               (transfer.append)(wire)
-              .map(_ => record.positions[port] += 1)
+              .map(_ => record.input_row += 1)
               .map_err(issue => @local_run.Managed(issue))
           }
         }
@@ -671,11 +688,11 @@ pub fn advance_managed_task_lifecycle(
     let code = start_managed_task(nonce, handle)
     return if code != 0 { code } else { managed_task_started(nonce, handle) }
   }
-  guard record.operations is Some(_) else {
+  guard record.operations is Some(operations) else {
     let code = managed_task_run_current(value, record)
     return if code != 0 { code } else { -33 }
   }
-  if record.finished_inputs.any(finished => !finished) {
+  if record.input_port < operations.inputs.length() {
     return feed_managed_task(nonce, handle, quantum)
   }
   // An unchanged pause remains with its original physical continuation. Never
@@ -719,7 +736,7 @@ pub fn advance_managed_task_lifecycle(
 pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
-    record.operations is Some(_) else {
+    record.operations is Some(operations) else {
     return -2
   }
   if record.pending {
@@ -728,7 +745,7 @@ pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
   if record.issue is Some(_) {
     return -32
   }
-  if record.finished_inputs.any(finished => !finished) {
+  if record.input_port < operations.inputs.length() {
     -7
   } else {
     0
