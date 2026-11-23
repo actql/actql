@@ -54,6 +54,18 @@ The pinned Google GenerateContent adapter selects `gemini-2.5-flash` with
 `topP`, refuses a seed, and uses the deployment credential reference
 `GOOGLE_GENERATIVE_AI_API_KEY`.
 
+For Mistral, select `@ai-sdk/mistral` `4.0.89` and its `createMistral` export
+in the trusted Host registration, with the bundled `_internal/mistral-chat.mjs`
+adapter. Set the resolved model to `mistral-small-2603`, the API mode to
+`chat_completions` and `providerOptions` to
+`{mistral: {strictJsonSchema: true}}`. The Host uses the credential reference
+`MISTRAL_API_KEY` as a bearer credential for
+`https://api.mistral.ai/v1/chat/completions`. The accepted profile is
+serial text with a strict JSON Schema response and no reasoning override.
+Controlled HTTPS tests on installed Node 22 and 24 exercised one request,
+typed output and a cold Saved read with zero sends. Live Mistral
+qualification is pending for this profile.
+
 ## Configure a Host from project Tasks
 
 `createOpenAIChatProvider` returns one asynchronous `registerModelProviders`

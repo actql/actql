@@ -12,7 +12,7 @@ import {nodeReleaseIncludesProvider, verifyPackageRelease} from './package-relea
 import {runLocalCheck} from './local-checks-guard.mjs';
 
 const registeredProviderCases = Object.freeze([
-  'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed',
+  'registered-project', 'registered-anthropic', 'registered-google', 'registered-mixed', 'registered-mistral',
 ]);
 
 // Assertions over the original child report only; this issues no Run authority
@@ -56,6 +56,10 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     assert.equal(value.maxCalls, 1);
   }
   if (registered) assert.equal(value.registeredSdk, true);
+  if (caseId === 'registered-mistral') {
+    assert.equal(value.originalModelStarts, phase === 'cold' ? 0 : 1);
+    assert.match(value.originalRunDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+  }
   if (project) {
     assert.equal(value.projectCredential, true);
     assert.equal(value.projectTlsConnects, phase === 'cold' ? 0 : 1);
@@ -164,7 +168,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
           const value = JSON.parse(actual.stdout.trim());
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
           checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
-          if (id === 'registered-mixed') {
+          if (id === 'registered-mixed' || id === 'registered-mistral') {
             if (phase === 'cold') assert.equal(value.originalRunDefinitionCid, originalRunDefinitionCid);
             else originalRunDefinitionCid = value.originalRunDefinitionCid;
           }

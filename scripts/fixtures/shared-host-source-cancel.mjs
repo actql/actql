@@ -28,7 +28,7 @@ export async function runSharedHostSourceFixture(configuration, {
   const clientCrash = configuration.scenario === 'client-crash';
   const ownerCrash = configuration.scenario === 'owner-crash';
   const ownerRecover = configuration.scenario === 'owner-recover';
-  assert(configuration.scenario === undefined || clientCrash || ownerCrash || ownerRecover,
+  assert(configuration.scenario === undefined || configuration.scenario === 'cancel' || clientCrash || ownerCrash || ownerRecover,
     'Unknown shared Source acceptance scenario');
   const nativeWaitEntered = Promise.withResolvers();
   const save = (name, value) => writeFile(join(root, name), JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
@@ -64,8 +64,14 @@ export async function runSharedHostSourceFixture(configuration, {
     // spawnSync Native child outside this retained child handle.
     assert.equal(typeof configuration.nativeCrashExecutable, 'string');
     const startedAt = new Date().toISOString();
+    const env = {...process.env};
+    delete env.ACTQL_NATIVE_LOCAL_RUNTIME;
+    if (configuration.nativeCrashContext !== undefined) {
+      assert.equal(typeof configuration.nativeCrashContext, 'string');
+      env.ACTQL_NATIVE_LOCAL_RUNTIME = configuration.nativeCrashContext;
+    }
     const child = spawn(configuration.nativeCrashExecutable, [...common, 'wait', '--ref-file', 'source-first-run.json'],
-      {cwd: root, env: process.env, stdio: ['ignore', 'pipe', 'pipe']});
+      {cwd: root, env, stdio: ['ignore', 'pipe', 'pipe']});
     let stdout = '', stderr = '', bytes = 0, terminationReason = null, nativeExit = null;
     const timer = setTimeout(() => {terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 30_000);
     for (const [stream, isError] of [[child.stdout, false], [child.stderr, true]]) stream.on('data', chunk => {
@@ -138,7 +144,7 @@ export async function runSharedHostSourceFixture(configuration, {
   await writeFile(join(root, 'token.txt'), 'fixture-token\n', {mode: 0o600, flag: 'wx'});
   common = ['--endpoint', `https://127.0.0.1:${server.address().port}/`,
     '--connection-root', root, '--connection-file', 'connection.json', '--token-root', root, '--token-file', 'token.txt',
-    '--http-library', process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4',
+    '--http-library', configuration.nativeHttpLibrary ?? (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4'),
     '--ca', configuration.certificate, '--cert', configuration.certificate, '--key', configuration.privateKey];
     const childInput = join(root, 'source-client-input.json');
     await writeFile(childInput, JSON.stringify({consumerRoot: configuration.consumerRoot, outputRoot: root,

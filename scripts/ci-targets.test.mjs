@@ -702,8 +702,17 @@ test('manual normal dispatch retains all full-family obligations, separate from 
       {...results, core: {result: status}}, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)}));
   }
 });
-test('active main finishes while pending work coalesces; branches and performance are separate', () => {
-  assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
+test('active main finishes while pending work coalesces and manual campaigns have separate groups', () => {
+  const prefix = '${{ github.workflow }}-${{ github.ref }}-${{ ';
+  assert(workflow.concurrency.group.startsWith(prefix));
+  const selectGroup = workflow.concurrency.group.slice(prefix.length, -3);
+  for (const [inputs, group] of [[{}, 'normal'],
+    [{native_shared_remote_linux: false}, 'normal'],
+    [{native_shared_remote_linux: true}, 'linux-shared-remote'],
+    [{performance_matrix: true, native_shared_remote_linux: true}, 'performance'],
+    [{packed_query_evidence_probe: true, native_shared_remote_linux: true}, 'evidence-probe']]) {
+    assert.equal(runInNewContext(selectGroup, {inputs}, {timeout: 100}), group);
+  }
   assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
   for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
