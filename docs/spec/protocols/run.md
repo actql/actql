@@ -73,11 +73,6 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_emission_provenance sha256:a285c28998d3e7bb2f221cc37ff23173448beb5dfe65e1007308a20c8af30994 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_reference sha256:bc73183c548b99a1c437a23268bda1bdfcdbdba95f66f82ac213f37a61077796 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_adoption_receipt sha256:b4d721ccfa06c55cc7c21275dff12636314a2666447796c9c84636ef8a95e225 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_source_generation sha256:b5603e21c94f2aceacb6b2ca74783379e0cdbce58b3ae1ca36a62cd5c0e5dbb8 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_original_capture sha256:568e8095002ae75e212a9b3971d170f7ea938eb75c2286a258ccbd190b9384af -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_emission_provenance sha256:a285c28998d3e7bb2f221cc37ff23173448beb5dfe65e1007308a20c8af30994 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_reference sha256:bc73183c548b99a1c437a23268bda1bdfcdbdba95f66f82ac213f37a61077796 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_adoption_receipt sha256:b4d721ccfa06c55cc7c21275dff12636314a2666447796c9c84636ef8a95e225 -->
 <!-- page-contents:start -->
 ## On this page
 
