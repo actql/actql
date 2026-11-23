@@ -9,6 +9,36 @@ import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
 
+export function installedEffectSettlements(observation) {
+  const starts = new Set();
+  const retain = settlement => {
+    // Run-state observation can open Store readers after dispatch retires.
+    // Keep this original continuation through Host stop as well.
+    starts.add(settlement);
+    const retire = () => { starts.delete(settlement); };
+    settlement.then(retire, retire);
+    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+  };
+  return Object.freeze({
+    start(accepted, {effectRun, settle, diagnostic}) {
+      // Return the durable original Ref before physical work settles.
+      const settlement = effectRun.start(accepted).catch(error => {
+        diagnostic('effect_start_failed', {ref: accepted.ref,
+          code: error?.code ?? error?.message, cause: error?.cause});
+      }).finally(settle).catch(error => diagnostic('effect_settlement_failed', {
+        ref: accepted.ref, code: error?.code ?? error?.message}));
+      retain(settlement);
+      return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+    },
+    retain,
+    async drain(resumes, retirements) {
+      // Host stop has joined the last sweep. Only its admitted work remains.
+      await Promise.allSettled([...starts, ...resumes.values()]);
+      await Promise.allSettled([...retirements.values()]);
+    },
+  });
+}
+
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
   const initialControl = host.initialControl;

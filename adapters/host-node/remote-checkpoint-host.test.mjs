@@ -12,11 +12,11 @@ import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs'
 import {referenceEffectManagedFixture} from './fixtures/reference-effect-managed.fixture.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
-import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
+import fsPromises, {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
-import {createRequire} from 'node:module';
+import {createRequire, syncBuiltinESMExports} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
@@ -2634,11 +2634,75 @@ test('public Effect dispatch waits for and obeys the Host barrier',
       submissionRef: submissionClient.newSubmission({nonce: 'effect-barrier-wait'})});
     assert.equal(captures, 0);
     assert.deepEqual(sends, []);
-    release();
-    await waitFor(async () => (await run.status()).status === 'succeeded');
-    assert.equal(captures, 1);
-    assert.deepEqual(sends, [[0, 0], [0, 1]]);
-    await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
+    // Hold the real schema FD of the post-dispatch observation. Status opens
+    // its own reader and must still complete while this one is outstanding.
+    const permitReaderClose = Promise.withResolvers();
+    const contracts = join(directory, 'state', 'publication', 'contracts') + '/';
+    const originalOpen = fsPromises.open;
+    let selected = false, readerWaiting = false, readerClosed = false;
+    fsPromises.open = async function (...args) {
+      if (!selected && typeof args[0] === 'string' && args[0].startsWith(contracts)) {
+        const stack = new Error().stack ?? '';
+        if (stack.includes('verifyDurableResultBinding') && stack.includes('settleHeldRun')) {
+          selected = true;
+          const handle = await Reflect.apply(originalOpen, this, args);
+          const close = handle.close.bind(handle);
+          handle.close = async (...options) => {
+            readerWaiting = true;
+            await permitReaderClose.promise;
+            const result = await close(...options);
+            readerClosed = result !== false;
+            return result;
+          };
+          return handle;
+        }
+      }
+      return Reflect.apply(originalOpen, this, args);
+    };
+    syncBuiltinESMExports();
+    try {
+      release();
+      await waitFor(async () => (await run.status()).status === 'succeeded');
+      await waitFor(() => readerWaiting);
+      assert.equal(captures, 1);
+      assert.deepEqual(sends, [[0, 0], [0, 1]]);
+      // Let the real FD close only after the Host has joined its first
+      // Effect-drain batch. An empty batch leaves the reader held so the
+      // first Store close reports its real pending readers.
+      const allSettled = Promise.allSettled;
+      let joinedOriginal = false, observedEffectDrain = false;
+      Promise.allSettled = function (work) {
+        const joined = Reflect.apply(allSettled, this, [work]);
+        if (!observedEffectDrain) {
+          const stack = new Error().stack ?? '';
+          if (stack.includes('Object.drain') && stack.includes('/embedded-local.mjs:')) {
+            observedEffectDrain = true;
+            if (work.length === 1 && readerWaiting && !readerClosed) {
+              joinedOriginal = true;
+              permitReaderClose.resolve();
+            }
+          }
+        }
+        return joined;
+      };
+      try {
+        await closeRetainedStoreFixtureHost({async close() {
+          try { return await first.close(); }
+          catch (error) {
+            // Preserve the first refusal and unblock only its original reader
+            // for the fixture's retained cleanup.
+            permitReaderClose.resolve();
+            throw error;
+          }
+        }}, t, {observeFirstClose: true, requireFirstClose: true});
+        assert.equal(joinedOriginal, true, 'Effect drain must join the pending observation');
+        assert.equal(readerClosed, true, 'First Host close must join the original reader');
+      } finally { Promise.allSettled = allSettled; }
+    } finally {
+      permitReaderClose.resolve();
+      fsPromises.open = originalOpen;
+      syncBuiltinESMExports();
+    }
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({

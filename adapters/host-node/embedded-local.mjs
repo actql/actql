@@ -36,7 +36,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
-import {createEmbeddedHostRegistry, installedHostShutdown, managedPreparationRetirementContinuation,
+import {createEmbeddedHostRegistry, installedEffectSettlements, installedHostShutdown, managedPreparationRetirementContinuation,
   bindManagedComputeRunObservation, managedComputeUsageReader} from './embedded-local-lifecycle.mjs';
 import {installHttpRequestPreparation} from './http-request-preparation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
@@ -4891,6 +4891,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
+  const effectSettlements = installedEffectSettlements(observation);
   const submitEffect = async (submission, requested, resultNames) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters, preparedProgram} = submission;
@@ -4938,15 +4939,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     const accepted = await admitEffectDefinition(submission);
     // The durable accepted Ref is returned before physical work settles.
     // Its start claim cannot be reset by a lost response or a second submit.
-    const settlement = effectRun.start(accepted).catch(error => {
-      diagnostic('effect_start_failed', {ref: accepted.ref,
-        code: error?.code ?? error?.message, cause: error?.cause});
-    }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
-      .catch(error => diagnostic('effect_settlement_failed', {
-        ref: accepted.ref, code: error?.code ?? error?.message}));
-    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
-    return {ref: accepted.ref, durability: accepted.durability,
-      revision: accepted.revision};
+    return effectSettlements.start(accepted, {effectRun, diagnostic,
+      settle: () => settleHeldRun(accepted, runIdOf(accepted))});
   };
   const prepareTimedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal, retainedInvocation) => {
     const retained = journal.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
@@ -5357,7 +5351,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
-      try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+      effectSettlements.retain(settlement);
       return await observedStart;
     }
     const held = {preparedSource, preparedSources, keyedSource, managedRun,
@@ -6540,10 +6534,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       effects: effectRun === undefined ? undefined : {
         sweep: sweepEffectRuns,
         async drain() {
-          // Stop has joined the last sweep. These are only its SAME admitted
-          // continuations, not another sweep, start, read or cleanup ACK.
-          await Promise.allSettled([...effectResumeFlights.values()]);
-          await Promise.allSettled([...effectRetirementFlights.values()]);
+          await effectSettlements.drain(effectResumeFlights, effectRetirementFlights);
         },
       }});
   }
