@@ -3,17 +3,48 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {projectHubSpotAccountIdentity, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from './hubspot-account-read.mjs';
 import {HUBSPOT_OBJECT_LIST_OPERATION, HUBSPOT_PROPERTIES_READ_OPERATION} from './hubspot-object-read.mjs';
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+import type {readHubSpotObjects} from './hubspot-object-read.mjs';
+import type {HubSpotResponse} from './hubspot-account-read.mjs';
+
+type ObjectRead = Parameters<typeof readHubSpotObjects>[0];
+type Native = ObjectRead['moon'] & Readonly<{
+  hubspotPreparePropertyResponseSource(bytes: Uint8Array, path: string, objectType: string,
+    maxBytes: number, maxNodes: number, maxDepth: number, maxProperties: number, maxNameUnits: number): unknown;
+  hubspotPropertyResponseSourceGeometryData(original: unknown): readonly number[];
+  hubspotConsumePropertyResponseSource(original: unknown, path: string, bytes: Uint8Array): unknown;
+  hubspotRetirePropertyResponseSource(original: unknown): void;
+}>;
+type MetadataOperation = typeof HUBSPOT_ACCOUNT_DETAILS_OPERATION | typeof HUBSPOT_PROPERTIES_READ_OPERATION;
+type Operation = MetadataOperation | typeof HUBSPOT_OBJECT_LIST_OPERATION;
+type SuppliedAuthorization = Readonly<{originalAuthorization: unknown; authorization: unknown; verifyCurrent?(): unknown}>;
+type Options = Pick<ObjectRead, 'originalPortalId' | 'originalCatalog' | 'objectType' | 'properties' | 'limits'> &
+  Readonly<{moon: Native; authorizeMetadata?(operation: MetadataOperation, index: number, signal: AbortSignal):
+    SuppliedAuthorization | PromiseLike<SuppliedAuthorization>;
+  responseCapacity(bodies: readonly number[], receivedBytes: bigint, geometry: readonly number[] | undefined): unknown}>;
+type Query = readonly (readonly [string, string])[];
+type Request = Readonly<{method: string; path: string; query: Query;
+  headers: readonly (readonly string[])[]; responseHeaders: readonly string[]}>;
+type Response = Pick<HubSpotResponse, 'accepted' | 'statusCode' | 'body'>;
+type ReadChild<Value> = Readonly<{operation: Operation; prepare():
+  Readonly<{original: object; request: Request; project(response: Response): Value}> &
+  Partial<SuppliedAuthorization>}>;
+type Row = Readonly<Record<string, unknown> & {id: string}>;
+type PageMetadata = Readonly<{rowCount: number; nextAfter: string | null}>;
+type Context = Readonly<{signal: AbortSignal; readChild<Value>(options: ReadChild<Value>): Promise<Value>;
+  consumeObservation(): Promise<void>; consumePage(rows: readonly Row[]): Promise<void>}>;
+type Sequence = Readonly<{responseCapacity(bytes: number, body: Uint8Array, path: string, receivedBytes: bigint,
+  responseCount: number): unknown; read(context: Context): Promise<void>; retire(): boolean}>;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const segment = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => `%${unit.charCodeAt(0).toString(16).toUpperCase()}`);
 const names = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
   'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
   'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson',
   'hubspotPreparePropertyResponseSource', 'hubspotPropertyResponseSourceGeometryData',
-  'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource'];
+  'hubspotConsumePropertyResponseSource', 'hubspotRetirePropertyResponseSource'] as const;
 
 export function prepareHubSpotManagedSequence({moon, originalPortalId, originalCatalog,
-  objectType, properties, limits, authorizeMetadata, responseCapacity}) {
+  objectType, properties, limits, authorizeMetadata, responseCapacity}: Options) {
   if (names.some(name => typeof moon?.[name] !== 'function') ||
       authorizeMetadata !== undefined && typeof authorizeMetadata !== 'function' || typeof responseCapacity !== 'function' ||
       !Array.isArray(properties) || new Set(properties).size !== properties.length ||
@@ -22,18 +53,18 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
       typeof objectType !== 'string' || !objectType || objectType.length > limits.maxNameUnits ||
       properties.reduce((n, name) => n + name.length, 0) > limits.maxNameUnits ||
       moon.hubspotPropertyCatalogObjectType(originalCatalog) !== objectType) fail('InvalidHubSpotManagedSequence');
-  const provider = Object.freeze(Object.fromEntries(names.map(name => [name, moon[name]])));
+  const provider = Object.freeze(Object.fromEntries(names.map(name => [name, moon[name]]))) as Native;
   const selected = Object.freeze(properties.slice());
-  const bodies = [], ids = new Set(), cursors = new Set();
+  const bodies: number[] = [], ids = new Set<string>(), cursors = new Set<string>();
   const base = `/crm/v3/objects/${segment(objectType)}`;
   const schemaPath = `/crm/v3/properties/${segment(objectType)}`;
-  let started = false, retired = false, requestCount = 0, pages = 0, rowCount = 0, sequence;
-  let propertySource, propertyGeometry = Object.freeze([]);
+  let started = false, retired = false, requestCount = 0, pages = 0, rowCount = 0, sequence: Sequence;
+  let propertySource: unknown, propertyGeometry: readonly number[] | undefined = Object.freeze([]);
   const current = () => {if (retired) fail('HubSpotManagedSequenceClosed');};
-  const request = (path, query = []) => Object.freeze({method: 'GET', path, query,
+  const request = (path: string, query: Query = []) => Object.freeze({method: 'GET', path, query,
     headers: Object.freeze([Object.freeze(['accept', 'application/json'])]), responseHeaders: Object.freeze([])});
   sequence = Object.freeze({
-    responseCapacity(bytes, body, path, receivedBytes, responseCount) {
+    responseCapacity(bytes: number, body: Uint8Array, path: string, receivedBytes: bigint, responseCount: number) {
       if (this !== sequence) fail('ForeignHubSpotManagedSequence');current();
       if (responseCount !== bodies.length + 1 || bytes !== body.byteLength ||
           bytes > limits.maxResponseBytes) fail('ForeignHubSpotManagedResponse');
@@ -53,9 +84,9 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
       // quote includes every earlier/failed constructor until real retirement.
       return responseCapacity(Object.freeze(bodies.slice()), receivedBytes, propertyGeometry);
     },
-    async read(context) {
+    async read(context: Context) {
       if (this !== sequence || started) fail('ForeignHubSpotManagedSequence');current();started = true;
-      const receive = async (operation, path, query, project) => {
+      const receive = async <Value,>(operation: Operation, path: string, query: Query, project: (body: Uint8Array) => Value) => {
         current();context.signal.throwIfAborted();
         if (requestCount >= limits.maxRequests) fail('HubSpotReadRequestLimit');
         const index = requestCount++;
@@ -85,21 +116,21 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
         projectHubSpotAccountIdentity({moon: provider, body, originalPortalId, limits}));
       await context.consumeObservation();current();
       await recheckProperties();
-      let after;
+      let after: string | undefined;
       do {
         if (pages >= limits.maxPages) fail('HubSpotReadPageLimit');
         const pageRows = Math.min(limits.perPage, limits.maxRows - rowCount);
         if (pageRows <= 0) fail('HubSpotReadRowLimit');
-        const query = [['archived', 'false'], ['limit', String(pageRows)], ['properties', selected.join(',')]];
+        const query: [string, string][] = [['archived', 'false'], ['limit', String(pageRows)], ['properties', selected.join(',')]];
         if (after !== undefined) query.push(['after', after]);
         const page = await receive(HUBSPOT_OBJECT_LIST_OPERATION, base, query, body => {
           const original = checked(provider.hubspotProjectObjectPage(body, originalCatalog, selected,
             limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, pageRows, limits.maxColumns,
             limits.maxCursorUnits, limits.maxValueNodes, limits.maxValueTextBytes));
-          const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(original));
+          const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(original)) as PageMetadata;
           const wire = checked(provider.hubspotObjectPageRowsWire(original, limits.maxRowsWireBytes,
-            limits.maxRowsWireNodes, limits.maxRowsWireDepth));
-          const rows = JSON.parse(wire);
+            limits.maxRowsWireNodes, limits.maxRowsWireDepth)) as string;
+          const rows = JSON.parse(wire) as readonly Row[];
           for (const row of rows) {if (ids.has(row.id)) fail('HubSpotReadDuplicateRecord');ids.add(row.id);}
           return Object.freeze({metadata, rows});
         });

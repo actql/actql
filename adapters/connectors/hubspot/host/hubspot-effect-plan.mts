@@ -14,28 +14,58 @@ import {HUBSPOT_PROPERTIES_READ_OPERATION} from '../site/hubspot-object-read.mjs
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
 import {HUBSPOT_INSTALLED_UPDATE_OPERATION, hubspotUpdatePathFixedBytes} from './hubspot-update-driver.mjs';
 
-const fail = () => {throw Object.assign(new Error('HubSpotEffectRecipeUnavailable'), {code: 'HubSpotEffectRecipeUnavailable'});};
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const data = (object, names) => {
+type Native = Readonly<{
+  clientProgramHubSpotEffectConstructorCapacity(kind: number, input: readonly number[], output: readonly number[],
+    counts: readonly number[]): unknown;
+  clientProgramHubSpotEffectRecipeCapacities(original: readonly unknown[], finalization: unknown,
+    limits: readonly number[], metadataUnits: bigint, responseReadQuantum: number,
+    controlWireBytes: number, hostInputBytes: number): unknown;
+  clientProgramInstalledEffectControlWireBound(outcomeBytes: number, maximumBytes: number): unknown;
+  clientProgramInstalledOpaqueBoundaryFootprintCapacity(origin: string, portalId: string, objectTypeUnits: number): unknown;
+  clientProgramInstalledEffectOperationStagedExtentPrepare(initial: unknown, maximum: unknown): unknown;
+  clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation: string, capacity: unknown,
+    transfer: bigint, physical: boolean): unknown;
+  clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation: string, recipe: readonly unknown[],
+    maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+  clientProgramInstalledEffectOperationDiscardedProjectionExtentPrepare(extent: unknown, projection: unknown): unknown;
+  clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare(extent: unknown, headerBytes: number): unknown;
+  clientProgramInstalledEffectOperationResponseHeadersRequire(extent: unknown, selectedNames: readonly string[], maxHeaderBytes: number): unknown;
+}>;
+type Options = Readonly<{mappings: unknown; origin: string; portalId: string; objectTypeUnits: number;
+  metadataResources: unknown; credentialSite: unknown; limits: unknown; inputLimits: unknown; maxRecoveryBytes: number}>;
+type ReadField = 'maxResponseBytes' | 'maxRequestBytes' | 'maxNodes' | 'maxDepth' | 'maxProperties' |
+  'maxNameUnits' | 'maxRows' | 'maxColumns' | 'maxCursorUnits' | 'maxValueNodes' | 'maxValueTextBytes' |
+  'maxOutputBytes' | 'maxOutputNodes' | 'maxOutputDepth' | 'maxRequestNodes' | 'maxRequestDepth';
+type WriteField = 'maxRequestBytes' | 'maxResponseBytes' | 'maxNodes' | 'maxDepth' | 'maxRows';
+type NumericRecord<Key extends string> = Readonly<Record<Key, number>>;
+type RecoveryEntry = Readonly<{memberIndex?: unknown; wire?: unknown}>;
+type CredentialOperation = Readonly<{phase: string; operationIndex: number; maxRequestBytes: number;
+  maxResponseBytes: number; maxTargetBytes?: number; slot?: string; resource?: string; perRow?: boolean;
+  responseExtent?(bytes: number, body: Uint8Array, geometry?: readonly number[]): unknown;
+  discardResponseProjection?: true}>;
+
+const fail: () => never = () => {throw Object.assign(new Error('HubSpotEffectRecipeUnavailable'), {code: 'HubSpotEffectRecipeUnavailable'});};
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
+const data = <Key extends string,>(object: unknown, names: readonly Key[]) => {
   if (!object || nodeTypes.isProxy(object)) fail();
   return Object.freeze(Object.fromEntries(names.map(name => {
     const field = Object.getOwnPropertyDescriptor(object, name);
     if (!field || !Object.hasOwn(field, 'value')) fail();
     return [name, field.value];
-  })));
+  }))) as Readonly<Record<Key, unknown>>;
 };
-const numbers = (object, names) => {
+const numbers = <const Names extends readonly string[],>(object: unknown, names: Names) => {
   const record = data(object, names);
   if (!Object.values(record).every(positive)) fail();
-  return Object.freeze(Object.values(record));
+  return Object.freeze(Object.values(record)) as unknown as Readonly<{[Index in keyof Names]: number}>;
 };
-const method = (receiver, name) => {
+const method = <Name extends keyof Native,>(receiver: unknown, name: Name): Native[Name] => {
   const selected = data(receiver, [name])[name];
   if (typeof selected !== 'function' || nodeTypes.isProxy(selected) || nodeTypes.isAsyncFunction(selected)) fail();
-  return (...args) => Reflect.apply(selected, receiver, args);
+  return ((...args: unknown[]) => Reflect.apply(selected, receiver, args)) as Native[Name];
 };
 
-export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
+export function captureHubSpotEffectPlanRecipeBuilder({moon}: Readonly<{moon: object}>) {
   const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
   const constructor = method(moon, 'clientProgramHubSpotEffectConstructorCapacity');
   const compose = method(moon, 'clientProgramHubSpotEffectRecipeCapacities');
@@ -49,11 +79,11 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
   // Matching Common must enforce this exact selection before the request.
   method(moon, 'clientProgramInstalledEffectOperationResponseHeadersRequire');
   return function prepareHubSpotEffectPlanRecipe({mappings, origin, portalId, objectTypeUnits,
-    metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}) {
+    metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}: Options) {
     if (!Array.isArray(mappings) || nodeTypes.isProxy(mappings) || !Object.isFrozen(mappings) ||
         mappings.length < 1 || typeof origin !== 'string' || !origin || typeof portalId !== 'string' || !positive(portalId.length) ||
         !positive(objectTypeUnits) || !positive(maxRecoveryBytes)) fail();
-    const resources = data(metadataResources, ['account', 'properties']);
+    const resources = data(metadataResources, ['account', 'properties']) as Readonly<Record<'account' | 'properties', string>>;
     if (Object.values(resources).some(value => typeof value !== 'string' || !value) ||
         resources.account === resources.properties) fail();
     const secret = data(credentialSite, ['construction']).construction;
@@ -65,8 +95,8 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
     const request = numbers(fixed.request, ['maxRows', 'maxProperties', 'maxTraceBytes', 'maxBodyBytes', 'maxBodyNodes', 'maxBodyDepth']);
     const read = data(fixed.read, ['maxResponseBytes', 'maxRequestBytes', 'maxNodes', 'maxDepth', 'maxProperties',
       'maxNameUnits', 'maxRows', 'maxColumns', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
-      'maxOutputBytes', 'maxOutputNodes', 'maxOutputDepth', 'maxRequestNodes', 'maxRequestDepth']);
-    const write = data(fixed.write, ['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows']);
+      'maxOutputBytes', 'maxOutputNodes', 'maxOutputDepth', 'maxRequestNodes', 'maxRequestDepth']) as NumericRecord<ReadField>;
+    const write = data(fixed.write, ['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows']) as NumericRecord<WriteField>;
     if (![...Object.values(read), ...Object.values(write)].every(positive) || write.maxRows !== 1 ||
         request[0] > 100 || read.maxRows > 100) fail();
     const source = data(inputLimits, ['body', 'preview']);
@@ -85,12 +115,12 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         units += field.value.length;
       }
       fields = Math.max(fields, selected.fields.length); fieldUnits = Math.max(fieldUnits, units);
-      mappingUnits = Math.max(mappingUnits, selected.resource.length + selected.mappingRef.length + selected.mappingCid.length + units);
+      mappingUnits = Math.max(mappingUnits, (selected.resource as string).length + (selected.mappingRef as string).length + (selected.mappingCid as string).length + units);
     }
     let bindingUnits = 12 * 71 + 1024 + objectTypeUnits + portalId.length + mappingUnits;
     for (const record of [secretLimits.scope, secretLimits.issuer]) {
       if (!record || nodeTypes.isProxy(record)) fail();
-      for (const field of Object.values(Object.getOwnPropertyDescriptors(record))) {
+      for (const field of Object.values(Object.getOwnPropertyDescriptors(record as object))) {
         if (!Object.hasOwn(field, 'value')) fail();
         if (typeof field.value === 'string') bindingUnits += field.value.length;
       }
@@ -99,7 +129,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
     const counts = Object.freeze([fields, fieldUnits, bindingUnits]);
     const requestInput = Object.freeze([...body, ...request, 1, read.maxProperties, read.maxColumns,
       read.maxRequestBytes, read.maxRequestNodes, read.maxRequestDepth]);
-    const quote = (kind, input, output = [], sizes = []) => {
+    const quote = (kind: number, input: readonly number[], output: readonly number[] = [], sizes: readonly number[] = []) => {
       const value = runtimeUnboxedReferenceOption(constructor(kind, input, output, sizes));
       if (value === undefined || value === null) fail();
       return value;
@@ -107,7 +137,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
     const requestCapacity = quote(0, requestInput, [], counts), finalization = quote(6, requestInput, [], counts);
     const responseCapacity = quote(2, [write.maxResponseBytes, write.maxNodes, write.maxDepth]);
     const targetOutput = Object.freeze([read.maxOutputBytes, read.maxOutputNodes, read.maxOutputDepth]);
-    const profile = (targetBytes, metadataBytes, metadataKind = 5, geometry = []) => {
+    const profile = (targetBytes: number, metadataBytes: number, metadataKind = 5, geometry: readonly number[] = []) => {
       const bytes = Math.max(1, targetBytes);
       const target = quote(1, [bytes, Math.min(read.maxNodes, bytes), Math.min(read.maxDepth, bytes), 1,
         read.maxColumns, read.maxCursorUnits, read.maxValueNodes, read.maxValueTextBytes], targetOutput, counts);
@@ -117,8 +147,9 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         ? [metadataBytes, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits]
         : [metadataBytes, portalId.length, objectTypeUnits, read.maxResponseBytes, read.maxNodes, read.maxDepth, read.maxProperties, read.maxNameUnits],
         [], metadataKind === 4 ? geometry : []);
+      // The binding enumerates the original tuple's numeric array keys.
       return [requestCapacity, target, responseCapacity, metadata].map(value =>
-        runtimeTupleFromFields([value, undefined, undefined]));
+        runtimeTupleFromFields([value, undefined, undefined] as unknown as Parameters<typeof runtimeTupleFromFields>[0]));
     };
     const maximumWire = Math.max(preview[0], maxRecoveryBytes);
     const parameters = Object.freeze([maximumWire, preview[1], preview[2], ...row,
@@ -128,20 +159,20 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
       Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
       Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth)]);
-    const controlBytes = checked(controlBound(write.maxResponseBytes, effectLedgerImplementationBounds.maxEntryBytes));
-    const quantities = (original, hostBytes = 0, control = controlBytes) => {
+    const controlBytes = checked(controlBound(write.maxResponseBytes, effectLedgerImplementationBounds.maxEntryBytes)) as number;
+    const quantities = (original: readonly unknown[], hostBytes = 0, control = controlBytes) => {
       // Policy wire/text storage is already retained on the original child.
       // Core stages the actual parser forest through hostBytes separately;
       // replacing its policy ceiling here would shrink that live retention.
       return checked(compose(original, finalization, parameters, BigInt(bindingUnits),
-        httpsCredentialResponseReadQuantum, control, hostBytes));
+        httpsCredentialResponseReadQuantum, control, hostBytes)) as readonly unknown[];
     };
     const initialProfile = profile(0, 0), maximumProfile = profile(read.maxResponseBytes, read.maxResponseBytes);
     const initial = quantities(initialProfile), maximum = quantities(maximumProfile, -1), fallback = quantities(initialProfile, 0, 0);
     if ([initial, maximum, fallback].some(value => !Array.isArray(value) || value.length !== 8)) fail();
     const captureName = HUBSPOT_INSTALLED_UPDATE_OPERATION + '.capture';
-    const capturedExtent = values => checked(capture(captureName, values.slice(0, 6), ...preview));
-    const inputExtent = (previewWire, recovery, memberIndex) => {
+    const capturedExtent = (values: readonly unknown[]) => checked(capture(captureName, values.slice(0, 6), ...preview));
+    const inputExtent = (previewWire: unknown, recovery: readonly RecoveryEntry[], memberIndex: number) => {
       if (typeof previewWire !== 'string' || !previewWire.isWellFormed() || !Array.isArray(recovery) ||
           !Number.isSafeInteger(memberIndex) || memberIndex < 0) fail();
       const previewBytes = Buffer.byteLength(previewWire);
@@ -156,7 +187,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       }
       return capturedExtent(quantities(initialProfile, bytes, controlBytes));
     };
-    const operationExtent = (operation, capacity, transfer = 0n, physical = false) =>
+    const operationExtent = (operation: string, capacity: unknown, transfer = 0n, physical = false) =>
       checked(extent(operation, capacity, transfer, physical));
     const memberOperations = [{operation: captureName,
       extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
@@ -169,13 +200,14 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', initial[2])},
       {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', finalization)},
     ];
-    const credentialOperations = [];
-    const physical = (phase, slot, resource, perRow, operation, position, requestBytes, responseBytes, kind) => {
+    const credentialOperations: CredentialOperation[] = [];
+    const physical = (phase: string, slot: string, resource: string | undefined, perRow: boolean, operation: string,
+      position: number, requestBytes: number, responseBytes: number, kind: number) => {
       const selected = perRow ? rowOperations : memberOperations, operationIndex = selected.length;
       const transfer = BigInt(requestBytes) + httpsCredentialResponseWindowBytes(responseBytes);
       const discardedProjection = slot === 'schema-after'
         ? quantities(profile(0, 0, 9))[position] : undefined;
-      const extentOf = values => {
+      const extentOf = (values: readonly unknown[]) => {
         const original = operationExtent(operation, values[position], transfer, true);
         const output = discardedProjection === undefined ? original : checked(
           discardProjection(original, discardedProjection));
@@ -187,8 +219,8 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       // the SAME constructor. A generic Account/schema maximum is appropriate
       // for the shared capture, but its retained schema output cannot become
       // an Account operation's initial backing and then shrink at InputBegin.
-      const physicalProfile = (bytes, geometry) => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind, geometry);
-      const responseExtent = (bytes, body, geometry) => {
+      const physicalProfile = (bytes: number, geometry?: readonly number[]) => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind, geometry);
+      const responseExtent = (bytes: number, body: Uint8Array, geometry?: readonly number[]) => {
         if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > responseBytes ||
             !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
         return extentOf(quantities(physicalProfile(bytes, geometry)));
@@ -204,12 +236,12 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         7, httpsCredentialDefaultRequestBytes, read.maxResponseBytes, 3);
       physical(phase + '-describe', 'schema', resources.properties, false, HUBSPOT_PROPERTIES_READ_OPERATION,
         7, httpsCredentialDefaultRequestBytes, read.maxResponseBytes, 4);
-      for (const [slot, resource, operation, kind] of [
+      for (const [slot, resource, operation, kind] of ([
         ['account', resources.account, HUBSPOT_ACCOUNT_DETAILS_OPERATION, 3],
         ['schema-before', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4],
         ['target', undefined, HUBSPOT_OBJECT_BATCH_READ_OPERATION, 1],
         ['schema-after', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4],
-      ]) physical(phase + '-target', slot, resource, true, operation, kind === 1 ? 6 : 7,
+      ] as const)) physical(phase + '-target', slot, resource, true, operation, kind === 1 ? 6 : 7,
         kind === 1 ? read.maxRequestBytes : httpsCredentialDefaultRequestBytes, read.maxResponseBytes, kind);
     }
     const writeIndex = rowOperations.length;

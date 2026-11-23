@@ -2449,7 +2449,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "ec60f1d7e4b426eb856658c6b511f17166eeb798e15e83c3abb1c161e16f1380",
+      "sha256": "2714b8f4f357f80da2053f0be7be9e63eeee0831a0bfb86c25bdfe2645eac736",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -3195,7 +3195,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
-      "sha256": "cee0fc43d7bfab121d5b384a0dd6c357b9bb9474cd2aff4f8586b9812b7514eb",
+      "sha256": "67b63f6258a88a801d8160008a5c1f5ea1b271c536f0078dc17ec25a13d0f5c0",
       "exports": [
         "prepareHubSpotManagedSequence"
       ],
