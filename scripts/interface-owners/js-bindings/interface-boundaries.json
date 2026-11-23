@@ -23613,6 +23613,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/publicationControl",
             "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
             "publicationControl/localEffectContext/localEffectContext",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
@@ -23633,7 +23634,6 @@
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
             "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
-            "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
             "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
             "publicationControl/init:admitOriginal/init:admitOriginal",
             "publicationControl/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
@@ -23686,26 +23686,15 @@
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
             "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
-            "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
-            "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
-            "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
-            "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
-            "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
@@ -23716,17 +23705,10 @@
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueRunDefinition/init:issueRunDefinition",
             "publicationControl/init:issueRunInvocation/init:issueRunInvocation",
-            "publicationControl/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
-            "publicationControl/init:issueSourceFreeExportedLocalEffectResultArtifact/init:issueSourceFreeExportedLocalEffectResultArtifact",
-            "publicationControl/init:issueSourceFreeLocalEffectIdentity/init:issueSourceFreeLocalEffectIdentity",
-            "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
-            "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
-            "publicationControl/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
             "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
             "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
             "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
             "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
-            "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
             "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
@@ -24697,166 +24679,6 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire",
-            "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
-            "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
-            "publicationControl/init:releaseEffectCommandContentArtifact/init:releaseEffectCommandContentArtifact"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Keyed Content on the original Request"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_command_content.mbt",
-                "anchor": "pub fn borrow_client_effect_command_content("
-              },
-              {
-                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
-                "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
-              },
-              {
-                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
-                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
               }
             ]
           }
@@ -28737,20 +28559,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "manifest",
-            "invocation",
-            "artifact",
-            "source",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:admitLocalTableStorageMapping/init:admitLocalTableStorageMapping",
           "parameters": [
             "wire",
@@ -29034,48 +28842,6 @@
             "capturedPreview",
             "memberIndex"
           ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "artifact",
-            "row",
-            "inputName",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
-          "parameters": [
-            "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire",
-          "parameters": [],
           "async": false
         },
         {
@@ -29552,37 +29318,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "exported",
-            "dependency",
-            "definition",
-            "receipt",
-            "retention",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "importing",
-            "dependency",
-            "definition",
-            "receipt",
-            "retention",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
           "parameters": [
             "chain",
@@ -29623,18 +29358,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
-          "parameters": [
-            "owner",
-            "inputs",
-            "captured",
-            "manifest",
-            "artifact",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
           "parameters": [
             "preview",
@@ -29662,69 +29385,6 @@
           "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
           "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-          "parameters": [
-            "owner",
-            "inputs",
-            "unit",
-            "observations",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
-          "parameters": [
-            "owner",
-            "invocation",
-            "artifacts",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
-          "parameters": [
-            "artifact"
           ],
           "async": false
         },
@@ -29810,80 +29470,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
-          "parameters": [
-            "owner",
-            "unit",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueSourceFreeExportedLocalEffectResultArtifact/init:issueSourceFreeExportedLocalEffectResultArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "exported",
-            "definition",
-            "invocation",
-            "receipt",
-            "retention",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueSourceFreeLocalEffectIdentity/init:issueSourceFreeLocalEffectIdentity",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "artifact",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "importing",
-            "definition",
-            "localInvocation",
-            "receipt",
-            "retention",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "importing",
-            "definition",
-            "localInvocation",
-            "receipt",
-            "retention",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
           "parameters": [
             "original",
@@ -29939,19 +29525,6 @@
           "name": "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence",
           "parameters": [
             "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "manifest",
-            "invocation",
-            "artifact",
-            "source"
           ],
           "async": false
         },
@@ -30083,24 +29656,6 @@
           "parameters": [
             "prepared",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "memberIndex",
-            "artifact",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -30518,14 +30073,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:releaseEffectCommandContentArtifact/init:releaseEffectCommandContentArtifact",
-          "parameters": [
-            "artifact",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
           "parameters": [
             "original"
@@ -30862,6 +30409,11 @@
           "async": false
         },
         {
+          "name": "publicationControl/publicationControl",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "publicationControl/queryTimeControls/queryTimeControls",
           "parameters": [],
           "async": false
@@ -30926,6 +30478,7 @@
         "./runtime-captured-publication-control.mjs",
         "./runtime-content-inference-control.mjs",
         "./runtime-content-publication-control.mjs",
+        "./runtime-effect-artifact-control.mjs",
         "./runtime-effect-capture-control.mjs",
         "./runtime-effect-preparation-control.mjs",
         "./runtime-effect-unit-result-control.mjs",
@@ -30942,7 +30495,578 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "508c1db0f5ab094df4da13e81c572fc85728f03f504859e2818fbdf011184d59"
+      "sha256": "dbb43e3e8c80b1a74e5bc12250905cc324bc01e208000ffab9a845a8d0ceac20"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-artifact-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect import, Artifact, Manifest, and Command Content custody",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectArtifactControls",
+            "createEffectArtifactControls/effectArtifactControls/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
+            "createEffectArtifactControls/effectDependencyControls/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
+            "createEffectArtifactControls/effectDependencyControls/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
+            "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
+            "createEffectArtifactControls/effectArtifactControls/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
+            "createEffectArtifactControls/effectArtifactControls/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
+            "createEffectArtifactControls/effectDependencyControls/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
+            "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeExportedLocalEffectResultArtifact/init:issueSourceFreeExportedLocalEffectResultArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectIdentity/init:issueSourceFreeLocalEffectIdentity",
+            "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:localEffectSourceMatches/init:localEffectSourceMatches"
+          ],
+          "exports": [
+            "createEffectArtifactControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "export function createEffectArtifactControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "moon.clientProgramIssueEffectResultImportObservation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "localEffectManifestTokens.set(value, issued);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectDependencyTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectArtifactTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "original === retained;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "throw new TypeError('Foreign local Effect Result Artifact');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "moon.clientProgramEffectCommandContentRelease(original.view);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-artifact-control.mts",
+                "anchor": "limits.maxFields, limits.maxWork"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectArtifactControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-direct-publication.test.mjs",
+                "anchor": "combined Source preparation stays nominal and forwards only the actual Result export receipt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
+            "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire",
+            "createEffectArtifactControls/effectArtifactControls/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
+            "createEffectArtifactControls/effectArtifactControls/init:releaseEffectCommandContentArtifact/init:releaseEffectCommandContentArtifact"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectArtifactControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectArtifactControls",
+          "parameters": [
+            "moon",
+            "localEffectDependencyTokens",
+            "localEffectManifestTokens",
+            "localEffectArtifactTokens",
+            "localEffectArtifactSources",
+            "localEffectImportTokens",
+            "localEffectImportSources",
+            "localEffectSourceTokens",
+            "localEffectIdentityTokens",
+            "issuanceLimits",
+            "token",
+            "admissionToken",
+            "evidenceToken",
+            "effectSourceToken",
+            "inspectLocalEffectArtifact",
+            "localEffectContext",
+            "currentControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "manifest",
+            "invocation",
+            "artifact",
+            "source",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "artifact",
+            "row",
+            "inputName",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "importing",
+            "dependency",
+            "definition",
+            "receipt",
+            "retention",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
+          "parameters": [
+            "owner",
+            "invocation",
+            "artifacts",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
+          "parameters": [
+            "artifact"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeExportedLocalEffectResultArtifact/init:issueSourceFreeExportedLocalEffectResultArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "exported",
+            "definition",
+            "invocation",
+            "receipt",
+            "retention",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectIdentity/init:issueSourceFreeLocalEffectIdentity",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "artifact",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "importing",
+            "definition",
+            "localInvocation",
+            "receipt",
+            "retention",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "importing",
+            "definition",
+            "localInvocation",
+            "receipt",
+            "retention",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:localEffectSourceMatches/init:localEffectSourceMatches",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "manifest",
+            "invocation",
+            "artifact",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "memberIndex",
+            "artifact",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectArtifactControls/init:releaseEffectCommandContentArtifact/init:releaseEffectCommandContentArtifact",
+          "parameters": [
+            "artifact",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "exported",
+            "dependency",
+            "definition",
+            "receipt",
+            "retention",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
+          "parameters": [
+            "owner",
+            "inputs",
+            "captured",
+            "manifest",
+            "artifact",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+          "parameters": [
+            "owner",
+            "inputs",
+            "unit",
+            "observations",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectArtifactControls/effectDependencyControls/init:issueSourceFreeEffectEvidence/init:issueSourceFreeEffectEvidence",
+          "parameters": [
+            "owner",
+            "unit",
+            "limits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "5c920eafbb02499ce3a8ffe23de930bf17d3b1069fe537c1e6ea43f04375b749"
     },
     {
       "module": "adapters/host-common/runtime-effect-unit-result-control.mjs",

@@ -235,7 +235,7 @@ test('direct invocation forwarding preserves the same namespace originals withou
 test('combined Source preparation stays nominal and forwards only the actual Result export receipt', () => {
   const files = [
     ['../host-common/runtime-effect-preparation-control.mjs', 'prepareCombinedEffectSourceUnit'],
-    ['../host-common/runtime-core.mjs', 'issueDependentLocalEffectResultArtifact'],
+    ['../host-common/runtime-effect-artifact-control.mjs', 'issueDependentLocalEffectResultArtifact'],
   ];
   const methodsCode = files.map(([path, name]) => {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');

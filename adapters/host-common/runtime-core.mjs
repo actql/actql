@@ -28,6 +28,7 @@ import {createInferOriginalReadControls} from './runtime-infer-original-read-con
 import {createModelPreparationControls} from './runtime-model-preparation-control.mjs';
 import {createEffectPreparationControls} from './runtime-effect-preparation-control.mjs';
 import {createEffectUnitResultControls} from './runtime-effect-unit-result-control.mjs';
+import {createEffectArtifactControls} from './runtime-effect-artifact-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -339,6 +340,13 @@ function publicationControl(moon) {
     compiledRunTokens, localEffectDependencyTokens, localEffectArtifactTokens, localEffectManifestTokens,
     issuanceLimits, token, admissionToken, inspectLocalEffectArtifact, localEffectContext,
   });
+  const {effectDependencyControls, effectArtifactControls} =
+    createEffectArtifactControls(moon, {
+      localEffectDependencyTokens, localEffectManifestTokens, localEffectArtifactTokens, localEffectArtifactSources,
+      localEffectImportTokens, localEffectImportSources, localEffectSourceTokens, localEffectIdentityTokens,
+      issuanceLimits, token, admissionToken, evidenceToken, effectSourceToken, inspectLocalEffectArtifact,
+      localEffectContext, currentControl: () => control,
+    });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -1759,108 +1767,7 @@ function publicationControl(moon) {
     },
     ...effectPreparationControls,
     ...effectUnitResultControls,
-    issueSourceFreeEffectEvidence(owner, unit, limits) {
-      issuanceLimits(limits, 'Source-free Effect dependency');
-      const invocation = checked(moon.clientProgramIssueSourceFreeLocalEffectInvocation(
-        owner, unit, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const scope = control.seal('acquisition_scope',
-        '{"sources":[],"version":"actql-acquisition-scope/0.1"}', limits);
-      const value = Object.freeze({invocation, bodies: Object.freeze([
-        Object.freeze({kind: 'acquisition_scope', wire: scope.wire}),
-      ])});
-      localEffectDependencyTokens.set(value, {kind: 'source_free', issued: invocation});
-      return value;
-    },
-    issueEffectResultImportObservation(owner, inputs, captured, manifest,
-      artifact, limits) {
-      issuanceLimits(limits, 'Effect Result import observation');
-      const ownedManifest = localEffectManifestTokens.get(manifest);
-      const ownedArtifact = localEffectArtifactTokens.get(artifact);
-      if (ownedManifest === undefined || ownedArtifact === undefined) {
-        throw new TypeError('Foreign Effect Result import evidence');
-      }
-      const issued = checked(moon.clientProgramIssueEffectResultImportObservation(
-        owner, inputs, captured, ownedManifest, ownedArtifact,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = Object.freeze({
-        wire: moon.clientProgramEffectResultImportObservationJson(issued),
-      });
-      localEffectImportTokens.set(value, issued);
-      const source = localEffectArtifactSources.get(artifact);
-      if (source !== undefined) localEffectImportSources.set(value, source);
-      return value;
-    },
-    issueImportedEffectEvidence(owner, inputs, unit, observations, limits) {
-      issuanceLimits(limits, 'Imported Effect evidence');
-      if (!Array.isArray(observations)) {
-        throw new TypeError('Invalid Effect Result import observations');
-      }
-      const owned = observations.map(value => {
-        const issued = localEffectImportTokens.get(value);
-        if (issued === undefined) {
-          throw new TypeError('Foreign Effect Result import observation');
-        }
-        return issued;
-      });
-      const issued = checked(moon.clientProgramIssueImportedEffectEvidence(
-        owner, inputs, unit, owned, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth));
-      const value = Object.freeze({
-        invocation: moon.clientProgramImportedEffectInvocation(issued),
-        bodies: Object.freeze([
-          Object.freeze({kind: 'acquisition_scope',
-            wire: moon.clientProgramImportedEffectScopeJson(issued)}),
-          ...observations.map(value => Object.freeze({
-            kind: 'result_import_observation', wire: value.wire})),
-          ...moon.clientProgramImportedEffectRelationBodies(issued).map(wire =>
-            Object.freeze({kind: 'acquisition_relation', wire})),
-        ]),
-      });
-      const sources = observations.map(value => localEffectImportSources.get(value));
-      localEffectDependencyTokens.set(value, {kind: 'imported', issued,
-        originalSources: sources.every(source => source !== undefined)
-          ? Object.freeze(sources) : undefined});
-      return value;
-    },
-    issueDependentLocalEffectResultArtifact(owner, inputs, exported,
-      dependency, definition, receipt, retention, context, limits) {
-      issuanceLimits(limits, 'Dependent local Effect Result Artifact');
-      const owned = localEffectDependencyTokens.get(dependency);
-      if (owned === undefined) {
-        throw new TypeError('Foreign local Effect dependency evidence');
-      }
-      const exactContext = localEffectContext(context);
-      const result = owned.kind === 'keyed_source'
-        ? moon.clientProgramIssueInstalledKeyedSourceEffectLocalResultArtifact(
-          owned.parent, owned.plan, owned.request, inputs, exported, owned.issued, definition, receipt,
-          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : owned.kind === 'combined_source'
-        ? moon.clientProgramIssueCombinedSourceEffectLocalResultArtifact(
-          owner, inputs, exported, owned.issued, definition, receipt,
-          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : owned.kind === 'model'
-        ? moon.clientProgramOriginalModelEffectResultArtifact(
-          owned.original, owner, inputs, exported, owned.issued, definition, receipt,
-          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : owned.kind === 'source_free'
-        ? moon.clientProgramIssueSourceFreeExportedLocalEffectResultArtifact(
-          owner, inputs, exported, owned.issued, definition, receipt,
-          token(retention), ...exactContext,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : owned.kind === 'acquired'
-        ? moon.clientProgramIssueAcquiredEffectLocalResultArtifact(
-          owner, inputs, exported, owned.issued, definition, receipt,
-          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : moon.clientProgramIssueImportedEffectLocalResultArtifact(
-          owner, inputs, exported, owned.issued, definition, receipt,
-          token(retention), ...exactContext,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
-      const value = inspectLocalEffectArtifact(checked(result));
-      // Retain the same producer's nominal provenance with its existing
-      // Artifact. This is an alias, not a new Source read or cleanup owner.
-      if (owned.kind === 'acquired') localEffectArtifactSources.set(value, owned.issued);
-      return value;
-    },
+    ...effectDependencyControls,
     bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {
         throw new TypeError('Client Effect Run binding is unavailable');
@@ -1922,193 +1829,7 @@ function publicationControl(moon) {
       )), limits);
     },
     ...captureControls,
-    issueSourceFreeLocalEffectResultArtifact(owner, inputs, memberIndex,
-      importing, definition, localInvocation, receipt, retention, context,
-      limits) {
-      issuanceLimits(limits, 'local Effect Result Artifact');
-      if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          context === null || typeof context !== 'object' ||
-          !['admission', 'runDefinition', 'runInvocation', 'observation']
-            .every(key => context[key] !== undefined)) {
-        throw new TypeError('Invalid local Effect Result Artifact');
-      }
-      const issued = checked(
-        moon.clientProgramIssueSourceFreeLocalEffectResultArtifact(
-          owner, inputs, memberIndex, importing, definition, localInvocation,
-          receipt, token(retention), admissionToken(context.admission),
-          token(context.runDefinition), token(context.runInvocation),
-          evidenceToken(context.observation),
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return inspectLocalEffectArtifact(issued);
-    },
-    issueSourceFreeExportedLocalEffectResultArtifact(owner, inputs, exported,
-      definition, invocation, receipt, retention, context, limits) {
-      issuanceLimits(limits, 'source-free local Manifest Result');
-      return inspectLocalEffectArtifact(checked(
-        moon.clientProgramIssueSourceFreeExportedLocalEffectResultArtifact(
-          owner, inputs, exported, invocation, definition, receipt,
-          token(retention), ...localEffectContext(context),
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
-    },
-    issueSourceFreeLocalEffectTableArtifact(owner, inputs, memberIndex,
-      importing, definition, localInvocation, receipt, retention, context, limits) {
-      issuanceLimits(limits, 'private Table semantic Artifact');
-      if (!Number.isSafeInteger(memberIndex) || memberIndex < 0) {
-        throw new TypeError('Invalid private Table member');
-      }
-      return inspectLocalEffectArtifact(checked(
-        moon.clientProgramIssueSourceFreeLocalEffectTableArtifact(
-          owner, inputs, memberIndex, importing, definition, localInvocation,
-          receipt, token(retention), ...localEffectContext(context),
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
-    },
-    issueDependentLocalEffectTableArtifact(owner, inputs, memberIndex,
-      importing, dependency, definition, receipt, retention, context, limits) {
-      issuanceLimits(limits, 'dependent private Table semantic Artifact');
-      const owned = localEffectDependencyTokens.get(dependency);
-      if (owned === undefined || !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
-        throw new TypeError('Foreign private Table dependency evidence');
-      }
-      const exactContext = localEffectContext(context);
-      const result = owned.kind === 'source_free'
-        ? moon.clientProgramIssueSourceFreeLocalEffectTableArtifact(
-          owner, inputs, memberIndex, importing, definition, owned.issued,
-          receipt, token(retention), ...exactContext,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : owned.kind === 'imported'
-        ? moon.clientProgramIssueImportedLocalEffectTableArtifact(
-          owner, inputs, memberIndex, importing, definition, owned.issued,
-          receipt, token(retention), ...exactContext,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
-        : undefined;
-      if (result === undefined) {
-        throw new TypeError('UnavailableAcquiredPrivateTableEvidence');
-      }
-      return inspectLocalEffectArtifact(checked(result));
-    },
-    issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
-      issuanceLimits(limits, 'local Effect Result Manifest');
-      if (!Array.isArray(artifacts) || artifacts.length === 0) {
-        throw new TypeError('Invalid local Effect Result Manifest');
-      }
-      const owned = artifacts.map(artifact => {
-        const token = localEffectArtifactTokens.get(artifact);
-        if (token === undefined) {
-          throw new TypeError('Foreign local Effect Result Artifact');
-        }
-        return token;
-      });
-      const issued = checked(moon.clientProgramIssueLocalEffectResultManifest(
-        owner, invocation, owned, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth));
-      const value = Object.freeze({
-        identity: moon.clientProgramLocalEffectResultManifestCid(issued),
-        wire: moon.clientProgramLocalEffectResultManifestJson(issued),
-      });
-      localEffectManifestTokens.set(value, issued);
-      return value;
-    },
-    localEffectSourceMatches(owner, inputs, memberIndex, manifest,
-      invocation, artifact, source) {
-      const ownedManifest = localEffectManifestTokens.get(manifest);
-      const ownedArtifact = localEffectArtifactTokens.get(artifact);
-      if (ownedManifest === undefined || ownedArtifact === undefined ||
-          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
-        throw new TypeError('Foreign local Effect source evidence');
-      }
-      return moon.clientProgramLocalEffectSourceMatches(
-        owner, inputs, memberIndex, ownedManifest, invocation,
-        ownedArtifact, effectSourceToken(source));
-    },
-    admitLocalEffectSourceEvidence(owner, inputs, memberIndex, manifest,
-      invocation, artifact, source, limits) {
-      issuanceLimits(limits, 'local Effect source evidence');
-      const ownedManifest = localEffectManifestTokens.get(manifest);
-      const ownedArtifact = localEffectArtifactTokens.get(artifact);
-      if (ownedManifest === undefined || ownedArtifact === undefined ||
-          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
-        throw new TypeError('Foreign local Effect source evidence');
-      }
-      const issued = checked(moon.clientProgramAdmitLocalEffectSourceEvidence(
-        owner, inputs, memberIndex, ownedManifest, invocation,
-        ownedArtifact, effectSourceToken(source), limits.maxWireBytes,
-        limits.maxNodes, limits.maxDepth));
-      const value = Object.freeze({kind: 'captured-local-effect-source'});
-      localEffectSourceTokens.set(value, issued);
-      return value;
-    },
-    issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,
-      limits) {
-      issuanceLimits(limits, 'local Effect identity');
-      const ownedArtifact = localEffectArtifactTokens.get(artifact);
-      if (ownedArtifact === undefined ||
-          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          !Number.isSafeInteger(limits.maxWork) || limits.maxWork < 1) {
-        throw new TypeError('Invalid local Effect identity owner');
-      }
-      const issued = checked(
-        moon.clientProgramIssueSourceFreeLocalEffectIdentity(
-          owner, inputs, memberIndex, ownedArtifact, limits.maxWork,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = Object.freeze({
-        identity: moon.clientProgramLocalEffectIdentityCid(issued),
-        wire: moon.clientProgramLocalEffectIdentityJson(issued),
-      });
-      localEffectIdentityTokens.set(value, issued);
-      return value;
-    },
-    prepareEffectCommandContentArtifact(owner, inputs, memberIndex, artifact, limits) {
-      const owned = localEffectArtifactTokens.get(artifact);
-      if (owned === undefined || ![memberIndex, limits?.maxFields, limits?.maxWork]
-        .every(value => Number.isSafeInteger(value) && value >= 0)) {
-        throw new TypeError('Invalid original Effect Content Artifact');
-      }
-      checked(moon.clientProgramEffectCommandContentPrepareArtifact(
-        owner, inputs, memberIndex, owned, limits.maxFields, limits.maxWork));
-    },
-    releaseEffectCommandContentArtifact(artifact, quantum) {
-      const owned = localEffectArtifactTokens.get(artifact);
-      if (owned === undefined || !Number.isSafeInteger(quantum) || quantum <= 0) {
-        throw new TypeError('Invalid original Effect Content retirement');
-      }
-      return moon.clientProgramEffectCommandContentReleaseArtifact(owned, quantum);
-    },
-    borrowEffectCommandContent(owner, inputs, memberIndex, artifact, row,
-      inputName, limits) {
-      const ownedArtifact = localEffectArtifactTokens.get(artifact);
-      if (ownedArtifact === undefined || typeof inputName !== 'string' ||
-          ![memberIndex, row, limits?.maxFields, limits?.maxWork].every(
-            value => Number.isSafeInteger(value) && value >= 0)) {
-        throw new TypeError('Invalid original Effect Content input');
-      }
-      const view = checked(moon.clientProgramEffectCommandContentBorrow(
-        owner, inputs, memberIndex, ownedArtifact, row, inputName,
-        limits.maxFields, limits.maxWork));
-      let original = {view, owner, inputs, memberIndex,
-        artifact: ownedArtifact, row, inputName};
-      const current = () => original !== undefined &&
-        moon.clientProgramEffectCommandContentMatches(original.view,
-          original.owner, original.inputs, original.memberIndex,
-          original.artifact, original.row, original.inputName);
-      // A physical preparation retains this view before awaiting. Its wire is
-      // observed DATA, not byte custody, a capacity loan or a read/send grant.
-      return Object.freeze({binding: view, current,
-        matchesIssued(issued) {
-          const retained = original;
-          return retained !== undefined &&
-            moon.clientProgramEffectCommandContentMatchesIssued(retained.view, issued) &&
-            original === retained;
-        },
-        wire() {
-          if (!current()) throw new TypeError('Original Effect Content unavailable');
-          return checked(moon.clientProgramEffectCommandContentWire(original.view));
-        },
-        release() {
-          if (original === undefined) return;
-          moon.clientProgramEffectCommandContentRelease(original.view);
-          original = undefined;
-        }});
-    },
+    ...effectArtifactControls,
     recoverEffectCommandContent({compiled, prepared, definition, captured, preview,
       invocation, source, storeAuthorityCid, generationIndex, memberIndex, row,
       inputName, candidate, issued, limits}) {
