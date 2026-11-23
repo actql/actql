@@ -166,7 +166,7 @@ async function reviewEffect(
   const state = await execution.wait();
   if (state.status !== 'waiting_checkpoint' || !state.checkpoint) return state;
   const checkpointId = state.checkpoint.id;
-  const review = await client.reviewCheckpoint(checkpointId);
+  const review = await client.reviewCheckpoint(state.checkpoint.checkpoint_cid);
   const preview: unknown = JSON.parse(new TextDecoder().decode(review.bytes));
   const decision = await choose(preview);
   if (decision === 'defer') return state;
@@ -181,6 +181,7 @@ async function reviewEffect(
 }
 ```
 
+Read the review by its Checkpoint CID and send any decision by Checkpoint ID.
 Choosing `defer` leaves the original Checkpoint waiting without sending the
 Effect. An accepted approval lets that same Run proceed under its sealed
 Preview. An accepted rejection cancels the pending Effect. Inspect the Run

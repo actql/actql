@@ -140,8 +140,8 @@ Checkpoint ckpt_…  rejected
 Run run_…  cancelled
 ```
 
-In a Node application, use `reviewCheckpoint(id)` to read the sealed
-review, then explicitly approve or reject the same ID. To defer, leave the
+In a Node application, use `reviewCheckpoint(checkpointCid)` to read
+the sealed review, then explicitly approve or reject by its Checkpoint ID. To defer, leave the
 Checkpoint waiting and send no resolution. The
 [Node example](node.md#checkpoints) shows all three choices and waits for
 the Run state after the committed decision.
