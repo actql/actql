@@ -36,6 +36,10 @@
 - Package release versions are independent of contract versions. External
   standards, dependencies and toolchains retain their selected versions and
   pins. See [Versioning policy](docs/design/versioning.md).
+- During the `v0.0.x` product release series, remove superseded implementations
+  in the change that replaces them. Follow the
+  [replacement policy](docs/design/versioning.md#replacement-policy-during-v00x)
+  for readers, writers, compatibility shims and fallbacks.
 - Future version changes require an explicit decision and coordinated updates
   to the applicable checks. Do not rewrite published history without explicit approval.
 
