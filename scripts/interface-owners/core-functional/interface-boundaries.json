@@ -106882,7 +106882,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
-      "sha256": "128caafa2b10db259ee0eba491d5325c678ac6188479b1107889e57f51c76fc5",
+      "sha256": "a9e42ad464e5f0e70648cb46414d3eb9766951d8e41646a61537b1aca5ff61b7",
       "exports": [],
       "operations": [
         {
@@ -106924,6 +106924,10 @@
         {
           "name": "client_program_relation_sample_debug_entry_runnable",
           "declaration": "client_program_relation_sample_debug_entry_runnable ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , start_revision : Int , ) - > Result [ Bool , @ client_local_host . InstalledRelationSampleStartIssue ]"
+        },
+        {
+          "name": "client_program_relation_sample_debug_entry_step",
+          "declaration": "client_program_relation_sample_debug_entry_step ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , ) - > String"
         },
         {
           "name": "client_program_relation_sample_debug_next_input",
@@ -107500,6 +107504,82 @@
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
                 "anchor": "let pause_only = @authorization.admit_account_configuration"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_debug_entry_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareDebugEntryResume: installNodeRelationSampleDebugEntry(moon,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryRunnable\")"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryStep\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_entry_runnable("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const ready = checked(runnable.call(moon"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (!current() || live !== original) throw new Error('ClientRunDebugEntryDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener = addAbortListener(signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes : Int64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function closeDebugControl(entry)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the selected Debug receiver waits on the original setup and detaches on abort or retirement'"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-read-public.test.mjs",
+                "anchor": "assert.equal(entry.run_state.boundary.step_id, firstStep);"
               }
             ]
           }

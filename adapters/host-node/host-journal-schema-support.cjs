@@ -33,6 +33,11 @@ const sql = Object.freeze([
   PRIMARY KEY (run_definition_cid, control_revision),
   UNIQUE (run_definition_cid, operation_id)
 ) STRICT`,
+  `CREATE TABLE client_debug_entry_steps (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  logical_map_cid TEXT NOT NULL CHECK (length(CAST(logical_map_cid AS BLOB)) = 71),
+  step_id TEXT NOT NULL CHECK (length(CAST(step_id AS BLOB)) = 71)
+) STRICT`,
   `CREATE TABLE client_debug_entry_parks (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
   submitted_intent_cid TEXT NOT NULL,

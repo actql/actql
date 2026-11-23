@@ -141,10 +141,10 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
     committedGeneration: 6, completedStepId: cid('a'), nextStepId: cid('b'),
     pausedAt: Date.parse('2026-10-11T00:05:00.000Z'), expiresAt: Date.parse('2026-10-11T00:10:00.000Z')};
   let active = false, close, probes = 0, consumed = 0, changePark = false;
-  const out = view(), selected = request();
+  const out = view(), selected = request(), retained = Object.freeze({});
   const paused = {...view(), logical_map_cid: cid('8'), run_state: {...fixturePaused, control_revision: 17}};
   const inspect = installClientRunInspect({authorize: () => true, authorizeCurrent: () => true,
-    lookupOriginal: () => ({runDefinition: {}, runAdmissionEvidence: {prepared: 'p', authorization: 'a'}}),
+    lookupOriginal: () => ({runDefinition: retained, runAdmissionEvidence: {prepared: 'p', authorization: 'a'}}),
     observeOwners: async () => ({owners: [{owner: 'run', kind: 'observed', snapshot: {value: legacyState}}],
       revisionVector: [{owner: {kind: 'run', scopeCid: ref.authorityScopeCid, streamCid: ref.runDefinitionCid},
         snapshotCid: cid('7')}]}),
@@ -158,8 +158,11 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
         committed_generation: 6, completed_step_id: cid('a'), next_step_id: cid('b')});
       return JSON.stringify(paused);
     }},
-    observeDebugPause(request, current) {
+    observeDebugPause(request, current, resume, original, reserveOriginal) {
       assert.deepEqual(request.ref, ref); assert.equal(current(), true);
+      assert.equal(original.runDefinition, retained);
+      if (resume?.() === true) reserveOriginal(1024);
+      else if (resume === undefined) assert.equal(reserveOriginal, undefined);
       probes++;
       return probes === 4 && changePark ? undefined : Object.freeze({...park});
     },
@@ -167,7 +170,8 @@ test('Run Inspect sends funded scalars to Common and rechecks the same original 
       begin(request) {assert.equal(request, selected); assert(!active); active = true;},
       metadata(request, bytes) {
         assert.equal(request, selected); assert(active);
-        assert.equal(bytes, 2 * (2048 + 6 * (ref.namespaceId.length + legacyState.run_id.length)));
+        const parkBytes = 2 * (2112 + 6 * (ref.namespaceId.length + legacyState.run_id.length));
+        assert([parkBytes, parkBytes + 1024].includes(bytes));
       },
       close(request, error) {assert.equal(request, selected); assert(active); active = false; close = error;},
     },

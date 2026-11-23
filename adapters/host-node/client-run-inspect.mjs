@@ -3,7 +3,7 @@
 import {validRunRef, snapshotClientRequest, validWireRunViewShape} from '../../packages/client-wire/index.mjs';
 
 export function installClientRunInspect({authorize, authorizeCurrent, observeOwners, lookupOriginal, control,
-  observeDebugPause, readWorkspace}) {
+  observeDebugPause, authorizeResume, readWorkspace}) {
   if (typeof authorize !== 'function' || typeof authorizeCurrent !== 'function' || typeof observeOwners !== 'function' ||
       typeof lookupOriginal !== 'function' || typeof control?.readCurrentClientRunView !== 'function' ||
       typeof control?.admitRunEvidence !== 'function' ||
@@ -68,7 +68,7 @@ export function installClientRunInspect({authorize, authorizeCurrent, observeOwn
       return view;
     };
     const current = () => {requireCurrent(); return true;};
-    const pause = observeDebugPause?.(selected, current);
+    const pause = observeDebugPause?.(selected, current, undefined, original);
     if (pause === undefined || pause.logicalMapCid === undefined) {
       const view = project('');
       requireCurrent();
@@ -81,19 +81,28 @@ export function installClientRunInspect({authorize, authorizeCurrent, observeOwn
       // string lengths. Six bytes per UTF-16 unit covers JSON escapes.
       // Fixed space includes scalar framing, CIDs, timestamps and delivery.
       const names = selected.ref.namespaceId.length + (typeof state.run_id === 'string' ? state.run_id.length : 0);
-      readWorkspace.metadata(request, 2 * (2048 + 6 * names));
+      const parkBytes = 2 * (2112 + 6 * names);
+      readWorkspace.metadata(request, parkBytes);
       requireCurrent();
-      const step = pause.controlRevision !== undefined;
+      const allowResume = authorizeResume === undefined ? undefined : () => authorizeResume(selected) === true;
+      const reserveOriginal = allowResume === undefined ? undefined
+        : bytes => readWorkspace.metadata(request, parkBytes + bytes);
+      const samePause = (left, right) => right !== undefined && Object.keys(left).every(key => left[key] === right[key]);
+      const selectedPause = allowResume === undefined ? pause : observeDebugPause(selected, current, allowResume, original, reserveOriginal);
+      if (!samePause(pause, selectedPause)) throw unavailable();
+      const step = selectedPause.controlRevision !== undefined;
       const debugParkWire = JSON.stringify({kind: step ? 'logical_step' : 'entry',
-        run_ref: pause.runRef, revision: pause.revision, logical_map_cid: pause.logicalMapCid,
-        paused_at: new Date(pause.pausedAt).toISOString(), expires_at: new Date(pause.expiresAt).toISOString(),
-        ttl_policy: pause.ttlPolicy,
-        ...(step ? {start_revision: pause.startRevision, control_revision: pause.controlRevision,
-          committed_generation: pause.committedGeneration, completed_step_id: pause.completedStepId,
-          next_step_id: pause.nextStepId ?? null} : {})});
+        run_ref: selectedPause.runRef, revision: selectedPause.revision, logical_map_cid: selectedPause.logicalMapCid,
+        paused_at: new Date(selectedPause.pausedAt).toISOString(), expires_at: new Date(selectedPause.expiresAt).toISOString(),
+        ttl_policy: selectedPause.ttlPolicy,
+        ...(selectedPause.resumeAvailable === undefined ? {} : {resume_available: selectedPause.resumeAvailable}),
+        ...(step ? {start_revision: selectedPause.startRevision, control_revision: selectedPause.controlRevision,
+          committed_generation: selectedPause.committedGeneration, completed_step_id: selectedPause.completedStepId,
+          next_step_id: selectedPause.nextStepId ?? null}
+          : selectedPause.nextStepId === undefined ? {} : {next_step_id: selectedPause.nextStepId})});
       const view = project(debugParkWire);
-      const live = observeDebugPause(selected, current);
-      if (live === undefined || Object.keys(pause).some(key => live[key] !== pause[key])) throw unavailable();
+      const live = observeDebugPause(selected, current, allowResume, original, reserveOriginal);
+      if (!samePause(selectedPause, live)) throw unavailable();
       requireCurrent();
       return await consume(view);
     } catch (error) {primary = error; throw error;}

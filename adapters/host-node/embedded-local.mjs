@@ -4130,7 +4130,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (valuesEvidence !== undefined) {
           const issued = {
             runDefinition: held.plan.runDefinition,
-            runAdmissionEvidence: valuesEvidence,
+            runAdmissionEvidence: held.sampleProfile === undefined ? valuesEvidence :
+              {...valuesEvidence, debugEntryProfileWire: held.sampleProfile},
             originalPlan: sourceFreePlanOriginal(held.plan)};
           const explanation = sourceFreePlanExplanation(held.plan);
           if (explanation !== undefined) issued.originalExplanation = explanation;
@@ -5127,7 +5128,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     const held = {preparedSource, preparedSources, keyedSource, managedRun,
       preparedSourceAccess: preparedSource === undefined ? undefined :
-        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
+        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess,
+      ...(debug ? {sampleProfile: sourceFreeDebugProfile} : {})};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     if (debug) {
@@ -5138,7 +5140,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       // stores the initial park. Later pauses inherit that exact deadline.
       held.debugEntryExpiresAt = Math.min(Date.parse(accepted.lookupExpiresAt),
         Date.parse(JSON.parse(accepted.runDefinition.wire).valid_until));
-      held.sampleProfile = sourceFreeDebugProfile;
     }
     if (managedRun !== undefined && observation?.canMeasureResources()) {
       try {preparation.bindManagedComputeRunObservation(submission.preparedProgram, accepted.ref);}
@@ -6547,12 +6548,73 @@ async function openInstalledHost(originalInstallation, preparation) {
       request.ref, {principalId: request.principalId, connection: request.connection, authorize}),
     readWorkspace: preparation.resultReadWorkspace(moon),
   });
+  const authorizeDebugResume = request => hostConnection(request) && resumeImmediate(
+    {principalId: request.principalId, indexKey: request.ref}) === true && hostConnection(request);
+  const reopeningDebugEntries = new Set();
+  const reopenDebugEntry = async (ref, actor, wire) => {
+    const key = ref.runDefinitionCid;
+    const conflict = () => clientOperationError('ClientRunDebugEntryRevisionConflict');
+    reopeningDebugEntries.add(key);
+    let input, transferred = false;
+    try {
+      const original = journal.restoreUnstartedDebugEntry(ref, wire,
+        {current: actor.authorize, reserve: actor.reserveOriginal}, moon, control);
+      const {accepted, park, profile, identity} = original;
+      if (profile !== sourceFreeDebugProfile) throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      const submission = {requestId: accepted.requestId, principalId: actor.principalId,
+        connection: actor.connection, signal: actor.signal};
+      input = preparation.retainEffectRequestInput(moon, submission, original.intent);
+      const prepared = await prepareSubmit(submission);
+      original.assertCurrent();
+      prepareSubmit.assertSubmittedIntent(prepared, original.intent);
+      if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
+          moon.clientProgramAcquisitionCount(prepared) !== 0 ||
+          moon.clientProgramSerializationOccurrences(prepared).length !== 0 ||
+          checked(moon.clientProgramComposedInferOccurrences(prepared)).length !== 0) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      retainRestoredSourceFreeRequest(prepared, accepted.requestId, identity);
+      preparation.bindSourceRequest(submission, prepared);
+      localPreparationCustody.attach(submission, localPreparationCustody.adopt(prepared, submission));
+      const held = {sampleProfile: profile, debugEntryExpiresAt: park.expiresAt};
+      admitPreparedSubmission(submission, held);
+      held.plan = planFor(submission, accepted.runDefinition.wire, identity);
+      const evidence = sourceFreeValuesAdmissionEvidence(held.plan);
+      if (held.plan.runDefinition.identity !== ref.runDefinitionCid ||
+          held.plan.runDefinition.wire !== accepted.runDefinition.wire ||
+          evidence?.prepared !== accepted.runAdmissionEvidence.prepared ||
+          evidence?.authorization !== accepted.runAdmissionEvidence.authorization) {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      }
+      original.assertCurrent();
+      if (dispatchOwner.live(ref)) throw conflict();
+      const ready = Promise.withResolvers();
+      held.retainedDebugEntry = {park, assertCurrent: original.assertCurrent, ready: ready.resolve};
+      const physical = startDispatch(submission, identity, accepted, held,
+        checkpoints === undefined ? undefined : () => settleHeldRun(accepted, runIdOf(accepted)));
+      transferred = true;
+      await Promise.race([ready.promise, physical.then(() => {
+        throw clientOperationError('ClientRunDebugEntryOriginalUnavailable');
+      })]);
+      input.finish('returned');
+      input = undefined;
+      return dispatchOwner.resumeDebugTask(ref, actor, wire);
+    } catch (cause) {
+      if (input === undefined) throw cause;
+      throw retainInstalledHostRuntimeFailure(cause, () => input.finish(transferred ? 'returned' : 'failed'));
+    } finally {
+      reopeningDebugEntries.delete(key);
+    }
+  };
   const lookupControlOperation = preparation === undefined ? undefined : installClientControlOperationLookup({
     authorize: request => hostConnection(request) && authorizeLocalRunImmediate(
       {principalId: request.principalId, indexKey: request.ref}, undefined) === true && hostConnection(request),
-    authorizeResume: request => hostConnection(request) && resumeImmediate(
-      {principalId: request.principalId, indexKey: request.ref}) === true && hostConnection(request),
-    resumeOriginal: dispatchOwner.resumeDebugTask,
+    authorizeResume: authorizeDebugResume,
+    resumeOriginal(ref, actor, wire) {
+      if (reopeningDebugEntries.has(ref.runDefinitionCid)) throw clientOperationError('ClientRunDebugEntryRevisionConflict');
+      return dispatchOwner.live(ref) ? dispatchOwner.resumeDebugTask(ref, actor, wire) :
+        reopenDebugEntry(ref, actor, wire);
+    },
     lookupOriginal: dispatchOwner.lookupDebugResume,
     readWorkspace: preparation.resultReadWorkspace(moon),
   });
@@ -6563,8 +6625,29 @@ async function openInstalledHost(originalInstallation, preparation) {
     observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
     ...(preparation === undefined ? {} : {
-      observeDebugPause: (request, authorize) => dispatchOwner.observeDebugInspect(
-        request.ref, {principalId: request.principalId, connection: request.connection, authorize}),
+      authorizeResume: authorizeDebugResume,
+      observeDebugPause(request, authorize, resume, original, reserveOriginal) {
+        const {ref, principalId, connection} = request;
+        const live = dispatchOwner.observeDebugInspect(ref, {principalId, connection, authorize}, resume);
+        if (live !== undefined || dispatchOwner.live(ref)) return live;
+        const park = journal.observeUnstartedDebugEntry(original, authorize);
+        if (park === undefined || dispatchOwner.live(ref)) return undefined;
+        if (park.kind === 'unavailable') throw clientOperationError('ClientOperationUnavailable');
+        let resumeAvailable;
+        if (resume !== undefined) {
+          const admitted = park.entryStep !== undefined &&
+            original.runAdmissionEvidence?.debugEntryProfileWire === sourceFreeDebugProfile &&
+            resume() === true && authorize() === true
+            ? journal.admitUnstartedDebugEntry(original, {current: authorize, reserve: reserveOriginal}) : undefined;
+          resumeAvailable = admitted !== undefined && admitted.stepId === park.entryStep.stepId &&
+            admitted.logicalMapCid === park.entryStep.logicalMapCid && resume() === true && authorize() === true;
+        }
+        if (dispatchOwner.live(ref)) return undefined;
+        return Object.freeze({revision: park.revision, pausedAt: park.pausedAt, expiresAt: park.expiresAt,
+          logicalMapCid: park.entryStep?.logicalMapCid ?? null, runRef: ref, ttlPolicy: 'original_debug_entry_deadline',
+          ...(park.entryStep === undefined ? {} : {nextStepId: park.entryStep.stepId}),
+          ...(resumeAvailable === undefined ? {} : {resumeAvailable})});
+      },
       readWorkspace: preparation.resultReadWorkspace(moon),
     }),
   });

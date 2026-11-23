@@ -4098,6 +4098,8 @@ pub fn client_program_relation_sample_adoption_matches_profile(@client_local_hos
 
 pub fn client_program_relation_sample_debug_entry_runnable(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Result[Bool, @client_local_host.InstalledRelationSampleStartIssue]
 
+pub fn client_program_relation_sample_debug_entry_step(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> String
+
 pub fn client_program_relation_sample_debug_next_input(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, Int, String, Int, Int) -> Result[(String, String, String, Int, Int)?, String]
 
 pub fn client_program_relation_sample_debug_resume_allowed(@client_local_host.ClientCheckedRelationSampleProfile, @client_local_host.ClientInstalledManagedRun, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], AuthorizationAccount, String, String) -> Bool

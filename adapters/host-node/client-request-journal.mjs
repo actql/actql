@@ -140,6 +140,11 @@ const debugEntryTable = `CREATE TABLE client_debug_entry_parks (
   CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
     (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
 ) STRICT`;
+const debugEntryStepTable = `CREATE TABLE client_debug_entry_steps (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  logical_map_cid TEXT NOT NULL CHECK (length(CAST(logical_map_cid AS BLOB)) = 71),
+  step_id TEXT NOT NULL CHECK (length(CAST(step_id AS BLOB)) = 71)
+) STRICT`;
 const debugTaskPauseTable = `CREATE TABLE client_debug_task_pauses (
   run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
   control_revision INTEGER NOT NULL CHECK (control_revision BETWEEN 2 AND 2147483646 AND control_revision % 2 = 0),
@@ -1107,7 +1112,7 @@ function assertKeyedInventoryRequest(wire, fields) {
 const admissionEvidenceFields = Object.freeze(['authorization', 'prepared',
   'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
   'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
-  'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal']);
+  'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal', 'debugEntryProfileWire']);
 
 function admissionEvidenceShape(value, updateOriginalControl, captured) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -1115,6 +1120,9 @@ function admissionEvidenceShape(value, updateOriginalControl, captured) {
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
+  if (value.debugEntryProfileWire !== undefined &&
+      (typeof value.debugEntryProfileWire !== 'string' ||
+       Buffer.byteLength(value.debugEntryProfileWire) > 4096 || value.debugEntryProfileWire.length === 0)) return false;
   // Bounded original-codec DATA only. Its Common material reader must still
   // admit the full Run/request/evidence pair before a restored use. Presence
   // in this private record is neither that admission nor a resume permission.
@@ -3074,7 +3082,129 @@ export function openClientRequestJournal(directory, {
     : {kind: 'resume_accepted', revision, commandCid: command.self_cid,
       until: command.interval.until, acceptedAt});
 
-  let liveDebugEntry, liveDebugTask;
+  let liveDebugEntry, liveDebugTask, retainedDebugEntry;
+  const readUnstartedDebugPark = (ref, revision) => {
+    if (!hasDebugEntryStorage()) return undefined;
+    retainedDebugEntry ??= database.prepare(`SELECT
+      CASE WHEN length(CAST(r.caller_request_id AS BLOB)) <= 1024 THEN r.caller_request_id END AS request_id,
+      CASE WHEN length(CAST(p.submitted_intent_cid AS BLOB)) = 71 THEN p.submitted_intent_cid END AS intent_cid,
+      p.parked_revision, p.paused_at, p.expires_at,
+      p.expires_at > max(?, e.observed_at) AS fresh
+      FROM client_debug_entry_parks p JOIN client_requests r USING (run_definition_cid)
+      JOIN client_submission_epoch_authority e ON e.singleton = 1
+      WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?
+      AND r.revision = ? AND r.revision = p.parked_revision AND r.dispatch_reserved = 1
+      AND r.physical_start_reserved = 0 AND r.pre_dispatch_failure_confirmed = 0
+      AND r.cancellation_requested = 0 AND r.physical_close_confirmed = 0
+      AND r.observed_terminal_outcome IS NULL AND p.resume_wire IS NULL
+      AND p.resume_revision IS NULL AND p.resume_accepted_at IS NULL`);
+    return retainedDebugEntry.get(epochClock(undefined, false).observed_at,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, revision);
+  };
+  const sameUnstartedDebugPark = (park, latest) => latest !== undefined &&
+    Object.keys(park).every(key => key === 'fresh' || park[key] === latest[key]);
+  let debugEntryStepSchema, selectDebugEntryStep;
+  const hasDebugEntryStepStorage = () => {
+    debugEntryStepSchema ??= database.prepare(`SELECT substr(sql, 1, ?) AS sql FROM sqlite_schema
+      WHERE type = 'table' AND name = 'client_debug_entry_steps'`);
+    const row = debugEntryStepSchema.get(debugEntryStepTable.length + 1);
+    if (row !== undefined && row.sql !== debugEntryStepTable) fail('UnknownClientRequestJournalFormat');
+    return row !== undefined;
+  };
+  const readDebugEntryStep = ref => {
+    if (!hasDebugEntryStepStorage()) return undefined;
+    selectDebugEntryStep ??= database.prepare(`SELECT
+      CASE WHEN length(CAST(logical_map_cid AS BLOB)) = 71 THEN logical_map_cid END AS logicalMapCid,
+      CASE WHEN length(CAST(step_id AS BLOB)) = 71 THEN step_id END AS stepId
+      FROM client_debug_entry_steps WHERE run_definition_cid = ?`);
+    const step = selectDebugEntryStep.get(ref.runDefinitionCid);
+    if (step !== undefined && (!cid(step.logicalMapCid) || !cid(step.stepId))) fail('ClientRunDebugEntryCorrupt');
+    return step === undefined ? undefined : Object.freeze({logicalMapCid: step.logicalMapCid, stepId: step.stepId});
+  };
+  const sameDebugEntryStep = (left, right) => left?.stepId === right?.stepId &&
+    left?.logicalMapCid === right?.logicalMapCid;
+  const sameDebugOriginalRow = (original, latest) => latest !== undefined &&
+    Object.keys(original).every(key => key === 'state_revision' ||
+      key === 'state_observation_key' || original[key] === latest[key]);
+  function readUnstartedDebugOriginal(ref, revision, {current, reserve},
+    requestControl, publicationControl, observedFrame) {
+    ensureOpen();
+    requireDebugEntryAuthority(current);
+    if (typeof reserve !== 'function') {
+      fail('ClientRunDebugEntryInvalidSelection');
+    }
+    const readPark = () => readUnstartedDebugPark(ref, revision);
+    const parked = database.isTransaction ? undefined : readPark();
+    if (parked === undefined) fail('ClientRunDebugEntryRevisionConflict');
+    if (parked.fresh !== 1) fail('ClientRunDebugEntryExpired');
+    const {request_id: requestId, intent_cid: intentCid} = parked;
+    if (!text(requestId) || !cid(intentCid)) fail('ClientRunDebugEntryCorrupt');
+    const entryStep = readDebugEntryStep(ref);
+    if (entryStep === undefined) {
+      if (observedFrame !== undefined) return undefined;
+      fail('ClientRunDebugEntryOriginalUnavailable');
+    }
+    const fields = {requestId, authorityScopeCid: ref.authorityScopeCid};
+    const extent = () => sampleOriginalStoredBytes(ref.namespaceId, fields, ref.runDefinitionCid);
+    const measured = extent();
+    if (observedFrame !== undefined && measured.phase === null) return undefined;
+    // Reuse the bounded metadata constructor on the same Read. The
+    // retained row and its repeated authentication can coexist with the
+    // ready intent and command snapshot until dispatch takes custody.
+    const bytes = 4096 + 2 * measured.stored_bytes;
+    if (bytes > 2147483647) fail('ClientRunDebugEntryOriginalUnavailable');
+    const reserved = reserve(bytes);
+    if (reserved !== undefined) {
+      if (typeof reserved?.then === 'function') void Promise.resolve(reserved).catch(() => {});
+      fail('ClientRunDebugEntryInvalidSelection');
+    }
+    const assertOriginalExtent = () => {
+      const next = extent();
+      if (next.phase !== measured.phase || next.original_bytes !== measured.original_bytes ||
+          next.stored_bytes > measured.stored_bytes) fail('ClientRunDebugEntryOriginalUnavailable');
+    };
+    const assertSelected = () => {
+      requireDebugEntryAuthority(current);
+      const latest = database.isTransaction ? undefined : readPark();
+      if (!sameUnstartedDebugPark(parked, latest) || !sameDebugEntryStep(entryStep, readDebugEntryStep(ref))) {
+        fail('ClientRunDebugEntryRevisionConflict');
+      }
+      if (latest.fresh !== 1) fail('ClientRunDebugEntryExpired');
+      assertOriginalExtent();
+    };
+    assertSelected();
+    const row = readRunDefinitionRow(ref, requestControl);
+    if (row === undefined) fail('ClientRunDebugEntryRevisionConflict');
+    if (observedFrame !== undefined && !sameDebugOriginalRow(retainRunStateFrame(observedFrame, ref).row, row)) {
+      fail('ClientRunDebugEntryRevisionConflict');
+    }
+    const frame = observedFrame ?? admitRunDefinitionRow(row, requestControl, publicationControl);
+    const park = journal.observeUnstartedDebugEntry(frame, current);
+    const profile = frame.runAdmissionEvidence?.debugEntryProfileWire;
+    if (park?.kind === 'unavailable') fail('ClientRunDebugEntryExpired');
+    if (park?.kind !== 'parked' || typeof profile !== 'string') fail('ClientRunDebugEntryOriginalUnavailable');
+    const identity = retainedIdentity(row, requestControl);
+    const input = journal.originalSubmittedIntent(identity,
+      {namespaceId: ref.namespaceId, assertOriginalExtent}, requestControl, publicationControl);
+    if (input === undefined || requestControl.clientSubmittedIntentRequestsDebug(input.intent) !== true ||
+        requestControl.clientSubmittedIntentCid(input.intent) !== intentCid) {
+      fail('ClientRunDebugEntryOriginalUnavailable');
+    }
+    const assertCurrent = () => {
+      assertSelected();
+      const latest = readRunDefinitionRow(ref, requestControl);
+      if (!sameDebugOriginalRow(row, latest)) {
+        fail('ClientRunDebugEntryRevisionConflict');
+      }
+      input.assertCurrent();
+      assertSelected();
+      return true;
+    };
+    assertCurrent();
+    return Object.freeze({park, entryStep,
+      profile, identity, intent: input.intent, assertCurrent,
+      accepted: Object.freeze({...frame, lookupExpiresAt: row.lookup_expires_at})});
+  }
   let debugTaskPauseSchema, latestDebugTaskPause, debugTaskPauseByOperation;
   const hasDebugTaskPauseStorage = () => {
     debugTaskPauseSchema ??= database.prepare(`SELECT substr(sql, 1, ?) AS sql FROM sqlite_schema
@@ -4438,10 +4568,11 @@ export function openClientRequestJournal(directory, {
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;
     // missing selected custody cannot be repaired from current caller options.
-    originalSubmittedIntent(identity, {namespaceId, sampleRunRef, reserveSampleRead}, requestControl,
+    originalSubmittedIntent(identity, {namespaceId, sampleRunRef, reserveSampleRead, assertOriginalExtent}, requestControl,
       publicationControl) {
       ensureOpen();
       if (!text(namespaceId) ||
+          assertOriginalExtent !== undefined && typeof assertOriginalExtent !== 'function' ||
           typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function' ||
           sampleRunRef !== undefined && (typeof requestControl.clientSubmittedIntentRequestsDebug !== 'function' ||
             typeof reserveSampleRead !== 'function')) {
@@ -4482,6 +4613,7 @@ export function openClientRequestJournal(directory, {
               fail('ClientRunSampleOriginalCapacity');
             }
           }
+          assertOriginalExtent?.();
           assertSubmissionCustody();
           assertIntentCustody();
           const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
@@ -4545,7 +4677,11 @@ export function openClientRequestJournal(directory, {
           throw error;
         }
       };
-      const original = transaction.run(readOriginal);
+      // This new selected original only reads authenticated committed rows.
+      // A current Inspect must not reserve an unrelated SQLite writer.
+      const selectOriginal = () => assertOriginalExtent === undefined
+        ? transaction.run(readOriginal) : transaction.read(readOriginal);
+      const original = selectOriginal();
       if (original === undefined) return undefined;
       const checkOriginal = current => {
         if (current === undefined || current.intentCid !== original.intentCid ||
@@ -4560,7 +4696,7 @@ export function openClientRequestJournal(directory, {
         assertCurrent() {
           try {
             ensureOpen();
-            checkOriginal(transaction.run(readOriginal));
+            checkOriginal(selectOriginal());
           } catch (error) {
             previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
             throw error;
@@ -4842,10 +4978,11 @@ export function openClientRequestJournal(directory, {
     // is never evidence that Compute did not run.
     // The selected owner enters this gate before handing work to the Driver.
     // Historical and ordinary Runs keep their existing physical-start path.
-    parkDebugEntry(identity, {ref, expectedRevision, expiresAt, current}, requestControl, publicationControl) {
+    parkDebugEntry(identity, {ref, expectedRevision, expiresAt, current, entryStep}, requestControl, publicationControl) {
       ensureOpen();
       if (!validDebugEntryRef(ref) || !Number.isInteger(expectedRevision) || expectedRevision < 0 ||
-          !Number.isSafeInteger(expiresAt) || expiresAt <= 0 || typeof current !== 'function') {
+          !Number.isSafeInteger(expiresAt) || expiresAt <= 0 || typeof current !== 'function' ||
+          entryStep !== undefined && (!cid(entryStep?.logicalMapCid) || !cid(entryStep?.stepId))) {
         fail('ClientRunDebugEntryInvalidSelection');
       }
       requireDebugEntryAuthority(current);
@@ -4860,8 +4997,9 @@ export function openClientRequestJournal(directory, {
         const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
         const definition = row === undefined ? undefined :
           retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
-        if (definition === undefined || row.caller_request_id !== fields.requestId ||
-            JSON.parse(row.run_admission_evidence_json)?.submittedIntentCid !== intent) {
+        const evidence = row === undefined ? undefined : JSON.parse(row.run_admission_evidence_json);
+        if (definition === undefined || row.caller_request_id !== fields.requestId || evidence?.submittedIntentCid !== intent ||
+            entryStep !== undefined && typeof evidence.debugEntryProfileWire !== 'string') {
           fail('ClientRunDebugEntryOriginalUnavailable');
         }
         const validUntil = Math.min(Date.parse(row.lookup_expires_at), Date.parse(JSON.parse(definition.wire).valid_until));
@@ -4872,7 +5010,8 @@ export function openClientRequestJournal(directory, {
               entry.expires_at !== expiresAt || row.revision !== entry.parked_revision ||
               entry.resume_wire !== null || row.dispatch_reserved !== 1 || row.physical_start_reserved !== 0 ||
               row.pre_dispatch_failure_confirmed !== 0 || row.cancellation_requested !== 0 ||
-              row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null) {
+              row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null ||
+              !sameDebugEntryStep(entryStep, readDebugEntryStep(ref))) {
             fail('ClientRunDebugEntryRevisionConflict');
           }
           const observedAt = epochClock().observed_at;
@@ -4893,6 +5032,14 @@ export function openClientRequestJournal(directory, {
         database.prepare(`INSERT INTO client_debug_entry_parks
           (run_definition_cid, submitted_intent_cid, parked_revision, expires_at, paused_at) VALUES (?, ?, ?, ?, ?)`)
           .run(ref.runDefinitionCid, intent, expectedRevision + 1, expiresAt, pausedAt);
+        if (entryStep !== undefined) {
+          if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(debugEntryStepTable)) {
+            fail('ClientRunDebugEntryOriginalUnavailable');
+          }
+          if (!hasDebugEntryStepStorage()) database.exec(debugEntryStepTable);
+          database.prepare(`INSERT INTO client_debug_entry_steps (run_definition_cid, logical_map_cid, step_id)
+            VALUES (?, ?, ?)`).run(ref.runDefinitionCid, entryStep.logicalMapCid, entryStep.stepId);
+        }
         requireDebugEntryAuthority(current);
         return Object.freeze({kind: 'parked', revision: expectedRevision + 1, expiresAt, pausedAt});
       });
@@ -5067,6 +5214,59 @@ export function openClientRequestJournal(directory, {
       });
       if (handoff !== undefined) capture(handoff);
       return result;
+    },
+    // Restore only the input and policy bound to an unconsumed entry park.
+    // The existing Debug CAS remains the sole authority to wake this owner.
+    restoreUnstartedDebugEntry(ref, commandWire, scope, requestControl, publicationControl) {
+      ensureOpen();
+      requireDebugEntryAuthority(scope.current);
+      if (!validDebugEntryRef(ref)) fail('ClientRunDebugEntryInvalidSelection');
+      const {expected_control_revision: revision} = readDebugEntryCommand(commandWire, ref, publicationControl);
+      return readUnstartedDebugOriginal(ref, revision, scope, requestControl, publicationControl);
+    },
+    admitUnstartedDebugEntry(frame, scope) {
+      ensureOpen();
+      const original = retainRunStateFrame(frame, frame.ref);
+      requireDebugEntryAuthority(scope.current);
+      if (frame.runAdmissionEvidence?.debugEntryProfileWire === undefined) return undefined;
+      return readUnstartedDebugOriginal(frame.ref, frame.revision, scope,
+        original.requestControl, original.publicationControl, frame)?.entryStep;
+    },
+    // A detached read can recover the committed entry observation. It
+    // neither installs a live controller nor gives a historical command
+    // permission to wake this Run.
+    observeUnstartedDebugEntry(frame, current) {
+      ensureOpen();
+      const retained = runStateFrames.get(frame);
+      if (retained === undefined) fail('ForeignRunStateObservation');
+      requireDebugEntryAuthority(current);
+      const intent = frame.runAdmissionEvidence?.submittedIntentCid;
+      if (frame.physicalStartReserved !== false || !frame.dispatchReserved ||
+          frame.preDispatchFailureConfirmed || frame.cancellationRequested ||
+          frame.physicalCloseConfirmed || frame.observedTerminalOutcome !== null ||
+          !cid(intent) || database.isTransaction) return undefined;
+      const {ref} = frame;
+      const read = () => readUnstartedDebugPark(ref, frame.revision);
+      const park = read();
+      const entryStep = park === undefined ? undefined : readDebugEntryStep(ref);
+      requireDebugEntryAuthority(current);
+      if (park === undefined) return undefined;
+      const latest = database.isTransaction ? undefined : read();
+      const latestStep = latest === undefined ? undefined : readDebugEntryStep(ref);
+      requireDebugEntryAuthority(current);
+      if (!sameUnstartedDebugPark(park, latest) || latest.fresh !== 1 ||
+          !sameDebugEntryStep(entryStep, latestStep)) {
+        return Object.freeze({kind: 'unavailable'});
+      }
+      const lifetime = retained.publicationControl.runDefinitionLifetime(frame.runDefinition, ref.runDefinitionCid);
+      if (park.intent_cid !== intent || park.request_id !== frame.requestId ||
+          !validDebugPauseTime(park) || !Number.isInteger(park.parked_revision) ||
+          park.parked_revision < 1 || park.parked_revision > 2147483645 ||
+          !(park.expires_at <= Math.min(Date.parse(retained.row.lookup_expires_at), Date.parse(lifetime.validUntil)))) {
+        fail('ClientRunDebugEntryCorrupt');
+      }
+      return entryStep === undefined ? debugEntryResult(park) :
+        Object.freeze({...debugEntryResult(park), entryStep});
     },
     // Only the exact still-unconsumed park can back an actionable live view.
     // Select scalars without opening the stored command or changing the clock.

@@ -40559,7 +40559,8 @@
           "name": "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect",
           "parameters": [
             "ref",
-            "actor"
+            "actor",
+            "authorizeResume"
           ],
           "async": false
         },
@@ -41121,7 +41122,8 @@
           "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause",
           "parameters": [
             "authorize",
-            "inspect"
+            "inspect",
+            "authorizeResume"
           ],
           "async": false
         },
@@ -41162,6 +41164,14 @@
         {
           "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry",
+          "parameters": [
+            "parked",
+            "currentOriginal"
+          ],
           "async": false
         },
         {
@@ -44021,7 +44031,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
-                "anchor": "{nextStepId: wait.parked.nextStepId}"
+                "anchor": "{nextStepId}"
               }
             ],
             "verification": [
@@ -44039,7 +44049,7 @@
               },
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "the consumed original cannot back Inspect"
+                "anchor": "test('the retained entry observation survives reopen without granting a start or disclosing a lost park'"
               }
             ]
           }
@@ -44493,6 +44503,90 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:reopenEntry/init:reopenEntry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "parkEntry(identity, expectedRevision, expiresAt)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "acceptDebugEntryResume(ref, {commandWire, current, capture, receiptOriginal}, publicationControl)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "debugResumeCid = await debugController.parkEntry(requested, claim.revision, debugEntryExpiresAt)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (handoff !== undefined) capture?.(handoff);"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "physicalStarted = journal.reservePhysicalStart(requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.revision !== entry.parked_revision"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.unresolved = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener[Symbol.dispose]();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup, undefined, resumesDebug);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (wait.parked.controlRevision === undefined)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('the installed entry waiter accepts one committed command before the original physical claim'"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the live Dispatcher parks the same sampled setup before physical start and admits another authorized client'"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('restore permits only the funded original unconsumed Debug entry'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -44517,7 +44611,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a8864ccc0a5a2dc56dc552bc9e24a76fffbda84e8acc01891f955426a798d34f",
+      "sha256": "06f73beef394aca20ea81c0202a7f59fdb14834742af04fb78c6f1f5523172b8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -50697,7 +50791,8 @@
             "<module>",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
-            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause"
           ],
           "exports": [],
           "attributes": {
@@ -66966,8 +67061,7 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3"
           ],
           "exports": [],
           "attributes": {
@@ -67542,7 +67636,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "observeDebugPause: (request, authorize) => dispatchOwner.observeDebugInspect("
+                "anchor": "observeDebugPause(request, authorize, resume, original, reserveOriginal) {"
               }
             ],
             "failure": [
@@ -68211,8 +68305,7 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation#2"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation"
           ],
           "exports": [],
           "attributes": {
@@ -68379,6 +68472,86 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeDebugResume/authorizeDebugResume",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "function installClientControlOperationLookup("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const answer = receipt === undefined"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "accepted_from_revision: acceptedFromRevision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "WITH task AS ("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (database.isTransaction) fail('ClientRunDebugEntryLookupUnavailable');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "RunObservationAccessDenied"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => readWorkspace.metadata(request, bytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runExplanationContext, runSample, lookupControlOperation, resumeRun: lookupControlOperation, attach,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "control lookup reads the committed original while another WAL writer holds an update"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('restore permits only the funded original unconsumed Debug entry'"
               }
             ]
           }
@@ -68801,6 +68974,13 @@
           "parameters": [
             "ref",
             "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeDebugResume/authorizeDebugResume",
+          "parameters": [
+            "request"
           ],
           "async": false
         },
@@ -69334,6 +69514,17 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/init:observeDebugPause/init:observeDebugPause",
+          "parameters": [
+            "request",
+            "authorize",
+            "resume",
+            "original",
+            "reserveOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
             "request",
@@ -69353,14 +69544,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
           "parameters": [
             "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
-          "parameters": [
-            "request",
-            "authorize"
           ],
           "async": false
         },
@@ -69405,14 +69588,16 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/init:resumeOriginal/init:resumeOriginal",
           "parameters": [
-            "request"
+            "ref",
+            "actor",
+            "wire"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
           "parameters": [
             "request"
           ],
@@ -69876,6 +70061,21 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/physical/physical",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reopenDebugEntry/reopenDebugEntry/reopenDebugEntry#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
@@ -72753,7 +72953,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "1d1c0e1263e9b3355cc70b11d6a27cb6556d3ce806f7ca58532559e5ba3763f5"
+      "sha256": "41fd09f31e6121500d309c442f264d068598316b0b5102699020ce14190f0f75"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

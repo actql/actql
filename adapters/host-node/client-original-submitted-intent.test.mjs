@@ -97,7 +97,7 @@ async function assertRecoveredDebugReceiptOnSdk(d, command, recovered, table) {
 const evidence = Object.freeze({prepared: 'original-prepared-wire', authorization: 'original-authorization-wire'});
 
 async function fixture(t, {selected = true, readOnly = false, link = true, debug = false,
-  journalOptions, shared, runName = 'same-original', inspect = false} = {}) {
+  journalOptions, shared, runName = 'same-original', inspect = false, debugEntryProfileWire} = {}) {
   const path = shared?.path ?? await mkdtemp(join(tmpdir(), 'actql-original-submitted-intent-'));
   let journal = shared?.journal ?? openClientRequestJournal(path, journalOptions);
   if (shared === undefined) {
@@ -142,6 +142,7 @@ async function fixture(t, {selected = true, readOnly = false, link = true, debug
     }), limits);
     runAdmissionEvidence = {prepared: prepared.wire, authorization: authorization.wire};
   }
+  if (debugEntryProfileWire !== undefined) runAdmissionEvidence = {...runAdmissionEvidence, debugEntryProfileWire};
   const accepted = journal.acceptDefinition(identity, {namespaceId: fields.namespaceId,
     runDefinition: definition, runAdmissionEvidence,
     lookupExpiresAt: '2099-01-01T00:00:00.000Z', ...(link ? {submission} : {})}, moon, publication);
@@ -176,9 +177,9 @@ async function fixture(t, {selected = true, readOnly = false, link = true, debug
     }};
 }
 
-async function debugEntryFixture(t, debug = true, journalOptions, inspect = false) {
+async function debugEntryFixture(t, debug = true, journalOptions, inspect = false, debugEntryProfileWire) {
   let now = Date.parse('2026-11-22T06:00:00Z');
-  const f = await fixture(t, {debug, selected: false, inspect,
+  const f = await fixture(t, {debug, selected: false, inspect, debugEntryProfileWire,
     journalOptions: {...journalOptions, submissionEpochNow: () => now}});
   f.journal.reserveDispatch(f.identity, fields, moon, publication);
   const ref = f.accepted.ref, expectedRevision = f.readRow().revision, current = () => true;
@@ -204,6 +205,99 @@ async function debugEntryFixture(t, debug = true, journalOptions, inspect = fals
     lookup: (check = current) => f.journal.lookupDebugEntry(ref, {current: check}, publication),
     expire: () => {now = expiresAt;}, restoreClock: () => {now = expiresAt - 1;}};
 }
+
+test('the retained entry observation survives reopen without granting a start or disclosing a lost park', async t => {
+  const {f, ref, park, resume, expire, restoreClock, current} = await debugEntryFixture(t);
+  const original = () => f.journal.lookupRunDefinition(ref, moon, publication);
+  const observe = (frame = original(), check = current) => f.journal.observeUnstartedDebugEntry(frame, check);
+  assert.equal(observe(), undefined);
+  const parked = park();
+  const oldFrame = original();
+  assert.deepEqual(observe(), parked);
+  f.reopen();
+  assert.throws(() => observe(oldFrame), {code: 'ForeignRunStateObservation'});
+  const retained = f.readRow();
+  assert.deepEqual(observe(), parked);
+  assert.equal(f.journal.admitUnstartedDebugEntry(original(), {current, reserve: assert.fail}), undefined);
+  assert.deepEqual(f.readRow(), retained);
+  assert.equal(retained.physical_start_reserved, 0);
+  let checks = 0;
+  assert.throws(() => observe(original(), () => ++checks === 1), {code: 'ClientRunDebugEntryDenied'});
+  expire();
+  assert.deepEqual(observe(), {kind: 'unavailable'});
+  restoreClock();
+  assert.deepEqual(observe(), parked);
+  const intent = moon.clientSubmittedIntentCid(f.intent);
+  const changeParkIntent = value => f.update('UPDATE client_debug_entry_parks SET submitted_intent_cid = ? WHERE run_definition_cid = ?',
+    value, ref.runDefinitionCid);
+  changeParkIntent(cid('f'));
+  assert.throws(() => observe(), {code: 'ClientRunDebugEntryCorrupt'});
+  changeParkIntent(intent);
+  const beforeAccept = original();
+  assert.equal(resume().kind, 'resume_accepted');
+  assert.equal(observe(beforeAccept), undefined);
+  assert.equal(observe(), undefined);
+  assert.equal(f.readRow().physical_start_reserved, 0);
+});
+
+test('restore permits only the funded original unconsumed Debug entry', async t => {
+  const profile = 'durable-original-profile';
+  const {f, ref, current, park, resume, expire, restoreClock, command} =
+    await debugEntryFixture(t, true, undefined, false, profile);
+  const entryStep = {logicalMapCid: cid('9'), stepId: cid('a')};
+  const parked = park({entryStep});
+  f.reopen();
+  const accepted = f.readRow();
+  let quoted = 0;
+  const restored = (reserve = bytes => {quoted = bytes;}, wire = command().wire, authorize = current) =>
+    f.journal.restoreUnstartedDebugEntry(ref, wire, {current: authorize, reserve}, moon, publication);
+  const original = restored();
+  assert.deepEqual(original.park, {...parked, entryStep});
+  assert.equal(original.accepted.runDefinition.wire, accepted.run_definition_wire);
+  assert.equal(original.profile, profile);
+  assert.equal(moon.clientRequestRelation(original.identity, f.identity), 1);
+  assert.equal(moon.clientSubmittedIntentCid(original.intent), moon.clientSubmittedIntentCid(f.intent));
+  assert.ok(quoted > 4096);
+  assert.deepEqual(f.readRow(), accepted);
+  const frame = f.journal.lookupRunDefinition(ref, moon, publication);
+  const writer = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    writer.exec('BEGIN IMMEDIATE');
+    writer.prepare('UPDATE client_debug_entry_parks SET expires_at = expires_at + 1').run();
+    assert.deepEqual(f.journal.admitUnstartedDebugEntry(frame, {current, reserve(bytes) {
+      assert.equal(bytes, quoted);
+    }}), entryStep);
+    assert.equal(writer.isTransaction, true);
+  } finally {
+    if (writer.isTransaction) writer.exec('ROLLBACK');
+    writer.close();
+  }
+  assert.throws(() => f.journal.admitUnstartedDebugEntry({...frame}, {current, reserve: assert.fail}),
+    {code: 'ForeignRunStateObservation'});
+  assert.throws(() => restored(bytes => {
+    assert.equal(bytes, quoted);
+    throw new Error('one short: ' + (bytes - 1));
+  }), /one short/);
+  assert.throws(() => restored(assert.fail, command({expected_control_revision: parked.revision - 1}).wire),
+    {code: 'ClientRunDebugEntryRevisionConflict'});
+  let permission = true;
+  assert.throws(() => restored(() => {permission = false;}, command().wire, () => permission),
+    {code: 'ClientRunDebugEntryDenied'});
+  assert.throws(() => restored(assert.fail, command({run_ref: {...ref, authorityScopeCid: cid('f')}}).wire),
+    {code: 'ClientRunDebugEntryForeignCommand'});
+  expire();
+  assert.throws(() => restored(assert.fail), {code: 'ClientRunDebugEntryExpired'});
+  restoreClock();
+  f.mutate(evidence => {evidence.debugEntryProfileWire = 'x'.repeat(profile.length);});
+  assert.throws(() => original.assertCurrent(), {code: 'ClientRunDebugEntryRevisionConflict'});
+  f.mutate(evidence => {evidence.debugEntryProfileWire = profile;});
+  assert.equal(original.assertCurrent(), true);
+  assert.deepEqual(f.readRow(), accepted);
+  assert.equal(resume().kind, 'resume_accepted');
+  assert.throws(() => original.assertCurrent(), {code: 'ClientRunDebugEntryRevisionConflict'});
+  assert.throws(() => restored(assert.fail), {code: 'ClientRunDebugEntryRevisionConflict'});
+  assert.equal(f.readRow().physical_start_reserved, 0);
+});
 
 test('a retained Debug entry requires one exact resume across Journal reopen', async t => {
   const {default: support} = await import('./host-journal-schema-support.cjs');

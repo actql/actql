@@ -236,11 +236,13 @@ function readDebugJournalCustody(directory, debugRef, normalRef) {
   } finally {db.close();}
 }
 
-test('installed Local SDK Debug steps one original and a cold process reads its Sample and receipt', async t => {
+for (const restart of [false, true]) test(
+  restart ? 'installed Local SDK steps the retained unstarted Debug entry after Host reopen'
+    : 'installed Local SDK Debug steps one original and a cold process reads its Sample and receipt', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-interactive-debug-public-'));
   const principalId = userInfo().username, keys = generateKeyPairSync('ed25519');
   const records = [];
-  const observation = createHostObservationConnection({deliver: record => records.push(record)});
+  let observation = createHostObservationConnection({deliver: record => records.push(record)});
   let physicalStarts = 0, client, completed = false;
   let boundary = 'connect';
   const authorization = {
@@ -280,7 +282,7 @@ test('installed Local SDK Debug steps one original and a cold process reads its 
     installation: {...installation, observation}});
   const deadline = Date.now() + 15000;
   boundary = 'submit_debug';
-  const run = await client.start(debugProgram, {executionProfile: 'debug',
+  let run = await client.start(debugProgram, {executionProfile: 'debug',
     submissionRef: client.newSubmission({nonce: 'interactive-debug-original'})});
   boundary = 'observe_entry_pause';
   const entry = await inspectLivePause(run, 1, deadline);
@@ -293,6 +295,27 @@ test('installed Local SDK Debug steps one original and a cold process reads its 
   assert.equal(entry.compiled_plan_cid, plan.compiled_plan_cid);
   assert.equal(entry.logical_map_cid, plan.logical_map.self_cid);
   const revision = entry.run_state.control_revision;
+  const firstStep = plan.logical_map.steps[0].step_id;
+  assert.equal(entry.run_state.boundary.step_id, firstStep);
+  assert.deepEqual(entry.available_operations, ['inspect', 'resume']);
+  if (restart) {
+    boundary = 'reopen_unstarted_debug_entry';
+    await client.close();
+    client = undefined;
+    await drain(observation);
+    assert.deepEqual(starts(records, physicalStarts), {physical: 0, source: 0, compute: 0, model: 0, effect: 0});
+    observation = createHostObservationConnection({deliver: record => records.push(record)});
+    client = await connect({mode: 'local', owner: 'local', durability: 'durable',
+      installation: {...installation, observation}});
+    run = await client.attach(entry.run_ref);
+    const restored = await run.inspect();
+    assert.equal(restored.run_state.control_revision, revision);
+    assert.equal(restored.run_state.stop_reason, 'entry');
+    assert.equal(restored.run_state.boundary.step_id, firstStep);
+    assert.equal(restored.logical_map_cid, plan.logical_map.self_cid);
+    assert.deepEqual(restored.available_operations, ['inspect', 'resume']);
+    assert.equal(physicalStarts, 0);
+  }
   const stale = await run.prepareResume({operationId: 'stale-entry', expectedRevision: revision - 1, until: 'step'});
   await assert.rejects(run.resume(stale), {code: 'ClientRunDebugEntryRevisionConflict', status: 409});
   assert.equal(physicalStarts, 0);
