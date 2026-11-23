@@ -67390,7 +67390,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "20d66a773e3e79367c331d097187cc5d68db0ccc7cc42284b575e1e67ce726fb",
+      "sha256": "65326046a204aab2aa51ff191f9818338bd1e02a6c87b9405f1b56fa45775002",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -67545,29 +67545,12 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/inputAvailable/inputAvailable",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun",
-          "parameters": [
-            "child"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
           "parameters": [
             "name"
           ],
@@ -67575,25 +67558,20 @@
         },
         {
           "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "value",
             "index"
@@ -67601,7 +67579,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "value",
             "index"
@@ -67623,21 +67601,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun#10",
-          "parameters": [
-            "preparedProgram",
-            "plan",
-            "sourceCapacity"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -67649,7 +67613,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#12",
+          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -67709,22 +67673,6 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
-            "preparedProgram",
-            "plan",
-            "store",
-            "principalId",
-            "signal",
-            "ledger",
-            "modelController",
-            "inputToken",
-            "keyedSource",
-            "retainExecution"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#8",
-          "parameters": [
             "facts",
             "store",
             "principalId",
@@ -67733,7 +67681,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#9",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "prepared",
             "plan",
@@ -67743,6 +67691,15 @@
             "restored",
             "retainCleanup",
             "managedOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#9",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "sourceCapacity"
           ],
           "async": false
         },
@@ -67786,24 +67743,18 @@
             "installNodeContentRun/installNodeContentRun/content/content#2",
             "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
             "installNodeContentRun/installNodeContentRun/init:close/init:close",
-            "installNodeContentRun/installNodeContentRun/inputAvailable/inputAvailable",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun/live/live",
-            "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun#5",
             "installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun#7",
             "installNodeContentRun/installNodeContentRun#8",
-            "installNodeContentRun/installNodeContentRun#9",
             "installNodeContentRun/run/run"
           ],
           "exports": [
@@ -68294,7 +68245,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#10"
+            "installNodeContentRun/installNodeContentRun#9"
           ],
           "exports": [],
           "attributes": {
@@ -68498,7 +68449,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#11"
+            "installNodeContentRun/installNodeContentRun#10"
           ],
           "exports": [],
           "attributes": {
@@ -69551,7 +69502,7 @@
         {
           "operations": [
             "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
-            "installNodeContentRun/installNodeContentRun#12"
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -69659,7 +69610,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#6"
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun#5"
           ],
           "exports": [],
           "attributes": {
@@ -69772,7 +69723,6 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/sdk/host-port.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/runtime-result.mjs",
         "./content-recovery-dispatch.mjs",
@@ -69780,12 +69730,162 @@
         "./generated-content-write.mjs",
         "./installed-content-family.mjs",
         "./installed-keyed-content-capture.mjs",
+        "./keyed-content-run-recovery.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
         "./serialization-result-publication.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/keyed-content-run-recovery.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4e4312c63013a9c5e51b8a4ca15b84fc38d1bcf307460f8746bdbd0e14cef475",
+      "role": "physical-io",
+      "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
+      "exports": [
+        "createKeyedContentRunRecovery"
+      ],
+      "operations": [
+        {
+          "name": "createKeyedContentRunRecovery",
+          "parameters": [
+            "publications",
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "store",
+            "principalId",
+            "signal",
+            "ledger",
+            "modelController",
+            "inputToken",
+            "keyedSource",
+            "retainExecution"
+          ],
+          "async": true
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery/inputAvailable/inputAvailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKeyedContentRunRecovery/createKeyedContentRunRecovery/verifyRead/verifyRead",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createKeyedContentRunRecovery",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery/createKeyedContentRunRecovery#2",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery/inputAvailable/inputAvailable",
+            "createKeyedContentRunRecovery/createKeyedContentRunRecovery/verifyRead/verifyRead"
+          ],
+          "exports": [
+            "createKeyedContentRunRecovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "export function createKeyedContentRunRecovery("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "modelController, inputToken, keyedSource, retainExecution}: RecoveryInputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "canonicalValueJson(originalBinding) !== canonicalValueJson(currentBinding())"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "get recoveryFrame() { return frame; }"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "await keyedSource.adapter.verifyKeyedRead({preparedProgram,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "throw new TypeError('InstalledCapturedContentBindingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "keyedSource.adapter.keyedLedgerCapacity(keyedSource.acquisition)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/keyed-content-run-recovery.mts",
+                "anchor": "run.captureKeyed({preparedProgram, plan, acquisition: keyedSource.acquisition,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-file-content-declaration.test.mjs",
+                "anchor": "test('captured Content inventory restores every original holding before enabling its shared issuer'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../../packages/sdk/host-port.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "rationale": "Original keyed Content recovery preserves the model input, selected Source and physical Store confirmations under the installed Content Run owner."
     },
     {
       "module": "adapters/host-node/content-recovery-dispatch.mjs",

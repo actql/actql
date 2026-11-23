@@ -12,7 +12,7 @@ import {publishCompletedEffectFreeRun} from '../host-common/completed-run-public
 import {installEffectContentFamily} from './installed-content-family.mjs';
 import {createContentRecoveryDispatch} from './content-recovery-dispatch.mjs';
 import {installRunKeyedContentCapture} from './installed-keyed-content-capture.mjs';
-import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {createKeyedContentRunRecovery} from './keyed-content-run-recovery.mjs';
 
 export function installNodeContentRun({moon, core, registry, values, fragment, ordered,
   namespaceId, authorityScopeCid, storeAuthorityCid, ownerPrincipal, now, authorize,
@@ -522,59 +522,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   run.captureKeyed = options => installRunKeyedContentCapture({moon, publications,
     control: core.contentCaptureControl, namespaceId, authorityScopeCid, storeAuthorityCid,
     ownerPrincipal, now, authorize, ...options});
-  // The caller retains this original frame on its existing Model/input owner
-  // before allocation. Authentication supplies metadata only; the original
-  // Source gate and physical Store must independently confirm current access
-  // and every holding. This never opens a Source request or a payload writer.
-  run.recoverKeyed = async ({preparedProgram, plan, store, principalId, signal, ledger,
-    modelController, inputToken, keyedSource, retainExecution}) => {
-    publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
-    const original = modelController.capturedContent(inputToken, plan.runDefinition.identity);
-    if (original === undefined || typeof keyedSource?.adapter?.verifyKeyedRead !== 'function') {
-      throw new TypeError('InstalledCapturedContentRecoveryUnavailable');
-    }
-    const originalBinding = modelController.capturedContentBinding(inputToken, plan.runDefinition.identity);
-    const currentBinding = () => keyedSource.adapter.keyedRecoveryBinding(keyedSource.prepared);
-    const recheckBinding = () => {
-      if (originalBinding === undefined ||
-          canonicalValueJson(originalBinding) !== canonicalValueJson(currentBinding())) {
-        throw new TypeError('InstalledCapturedContentBindingMismatch');
-      }
-    };
-    recheckBinding();
-    const inputAvailable = () => {
-      try { return modelController.capturedContent(inputToken, plan.runDefinition.identity) === original; }
-      catch { return false; }
-    };
-    const verifyRead = async () => {
-      signal?.throwIfAborted();
-      recheckBinding();
-      if (!inputAvailable()) throw new Error('InstalledContentAuthorityUnavailable');
-      await keyedSource.adapter.verifyKeyedRead({preparedProgram,
-        keyedAcquisition: keyedSource.acquisition, preparedKeyed: keyedSource.prepared,
-        sourceAccess: keyedSource.sourceAccess, signal});
-      signal?.throwIfAborted();
-      recheckBinding();
-      if (!inputAvailable()) throw new Error('InstalledContentAuthorityUnavailable');
-    };
-    // The caller supplies its declared shared Run Ledger. No parallel Ledger
-    // or sampled-row capacity is introduced for restoring captured references.
-    const capacity = keyedSource.adapter.keyedLedgerCapacity(keyedSource.acquisition);
-    let frame;
-    frame = run.captureKeyed({preparedProgram, plan, acquisition: keyedSource.acquisition,
-      ledger, maxBytes: capacity.maxBytes, maxWork: capacity.maxWork, store, principalId,
-      signal, inputAvailable, sourceBinding: originalBinding,
-      retainExecution: child => retainExecution(Object.freeze({...child,
-        // Allocation/confirmation can fail after the owner is retained. Keep
-        // the exact receiver with that same cleanup responsibility for retry.
-        get recoveryFrame() { return frame; },
-        retryRecovery: () => frame.recoverInventory({keyedAcquisition: keyedSource.acquisition,
-          inventory: original, verifyRead}),
-      }))});
-    await frame.recoverInventory({keyedAcquisition: keyedSource.acquisition,
-      inventory: original, verifyRead});
-    return frame;
-  };
+  run.recoverKeyed = createKeyedContentRunRecovery({publications, run});
   run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}) => {
     // The Model compilation already retains this same serialization component.
     // Reuse its original holder instead of issuing a second compiled Run.
