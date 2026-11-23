@@ -57263,7 +57263,7 @@
     {
       "module": "adapters/host-node/installed-calendar.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4dcdd437ec372a547e83203ee4dac6fabc4fe9bf901c17b45885df5e4d785c6b",
+      "sha256": "c0373c7a60cdc04516253c68b4ffcba7710e374d79909f552381d0ee72670dbc",
       "role": "physical-io",
       "owner": "Existing MoonBit calendar profile Owner and trusted semantic-artifact selection",
       "exports": [
@@ -57505,6 +57505,10 @@
               {
                 "path": "adapters/host-node/installed-calendar.test.mjs",
                 "anchor": "test('omitted Calendar installation retains the original environment without enabling a profile', () => {"
+              },
+              {
+                "path": "adapters/host-node/installed-calendar.test.mjs",
+                "anchor": "test('Calendar admission reserves the exact artifact before returning the selected checker', () => {"
               },
               {
                 "path": "src/calendar_profile/pkg.generated.mbti",
