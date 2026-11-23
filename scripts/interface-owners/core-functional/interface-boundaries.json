@@ -19530,7 +19530,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5028c9572cee6c5ed72e6a887a59cdde7bb2ac883d7a9d00f7743dcf03578fee"
+      "sha256": "856a6cc0e0e2fd986ba9d5c459b80f8a0be5a5387c64ab8957460b66ae110548"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48399,7 +48399,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_effect_explanation.mbt",
-      "sha256": "c00eb5739658b679c707135a4272b226089211b2bb369b6ffc560cdb5bc72a29",
+      "sha256": "5cc6a9303bd2621806cbfed83a4fbe67f52192ed4fab22dbe6e05f553b612850",
       "operations": [
         {
           "name": "[I]capture_request_effect_run_explanation",
@@ -48407,7 +48407,7 @@
         },
         {
           "name": "[I]discard_original_effect_run_explanation",
-          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , decline ? : Bool"
+          "declaration": "[ I ] discard_original_effect_run_explanation ( original : ClientRequestEffectRunExplanation [ I ] , definition : @ publication . PublicationContract , reclaim ? : Bool"
         },
         {
           "name": "[I]original_effect_run_explanation_facets",
@@ -68455,7 +68455,7 @@
         },
         {
           "name": "client_program_discard_effect_run_explanation",
-          "declaration": "client_program_discard_effect_run_explanation ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , decline : Bool , ) - > Result [ Unit , @ client_local_host . ClientRequestStaticContextIssue ]"
+          "declaration": "client_program_discard_effect_run_explanation ( original : @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] , definition : @ publication . PublicationContract , reclaim : Bool , ) - > Result [ Unit , @ client_local_host . ClientRequestStaticContextIssue ]"
         },
         {
           "name": "client_program_effect_preparation_input_read",
@@ -69014,7 +69014,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "a92add69a7a942a37683e8430f46d3d7fef05617f43e32d496bb599b7de4cb67"
+      "sha256": "a25733a0be59a8aa5af82b40b077dc178b3578210eeb829543a7fd54846a1f63"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -79062,6 +79062,153 @@
               {
                 "path": "src/connectors_builtin_node/client_events_publication_identity_wbtest.mbt",
                 "anchor": "test \"original retained Events first dispatch coexists with its original explanation loan\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/physical_resources/preparation_scratch.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0a55d0c48b80b9feed7ce0ce8c576a022ee2928eec2e3760a6b40fb7f8a97351",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation and original body-borrow owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P,V]measure_working_preparation_scratch",
+          "declaration": "[ I , P , V ] measure_working_preparation_scratch ( owner : PreparationCapacity [ I , P ] , input : I , control_bytes : Int64 , construct : ( ) - > V , ) - > Result [ ( V , PreparationScratch [ I , P ] ) , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]return_preparation_scratch",
+          "declaration": "[ I , P ] return_preparation_scratch ( owner : PreparationCapacity [ I , P ] , input : I , scratch : PreparationScratch [ I , P ] , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P,V]measure_working_preparation_scratch",
+            "[I,P]return_preparation_scratch"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"Native Work preflight grows backing without a logical debit before the Journal resize\""
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_scratch_wbtest.mbt",
+                "anchor": "test \"one measured scratch return preserves later Plan backing"
               }
             ]
           }

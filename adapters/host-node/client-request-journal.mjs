@@ -87,6 +87,21 @@ function inspectExplanationContextOriginalStorage(database) {
   return row !== undefined;
 }
 
+// Context-bearing Effect runs retain the exact Plan under their structural
+// allowance. The first admission commits this companion with the other
+// facets. Ordinary Plan-only and Facts-only admissions keep their own shape.
+const explanationPlanOriginalTable = `CREATE TABLE client_run_explanation_plan_originals (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_context_originals(run_definition_cid) ON DELETE CASCADE,
+  compiled_plan_wire TEXT NOT NULL,
+  plan_view_wire TEXT NOT NULL
+) STRICT`;
+function inspectExplanationPlanOriginalStorage(database) {
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_run_explanation_plan_originals'")
+    .get(explanationPlanOriginalTable.length + 1);
+  if (row !== undefined && row.sql !== explanationPlanOriginalTable) fail('UnknownClientRequestJournalFormat');
+  return row !== undefined;
+}
+
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
 const text = value => typeof value === 'string' &&
@@ -2951,19 +2966,29 @@ export function openClientRequestJournal(directory, {
       fail('InvalidClientRunLookup');
     }
     const facet = inspectExplanationOriginalStorage(database);
-    const context = includeContext && inspectExplanationContextOriginalStorage(database);
+    const plan = inspectExplanationPlanOriginalStorage(database);
+    const context = inspectExplanationContextOriginalStorage(database);
+    if ((context && !facet) || (plan && !context)) fail('ClientRequestJournalCorrupt');
+    const contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
+    const planPresent = plan ? 'p.run_definition_cid IS NOT NULL' : '0';
     const selected = {facet, from: `FROM client_requests r${facet
       ? ' LEFT JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid' : ''}${context
-      ? ' LEFT JOIN client_run_explanation_context_originals c ON c.run_definition_cid = r.run_definition_cid' : ''}
+      ? ' LEFT JOIN client_run_explanation_context_originals c ON c.run_definition_cid = r.run_definition_cid' : ''}${plan
+      ? ' LEFT JOIN client_run_explanation_plan_originals p ON p.run_definition_cid = r.run_definition_cid' : ''}
       WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`,
     facts: facet ? 'f.facts_wire' : 'NULL',
     present: facet ? 'f.run_definition_cid IS NOT NULL' : '0',
-    matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1'};
+    matches: facet ? '(f.run_definition_cid IS NULL OR (f.namespace_id = r.namespace_id AND f.authority_scope_cid = r.authority_scope_cid))' : '1',
+    plan: planPresent,
+    planMatches: plan ? `((${planPresent}) = (${contextPresent}) AND (NOT (${planPresent}) OR f.run_definition_cid IS NOT NULL))`
+      : `(NOT (${contextPresent}))`,
+    compiledPlan: plan ? 'p.compiled_plan_wire' : 'NULL',
+    planView: plan ? 'p.plan_view_wire' : 'NULL'};
     if (includeContext) {
       selected.context = context ? 'c.context_wire' : 'NULL';
       selected.contextHash = context ? 'c.context_wire_sha256' : 'NULL';
       selected.template = context ? 'c.invocation_template_wire' : 'NULL';
-      selected.contextPresent = context ? 'c.run_definition_cid IS NOT NULL' : '0';
+      selected.contextPresent = contextPresent;
     }
     return selected;
   };
@@ -2977,7 +3002,12 @@ export function openClientRequestJournal(directory, {
       CASE WHEN typeof(r.program_definition_cid)='text' AND length(CAST(r.program_definition_cid AS BLOB))=71
         AND typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71 THEN 1 ELSE 0 END AS bindings_bounded,
       CASE WHEN ${sql.present} THEN CASE WHEN typeof(${sql.facts})='text'
-        THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes
+        THEN length(CAST(${sql.facts} AS BLOB)) ELSE -1 END ELSE 0 END AS facts_bytes,
+      ${sql.plan} AS plan_present, ${sql.planMatches} AS plan_matches,
+      CASE WHEN ${sql.plan} THEN CASE WHEN typeof(${sql.compiledPlan})='text'
+        THEN length(CAST(${sql.compiledPlan} AS BLOB)) ELSE -1 END ELSE 0 END AS compiled_plan_bytes,
+      CASE WHEN ${sql.plan} THEN CASE WHEN typeof(${sql.planView})='text'
+        THEN length(CAST(${sql.planView} AS BLOB)) ELSE -1 END ELSE 0 END AS plan_view_bytes
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} THEN CASE WHEN typeof(${sql.context})='text'
           THEN length(CAST(${sql.context} AS BLOB)) ELSE -1 END ELSE 0 END AS context_bytes,
@@ -2987,17 +3017,22 @@ export function openClientRequestJournal(directory, {
           THEN length(CAST(${sql.template} AS BLOB)) ELSE -1 END ELSE 0 END AS invocation_template_bytes` : ''}
       ${sql.from}`).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
     if (row === undefined) return undefined;
-    if (row.facet_matches !== 1 || row.bindings_bounded !== 1 ||
-        ![row.definition_bytes, row.evidence_bytes, row.facts_bytes].every(value =>
+    if (row.facet_matches !== 1 || row.bindings_bounded !== 1 || row.plan_matches !== 1 ||
+        ![row.definition_bytes, row.evidence_bytes, row.facts_bytes, row.compiled_plan_bytes, row.plan_view_bytes].every(value =>
           Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
-        row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1) {
+        row.definition_bytes < 1 || row.facts_present === 1 && row.facts_bytes < 1 ||
+        row.plan_present === 1 && (row.compiled_plan_bytes < 1 || row.plan_view_bytes < 1 ||
+          row.facts_present !== 1)) {
       fail('ClientRequestJournalCorrupt');
     }
     const contextBytes = includeContext ? row.context_bytes : 0;
     const invocationTemplateBytes = includeContext ? row.invocation_template_bytes : 0;
+    const planBytes = row.compiled_plan_bytes + row.plan_view_bytes;
     if (!Number.isSafeInteger(contextBytes) || contextBytes < 0 ||
         !Number.isSafeInteger(invocationTemplateBytes) || invocationTemplateBytes < 0 ||
         row.facts_bytes + contextBytes + invocationTemplateBytes > maxRunDefinitionWireBytes ||
+        row.plan_present === 1 &&
+          row.facts_bytes + planBytes + contextBytes + invocationTemplateBytes > maxOriginalExplanationWireBytes ||
         row.context_present === 1 &&
           (contextBytes < 1 || row.context_hash_bytes !== 64 ||
             invocationTemplateBytes < 1 || row.facts_present !== 1)) {
@@ -3006,7 +3041,11 @@ export function openClientRequestJournal(directory, {
     const extent = {definitionBytes: row.definition_bytes, evidenceBytes: row.evidence_bytes,
       factsBytes: row.facts_bytes,
       storedBytes: row.definition_bytes + row.evidence_bytes + row.facts_bytes +
-        contextBytes + invocationTemplateBytes + (contextBytes > 0 ? 64 : 0) + 142};
+        contextBytes + invocationTemplateBytes + planBytes + (contextBytes > 0 ? 64 : 0) + 142};
+    if (row.plan_present === 1) {
+      extent.compiledPlanBytes = row.compiled_plan_bytes;
+      extent.planViewBytes = row.plan_view_bytes;
+    }
     if (includeContext) {
       extent.contextBytes = contextBytes;
       extent.invocationTemplateBytes = invocationTemplateBytes;
@@ -3014,12 +3053,17 @@ export function openClientRequestJournal(directory, {
     return Object.freeze(extent);
   };
   const readExplanationSelection = (ref, extent, includeContext) => {
-    const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes];
+    const compiledPlanBytes = extent?.compiledPlanBytes ?? 0, planViewBytes = extent?.planViewBytes ?? 0;
+    const planBytes = compiledPlanBytes + planViewBytes;
+    const bounds = [extent?.definitionBytes, extent?.evidenceBytes, extent?.factsBytes, compiledPlanBytes, planViewBytes];
     if (includeContext) bounds.push(extent?.contextBytes, extent?.invocationTemplateBytes);
     if (!bounds.every(value => Number.isSafeInteger(value) && value >= 0 && value <= maxRunDefinitionWireBytes) ||
         includeContext && (extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes > maxRunDefinitionWireBytes ||
           (extent.contextBytes === 0) !== (extent.invocationTemplateBytes === 0) ||
           extent.contextBytes > 0 && extent.factsBytes === 0) ||
+        (compiledPlanBytes === 0) !== (planViewBytes === 0) ||
+        planBytes > 0 && (extent.factsBytes === 0 ||
+          extent.factsBytes + planBytes + (includeContext ? extent.contextBytes + extent.invocationTemplateBytes : 0) > maxOriginalExplanationWireBytes) ||
         extent.definitionBytes < 1 || extent.storedBytes !== bounds.reduce((sum, value) => sum + value,
           142 + (includeContext && extent.contextBytes > 0 ? 64 : 0))) {
       fail('InvalidClientRunExplanationExtent');
@@ -3039,7 +3083,12 @@ export function openClientRequestJournal(directory, {
       CASE WHEN typeof(r.parameter_values_cid)='text' AND length(CAST(r.parameter_values_cid AS BLOB))=71
         THEN r.parameter_values_cid ELSE NULL END AS parameters_cid,
       CASE WHEN ${sql.present} AND typeof(${sql.facts})='text' AND length(CAST(${sql.facts} AS BLOB)) BETWEEN 1 AND ?
-        THEN ${sql.facts} ELSE NULL END AS facts_wire
+        THEN ${sql.facts} ELSE NULL END AS facts_wire,
+      ${sql.plan} AS plan_present, ${sql.planMatches} AS plan_matches,
+      CASE WHEN ${sql.plan} AND typeof(${sql.compiledPlan})='text'
+        AND length(CAST(${sql.compiledPlan} AS BLOB)) = ? THEN ${sql.compiledPlan} ELSE NULL END AS compiled_plan_wire,
+      CASE WHEN ${sql.plan} AND typeof(${sql.planView})='text'
+        AND length(CAST(${sql.planView} AS BLOB)) = ? THEN ${sql.planView} ELSE NULL END AS plan_view_wire
       ${includeContext ? `, ${sql.contextPresent} AS context_present,
         CASE WHEN ${sql.contextPresent} AND typeof(${sql.context})='text'
           AND length(CAST(${sql.context} AS BLOB)) = ? THEN ${sql.context} ELSE NULL END AS context_wire,
@@ -3049,14 +3098,16 @@ export function openClientRequestJournal(directory, {
           AND length(CAST(${sql.template} AS BLOB)) = ? THEN ${sql.template} ELSE NULL END AS invocation_template_wire` : ''}
       ${sql.from}`);
     const row = includeContext
-      ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+      ? statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, compiledPlanBytes, planViewBytes,
         extent.contextBytes, extent.invocationTemplateBytes,
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)
-      : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes,
+      : statement.get(extent.definitionBytes, extent.evidenceBytes, extent.factsBytes, compiledPlanBytes, planViewBytes,
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
     if (row === undefined) return undefined;
-    if (row.facet_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
+    if (row.facet_matches !== 1 || row.plan_matches !== 1 || row.definition_wire === null || !cid(row.program_cid) || !cid(row.parameters_cid) ||
         row.evidence_present === 1 && row.evidence_wire === null || row.facts_present === 1 && row.facts_wire === null ||
+        (row.plan_present === 1) !== (planBytes > 0) ||
+        row.plan_present === 1 && (row.compiled_plan_wire === null || row.plan_view_wire === null || row.facts_present !== 1) ||
         includeContext && ((row.context_present === 1) !== (extent.contextBytes > 0) ||
           row.context_present === 1 && (row.context_wire === null ||
             typeof row.context_wire_sha256 !== 'string' || !/^[0-9a-f]{64}$/u.test(row.context_wire_sha256) ||
@@ -3070,6 +3121,10 @@ export function openClientRequestJournal(directory, {
     const result = {definitionWire: row.definition_wire, admissionEvidenceWire: row.evidence_wire ?? undefined,
       programDefinitionCid: row.program_cid, parameterValuesCid: row.parameters_cid,
       factsWire: row.facts_present === 1 ? row.facts_wire : undefined};
+    if (row.plan_present === 1) {
+      result.compiledPlanWire = row.compiled_plan_wire;
+      result.planViewWire = row.plan_view_wire;
+    }
     if (includeContext) {
       result.contextWire = row.context_present === 1 ? row.context_wire : undefined;
       result.invocationTemplateWire = row.context_present === 1 ? row.invocation_template_wire : undefined;
@@ -3088,6 +3143,12 @@ export function openClientRequestJournal(directory, {
       database.prepare(`INSERT INTO client_run_explanation_context_originals
         (run_definition_cid, context_wire, context_wire_sha256, invocation_template_wire) VALUES (?, ?, ?, ?)`)
         .run(ref.runDefinitionCid, original.contextWire, original.contextWireSha256, original.invocationTemplateWire);
+    }
+    if (original.plan !== undefined) {
+      if (!inspectExplanationPlanOriginalStorage(database)) database.exec(explanationPlanOriginalTable);
+      database.prepare(`INSERT INTO client_run_explanation_plan_originals
+        (run_definition_cid, compiled_plan_wire, plan_view_wire) VALUES (?, ?, ?)`)
+        .run(ref.runDefinitionCid, original.plan.compiledPlanWire, original.plan.planViewWire);
     }
   };
 
@@ -3175,15 +3236,6 @@ export function openClientRequestJournal(directory, {
         // return the loser's loan without comparing or backfilling its facets.
         const compareOriginal = originalExplanation?.contextWire === undefined ||
           existing.run_definition_cid === runDefinitionCid;
-        const proposedPlan = admittedEvidence?.logicalPlanOriginal;
-        if (compareOriginal && proposedPlan !== undefined) {
-          const originalPlan = existingEvidence?.logicalPlanOriginal;
-          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
-          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
-              originalPlan.planViewWire !== proposedPlan.planViewWire) {
-            fail('ClientRequestPlanEvidenceMismatch');
-          }
-        }
         if (compareOriginal && originalExplanation !== undefined) {
           const original = readExplanationOriginal({namespaceId,
             authorityScopeCid: fields.authorityScopeCid, runDefinitionCid: existing.run_definition_cid});
@@ -3200,6 +3252,24 @@ export function openClientRequestJournal(directory, {
                 originalExplanation.invocationTemplateWire, existing.run_definition_cid);
             if (context === undefined) fail('ClientRequestExplanationEvidenceMissing');
             if (context.original_matches !== 1) fail('ClientRequestExplanationEvidenceMismatch');
+          }
+        }
+        if (compareOriginal && originalExplanation?.plan !== undefined) {
+          const proposed = originalExplanation.plan;
+          const stored = inspectExplanationPlanOriginalStorage(database) ?
+            database.prepare(`SELECT (compiled_plan_wire = ? AND plan_view_wire = ?) AS original_matches
+              FROM client_run_explanation_plan_originals WHERE run_definition_cid = ?`)
+              .get(proposed.compiledPlanWire, proposed.planViewWire, existing.run_definition_cid) : undefined;
+          if (stored === undefined) fail('ClientRequestPlanEvidenceMissing');
+          if (stored.original_matches !== 1 || existingEvidence?.logicalPlanOriginal !== undefined) {
+            fail('ClientRequestPlanEvidenceMismatch');
+          }
+        } else if (compareOriginal && admittedEvidence?.logicalPlanOriginal !== undefined) {
+          const proposed = admittedEvidence.logicalPlanOriginal;
+          const stored = existingEvidence?.logicalPlanOriginal;
+          if (stored === undefined) fail('ClientRequestPlanEvidenceMissing');
+          if (stored.compiledPlanWire !== proposed.compiledPlanWire || stored.planViewWire !== proposed.planViewWire) {
+            fail('ClientRequestPlanEvidenceMismatch');
           }
         }
         const proposedInfer = admittedEvidence?.inferRunOriginal;
@@ -3684,7 +3754,8 @@ export function openClientRequestJournal(directory, {
       ensureOpen();
       return primarySchemaSqlSupport === undefined ||
         primarySchemaSqlSupport.includes(explanationOriginalTable) &&
-        primarySchemaSqlSupport.includes(explanationContextOriginalTable);
+        primarySchemaSqlSupport.includes(explanationContextOriginalTable) &&
+        primarySchemaSqlSupport.includes(explanationPlanOriginalTable);
     },
     originalExplanationContextLimit() {
       return journal.supportsOriginalExplanationContext() ? maxOriginalExplanationWireBytes : undefined;
@@ -3742,7 +3813,7 @@ export function openClientRequestJournal(directory, {
                 typeof template.value !== 'string' || template.value.length === 0) {
               fail('InvalidClientRunExplanationOriginal');
             }
-            if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(explanationContextOriginalTable)) {
+            if (!journal.supportsOriginalExplanationContext()) {
               fail('ClientRequestExplanationStorageUnavailable');
             }
             captured.contextWire = companion.value;
@@ -3797,8 +3868,16 @@ export function openClientRequestJournal(directory, {
           if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
           fail('InvalidClientRunPlanOriginal', cause);
         }
-        runAdmissionEvidence = {...runAdmissionEvidence,
-          logicalPlanOriginal: Object.freeze({...original})};
+        if (explanationOriginal?.contextWire !== undefined) {
+          const bytes = Buffer.byteLength(original.compiledPlanWire) + Buffer.byteLength(original.planViewWire) +
+            Buffer.byteLength(explanationOriginal.factsWire) + Buffer.byteLength(explanationOriginal.contextWire) +
+            Buffer.byteLength(explanationOriginal.invocationTemplateWire);
+          if (bytes > maxOriginalExplanationWireBytes) fail('InvalidClientRunAdmissionEvidence');
+          explanationOriginal = Object.freeze({...explanationOriginal, plan: Object.freeze({...original})});
+        } else {
+          runAdmissionEvidence = {...runAdmissionEvidence,
+            logicalPlanOriginal: Object.freeze({...original})};
+        }
       }
       const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
@@ -3869,6 +3948,34 @@ export function openClientRequestJournal(directory, {
       if (row === undefined) return undefined;
       if(original!==undefined && sameRunStateRow(row,original.row)) return originalFrame;
       return admitRunDefinitionRow(row, requestControl, publicationControl);
+    },
+    // Only the explicit authorized original Plan operation selects the
+    // structural companion. Ordinary Run state and replay keep their old row.
+    lookupRunPlanOriginal(ref, requestControl, publicationControl) {
+      const original = journal.lookupRunDefinition(ref, requestControl, publicationControl);
+      if (original === undefined) return undefined;
+      const sql = explanationReadSelection(ref, false);
+      const row = database.prepare(`SELECT ${sql.matches} AS original_ref_matches,
+        ${sql.planMatches} AS plan_matches, ${sql.plan} AS plan_present,
+        CASE WHEN ${sql.plan} AND typeof(${sql.compiledPlan})='text'
+          AND length(CAST(${sql.compiledPlan} AS BLOB)) > 0
+          AND length(CAST(${sql.compiledPlan} AS BLOB)) + length(CAST(${sql.planView} AS BLOB)) <= ?
+          THEN ${sql.compiledPlan} ELSE NULL END AS compiled_plan_wire,
+        CASE WHEN ${sql.plan} AND typeof(${sql.planView})='text'
+          AND length(CAST(${sql.planView} AS BLOB)) > 0
+          AND length(CAST(${sql.compiledPlan} AS BLOB)) + length(CAST(${sql.planView} AS BLOB)) <= ?
+          THEN ${sql.planView} ELSE NULL END AS plan_view_wire
+        ${sql.from}`).get(maxOriginalExplanationWireBytes, maxOriginalExplanationWireBytes,
+          ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+      if (row === undefined || row.original_ref_matches !== 1 || row.plan_matches !== 1) {
+        fail('ClientRequestJournalCorrupt');
+      }
+      if (row.plan_present === 0) return original;
+      const plan = Object.freeze({compiledPlanWire: row.compiled_plan_wire, planViewWire: row.plan_view_wire});
+      if (original.runAdmissionEvidence?.logicalPlanOriginal !== undefined ||
+          !logicalPlanOriginalShape(plan)) fail('ClientRequestJournalCorrupt');
+      return Object.freeze({...original, runAdmissionEvidence: Object.freeze(
+        {...original.runAdmissionEvidence, logicalPlanOriginal: plan})});
     },
     // Internal retained facet read. Current Run/Plan and egress admission must
     // precede this operation in the existing Host service. It issues no Run,

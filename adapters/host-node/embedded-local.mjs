@@ -6463,7 +6463,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
   });
   const runPlan = installClientRunPlan({authorize: authorizeObservation, control,
-    lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control)});
+    lookupOriginal: ref => journal.lookupRunPlanOriginal(ref, moon, control)});
   // Only the admitted installed Request owner and its actual compiled read
   // ports enable this operation. It never borrows Result permission or a
   // producing Run's reservation, including authorized old NotProjected reads.

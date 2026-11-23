@@ -3017,12 +3017,12 @@ pub fn client_program_discard_effect_run_explanation(
     ClientLocalPreparationInputOriginal,
   ],
   definition : @publication.PublicationContract,
-  decline : Bool,
+  reclaim : Bool,
 ) -> Result[Unit, @client_local_host.ClientRequestStaticContextIssue] {
   @client_local_host.discard_original_effect_run_explanation(
     original,
     definition,
-    decline~,
+    reclaim~,
   )
 }
 

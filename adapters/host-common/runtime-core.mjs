@@ -2812,7 +2812,7 @@ function publicationControl(moon) {
       try {
         if (explanation.definition !== undefined) {
           explanation.contextWire = explanation.invocationTemplateWire = explanation.plan = undefined;
-          compiledRunResult(explanation.methods.returnCapture(explanation.scope, explanation.definition, false),
+          compiledRunResult(explanation.methods.returnCapture(explanation.scope, explanation.definition, true),
             'RunHostOriginalExplanationCleanupPending');
           explanation.scope = undefined;
         } else if (typeof acknowledgeExplanationCapture === 'function') {

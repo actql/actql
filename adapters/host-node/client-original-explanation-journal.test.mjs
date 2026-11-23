@@ -51,6 +51,7 @@ function fixture(t, configuration = {}, afterAcknowledgement) {
     planTicket: () => base.ticket(),
     accept: ticket => journal.acceptDefinition(request, {...options, originalPlan: base.ticket(), originalExplanation: ticket}, requestControl, control),
     lookup: () => journal.lookupRunDefinition(ref, requestControl, control),
+    lookupPlan: () => journal.lookupRunPlanOriginal(ref, requestControl, control),
     explanation: () => journal.lookupRunExplanationOriginal(ref, requestControl, control),
     get journal() {return journal;}, reopen() {journal.close(); journal = openClientRequestJournal(path,configuration);}};
 }
@@ -356,17 +357,20 @@ test('structural full read refuses growth after its scalar probe before any over
   } finally {StatementSync.prototype.get = get; DatabaseSync.prototype.prepare = prepare; db.close();}
 });
 
-test('Context and Template join the same committed Plan and Facts and leave the old selection unchanged', async t => {
+test('Context and Template join the same committed Plan and Facts with separate admission evidence', async t => {
   let acknowledged = false;
   const f = fixture(t, explanationSchemaConfiguration, () => {
     const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
     try {
       const committed = db.prepare(`SELECT r.run_definition_wire, r.run_admission_evidence_json,
-        f.facts_wire, c.context_wire, c.invocation_template_wire FROM client_requests r
+        f.facts_wire, c.context_wire, c.invocation_template_wire, p.compiled_plan_wire, p.plan_view_wire FROM client_requests r
         JOIN client_run_explanation_originals f ON f.run_definition_cid = r.run_definition_cid
-        JOIN client_run_explanation_context_originals c ON c.run_definition_cid = f.run_definition_cid`).get();
+        JOIN client_run_explanation_context_originals c ON c.run_definition_cid = f.run_definition_cid
+        JOIN client_run_explanation_plan_originals p ON p.run_definition_cid = c.run_definition_cid`).get();
       assert.equal(committed.run_definition_wire, options.runDefinition.wire);
-      assert.equal(committed.run_admission_evidence_json, JSON.stringify({...evidence, logicalPlanOriginal: planOriginal}));
+      assert.equal(committed.run_admission_evidence_json, JSON.stringify(evidence));
+      assert.equal(committed.compiled_plan_wire, planOriginal.compiledPlanWire);
+      assert.equal(committed.plan_view_wire, planOriginal.planViewWire);
       assert.equal(committed.facts_wire, JSON.stringify(explanationFacts));
       assert.equal(committed.context_wire, contextWire);
       assert.equal(committed.invocation_template_wire, invocationTemplateWire);
@@ -425,6 +429,96 @@ test('old Facts-only Runs never backfill Context and selected unsupported storag
   assert.equal(unsupported.explanation().factsWire, JSON.stringify(explanationFacts));
 });
 
+test('split Effect Plan uses the same two bounded records, preserving the original atomic commit', t => {
+  const limit = 65536;
+  const captured = fixture(t, explanationSchemaConfiguration);
+  const ticket = captured.ticket(undefined, contextWire, invocationTemplateWire);
+  const selectedPlan = Object.freeze({...planOriginal, planViewWire: 'p'.repeat(25000)});
+  const material = Object.freeze({...evidence, effectOriginalRunWire: 'm'.repeat(54000)});
+  assert(Buffer.byteLength(JSON.stringify(material)) <= limit);
+  assert(Buffer.byteLength(JSON.stringify({...material, logicalPlanOriginal: selectedPlan})) > limit);
+  const control = {...captured.control,
+    originalRunExplanationAdmissionEvidence(selected, run, program, admitted) {
+      assert.equal(admitted, material);
+      return captured.control.originalRunExplanationAdmissionEvidence(selected, run, program, evidence);
+    },
+    originalRunPlanAdmissionEvidence(selected, run, program, admitted) {
+      assert.equal(admitted, material);
+      return selectedPlan;
+    },
+  };
+  const accept = (bound = control) => captured.journal.acceptDefinition(request,
+    {...options, runAdmissionEvidence: material, originalPlan: captured.planTicket(), originalExplanation: ticket},
+    requestControl, bound);
+  assert.equal(accept().inserted, true);
+  assert.equal(captured.acknowledgements(), 1);
+  captured.reopen();
+  assert.equal(captured.lookup().runAdmissionEvidence.logicalPlanOriginal, undefined);
+  assert.deepEqual(captured.lookupPlan().runAdmissionEvidence.logicalPlanOriginal, selectedPlan);
+  const extent = captured.journal.probeRunExplanationContextOriginal(captured.ref);
+  assert.equal(extent.compiledPlanBytes, Buffer.byteLength(selectedPlan.compiledPlanWire));
+  assert.equal(extent.planViewBytes, Buffer.byteLength(selectedPlan.planViewWire));
+  const record = captured.journal.readRunExplanationContextOriginal(captured.ref, extent);
+  assert.deepEqual(JSON.parse(record.admissionEvidenceWire), material);
+  assert.equal(record.compiledPlanWire, selectedPlan.compiledPlanWire);
+  assert.equal(record.planViewWire, selectedPlan.planViewWire);
+  assert.equal(record.contextWire, contextWire);
+  const legacyRead = captured.journal.probeRunExplanationOriginal(captured.ref);
+  assert.equal(captured.journal.readRunExplanationOriginal(captured.ref, legacyRead).planViewWire,
+    selectedPlan.planViewWire);
+  const changed = {...control, originalRunPlanAdmissionEvidence: () => ({...selectedPlan, planViewWire: 'q'.repeat(25000)})};
+  assert.throws(() => accept(changed), {code: 'ClientRequestPlanEvidenceMismatch'});
+  assert.equal(accept().inserted, false);
+
+  const db = new DatabaseSync(join(captured.path, 'client-requests.sqlite3'));
+  try {
+    db.prepare('UPDATE client_run_explanation_plan_originals SET plan_view_wire=?').run('é'.repeat(65536));
+    assert.throws(() => captured.journal.probeRunExplanationContextOriginal(captured.ref),
+      {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => captured.journal.readRunExplanationContextOriginal(captured.ref, extent),
+      {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(captured.lookupPlan, {code: 'ClientRequestJournalCorrupt'});
+  } finally {db.close();}
+});
+
+test('Context with its retired inline Plan refuses on either read without repairing the row', t => {
+  const f = fixture(t, explanationSchemaConfiguration);
+  assert.equal(f.accept(f.ticket(undefined, contextWire)).inserted, true);
+  f.reopen();
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    const before = JSON.stringify({...evidence, logicalPlanOriginal: planOriginal});
+    db.exec('DROP TABLE client_run_explanation_plan_originals');
+    db.prepare('UPDATE client_requests SET run_admission_evidence_json=?').run(before);
+    assert.throws(f.lookupPlan, {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => f.journal.probeRunExplanationOriginal(f.ref), {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => f.journal.probeRunExplanationContextOriginal(f.ref), {code: 'ClientRequestJournalCorrupt'});
+    assert.equal(db.prepare('SELECT run_admission_evidence_json AS wire FROM client_requests').get().wire, before);
+  } finally {db.close();}
+});
+
+test('the split Plan and Context share one exact write limit', t => {
+  const facts = JSON.stringify(explanationFacts);
+  for (const extra of [0, 1]) {
+    const f = fixture(t, explanationSchemaConfiguration);
+    const available = 65536 - [facts, contextWire, invocationTemplateWire, planOriginal.compiledPlanWire]
+      .reduce((bytes, wire) => bytes + Buffer.byteLength(wire), 0);
+    const control = {...f.control, originalRunPlanAdmissionEvidence: () => ({
+      compiledPlanWire: planOriginal.compiledPlanWire, planViewWire: 'x'.repeat(available + extra),
+    })};
+    const admit = () => f.journal.acceptDefinition(request, {...options, originalPlan: f.planTicket(),
+      originalExplanation: f.ticket(facts, contextWire, invocationTemplateWire)}, requestControl, control);
+    if (extra === 0) {
+      assert.equal(admit().inserted, true);
+      assert.equal(f.journal.probeRunExplanationContextOriginal(f.ref).planViewBytes, available);
+    } else {
+      assert.throws(admit, {code: 'InvalidClientRunAdmissionEvidence'});
+      assert.equal(f.lookup(), undefined);
+      assert.equal(f.acknowledgements(), 0);
+    }
+  }
+});
+
 test('selected wider Journal caps optional Context facets and evidence at the same 64 KiB extent', t => {
   const policy = recipeModule.declareHostJournalServiceRecipe({}).journal;
   assert.equal(policy.maxRunDefinitionWireBytes, 64 * 1024 * 1024);
@@ -433,13 +527,16 @@ test('selected wider Journal caps optional Context facets and evidence at the sa
     const f = fixture(t, policy);
     assert.equal(f.journal.originalExplanationContextLimit(), limit);
     const facts = JSON.stringify(explanationFacts);
-    const sized = 'x'.repeat(limit - Buffer.byteLength(facts) - Buffer.byteLength(invocationTemplateWire) + extra);
+    const remaining = limit - [facts, invocationTemplateWire, ...Object.values(planOriginal)]
+      .reduce((bytes, wire) => bytes + Buffer.byteLength(wire), 0);
+    const sized = 'x'.repeat(remaining + extra);
     const ticket = f.ticket(facts, sized);
     if (extra === 0) {
       assert.equal(f.accept(ticket).inserted, true);
       f.reopen();
       const extent = f.journal.probeRunExplanationContextOriginal(f.ref);
-      assert.equal(extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes, limit);
+      assert.equal(extent.factsBytes + extent.contextBytes + extent.invocationTemplateBytes +
+        extent.compiledPlanBytes + extent.planViewBytes, limit);
       assert.equal(f.acknowledgements(), 1);
     } else {
       assert.throws(() => f.accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});
@@ -450,9 +547,9 @@ test('selected wider Journal caps optional Context facets and evidence at the sa
   for (const extra of [0, 1]) {
     const f = fixture(t, policy), ticket = f.ticket(undefined, contextWire), originalPlan = f.planTicket();
     const prefix = {...evidence, effectOriginalRunWire: ''};
-    const available = limit - Buffer.byteLength(JSON.stringify({...prefix, logicalPlanOriginal: planOriginal}));
+    const available = limit - Buffer.byteLength(JSON.stringify(prefix));
     const base = Object.freeze({...prefix, effectOriginalRunWire: 'x'.repeat(available + extra)});
-    assert.equal(Buffer.byteLength(JSON.stringify({...base, logicalPlanOriginal: planOriginal})), limit + extra);
+    assert.equal(Buffer.byteLength(JSON.stringify(base)), limit + extra);
     const control = {...f.control,
       originalRunPlanAdmissionEvidence(selected, run, program, admitted) {
         assert.equal(admitted, base);
@@ -464,14 +561,15 @@ test('selected wider Journal caps optional Context facets and evidence at the sa
       },
     };
     const accept = contextTicket => f.journal.acceptDefinition(request, {...options,
-      runAdmissionEvidence: base, originalPlan, originalExplanation: contextTicket}, requestControl, control);
+      runAdmissionEvidence: base, originalPlan: contextTicket === undefined ? undefined : originalPlan,
+      originalExplanation: contextTicket}, requestControl, control);
     if (extra === 0) {
       assert.equal(accept(ticket).inserted, true);
       assert.equal(f.acknowledgements(), 1);
     } else {
       const stringify = JSON.stringify;
       JSON.stringify = (value, ...args) => {
-        assert(!Object.hasOwn(value ?? {}, 'logicalPlanOriginal'), 'oversized optional evidence must not be serialized');
+        assert.notEqual(value?.effectOriginalRunWire, base.effectOriginalRunWire, 'oversized optional evidence must not be serialized');
         return stringify(value, ...args);
       };
       try {assert.throws(() => accept(ticket), {code: 'InvalidClientRunAdmissionEvidence'});}

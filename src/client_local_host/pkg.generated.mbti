@@ -519,7 +519,7 @@ pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) ->
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
 
-pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, decline? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
+pub fn[I] discard_original_effect_run_explanation(ClientRequestEffectRunExplanation[I], @run_publication.PublicationContract, reclaim? : Bool) -> Result[Unit, ClientRequestStaticContextIssue]
 
 pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 

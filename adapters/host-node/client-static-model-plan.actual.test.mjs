@@ -274,88 +274,104 @@ test('installed static SDK explains effect-free SQL, Source JOIN and Source INFE
   scratch.close();
 });
 
-// One real ordinary Run and a fresh embedded Host generation. Its cold read
-// only uses the original committed Journal and never supplies the AQL again.
-test('installed Saved Context uses the retained original after Host close and reopen', async t => {
-  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-saved-context-',
-    label: 'original churn-risk Saved Context'});
-  const project = scaffoldProject(join(scratch.path, 'project'), 'churn-risk-mock');
-  const cwd = process.cwd();
-  let client, primary, phase = 'initialization';
-  process.chdir(project.directory);
-  try {
-    const before = await readFile('mock/data.json');
-    const records = [];
-    const open = () => connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
-      installation: {directory: '.actql-node',
-        observation: createHostObservationConnection({deliver: record => records.push(record)})}});
-    client = await open();
-    phase = 'submit original';
-    const run = await client.startSource(await readFile('churn-risk.aql', 'utf8'),
-      {format: 'aql', stopBefore: 'commit'});
-    assert.equal((await run.wait()).status, 'waiting_checkpoint');
-    const ref = structuredClone(run.ref);
-    const originalAttempts = () => records.filter(record =>
-      record.event === 'attempt_started' && ['source', 'model', 'effect'].includes(record.operation) &&
-      record.attributes['actql.run.definition_cid'] === ref.runDefinitionCid);
-    for (let turn = 0; turn < 512 && originalAttempts().filter(record => record.operation === 'source').length < 2;
-      turn++) await setImmediate();
-    const attempts = originalAttempts();
-    assert.equal(attempts.filter(record => record.operation === 'source').length, 2);
-    phase = 'warm Saved Context';
-    const warm = await run.explainContext();
-    assert.deepEqual(warm.run_ref, ref);
-    assert.equal(warm.explanation.state, 'projected');
-    const {plan, context, facts} = warm.explanation.view;
-    assert.deepEqual(context.items.map(item => item.kind), ['source', 'source', 'model_task', 'result', 'effect_set']);
-    assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
-    assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
-    phase = 'warm legacy Facts';
-    assert.deepEqual((await run.explain()).explanation.facts, facts);
-    for (const record of attempts) assert.notEqual(record.operation, 'effect');
-    phase = 'original Host close';
-    await client.close();
-    client = undefined;
-    phase = 'cold Host reopen and attach';
-    client = await open();
-    const saved = await client.attach(ref);
-    phase = 'cold Saved Context';
-    assert.deepEqual(await saved.explainContext(), warm);
-    phase = 'cold legacy Facts';
-    assert.deepEqual((await saved.explain()).explanation.facts, facts);
-    phase = 'cold Explorer Saved Context';
-    const {harness} = await import('../../packages/explorer/gateway-test.fixture.mjs');
-    const explorer = harness({client});
+// Two original Sources exercise the ordinary and larger Effect Run
+// admissions before a fresh Host opens the committed originals.
+for (const [name, declaredSources] of [['churn-risk', 2], ['deal-review', 3]]) {
+  test(`installed Saved Context restores original ${name} Plan and Facts after Host close`, async t => {
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-saved-context-',
+      label: `original ${name} Saved Context`});
+    const project = scaffoldProject(join(scratch.path, 'project'), `${name}-mock`);
+    const cwd = process.cwd();
+    let client, primary, phase = 'initialization';
+    const close = async () => {
+      const original = client;
+      client = undefined;
+      await original?.close();
+    };
+    process.chdir(project.directory);
     try {
-      const session = await explorer.connect();
-      const response = await explorer.read('run-explanation-context', {ref, locale: 'ja'}, session);
-      assert.equal(response.status, 200);
-      const {data} = await response.json();
-      assert.deepEqual(data.runRef, ref);
-      assert.equal(data.explanation.state, 'projected');
-      assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
-      assert.equal(data.explanation.story.factsCid, facts.self_cid);
-      assert.equal(data.explanation.story.scope, 'computation_component');
-      assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
-      assert.match(data.explanation.context.find(item => item.origin.kind === 'model_task').text,
-        /を各入力行に適用/u);
-    } finally {await explorer.gateway.close();}
-    await setImmediate();
-    assert.deepEqual(originalAttempts(), attempts);
-    assert.deepEqual(await readFile('mock/data.json'), before);
-  } catch (error) {
-    primary = error;
-    t.diagnostic(JSON.stringify({phase, retainedScratch: scratch.path, code: error?.code}));
-  } finally {
-    try {await client?.close();}
-    catch (error) {primary = primary === undefined ? error
-      : new AggregateError([primary, error], 'Saved Context read and Host cleanup failed');}
-    finally {process.chdir(cwd);}
-  }
-  if (primary !== undefined) throw primary;
-  scratch.passed();
-  scratch.close();
-});
+      const before = await readFile('mock/data.json');
+      const records = [];
+      const open = () => connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+        installation: {directory: '.actql-node',
+          observation: createHostObservationConnection({deliver: record => records.push(record)})}});
+      client = await open();
+      phase = 'submit original';
+      const run = await client.startSource(await readFile(`${name}.aql`, 'utf8'),
+        {format: 'aql', stopBefore: 'commit'});
+      assert.equal((await run.wait()).status, 'waiting_checkpoint');
+      const ref = structuredClone(run.ref);
+      const originalStarts = () => records.filter(record =>
+        ['attempt_started', 'task_started', 'write_observed'].includes(record.event) &&
+        record.attributes['actql.run.definition_cid'] === ref.runDefinitionCid);
+      for (let turn = 0; turn < 512 && originalStarts().filter(record =>
+        record.operation === 'source' && record.event === 'attempt_started').length < 2;
+        turn++) await setImmediate();
+      assert.equal(originalStarts().filter(record =>
+        record.operation === 'source' && record.event === 'attempt_started').length, 2);
+      phase = 'warm Saved Context';
+      const warm = await run.explainContext();
+      assert.deepEqual(warm.run_ref, ref);
+      assert.equal(warm.explanation.state, 'projected');
+      const {plan, context, facts} = warm.explanation.view;
+      assert.deepEqual(context.items.map(item => item.kind),
+        [...Array(declaredSources).fill('source'), 'model_task', 'result', 'effect_set']);
+      assert.equal(context.stage_result_links.length, 2);
+      assert.deepEqual((await run.plan()).plan_view, plan);
+      assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
+      assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
+      phase = 'warm legacy Facts';
+      assert.deepEqual((await run.explain()).explanation.facts, facts);
+      phase = 'original Host close';
+      await close();
+      const starts = originalStarts();
+      assert(starts.some(record => record.operation === 'infer' && record.event === 'attempt_started'));
+      assert(!starts.some(record => record.event === 'write_observed'));
+      phase = 'cold Host reopen and attach';
+      client = await open();
+      const saved = await client.attach(ref);
+      phase = 'cold Saved Context';
+      assert.deepEqual(await saved.explainContext(), warm);
+      assert.deepEqual((await saved.plan()).plan_view, plan);
+      phase = 'cold legacy Facts';
+      assert.deepEqual((await saved.explain()).explanation.facts, facts);
+      phase = 'cold Explorer Saved Context';
+      const {harness} = await import('../../packages/explorer/gateway-test.fixture.mjs');
+      const explorer = harness({client});
+      try {
+        const session = await explorer.connect();
+        const response = await explorer.read('run-explanation-context', {ref, locale: 'ja'}, session);
+        assert.equal(response.status, 200);
+        const {data} = await response.json();
+        assert.deepEqual(data.runRef, ref);
+        assert.equal(data.explanation.state, 'projected');
+        assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
+        assert.equal(data.explanation.story.factsCid, facts.self_cid);
+        assert.equal(data.explanation.story.scope, 'computation_component');
+        assert.deepEqual(data.explanation.context.map(item => item.origin), context.items);
+        assert.match(data.explanation.context.find(item => item.origin.kind === 'model_task').text,
+          /を各入力行に適用/u);
+      } finally {await explorer.gateway.close();}
+      await close();
+      assert.deepEqual(originalStarts(), starts);
+      assert.deepEqual(await readFile('mock/data.json'), before);
+    } catch (error) {
+      primary = error;
+      t.diagnostic(JSON.stringify({phase, retainedScratch: scratch.path, code: error?.code}));
+    } finally {
+      try {await close();}
+      catch (error) {
+        t.diagnostic(JSON.stringify({phase: 'first Host close', code: error?.code,
+          cause: error?.cause?.code}));
+        primary = primary === undefined ? error
+        : new AggregateError([primary, error], 'Saved Context read and Host cleanup failed');}
+      finally {process.chdir(cwd);}
+    }
+    if (primary !== undefined) throw primary;
+    scratch.passed();
+    scratch.close();
+  });
+}
 
 test('public Effectful Explain projects one checked parameter, field and redacted literal without admitting a Run', async () => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-effectful-explain-inputs-',

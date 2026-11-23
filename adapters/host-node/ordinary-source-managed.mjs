@@ -1635,10 +1635,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const evidence = readEvidence(budget);
         // Measure the exact JSON without emitting a new copy. The submitted
         // intent has a fixed 71-byte CID, counted here before the Journal adds it.
-        const candidate = Object.freeze({...evidence, logicalPlanOriginal: original.plan,
+        const candidate = Object.freeze({...evidence,
           ...(hasIntent ? {submittedIntentCid: facts.runDefinition.identity} : {})});
         const fits = evidence !== undefined && sourceAliasDataGeometry(candidate).jsonBytes <= BigInt(budget) &&
-          Buffer.byteLength(factsWire) + Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
+          Buffer.byteLength(compiledPlanWire) + Buffer.byteLength(planViewWire) + Buffer.byteLength(factsWire) +
+            Buffer.byteLength(contextWire) + Buffer.byteLength(invocationTemplateWire) <= budget;
         current();
         if (producerForRequest(request) !== producer || producer.preparation !== state ||
             state.originalExplanation !== original ||

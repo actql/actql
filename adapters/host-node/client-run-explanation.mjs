@@ -58,7 +58,7 @@ export function installClientRunExplanation({authorize, authorizeEgress,
     assertCurrentAccess(request, selected, operation);
     if (original === undefined) throw failure('RunObservationAccessDenied');
     const {definitionWire, admissionEvidenceWire, programDefinitionCid,
-      parameterValuesCid, factsWire} = original;
+      parameterValuesCid, factsWire, compiledPlanWire, planViewWire} = original;
     const contextWire = context ? original.contextWire : undefined;
     const templateWire = context ? original.invocationTemplateWire : undefined;
     const wire = Reflect.apply(render, readWorkspace, [request, original]);
@@ -90,6 +90,7 @@ export function installClientRunExplanation({authorize, authorizeEgress,
         current.programDefinitionCid !== programDefinitionCid ||
         current.parameterValuesCid !== parameterValuesCid ||
         current.factsWire !== factsWire ||
+        current.compiledPlanWire !== compiledPlanWire || current.planViewWire !== planViewWire ||
         context && (current.contextWire !== contextWire ||
           current.invocationTemplateWire !== templateWire)) throw failure('RunExplanationEncodingRejected');
     // No await can separate synchronous installed Account observation from

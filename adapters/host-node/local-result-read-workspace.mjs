@@ -178,8 +178,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const rejected = cause => Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
         {code: 'RunExplanationEncodingRejected'});
       if (stored === null || typeof stored !== 'object' || nodeTypes.isProxy(stored)) throw rejected();
-      const own = name => {
+      const own = (name, optional = false) => {
         const field = Object.getOwnPropertyDescriptor(stored, name);
+        if (field === undefined && optional) return undefined;
         if (field === undefined || !Object.hasOwn(field, 'value')) throw rejected();
         return field.value;
       };
@@ -192,13 +193,22 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const companion = operation.purpose === 'run-explanation-context';
       const contextWire = companion ? own('contextWire') : undefined;
       const templateWire = companion ? own('invocationTemplateWire') : undefined;
+      const storedCompiledPlan = own('compiledPlanWire', true);
+      const storedPlanView = own('planViewWire', true);
       if (contextWire !== undefined && typeof contextWire !== 'string' ||
-          templateWire !== undefined && typeof templateWire !== 'string') throw rejected();
+          templateWire !== undefined && typeof templateWire !== 'string' ||
+          (storedCompiledPlan === undefined) !== (storedPlanView === undefined) ||
+          storedCompiledPlan !== undefined && (typeof storedCompiledPlan !== 'string' ||
+            typeof storedPlanView !== 'string' || facts === undefined || companion && contextWire === undefined)) throw rejected();
       let plan;
       if (facts !== undefined && (!companion || contextWire !== undefined)) {
-        try {plan = JSON.parse(evidence)?.logicalPlanOriginal;}
+        let inline;
+        try {inline = JSON.parse(evidence)?.logicalPlanOriginal;}
         catch (cause) {throw Object.assign(new Error('RunExplanationEncodingRejected', {cause}),
           {code: 'RunExplanationEncodingRejected'});}
+        if (storedCompiledPlan !== undefined && inline !== undefined) throw rejected();
+        plan = storedCompiledPlan === undefined ? inline :
+          {compiledPlanWire: storedCompiledPlan, planViewWire: storedPlanView};
         if (plan === null || typeof plan !== 'object' || Array.isArray(plan) ||
             Object.keys(plan).length !== 2 || typeof plan.compiledPlanWire !== 'string' ||
             typeof plan.planViewWire !== 'string') throw rejected();

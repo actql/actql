@@ -28667,7 +28667,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "089a10c19f68c03e3c2872e18bb3e1fb7ea064e48077a2d16a585995812c8279",
+      "sha256": "41e276101a43819160e070b7c29b90784ca65974f86bf7afe927eefef6fd0540",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29575,6 +29575,15 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:lookupRunPlanOriginal/init:lookupRunPlanOriginal",
+          "parameters": [
+            "ref",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:lookupSubmittedIntent/init:lookupSubmittedIntent",
           "parameters": [
             "submissionRef",
@@ -30412,7 +30421,8 @@
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
             "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
             "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
-            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning"
+            "openClientRequestJournal/journal/init:canReinspectRunForSigning/init:canReinspectRunForSigning/init:canReinspectRunForSigning",
+            "openClientRequestJournal/journal/init:lookupRunPlanOriginal/init:lookupRunPlanOriginal"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -31233,6 +31243,10 @@
               {
                 "path": "adapters/host-node/client-run-stop-observation.test.mjs",
                 "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('split Effect Plan uses the same two bounded records"
               }
             ]
           }
@@ -47234,7 +47248,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "a1ee0fb1f276e494aeab09c96f5e773e35ba43fed1eddda25746fa95ec3f7927",
+      "sha256": "7010e08d70b750139c6ed9a7e29e6e36a70b769875ffd0c359dcb48669192535",
       "exports": [
         "commonjs:sql"
       ],
@@ -116154,7 +116168,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a0d30756ab42df75c3966b5955beb85bf18e74295a79fdb85e281df84d1c780c"
+      "sha256": "a32bb83e8c9949c4459e920efffd904d785cd02c3805f7c1d52fca5e916b7d21"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -135369,7 +135383,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "c7cb75ec12055871f140dc9c6cf58f446108ef5af1c293b6259dea4ab564b78a",
+      "sha256": "f0740ca88c1347f283304691f319b5fce5a1d1b5e49cb59108877e1bef0abcad",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -136370,7 +136384,7 @@
               },
               {
                 "path": "adapters/host-node/client-static-model-plan.actual.test.mjs",
-                "anchor": "test('installed Saved Context uses the retained original"
+                "anchor": "test(`installed Saved Context restores original"
               }
             ]
           }
@@ -137522,7 +137536,7 @@
     {
       "module": "adapters/host-node/client-run-explanation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a1cf294cf8b38d8c9f6f3e5b7c08103a2d6ff7a7c9c7c3733e3977d29a4792b5",
+      "sha256": "c9478ceaf735f47ddb80e2a815e2a04248bb706efeeca4a5570567ea8d76b527",
       "role": "physical-io",
       "owner": "Existing admitted Run read and request Journal owners",
       "exports": [
