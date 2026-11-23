@@ -181,7 +181,7 @@ fn observe_structured_fixture_raw(
 fn decode_structured_fixture(
   profile : @environment.ModelResponseProfile,
   bytes : Bytes,
-) -> @model.ModelPhysicalEncodedResponse? {
+) -> @model.ModelSavedStructuredDecoded? {
   let parsed = @json.parse(@utf8.decode(bytes[:])) catch { _ => return None }
   guard parsed is Object(raw) &&
     raw.get("answer") is Some(answer) &&
@@ -190,19 +190,15 @@ fn decode_structured_fixture(
     return None
   }
   Some({
-    body: answer.stringify(),
+    answer: Ok(answer.stringify()),
     observation: {
       ..async_response_observation(None).observation,
       response_profile_cid: Some(
         @environment.model_response_profile_identity(profile),
       ),
-      raw_response_artifact_cid: Some("sha256:" + "f".repeat(64)),
       input_tokens: Some(input.to_int64()),
       output_tokens: Some(output.to_int64()),
     },
-    transport_eof: true,
-    endpoint_complete: true,
-    answer_complete: true,
   })
 }
 
@@ -292,14 +288,10 @@ test "structured answer adoption requires the original saved raw receipt" {
 }
 
 ///|
-test "structured execution rejects a substituted encoded answer without the checked decoder" {
+test "structured execution rejects an answer without the checked decoder" {
   let fixture = raw_save_fixture(structured=true)
-  fixture.response.val = @model.PhysicalEncodedResponse(
-    decode_structured_fixture(
-      structured_raw_fixture_profile(),
-      @utf8.encode(structured_raw_wire.replace(old="high", new="fake")),
-    ).unwrap(),
-  )
+  let substituted = async_response_observation(None)
+  fixture.response.val = @model.PhysicalResponse(substituted)
   fixture.ready.val = true
   assert_true(
     fixture_finish(fixture.active, initial_work=fixture.work)
