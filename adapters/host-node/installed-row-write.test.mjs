@@ -14,6 +14,8 @@ import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './inst
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
+import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
+import {registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
@@ -1369,38 +1371,19 @@ test('Command construction requires SAME driver definition provider and immutabl
 
 
 test('actual member capture caller defers SAME original recovery until Preview and retains failing siblings', async () => {
-  const {prepareInstalledEffectRequestChild} = await import('./installed-effect-plan.mjs');
-  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
-  const matches = [];
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'FunctionDeclaration' && node.id.name === 'captureStage') matches.push(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  };
-  visit(rowTree); assert.equal(matches.length, 1);
-  const statements = matches[0].body.body;
-  const slice = node => rowSource.slice(node.start, node.end);
-  const initialize = statements.filter(node => node.type === 'ForOfStatement' &&
-    slice(node).includes('retainInstalledRowCaptureChild('));
-  const recovery = statements.filter(node => node.type === 'ForOfStatement' &&
-    slice(node).includes('await retained.prepare()'));
-  assert.equal(initialize.length, 1); assert.equal(recovery.length, 1);
-  const vector = statements.filter(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value=>value.id.name==='memberCaptures'));
-  assert.equal(vector.length,1);
-  const source = 'const requestChildren=[],proposals=[],currents=[]; let entries;' + slice(vector[0]) +
-    slice(initialize[0]) + '\nreturn {requestChildren,proposals,currents,finish:async originalEntries=>{' +
-    'entries=originalEntries; const connectorRecovery=[];' + slice(recovery[0]) + ';return connectorRecovery;}};';
-  const open = Function('members','ownerOf','managedEffect','moon','prepared','identity',
-    'retainInstalledRowCaptureChild','prepareInstalledEffectRequestChild','retireRequestAliases',
-    'assertCurrent','signal','fail','recipeOf',source);
+  const stage = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage');
+  const capture = stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureStage');
+  const recovery = capture.body.body.filter(node => node.type === 'ForOfStatement' &&
+    rowSource.slice(node.start, node.end).includes('await retained.prepare()'));
+  assert.equal(recovery.length, 1);
+  const finishRecovery = Function('members','ownerOf','recipeOf','currents','entries','memberCaptures','observations',
+    `return (async()=>{const connectorRecovery=[];${rowSource.slice(recovery[0].start,recovery[0].end)};return connectorRecovery;})();`);
   for (const failing of [false,true]) {
     const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
-    const tokens=members.map(()=>({})); let retired=false;
-    const moon={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    const tokens=members.map(()=>({})); let retired=false,markCaptureFinished;
+    const moon={clientProgramInstalledEffectDependencySourcesPin(p,original,intent,selected) {
+        assert.deepEqual([p,original,intent,selected],[parent,prepared,identity,plan]);return {$tag:1,_0:{}};
+      },clientProgramEffectInputExportLimits:()=>({}),clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
       clientProgramInstalledEffectOperationConstructionRetain(p,original,intent,selected,index,perRow) {
         assert.strictEqual(p,parent);assert.strictEqual(original,prepared);assert.strictEqual(intent,identity);
         assert.strictEqual(selected,plan);assert.equal(perRow,false);events.push('borrow'+index);
@@ -1413,25 +1396,40 @@ test('actual member capture caller defers SAME original recovery until Preview a
     const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
       readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
     const descriptions=[{},{}],entries=[[{}],[{}]];
-    const owners=members.map((member,index)=>({managedPlanRecipe:{captureConstruction:{operationIndex:0},
+    const owners=members.map((member,index)=>({profile:{source:'fixture'},managedPlanRecipe:{captureConstruction:{operationIndex:0},
       memberOperations:[{operation:'capture'}]},owned:{recoveryEntry(context) {
         assert.strictEqual(this,owners[index].owned);assert.strictEqual(context.member,member);
         assert.strictEqual(context.current,descriptions[index]);assert.strictEqual(context.entries,entries[index]);
         events.push('recovery'+index);if(failing&&index===1)throw undefined;
         return {kind:'original',wire:'wire'+index,observationCid:'cid'+index};
       }}}));
-    const capture=open(members,member=>owners[member.memberIndex],managedEffect,moon,prepared,identity,
-      retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,()=>retired,undefined,undefined,
-      code=>{throw Object.assign(new Error(code),{code});},member=>owners[member.memberIndex].managedPlanRecipe);
+    const ownerOf=member=>owners[member.memberIndex], recipeOf=member=>ownerOf(member).managedPlanRecipe;
+    Object.assign(managedEffect.controlConstruction,{retainInputs(){}});
+    registerInstalledEffectDependencyOriginal(managedEffect.controlConstruction,
+      {runtime:moon,parent,prepared,request:identity,plan,current(){}});
+    let originalEntries;
+    const capture=prepareInstalledRowEffectCaptureInputs({
+      moon,prepared,identity,managedEffect,members,ownerOf,recipeOf,plan:{outputLimits:{}},
+      runLimits:()=>({body:{}}),store:{},exportLimits:()=>[],preparePinnedEffectSourceSet:async()=>({payloads:[]}),
+      cid:()=>providerCid,ownChildren(){},ownInputs(_release,finish){markCaptureFinished=finish;},
+      readEntries:()=>originalEntries,retireRoute:()=>retired,
+      fail:code=>{throw Object.assign(new Error(code),{code});},
+    });
+    await capture.sourceExport;
+    const finish = () => {
+      originalEntries=entries;
+      return finishRecovery(members,ownerOf,recipeOf,capture.currents,entries,capture.memberCaptures,capture.observations);
+    };
     assert.deepEqual(events,['borrow0','borrow1']);assert.equal(capture.requestChildren.length,2);
     assert.deepEqual(capture.proposals,[[],[]]);capture.currents.push(...descriptions);events.push('Preview');
-    if(failing){let caught=false;try{await capture.finish(entries);}catch(error){caught=true;assert.strictEqual(error,undefined);}
+    if(failing){let caught=false;try{await finish();}catch(error){caught=true;assert.strictEqual(error,undefined);}
       assert(caught);assert.deepEqual(events,['borrow0','borrow1','Preview','recovery0','complete0','recovery1']);}
-    else assert.deepEqual(await capture.finish(entries),[
+    else assert.deepEqual(await finish(),[
       {memberIndex:0,kind:'original',wire:'wire0',observationCid:'cid0'},
       {memberIndex:1,kind:'original',wire:'wire1',observationCid:'cid1'}]);
     assert(capture.requestChildren.every(value=>value.prepared.status().pending));
-    retired=true;for(const child of capture.requestChildren)await child.prepared.release();
+    markCaptureFinished();retired=true;for(const child of capture.requestChildren)await child.prepared.release();
     assert(capture.requestChildren.every(value=>value.prepared.status().pending===false));
+    retireInstalledEffectDependencyOriginal(managedEffect.controlConstruction);
   }
 });

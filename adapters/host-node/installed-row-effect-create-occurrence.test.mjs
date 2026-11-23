@@ -13,13 +13,14 @@ import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries}
 import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
+import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
 import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
 import {createInstalledRowEffectCapability, createInstalledRowEffectTargetAuthorization} from './installed-row-effect-authorization.mjs';
 import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild, createInstalledRowEffectReadOperations} from './installed-row-effect-physical-read.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {installedEffectDependencyOriginal, registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
@@ -140,17 +141,17 @@ test('actual capture failure input callback retires only its pins after the shar
   const marker = new Error('stop after original cleanup retention'), children = [];
   const input = {}, events = [];
   let releaseInputs, finishCapture, observations = 0;
-  const moon = {clientProgramPinEffectSources: () => ({ok: input}),
+  const moon = {clientProgramPinEffectSources: () => ({$tag:1,_0:input}),
     clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
-  const actual = Function('moon', 'checked', 'runLimits', 'fail', 'releaseInstalledRowCapture',
-    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, () => ({maxPinnedResults: 1}), fail,
-    releaseInstalledRowCapture);
-  await assert.rejects(actual({members:[],ownChildren(original) {
-    original.push({prepared: {status() {observations++; return {pending: false};},
-      release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
-    children.push(...original);
-  }, ownInputs(release, finish) {releaseInputs = release; finishCapture = finish; throw marker;}}),
-  error => error === marker);
+  await assert.rejects(async () => prepareInstalledRowEffectCaptureInputs({
+    moon, runLimits: () => ({maxPinnedResults: 1}), members: [], fail, retireRoute: () => true,
+    ownChildren(original) {
+      original.push({prepared: {status() {observations++; return {pending: false};},
+        release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
+      children.push(...original);
+    },
+    ownInputs(release, finish) {releaseInputs = release; finishCapture = finish; throw marker;},
+  }), error => error === marker);
   finishCapture();
   const control = {
     publicationPreparedReleaseAction(index, count, inspected, pending, attempted) {
@@ -357,26 +358,27 @@ test('actual route retirement waits for its active refresh before severing reque
     checkRows:async()=>{entered();await gate;},ownerOf:()=>assert.fail('No member'),
     admitCapability:()=>assert.fail('No capability'),routeOf:()=>assert.fail('No route')})({
       members:[],entries:[[{}]],previewRows:[],dispatches:[],subjectCid:'subject'});
-  const currents=[{}],rowsOf=[{}],observations=[{}],proposals=[{}];
-  const declarations=nodes.filter(({node,parents})=>node.type==='VariableDeclarator'&&
-    node.id.name==='retireRequestAliases'&&parents.includes(capture));
-  assert.equal(declarations.length,1,'capture owner retirement');
-  const node=declarations[0].node.init;
-  const scope=Function('route','currents','rowsOf','observations','proposals',`
-    let captureOpen=true,entries=Object.freeze([[{}]]),memberCaptures=[];
-    const retire=${source.slice(node.start,node.end)};
-    return {retire,finish(){captureOpen=false;},entries:()=>entries};
-  `)(route,currents,rowsOf,observations,proposals);
-  assert.equal(scope.retire(),false,'capture is still active');
-  scope.finish();
+  let entries=Object.freeze([[{}]]), finish;
+  const captureInputs=prepareInstalledRowEffectCaptureInputs({
+    moon:{clientProgramPinEffectSources:()=>({$tag:1,_0:{}}),clientProgramEffectInputExportLimits:()=>({})},
+    members:[],plan:{outputLimits:{}},fail,runLimits:()=>({body:{}}),store:{},exportLimits:()=>[],
+    preparePinnedEffectSourceSet:async()=>({payloads:[]}),ownChildren(){},
+    ownInputs(_release,complete){finish=complete;},
+    retireRoute(){if(!route.retire())return false;entries=undefined;return true;},
+  });
+  await captureInputs.sourceExport;
+  const {retireRequestAliases:retire,currents,rowsOf,observations,proposals}=captureInputs;
+  for(const original of [currents,rowsOf,observations,proposals])original.push({});
+  assert.equal(retire(),false,'capture is still active');
+  finish();
   const refresh=route.current({preflight:{observedRows:[]}});
   await observed;
-  assert.equal(scope.retire(),false,'refresh still owns request/current locals');
-  assert.notEqual(scope.entries(),undefined);assert.equal(currents.length,1);
+  assert.equal(retire(),false,'refresh still owns request/current locals');
+  assert.notEqual(entries,undefined);assert.equal(currents.length,1);
   await assert.rejects(route.current({preflight:{observedRows:[]}}),{code:'InstalledRowEffectRouteRetired'});
   proceed();await refresh;
-  assert.equal(scope.retire(),true);
-  assert.equal(scope.entries(),undefined);
+  assert.equal(retire(),true);
+  assert.equal(entries,undefined);
   for(const original of [currents,rowsOf,observations,proposals])assert.equal(original.length,0);
   assert.throws(()=>route.bindDispatch({members:[],subjectCid:'subject'}),{code:'InstalledRowEffectRouteRetired'});
 });
@@ -521,8 +523,8 @@ test('a failed original pre-write Form check retains the claim without entering 
 // ordering/lifetime, not complete constructor quantities or ordinary authority.
 function prefixFixture({failBorrowAt, exportFailure}={}) {
   const events=[],children=[],input=Object.freeze({}),nativePlan={},parent={},prepared={},identity={};
-  let releaseInputs,finish,borrowCount=0,exportCalls=0;
-  const moon={clientProgramPinEffectSources(){events.push('pin');return {ok:input};},
+  let releaseInputs,finish,sourceSet,borrowCount=0,exportCalls=0;
+  const moon={clientProgramPinEffectSources(){events.push('pin');return {$tag:1,_0:input};},
     clientProgramInstalledEffectDependencySourcesPin(owner,p,r,plan){
       assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
       return moon.clientProgramPinEffectSources();
@@ -557,12 +559,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
-  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,installedEffectDependencyOriginal,
+  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},fail,
     runLimits:()=>ports.limits,
     limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
-    prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,
+    readSourceSet:()=>sourceSet,readEntries:()=>undefined,retireRoute:()=>true,
     prepareCredentialOperation:()=>assert.fail('No physical child in capture prelude'),
     plan:{outputLimits:{maxWireBytes:100}},exportLimits:()=>[],singular:undefined,cid:()=>cid('e'),
     store:{storeAuthorityCid:cid('f')},runInvocationCid:cid('c'),execution:{},signal:undefined,
@@ -580,9 +582,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     assert.ok(value && typeof value === 'object');
     retainedInputs = value;
   }});
-  const end=capture.body.body.find(node=>node.type==='ExpressionStatement'&&node.expression.type==='CallExpression'&&node.expression.callee.name==='own'&&node.expression.arguments[0]?.name==='sourceSet').end;
-  const code=source.slice(capture.body.start+1,end);
-  const run=()=>Function(...Object.keys(ports),`return (async()=>{${code};return {proposals,requestChildren};})();`)(...Object.values(ports));
+  const run=async()=>{
+    const capture=prepareInstalledRowEffectCaptureInputs(ports);
+    sourceSet=await capture.sourceExport;
+    ports.own(sourceSet);
+    return capture;
+  };
   return {run,events,children,primary,exportCalls:()=>exportCalls,cleanup:async()=>{
     finish();
     const marker=Object.freeze(new Error('same original prefix cleanup'));

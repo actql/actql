@@ -146154,8 +146154,8 @@
                 "anchor": "original.runtime!==runtime"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "dependencyOriginal.parent!==managedEffect.value"
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "dependencyOriginal.parent!==managedEffect!.value"
               }
             ],
             "ownership": [

@@ -34113,7 +34113,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34123,7 +34123,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34133,7 +34133,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34143,7 +34143,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34153,7 +34153,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34163,7 +34163,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34173,7 +34173,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34183,7 +34183,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],
@@ -34193,7 +34193,7 @@
                 "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
                 "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
               }
             ],

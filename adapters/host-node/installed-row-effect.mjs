@@ -1,4 +1,3 @@
-import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
@@ -93,7 +92,7 @@ import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-c
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -104,6 +103,7 @@ import {createInstalledRowEffectRecoveredMembers, createInstalledRowEffectRecove
 import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 import {createInstalledRowEffectCaptureEntry} from './installed-row-effect-capture-entry.mjs';
+import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
 import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 import {createInstalledRowEffectFootprint, createInstalledRowEffectPreview,
   createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
@@ -124,11 +124,10 @@ import {canonicalJson as canonicalValueJson} from
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
-import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {closeInstalledSourceConstruction} from './installed-host-services.mjs';
 
@@ -448,213 +447,22 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
     targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
-    assertCurrent?.();
-    const limits = runLimits(managedEffect);
-    const controlConstruction = managedEffect?.controlConstruction;
-    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    const dependencyOriginal = managedEffect === undefined ? undefined
-      : installedEffectDependencyOriginal(controlConstruction,moon);
-    if(dependencyOriginal!==undefined&&(dependencyOriginal.parent!==managedEffect.value||
-        dependencyOriginal.prepared!==prepared||dependencyOriginal.request!==identity||
-        dependencyOriginal.plan!==managedEffect.operationPlan))fail('ForeignInstalledEffectManagedRun');
-    if (dependencyOriginal !== undefined && plan.sourceFreeInvocationOriginal !== undefined) {
-      control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,
-        prepared, identity, dependencyOriginal.plan, checkedHost, plan.admission,
-        plan.runDefinition, plan.sourceFreeInvocationOriginal);
-      dependencyOriginal.current();
-    }
-    const inputs = dependencyOriginal === undefined
-      ? checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults))
-      : checked(moon.clientProgramInstalledEffectDependencySourcesPin(dependencyOriginal.parent,
-        prepared,identity,dependencyOriginal.plan,checkedHost,limits.maxPinnedResults));
-    dependencyOriginal?.current();
-    const commandWorkspaces = [];
-    const commandKeys = [];
-    const contentBorrowers = [];
-    const contentArtifacts = [];
-    const requestChildren = [];
-    const memberCaptures = [];
-    const proposals = [], currents = [], rowsOf = [], observations = [];
-    let sourceSet;
-    let entries, route, captureOpen = true;
-    const retireRequestAliases = () => {
-      if (captureOpen || (route !== undefined && !route.retire())) return false;
-      entries = undefined;
-      currents.length = 0;
-      rowsOf.length = 0;
-      observations.length = 0;
-      proposals.length = 0;
-      memberCaptures.length = 0;
-      return true;
-    };
-    const physicalOperations = facts => {
-      if (managedEffect?.runtime !== moon || managedEffect.prepared !== prepared ||
-          managedEffect.request !== identity) fail('ForeignInstalledEffectManagedRun');
-      return prepareCredentialOperation({...facts, managedEffect, requestChildren, retireRequestAliases});
-    };
-    ownChildren(requestChildren);
-    const childrenPending = () => requestChildren.some(value =>
-      typeof value?.prepared?.status !== 'function' ||
-      value.prepared.status()?.pending !== false);
-    const releaseInputPins = async () => {
-      if (!retireRequestAliases()) fail('InstalledRowEffectRequestCleanupPending');
-      for (const borrower of contentBorrowers) borrower.release();
-      contentBorrowers.length = 0;
-      let retired = true;
-      for (const artifact of contentArtifacts) {
-        // Scrub every original inventory, but do not return the parent pin
-        // merely because one bounded cleanup quantum was exhausted.
-        if (!control.releaseEffectCommandContentArtifact(artifact, limits.maxWork)) retired = false;
-      }
-      if (!retired) fail('InstalledRowEffectContentCleanupPending');
-      contentArtifacts.length = 0;
-      // The original parent retains phase/key aliases until request children,
-      // content borrowers and artifacts have actually retired. Export finally
-      // closes only the temporary import, never this byte borrower.
-      for (const workspace of commandWorkspaces) {
-        if (workspace === undefined) continue;
-        await retireEffectCommandKeyWorkspace(() => checked(
-          moon.clientProgramCloseEffectCommandKeyWorkspace(workspace)));
-      }
-      commandWorkspaces.length = 0;
-      commandKeys.length = 0;
-      moon.clientProgramReleaseEffectInputs(inputs);
-    };
-    const releaseInputs = async () => {
-      if (!retireRequestAliases()) fail('InstalledRowEffectRequestCleanupPending');
-      // Direct successful-route disposal still drains its original children
-      // and Sources. Failure cleanup already owns that same inventory below;
-      // its input-pin callback must not create a second nested cleanup pass.
-      if (requestChildren.length) {
-        const marker = Object.freeze(new Error('InstalledRowEffectRequestCleanup'));
-        try { await releaseInstalledRowCapture({children: requestChildren,
-          payloads: sourceSet?.payloads ?? [], control}, marker); }
-        catch (error) { if (error !== marker) throw error; }
-      }
-      await releaseInputPins();
-    };
-    ownInputs(releaseInputPins, () => { captureOpen = false; });
-    if (managedEffect !== undefined) {
-      if (typeof controlConstruction.retainInputs !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
-      controlConstruction.retainInputs(inputs);
-    }
-    memberCaptures.length = members.length;
-    // Reserve each original member's capture body before export can append
-    // proposal rows, parse their values or issue canonical CREATE inventory.
-    // These SAME arrays and children survive through ordinary route retirement.
-    for (const member of members) {
-      const recipe = recipeOf(member);
-      if (recipe === undefined) { proposals.push([]); continue; }
-      if (managedEffect?.runtime !== moon || managedEffect.prepared !== prepared ||
-          managedEffect.request !== identity) fail('ForeignInstalledEffectManagedRun');
-      const selected = recipe.captureConstruction;
-      if (selected === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
-      const operation = recipe.memberOperations[selected.operationIndex]?.operation;
-      const {owned} = ownerOf(member);
-      const recoveryEntry = owned.recoveryEntry;
-      let original;
-      const retained = retainInstalledRowCaptureChild({children: requestChildren,
-        create: () => {
-          const observed = selected.inputExtent !== undefined;
-          if (observed && recipe.requestConstruction?.inputExtent === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
-          original = (observed ? prepareInstalledEffectCaptureChild : prepareInstalledEffectRequestChild)({run: managedEffect,
-            memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
-            operationIndex: selected.operationIndex, operation,
-            ...(observed ? {inputExtent: () => controlConstruction(undefined, selected.inputExtent,
-              [proposals[member.memberIndex]])} : {}),
-            construct: observed ? () => {
-              const construct = rowsOf[member.memberIndex];
-              if (typeof construct !== 'function') fail('InstalledEffectCaptureConstructionUnavailable');
-              return construct();
-            } : () => recoveryEntry === undefined ? undefined :
-              Reflect.apply(recoveryEntry, owned, [{member, current: currents[member.memberIndex],
-                entries: entries[member.memberIndex]}]), requestsRetired: retireRequestAliases});
-          return original;
-        }, assertCurrent, signal});
-      // Retain before this cheap original-record fence can fail. The actual
-      // constructor is deferred; its original reservation already owns input.
-      original.checkOriginal();
-      proposals.push([]);
-      memberCaptures[member.memberIndex] = retained;
-    }
-    let proposalCount = 0;
-    const sourceLimits = moon.clientProgramEffectInputExportLimits(
-      ...exportLimits(plan.outputLimits));
-    if (typeof moon.clientProgramPlanEffectCommandKeyWorkspace === 'function') {
-      for (let index = 0; index < members.length; index++) {
-        // This is the original Local Effect Host, not the prepared computation
-        // (`checkedOwner`) or a Host re-created from the same CID.
-        commandWorkspaces.push(checked(moon.clientProgramPlanEffectCommandKeyWorkspace(
-          checkedHost, inputs, index, sourceLimits, limits.maxWork)));
-      }
-    }
-    let publishedTargets;
-    if (typeof moon.clientProgramEffectPublishedStoreBinding === 'function') {
-      let selected = false;
-      const targets = members.map(member => {
-        const pair = checked(moon.clientProgramEffectPublishedStoreBinding(
-          inputs, member.memberIndex, limits.maxWork));
-        if (pair === undefined) return undefined;
-        const owner = ownerOf(member);
-        if (member.kind !== 'command' ||
-            typeof owner.issueOriginalCollectionReference !== 'function' ||
-            typeof moon.clientProgramBindEffectCommandTarget !== 'function') {
-          fail('InstalledEffectPublishedTargetUnavailable');
-        }
-        assertCurrent?.();
-        const reference = owner.issueOriginalCollectionReference(pair, limits.maxWork);
-        assertCurrent?.();
-        const target = checked(moon.clientProgramBindEffectCommandTarget(
-          inputs, member.memberIndex, pair, reference, limits.maxWork));
-        selected = true;
-        return target;
-      });
-      if (selected) publishedTargets = Object.freeze(targets);
-    } else if (members.some(member =>
-      typeof ownerOf(member).issueOriginalCollectionReference === 'function')) {
-      fail('InstalledEffectPublishedTargetUnavailable');
-    }
-    sourceSet = await preparePinnedEffectSourceSet({moon,
-      dependencyConstruction: controlConstruction,
-      ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
-      ...(publishedTargets === undefined ? {} : {publishedTargets}),
-      onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
-      checkedOwner: prepared, execution, inputs,
-      maxMembers: members.length,
-      // Membership, distinct keyed/target groups and dependency imports share
-      // the existing finite Host structural-work ceiling. Result/member counts
-      // bound inventory size, not the work of its cross-product comparisons.
-      maxGroupingWork: limits.maxWork,
-      limits: sourceLimits,
-      store, maxBytes: plan.outputLimits.maxWireBytes, control,
-      invocation: plan.invocation, retention: plan.effectInputRetention,
-      ...(singular === undefined ? {memberSourceBindings: Object.freeze(members.map((member, memberIndex) =>
-        Object.freeze({memberIndex, sourceBindingCid: cid({version: ownerOf(member).profile.source,
-          run_invocation_cid: runInvocationCid, store_authority_cid: store.storeAuthorityCid})})))} : {
-        sourceBindingCid: cid({version: singular.profile.source,
-          run_invocation_cid: runInvocationCid, store_authority_cid: store.storeAuthorityCid})}),
-      contractLimits: plan.contractLimits,
-      localEvidenceContext: plan.localEvidenceContext,
-      proposalLimits: {maxFields: limits.maxFields, maxWork: limits.maxWork,
-        maxBytes: limits.body.maxBytes, maxNodes: limits.body.maxNodes,
-        maxDepth: limits.body.maxDepth,
-        maxUtf16Units: limits.body.maxBytes},
-      onOriginalArtifact(artifact, memberIndex) {
-        if (members[memberIndex]?.kind !== 'command') return;
-        if (!contentArtifacts.includes(artifact)) contentArtifacts.push(artifact);
-        // Retain before a Common/source callback can fail after the move.
-        control.prepareEffectCommandContentArtifact(prepared, inputs,
-          memberIndex, artifact, limits);
+    let sourceSet, entries, route;
+    const {limits, controlConstruction, inputs, commandKeys, contentBorrowers, requestChildren, memberCaptures,
+      proposals, currents, rowsOf, observations, publishedTargets, physicalOperations, retireRequestAliases,
+      childrenPending, releaseInputs, sourceExport} = prepareInstalledRowEffectCaptureInputs({
+      moon, control, store, execution, checkedHost, prepared, identity, plan, members, runInvocationCid, signal,
+      managedEffect, assertCurrent, ownInputs, ownChildren, runLimits, prepareCredentialOperation, ownerOf, recipeOf,
+      singular, cid, exportLimits, preparePinnedEffectSourceSet, fail,
+      readSourceSet: () => sourceSet,
+      readEntries: () => entries,
+      retireRoute() {
+        if (route !== undefined && !route.retire()) return false;
+        entries = undefined;
+        return true;
       },
-      onProposalRow(memberIndex, rowIndex, proposal) {
-        if (rowIndex !== proposals[memberIndex]?.length ||
-            rowIndex >= limits.maxRowsPerMember || proposalCount >= limits.maxRows) {
-          fail('InstalledRowEffectRowLimit');
-        }
-        proposalCount++;
-        proposals[memberIndex].push(proposal);
-      },
-      signal});
+    });
+    sourceSet = await sourceExport;
     own(sourceSet);
     assertCurrent?.();
     // Reads of each update member's targets are decided before any provider
