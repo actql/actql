@@ -4,22 +4,50 @@ import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatc
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {observeHubSpotAccount, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from './hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from './hubspot-object-read.mjs';
+import type {HubSpotInvocation, HubSpotObservationCause, HubSpotResourceCall, HubSpotResourceInput, HubSpotResponse}
+  from './hubspot-account-read.mjs';
+
+type Native = Readonly<{
+  hubspotProjectProperties(bytes: Uint8Array, originalObjectType: string, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxProperties: number, maxNameUnits: number): unknown;
+  hubspotRecheckAccountIdentityJson(bytes: Uint8Array, originalPortalId: string, maxBytes: number, maxNodes: number,
+    maxDepth: number): string;
+  hubspotRecordBatchBody(request: unknown): string;
+  hubspotRecordBatchObjectType(request: unknown): string;
+  hubspotRecordBatchEndpoint(request: unknown): string;
+  hubspotRecordBatchCount(request: unknown): number;
+  hubspotRecheckRecordBatch(request: unknown, current: unknown, maxProperties: number): unknown;
+}>;
+type Limits = Readonly<Record<(typeof limitFields)[number], number>>;
+type Callbacks = Readonly<{authorizationFor(original: Readonly<{operation: string; index: number; objectType: string}>): unknown;
+  current(operation: string): unknown; chargeResponse(body: HubSpotResponse['body']): unknown;
+  consumeObservation(charge: unknown): unknown; callResource: HubSpotResourceCall}>;
+type Options = Omit<Callbacks, 'callResource'> & Readonly<{moon: Native; originalPortalId: string;
+  originalCatalog: unknown; initialAuthorization: unknown; credential: {binding?: unknown}; limits: Limits;
+  signal?: AbortSignal; callResource?: HubSpotResourceCall; request: unknown}>;
+type WriteObservationOptions = Readonly<{moon: Readonly<{hubspotProjectRecordWriteSuccess(request: unknown, status: number, bytes: Uint8Array, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxRows: number): unknown}>;
+  request: unknown; observation: Readonly<{body: Uint8Array; statusCode: number}>;
+  limits: Pick<Limits, 'maxResponseBytes' | 'maxNodes' | 'maxDepth' | 'maxRows'>}>;
 
 export const HUBSPOT_BATCH_WRITE_OPERATIONS = Object.freeze({
   create: 'hubspot:objects:batch-create', update: 'hubspot:objects:batch-update',
   upsert: 'hubspot:objects:batch-upsert'});
-const positive = value => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const segment = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => `%${unit.charCodeAt(0).toString(16).toUpperCase()}`);
 const exports = ['hubspotProjectProperties', 'hubspotRecheckAccountIdentityJson',
   'hubspotRecordBatchBody', 'hubspotRecordBatchObjectType', 'hubspotRecordBatchEndpoint',
-  'hubspotRecordBatchCount', 'hubspotRecheckRecordBatch'];
+  'hubspotRecordBatchCount', 'hubspotRecheckRecordBatch'] as const;
 const limitFields = ['maxResponseBytes', 'maxRequestBytes', 'maxNodes', 'maxDepth',
-  'maxProperties', 'maxNameUnits', 'maxRows'];
+  'maxProperties', 'maxNameUnits', 'maxRows'] as const;
 
 export class HubSpotRecordWriteFailure extends Error {
-  constructor(cause, observations) {
+  declare readonly code: unknown;
+  declare readonly observations: readonly HubSpotResponse[];
+
+  constructor(cause: HubSpotObservationCause, observations: readonly HubSpotResponse[]) {
     super(typeof cause?.message === 'string' ? cause.message : 'HubSpotRecordWriteFailed', {cause});
     this.name = typeof cause?.name === 'string' ? cause.name : 'Error';
     this.code = cause?.code ?? 'HubSpotRecordWriteFailed';
@@ -30,11 +58,11 @@ export class HubSpotRecordWriteFailure extends Error {
 // Reclassify original retained bytes without any credential lookup or send.
 // Non-success and malformed/partial acknowledgements remain unclassified;
 // HTTP status and nominal Credential success are not an Effect outcome.
-export function projectHubSpotRecordWriteObservation({moon, request, observation, limits}) {
+export function projectHubSpotRecordWriteObservation({moon, request, observation, limits}: WriteObservationOptions) {
   if (typeof moon?.hubspotProjectRecordWriteSuccess !== 'function' ||
       !request || !(observation?.body instanceof Uint8Array) ||
       !Number.isInteger(observation.statusCode) ||
-      !['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows'].every(key => positive(limits?.[key]))) {
+      !(['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxRows'] as const).every(key => positive(limits?.[key]))) {
     fail('InvalidHubSpotWriteObservation');
   }
   try {
@@ -54,19 +82,19 @@ export function projectHubSpotRecordWriteObservation({moon, request, observation
 export async function sendRawHubSpotRecordBatch({moon, originalPortalId,
   originalCatalog, request, initialAuthorization, credential, authorizationFor,
   limits, current, chargeResponse, consumeObservation, signal,
-  callResource = callHttpsCredentialResource}) {
+  callResource = callHttpsCredentialResource}: Options) {
   if (exports.some(name => typeof moon?.[name] !== 'function') ||
       !limitFields.every(key => positive(limits?.[key])) || limits.maxRows > 100 ||
       [authorizationFor, current, chargeResponse, consumeObservation, callResource]
         .some(value => typeof value !== 'function') ||
       !credential?.binding || typeof credential.binding !== 'object') fail('InvalidHubSpotRecordWrite');
-  const provider = Object.freeze(Object.fromEntries(exports.map(name => [name, moon[name]])));
+  const provider = Object.freeze(Object.fromEntries(exports.map(name => [name, moon[name]]))) as Native;
   const context = ownInvocationContext({authorization: initialAuthorization,
     credential, limits, callbacks: {authorizationFor, current, chargeResponse,
-      consumeObservation, callResource}});
-  if (context.scope.operation !== HUBSPOT_ACCOUNT_DETAILS_OPERATION) fail('ForeignHubSpotAccountOperation');
+      consumeObservation, callResource}}) as HubSpotInvocation<Limits, Callbacks>;
+  if ((context.scope as {operation?: unknown}).operation !== HUBSPOT_ACCOUNT_DETAILS_OPERATION) fail('ForeignHubSpotAccountOperation');
   const endpoint = provider.hubspotRecordBatchEndpoint(request);
-  const operation = HUBSPOT_BATCH_WRITE_OPERATIONS[endpoint];
+  const operation = HUBSPOT_BATCH_WRITE_OPERATIONS[endpoint as keyof typeof HUBSPOT_BATCH_WRITE_OPERATIONS];
   const objectType = provider.hubspotRecordBatchObjectType(request);
   const body = provider.hubspotRecordBatchBody(request);
   if (!operation || !objectType || objectType === '.' || objectType === '..' ||
@@ -74,15 +102,15 @@ export async function sendRawHubSpotRecordBatch({moon, originalPortalId,
       provider.hubspotRecordBatchCount(request) > context.limits.maxRows ||
       Buffer.byteLength(body) > context.limits.maxRequestBytes) fail('HubSpotWriteRequestLimit');
   checked(provider.hubspotRecheckRecordBatch(request, originalCatalog, context.limits.maxProperties));
-  const observations = [];
-  const verify = async selected => {
+  const observations: HubSpotResponse[] = [];
+  const verify = async (selected: string) => {
     signal?.throwIfAborted(); await context.callbacks.current(selected); signal?.throwIfAborted();
   };
-  const receive = async (selected, index, path, method, payload) => {
+  const receive = async (selected: string, index: number, path: string, method: 'GET' | 'POST', payload?: string) => {
     await verify(selected);
     const authorization = ownInvocationAuthorization(await context.callbacks.authorizationFor(
       Object.freeze({operation: selected, index, objectType})));
-    if (authorization.scope.operation !== selected ||
+    if ((authorization.scope as {operation?: unknown}).operation !== selected ||
         !invocationBindingsMatch(authorization.scope, context.scope)) fail('ForeignHubSpotWriteAuthorization');
     await verify(selected);
     const response = await invokeScopedCredentialOperation({authorization,
@@ -90,8 +118,8 @@ export async function sendRawHubSpotRecordBatch({moon, originalPortalId,
       query: [], headers: [['accept', 'application/json']], body: payload,
       responseHeaders: [], maxRequestBytes: context.limits.maxRequestBytes,
       maxResponseBytes: context.limits.maxResponseBytes, signal,
-      callResource: options => context.callbacks.callResource({...options,
-        currentBeforeSend: () => verify(selected)})});
+      callResource: (options: HubSpotResourceInput) => context.callbacks.callResource({...options,
+        currentBeforeSend: () => verify(selected)})}) as HubSpotResponse;
     observations.push(response);
     const charge = await context.callbacks.chargeResponse(response.body);
     await verify(selected);
@@ -122,7 +150,7 @@ export async function sendRawHubSpotRecordBatch({moon, originalPortalId,
     return Object.freeze({observation: response, observations: Object.freeze(observations.slice()),
       limits: context.limits});
   } catch (cause) {
-    if (cause?.observation && !observations.includes(cause.observation)) observations.push(cause.observation);
-    throw new HubSpotRecordWriteFailure(cause, observations);
+    if ((cause as HubSpotObservationCause)?.observation && !observations.includes((cause as HubSpotObservationCause)!.observation!)) observations.push((cause as HubSpotObservationCause)!.observation!);
+    throw new HubSpotRecordWriteFailure(cause as HubSpotObservationCause, observations);
   }
 }

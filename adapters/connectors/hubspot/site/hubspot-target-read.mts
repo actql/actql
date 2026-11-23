@@ -4,26 +4,54 @@ import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatc
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {observeHubSpotAccount, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from './hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from './hubspot-object-read.mjs';
+import type {HubSpotInvocation, HubSpotObservationCause, HubSpotResourceCall, HubSpotResourceInput, HubSpotResponse}
+  from './hubspot-account-read.mjs';
+
+type Native = Readonly<{
+  hubspotProjectProperties(bytes: Uint8Array, originalObjectType: string, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxProperties: number, maxNameUnits: number): unknown;
+  hubspotRecheckPropertyCatalog(original: unknown, current: unknown, maxProperties: number): unknown;
+  hubspotPropertyCatalogObjectType(catalog: unknown): string;
+  hubspotRecheckAccountIdentityJson(bytes: Uint8Array, originalPortalId: string, maxBytes: number, maxNodes: number,
+    maxDepth: number): string;
+  hubspotRecordReadBody(request: unknown): string;
+  hubspotRecordReadObjectType(request: unknown): string;
+  hubspotRecheckRecordReadRequest(request: unknown, current: unknown, maxProperties: number): unknown;
+  hubspotProjectRecordRead(request: unknown, bytes: Uint8Array, maxBytes: number, maxNodes: number,
+    maxDepth: number, maxRows: number, maxColumns: number, maxCursorUnits: number,
+    maxValueNodes: number, maxValueTextBytes: number, maxOutputBytes: number,
+    maxOutputNodes: number, maxOutputDepth: number): unknown;
+}>;
+type Limits = Readonly<Record<(typeof limitFields)[number], number>>;
+type Callbacks = Readonly<{authorizationFor(original: Readonly<{operation: string; index: number; objectType: string}>): unknown;
+  current(operation: string): unknown; chargeResponse(body: HubSpotResponse['body']): unknown;
+  consumeObservation(charge: unknown): unknown; callResource: HubSpotResourceCall}>;
+type Options = Omit<Callbacks, 'callResource'> & Readonly<{moon: Native; originalPortalId: string;
+  originalCatalog: unknown; initialAuthorization: unknown; credential: {binding?: unknown}; limits: Limits;
+  signal?: AbortSignal; callResource?: HubSpotResourceCall; request: unknown}>;
 
 export const HUBSPOT_OBJECT_BATCH_READ_OPERATION = 'hubspot:objects:batch-read';
-const positive = value => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const segment = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const segment = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   unit => `%${unit.charCodeAt(0).toString(16).toUpperCase()}`);
 const exports = ['hubspotProjectProperties', 'hubspotRecheckPropertyCatalog',
   'hubspotPropertyCatalogObjectType', 'hubspotRecheckAccountIdentityJson',
   'hubspotRecordReadBody', 'hubspotRecordReadObjectType',
-  'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead'];
+  'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead'] as const;
 const limitFields = ['maxResponseBytes', 'maxRequestBytes', 'maxNodes', 'maxDepth',
   'maxProperties', 'maxNameUnits', 'maxRows', 'maxColumns', 'maxCursorUnits',
   'maxValueNodes', 'maxValueTextBytes', 'maxOutputBytes', 'maxOutputNodes',
-  'maxOutputDepth', 'maxRequests'];
+  'maxOutputDepth', 'maxRequests'] as const;
 
 // Original physical observations remain private custody on every later
 // projection/current/accounting failure. No retry, absent-target conclusion,
 // new grant, approval, write claim or physical cleanup ACK is introduced.
 export class HubSpotTargetReadFailure extends Error {
-  constructor(cause, observations) {
+  declare readonly code: unknown;
+  declare readonly observations: readonly HubSpotResponse[];
+
+  constructor(cause: HubSpotObservationCause, observations: readonly HubSpotResponse[]) {
     super(typeof cause?.message === 'string' ? cause.message : 'HubSpotTargetReadFailed', {cause});
     this.name = typeof cause?.name === 'string' ? cause.name : 'Error';
     this.code = cause?.code ?? 'HubSpotTargetReadFailed';
@@ -37,16 +65,16 @@ export class HubSpotTargetReadFailure extends Error {
 export async function readHubSpotRecordTargets({moon, originalPortalId,
   originalCatalog, request, initialAuthorization, credential, authorizationFor,
   limits, current, chargeResponse, consumeObservation, signal,
-  callResource = callHttpsCredentialResource}) {
+  callResource = callHttpsCredentialResource}: Options) {
   if (exports.some(name => typeof moon?.[name] !== 'function') ||
       !limitFields.every(name => positive(limits?.[name])) ||
       [authorizationFor, current, chargeResponse, consumeObservation, callResource]
         .some(value => typeof value !== 'function') ||
       !credential?.binding || typeof credential.binding !== 'object') fail('InvalidHubSpotTargetRead');
-  const provider = Object.freeze(Object.fromEntries(exports.map(name => [name, moon[name]])));
+  const provider = Object.freeze(Object.fromEntries(exports.map(name => [name, moon[name]]))) as Native;
   const context = ownInvocationContext({authorization: initialAuthorization, credential,
-    limits, callbacks: {authorizationFor, current, chargeResponse, consumeObservation, callResource}});
-  if (context.scope.operation !== HUBSPOT_ACCOUNT_DETAILS_OPERATION) fail('ForeignHubSpotAccountOperation');
+    limits, callbacks: {authorizationFor, current, chargeResponse, consumeObservation, callResource}}) as HubSpotInvocation<Limits, Callbacks>;
+  if ((context.scope as {operation?: unknown}).operation !== HUBSPOT_ACCOUNT_DETAILS_OPERATION) fail('ForeignHubSpotAccountOperation');
   const objectType = provider.hubspotRecordReadObjectType(request);
   if (objectType !== provider.hubspotPropertyCatalogObjectType(originalCatalog) ||
       !objectType || objectType === '.' || objectType === '..' ||
@@ -54,20 +82,20 @@ export async function readHubSpotRecordTargets({moon, originalPortalId,
   checked(provider.hubspotRecheckRecordReadRequest(request, originalCatalog, context.limits.maxProperties));
   const body = provider.hubspotRecordReadBody(request);
   if (Buffer.byteLength(body) > context.limits.maxRequestBytes) fail('HubSpotTargetRequestLimit');
-  const observations = [];
+  const observations: HubSpotResponse[] = [];
   let requests = 0;
-  const verify = async operation => {
+  const verify = async (operation: string) => {
     signal?.throwIfAborted(); await context.callbacks.current(operation); signal?.throwIfAborted();
   };
   const slot = () => {
     if (requests >= context.limits.maxRequests) fail('HubSpotTargetRequestLimit');
     return requests++;
   };
-  const receive = async (operation, path, method, requestBody) => {
+  const receive = async (operation: string, path: string, method: 'GET' | 'POST', requestBody?: string) => {
     await verify(operation);
     const authorization = ownInvocationAuthorization(await context.callbacks.authorizationFor(
       Object.freeze({operation, index: slot(), objectType})));
-    if (authorization.scope.operation !== operation ||
+    if ((authorization.scope as {operation?: unknown}).operation !== operation ||
         !invocationBindingsMatch(authorization.scope, context.scope)) fail('ForeignHubSpotTargetAuthorization');
     await verify(operation);
     const response = await invokeScopedCredentialOperation({authorization,
@@ -77,8 +105,8 @@ export async function readHubSpotRecordTargets({moon, originalPortalId,
       headers: [['accept', 'application/json']], body: requestBody,
       responseHeaders: [], maxRequestBytes: context.limits.maxRequestBytes,
       maxResponseBytes: context.limits.maxResponseBytes, signal,
-      callResource: options => context.callbacks.callResource({...options,
-        currentBeforeSend: () => verify(operation)})});
+      callResource: (options: HubSpotResourceInput) => context.callbacks.callResource({...options,
+        currentBeforeSend: () => verify(operation)})}) as HubSpotResponse;
     observations.push(response);
     const charge = await context.callbacks.chargeResponse(response.body);
     await verify(operation);
@@ -118,7 +146,7 @@ export async function readHubSpotRecordTargets({moon, originalPortalId,
     await verify(HUBSPOT_OBJECT_BATCH_READ_OPERATION);
     return Object.freeze({observation, observations: Object.freeze(observations.slice())});
   } catch (cause) {
-    if (cause?.observation && !observations.includes(cause.observation)) observations.push(cause.observation);
-    throw new HubSpotTargetReadFailure(cause, observations);
+    if ((cause as HubSpotObservationCause)?.observation && !observations.includes((cause as HubSpotObservationCause)!.observation!)) observations.push((cause as HubSpotObservationCause)!.observation!);
+    throw new HubSpotTargetReadFailure(cause as HubSpotObservationCause, observations);
   }
 }

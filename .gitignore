@@ -3086,3 +3086,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/hubspot/host/hubspot-update-request.d.mts
 /adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs
 /adapters/connectors/hubspot/host/hubspot-effect-mappings.d.mts
+/adapters/connectors/hubspot/site/hubspot-account-read.mjs
+/adapters/connectors/hubspot/site/hubspot-account-read.d.mts
+/adapters/connectors/hubspot/site/hubspot-object-read.mjs
+/adapters/connectors/hubspot/site/hubspot-object-read.d.mts
+/adapters/connectors/hubspot/site/hubspot-record-write.mjs
+/adapters/connectors/hubspot/site/hubspot-record-write.d.mts
+/adapters/connectors/hubspot/site/hubspot-target-read.mjs
+/adapters/connectors/hubspot/site/hubspot-target-read.d.mts
