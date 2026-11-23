@@ -2,7 +2,7 @@
 
 The caller supplies a new fixture's successful warm reference and its current
 normal wheel installation. This is not a pristine default-fuel success case:
-the test wraps the Saved call and its physical current ports to reduce remaining fuel to zero
+the test wraps the Saved call and its operation-current port to reduce remaining fuel to zero
 inside the actual saved-binding validation's original current callback. It
 does not replace the Core, module, physical current result, or cleanup callback.
 The same instance must retain its physical duties and close explicitly.
@@ -35,9 +35,8 @@ def error_chain(error):
 
 
 def main():
-    if len(sys.argv) != 3 and not (len(sys.argv) == 4 and sys.argv[3] == '--without-fd-observer'):
+    if len(sys.argv) != 3:
         raise ValueError('Select the fresh fixture directory and exact wheel Source')
-    fd_observer = len(sys.argv) == 3
     directory = Path(sys.argv[1]).resolve()
     source = sys.argv[2]
     if len(source) != 40 or any(ch not in '0123456789abcdef' for ch in source):
@@ -66,9 +65,7 @@ def main():
     from actql_sdk._local_core import LocalCore, _Output
     from actql_sdk._local_distribution import installed_local_components
     from wasmtime import Trap
-    fuel_trap_code = None
-    if not fd_observer:
-        fuel_trap_code = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))['fuel_trap_code']
+    fuel_trap_code = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))['fuel_trap_code']
     if not Path(actql.__file__).is_relative_to(Path(sys.prefix)):
         raise ValueError('Installed public facade required; no source overlay')
     installed = installed_local_components()
@@ -77,7 +74,7 @@ def main():
     report.update(module=installed.module_sha256, image=installed.image_sha256)
     report['versions'] = {name: metadata.version(name)
                           for name in ('actql', 'actql-sdk', 'actql-local-runtime', 'wasmtime')}
-    call, current, current_operation = LocalCore._call, LocalCore._journal_current, LocalCore._journal_current_operation
+    call, current_operation = LocalCore._call, LocalCore._journal_current_operation
     selected, entered, held = [False], [False], []
 
     def observed_call(self, family, name, *arguments):
@@ -110,12 +107,12 @@ def main():
                 entered[0] = False
         return call(self, family, name, *arguments)
 
-    def interrupt(self, ticket, result, *, operation_import):
+    def observed_current_operation(self, ticket):
+        result = current_operation(self, ticket)
         if not entered[0] or ticket <= 0 or report['injections']:
             return result
         original, store, scope, operation = held[0]
-        expected = operation if operation_import else 0
-        if result != expected:
+        if operation <= 0 or result != operation:
             return result
         if self is not original or self._store is not store:
             raise AssertionError('Foreign Core or replacement Store')
@@ -128,19 +125,11 @@ def main():
         store.set_fuel(0)
         report['injections'].append({'before': before, 'after': store.get_fuel(),
                                      'actualCurrentResult': result, 'ticket': ticket,
-                                     'operationImport': operation_import, 'operation': operation})
+                                     'operation': operation})
         return result
-
-    def observed_current(self, ticket):
-        return interrupt(self, ticket, current(self, ticket), operation_import=False)
-
-    def observed_current_operation(self, ticket):
-        result = current_operation(self, ticket)
-        return interrupt(self, ticket, result, operation_import=True)
 
     client, close_attempted = None, False
     LocalCore._call = observed_call
-    LocalCore._journal_current = observed_current
     LocalCore._journal_current_operation = observed_current_operation
     try:
         event('public reopen original fresh installation')
@@ -155,16 +144,12 @@ def main():
             execution.result(original['resultName']).all()
         except BaseException as error:
             report['expectedOperationFailure'] = error_chain(error)
-            if fuel_trap_code is not None:
-                trap, = [cause for cause in causes(error) if type(cause) is Trap]
-                report['originalTrapCode'] = fuel_trap_code(trap)
+            trap, = [cause for cause in causes(error) if type(cause) is Trap]
+            report['originalTrapCode'] = fuel_trap_code(trap)
         else:
             raise AssertionError('Selected interruption did not fail the operation')
         if len(held) != 1 or len(report['injections']) != 1:
             raise AssertionError('The exact selected original was not interrupted once')
-        if not any('all fuel consumed by WebAssembly' in e['message']
-                   for e in report['expectedOperationFailure']):
-            raise AssertionError('Expected actual Wasm instruction exhaustion')
         core, store, _, _ = held[0]
         if not core._closing or core._invoking or core._store is not store or store.get_fuel() != 0:
             raise AssertionError('Interrupted original did not remain fenced and quiescent')
@@ -174,11 +159,6 @@ def main():
         except RuntimeError as refusal:
             report['normalEntryRefusal'] = str(refusal)
         event('original interrupted physical custody retained before explicit cleanup')
-        print('E_SAVED_INTERRUPTED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state)}),
-              file=sys.stderr, flush=True)
-        # Permit the independent observer to inspect the live original FDs.
-        if fd_observer:
-            time.sleep(2)
         event('explicit public close of same interrupted original')
         close_attempted = True
         client.close()
@@ -188,10 +168,6 @@ def main():
                 or entry['invoking'] or entry['phase'] != 'cleanup' or not entry['closing']
                 for entry in report['cleanupEntrances']):
             raise AssertionError('Missing same-original cleanup entrance after unwind')
-        print('E_SAVED_CLOSED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state),
-                                           'phase': 'interrupted'}), file=sys.stderr, flush=True)
-        if fd_observer:
-            time.sleep(2)
         event('same original explicit cleanup completed')
         report.update(passed=True, cases=1, normalFenced=True, sameStore=True, firstClose=True)
     except BaseException as error:
@@ -204,7 +180,6 @@ def main():
             except BaseException as error:
                 report['cleanupFailure'] = error_chain(error)
         LocalCore._call = call
-        LocalCore._journal_current = current
         LocalCore._journal_current_operation = current_operation
         (directory / 'fresh-interruption-result.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(report), flush=True)

@@ -38,7 +38,7 @@ class InstalledSavedControlTests(unittest.TestCase):
             dict(pid=43, passed=True, cases=1, originalTrapCode=12, firstClose=True,
                  normalFenced=True, sameStore=True, newSubmission=False, installedSourceOverlay=False,
                  injections=[{'before': 10, 'after': 0, 'actualCurrentResult': 5,
-                              'ticket': 7, 'operationImport': True, 'operation': 5}]),
+                              'ticket': 7, 'operation': 5}]),
             dict(pid=44, phase='recover', first_close=True, same_saved=True, replayed=False),
         ]
         calls = []
@@ -68,7 +68,7 @@ class InstalledSavedControlTests(unittest.TestCase):
                 self.assertTrue(args[3].is_file())
                 self.assertEqual(options['env'], {'ORIGINAL': 'env'})
                 self.assertEqual(options['timeout'], 180)
-            self.assertEqual(calls[2][1][-1], '--without-fd-observer')
+            self.assertEqual(calls[2][1][4:], [directory / 'saved-read' / 'fuel', self.source])
             self.assertEqual(report['fuel_recovery_pid'], 44)
             self.assertTrue(report['original_first_closes_returned'])
 
@@ -79,8 +79,10 @@ class InstalledSavedControlTests(unittest.TestCase):
                 (1, {'pid': 41}), (1, {'first_close': False}),
                 (2, {'originalTrapCode': 0}), (2, {'sameStore': False}),
                 (2, {'injections': []}), (2, {'firstClose': False}),
+                (2, {'injections': [{'before': 10, 'after': 0, 'actualCurrentResult': 0,
+                                     'ticket': 7, 'operation': 5}]}),
                 (2, {'injections': [{'before': 10, 'after': 0, 'actualCurrentResult': 6,
-                                     'ticket': 7, 'operationImport': True, 'operation': 5}]}),
+                                     'ticket': 7, 'operation': 5}]}),
                 (3, {'replayed': True})]:
             with self.subTest(index=index, fields=fields), tempfile.TemporaryDirectory() as temp:
                 calls, agreement = self.run_controls(Path(temp), change=(index, fields))
