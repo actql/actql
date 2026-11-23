@@ -7,9 +7,9 @@ import {GITHUB_COMMENT_STAMP_RECIPE, prepareGitHubCommentLogicalRequest,
 
 const origin = 'https://api.github.test', subjectId = 'I_original';
 const tag = 'sha256:' + 'a'.repeat(64);
-function providerPort(encode) {
-  const calls = [];
-  const moon = {githubAddCommentRequestJson(subject, body) {
+function providerPort(encode?: (subject: string, body: string) => string) {
+  const calls: {subject: string; body: string}[] = [];
+  const moon = {githubAddCommentRequestJson(subject: string, body: string) {
     assert.equal(this, moon); calls.push({subject, body});
     return encode ? encode(subject, body) : JSON.stringify({body: JSON.stringify({
       query: 'fixture addComment', variables: {subjectId: subject, body}})});
@@ -31,11 +31,11 @@ test('Comment logical preparation stays separate and finalizes exact body and or
     assert.equal(Object.hasOwn(logical, 'requestCid'), false);
     const final = finalizeGitHubCommentRequest({moon: f.moon, request: logical, requestTag: tag});
     assert.equal(f.calls.length, before + 1);
-    assert.equal(f.calls.at(-1).body, body + '\n\n<!-- actql:effect:' + tag + ' -->');
+    assert.equal(f.calls.at(-1)!.body, body + '\n\n<!-- actql:effect:' + tag + ' -->');
     assert.equal(final.logicalBody, body); assert.equal(final.requestTag, tag);
     assert.equal(final.requestCid, expectedCid); assert(Object.isFrozen(final));
-    for (const key of Object.keys(logical)) assert.equal(final[key], logical[key]);
-    assert.equal(JSON.parse(final.body).variables.body, f.calls.at(-1).body);
+    for (const key of Object.keys(logical) as (keyof typeof logical)[]) assert.equal(final[key], logical[key]);
+    assert.equal(JSON.parse(final.body).variables.body, f.calls.at(-1)!.body);
     assert.equal(JSON.parse(final.body).variables.subjectId, subjectId);
   }
   assert.deepEqual(GITHUB_COMMENT_STAMP_RECIPE,
@@ -61,11 +61,11 @@ test('Comment marker refuses malformed or missing DATA without invoking an encod
   const f = providerPort();
   const logical = prepareGitHubCommentLogicalRequest({origin, subjectId, body: 'original'});
   for (const requestTag of [undefined, '', 'original', {scope: tag}, 'SHA256:' + 'a'.repeat(64)]) {
-    assert.throws(() => finalizeGitHubCommentRequest({moon: f.moon, request: logical, requestTag}),
+    assert.throws(() => finalizeGitHubCommentRequest({moon: f.moon, request: logical, requestTag: requestTag as string}),
       {code: 'InvalidGitHubCommentRequest'});
   }
   for (const body of [undefined, null, '\ud800']) {
-    assert.throws(() => prepareGitHubCommentLogicalRequest({origin, subjectId, body}),
+    assert.throws(() => prepareGitHubCommentLogicalRequest({origin, subjectId, body: body as string}),
       {code: 'InvalidGitHubCommentRequest'});
   }
   for (const changed of [{...logical, method: 'PUT'}, {...logical, path: '/other'},
@@ -89,7 +89,8 @@ test('Comment physical admission failure remains failure and final data cannot b
     error => error === cause);
   const refusing = providerPort(() => JSON.stringify({refused: 'InvalidBody'}));
   assert.throws(() => finalizeGitHubCommentRequest({moon: refusing.moon, request: logical, requestTag: tag}),
-    error => error.code === 'InvalidGitHubCommentRequest' && error.refusal === 'InvalidBody');
+    error => (error as {code?: string}).code === 'InvalidGitHubCommentRequest' &&
+      (error as {refusal?: string}).refusal === 'InvalidBody');
   const f = providerPort(), final = finalizeGitHubCommentRequest({moon: f.moon, request: logical, requestTag: tag});
   assert.throws(() => finalizeGitHubCommentRequest({moon: f.moon, request: final, requestTag: tag}),
     {code: 'InvalidGitHubCommentRequest'});

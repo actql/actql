@@ -3030,3 +3030,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/sheets-interface-boundaries.test.d.mts
 /scripts/test-packed-sheets.mjs
 /scripts/test-packed-sheets.d.mts
+/adapters/connectors/github/site/github-comment-create.mjs
+/adapters/connectors/github/site/github-comment-create.d.mts
+/adapters/connectors/github/site/github-issue-graphql-read.mjs
+/adapters/connectors/github/site/github-issue-graphql-read.d.mts
+/adapters/connectors/github/test/github-comment-marker.test.mjs
+/adapters/connectors/github/test/github-comment-marker.test.d.mts

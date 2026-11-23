@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "534f72608d1435ca107e906e9b8729dd7bcecb4d4dc6e722abd171eb96ebc055",
+      "sha256": "f74b50415946244a5d18b1558c42ae7cd7558a71e41be788e38848d868a9b13c",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
@@ -6241,7 +6241,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "prepareGitHubCommentRequest"
               },
               {
@@ -6251,7 +6251,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "exactRequestCid"
               },
               {
@@ -6261,7 +6261,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "common Effect owner"
               },
               {
@@ -6271,7 +6271,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "invokeScopedCredentialOperation"
               },
               {
@@ -6281,7 +6281,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "projectGitHubCommentObservation"
               },
               {
@@ -6291,7 +6291,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "signal?.throwIfAborted"
               },
               {
@@ -6301,7 +6301,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "checkLimits"
               },
               {
@@ -6357,31 +6357,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "prepareGitHubCommentRequest"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "exactRequestCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "projectGitHubCommentObservation"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "InvalidGitHubCommentRequest"
               }
             ],
@@ -6429,19 +6429,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "prepareGitHubCommentLogicalRequest"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "exactRequestCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "Host retains and validates the original logical carrier/key association"
               }
             ],
@@ -6450,7 +6450,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "InvalidGitHubCommentRequest"
               }
             ],
@@ -6459,23 +6459,23 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "provider's physical body limits apply after the marker is inserted"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "GITHUB_COMMENT_STAMP_RECIPE"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
+                "path": "adapters/connectors/github/test/github-comment-marker.test.mts",
                 "anchor": "Comment logical preparation stays separate and finalizes exact body and original tag DATA"
               },
               {
-                "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
+                "path": "adapters/connectors/github/test/github-comment-marker.test.mts",
                 "anchor": "Comment marker refuses malformed or missing DATA without invoking an encoder or accessor"
               }
             ]
@@ -6503,7 +6503,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6513,7 +6513,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6523,7 +6523,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6533,7 +6533,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6543,7 +6543,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6553,7 +6553,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6563,7 +6563,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6573,7 +6573,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6583,7 +6583,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "path": "adapters/connectors/github/site/github-comment-create.mts",
                 "anchor": "function "
               }
             ],
@@ -6614,7 +6614,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "559018e68eb52bc27caf2f6e9123fd07e41785d38dc45e78c166104ecf3a10a9",
+      "sha256": "2c6c495395e29b40a4b6159cfa5ec1b47127f4409f22dbe8ac72441a1361f72b",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6825,7 +6825,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "consumeObservation"
               },
               {
@@ -6843,15 +6843,15 @@
                 "anchor": "row.node_id"
               },
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "withHttpsCredentialRunResponseOriginal"
               },
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "expectedUseId"
               },
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "defineOwnData(labels, index"
               },
               {
@@ -6861,7 +6861,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "accepted pages"
               },
               {
@@ -6871,7 +6871,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "authorizationFor"
               },
               {
@@ -6881,7 +6881,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "refusalCodes"
               },
               {
@@ -6891,7 +6891,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "signal?.throwIfAborted"
               },
               {
@@ -6901,7 +6901,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "requests >= owned.maxPages"
               },
               {
@@ -6909,11 +6909,11 @@
                 "anchor": "read.pages >= read.max_pages"
               },
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "retainedReads"
               },
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "prefix.responses.push"
               },
               {

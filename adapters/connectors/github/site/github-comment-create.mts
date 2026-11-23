@@ -21,6 +21,51 @@ import {refusedEffectPreparation} from
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   './github-issue-graphql-read.mjs';
 
+type Transport = Parameters<typeof invokeScopedCredentialOperation>[0];
+type Response = Awaited<ReturnType<typeof callHttpsCredentialResource>>;
+type Headers = Response['headers'];
+type Observation = Readonly<{statusCode: number; body: Uint8Array; useCid?: string}>;
+type Limits = Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxNodes: number; maxDepth: number}>;
+type Repository = Readonly<{nodeId: string; databaseId: number; nameWithOwner: string}>;
+type RequestData = Readonly<{origin: string; subjectId: string; body: string}>;
+type MarkedRequest = Readonly<ReturnType<typeof prepareGitHubCommentRequest> & {logicalBody: string; requestTag: string}>;
+type CommentRequestFields = Readonly<Record<'version' | 'origin' | 'method' | 'path' | 'subjectId' |
+  'body' | 'requestCid' | 'logicalBody' | 'requestTag', string>>;
+type LogicalRequestFields = Pick<CommentRequestFields, 'version' | 'origin' | 'method' | 'path' | 'subjectId' | 'logicalBody'>;
+type ProviderEvidence = Readonly<{kind: string; comment_id: number; node_id: string}>;
+type WireRequest = Readonly<{body: string; refused?: undefined}> | Readonly<{refused: string; body?: undefined}>;
+type WireRefusal = Readonly<{kind: string; type?: string}>;
+type SubjectReply = Readonly<{subject: Readonly<{number: number; node_id: string}>; refused?: undefined}> |
+  Readonly<{refused: WireRefusal}>;
+type OriginalReply = Readonly<{original?: Readonly<{subject_id: string}>; refused?: WireRefusal}>;
+type ConfirmationReply = Readonly<{comment?: Readonly<{id: number; node_id: string; subject_id: string}>; refused?: WireRefusal}>;
+type MutationReply = Readonly<{outcome: 'Created'; id: number; nodeId: string}> |
+  Readonly<{outcome: 'Refused'; status: number}> | Readonly<{outcome: 'Rejected'; type: string}> |
+  Readonly<{outcome: 'Unknown'}>;
+type Failure = Readonly<{kind: string}>;
+type CodecLimits = readonly [maxBytes: number, maxNodes: number, maxDepth: number];
+type RequestCodec = Readonly<{githubAddCommentRequestJson(subject: string, body: string): string}>;
+type RestoreCodec = Readonly<{githubOriginalMarkedCommentRequestJson(body: Uint8Array, ...args: [...CodecLimits,
+  expectedSubject: string, logicalBody: string, requestTag: string]): string}>;
+type SubjectCodec = Readonly<{
+  githubCommentSubjectRequestJson(subject: string): string;
+  githubCommentSubjectJson(body: Uint8Array, ...args: [...CodecLimits, subject: string,
+    nodeId: string, databaseId: number, nameWithOwner: string]): string;
+  githubClassifyFailureJson(status: number, names: string[], values: string[]): string;
+}>;
+type ConfirmationCodec = Readonly<{
+  githubCommentConfirmationRequestJson(nodeId: string): string;
+  githubCommentConfirmationJson(body: Uint8Array, ...args: [...CodecLimits, id: number, commentNode: string,
+    subject: string, nodeId: string, databaseId: number, nameWithOwner: string, logicalBody: string, requestTag: string]): string;
+}>;
+type OutcomeCodec = Readonly<{githubCommentOutcomeJson(status: number, names: string[], values: string[],
+  body: Uint8Array, ...args: [...CodecLimits, subject: string]): string}>;
+type HeaderCodec = Readonly<{githubRequestHeadersJson(): string; githubResponseHeadersJson(): string}>;
+type SubjectInput = Readonly<{moon: SubjectCodec; subjectId: string; repository: Repository; limits: Limits}>;
+type Invocation = Pick<Transport, 'authorization' | 'credential' | 'callResource' | 'signal'>;
+type DirectInvocation = Omit<Invocation, 'callResource'> & Readonly<{callResource?: Invocation['callResource']}>;
+type SendAuthorization = Readonly<{scope?: Readonly<{resourceOrigin?: unknown}>}>;
+
 export const GITHUB_COMMENT_CREATE_OPERATION = 'github:issues:comment:create';
 const REQUEST_VERSION = 'actql-github-comment-create-request/0.1';
 
@@ -30,12 +75,12 @@ export const GITHUB_COMMENT_STAMP_RECIPE = Object.freeze({
   separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->',
 });
 
-const fail = (code, details = {}) => {
+const fail: (code: string, details?: object) => never = (code, details = {}) => {
   throw Object.assign(new Error(code), {code, ...details});
 };
-const count = value => Number.isSafeInteger(value) && value > 0;
-const pairs = headers => [headers.map(entry => entry[0]),
-  headers.map(entry => entry[1])];
+const count = (value: number) => Number.isSafeInteger(value) && value > 0;
+const pairs = (headers: Headers) => [headers.map(entry => entry[0]),
+  headers.map(entry => entry[1])] as const;
 
 // Refusals of a subject check and the stop each one is.
 const subjectRefusals = Object.freeze({
@@ -48,7 +93,7 @@ const subjectRefusals = Object.freeze({
   RateLimited: 'GitHubRateLimited',
 });
 
-function checkLimits(limits) {
+function checkLimits(limits: Limits) {
   if (!limits || !count(limits.maxRequestBytes) ||
       !count(limits.maxResponseBytes) || !count(limits.maxNodes) ||
       !count(limits.maxDepth)) {
@@ -59,14 +104,14 @@ function checkLimits(limits) {
 
 // The exact request one comment row sends, and the identity of its exact
 // bytes for the Effect Ledger claim. Nothing in it is secret.
-export function prepareGitHubCommentRequest({moon, origin, subjectId, body}) {
+export function prepareGitHubCommentRequest({moon, origin, subjectId, body}: RequestData & Readonly<{moon: RequestCodec}>) {
   if (!moon || typeof moon.githubAddCommentRequestJson !== 'function' ||
       typeof origin !== 'string' || !origin.startsWith('https://') ||
       typeof subjectId !== 'string' || typeof body !== 'string') {
     fail('InvalidGitHubCommentRequest');
   }
   const prepared = JSON.parse(moon.githubAddCommentRequestJson(subjectId,
-    body));
+    body)) as WireRequest;
   if (prepared.refused !== undefined) {
     fail('InvalidGitHubCommentRequest', {refusal: prepared.refused});
   }
@@ -80,7 +125,7 @@ export function prepareGitHubCommentRequest({moon, origin, subjectId, body}) {
 // Logical DATA only: no physical request or request CID exists at this phase.
 // In particular an empty logical body remains distinct from an absent body;
 // the provider's physical body limits apply after the marker is inserted.
-export function prepareGitHubCommentLogicalRequest({origin, subjectId, body}) {
+export function prepareGitHubCommentLogicalRequest({origin, subjectId, body}: RequestData) {
   if (typeof origin !== 'string' || !origin.startsWith('https://') ||
       !origin.isWellFormed() || typeof subjectId !== 'string' ||
       subjectId.length === 0 || !subjectId.isWellFormed() ||
@@ -94,7 +139,8 @@ export function prepareGitHubCommentLogicalRequest({origin, subjectId, body}) {
 // The Host retains and validates the original logical carrier/key association.
 // CID syntax here is DATA validation, not DispatchKey issuance or permission.
 // This performs no send, claim, readback, retry or cold request preparation.
-export function finalizeGitHubCommentRequest({moon, request, requestTag}) {
+export function finalizeGitHubCommentRequest({moon, request, requestTag}:
+  Readonly<{moon: RequestCodec; request: unknown; requestTag: string}>) {
   const names = ['version', 'origin', 'method', 'path', 'subjectId', 'logicalBody'];
   if (request === null || typeof request !== 'object' || types.isProxy(request) ||
       typeof requestTag !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(requestTag)) {
@@ -106,7 +152,7 @@ export function finalizeGitHubCommentRequest({moon, request, requestTag}) {
     typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
     fail('InvalidGitHubCommentRequest');
   }
-  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value])) as LogicalRequestFields;
   if (original.version !== REQUEST_VERSION || original.method !== 'POST' ||
       original.path !== GITHUB_GRAPHQL_PATH || !original.origin.startsWith('https://') ||
       original.subjectId.length === 0) fail('InvalidGitHubCommentRequest');
@@ -117,7 +163,7 @@ export function finalizeGitHubCommentRequest({moon, request, requestTag}) {
   return Object.freeze({...physical, logicalBody: original.logicalBody, requestTag});
 }
 
-function ownCommentLogicalRequest(request, code) {
+function ownCommentLogicalRequest(request: unknown, code: string) {
   const names = ['version', 'origin', 'method', 'path', 'subjectId', 'logicalBody'];
   if (request === null || typeof request !== 'object' || types.isProxy(request)) {
     fail(code);
@@ -128,7 +174,7 @@ function ownCommentLogicalRequest(request, code) {
     typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
     fail(code);
   }
-  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value])) as LogicalRequestFields;
   if (original.version !== REQUEST_VERSION || original.method !== 'POST' ||
       original.path !== GITHUB_GRAPHQL_PATH || !original.origin.startsWith('https://') ||
       original.subjectId.length === 0) fail(code);
@@ -138,7 +184,8 @@ function ownCommentLogicalRequest(request, code) {
 // Restore the original physical wire only after independent original logical
 // fields and DispatchKey tag have been selected. No mutation encoder, request
 // preparation, replacement tag, credential or send is available here.
-export function restoreGitHubCommentRequest({moon, request, logical, requestTag, limits}) {
+export function restoreGitHubCommentRequest({moon, request, logical, requestTag, limits}:
+  Readonly<{moon: RestoreCodec; request: unknown; logical: unknown; requestTag: string; limits: Limits}>) {
   const names = ['version', 'origin', 'method', 'path', 'subjectId', 'body',
     'requestCid', 'logicalBody', 'requestTag'];
   if (request === null || typeof request !== 'object' || types.isProxy(request)) {
@@ -150,7 +197,7 @@ export function restoreGitHubCommentRequest({moon, request, logical, requestTag,
     typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
     fail('InvalidGitHubOriginalCommentRequest');
   }
-  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value])) as CommentRequestFields;
   const expected = ownCommentLogicalRequest(logical, 'InvalidGitHubOriginalCommentRequest');
   if (original.version !== expected.version || original.origin !== expected.origin ||
       original.method !== expected.method || original.path !== expected.path ||
@@ -167,24 +214,25 @@ export function restoreGitHubCommentRequest({moon, request, logical, requestTag,
   }
   const admitted = JSON.parse(moon.githubOriginalMarkedCommentRequestJson(
     Buffer.from(original.body, 'utf8'), owned.maxRequestBytes,
-    owned.maxNodes, owned.maxDepth, expected.subjectId, expected.logicalBody, requestTag));
+    owned.maxNodes, owned.maxDepth, expected.subjectId, expected.logicalBody, requestTag)) as OriginalReply;
   if (admitted.refused !== undefined || admitted.original?.subject_id !== expected.subjectId) {
     fail('InvalidGitHubOriginalCommentRequest');
   }
-  return Object.freeze(request);
+  return Object.freeze(request) as MarkedRequest;
 }
 
 // Confirmation is an independently authorized read of the exact Created node,
 // never another addComment or a repository-history search. The enclosing
 // Effect owner retains the original claim, response and physical read child.
-export function prepareGitHubCommentConfirmationRequest({moon, providerEvidence}) {
+export function prepareGitHubCommentConfirmationRequest({moon, providerEvidence}:
+  Readonly<{moon: ConfirmationCodec; providerEvidence?: ProviderEvidence}>) {
   if (providerEvidence?.kind !== 'CreatedComment' ||
       !Number.isSafeInteger(providerEvidence.comment_id) ||
       typeof providerEvidence.node_id !== 'string' ||
       typeof moon?.githubCommentConfirmationRequestJson !== 'function') {
     fail('InvalidGitHubCommentConfirmation');
   }
-  const request = JSON.parse(moon.githubCommentConfirmationRequestJson(providerEvidence.node_id));
+  const request = JSON.parse(moon.githubCommentConfirmationRequestJson(providerEvidence.node_id)) as WireRequest;
   if (request.refused !== undefined || typeof request.body !== 'string') {
     fail('InvalidGitHubCommentConfirmation');
   }
@@ -195,7 +243,8 @@ export function prepareGitHubCommentConfirmationRequest({moon, providerEvidence}
 // read or a copied marker. The provider codec must compare the complete
 // original object/Issue/repository/logical body/tag before returning DATA.
 export function projectGitHubCommentConfirmation({moon, request, providerEvidence,
-  repository, limits, accepted, observation}) {
+  repository, limits, accepted, observation}: Readonly<{moon: ConfirmationCodec; request: MarkedRequest;
+    providerEvidence?: ProviderEvidence; repository: Repository; limits: Limits; accepted: boolean; observation?: Observation}>) {
   const owned = checkLimits(limits);
   if (!accepted || observation?.statusCode !== 200) return undefined;
   if (!(observation.body instanceof Uint8Array) ||
@@ -207,7 +256,7 @@ export function projectGitHubCommentConfirmation({moon, request, providerEvidenc
     owned.maxResponseBytes, owned.maxNodes, owned.maxDepth,
     providerEvidence.comment_id, providerEvidence.node_id, request.subjectId,
     repository.nodeId, repository.databaseId, repository.nameWithOwner,
-    request.logicalBody, request.requestTag));
+    request.logicalBody, request.requestTag)) as ConfirmationReply;
   if (projected.refused !== undefined) return undefined;
   const comment = projected.comment;
   if (comment?.id !== providerEvidence.comment_id ||
@@ -222,7 +271,7 @@ export function projectGitHubCommentConfirmation({moon, request, providerEvidenc
 // The identity of the exact request: each part's exact UTF-8 bytes, length
 // prefixed, with no logical canonicalization. Two requests whose sent bytes
 // differ in any way (NFC/NFD, CRLF/LF, escaping) never share a CID.
-function exactRequestCid(parts) {
+function exactRequestCid(parts: readonly string[]) {
   const hash = createHash('sha256');
   for (const part of parts) {
     const bytes = Buffer.from(part, 'utf8');
@@ -233,7 +282,7 @@ function exactRequestCid(parts) {
 }
 
 async function exchange({moon, authorization, credential, callResource,
-  operation, body, limits, signal}) {
+  operation, body, limits, signal}: Invocation & Readonly<{moon: HeaderCodec; operation: string; body: string; limits: Limits}>): Promise<Response> {
   return invokeScopedCredentialOperation({
     authorization, credential, callResource, operation, method: 'POST',
     path: GITHUB_GRAPHQL_PATH, body,
@@ -241,14 +290,14 @@ async function exchange({moon, authorization, credential, callResource,
     responseHeaders: JSON.parse(moon.githubResponseHeadersJson()),
     maxRequestBytes: limits.maxRequestBytes,
     maxResponseBytes: limits.maxResponseBytes, signal,
-  });
+  }) as Promise<Response>;
 }
 
 // Pure standard declaration hooks. The body hook validates the SAME original
 // repository/limits before native construction; the projection hook interprets
 // only its already-accounted reply. Neither hook acquires a credential, sends,
 // claims a write, creates a cleanup owner or returns an authorization result.
-export function prepareGitHubCommentSubjectRequest({moon, subjectId, repository, limits}) {
+export function prepareGitHubCommentSubjectRequest({moon, subjectId, repository, limits}: SubjectInput) {
   if (!moon || typeof moon.githubCommentSubjectJson !== 'function' ||
       typeof repository?.nodeId !== 'string' ||
       !Number.isSafeInteger(repository.databaseId) ||
@@ -256,7 +305,7 @@ export function prepareGitHubCommentSubjectRequest({moon, subjectId, repository,
     fail('InvalidGitHubCommentSubjectCheck');
   }
   checkLimits(limits);
-  const request = JSON.parse(moon.githubCommentSubjectRequestJson(subjectId));
+  const request = JSON.parse(moon.githubCommentSubjectRequestJson(subjectId)) as WireRequest;
   if (request.refused !== undefined) {
     fail('InvalidGitHubCommentRequest', {refusal: request.refused});
   }
@@ -264,10 +313,10 @@ export function prepareGitHubCommentSubjectRequest({moon, subjectId, repository,
 }
 
 export function projectGitHubCommentSubjectResponse({moon, subjectId, repository,
-  response, limits}) {
+  response, limits}: SubjectInput & Readonly<{response: Pick<Response, 'accepted' | 'statusCode' | 'headers' | 'body'>}>) {
   // A refusal decided from an observed reply is definitive for the row; a
   // rate limit or an unclassified failure is not.
-  const refuse = (code, details) => {
+  const refuse: (code: string, details: object) => never = (code, details) => {
     const error = Object.assign(new Error(code), {code, ...details});
     throw ['GitHubRateLimited', 'GitHubCommentSubjectRefused']
       .includes(code) ? error : refusedEffectPreparation(error);
@@ -275,7 +324,7 @@ export function projectGitHubCommentSubjectResponse({moon, subjectId, repository
   if (!response.accepted || response.statusCode !== 200) {
     const [names, values] = pairs(response.headers);
     const failure = JSON.parse(moon.githubClassifyFailureJson(
-      response.statusCode, names, values));
+      response.statusCode!, names, values)) as Failure;
     if (failure.kind === 'RateLimited') {
       fail('GitHubRateLimited', {failure});
     }
@@ -287,14 +336,14 @@ export function projectGitHubCommentSubjectResponse({moon, subjectId, repository
   }
   const projected = JSON.parse(moon.githubCommentSubjectJson(response.body,
     limits.maxResponseBytes, limits.maxNodes, limits.maxDepth, subjectId,
-    repository.nodeId, repository.databaseId, repository.nameWithOwner));
+    repository.nodeId, repository.databaseId, repository.nameWithOwner)) as SubjectReply;
   if (projected.refused !== undefined) {
     const {kind, type} = projected.refused;
     // A typed GraphQL NOT_FOUND or FORBIDDEN is an observed answer that the
     // node is not readable here; other error types are not decided.
-    refuse(kind === 'Errors' && ['NOT_FOUND', 'FORBIDDEN'].includes(type)
+    refuse(kind === 'Errors' && ['NOT_FOUND', 'FORBIDDEN'].includes(type as string)
       ? 'GitHubCommentSubjectUnavailable'
-      : subjectRefusals[kind] ?? 'GitHubCommentSubjectRefused',
+      : subjectRefusals[kind as keyof typeof subjectRefusals] ?? 'GitHubCommentSubjectRefused',
     {refusal: projected.refused});
   }
   return Object.freeze({nodeId: projected.subject.node_id,
@@ -305,7 +354,8 @@ export function projectGitHubCommentSubjectResponse({moon, subjectId, repository
 // uses the SAME pure hooks with its original shared Host HTTP child instead.
 export async function checkGitHubCommentSubject({moon, subjectId, repository,
   authorization, credential, limits,
-  callResource = callHttpsCredentialResource, signal}) {
+  callResource = callHttpsCredentialResource, signal}: Omit<SubjectInput, 'moon'> & DirectInvocation &
+    Readonly<{moon: SubjectCodec & HeaderCodec}>) {
   const body = prepareGitHubCommentSubjectRequest({moon, subjectId, repository, limits});
   signal?.throwIfAborted();
   const response = await exchange({moon, authorization, credential,
@@ -316,7 +366,9 @@ export async function checkGitHubCommentSubject({moon, subjectId, repository,
 // Send exactly once. The caller is the common Effect owner's `execute`; it
 // must not call this outside a fresh durable claim.
 export async function sendGitHubIssueComment({moon, request, authorization,
-  credential, limits, callResource = callHttpsCredentialResource, signal}) {
+  credential, limits, callResource = callHttpsCredentialResource, signal}: Omit<DirectInvocation, 'authorization'> &
+  Readonly<{moon: OutcomeCodec & HeaderCodec; request: ReturnType<typeof prepareGitHubCommentRequest>;
+    authorization: SendAuthorization; limits: Limits}>) {
   if (!moon || typeof moon.githubCommentOutcomeJson !== 'function' ||
       !request?.requestCid || request.path !== GITHUB_GRAPHQL_PATH ||
       authorization?.scope?.resourceOrigin !== request.origin) {
@@ -339,7 +391,7 @@ export async function sendGitHubIssueComment({moon, request, authorization,
 // and bytes, so its headers are absent and a 403 cannot be told apart from a
 // rate limit: it stays unknown rather than becoming a refusal.
 export function projectGitHubCommentObservation({moon, observation, headers,
-  limits, subjectId}) {
+  limits, subjectId}: Readonly<{moon: OutcomeCodec; observation: Observation; headers?: Headers; limits: Limits; subjectId: string}>) {
   if (!moon || !observation || !Number.isSafeInteger(observation.statusCode) ||
       !(observation.body instanceof Uint8Array) ||
       typeof subjectId !== 'string') {
@@ -352,7 +404,7 @@ export function projectGitHubCommentObservation({moon, observation, headers,
   const [names, values] = pairs(headers ?? []);
   const outcome = JSON.parse(moon.githubCommentOutcomeJson(
     observation.statusCode, names, values, observation.body,
-    owned.maxResponseBytes, owned.maxNodes, owned.maxDepth, subjectId));
+    owned.maxResponseBytes, owned.maxNodes, owned.maxDepth, subjectId)) as MutationReply;
   if (outcome.outcome === 'Created') {
     return Object.freeze({kind: 'typed-success-response', observation,
       result: Object.freeze({commentId: outcome.id, nodeId: outcome.nodeId})});

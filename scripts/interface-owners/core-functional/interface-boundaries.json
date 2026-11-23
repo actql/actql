@@ -69504,7 +69504,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "if(pending)return false;"
               },
               {
@@ -98999,7 +98999,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "if(pending)return false;"
               },
               {
@@ -99130,7 +99130,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "if(pending)return false;"
               },
               {
@@ -99247,7 +99247,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "if(pending)return false;"
               },
               {
@@ -113778,7 +113778,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mts",
                 "anchor": "if(pending)return false;"
               },
               {
