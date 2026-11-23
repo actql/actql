@@ -3167,20 +3167,6 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/acquireSource",
-          "parameters": [
-            "entry",
-            "preparedProgram",
-            "preparedSource",
-            "sourceAccess",
-            "captureOnly",
-            "originalEvidence",
-            "ledger",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
           "name": "installNodeClientDispatchOwner/cancel/cancel",
           "parameters": [
             "ref"
@@ -3525,6 +3511,14 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/step/step",
+          "parameters": [
+            "name",
+            "detail"
+          ],
+          "async": true
+        },
+        {
           "name": "retainDispatchPrimaryFailure",
           "parameters": [
             "entry",
@@ -3544,7 +3538,6 @@
             "installNodeClientDispatchOwner/acquireKeyedSources/init:close/init:close",
             "installNodeClientDispatchOwner/acquireKeyedSources/keyedContent/keyedContent",
             "installNodeClientDispatchOwner/acquireKeyedSources/lookup/lookup",
-            "installNodeClientDispatchOwner/acquireSource",
             "installNodeClientDispatchOwner/cancel/cancel",
             "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
             "installNodeClientDispatchOwner/current/current",
@@ -3587,6 +3580,7 @@
             "installNodeClientDispatchOwner/start/start/start/start#7",
             "installNodeClientDispatchOwner/start/start/start/start#8",
             "installNodeClientDispatchOwner/start/start/start/start#9",
+            "installNodeClientDispatchOwner/step/step",
             "retainDispatchPrimaryFailure"
           ],
           "exports": [
@@ -4805,6 +4799,7 @@
         "../host-common/task-observation.mjs",
         "./client-dispatch-cleanup.mjs",
         "./client-dispatch-diagnostic.mjs",
+        "./client-dispatch-source-acquisition.mjs",
         "./client-dispatch-stop.mjs",
         "./client-dispatch-tracking.mjs",
         "./client-source-operation.mjs",
@@ -4819,8 +4814,140 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "cabb7563c03a01e647a3b8de166d23e00f41533fb13dbfbbc49dc1c447c095b4",
+      "sha256": "5442af365287b6e0d22d8c280cc020a6c218bf5e0aaae7b263be77c417a388cb",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-source-acquisition.mjs",
+      "exports": [
+        "createClientDispatchSourceAcquisition"
+      ],
+      "operations": [
+        {
+          "name": "createClientDispatchSourceAcquisition",
+          "parameters": [
+            "sourceProfile",
+            "now",
+            "step",
+            "observation",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "store",
+            "journal",
+            "retainedRelationOutput",
+            "authorityScopeCid",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientDispatchSourceAcquisition/acquireSource",
+          "parameters": [
+            "entry",
+            "preparedProgram",
+            "preparedSource",
+            "sourceAccess",
+            "captureOnly",
+            "originalEvidence",
+            "ledger",
+            "occurrence"
+          ],
+          "async": true
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createClientDispatchSourceAcquisition",
+            "createClientDispatchSourceAcquisition/acquireSource"
+          ],
+          "exports": [
+            "createClientDispatchSourceAcquisition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "export function createClientDispatchSourceAcquisition<Ref>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "return {captured: entry.sourceCapture, captureStartedAt, captureCompletedAt,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "preparedSource.checkedSource.sourceRef);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "entry.sourceCapture = await open({preparedProgram,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "await step('acquisition_completed', {ref: entry.ref,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "throw new TypeError('ClientSourceCaptureAlreadyRetained');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "signal: entry.abort.signal, preparedSource,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "reportAcquisitionFailure: acquisition.retain,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-source-acquisition.mts",
+                "anchor": "originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test('a wrapped acquisition error cannot hide an explicitly transferred owner'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
+                "anchor": "test('an acquisition failure without a stated end is never inferred stopped'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "./client-source-operation.mjs",
+        "./installed-source.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
+      "sha256": "d48304c33966988bf1938d5e959b45b37ea64421ba991fa49d1eb9857efac31f",
+      "rationale": "Single Source acquisition keeps the original opened capture, Source evidence, and same Run cleanup under the existing Client Dispatch owner."
     },
     {
       "module": "adapters/host-node/client-dispatch-tracking.mjs",

@@ -21,6 +21,7 @@ import {isModelCredentialRefusal} from './infer-operation.mjs';
 import {createClientDispatchCleanup, releaseDispatchPreparationHost, retainDispatchPreparationHost}
   from './client-dispatch-cleanup.mjs';
 import {createClientDispatchTracking} from './client-dispatch-tracking.mjs';
+import {createClientDispatchSourceAcquisition} from './client-dispatch-source-acquisition.mjs';
 import {confirmNodeRunCancellation, observeNodeRunStop, recordNodeRunPhysicalStop}
   from './client-dispatch-stop.mjs';
 export {cancelNodeRunContinuation, confirmNodeRunCancellation, observeNodeRestoredLocalStop,
@@ -92,64 +93,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.primaryFailure, control?.executionFailureExplanation);
   };
 
-  async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
-    {captureOnly = false, originalEvidence = false, ledger, occurrence} = {}) {
-    if (entry.sourceCapture !== undefined) {
-      throw new TypeError('ClientSourceCaptureAlreadyRetained');
-    }
-    const installedSource = installedSourceFor(sourceProfile,
-      preparedSource.checkedSource.sourceRef);
-    const captureStartedAt = now();
-    await step('acquisition_started', {ref: entry.ref,
-      ...(preparedSource.selection === undefined ? {} :
-        {selection: preparedSource.selection})});
-    entry.physicalStarted = true;
-    entry.physicalWorkMayHaveStarted = true;
-    const acquisition = acquisitionEndHandoff();
-    const measured = observation?.canMeasure('source') ? performance.now() : undefined;
-    let returned = false;
-    try {
-      const open = captureOnly ? installedSource.openCapture : installedSource.open;
-      if (typeof open !== 'function') throw new TypeError('InstalledSourceCaptureUnavailable');
-      entry.sourceCapture = await open({preparedProgram,
-        registry, values, fragment, ordered, sourceAccess,
-        signal: entry.abort.signal, preparedSource,
-        retainedRelationOutput, ledger,
-        reportAcquisitionFailure: acquisition.retain,
-        ...(entry.sourceOperationScope === undefined ? {} : {
-          originalOperationScope: bindClientSourceOperation(entry.sourceOperationScope,
-            journal, store, preparedProgram, preparedSource, occurrence ?? {stage: 0, input: 0, task: 0}),
-        })});
-      returned = true;
-    } catch (error) {
-      const ended = acquisition.outcome(error);
-      if (ended.outcome === 'not_started' || ended.outcome === 'stopped') {
-        entry.stopObservationPending = true;
-      } else if (ended.recovery !== undefined) {
-        entry.cleanupOwner = ended.recovery;
-      } else {
-        entry.unresolvedCleanup = true;
-      }
-      throw error;
-    } finally {
-      if (measured !== undefined) observation.emit('source', 'acquisition_interval',
-        {ref: entry.ref, outcome: returned ? 'confirmed' : 'failed'},
-        {segment: 'source-acquisition', durationMs: performance.now() - measured});
-    }
-    const captureCompletedAt = now();
-    await step('acquisition_completed', {ref: entry.ref,
-      ...(entry.sourceCapture.acquisition === undefined ? {} :
-        {acquisition: entry.sourceCapture.acquisition})});
-    const evidenceOptions = {authorityScopeCid,
-      effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid};
-    let sourceEvidence, sourceEvidenceWire;
-    if (originalEvidence) {
-      await entry.sourceCapture.prepareSourceEvidenceOriginal(evidenceOptions);
-      sourceEvidence = control.takeSourceEvidenceOriginal(entry.sourceCapture.capture);
-    } else sourceEvidenceWire = await entry.sourceCapture.issueSourceEvidence(evidenceOptions);
-    return {captured: entry.sourceCapture, captureStartedAt, captureCompletedAt,
-      sourceEvidence, sourceEvidenceWire};
-  }
+  const acquireSource = createClientDispatchSourceAcquisition({
+    sourceProfile, now, step, observation, registry, values, fragment, ordered, store,
+    journal, retainedRelationOutput, authorityScopeCid, control,
+  });
 
   async function acquireKeyedSources(entry, preparedProgram, selected, acquired, principalId) {
     const {directAdapter, keyedAdapter, preparedSource, directOccurrence,
