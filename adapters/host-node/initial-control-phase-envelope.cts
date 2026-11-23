@@ -4,7 +4,7 @@
 // early preload owns the runtime/module original and adopts this finite
 // disposition before image capture. Importing this file supplies no scope.
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor;
-const hasOwn = Object.hasOwn, integer = Number.isSafeInteger, array = Array.isArray;
+const hasOwn = Object.hasOwn, integer = Number.isSafeInteger as (value: unknown) => value is number, array = Array.isArray;
 const ownKeys = Reflect.ownKeys;
 const NativeError = Error;
 const MiB = 1024 * 1024;
@@ -43,18 +43,18 @@ const limits = freeze({imageFiles: 2048, packages: 64, dependencyEdges: 512,
   // definitions, clocks/callbacks and escaped closures share the one heap.
   preparationExternalBytes: (128 + 2 + 128 + 128) * 65536 * 48});
 
-const unavailable = () => {
-  const cause = new NativeError('NodeInitialControlEnvelopeUnavailable');
+const unavailable: () => never = () => {
+  const cause = new NativeError('NodeInitialControlEnvelopeUnavailable') as NodeJS.ErrnoException;
   cause.code = 'NodeInitialControlEnvelopeUnavailable';
   throw cause;
 };
-const own = (value, name) => {
+const own = (value: unknown, name: PropertyKey): unknown => {
   const field = value === null || typeof value !== 'object' ? undefined : descriptor(value, name);
   if (field === undefined || !hasOwn(field, 'value')) unavailable();
   return field.value;
 };
 
-function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
+function declareInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {
   if (!integer(heapCeilingBytes) || heapCeilingBytes <= 0 ||
       heapCeilingBytes > limits.heapCeilingBytes) unavailable();
   // Declare the WHOLE supported recipe before reading its generated inventory.
@@ -85,7 +85,7 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
     lifetime: 'original-process-and-escaped-module-lifetime'});
 }
 
-function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes) {
+function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {
   const base = declareInitialControlPhaseEnvelope(heapCeilingBytes);
   // Ordinary import has no eager-bytecode original. Retain a separate finite
   // lazy compilation/tiering/cache disposition for the selected package code
@@ -99,23 +99,32 @@ function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes) {
     recipe:'ordinary-installed-public-prefix',compilation:'ordinary-lazy',eager:false});
 }
 
-function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+type PhaseDeclaration = {readonly limits?: unknown};
+type OrdinaryPhaseDeclaration = PhaseDeclaration & {
+  readonly recipe?: unknown;
+  readonly eager?: unknown;
+  readonly compilation?: unknown;
+};
+
+function inspectInitialControlPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>(
+  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime) {
   return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, false);
 }
 
-function inspectOrdinaryInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+function inspectOrdinaryInitialControlPhaseEnvelope<Declaration extends OrdinaryPhaseDeclaration, Runtime>(
+  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime) {
   if (declaration?.recipe !== 'ordinary-installed-public-prefix' || declaration.eager !== false ||
       declaration.compilation !== 'ordinary-lazy') unavailable();
   return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true);
 }
 
-function matchesEngine(engine, runtimeOriginal) {
+function matchesEngine(engine: unknown, runtimeOriginal: unknown) {
   for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
     if (own(engine, name) !== own(runtimeOriginal, name)) return false;
   }
   const libraries = own(engine, 'libraries'), originalLibraries = own(runtimeOriginal, 'libraries');
   if (libraries === null || typeof libraries !== 'object' || array(libraries)) unavailable();
-  const names = ownKeys(originalLibraries), declaredNames = ownKeys(libraries);
+  const names = ownKeys(originalLibraries as object), declaredNames = ownKeys(libraries);
   if (names.length > 64 || declaredNames.length !== names.length) return false;
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
@@ -125,7 +134,7 @@ function matchesEngine(engine, runtimeOriginal) {
   return true;
 }
 
-function requireEngine(inventory, runtimeOriginal, ordinary) {
+function requireEngine(inventory: unknown, runtimeOriginal: unknown, ordinary: boolean) {
   if (inventory === null || typeof inventory !== 'object') unavailable();
   if (!ordinary || descriptor(inventory, 'engineProfiles') === undefined) {
     if (!matchesEngine(own(inventory, ordinary ? 'ordinaryEngine' : 'engine'), runtimeOriginal)) unavailable();
@@ -144,7 +153,8 @@ function requireEngine(inventory, runtimeOriginal, ordinary) {
   if (!matched) unavailable();
 }
 
-function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary) {
+function inspectPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>(
+  inventory: unknown, declaration: Declaration, runtimeOriginal: Runtime, ordinary: boolean) {
   if (declaration?.limits !== limits) unavailable();
   // Engine facts describe the actual selected backend before image capture.
   // The operational lifetime and image checks still belong to the original
@@ -153,7 +163,7 @@ function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary)
   const packages = own(inventory, 'packages');
   if (!array(packages) || packages.length > limits.packages) unavailable();
   let files = 0, sourceBytes = 0, edges = 0;
-  function images(values) {
+  function images(values: unknown) {
     if (!array(values) || values.length > limits.imageFiles - files) unavailable();
     files += values.length;
     for (let index = 0; index < values.length; index++) {
@@ -173,7 +183,7 @@ function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary)
       sourceBytes += bytes;
     }
   }
-  function dependencies(values) {
+  function dependencies(values: unknown) {
     if (!array(values) || values.length > limits.dependencyEdges - edges) unavailable();
     edges += values.length;
   }
@@ -194,6 +204,7 @@ function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary)
     sourceBytes, declaration, runtimeOriginal});
 }
 
-module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope,
+const exported = module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope,
   declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope};
 freeze(module.exports);
+export = exported as Readonly<typeof exported>;

@@ -5,10 +5,18 @@ import module from './initial-control-phase-envelope.cjs';
 const original = Object.freeze({node: process.versions.node, v8: process.versions.v8,
   openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
   eager: true, libraries: Object.freeze({...process.versions})});
-const inspect = (inventory, heap) => module.inspectInitialControlPhaseEnvelope(inventory,
+const inspect = (inventory: unknown, heap: number) => module.inspectInitialControlPhaseEnvelope(inventory,
   module.declareInitialControlPhaseEnvelope(heap), original);
-const file = (path, bytes) => ({path, bytes, sha256: '0'.repeat(64)});
-const inventory = () => ({engine: original, images: [file('original.cjs', 1024)], dependencies: [],
+const file = (path: string, bytes: number) => ({path, bytes, sha256: '0'.repeat(64)});
+type ImageFixture = {path: string; bytes: unknown; sha256?: string; npmRelease?: {bytes: number}};
+type PackageFixture = {images: ImageFixture[]; dependencies: unknown[]};
+type InventoryFixture = PackageFixture & {
+  engine: unknown;
+  packages: PackageFixture[];
+  publicNode: PackageFixture | null;
+  sourceBytes?: number;
+};
+const inventory = (): InventoryFixture => ({engine: original, images: [file('original.cjs', 1024)], dependencies: [],
   packages: [], publicNode: null});
 const unavailable = {code: 'NodeInitialControlEnvelopeUnavailable'};
 
@@ -32,7 +40,8 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
     lifetime: 'same-original-physical-child-until-its-close-acknowledgement'});
   assert.equal(selected.declaration.lifetime, 'original-process-and-escaped-module-lifetime');
   assert.ok(Object.isFrozen(selected)); assert.ok(Object.isFrozen(selected.limits));
-  assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
+  assert.equal((selected as typeof selected & {readonly begin?: unknown}).begin, undefined);
+  assert.equal((selected as typeof selected & {readonly close?: unknown}).close, undefined);
 });
 
 test('ordinary lazy compilation is a separate selected disposition without an eager or second-VM claim', () => {
@@ -56,7 +65,7 @@ test('a combined ordinary inventory selects one exact engine and refuses unavail
   const runtime = {...original, eager: false}, alternate = {...runtime,
     platform: runtime.platform === 'darwin' ? 'linux' : 'darwin'};
   const declaration = module.declareOrdinaryInitialControlPhaseEnvelope(1024 * 1024);
-  const select = (profiles, current = runtime, defaultEngine = alternate) =>
+  const select = (profiles: unknown, current: unknown = runtime, defaultEngine: unknown = alternate) =>
     module.inspectOrdinaryInitialControlPhaseEnvelope(
       {...inventory(), ordinaryEngine: defaultEngine, engineProfiles: profiles}, declaration, current);
   const table = [alternate, runtime].map(ordinaryEngine => ({ordinaryEngine}));
@@ -64,7 +73,7 @@ test('a combined ordinary inventory selects one exact engine and refuses unavail
   assert.strictEqual(select(table, alternate).declaration, declaration);
   for (const [field, value] of [['node', 'unsupported-node'], ['v8', 'unsupported-v8'],
     ['openssl', 'unsupported-openssl'], ['arch', 'unsupported-arch'], ['eager', true],
-    ['libraries', {...runtime.libraries, uv: 'unsupported-uv'}]]) {
+    ['libraries', {...runtime.libraries, uv: 'unsupported-uv'}]] as const) {
     assert.throws(() => select(table, {...runtime, [field]: value}), unavailable);
   }
   assert.throws(() => select([table[0]], runtime, runtime), unavailable);
@@ -112,10 +121,10 @@ test('actual heap ceiling must fit the selected finite recipe without subtractin
 
 test('single-file, aggregate-source, path and image counts refuse before image acquisition', () => {
   for (const change of [
-    value => {value.images[0].bytes = 64 * 1024 ** 2 + 1;},
-    value => {value.images = [file('a', 64 * 1024 ** 2), file('b', 64 * 1024 ** 2), file('c', 1)];},
-    value => {value.images[0].path = 'a'.repeat(4097);},
-    value => {value.images = Array.from({length: 2049}, (_, index) => file(String(index), 0));},
+    (value: InventoryFixture) => {value.images[0].bytes = 64 * 1024 ** 2 + 1;},
+    (value: InventoryFixture) => {value.images = [file('a', 64 * 1024 ** 2), file('b', 64 * 1024 ** 2), file('c', 1)];},
+    (value: InventoryFixture) => {value.images[0].path = 'a'.repeat(4097);},
+    (value: InventoryFixture) => {value.images = Array.from({length: 2049}, (_, index) => file(String(index), 0));},
   ]) {
     const value = inventory(); change(value); assert.throws(() => inspect(value, 1024), unavailable);
   }
@@ -162,7 +171,7 @@ test('manifest alternatives charge the larger exact representation once, not raw
   const selected = inspect(value, 1024);
   assert.equal(selected.images, 1); assert.equal(selected.sourceBytes, 256);
   assert.equal(value.images[0].bytes, 128);
-  value.images[0].npmRelease.bytes = 64 * 1024 ** 2 + 1;
+  value.images[0].npmRelease!.bytes = 64 * 1024 ** 2 + 1;
   assert.throws(() => inspect(value, 1024), unavailable);
   value.images[0] = {...file('original.cjs', 128), npmRelease: {bytes: 256}};
   assert.throws(() => inspect(value, 1024), unavailable);

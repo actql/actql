@@ -2718,3 +2718,15 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-package-original.d.cts
 /adapters/host-node/host-local-mock-model-service-recipe.cjs
 /adapters/host-node/host-local-mock-model-service-recipe.d.cts
+/adapters/host-node/initial-control-image-source.cjs
+/adapters/host-node/initial-control-image-source.d.cts
+/adapters/host-node/initial-control-phase-envelope.test.mjs
+/adapters/host-node/initial-control-phase-envelope.test.d.mts
+/adapters/host-node/source-managed-phase-envelope.cjs
+/adapters/host-node/source-managed-phase-envelope.d.cts
+/adapters/host-node/source-managed-phase-envelope.test.mjs
+/adapters/host-node/source-managed-phase-envelope.test.d.mts
+/adapters/host-node/initial-control-image-source.test.mjs
+/adapters/host-node/initial-control-image-source.test.d.mts
+/adapters/host-node/initial-control-phase-envelope.cjs
+/adapters/host-node/initial-control-phase-envelope.d.cts

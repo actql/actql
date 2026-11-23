@@ -61920,7 +61920,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
-      "sha256": "af656964686f5837a75f058a2c5ab2ea38a8bab19e430835ac8a7db2e87211d9",
+      "sha256": "b877a02576e445a9e5b197ec1cd40f1b86815144ed034790aae8cdd001a05eb9",
       "exports": [
         "commonjs:captureInitialControlImageSource"
       ],
@@ -61968,7 +61968,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Internal byte custody only, not an installation admission or a trust factory."
               },
               {
@@ -61978,8 +61978,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "function captureInitialControlImageSource(path, expected)"
+                "path": "adapters/host-node/initial-control-image-source.cts",
+                "anchor": "function captureInitialControlImageSource(path: import('node:fs').PathLike, expected: unknown) {"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -61992,11 +61992,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Copy expected DATA before opening."
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "foreign size or digest never returns Source"
               },
               {
@@ -62014,7 +62014,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Only observe this original unresolved duty."
               },
               {
@@ -62024,11 +62024,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "finally {"
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
@@ -62042,7 +62042,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "carrier.code = 'InitialControlImageCleanupPending';"
               },
               {
@@ -62056,7 +62056,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
@@ -62066,7 +62066,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// The complete original Source backing and immutable decoded String overlap"
               },
               {
@@ -62098,11 +62098,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "same-FD bounded image capture retains exact immutable UTF8 Source"
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
@@ -62128,7 +62128,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Internal byte custody only, not an installation admission or a trust factory."
               },
               {
@@ -62138,8 +62138,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "function captureInitialControlImageSource(path, expected)"
+                "path": "adapters/host-node/initial-control-image-source.cts",
+                "anchor": "function captureInitialControlImageSource(path: import('node:fs').PathLike, expected: unknown) {"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -62152,11 +62152,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Copy expected DATA before opening."
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "foreign size or digest never returns Source"
               },
               {
@@ -62174,7 +62174,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// Only observe this original unresolved duty."
               },
               {
@@ -62184,11 +62184,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "finally {"
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
@@ -62202,7 +62202,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "carrier.code = 'InitialControlImageCleanupPending';"
               },
               {
@@ -62216,7 +62216,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
@@ -62226,7 +62226,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "path": "adapters/host-node/initial-control-image-source.cts",
                 "anchor": "// The complete original Source backing and immutable decoded String overlap"
               },
               {
@@ -62258,11 +62258,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "same-FD bounded image capture retains exact immutable UTF8 Source"
               },
               {
-                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "path": "adapters/host-node/initial-control-image-source.test.mts",
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
@@ -63749,7 +63749,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "cc5c477671d2b7f522b94f9ce54c252fb964eb4d5799e7f8cd226617ecfc4d74",
+      "sha256": "bd737395d8230f6297d3b49534f4c6b458d5f9f5ebfb84c4a41e844902d5a891",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
@@ -63821,7 +63821,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// Selected-recipe accounting DATA, never an operational issuer."
               },
               {
@@ -63835,17 +63835,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function declareInitialControlPhaseEnvelope(heapCeilingBytes)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function declareInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function inspectInitialControlPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
@@ -63863,7 +63863,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "lifetime: 'original-process-and-escaped-module-lifetime'"
               },
               {
@@ -63873,7 +63873,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// Declare the WHOLE supported recipe before reading its generated inventory."
               },
               {
@@ -63883,21 +63883,21 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "const cause = new NativeError('NodeInitialControlEnvelopeUnavailable');"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "const cause = new NativeError('NodeInitialControlEnvelopeUnavailable') as NodeJS.ErrnoException;"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "the selected backend and every actual native library identity must correspond before capture"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "a release representation getter cannot be acquired as ordinary image DATA"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// A retired installation does not replenish the process-lifetime counters."
               },
               {
@@ -63907,7 +63907,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// External child backing is separate from the managed/native assumption."
               },
               {
@@ -63923,7 +63923,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "coversInvocation:false"
               },
               {
@@ -63931,7 +63931,7 @@
                 "anchor": "Installation-time Mock answer documents are bounded Host-preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "additionalExternalBytes:256*65536*48,"
               }
             ],
@@ -63949,13 +63949,13 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "coversInvocation:false}),"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "finite disposition includes simultaneous managed, native, compiler and full capture terms"
               },
               {
@@ -63963,11 +63963,11 @@
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "manifest alternatives charge the larger exact representation once"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               },
               {
@@ -63975,7 +63975,7 @@
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "mock definition acquisition adds original Task rereads and answer documents before capture without Model credit"
               }
             ]
@@ -63989,7 +63989,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// Selected-recipe accounting DATA, never an operational issuer."
               },
               {
@@ -64003,17 +64003,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function declareInitialControlPhaseEnvelope(heapCeilingBytes)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function declareInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function inspectInitialControlPhaseEnvelope<Declaration extends PhaseDeclaration, Runtime>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "requireEngine(inventory, runtimeOriginal, ordinary);"
               },
               {
@@ -64031,7 +64031,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "lifetime: 'original-process-and-escaped-module-lifetime'"
               },
               {
@@ -64041,7 +64041,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// Declare the WHOLE supported recipe before reading its generated inventory."
               },
               {
@@ -64051,21 +64051,21 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "const cause = new NativeError('NodeInitialControlEnvelopeUnavailable');"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "const cause = new NativeError('NodeInitialControlEnvelopeUnavailable') as NodeJS.ErrnoException;"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "the selected backend and every actual native library identity must correspond before capture"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "a release representation getter cannot be acquired as ordinary image DATA"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// A retired installation does not replenish the process-lifetime counters."
               },
               {
@@ -64075,7 +64075,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "// External child backing is separate from the managed/native assumption."
               },
               {
@@ -64091,7 +64091,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "coversInvocation:false"
               },
               {
@@ -64099,7 +64099,7 @@
                 "anchor": "Installation-time Mock answer documents are bounded Host-preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "additionalExternalBytes:256*65536*48,"
               }
             ],
@@ -64117,13 +64117,13 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
                 "anchor": "coversInvocation:false}),"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "finite disposition includes simultaneous managed, native, compiler and full capture terms"
               },
               {
@@ -64131,11 +64131,11 @@
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "manifest alternatives charge the larger exact representation once"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               },
               {
@@ -64143,7 +64143,7 @@
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               },
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mts",
                 "anchor": "mock definition acquisition adds original Task rereads and answer documents before capture without Model credit"
               }
             ]
@@ -94071,8 +94071,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -94168,8 +94168,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {"
               }
             ],
             "extension": [
@@ -94295,8 +94295,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceManagedPhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -94400,8 +94400,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceComputePhaseEnvelope<Source extends ManagedSource>(sourceDeclaration: Source) {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -94939,8 +94939,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceComputePhaseEnvelope<Source extends ManagedSource>(sourceDeclaration: Source) {"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
@@ -95015,8 +95015,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
-                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes)"
+                "path": "adapters/host-node/initial-control-phase-envelope.cts",
+                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes: unknown) {"
               }
             ],
             "extension": [
@@ -100407,7 +100407,7 @@
     },
     {
       "module": "adapters/host-node/source-managed-phase-envelope.cjs",
-      "sha256": "b95f7d3794405d13e917339d518eefae8e1ce8672c24f2ae3b02c716fd062793",
+      "sha256": "497995d3eedd5654e997f1993478e3aa8cb9a7827558bf1108458191c7932205",
       "exports": [
         "commonjs:declareSourceComputePhaseEnvelope",
         "commonjs:declareSourceFreeManagedComputePhaseEnvelope",
@@ -100466,59 +100466,59 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceFreeManagedComputePhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "return freeze({controlDeclaration, inputLimits, compute,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "lifetime: 'same-original-process-and-all-escaped-run-aliases',"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// Its actual installation must retain this selection before SDK acquisition."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "declareSourceManagedPhaseEnvelope(controlDeclaration));"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "replenishedOnClose: false});"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "sourceOccurrences: 0, requests: 1,"
               },
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "additionalManagedHeapBytes: 0, additionalWholeNativeDomainBytes: 0,"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// shared runtime original, not its Source buffers, child capacity or credit."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mts",
                 "anchor": "source-free Compute shares the original runtime without Source byte or child credit"
               }
             ]
@@ -100535,61 +100535,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceManagedPhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "const unavailable: () => never = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "replenishedOnSourceClose:false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mts",
                 "anchor": "control and Source share one managed/native domain while external overlaps are additive"
               }
             ]
@@ -100611,53 +100611,53 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceComputePhaseEnvelope<Source extends ManagedSource>(sourceDeclaration: Source) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "if (sourceDeclaration?.limits !== limits) unavailable();"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "sharedManagedHeapBytes:sourceDeclaration.sharedManagedHeapBytes,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "executionOrder:'standard-source-0-capture-then-source-1-capture-then-managed-dag',"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "sourceExecution > executionBytes) unavailable();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "replenishedOnClose:false});"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "const retainedBytes = limits.sourceOccurrences*sourceRetained+compute.retainedBytes;"
               },
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "additionalManagedHeapBytes:0,additionalWholeNativeDomainBytes:0,"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// standard Direct capture settles its execution reservation before the next"
               }
             ],
@@ -100681,61 +100681,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceManagedPhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "const unavailable: () => never = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "replenishedOnSourceClose:false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
                 "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mts",
                 "anchor": "control and Source share one managed/native domain while external overlaps are additive"
               }
             ]

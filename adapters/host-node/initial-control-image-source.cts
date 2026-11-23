@@ -3,12 +3,12 @@
 // Internal byte custody only, not an installation admission or a trust factory.
 // The selected preload must independently own the recipe, actual module graph,
 // backend and complete envelope before it can adopt any captured Source here.
-const {openSync, readSync, fstatSync, closeSync, constants} = require('node:fs');
-const {createHash, Hash} = require('node:crypto');
-const {Buffer} = require('node:buffer');
-const {TextDecoder} = require('node:util');
+const {openSync, readSync, fstatSync, closeSync, constants} = require('node:fs') as typeof import('node:fs');
+const {createHash, Hash} = require('node:crypto') as typeof import('node:crypto');
+const {Buffer} = require('node:buffer') as typeof import('node:buffer');
+const {TextDecoder} = require('node:util') as typeof import('node:util');
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor;
-const hasOwn = Object.hasOwn, safeInteger = Number.isSafeInteger;
+const hasOwn = Object.hasOwn, safeInteger = Number.isSafeInteger as (value: unknown) => value is number;
 const NativeError = Error, nativeBigInt = BigInt, min = Math.min;
 const nativeApply = Reflect.apply, hashUpdate = Hash.prototype.update, hashDigest = Hash.prototype.digest;
 const allocate = Buffer.allocUnsafe, subarray = Buffer.prototype.subarray;
@@ -16,24 +16,25 @@ const hashPattern = /^[0-9a-f]{64}$/u, patternTest = RegExp.prototype.test;
 const fileTypeMask = BigInt(constants.S_IFMT), regularFileType = BigInt(constants.S_IFREG);
 const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
 const decode = TextDecoder.prototype.decode;
-const fail = code => { const cause = new NativeError(code); cause.code = code; throw cause; };
-const field = (value, name) => {
+const fail: (code: string) => never = code => { const cause = new NativeError(code) as NodeJS.ErrnoException; cause.code = code; throw cause; };
+const field = (value: unknown, name: PropertyKey): unknown => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlImageFact');
   const property = descriptor(value, name);
   if (property === undefined || !hasOwn(property, 'value')) fail('InvalidInitialControlImageFact');
   return property.value;
 };
-const unchanged = (first, last) => first.dev === last.dev && first.ino === last.ino &&
+type FileObservation = Pick<import('node:fs').BigIntStats, 'dev' | 'ino' | 'size' | 'mtimeNs' | 'ctimeNs'>;
+const unchanged = (first: FileObservation, last: FileObservation) => first.dev === last.dev && first.ino === last.ino &&
   first.size === last.size && first.mtimeNs === last.mtimeNs && first.ctimeNs === last.ctimeNs;
 
-function captureInitialControlImageSource(path, expected) {
+function captureInitialControlImageSource(path: import('node:fs').PathLike, expected: unknown) {
   // Copy expected DATA before opening. Matching bytes are not original Host,
   // generation, capacity, current authorization or an operational issuer.
   const bytes = field(expected, 'bytes'), sha256 = field(expected, 'sha256');
   if (!safeInteger(bytes) || bytes < 0 || typeof sha256 !== 'string' ||
       !nativeApply(patternTest, hashPattern, [sha256])) fail('InvalidInitialControlImageFact');
-  const releaseProperty = descriptor(expected, 'npmRelease');
-  let release;
+  const releaseProperty = descriptor(expected as object, 'npmRelease');
+  let release: {bytes: number; sha256: string} | undefined;
   if (releaseProperty !== undefined) {
     if (!hasOwn(releaseProperty, 'value')) fail('InvalidInitialControlImageFact');
     const value = releaseProperty.value, length = field(value, 'bytes'), digest = field(value, 'sha256');
@@ -48,7 +49,7 @@ function captureInitialControlImageSource(path, expected) {
   // A substituted pipe/device must not block the preload before its regular
   // file observation. NONBLOCK does not change regular-file read semantics.
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-  let primary, failed = false, closeState = 'not_attempted';
+  let primary: unknown, failed = false, closeState: 'not_attempted' | 'pending' | 'closed' = 'not_attempted';
   try {
     const first = fstatSync(fd, {bigint: true});
     if ((first.mode & fileTypeMask) !== regularFileType ||
@@ -56,10 +57,10 @@ function captureInitialControlImageSource(path, expected) {
          (release === undefined || first.size !== nativeBigInt(release.bytes)))) {
       fail('InitialControlImageChanged');
     }
-    const actualBytes = first.size === nativeBigInt(bytes) ? bytes : release.bytes;
+    const actualBytes = first.size === nativeBigInt(bytes) ? bytes : release!.bytes;
     // The complete original Source backing and immutable decoded String overlap
     // during decoding. The recipe supplies the finite file extent, not a lease.
-    const backing = nativeApply(allocate, Buffer, [actualBytes]), lookahead = nativeApply(allocate, Buffer, [1]);
+    const backing = nativeApply(allocate, Buffer, [actualBytes]) as Buffer, lookahead = nativeApply(allocate, Buffer, [1]) as Buffer;
     const hash = createHash('sha256');
     let offset = 0;
     while (offset < actualBytes) {
@@ -69,16 +70,16 @@ function captureInitialControlImageSource(path, expected) {
       nativeApply(hashUpdate, hash, [nativeApply(subarray, backing, [offset, offset + count])]);
       offset += count;
     }
-    const actualSha256 = nativeApply(hashDigest, hash, ['hex']);
+    const actualSha256 = nativeApply(hashDigest, hash, ['hex']) as string;
     const originalMatch = actualBytes === bytes && actualSha256 === sha256;
     const releaseMatch = release !== undefined && actualBytes === release.bytes && actualSha256 === release.sha256;
     if (readSync(fd, lookahead, 0, 1, null) !== 0 ||
         !unchanged(first, fstatSync(fd, {bigint: true})) || (!originalMatch && !releaseMatch)) {
       fail('InitialControlImageChanged');
     }
-    const source = nativeApply(decode, decoder, [backing]);
+    const source = nativeApply(decode, decoder, [backing]) as string;
     return freeze({source, bytes: actualBytes, sha256: actualSha256,
-      ...(release === undefined ? {} : {representation: originalMatch ? 'source' : 'release'})});
+      ...(release === undefined ? {} : {representation: originalMatch ? 'source' as const : 'release' as const})});
   } catch (cause) { failed = true; primary = cause; throw cause; }
   finally {
     try {
@@ -95,7 +96,8 @@ function captureInitialControlImageSource(path, expected) {
       // for its numeric FD, inspect a replacement path/FD as an ACK, or reread.
       const retry = () => status();
       const cleanupHandle = freeze({status, retry, primaryFailure: failed ? primary : cause});
-      const carrier = new NativeError('InitialControlImageCleanupPending', {cause: failed ? primary : cause});
+      const carrier = new NativeError('InitialControlImageCleanupPending', {cause: failed ? primary : cause}) as
+        NodeJS.ErrnoException & {cleanupHandle: typeof cleanupHandle; closeFailure: unknown};
       carrier.code = 'InitialControlImageCleanupPending';
       carrier.cleanupHandle = cleanupHandle;
       carrier.closeFailure = cause;
@@ -104,5 +106,6 @@ function captureInitialControlImageSource(path, expected) {
   }
 }
 
-module.exports = {captureInitialControlImageSource};
+const exported = module.exports = {captureInitialControlImageSource};
 freeze(module.exports);
+export = exported as Readonly<typeof exported>;

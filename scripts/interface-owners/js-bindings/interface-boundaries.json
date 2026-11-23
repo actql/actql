@@ -112236,8 +112236,8 @@
                 "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,"
               },
               {
-                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
-                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+                "path": "adapters/host-node/source-managed-phase-envelope.cts",
+                "anchor": "function declareSourceComputePhaseEnvelope<Source extends ManagedSource>(sourceDeclaration: Source) {"
               }
             ],
             "extension": [

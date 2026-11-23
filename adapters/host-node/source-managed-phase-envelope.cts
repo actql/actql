@@ -3,10 +3,10 @@
 // Selected Source recipe DATA, not a startup/Source issuer or an external
 // allocator. The actual early startup retains the SAME control declaration
 // and adopts this additional scope before any SDK snapshot/preparation.
-const freeze = Object.freeze, integer = Number.isSafeInteger;
+const freeze = Object.freeze, integer = Number.isSafeInteger as (value: unknown) => value is number;
 const NativeError = Error;
 const MiB = 1024 * 1024;
-const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),
+const unavailable: () => never = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),
   {code:'SourceManagedEnvelopeUnavailable'});};
 const inputLimits = freeze({maxProperties: 40, maxNodes: 40, maxDepth: 4,
   maxStringCodeUnits: 65536, maxTotalStringCodeUnits: 65536 + 4096,
@@ -22,7 +22,10 @@ const limits = freeze({installations: 1, requests: 1, sourceOccurrences: 2,
   simultaneousExternalRepresentations: 16,
   requestControlRecords: 256, perResponseControlRecords: 64});
 
-function declareSourceManagedPhaseEnvelope(controlDeclaration) {
+type SharedControl = Readonly<{heapCeilingBytes: number; bytes: number}>;
+type ManagedSource = Readonly<{limits: unknown; sharedManagedHeapBytes: number}>;
+
+function declareSourceManagedPhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {
   if (controlDeclaration === null || typeof controlDeclaration !== 'object' ||
       !integer(controlDeclaration.heapCeilingBytes) || controlDeclaration.heapCeilingBytes <= 0 ||
       !integer(controlDeclaration.bytes) || controlDeclaration.bytes < controlDeclaration.heapCeilingBytes) unavailable();
@@ -65,7 +68,7 @@ function declareSourceManagedPhaseEnvelope(controlDeclaration) {
 // bounded Local provider ceilings, not extra initial-control/Source credits.
 // A fixed actual installer adopts the whole disposition before SDK intake;
 // this DATA function alone cannot issue an admission or a Run Ledger.
-function declareSourceComputePhaseEnvelope(sourceDeclaration) {
+function declareSourceComputePhaseEnvelope<Source extends ManagedSource>(sourceDeclaration: Source) {
   if (sourceDeclaration?.limits !== limits) unavailable();
   const compute = freeze({tasks:32, inputPorts:1024, rows:100, columns:100,
     valueNodes:20000, textBytes:500000, depth:100, work:20000000, frames:100,
@@ -107,7 +110,7 @@ function declareSourceComputePhaseEnvelope(sourceDeclaration) {
 // The source-free purpose reuses the SAME fixed Local implementation and
 // shared runtime original, not its Source buffers, child capacity or credit.
 // Its actual installation must retain this selection before SDK acquisition.
-function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {
+function declareSourceFreeManagedComputePhaseEnvelope<Control extends SharedControl>(controlDeclaration: Control) {
   const joint = declareSourceComputePhaseEnvelope(
     declareSourceManagedPhaseEnvelope(controlDeclaration));
   const compute = joint.compute;
@@ -126,6 +129,7 @@ function declareSourceFreeManagedComputePhaseEnvelope(controlDeclaration) {
     replenishedOnClose: false});
 }
 
-module.exports={declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
+const exported = module.exports = {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
   declareSourceFreeManagedComputePhaseEnvelope};
 freeze(module.exports);
+export = exported as Readonly<typeof exported>;

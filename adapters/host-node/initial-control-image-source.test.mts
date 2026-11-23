@@ -7,23 +7,41 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import implementation from './initial-control-image-source.cjs';
+import type {TestContext} from 'node:test';
+
+type ImageSyscalls = {
+  openSync(path: fs.PathLike, flags: number): number;
+  readSync(fd: number, buffer: Buffer, offset: number, length: number, position: number | null): number;
+  fstatSync(fd: number, options: {bigint: true}):
+    Pick<fs.BigIntStats, 'dev' | 'ino' | 'size' | 'mtimeNs' | 'ctimeNs' | 'mode'>;
+  closeSync(fd: number): void | false;
+};
+type ImageFailure = NodeJS.ErrnoException & {
+  cause: NodeJS.ErrnoException;
+  closeFailure: unknown;
+  cleanupHandle: {
+    primaryFailure: unknown;
+    retry(): {pending: boolean};
+    status(): {pending: boolean; errors: readonly unknown[]};
+  };
+};
 
 const require = createRequire(import.meta.url);
 const source = fs.readFileSync(new URL('./initial-control-image-source.cjs', import.meta.url), 'utf8');
-const fact = bytes => ({bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
-function fixture(t, bytes = Buffer.from('export const original = "independent image";\n')) {
+const fact = (bytes: Buffer) => ({bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
+function fixture(t: TestContext, bytes = Buffer.from('export const original = "independent image";\n')) {
   const directory = fs.mkdtempSync(join(tmpdir(), 'actql-initial-control-source-'));
   t.after(() => fs.rmSync(directory, {recursive: true}));
   const path = join(directory, 'original.mjs');
   fs.writeFileSync(path, bytes);
   return {directory, path, bytes, expected: fact(bytes)};
 }
-function controlled(nativeFs) {
+function controlled(nativeFs: ImageSyscalls) {
   // This private primitive and explicit syscall controls do not create the
   // actual preload, operational admission, Host or a physical funding issuer.
-  const module = {exports: {}};
-  runInNewContext(source, {module, require(name) { return name === 'node:fs' ? nativeFs : require(name); }});
-  return module.exports.captureInitialControlImageSource;
+  const module: {exports: Partial<typeof implementation>} = {exports: {}};
+  runInNewContext(source, {module, require(name: string) { return name === 'node:fs' ? nativeFs : require(name); }});
+  return module.exports.captureInitialControlImageSource!;
 }
 
 test('same-FD bounded image capture retains exact immutable UTF8 Source without issuing authority', t => {
@@ -55,16 +73,16 @@ test('image fact accessors and invalid extents refuse before any open or caller 
 
 test('foreign size or digest never returns Source and closes the same original descriptor', t => {
   const f = fixture(t);
-  let opened, closes = 0;
+  let opened: number, closes = 0;
   const capture = controlled({...fs,
     openSync(...args) { opened = fs.openSync(...args); return opened; },
     closeSync(fd) { assert.equal(fd, opened); closes++; return fs.closeSync(fd); }});
   assert.throws(() => capture(f.path, {...f.expected, bytes: f.bytes.length - 1}),
     {code: 'InitialControlImageChanged'});
-  assert.throws(() => fs.fstatSync(opened), {code: 'EBADF'});
+  assert.throws(() => fs.fstatSync(opened!), {code: 'EBADF'});
   assert.throws(() => capture(f.path, {...f.expected, sha256: '0'.repeat(64)}),
     {code: 'InitialControlImageChanged'});
-  assert.throws(() => fs.fstatSync(opened), {code: 'EBADF'});
+  assert.throws(() => fs.fstatSync(opened!), {code: 'EBADF'});
   assert.equal(closes, 2);
 });
 
@@ -100,12 +118,12 @@ test('a symbolic-link final component cannot supply an original image', t => {
   const f = fixture(t), link = join(f.directory, 'aliased.mjs');
   fs.symlinkSync(f.path, link);
   assert.throws(() => implementation.captureInitialControlImageSource(link, f.expected),
-    error => error.code === 'ELOOP' || error.code === 'EMLINK');
+    (error: NodeJS.ErrnoException) => error.code === 'ELOOP' || error.code === 'EMLINK');
 });
 
 test('read failure keeps its original cause when the original descriptor closes normally', t => {
   const f = fixture(t), primary = Object.freeze(new Error('OriginalImageReadFailure'));
-  let opened, reads = 0, closes = 0;
+  let opened: number, reads = 0, closes = 0;
   const capture = controlled({...fs,
     openSync(...args) { opened = fs.openSync(...args); return opened; },
     readSync(...args) { fs.readSync(...args); reads++; throw primary; },
@@ -113,23 +131,23 @@ test('read failure keeps its original cause when the original descriptor closes 
   assert.throws(() => capture(f.path, f.expected), error => error === primary);
   assert.equal(reads, 1);
   assert.equal(closes, 1);
-  assert.throws(() => fs.fstatSync(opened), {code: 'EBADF'});
+  assert.throws(() => fs.fstatSync(opened!), {code: 'EBADF'});
 });
 
 test('a pre-close refusal stays pending without retrying the original integer or read', t => {
   const f = fixture(t), primary = Object.freeze(new Error('OriginalImageReadFailure'));
   const closeFailure = Object.freeze(new Error('OriginalImageCloseUnknown'));
-  let fd, reads = 0, closes = 0, carrier;
+  let fd: number | undefined, reads = 0, closes = 0, carrier: ImageFailure | undefined;
   t.after(() => { if (fd !== undefined) fs.closeSync(fd); });
-  const functions = {...fs, openSync(...args) { fd = fs.openSync(...args); return fd; },
+  const functions: ImageSyscalls = {...fs, openSync(...args) { fd = fs.openSync(...args); return fd; },
     readSync(...args) { fs.readSync(...args); reads++; throw primary; },
     closeSync(original) { assert.equal(original, fd); closes++; throw closeFailure; }};
   const capture = controlled(functions);
-  try { capture(f.path, f.expected); } catch (cause) { carrier = cause; }
-  assert.equal(carrier.code, 'InitialControlImageCleanupPending');
-  assert.equal(carrier.cause, primary);
-  assert.equal(carrier.closeFailure, closeFailure);
-  const original = carrier.cleanupHandle;
+  try { capture(f.path, f.expected); } catch (cause) { carrier = cause as ImageFailure; }
+  assert.equal(carrier!.code, 'InitialControlImageCleanupPending');
+  assert.equal(carrier!.cause, primary);
+  assert.equal(carrier!.closeFailure, closeFailure);
+  const original = carrier!.cleanupHandle;
   assert.equal(original.primaryFailure, primary);
   assert.ok(Object.isFrozen(original));
   functions.closeSync = () => { throw new Error('ReplacementMustNotRun'); };
@@ -141,7 +159,7 @@ test('a pre-close refusal stays pending without retrying the original integer or
     assert.equal(status.errors[0], closeFailure);
     assert.ok(Object.isFrozen(status));
     assert.ok(Object.isFrozen(status.errors));
-    assert.ok(fs.fstatSync(fd).isFile());
+    assert.ok(fs.fstatSync(fd!).isFile());
   }
   assert.equal(closes, 1);
   assert.equal(reads, 1);
@@ -153,10 +171,10 @@ for (const failure of ['read', 'hash']) {
     const closeFailure = Object.freeze(new Error('OriginalImageCloseUnknown'));
     const foreignPath = join(f.directory, 'foreign');
     fs.writeFileSync(foreignPath, 'foreign original bytes');
-    let fd, foreign, reads = 0, closes = 0, carrier;
+    let fd: number | undefined, foreign: number | undefined, reads = 0, closes = 0, carrier: ImageFailure | undefined;
     t.after(() => {
       if (foreign === undefined) return;
-      try { fs.closeSync(foreign); } catch (error) { if (error.code !== 'EBADF') throw error; }
+      try { fs.closeSync(foreign); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EBADF') throw error; }
     });
     const capture = controlled({...fs,
       openSync(...args) { fd = fs.openSync(...args); return fd; },
@@ -175,21 +193,21 @@ for (const failure of ['read', 'hash']) {
         throw closeFailure;
       }});
     const expected = failure === 'hash' ? {...f.expected, sha256: '0'.repeat(64)} : f.expected;
-    try { capture(f.path, expected); } catch (cause) { carrier = cause; }
-    assert.equal(carrier.code, 'InitialControlImageCleanupPending');
-    if (failure === 'read') assert.equal(carrier.cause, primary);
-    else assert.equal(carrier.cause.code, 'InitialControlImageChanged');
-    assert.equal(carrier.cleanupHandle.primaryFailure, carrier.cause);
-    assert.equal(carrier.closeFailure, closeFailure);
-    const before = reads, identity = fs.fstatSync(foreign, {bigint: true});
+    try { capture(f.path, expected); } catch (cause) { carrier = cause as ImageFailure; }
+    assert.equal(carrier!.code, 'InitialControlImageCleanupPending');
+    if (failure === 'read') assert.equal(carrier!.cause, primary);
+    else assert.equal(carrier!.cause.code, 'InitialControlImageChanged');
+    assert.equal(carrier!.cleanupHandle.primaryFailure, carrier!.cause);
+    assert.equal(carrier!.closeFailure, closeFailure);
+    const before = reads, identity = fs.fstatSync(foreign!, {bigint: true});
     for (let index = 0; index < 2; index++) {
-      assert.equal(carrier.cleanupHandle.retry().pending, true);
-      const after = fs.fstatSync(foreign, {bigint: true});
+      assert.equal(carrier!.cleanupHandle.retry().pending, true);
+      const after = fs.fstatSync(foreign!, {bigint: true});
       assert.equal(after.dev, identity.dev);
       assert.equal(after.ino, identity.ino);
     }
     const actual = Buffer.alloc(22);
-    assert.equal(fs.readSync(foreign, actual, 0, actual.length, 0), actual.length);
+    assert.equal(fs.readSync(foreign!, actual, 0, actual.length, 0), actual.length);
     assert.equal(actual.toString(), 'foreign original bytes');
     assert.equal(closes, 1);
     assert.equal(reads, before);
@@ -198,7 +216,7 @@ for (const failure of ['read', 'hash']) {
 
 test('an unconfirmed close cannot return valid Source or become confirmed from EBADF', t => {
   const f = fixture(t);
-  let fd, reads = 0, closes = 0, carrier;
+  let fd: number | undefined, reads = 0, closes = 0, carrier: ImageFailure | undefined;
   const capture = controlled({...fs,
     openSync(...args) { fd = fs.openSync(...args); return fd; },
     readSync(...args) { reads++; return fs.readSync(...args); },
@@ -207,14 +225,14 @@ test('an unconfirmed close cannot return valid Source or become confirmed from E
       fs.closeSync(original);
       return false;
     }});
-  try { capture(f.path, f.expected); } catch (cause) { carrier = cause; }
-  assert.equal(carrier.code, 'InitialControlImageCleanupPending');
-  assert.equal(carrier.cleanupHandle.primaryFailure, carrier.closeFailure);
-  assert.throws(() => fs.fstatSync(fd), {code: 'EBADF'});
+  try { capture(f.path, f.expected); } catch (cause) { carrier = cause as ImageFailure; }
+  assert.equal(carrier!.code, 'InitialControlImageCleanupPending');
+  assert.equal(carrier!.cleanupHandle.primaryFailure, carrier!.closeFailure);
+  assert.throws(() => fs.fstatSync(fd!), {code: 'EBADF'});
   const before = reads;
-  assert.equal(carrier.cleanupHandle.retry().pending, true);
-  assert.equal(carrier.cleanupHandle.retry().pending, true);
-  assert.equal(carrier.cleanupHandle.status().pending, true);
+  assert.equal(carrier!.cleanupHandle.retry().pending, true);
+  assert.equal(carrier!.cleanupHandle.retry().pending, true);
+  assert.equal(carrier!.cleanupHandle.status().pending, true);
   assert.equal(closes, 1);
   assert.equal(reads, before);
 });

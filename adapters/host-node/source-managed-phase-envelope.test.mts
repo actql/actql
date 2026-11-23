@@ -26,7 +26,7 @@ test('control and Source share one managed/native domain while external overlaps
   assert(phase.occurrencePartitions.every(Object.isFrozen));
   assert.equal(phase.inputLimits.maxOpaqueAliases,0);
   assert.equal(phase.inputLimits.maxArrayItems,0);
-  assert.equal(phase.issue,undefined);assert.equal(phase.begin,undefined);
+  assert.equal((phase as typeof phase & {readonly issue?: unknown}).issue,undefined);assert.equal((phase as typeof phase & {readonly begin?: unknown}).begin,undefined);
   assert(Object.isFrozen(phase.managedOverlap));assert(Object.isFrozen(phase.externalRequired));
 });
 
@@ -38,9 +38,9 @@ test('the same Source recipe includes the original submission epoch rather than 
     submissionRef:Object.freeze({nonce:'original-nonce',epoch})});
   const read=readSourceManagedOriginalInput('aql','SELECT 1',options,phase.inputLimits);
   assert.equal(read.usage.depth,4);
-  assert.equal(read.packet.options.submissionRef.epoch.authenticator,epoch.authenticator);
+  assert.equal((read.packet.options as unknown as typeof options).submissionRef.epoch.authenticator,epoch.authenticator);
   assert.equal(read.originalReferences.length,0);
-  assert.equal(read.packet.options.parameters,null);
+  assert.equal((read.packet.options as unknown as typeof options).parameters,null);
   assert.notEqual(read.packet.options,options);
 });
 
@@ -63,7 +63,7 @@ test('source-free Compute shares the original runtime without Source byte or chi
   assert.equal(phase.limits.transferBytes,1024*1000000);
   assert.equal(phase.limits.retainedBytes,536870912);
   assert.equal(phase.limits.executionBytes,536870912);
-  assert.equal(phase.responseBackingBytes,undefined);
-  assert.equal(phase.occurrencePartitions,undefined);
+  assert.equal((phase as typeof phase & {readonly responseBackingBytes?: unknown}).responseBackingBytes,undefined);
+  assert.equal((phase as typeof phase & {readonly occurrencePartitions?: unknown}).occurrencePartitions,undefined);
   assert.equal(phase.replenishedOnClose,false);
 });
