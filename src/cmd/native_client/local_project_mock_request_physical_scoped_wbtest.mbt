@@ -3590,14 +3590,22 @@ test "Native Values CREATE captures its Result dependencies and prepares its ori
   @local_values.yield_installed_effect_operation_construction_workspace(
     proposals.construction.unwrap().operation,
   ).native_file_route_value("yield CREATE proposal workspace")
+  let target_issue : Ref[LocalCommandPreparationIssue?] = Ref(None)
   state.observe_mock_effect_targets_in_original_request(
     run,
     proposals,
     installations,
-    (_, _) => fail("CREATE must not request a preapproval target read"),
+    (_, _) => stop("CREATE must not request a preapproval target read"),
     task => task(),
-    issue => fail(command_preparation_cleanup_cause(issue)),
-  )
+    issue => if target_issue.val is None { target_issue.val = Some(issue) },
+  ) catch {
+    ClientStop(message) =>
+      fail(
+        target_issue.val
+        .map(command_preparation_cleanup_cause)
+        .unwrap_or(message),
+      )
+  }
   assert_true(state.targets.is_empty())
   let (observation, preview_invocation, _) = proposals.publication_context.unwrap()
   state.build_mock_effect_preview(
