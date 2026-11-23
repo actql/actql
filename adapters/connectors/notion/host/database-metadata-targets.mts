@@ -2,7 +2,6 @@
 // credential Site. These targets/facts are DATA, not Account decisions,
 // issuer/material membership, resource funding, egress or permission.
 import {types} from 'node:util';
-// @ts-expect-error TS7016: the existing metadata discovery owner is still authored JavaScript.
 import {NOTION_DATABASE_RETRIEVE_OPERATION,NOTION_DATA_SOURCE_RETRIEVE_OPERATION} from '../site/database-discovery.mjs';
 
 const fail: (code: string) => never=code=>{throw Object.assign(new TypeError(code),{code});};

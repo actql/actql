@@ -874,7 +874,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "9aa46d82b3f853f064a99aeb2e9122f7e904769f947988e946c8ba14a7fb3cfb",
+      "sha256": "8d7e0de3084e13a1714dd0259c8f13da03b0c3044abc87f3f006566325617f3d",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -1108,15 +1108,15 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
-                "anchor": "export function createNotionDatabaseDiscovery(options)"
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
+                "anchor": "export function createNotionDatabaseDiscovery(options:Options)"
               },
               {
                 "path": "src/connectors/notion/host_node/read_contract_bridge.mbt",
                 "anchor": "pub fn notion_read_database_id("
               },
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
                 "anchor": "const readContracts=original.systemColumns?checked(provider.notionSourceSystemReadContracts("
               },
               {
@@ -1212,7 +1212,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "path": "adapters/connectors/notion/site/database-discovery.mts",
                 "anchor": "export class NotionDatabaseDiscoveryFailure"
               },
               {
@@ -2389,7 +2389,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/database-metadata-targets.mjs",
-      "sha256": "ca36a0a883de59eab600e9141fea445418dacb4bcce556da96da3e6498444bbc",
+      "sha256": "e09b8309838c72f0d7ca9f0846a0eea43258f787180b8d1aefca15e3daf8488d",
       "exports": [
         "prepareNotionDatabaseMetadataTargets"
       ],
