@@ -233,6 +233,10 @@ test "committed destination readers durably block reclaim" {
     Err(Closed) => fail("destination reader journal closed")
     Err(CleanupPending) => fail("destination reader journal cleanup pending")
     Err(Physical(_)) => fail("destination reader physical failure")
+    Err(TransactionFenced | TransactionCommit(_) | TransactionStop(_, _)) =>
+      fail(
+        "destination reader unexpectedly requires transaction reconciliation",
+      )
     Err(Protocol(_)) => fail("destination reader protocol failure")
     Err(StateCollision) => fail("destination reader state collision")
     Err(RecoveryRequired) => fail("destination reader requires recovery")
