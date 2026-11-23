@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "31b3cb74bd8a504032f0a0efd0db62675e48c4a112a50108ae771f57fff35690",
+      "sha256": "949b781f0b2f76a413f5672e9d182b1fe13ab29170447c24550655927393281e",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
@@ -2595,7 +2595,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "2625c292a6fedb112ae9040db7ce8f6e524781c41c4c4e204038397f41ccc037",
+      "sha256": "bdbeca80382386fd4629b6694675e123e50e78e0a5b4b2a6735f7bc9a49093a5",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",

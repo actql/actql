@@ -2750,3 +2750,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/release-install-child.d.mts
 /scripts/test-native-approval-performance.mjs
 /scripts/test-native-approval-performance.d.mts
+/adapters/connectors/calendar/host/installed-calendar-source.mjs
+/adapters/connectors/calendar/host/installed-calendar-source.d.mts
+/adapters/connectors/calendar/site/calendar-list-read.mjs
+/adapters/connectors/calendar/site/calendar-list-read.d.mts
