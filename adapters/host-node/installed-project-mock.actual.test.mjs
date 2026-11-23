@@ -480,13 +480,13 @@ test('actual Mock preparation retains original Project/Profile/connections and b
     assert.equal(declared.connector_id, source.catalogue.connectorId);
     assert.equal(declared.views[0].resource, source.catalogue.views[0].resource);
   }
-  assert.equal(typeof value.mappingWire, 'string');
-  assert.equal(JSON.parse(value.mappingWire).target_ref, 'connector://salesforce/Account');
+  assert.equal(value.writables.length, 1);
+  assert.equal(JSON.parse(value.writables[0].write.mappingWire).target_ref, 'connector://salesforce/Account');
   assert.equal(view.originalsForRuntime(moon), value);
   assert.ok(checks > 3);
   assert.deepEqual(opened, [f.path, f.catalogPath], 'No data, answer, credential or provider acquisition');
   assert.equal(value.physicalKind, 'declared-json-document');
-  assert.equal(value.writable.source, value.sources[0]);
+  assert.equal(value.writables[0].source, value.sources[0]);
   view.retire(moon);
 });
 
@@ -546,10 +546,10 @@ test('actual Mock preparation keeps same-provider connection identities distinct
   const f = await fixture({connections: {salesforce: {connector: 'snowflake'}, snowflake: {connector: 'snowflake'}}});
   const prepared = await inspectProjectMockDeclarations(moon, f.project, f.profile, {assertCurrent() {}});
   const bundle = prepared.originalsForRuntime(moon);
-  assert.equal(bundle.writable.source.catalogue.connectorId, 'salesforce');
-  assert.equal(bundle.writable.source.catalogue.provider, 'snowflake');
+  assert.equal(bundle.writables[0].source.catalogue.connectorId, 'salesforce');
+  assert.equal(bundle.writables[0].source.catalogue.provider, 'snowflake');
   assert.deepEqual(bundle.sources.map(source => source.catalogue.connectorId), ['salesforce', 'snowflake']);
-  assert.equal(JSON.parse(bundle.mappingWire).target_ref, 'connector://salesforce/Account');
+  assert.equal(JSON.parse(bundle.writables[0].write.mappingWire).target_ref, 'connector://salesforce/Account');
   prepared.retire(moon);
 });
 

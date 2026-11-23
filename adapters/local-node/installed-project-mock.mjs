@@ -67,17 +67,10 @@ async function prepareProjectMockDeclarations(moon, project, profile,
       typeof profile?.mockLocatorsForRuntime !== 'function') {
     fail('InvalidInstalledMockPreparation');
   }
-  let ports = Object.freeze({restore: moon?.clientProgramRowSourceRestoreRelationDeclaration,
-    wire: moon?.clientProgramRowSourceDeclarationJson,
-    mapping: moon?.clientProgramRelationUpdateMapping,
-    count: moon?.clientProjectConnectionsCount, name: moon?.clientProjectConnectionsName,
-    connector: moon?.clientProjectConnectionsConnector});
-  if (!Object.values(ports).every(port => typeof port === 'function')) {
-    fail('InstalledProjectRuntimeUnavailable');
-  }
+  let countConnections = moon?.clientProjectConnectionsCount;
+  if (typeof countConnections !== 'function') fail('InstalledProjectRuntimeUnavailable');
   let profilePorts = Object.freeze({originals: profile.originalsForRuntime,
     locators: profile.mockLocatorsForRuntime});
-  const call = (name, ...args) => Reflect.apply(ports[name], moon, args);
   const select = name => Reflect.apply(profilePorts[name], profile, [moon]);
   let selection = select('originals');
   function current() {
@@ -104,7 +97,7 @@ async function prepareProjectMockDeclarations(moon, project, profile,
   let connectionOriginal = connections.originalsForRuntime(moon);
   if (connectionOriginal.project !== projectOriginal ||
       connectionOriginal.connections === undefined) fail('InstalledMockConnectionsUnavailable');
-  const count = call('count', connectionOriginal.connections);
+  const count = Reflect.apply(countConnections, moon, [connectionOriginal.connections]);
   if (!Number.isSafeInteger(count) || count < 0 || count > 128) {
     fail('InstalledMockConnectionCountUnavailable');
   }
@@ -114,14 +107,12 @@ async function prepareProjectMockDeclarations(moon, project, profile,
     assertCurrent: current, openFile, installationInventory});
   let sources = catalog.sources;
   let writables = catalog.writables;
-  let writable = writables.length === 1 ? writables[0] : undefined;
-  let mappingWire = writable?.write.mappingWire;
   current();
   let originals = Object.freeze({physicalKind: 'declared-json-document',
     project: projectOriginal, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
     dataFile: locators.dataFile, dataPath: resolve(project.directory, locators.dataFile),
-    sources, mappingWire, writable, writables, catalog});
+    sources, writables, catalog});
   let retired = false, view;
   function same(runtime, receiver) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
@@ -171,8 +162,8 @@ async function prepareProjectMockDeclarations(moon, project, profile,
       // Managed references only, after the actual Source parent's close. This
       // cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs.
       retired = true;
-      originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;
-      projectOriginal = selection = project = profile = profilePorts = ports = undefined;
+      originals = sources = writables = catalog = connections = connectionOriginal = undefined;
+      projectOriginal = selection = project = profile = profilePorts = countConnections = undefined;
       assertCurrent = openFile = undefined;
       installationInventory = undefined;
     },
@@ -802,8 +793,6 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     return Object.freeze({realizationKey: mockRealization, environmentWire, environmentOriginal,
       fileReadDeclarations: bundle.catalog.fileReadDeclarations,
       sources: Object.freeze(sources),
-      mockWritableSource: bundle.writable === undefined ? undefined
-        : sources[bundle.sources.indexOf(bundle.writable.source)],
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
       admitsSource: ref => sources.some(source => source.admitsSource(ref)),

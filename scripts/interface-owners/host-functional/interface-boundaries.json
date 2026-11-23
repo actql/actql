@@ -71816,7 +71816,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "338d7b1baf424adb4ec1ad62558462edcca6e0ce84cbb7d4aafceebdd163715f",
+      "sha256": "6be932f9f21a2b324a0d34f10870c7a94baf7b32c05106edf3d8bfaabd8c6ecb",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72333,13 +72333,6 @@
             "runtime"
           ],
           "async": false
-        },
-        {
-          "name": "prepareProjectMockDeclarations/prepareProjectMockDeclarations",
-          "parameters": [
-            "port"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -72373,8 +72366,7 @@
             "prepareInstalledProjectMock",
             "prepareProjectMockDeclarations/current",
             "prepareProjectMockDeclarations/init:originalsForRuntime/init:originalsForRuntime",
-            "prepareProjectMockDeclarations/init:retire/init:retire",
-            "prepareProjectMockDeclarations/prepareProjectMockDeclarations"
+            "prepareProjectMockDeclarations/init:retire/init:retire"
           ],
           "exports": [
             "installedMockRequestRealization",
