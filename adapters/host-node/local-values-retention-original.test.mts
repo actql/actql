@@ -8,41 +8,43 @@ import {acquiredEffectPublicationAdmission, keyedInputRetentionSelection,
 function fixture(start = '2026-11-12T00:00:00.000Z') {
   let at = start, reads = 0, clockFailure = false;
   const firstFailure = Object.freeze({original: 'clock'});
-  let clockCause = firstFailure;
+  let clockCause: unknown = firstFailure;
   const now = () => {reads++; if (clockFailure) throw clockCause; return at;};
   const prepared = {}, compilation = {}, allowed = {}, definition = {};
   const header = {created_at: start, valid_until: '2026-11-12T00:30:00.000Z'};
   const observation = {wire: JSON.stringify({captured_input_artifact_cids: [],
     data_policy_cid: 'model-policy'})};
-  const contract = (name, wire) => Object.freeze({name, wire, identity: name});
+  const contract = (name: string, wire: string) => Object.freeze({name, wire, identity: name});
   const moon = {
-    clientProgramEffectCompilationTemplateWire(actual) {assert.equal(actual, compilation); return '{}';},
-    clientProgramAllowedEffectRunPrepared(actual) {assert.equal(actual, allowed); return {};},
-    clientProgramAllowedEffectRunAuthorization(actual) {assert.equal(actual, allowed); return {};},
-    clientProgramEffectCompilationCompiledPlanWire(actual) {assert.equal(actual, compilation); return '{}';},
+    clientProgramEffectCompilationTemplateWire(actual: unknown) {assert.equal(actual, compilation); return '{}';},
+    clientProgramAllowedEffectRunPrepared(actual: unknown) {assert.equal(actual, allowed); return {};},
+    clientProgramAllowedEffectRunAuthorization(actual: unknown) {assert.equal(actual, allowed); return {};},
+    clientProgramEffectCompilationCompiledPlanWire(actual: unknown) {assert.equal(actual, compilation); return '{}';},
     strategyRunEvidenceJson() {return '{}';},
-    strategyPublicationContractJson(actual) {assert.equal(actual, definition); return JSON.stringify(header);},
-    clientProgramEffectDefinitionCid(actual) {assert.equal(actual, prepared); return 'program';},
-    clientProgramEffectCompilationResultNames(actual) {assert.equal(actual, compilation); return ['result'];},
-    clientProgramEffectCompilationResultTransformation(actual, owner, index) {
+    strategyPublicationContractJson(actual: unknown) {assert.equal(actual, definition); return JSON.stringify(header);},
+    clientProgramEffectDefinitionCid(actual: unknown) {assert.equal(actual, prepared); return 'program';},
+    clientProgramEffectCompilationResultNames(actual: unknown) {assert.equal(actual, compilation); return ['result'];},
+    clientProgramEffectCompilationResultTransformation(actual: unknown, owner: unknown, index: number) {
       assert.equal(actual, compilation); assert.equal(owner, prepared); assert.equal(index, 0);
       return {$tag: 1, _0: undefined};
     },
   };
   const control = {admitRunEvidence: contract, admit: contract, seal: contract,
     sealRunEvidence: contract, admitCheckedClientEffectRunPublication: () => ({}),
-    checkedClientEffectInferInvocation(owner, compiled, run) {
+    checkedClientEffectInferInvocation(owner: unknown, compiled: unknown, run: unknown) {
       assert.equal(owner, prepared); assert.equal(compiled, compilation);
       assert.equal(run, acquired.runDefinition);
       return {observation, invocation: {}, owner: {}};
     }, compiledInferSourceFreeResultPolicy: () => ({cid: 'model-policy'})};
   const acquired = acquiredEffectPublicationAdmission({moon, control, prepared,
     compilation, allowed, definition, authorityScopeCid: 'authority', namespaceId: 'namespace',
-    storeAuthorityCid: 'store', now, identity: {}});
+    storeAuthorityCid: 'store', now, resultDataPolicy: undefined, identity: {}});
+  // The explicit fixture exposes the issued observation and selected retention ports.
   const publish = () => sourceFreeInferEffectPublicationPlan({acquired,
-    compiled: {}, issuedModel: {}, modelEvidence: []}).plan;
+    compiled: {}, issuedModel: {}, modelEvidence: []} as unknown as
+      Parameters<typeof sourceFreeInferEffectPublicationPlan>[0]).plan;
   return {acquired, publish, now, firstFailure,
-    advance(value) {at = value;}, failClock() {clockFailure = true;},
+    advance(value: string) {at = value;}, failClock() {clockFailure = true;},
     failClockWithUndefined() {clockFailure = true; clockCause = undefined;},
     get reads() {return reads;}};
 }
@@ -84,7 +86,7 @@ test('different admitted Effects retain independent selections without a global 
 test('a failed original retention selection keeps thrown undefined and never resamples', () => {
   const f = fixture();
   f.failClockWithUndefined();
-  const failsOriginal = operation => {
+  const failsOriginal = (operation: () => unknown) => {
     let failed = false;
     try {operation();} catch (cause) {failed = true; assert.equal(cause, undefined);}
     assert.equal(failed, true);

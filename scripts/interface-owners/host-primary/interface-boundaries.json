@@ -33042,7 +33042,7 @@
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               },
               {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "path": "adapters/host-node/local-values-retention-original.test.mts",
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
@@ -34573,7 +34573,7 @@
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               },
               {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "path": "adapters/host-node/local-values-retention-original.test.mts",
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
@@ -34774,7 +34774,7 @@
                 "anchor": "Effect computation checks the same managed Run, preparation and Request"
               },
               {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "path": "adapters/host-node/local-values-retention-original.test.mts",
                 "anchor": "one admitted Effect retains its original input retention after the Model clock advances"
               },
               {
@@ -36457,7 +36457,7 @@
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               },
               {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "path": "adapters/host-node/local-values-retention-original.test.mts",
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
@@ -36723,7 +36723,7 @@
                 "anchor": "actual Values and Tasks initial-retention callers forward only their same managed original"
               },
               {
-                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "path": "adapters/host-node/local-values-retention-original.test.mts",
                 "anchor": "one admitted Effect retains its original input retention after the Model clock advances"
               },
               {
