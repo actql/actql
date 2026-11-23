@@ -8165,7 +8165,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "57bef982974e4356c291e18c5ddacb6e92844e80b60099db599c5db8f166e4f0",
+      "sha256": "5dcaa056cc9b617ada22ca77f30f6c23199140ec057821dd435d474416bfe1eb",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
       "exports": [
@@ -8228,73 +8228,73 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "only place that names the Host"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "salesforceEffectSiteHooks"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "runInvocation: plan.invocationOwner"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "retainRecoveryOwner"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "prepareCaptured"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "InvalidInstalledEffectHooks"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "signal: facts.signal"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "contractLimits"
               }
             ],
@@ -8304,7 +8304,7 @@
                 "anchor": "loadInstalledSalesforceEffectInstallation"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent"
               }
             ],
@@ -8458,7 +8458,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mts",
                 "anchor": "signal: facts.signal"
               }
             ],

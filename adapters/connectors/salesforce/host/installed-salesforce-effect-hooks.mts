@@ -6,7 +6,30 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {localContractLimits} from '../../../host-node/local-values-plan.mjs';
 import {salesforceEffectUnit} from './installed-salesforce-effect.mjs';
 
-export function salesforceEffectSiteHooks(effect) {
+import type {loadInstalledSalesforceEffect} from './installed-salesforce-effect.mjs';
+
+type Installed = Awaited<ReturnType<typeof loadInstalledSalesforceEffect>>;
+type Effect = Pick<Installed, 'environmentWire' | 'prepareManagedPlan' | 'targetReadAuthorization' |
+  'targetReadInventory' | 'prepareCaptured' | 'prepareRecovered'>;
+type Inventory = Parameters<Effect['targetReadInventory']>[0];
+type Moon = Parameters<typeof salesforceEffectUnit>[0] & Readonly<{
+  strategyPublicationAdmit(kind: 'compiled_plan', wire: string, maxBytes: number, maxNodes: number,
+    maxDepth: number): unknown;
+  clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
+}>;
+type Continuation = Readonly<{assertContinuationCurrent?: () => unknown; signal?: AbortSignal;
+  targetReads?: unknown; control: unknown; store: unknown; managedEffect: unknown}>;
+type Selection = Pick<Inventory, 'updateTargetSelections' | 'assertUpdateSelectionCurrent'>;
+type TargetFacts = Selection & Readonly<{moon: Parameters<typeof salesforceEffectUnit>[0];
+  prepared: unknown; compilation: unknown}>;
+type CaptureFacts = Omit<TargetFacts, 'moon'> & Continuation & Readonly<{moon: Moon;
+  publicationPlan: Readonly<{invocationOwner: unknown; contractLimits: Readonly<{
+    maxWireBytes: number; maxNodes: number; maxDepth: number}>}>;
+  execution: unknown; checkedHost: unknown; identity: unknown; definition: unknown}>;
+type RecoveryFacts = Continuation & Readonly<{moon: unknown; recovered: Selection;
+  continuation: unknown; retainRecoveryOwner?: unknown}>;
+
+export function salesforceEffectSiteHooks(effect: Effect) {
   if (typeof effect?.prepareCaptured !== 'function' ||
       typeof effect.prepareRecovered !== 'function' ||
       typeof effect.environmentWire !== 'string') {
@@ -17,12 +40,12 @@ export function salesforceEffectSiteHooks(effect) {
     environmentWire: effect.environmentWire,
     prepareManagedPlan: effect.prepareManagedPlan,
     targetReadAuthorization: effect.targetReadAuthorization,
-    targetReadInventory: facts => effect.targetReadInventory({moon: facts.moon,
+    targetReadInventory: (facts: TargetFacts) => effect.targetReadInventory({moon: facts.moon,
       prepared: facts.prepared,
       updateTargetSelections: facts.updateTargetSelections,
       assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent,
       unit: salesforceEffectUnit(facts.moon, facts.compilation)}),
-    prepareCaptured: facts => {
+    prepareCaptured: (facts: CaptureFacts) => {
       const {moon, publicationPlan: plan, compilation} = facts;
       const current = facts.assertContinuationCurrent;
       return effect.prepareCaptured({moon, control: facts.control,
@@ -43,7 +66,7 @@ export function salesforceEffectSiteHooks(effect) {
         updateTargetSelections: facts.updateTargetSelections,
         assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent});
     },
-    prepareRecovered: facts => {
+    prepareRecovered: (facts: RecoveryFacts) => {
       const current = facts.assertContinuationCurrent;
       return effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
