@@ -4,7 +4,6 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
 import {SLACK_USER_LIST_OPERATION,SLACK_WORKSPACE_IDENTITY_OPERATION} from './user-list-read.mjs';
 import {SLACK_CHANNEL_LIST_OPERATION} from './channel-list-read.mjs';
-// @ts-expect-error TS7016 until the existing message history Owner moves to TypeScript.
 import {SLACK_MESSAGE_HISTORY_OPERATION,SLACK_MESSAGE_REPLIES_OPERATION} from './message-history-read.mjs';
 import type {ListPageProjection, SlackListLimits, SlackListPageMetadata, SlackListResponse,
   WorkspaceIdentityProvider} from './user-list-read.mjs';

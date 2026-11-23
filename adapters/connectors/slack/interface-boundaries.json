@@ -1769,7 +1769,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "3d5225d3896880554cc38d1bd4f9f857daec8002729339dd92b8bb2c6acf5a3b",
+      "sha256": "423be91b1fc356d587d4817cc99ce347745d52e57c9b387d7c937b7b28a0e9ec",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -2134,31 +2134,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function prepareRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "async function executeRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function ownColumnArray("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function prepareReplyRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "async function executeReplyRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "export async function coalesceSlackMessageReaders(options)"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "export async function coalesceSlackMessageReaders(options: ProjectionOptions)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes'"
               },
               {
@@ -2172,11 +2172,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "slackMessageHistoryRequestMatches(history,pending)"
               },
               {
@@ -2184,15 +2184,15 @@
                 "anchor": "The same retained credential binding"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "source.pages.get(originalPage)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "(context.scope as {operation?: unknown}).operation!==SLACK_MESSAGE_REPLIES_OPERATION"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "reply.prepared.source!==source || reply.phase!=='succeeded' || reply.control===undefined"
               },
               {
@@ -2206,31 +2206,31 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const readers = new WeakMap<object, HistoryState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "The live reader retains"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const replyReaders = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const replyReaders = new WeakMap<object, ReplyState>();"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const outcomes = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const outcomes = new WeakMap<object, HistoryState | ReplyState | ProjectionState>();"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const state={historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const state: ProjectionState = {historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "retainControl(history);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await callbacks.current(operation);"
               },
               {
@@ -2244,11 +2244,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(observed.charge);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "currentBeforeSend:()=>verify(operation)"
               },
               {
@@ -2256,19 +2256,19 @@
                 "anchor": "Index getters keep their ordinary responsibility;"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "retained.consumed=true;"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);"
               },
               {
@@ -2282,7 +2282,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "throw new SlackMessageHistoryReadFailure(cause,observations);"
               },
               {
@@ -2290,11 +2290,11 @@
                 "anchor": "test('Slack history lost response retains original Unknown use and refuses resend'"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "throw new SlackMessageRepliesReadFailure(cause,observations);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const failure=new SlackMessageProjectionFailure(cause);"
               },
               {
@@ -2308,7 +2308,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "signal.throwIfAborted();"
               },
               {
@@ -2316,11 +2316,11 @@
                 "anchor": "test('Slack history current and stop after page consumption prevent next Common request and send'"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const signals=[stop.signal,original.source.prepared.signal];"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const signal=AbortSignal.any(signals);"
               },
               {
@@ -2338,7 +2338,7 @@
                 "anchor": "The actual Host supplier"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "cleanupConfirmed:false"
               },
               {
@@ -2504,7 +2504,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/slack-source-read.mjs",
-      "sha256": "a9c63e668a99f8ce1a02012bf0a9aa367967e3a7c3e0a653e46458c5bb60b7a9",
+      "sha256": "0a24f8a3ad317c922a7edfca7add481f2331b2b5cf8bb0723fd5a0f8d2b3dc40",
       "exports": [
         "prepareSlackSourceReadSequence"
       ],

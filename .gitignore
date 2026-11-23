@@ -3072,3 +3072,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/slack/site/channel-list-read.d.mts
 /adapters/connectors/slack/site/slack-source-read.mjs
 /adapters/connectors/slack/site/slack-source-read.d.mts
+/adapters/connectors/slack/site/message-history-read.mjs
+/adapters/connectors/slack/site/message-history-read.d.mts
