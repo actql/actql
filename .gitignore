@@ -2730,3 +2730,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-image-source.test.d.mts
 /adapters/host-node/initial-control-phase-envelope.cjs
 /adapters/host-node/initial-control-phase-envelope.d.cts
+/scripts/release-project-sequences.test.mjs
+/scripts/release-project-sequences.test.d.mts
