@@ -260,7 +260,7 @@ pub fn reuse_local_preflight_result_publication(LocalPublicationPreflight, Int, 
 
 pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalRunInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
-pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
+pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, canonical_managed_rows? : Bool) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
 
 pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
 

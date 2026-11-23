@@ -110,9 +110,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(LocalDispatchModule, Array
 
 pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
 
-pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T], retained_relation? : Bool) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
+pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T], retained_relation? : Bool, canonical_managed_rows? : Bool) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
 
-pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int], retained_relation? : Bool) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
+pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int], retained_relation? : Bool, canonical_managed_rows? : Bool) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
 
 pub fn validate_local_dispatch_binding(LocalDispatchModule, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, LocalDispatchIssue]
 
