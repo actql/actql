@@ -194,6 +194,10 @@ pub fn composed_local_provider(
   boundary_only? : Bool = false,
   input_prefix? : @relation.GeneratedSequence? = None,
   host_await_io? : Bool = false,
+  original_step? : (
+    (Execution) -> Result[Unit, @connector.FixedComputeIssue],
+    (Execution, Bool) -> Result[Unit, @connector.FixedComputeIssue],
+  )? = None,
 ) -> @local.ManagedProvider {
   let opened = Ref(false)
   let provider = @local.managed_provider_with_inputs(
@@ -238,6 +242,7 @@ pub fn composed_local_provider(
         retain_completed~,
         allow_cleanup~,
         host_await_io~,
+        original_step~,
       ).map_err(project_issue)
     },
   )

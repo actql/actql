@@ -89,6 +89,19 @@ test('Resident preparation retains the exact same-source owned TLS and HTTP orig
   f.publishHttp();
   assert.equal(preparedNativeHttpReceipt(f.root,f.selected),f.componentPath);
 });
+test('Model HTTP cannot select a historical Resident preparation without the Model resolver', t => {
+  const f = httpPreparation(t);
+  assert.equal(preparedNativeHttpReceipt(f.root, f.selected), f.componentPath);
+  assert.throws(() => preparedNativeHttpReceipt(f.root, f.selected, {requireModelResolver: true}),
+    /did not select the Model resolver/u);
+});
+test('Remote HTTP cannot select a preparation stamped with a Model resolver', t => {
+  const f = httpPreparation(t);
+  f.component.modelResolver = {backend: 'c-ares', addressLookup: 'c-ares'};
+  f.publishHttp();
+  assert.throws(() => preparedNativeHttpReceipt(f.root, f.selected),
+    /Remote HTTP requires the synchronous component original/u);
+});
 
 test('Remote HTTP preparation reuse requires an ancestor and the complete unchanged producer tree', t => {
   const directory = mkdtempSync(join(tmpdir(), 'actql-remote-http-source-'));

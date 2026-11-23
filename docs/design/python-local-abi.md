@@ -635,15 +635,27 @@ existing symlinks or nonprivate files are refused. This physical adapter require
 POSIX ownership checks and SQLite STRICT-table support. Those requirements do not
 apply to importing or using the Remote Client.
 
-Transactions use SQLite's existing exclusive write serialization and FULL
-synchronization. Competing generations cannot replace one another. A failed
-commit acknowledgement remains an exception; the adapter neither reports success
-nor repeats the write. The Host must read the same original bytes and let Core
-decide the next operation. If both commit and rollback fail, the retained connection cannot return its
-uncommitted bytes or accept another write. Only its pending cleanup may proceed.
-Close releases the connection, preserves persisted records and performs no Run
-cancellation or recovery. Failed close retains its
-exact cleanup handle, including initialization failures.
+The standard-library SQLite Store uses DELETE journal mode and EXTRA
+synchronization, with explicit SQL transaction control. A new owned file verifies
+both settings before the first schema write transaction. Reopen identifies the
+existing format through read-only SQL before applying and verifying the same
+connection profile. These settings request SQLite's rollback-journal directory
+sync at commit. Physical durability depends on the SQLite VFS and storage.
+The selected Native SQLite Store applies its own profile.
+
+Writes still use SQLite's existing exclusive serialization. Competing generations
+cannot replace one another. A failed
+write COMMIT acknowledgement retains the original cause and Store, regardless
+of whether the write uses a current callback. SQL confirmation and later
+current refusal are separate observations. A cleanup failure retains its cause
+and private phase, either transaction-state inspection or rollback. A failed
+inspection does not attempt rollback. Without a confirmed stop, the same
+connection remains fenced from ordinary reads and writes until close.
+An observed inactive connection may be reusable, while continuation of the
+original operation still requires exact readback and the original Core decision.
+Close releases the connection and preserves persisted records. Run cancellation
+and recovery remain with their existing Owners. Failed close retains its exact
+cleanup handle, including initialization failures.
 
 Record count, individual byte length and aggregate payload length have explicit
 physical ceilings. Oversized retained rows are refused before returning their

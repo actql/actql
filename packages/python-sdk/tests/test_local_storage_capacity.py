@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     CapacityReservation, CapacityUsage, LocalByteStore, LocalStorageError, StoredBytes,
+    LocalStorageCommitUnknown,
 )
 
 
@@ -101,8 +102,9 @@ print('original reservation retained')
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
-                    with self.assertRaises(OSError):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.reserve_capacity('publication', 'original', 8, 1, 64, 4)
+                    self.assertIs(caught.exception.cleanup_store, store)
                     expected = CapacityReservation('publication', 'original', 8, 1)
                     self.assertEqual(store.read_capacity('publication', 'original'), expected)
                     self.assertEqual(store.read_capacity('publication', 'original'), expected)
@@ -164,8 +166,9 @@ print('original reservation retained')
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': RefuseCommitRollback}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.refuse = True
-                    with self.assertRaises(OSError):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.reserve_capacity('publication', 'original', 8, 1, 64, 4)
+                    self.assertIs(caught.exception.cleanup_store, store)
                     with self.assertRaises(LocalStorageError):
                         store.read_capacity('publication', 'original')
                     with self.assertRaises(LocalStorageError):

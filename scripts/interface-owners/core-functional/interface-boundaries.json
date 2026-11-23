@@ -76692,7 +76692,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
+      "sha256": "7f3c72ccaf6e2e2db12b6ae9b1cb25902a30b0de7885d58652e9b05a492fc652",
       "exports": [],
       "operations": [
         {
@@ -76716,6 +76716,10 @@
           "declaration": "[ I ] cleanup_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]report_backed_initialization_cleanup_usage",
+          "declaration": "[ I ] report_backed_initialization_cleanup_usage ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[I]start_backed_initialization_admission",
           "declaration": "[ I ] start_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
@@ -76730,6 +76734,10 @@
         {
           "name": "[P,C,I]prepare_backed_initialization_admission",
           "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
+        },
+        {
+          "name": "backed_initialization_cleanup_quiescent",
+          "declaration": "backed_initialization_cleanup_quiescent ( ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -76747,7 +76755,9 @@
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
             "[P,C,I]prepare_backed_initialization_admission",
-            "[I]take_backed_initialization_for_host"
+            "[I]take_backed_initialization_for_host",
+            "[I]report_backed_initialization_cleanup_usage",
+            "backed_initialization_cleanup_quiescent"
           ],
           "exports": [],
           "attributes": {
@@ -80329,9 +80339,13 @@
     },
     {
       "module": "src/platform_native/host_bootstrap/backed_initialization_native.mbt",
-      "sha256": "248287e46993958e3827ee2bfcb08d272d9467f2d8f1b96dfa6a04b5d00c4ab3",
+      "sha256": "52ad69bcf0304d08e56e50cc19d4fc8c11a3dfd2a941f875795d19456160877c",
       "exports": [],
       "operations": [
+        {
+          "name": "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : borrow_initialized_preparation_ledger ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , ) - > Result [ @ resources . Ledger , NativeBackedInitializationIssue ]"
+        },
         {
           "name": "[T,C,I]NativeHostBootstrap::close_backed_preparation",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : close_backed_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ Unit , NativeBackedInitializationIssue ]"
@@ -80346,11 +80360,27 @@
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
-          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_selected ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_request_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , ) - > Result [ @ resources . BackedPreparationAdmission [ I ] , NativeBackedInitializationIssue , ]"
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : original_initialization_cleanup ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ NativeBackedInitialization [ T , C , I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : prepare_initialized_working_window ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , retained : Int64 , execution : Int64 , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "copy_native_working_issue_data",
+          "declaration": "copy_native_working_issue_data ( issue : NativeBackedExecutionIssue , ) - > NativeBackedExecutionIssue"
         },
         {
           "name": "initialization_control_scope_clear_ffi",
@@ -80369,7 +80399,12 @@
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation",
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
             "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
-            "initialization_control_scope_clear_ffi"
+            "initialization_control_scope_clear_ffi",
+            "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+            "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+            "copy_native_working_issue_data"
           ],
           "exports": [],
           "attributes": {
@@ -92516,6 +92551,7 @@
             "retain_allocation",
             "return_unused_attempt",
             "settle_completed_output_reservation",
+            "settle_entered_transfer",
             "settle_execution_reservation",
             "settle_reservation",
             "settle_reservation_current",
@@ -92626,7 +92662,7 @@
           }
         }
       ],
-      "sha256": "b80c915960bf4c62a6912cc5d8b27ac12d57478790054539f7cbe7246562183c",
+      "sha256": "044dc7b97a688db7762fb847173cbbe031c5da80fc0bf44c03e7347b5c1c9839",
       "operations": [
         {
           "name": "charge_planning",
@@ -92731,6 +92767,10 @@
         {
           "name": "settle_completed_output_reservation",
           "declaration": "settle_completed_output_reservation ( ledger : Ledger , reservation : Reservation , holding : Holding ? , output_bytes : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_entered_transfer",
+          "declaration": "settle_entered_transfer ( ledger : Ledger , reservation : Reservation , ceiling : Int64 , observed : Int64 ? , ) - > Result [ Bool , LedgerIssue ]"
         },
         {
           "name": "settle_execution_reservation",
@@ -103610,7 +103650,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "bf1c2421c792b2fa1e0c4938836153e83927cd6c01a4838e2a38167bc81a07db",
+      "sha256": "5512992307a7aa3cc93760fa9cbbdba4f2a7ed51913f7a0dce5c6b9cc50e0670",
       "exports": [],
       "operations": [
         {
@@ -105325,9 +105365,13 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "3a83c80c83786c8264c47b8a4c99503b6808a1993cf96f043a717f67f8536146",
+      "sha256": "d045c4f868e2b76c3e403f030c76c2f82c74ac983f4321e4dded0e60e111b618",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]borrow_native_client_model_plan_input",
+          "declaration": "[ I ] borrow_native_client_model_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , @ local . ClientRequestPreparationIssue , ]"
+        },
         {
           "name": "[I]borrow_native_client_request_plan_input",
           "declaration": "[ I ] borrow_native_client_request_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , NativeClientSubmittedPreparationIssue , ]"
@@ -105360,7 +105404,8 @@
             "[I]check_native_client_submitted_request_input",
             "[I]prepare_native_client_submitted_request_input",
             "prepare_native_client_submitted_request",
-            "return_native_client_submitted_request_body"
+            "return_native_client_submitted_request_body",
+            "[I]borrow_native_client_model_plan_input"
           ],
           "exports": [],
           "attributes": {
@@ -106458,7 +106503,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_account_construction.mbt",
-      "sha256": "291855f5b7d1ceb1032107d8510bb194de3c64d5c63ee508bd08a80873c5c740",
+      "sha256": "53b9a09a17bdf0941c1cf01bd4a0bd5246dea998e78e9458fb27c6fe56408634",
       "exports": [],
       "operations": [
         {
@@ -106468,6 +106513,10 @@
         {
           "name": "local_account_decode",
           "declaration": "local_account_decode ( body : Bytes , construction : ( ( @ authorization . AccountConfigurationConstruction ) - > Bool ) ? , ) - > Result [ @ authorization . AdmittedAccountConfiguration , NativeLocalAdoptionIssue , ]"
+        },
+        {
+          "name": "local_account_file_read_construction",
+          "declaration": "local_account_file_read_construction ( size : Int64 , retain : Bool , ) - > @ authorization . AccountConfigurationConstruction"
         },
         {
           "name": "local_account_read",
@@ -106488,7 +106537,8 @@
             "local_account_construction_cost",
             "local_account_decode",
             "local_account_read",
-            "NativeLocalJournalOriginalResources::prepare_account_construction"
+            "NativeLocalJournalOriginalResources::prepare_account_construction",
+            "local_account_file_read_construction"
           ],
           "exports": [],
           "attributes": {
@@ -106672,7 +106722,7 @@
     },
     {
       "module": "src/run_publication_host/client_model_defaults_construction.mbt",
-      "sha256": "5afaa40d0c77e58cfb5ec47a3ce65735b1279d3876da57a5a7e29eb004926bf5",
+      "sha256": "214974f0f61b78afb7d9d865fa500722b58ea9ffb0165dc897792d54eedb8e8a",
       "exports": [],
       "operations": [
         {
@@ -106686,6 +106736,10 @@
         {
           "name": "client_model_provider_defaults_resolution_extents",
           "declaration": "client_model_provider_defaults_resolution_extents ( original : ClientModelProviderDefaults , tokens : Int64 ? , ) - > ( @ environment . RegistryConstructionExtent , @ environment . RegistryConstructionExtent , )"
+        },
+        {
+          "name": "client_model_provider_defaults_retained_bound",
+          "declaration": "client_model_provider_defaults_retained_bound ( bytes : Int , n : Int , binding_units : Int , ) - > @ environment . RegistryConstructionExtent ?"
         },
         {
           "name": "client_model_provider_defaults_retained_extent",
@@ -106702,7 +106756,8 @@
             "client_model_metadata_add",
             "client_model_provider_defaults_construction_extent",
             "client_model_provider_defaults_resolution_extents",
-            "client_model_provider_defaults_retained_extent"
+            "client_model_provider_defaults_retained_extent",
+            "client_model_provider_defaults_retained_bound"
           ],
           "exports": [],
           "attributes": {
@@ -111671,9 +111726,13 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "29945269a3b4ebecf04e49dc652bdcc1ccdaccdc9b249b7383340648eaaf689f",
+      "sha256": "48cdc5596544dfe306733d6b364db9cb1b0fdc0b4e4263c396e5d0b526263bd6",
       "exports": [],
       "operations": [
+        {
+          "name": "finish_native_keyed_lookup_cleanup",
+          "declaration": "finish_native_keyed_lookup_cleanup ( lookup : @ run_host . ClientKeyedLookupInput , ) - > Result [ Bool , @ run_host . ClientKeyedRequestIssue ]"
+        },
         {
           "name": "LocalCommandBusinessOriginal::enter_children_cleanup",
           "declaration": "LocalCommandBusinessOriginal : : enter_children_cleanup ( business : LocalCommandBusinessOriginal , host : @ initial_arena . InstalledArenaHost , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
@@ -111693,6 +111752,10 @@
         {
           "name": "LocalCommandBusinessPreparation::prepare_file_work_entry",
           "declaration": "LocalCommandBusinessPreparation : : prepare_file_work_entry ( self : Self , prepared : @ run_host . PreparedClientProgram , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientRelationFileWorkEntry raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::publication_authoring",
+          "declaration": "LocalCommandBusinessPreparation : : publication_authoring ( self : LocalCommandBusinessPreparation , prepared : @ run_host . PreparedClientProgram , ) - > @ publication . RunEvidenceValue raise ClientStop"
         },
         {
           "name": "LocalCommandPreparationOriginal::close_business_children",
@@ -111717,7 +111780,9 @@
             "LocalCommandBusinessPreparation::open_values_work",
             "LocalCommandBusinessPreparation::prepare_file_work_entry",
             "LocalCommandPreparationOriginal::close_business_children",
-            "LocalCommandPreparationOriginal::open_business_store"
+            "LocalCommandPreparationOriginal::open_business_store",
+            "finish_native_keyed_lookup_cleanup",
+            "LocalCommandBusinessPreparation::publication_authoring"
           ],
           "exports": [],
           "attributes": {
@@ -111791,7 +111856,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "571736bc44c859c61a2146988c96043188ed04576459aed18bc961494637796c",
+      "sha256": "14c5271e557f75a5cddc63e162bc23e59e735f6f68c0d9704bac46be375e7e89",
       "exports": [],
       "operations": [
         {
@@ -112654,7 +112719,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "a8a3f0eff3d01e426de2aaf3a0d6949fbbc174812b2d6b03ddf801f9f1c7b5a2",
+      "sha256": "fe7b39332e2bcdcf9cbf7a4d1b755edc861bc073c071d26fc8c7827f715c48df",
       "exports": [],
       "operations": [
         {
@@ -113132,7 +113197,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_packaged_runtime.mbt",
-      "sha256": "c8e146745cbf0a34150bf9ca5ee5b0d75c66645db085f73edd36b4ba4971b03c",
+      "sha256": "82d493e117f8a2d908bb0cf882ce6f1a43b40e2511c2d7d809e0656b8db36f20",
       "exports": [],
       "operations": [
         {
@@ -113190,6 +113255,10 @@
         {
           "name": "NativeLocalPackagedRuntime::bind_original_host_resources",
           "declaration": "NativeLocalPackagedRuntime : : bind_original_host_resources ( self : NativeLocalPackagedRuntime , resources : @ arena . InstalledArenaLocalHostResources , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::borrow_model_http_library",
+          "declaration": "NativeLocalPackagedRuntime : : borrow_model_http_library ( self : NativeLocalPackagedRuntime , diagnostic_ceiling : Int , ) - > Result [ @ http . Library , NativeLocalModelHttpIssue ]"
         },
         {
           "name": "NativeLocalPackagedRuntime::check_current",
@@ -113266,6 +113335,7 @@
             "local_runtime_retain_root",
             "NativeLocalPackagedRuntime::assets",
             "NativeLocalPackagedRuntime::bind_original_host_resources",
+            "NativeLocalPackagedRuntime::borrow_model_http_library",
             "NativeLocalPackagedRuntime::check_current",
             "NativeLocalPackagedRuntime::close",
             "NativeLocalPackagedRuntime::command_library_members",
@@ -113348,7 +113418,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "b58c6f67e3b05c2a1ad29d7e047aaf5a4ca9337e0b6b619a3a03c741d2465141",
+      "sha256": "e0488f882d3a8c25b7b031f65eb17cdd69cbd50be37a38caac6cd6e6d33042e9",
       "exports": [],
       "operations": [
         {
@@ -113380,8 +113450,8 @@
           "declaration": "client_native_local_runtime_original ( value : ClientNativeLocalRuntime , ) - > String"
         },
         {
-          "name": "native_local_remote_http_system",
-          "declaration": "native_local_remote_http_system ( platform : String , dependency : String , ) - > Bool"
+          "name": "native_local_http_system",
+          "declaration": "native_local_http_system ( platform : String , dependency : String ) - > Bool"
         },
         {
           "name": "runtime_assemble",
@@ -113427,7 +113497,7 @@
             "client_native_local_product_originals",
             "client_native_local_runtime_members",
             "client_native_local_runtime_original",
-            "native_local_remote_http_system",
+            "native_local_http_system",
             "runtime_assemble",
             "runtime_elements",
             "runtime_filename",
@@ -113865,7 +113935,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "698f01a8ccb014bcb0bcbecd2c84e1b42e5c38de6058cbf12cc91dd82c9391a9",
+      "sha256": "2679f364a3d70e4a48fd10afdf7ddbdc20a63668c85db68da3e981709a4da07e",
       "exports": [],
       "operations": [
         {
@@ -113890,7 +113960,7 @@
         },
         {
           "name": "execute_local_tasks_guarded",
-          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , LocalValuesExecutionIssue , ] ) ?"
         },
         {
           "name": "execute_retained_effect_local_tasks_guarded",
@@ -114489,7 +114559,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "662ff588d112809c76d9079e275cb62dbf77c3ae84e84f91d36d1586c0dd9198",
+      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
       "exports": [],
       "operations": [
         {
@@ -114546,7 +114616,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",

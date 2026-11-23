@@ -53,6 +53,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   request : @run_host.ClientRequestIdentity,
+  reference : @local_host.NativeClientSubmissionReference,
 ) -> @local_host.NativeClientValuesWork raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
@@ -63,10 +64,20 @@ fn LocalCommandBusinessPreparation::open_values_work(
     stop("LocalBusinessOriginalUnavailable")
   }
   guard @local_host.native_client_submitted_preparation(self.preparation)
-    is Computation(prepared) &&
-    self.requirements is Some(requirements) else {
+    is Computation(prepared) else {
     stop("LocalValuesExecutionProfileNotSupported")
   }
+  let requirements = (match business.model_run {
+    Some(model) => Some(model.requirements)
+    None => self.requirements
+  }).unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
+  let drive_task = business.model_run.map(model => {
+    (task, operations) => {
+      self.drive_configured_model_task(
+        business, model, run, reference, task, operations,
+      )
+    }
+  })
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
@@ -90,6 +101,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       finalization_rounds,
       requirements=Some(requirements),
       managed=business.request_run,
+      drive_task~,
     ) {
     Ok(work) => {
       business.values_work = Some(work)
@@ -214,6 +226,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  // Store/file operations above can still own a pending Read return. Retire
+  // those scopes before borrowing cleanup Read for the HTTP calls, then enter
+  // the retained execution to observe the same physical ACKs in Core.
+  if self.runtime is Some(runtime) {
+    match runtime.close_model_http_calls() {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandBusinessModelHttp(issue))
+    }
+  }
   // Drop request DATA only after the actual original file children retire.
   business.saved_effect_rows.clear()
   business.saved_effect_rows.shrink_to_fit()
@@ -301,6 +322,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
       if state.model_use is Some(held) {
         @infer.release_output(held) |> ignore
         state.model_use = None
+      }
+    }
+    if business.model_run is Some(model) {
+      for index, completion in model.completions {
+        if completion is Some(held) {
+          @infer.release_output(held) |> ignore
+          model.completions[index] = None
+        }
       }
     }
     for work in business.model_work {
@@ -542,6 +571,19 @@ fn LocalCommandPreparationOriginal::close_business_children(
       match @local_host.return_native_client_submitted_request_body(holder) {
         Err(_) => return Err(CommandBusinessChildren)
         Ok(_) => business.request_body = None
+      }
+    }
+    if business.model_run is Some(model) {
+      if business.request_run is Some(run) {
+        match @local_values.quiesce_installed_managed_run(run) {
+          Err(issue) => return Err(CommandBusinessModelPlan(issue))
+          Ok(_) => ()
+        }
+      }
+      match model.finish_scopes() {
+        Err(issue) => return Err(CommandBusinessModelPlan(ModelRead(issue)))
+        Ok(false) => return Err(CommandBusinessChildren)
+        Ok(true) => business.model_run = None
       }
     }
     // Source preparation DATA is retained by this same caller only until its

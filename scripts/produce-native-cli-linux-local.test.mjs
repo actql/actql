@@ -281,3 +281,18 @@ test('changed original input between components stops before the next stage', as
   await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost}), /Original input changed/u);
   assert.deepEqual(f.calls.map(call => call.phase), ['sqlite']);
 });
+
+test('Linux producer passes a selected Model HTTP receipt only to the existing recipe command', () => {
+  const modelHttpPreparation = '/inputs/model-http/preparation.json';
+  const selection = ['--model-http-preparation', modelHttpPreparation];
+  const selected = parseNativeLinuxLocalArguments([...args, ...selection]);
+  assert.equal(selected.modelHttpPreparation, modelHttpPreparation);
+  const baseline = planNativeLinuxLocalProduction(options, context);
+  const model = planNativeLinuxLocalProduction(selected, context);
+  assert.deepEqual(model.commands.filter(step => step.phase !== 'recipe'),
+    baseline.commands.filter(step => step.phase !== 'recipe'));
+  assert.deepEqual(model.commands.find(step => step.phase === 'recipe').args.slice(-2), selection);
+  for (const invalid of ['relative/preparation.json', '/output/new/preparation.json', options.sqliteArchive]) {
+    assert.throws(() => planNativeLinuxLocalProduction({...selected, modelHttpPreparation: invalid}, context));
+  }
+});

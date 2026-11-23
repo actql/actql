@@ -4147,7 +4147,7 @@
     },
     {
       "module": "src/model_execution/execution.mbt",
-      "sha256": "adaff421d61a097837b5105d4720900da92e97e79a806b563adf7a07db88c2e9",
+      "sha256": "e45ad989ea7c415fb801a67ed8a9948c5a895b13cf9038a85b4314bf5ac2e4bb",
       "exports": [],
       "operations": [
         {
@@ -4595,7 +4595,7 @@
     },
     {
       "module": "src/model_execution/prepared_call_set.mbt",
-      "sha256": "f08de8a66a713d37e3e1b5730e13545eace84dfec87c0bdbfdbfdbd1b1adce2c",
+      "sha256": "aafd24cb2a8f438ebfb515da50ac7411bd100b7527838b45ff490b3e5d49f653",
       "exports": [],
       "operations": [
         {
@@ -4633,6 +4633,10 @@
         {
           "name": "model_call_settlement_slot",
           "declaration": "model_call_settlement_slot ( value : ModelCallSettlement ) - > Int ?"
+        },
+        {
+          "name": "prepared_model_awaits_portable_http",
+          "declaration": "prepared_model_awaits_portable_http ( value : ModelPreparedCallSet , ) - > Bool"
         },
         {
           "name": "prepared_model_call_at",
@@ -4705,7 +4709,8 @@
             "prepared_model_matches",
             "prepared_model_physical_request",
             "prepared_model_request",
-            "prepared_model_scope"
+            "prepared_model_scope",
+            "prepared_model_awaits_portable_http"
           ],
           "exports": [],
           "attributes": {

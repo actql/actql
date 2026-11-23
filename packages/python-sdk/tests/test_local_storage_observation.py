@@ -4,7 +4,10 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from actql_sdk._local_storage import ByteWrite, LocalByteStore, StoredBytes
+from actql_sdk._local_storage import (
+    ByteWrite, LocalByteStore, StoredBytes,
+    LocalStorageCommitUnknown,
+)
 
 
 class LocalPhysicalObservationTests(unittest.TestCase):
@@ -48,8 +51,10 @@ class LocalPhysicalObservationTests(unittest.TestCase):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     write = ByteWrite('original', None, b'original-core-bytes')
                     store._connection.lose = True
-                    with self.assertRaisesRegex(OSError, 'physical acknowledgement lost'):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange(write.key, None, write.payload)
+                    self.assertIs(caught.exception.cleanup_store, store)
+                    self.assertRegex(str(caught.exception.__cause__), 'physical acknowledgement lost')
                     self.assertEqual(store.read_exchange(write), StoredBytes(0, write.payload))
                     self.assertEqual(store.read_exchange(write), StoredBytes(0, write.payload))
                     self.assertEqual(store._connection.writes, 1)

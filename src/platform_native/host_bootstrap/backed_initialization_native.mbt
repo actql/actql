@@ -450,8 +450,8 @@ fn[T, C, I] NativeHostBootstrap::close_backed_preparation_original(
     }
     state.inventory_finished = true
   }
-  if state.started && !state.reported && state.frame is Some(frame) {
-    guard state.ledger is Some(ledger) else {
+  if state.started && !state.reported && state.frame is Some(_) {
+    guard state.ledger is Some(ledger) && state.initial is Some(initial) else {
       return Err(Inventory(@resources.CleanupPending))
     }
     // Use Core's complete logical-quiescence/current contract, including
@@ -461,7 +461,7 @@ fn[T, C, I] NativeHostBootstrap::close_backed_preparation_original(
       Err(issue) => return Err(Quiescence(issue))
       Ok(_) => ()
     }
-    match @resources.report_imported_child_ledger(frame) {
+    match @resources.report_backed_initialization_cleanup_usage(initial) {
       Err(issue) => return Err(Child(issue))
       Ok(_) => state.reported = true
     }

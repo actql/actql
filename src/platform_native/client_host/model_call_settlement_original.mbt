@@ -205,13 +205,9 @@ pub fn NativeClientMockModelWork::commit_settlement_in_original_read(
               Ok(None) => return Err(CustodyLost)
               Err(issue) => return Err(issue)
             }
-            if !record.dispatch_reserved ||
-              !record.physical_start_claimed ||
-              record.effect_material_originals is None ||
+            if !self.matches_model_call_journal_run(record) ||
               record.checkpoint is Some(_) ||
-              record.publication_binding != Some(binding) ||
-              @publication.publication_contract_identity(record.definition) !=
-              @publication.publication_contract_identity(self.definition) {
+              record.publication_binding != Some(binding) {
               return Err(ForeignRun)
             }
             let usage = match

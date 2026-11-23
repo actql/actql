@@ -76,12 +76,15 @@ test "Native runtime package refuses missing observations and closes an empty pr
     crypto: "",
     command_sqlite_member: None,
     command_crypto_member: None,
+    command_model_http_member: None,
+    model_http_load: None,
     ready: false,
     closed: false,
   }
   assert_true(missing.check_current() is Err(Changed))
   assert_true(missing.assets() is Err(Changed))
   assert_true(missing.library_paths() is Err(Changed))
+  assert_true(missing.borrow_model_http_library(128) is Err(Unavailable))
   missing.close().unwrap()
   missing.close().unwrap()
   assert_true(missing.closed)

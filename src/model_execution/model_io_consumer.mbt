@@ -44,7 +44,10 @@ pub fn bind_prepared_model_io_access(
     guard state.physical_plans.get(prepared_request.request.slot) is Some(plan) &&
       physical_equal(plan.request, prepared_request.request) &&
       plan.invocation
-      is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
+      is (Asynchronous(_)
+      | AsynchronousHttpChat(_, _)
+      | AsynchronousMeasuredHttpChat(_, _)
+      | AsynchronousSavedStructured(_, _, _)) &&
       plan.response_profile is Some(profile) else {
       return Err(InvalidProvider)
     }

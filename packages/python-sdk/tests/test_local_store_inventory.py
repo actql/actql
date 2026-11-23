@@ -7,7 +7,10 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from actql_sdk._local_core import LocalCoreError, _Output
-from actql_sdk._local_storage import ByteFence, CapacityReservation, ByteWrite, LocalByteStore, LocalStorageError, StoredBytes
+from actql_sdk._local_storage import (
+    ByteFence, CapacityReservation, ByteWrite, LocalByteStore, LocalStorageCommitUnknown,
+    LocalStorageError, StoredBytes,
+)
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_files import LocalFileError
 import test_local_commit_store_caller as fixture
@@ -289,11 +292,13 @@ class StoreInventoryTests(unittest.TestCase):
                 facts = OriginalReaderFacts(projection, record, root, reader, 0, 0,
                     'sha256:' + '1' * 64, 'sha256:' + '3' * 64,
                     cleanup=lambda: state['meta_cleanup'], stopped=lambda _: True)
+                lost_ack = OSError('Physical COMMIT succeeded; response lost')
+
                 class LostAck(sqlite3.Connection):
                     def execute(connection, sql, *args):
                         result = super().execute(sql, *args)
                         if sql == 'COMMIT':
-                            raise OSError('Physical COMMIT succeeded; response lost')
+                            raise lost_ack
                         return result
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     originals = self.original(store)
@@ -311,8 +316,13 @@ class StoreInventoryTests(unittest.TestCase):
                                 before_commit=lambda: facts.before_commit(publisher))
                     if outcome == 'success':
                         self.assertEqual(transaction(), (0,) * 16)
+                    elif outcome == 'lost_ack':
+                        with self.assertRaises(LocalStorageCommitUnknown) as failed:
+                            transaction()
+                        self.assertIs(failed.exception.__cause__, lost_ack)
+                        self.assertIs(failed.exception.cleanup_store, store)
                     else:
-                        expected = LocalFileError if outcome == 'mutate' else OSError if outcome == 'lost_ack' else LocalCoreError
+                        expected = LocalFileError if outcome == 'mutate' else LocalCoreError
                         with self.assertRaises(expected):
                             transaction()
                     self.assertEqual(store._connection.execute('SELECT count(*) FROM core_bytes').fetchone(),
