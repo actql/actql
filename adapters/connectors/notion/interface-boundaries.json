@@ -225,7 +225,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "d6a94de793b36723e8e7f5c58ce0b694dfcd24db193bb98a69a3849871631120",
+      "sha256": "63d2d52c546661820e182e1243afc380662e13423cc938748688f817ce7c7fa4",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
@@ -396,20 +396,20 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
-                "anchor": "export function createNotionPropertyReader(options)"
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
+                "anchor": "export function createNotionPropertyReader(options:"
               },
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Prefix charges go to observation"
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "{charge,originalRequest:request,completedPage:page}"
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
-                "anchor": "export function createNotionPageTitleReader(options)"
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
+                "anchor": "export function createNotionPageTitleReader(options:"
               }
             ],
             "identity": [
@@ -446,13 +446,13 @@
                 "anchor": "after each awaited current check, including the physical pre-send fence."
               },
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(charge);\n      await verify();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "path": "adapters/connectors/notion/site/property-item-read.mts",
                 "anchor": "export class NotionPropertyReadFailure"
               },
               {
@@ -1867,7 +1867,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/page-read.mjs",
-      "sha256": "2635fce8b7a24223059c68850647f04287017ffc42bb009eaf02421e9e100e53",
+      "sha256": "2d92c3b0560f33065de63c96fa5edd53d56603972b7a60c2acc7f4a18bd06fec",
       "exports": [
         "NOTION_PAGE_READ_OPERATION",
         "NotionPageReadFailure",
@@ -2001,11 +2001,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "function prepare({moon,pageId,initialAuthorization,credential,current,chargeResponse,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "return Object.freeze({page,metadataWire,observation:state.observation,responseCharge:state.charge});"
               }
             ],
@@ -2015,8 +2015,8 @@
                 "anchor": "The original `in_trash` and legacy `archived` aliases must be Boolean and agree"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "const scope=invocationScopeFields(context.scope,context.credential.control);"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "const scope=invocationScopeFields(context.scope,context.credential.control) as NotionReadScope;"
               },
               {
                 "path": "src/connectors/notion/catalog/page_observation.mbt",
@@ -2025,8 +2025,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "const readers=new WeakMap();"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "const readers=new WeakMap<object,"
               },
               {
                 "path": "docs/design/notion-database-catalog.md",
@@ -2035,17 +2035,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "const verify=async()=>{signal.throwIfAborted();await context.callbacks.current(request);signal.throwIfAborted();};"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(state.charge);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "state.failure=new NotionPageReadFailure(cause,state.observation,state.charge);throw state.failure;"
               },
               {
@@ -2055,8 +2055,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
-                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+                "path": "adapters/connectors/notion/site/page-read.mts",
+                "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
                 "path": "adapters/connectors/notion/test/page-read.test.mjs",
@@ -2073,7 +2073,7 @@
                 "anchor": "Actual installation lifetime funding and confirmed cleanup must cover this"
               },
               {
-                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "path": "adapters/connectors/notion/site/page-read.mts",
                 "anchor": "receivedBodyBytes:BigInt(state.observation?.body.byteLength??0),cleanupConfirmed:false"
               }
             ],
@@ -2107,7 +2107,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/page-properties-read.mjs",
-      "sha256": "8c52bf673920c80b34399764a26a0eb0f7476034f0101fd67de50f0e477e82fe",
+      "sha256": "9ba103c77f229621802a962912fd10f684cd5cc6ee5764198169761c723cb7dd",
       "exports": [
         "NotionPagePropertiesReadFailure",
         "createNotionPagePropertiesReader"
@@ -2275,11 +2275,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "function prepare({moon,declaration,source,readContracts,pageId,initialAuthorization,credential,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "await context.callbacks.consumeRow(wire,Object.freeze({charge:pendingCharge,originalPage:state.page,"
               }
             ],
@@ -2289,7 +2289,7 @@
                 "anchor": "pub fn notion_read_row_matches_observed_page("
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "if(provider.notionReadRowMatchesObservedPage(state.row,readContracts,state.page)!==true)"
               },
               {
@@ -2299,8 +2299,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
-                "anchor": "const readers=new WeakMap();"
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
+                "anchor": "const readers=new WeakMap<object,"
               },
               {
                 "path": "src/connectors/notion/catalog/read_row.mbt",
@@ -2313,21 +2313,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "await verify(NOTION_PROPERTY_READ_OPERATION);return selected;"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.children.push(child);const result=await child.read();"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.children.push(property);state.results.push(await property.read());"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "state.failure=new NotionPagePropertiesReadFailure(cause,state.page,state.row,state.children,state.charges);"
               },
               {
@@ -2337,8 +2337,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
-                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
+                "anchor": "requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},"
               },
               {
                 "path": "adapters/connectors/notion/test/page-properties-read.test.mjs",
@@ -2355,7 +2355,7 @@
                 "anchor": "Actual installation/phase funding must cover"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "if(body.byteLength>b.maxTotalResponseBytes-totalBytes)fail("
               }
             ],
@@ -2365,7 +2365,7 @@
                 "anchor": "This is a full-diff read prerequisite, not an issued target, complete Preview,"
               },
               {
-                "path": "adapters/connectors/notion/site/page-properties-read.mjs",
+                "path": "adapters/connectors/notion/site/page-properties-read.mts",
                 "anchor": "receivedResponses,receivedBodyBytes,cleanupConfirmed:false"
               }
             ],

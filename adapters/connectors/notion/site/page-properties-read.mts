@@ -5,23 +5,73 @@ import {ownInvocationContext,ownInvocationAuthorization,invocationScopeFields,
   invocationBindingsMatch} from '../../../host-common/owned-invocation-context.mjs';
 import {createNotionPageReader,NOTION_PAGE_READ_OPERATION} from './page-read.mjs';
 import {createNotionPropertyReader,NOTION_PROPERTY_READ_OPERATION} from './property-item-read.mjs';
+import type {NotionPageBindings} from './page-read.mjs';
+import type {NotionPropertyBindings,NotionPropertySelection,NotionReadObservation,NotionReadPhase,NotionReadScope}
+  from './property-item-read.mjs';
 
-const readers=new WeakMap();
-const fail=code=>{throw Object.assign(new Error(code),{code});};
-const count=x=>Number.isSafeInteger(x)&&x>=0&&x<=2147483647;
-const positive=x=>count(x)&&x>0;
+const readers=new WeakMap<object,PropertiesState>();
+const fail:(code:string)=>never=code=>{throw Object.assign(new Error(code),{code});};
+const count=(x:number)=>Number.isSafeInteger(x)&&x>=0&&x<=2147483647;
+const positive=(x:number)=>count(x)&&x>0;
 const names=['notionProjectPage','notionPageMetadataJson','notionDataSourceReadMatches',
   'notionDataSourceReadSchemaJson','notionStartObservedPageReadRow','notionReadRowMatchesObservedPage',
   'notionReadRowPendingJson','notionStartReadRowPropertyRequest','notionCompleteReadRowProperty','notionReadRowJson',
   'notionPropertyRequestMatchesBinding','notionPropertyRequestJson','notionProjectPropertyItemPage',
-  'notionPropertyItemPageComplete','notionNextPropertyRequest','notionCompletedPropertyJson'];
+  'notionPropertyItemPageComplete','notionNextPropertyRequest','notionCompletedPropertyJson'] as const;
 const positiveFields=['maxRequestBytes','maxResponseBytes','maxTotalResponseBytes','maxTargetBytes',
   'maxNodes','maxDepth','maxIdentityBytes','maxTextBytes','maxRowNodes','maxRowDepth','maxRowTextBytes',
   'maxColumns','maxRowWork','maxPropertyPages','maxPropertyBytes','maxPropertyNodes','maxPropertyTextBytes',
-  'maxCursorBytes','maxPropertyWork','pageSize','maxWireBytes','maxWireNodes','maxWireDepth'];
+  'maxCursorBytes','maxPropertyWork','pageSize','maxWireBytes','maxWireNodes','maxWireDepth'] as const;
+
+type Limits = Readonly<Record<typeof positiveFields[number]|'maxDataSources'|'maxProperties'|'maxNameBytes'|'maxPropertyItems',number>>;
+type ReadOperation = typeof NOTION_PAGE_READ_OPERATION | typeof NOTION_PROPERTY_READ_OPERATION;
+type Child = ReturnType<typeof createNotionPageReader> | ReturnType<typeof createNotionPropertyReader>;
+type ChildResult = Awaited<ReturnType<Child['read']>>;
+type PropertyReference = Pick<NotionPropertySelection,'originalRequest'|'index'> & Readonly<{column:number}>;
+type RowOriginal = Readonly<{charge:unknown; originalPage:unknown; originalRow:unknown; readContracts:unknown}>;
+type Callbacks = Readonly<{
+  propertyAuthorizationFor?(selection:PropertyReference & Omit<RowOriginal,'charge'> & Readonly<{
+    declaration:unknown;source:unknown;operation:typeof NOTION_PROPERTY_READ_OPERATION;origin:unknown;
+  }>):unknown;
+  current(operation:ReadOperation):unknown;
+  chargeResponse(body:NotionReadObservation['body']):unknown;
+  consumeObservation(charge:unknown):unknown;
+  consumeRow(wire:string, original:RowOriginal):unknown;
+}>;
+type Bindings = NotionPageBindings & Omit<NotionPropertyBindings,
+  'notionPropertyRequestMatchesPageTitle'|'notionCompletedPageTitleJson'> & Readonly<{
+  notionDataSourceReadMatches(binding:unknown,declaration:unknown,source:unknown):boolean;
+  notionDataSourceReadSchemaJson(binding:unknown,bytes:number,nodes:number,depth:number):unknown;
+  notionStartObservedPageReadRow(binding:unknown,page:unknown,maxProperties:number,maxIdentityBytes:number,
+    maxNodes:number,maxDepth:number,maxTextBytes:number,maxColumns:number,maxWork:number):unknown;
+  notionReadRowMatchesObservedPage(row:unknown,binding:unknown,page:unknown):boolean;
+  notionReadRowPendingJson(row:unknown,bytes:number,nodes:number,depth:number):unknown;
+  notionStartReadRowPropertyRequest(row:unknown,column:number,maxBytes:number,maxNodes:number,maxDepth:number,
+    maxDataSources:number,maxProperties:number,maxIdentityBytes:number,maxNameBytes:number,maxPages:number,
+    maxItems:number,maxTotalBytes:number,maxTotalNodes:number,maxTotalTextBytes:number,maxCursorBytes:number,
+    maxWork:number):unknown;
+  notionCompleteReadRowProperty(row:unknown,column:number,page:unknown):unknown;
+  notionReadRowJson(row:unknown,bytes:number,nodes:number,depth:number):unknown;
+}>;
+type Options = Callbacks & Readonly<{
+  moon:Partial<Bindings>|undefined;declaration:unknown;source:unknown;readContracts:unknown;pageId:string;
+  initialAuthorization:unknown;credential:unknown;limits:Limits;signal?:AbortSignal;
+}>;
+type Invocation = ReturnType<typeof ownInvocationContext> & Readonly<{limits:Limits;callbacks:Callbacks}>;
+type PropertiesState = {
+  original:ReturnType<typeof prepare> & Readonly<{signal:AbortSignal}>;
+  stop:AbortController;phase:NotionReadPhase;page:unknown;row:unknown;
+  children:Child[];results:ChildResult[];charges:unknown[];failure:NotionPagePropertiesReadFailure|undefined;
+};
 
 export class NotionPagePropertiesReadFailure extends Error{
-  constructor(cause,originalPage,originalRow,children,responseCharges){
+  declare readonly code:'NotionPagePropertiesReadFailed';
+  declare readonly originalPage:unknown;
+  declare readonly originalRow:unknown;
+  declare readonly children:readonly Child[];
+  declare readonly responseCharges:readonly unknown[];
+
+  constructor(cause:unknown,originalPage:unknown,originalRow:unknown,children:readonly Child[],responseCharges:readonly unknown[]){
     super('NotionPagePropertiesReadFailed',{cause});this.code='NotionPagePropertiesReadFailed';
     Object.defineProperties(this,{originalPage:{value:originalPage},originalRow:{value:originalRow},
       children:{value:Object.freeze(children.slice())},responseCharges:{value:Object.freeze(responseCharges.slice())}});
@@ -29,43 +79,43 @@ export class NotionPagePropertiesReadFailure extends Error{
 }
 
 function prepare({moon,declaration,source,readContracts,pageId,initialAuthorization,credential,
-  propertyAuthorizationFor,current,chargeResponse,consumeObservation,consumeRow,limits,signal}){
+  propertyAuthorizationFor,current,chargeResponse,consumeObservation,consumeRow,limits,signal}:Options){
   if(!declaration||!source||!readContracts||[current,chargeResponse,consumeObservation,consumeRow]
     .some(x=>typeof x!=='function')||propertyAuthorizationFor!==undefined&&typeof propertyAuthorizationFor!=='function')fail('InvalidNotionPagePropertiesRead');
   // Capture every compiled method and its original receiver once. Child
   // readers receive only this frozen snapshot, never later mutable getters.
   const provider=Object.freeze(Object.fromEntries(names.map(name=>{
     const fn=moon?.[name];if(typeof fn!=='function')fail('InvalidNotionPagePropertiesRead');
-    return[name,(...args)=>Reflect.apply(fn,moon,args)];
-  })));
+    return[name,(...args:unknown[])=>Reflect.apply(fn,moon,args)];
+  }))) as Bindings;
   const context=ownInvocationContext({authorization:initialAuthorization,credential,limits,
-    callbacks:{propertyAuthorizationFor,current,chargeResponse,consumeObservation,consumeRow}}),b=context.limits;
+    callbacks:{propertyAuthorizationFor,current,chargeResponse,consumeObservation,consumeRow}}) as Invocation,b=context.limits;
   if(!positiveFields.every(name=>positive(b[name]))||
-    !['maxDataSources','maxProperties','maxNameBytes','maxPropertyItems'].every(name=>count(b[name]))||
+    !(['maxDataSources','maxProperties','maxNameBytes','maxPropertyItems'] as const).every(name=>count(b[name]))||
     b.pageSize>100||!context.credential.binding)fail('InvalidNotionPagePropertiesRead');
-  if(invocationScopeFields(context.scope,context.credential.control).operation!==NOTION_PAGE_READ_OPERATION)fail('ForeignNotionPageOperation');
+  if((invocationScopeFields(context.scope,context.credential.control) as NotionReadScope).operation!==NOTION_PAGE_READ_OPERATION)fail('ForeignNotionPageOperation');
   if(provider.notionDataSourceReadMatches(readContracts,declaration,source)!==true)fail('ForeignNotionReadContracts');
-  const schemaWire=checked(provider.notionDataSourceReadSchemaJson(readContracts,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth));
+  const schemaWire=checked(provider.notionDataSourceReadSchemaJson(readContracts,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth)) as string;
   return Object.freeze({provider,context,declaration,source,readContracts,pageId,schemaWire,signal});
 }
 
-async function executeRead(state){
+async function executeRead(state:PropertiesState){
   const {provider,context,declaration,source,readContracts,pageId,schemaWire,signal}=state.original,b=context.limits;
-  let totalBytes=0,pendingCharge;
-  const verify=async operation=>{signal.throwIfAborted();await context.callbacks.current(operation);signal.throwIfAborted();};
-  const chargeResponse=async body=>{
+  let totalBytes=0,pendingCharge:unknown;
+  const verify=async (operation:ReadOperation)=>{signal.throwIfAborted();await context.callbacks.current(operation);signal.throwIfAborted();};
+  const chargeResponse=async (body:NotionReadObservation['body'])=>{
     const charge=await context.callbacks.chargeResponse(body);state.charges.push(charge);
     if(body.byteLength>b.maxTotalResponseBytes-totalBytes)fail('NotionPagePropertiesResponseLimit');
     totalBytes+=body.byteLength;return charge;
   };
-  const propertyAuthorization=async input=>{
+  const propertyAuthorization=async (input:PropertyReference)=>{
     if(context.callbacks.propertyAuthorizationFor===undefined)fail('NotionPropertyAuthorizationUnavailable');
     await verify(NOTION_PROPERTY_READ_OPERATION);
     const selected=ownInvocationAuthorization(await context.callbacks.propertyAuthorizationFor(Object.freeze({
       ...input,originalPage:state.page,originalRow:state.row,declaration,source,readContracts,
-      operation:NOTION_PROPERTY_READ_OPERATION,origin:invocationScopeFields(context.scope,context.credential.control).resourceOrigin,
+      operation:NOTION_PROPERTY_READ_OPERATION,origin:(invocationScopeFields(context.scope,context.credential.control) as NotionReadScope).resourceOrigin,
     })),context.credential.control);
-    if(invocationScopeFields(selected.scope,context.credential.control).operation!==NOTION_PROPERTY_READ_OPERATION||
+    if((invocationScopeFields(selected.scope,context.credential.control) as NotionReadScope).operation!==NOTION_PROPERTY_READ_OPERATION||
       !invocationBindingsMatch(selected.scope,context.scope,context.credential.control))fail('ForeignNotionPropertyAuthorization');
     await verify(NOTION_PROPERTY_READ_OPERATION);return selected;
   };
@@ -78,7 +128,7 @@ async function executeRead(state){
     state.children.push(child);const result=await child.read();state.results.push(result);state.page=result.page;
     state.row=checked(provider.notionStartObservedPageReadRow(readContracts,result.page,b.maxProperties,b.maxIdentityBytes,
       b.maxRowNodes,b.maxRowDepth,b.maxRowTextBytes,b.maxColumns,b.maxRowWork));
-    const pending=JSON.parse(checked(provider.notionReadRowPendingJson(state.row,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth)));
+    const pending=JSON.parse(checked(provider.notionReadRowPendingJson(state.row,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth)) as string) as number[];
     for(const column of pending){
       const request=checked(provider.notionStartReadRowPropertyRequest(state.row,column,
         b.maxResponseBytes,b.maxNodes,b.maxDepth,b.maxDataSources,b.maxProperties,b.maxIdentityBytes,b.maxNameBytes,
@@ -97,7 +147,7 @@ async function executeRead(state){
       state.children.push(property);state.results.push(await property.read());
     }
     if(provider.notionReadRowMatchesObservedPage(state.row,readContracts,state.page)!==true)fail('ForeignNotionObservedRow');
-    const wire=checked(provider.notionReadRowJson(state.row,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth));
+    const wire=checked(provider.notionReadRowJson(state.row,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth)) as string;
     if(pendingCharge===undefined)fail('NotionPagePropertiesObservationUnbound');
     await verify(NOTION_PAGE_READ_OPERATION);
     await context.callbacks.consumeRow(wire,Object.freeze({charge:pendingCharge,originalPage:state.page,
@@ -110,18 +160,18 @@ async function executeRead(state){
   }
 }
 
-function originalReader(handle){const state=readers.get(handle);if(!state)fail('ForeignNotionPagePropertiesReader');return state;}
+function originalReader(handle:object){const state=readers.get(handle);if(!state)fail('ForeignNotionPagePropertiesReader');return state;}
 
-export function createNotionPagePropertiesReader(options){
+export function createNotionPagePropertiesReader(options:Options){
   const original=prepare(options),stop=new AbortController();
   const signal=original.signal===undefined?stop.signal:AbortSignal.any([original.signal,stop.signal]);
-  const state={original:Object.freeze({...original,signal}),stop,phase:'ready',page:undefined,row:undefined,
+  const state:PropertiesState={original:Object.freeze({...original,signal}),stop,phase:'ready',page:undefined,row:undefined,
     children:[],results:[],charges:[],failure:undefined};
   const handle=Object.freeze({
     async read(){const state=originalReader(this);if(state.phase!=='ready')fail('NotionPagePropertiesAlreadyStarted');
       state.phase='reading';try{const result=await executeRead(state);state.phase='succeeded';return result;}
       catch(cause){state.phase='failed';throw cause;}},
-    requestStop(reason){originalReader(this).stop.abort(reason);},
+    requestStop(reason?:unknown){originalReader(this).stop.abort(reason);},
     observe(){const state=originalReader(this);let receivedResponses=0,receivedBodyBytes=0n;
       for(const child of state.children){const observation=child.observe();receivedResponses+=observation.receivedResponses;receivedBodyBytes+=observation.receivedBodyBytes;}
       return Object.freeze({phase:state.phase,stopRequested:state.original.signal.aborted,receivedResponses,receivedBodyBytes,cleanupConfirmed:false});},

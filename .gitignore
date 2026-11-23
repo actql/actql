@@ -2792,6 +2792,12 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/calendar/test/installed-calendar.fixture.d.mts
 /adapters/connectors/notion/site/user-list-read.mjs
 /adapters/connectors/notion/site/user-list-read.d.mts
+/adapters/connectors/notion/site/page-read.mjs
+/adapters/connectors/notion/site/page-read.d.mts
+/adapters/connectors/notion/site/page-properties-read.mjs
+/adapters/connectors/notion/site/page-properties-read.d.mts
+/adapters/connectors/notion/site/property-item-read.mjs
+/adapters/connectors/notion/site/property-item-read.d.mts
 /adapters/connectors/notion/host/installed-notion-source.mjs
 /adapters/connectors/notion/host/installed-notion-source.d.mts
 /adapters/connectors/notion/host/database-metadata-targets.mjs
