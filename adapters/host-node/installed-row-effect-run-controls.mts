@@ -24,7 +24,7 @@ type StageOwner = Readonly<{
   storeMappings: readonly StoreMapping[];
 }>;
 type CurrentFacts = Readonly<{
-  prepared: unknown;
+  prepared?: unknown;
   assertContinuationCurrent?: () => unknown;
   assertUpdateSelectionCurrent?: () => unknown;
 }>;
@@ -33,13 +33,13 @@ type LimitControls<Limits> = Readonly<{
   owners: readonly Pick<StageOwner, 'configuredMaxRows' | 'configuredMaxMembers'>[];
   fail(code: string): never;
 }>;
-type RunControls = Readonly<{
-  owners: readonly StageOwner[];
-  ownerOf(member: StageMember): StageOwner;
+type RunControls<Owner extends StageOwner> = Readonly<{
+  owners: readonly Owner[];
+  ownerOf(member: StageMember): Owner;
   fail(code: string): never;
   selectionChanged(cause?: unknown): never;
   requireSynchronousEffectResource: DriverControls['requireSynchronousEffectResource'];
-  validateOwnerSelections(owners: readonly StageOwner[], selections: TargetSelections, prepared: unknown): TargetSelections;
+  validateOwnerSelections(owners: readonly Owner[], selections: TargetSelections, prepared: unknown): TargetSelections;
   assertUpdateTargetSelectionMembersCurrent: typeof assertUpdateTargetSelectionMembersCurrent;
 }>;
 
@@ -70,12 +70,12 @@ export function createInstalledRowEffectRunLimits<Limits extends StageLimits>({
   return runLimits;
 }
 
-export function createInstalledRowEffectRunControls({
+export function createInstalledRowEffectRunControls<Owner extends StageOwner>({
   owners, ownerOf, fail, selectionChanged,
   requireSynchronousEffectResource, validateOwnerSelections, assertUpdateTargetSelectionMembersCurrent,
-}: RunControls) {
-  const reject: RunControls['fail'] = fail;
-  const refuseSelection: RunControls['selectionChanged'] = selectionChanged;
+}: RunControls<Owner>) {
+  const reject: RunControls<Owner>['fail'] = fail;
+  const refuseSelection: RunControls<Owner>['selectionChanged'] = selectionChanged;
 
   const runResources = new WeakMap<StageMember, object>();
   const bindRunResources = (facts: unknown, members: readonly StageMember[]) => {
@@ -111,7 +111,7 @@ export function createInstalledRowEffectRunControls({
     if (selections === undefined && resourceOwners.length === 0 && liveAssertion === undefined) return undefined;
     if (selections !== undefined && typeof liveAssertion !== 'function') refuseSelection();
     const selectedMembers = members.flatMap(member => {
-      const stage = member.stageIndex ?? stageIndex;
+      const stage = (member.stageIndex ?? stageIndex)!;
       if (member.kind === 'update' || member.kind === 'delete') {
         return [{stage_index: stage, effect_id: member.effectId,
           target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
@@ -135,7 +135,7 @@ export function createInstalledRowEffectRunControls({
         target_ref: mappings[0].target, mapping_ref: mappings[0].mappingRef,
         mapping_cid: mappings[0].mappingCid}];
     });
-    const assertCurrent = () => {
+    const assertCurrent = (): undefined => {
       for (const [owner, original] of resourceOwners) {
         if (requireSynchronousEffectResource(owner.resources!.assertCurrent(original)) !== undefined) {
           reject('InstalledEffectResourcesUnavailable');

@@ -4,7 +4,6 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {collectInstalledRowEffectUpdateObservations,
   installedRowEffectDescriptors} from
-  // @ts-expect-error The installed row Effect owner is still authored in JavaScript.
   './installed-row-effect.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
@@ -20,7 +19,7 @@ import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
 type Features = readonly [textTime: boolean, veca: boolean, rela: boolean, sga: boolean, tea: boolean,
   calendar: boolean, textRank: boolean];
-type MaterialsRuntime = UpdateTargetRuntime & Readonly<{
+type MaterialsRuntime = UpdateTargetRuntime & Parameters<typeof installedRowEffectDescriptors>[0] & Readonly<{
   clientProgramEffectTargetInstallationsDataEqual(observed: readonly string[], saved: readonly string[]): boolean;
   clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
   clientProgramIssueEffectPreparedOriginal(compilation: unknown): unknown;

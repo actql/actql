@@ -128,7 +128,7 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
       reject('InstalledRowEffectUnitUnsupported');
     }
     const {stage, stageIndex} = units[0];
-    return Object.freeze({programId: program.id, stageId: stage.id, stageIndex,
+    return Object.freeze({programId: program.id, stageId: stage.id as string, stageIndex,
       effectIds: Object.freeze(Object.keys(stage.effects!))});
   }
 

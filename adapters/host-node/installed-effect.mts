@@ -19,7 +19,6 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
-// @ts-expect-error TS7016: the real Row Effect owner remains authored in JavaScript.
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
   reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading,

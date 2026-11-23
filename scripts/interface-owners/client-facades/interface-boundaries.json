@@ -979,7 +979,7 @@
                 "anchor": "async function readProvider({prepare, receiver, options}: ProviderRead)"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {

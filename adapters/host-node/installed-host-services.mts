@@ -8,7 +8,6 @@ import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceChec
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization}
   from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: installed-row-effect still has a JavaScript entry.
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
@@ -468,7 +467,7 @@ export function bindInstalledSourceConstruction(services: HostServices, context:
       } finally {owned.constructing = false;}
     },
     createRowSource: (options: unknown) => construct(options, 'source', createInstalledRowSource as RowFactory),
-    createRowEffect: (options: unknown) => construct(options, 'effect', createInstalledRowEffect),
+    createRowEffect: (options: unknown) => construct(options, 'effect', createInstalledRowEffect as unknown as RowFactory),
   });
   return bound;
 }

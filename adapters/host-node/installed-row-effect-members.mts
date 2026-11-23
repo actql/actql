@@ -1,33 +1,37 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {prepareInstalledEffectManagedPlan} from './installed-effect-plan.mjs';
+import type {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
 
 type MappingKind = 'create' | 'update' | 'upsert' | 'delete';
 type Mapping = Readonly<{
-  resource: string; mappingCid: string; mappingRef: string;
+  resource: string; target: string; mappingCid: string; mappingRef: string; primaryIdentity: unknown;
+  approval?: string;
   rules: readonly Readonly<{effect_kind: string; permissions?: readonly string[]}>[];
 }>;
 type Command = Readonly<{resource: string; commandCid: string; commandRef: string; target: string; permissions: readonly string[]}>;
-type Member = Readonly<{stageIndex: number; effectId: string; memberIndex: number; resource: string}> & (
+type RowMember = Readonly<{stageIndex?: number; effectId: string; memberIndex: number; resource: string}> & (
   Readonly<{kind: MappingKind; mapping: Mapping}> | Readonly<{kind: 'command'; command: Command}>
 );
+type Member = RowMember & Readonly<{stageIndex: number}>;
 type Owner = Readonly<{
   installed: readonly Mapping[]; installedCommands: readonly Command[];
   connection: string; configuredMaxMembers?: number;
 }>;
-type Route = Readonly<{descriptor: Readonly<{effectId?: string; kind?: string; target?: string;
-  mappingRef?: string; mappingCid?: string}>; owner: Owner}>;
-type EffectUnit = Readonly<{effectIds: readonly string[]; stageIndex: number}>;
+type Route<SelectedOwner> = Readonly<{descriptor: Readonly<{effectId?: string; kind?: string; target?: string;
+  mappingRef?: string; mappingCid?: string}>; owner: SelectedOwner}>;
+type EffectUnit = Readonly<{effectIds: readonly string[]; stageIndex: number; programId: string; stageId: string}>;
 type ManagedPlan = Parameters<typeof prepareInstalledEffectManagedPlan<Member>>[0];
 type Runtime = ManagedPlan['moon'] & Readonly<{
+  clientProgramEffectCompilationPlanWire(compilation: unknown): string;
   clientProgramEffectMemberDescriptor(prepared: unknown, stageIndex: number, effectId: string, maxWork: number): unknown;
 }>;
-type MemberControls = Readonly<{
+type MemberControls<SelectedOwner extends Owner> = Readonly<{
   moon: Runtime; limits: {planWork: number; maxMembers: number};
-  owners: readonly Owner[]; singular?: Owner; routes?: readonly Route[];
-  installedEffectKinds(owner: Owner): readonly string[];
-  retainMember<Original extends Member>(owner: Owner, member: Original): Readonly<Original>;
-  ownerOf(member: Member): Owner;
+  owners: readonly SelectedOwner[]; singular?: SelectedOwner; routes?: readonly Route<SelectedOwner>[];
+  installedEffectKinds(owner: SelectedOwner): readonly string[];
+  retainMember<Original extends Member>(owner: SelectedOwner, member: Original): Readonly<Original>;
+  ownerOf(member: RowMember): SelectedOwner;
   assertPrepared(facts: Readonly<{moon: Runtime; prepared: unknown; compilation: unknown}>): void;
   installedRowEffectUnit(moon: Runtime, compilation: unknown): EffectUnit;
   recipeOf: ManagedPlan['recipeFor'];
@@ -37,30 +41,30 @@ type RequestFacts = Readonly<{value?: unknown; target?: unknown}>;
 type RequestRow = Readonly<{value?: unknown; selector?: unknown; proposalWire?: string}>;
 type PreparedRequest = Readonly<{request?: unknown; requestCid?: string}>;
 type CreateRow = Readonly<{identity: unknown}>;
-type ContentBorrower = Readonly<{borrow(row: number, inputName: unknown): unknown}>;
+type ContentBorrower = ReturnType<ReturnType<typeof createInstalledRowEffectCaptureValues>['commandContentBorrower']>;
 type RequestContext = Readonly<{
-  member: Member; value: unknown; selector: unknown; current: unknown;
+  member: RowMember; value: unknown; selector: unknown; current: unknown;
   runOriginal?: unknown; createRowIdentity?: unknown; proposalWire?: string; content?: unknown;
 }>;
 type RequestControls = Readonly<{
-  ownerOf(member: Member): Readonly<{owned: Readonly<{
+  ownerOf(member: RowMember): Readonly<{owned: Readonly<{
     requestFacts(request: unknown): unknown;
     prepareRequest(context: RequestContext): PreparedRequest | null | undefined;
   }> }>;
   cidPattern: RegExp;
-  targeted(kind: Member['kind']): boolean;
-  sameEffectValue(kind: Member['kind'], left: unknown, right: unknown): boolean;
+  targeted(kind: RowMember['kind']): boolean;
+  sameEffectValue(kind: RowMember['kind'], left: unknown, right: unknown): boolean;
   sameValue(left: unknown, right: unknown): boolean;
-  resourceFields(member: Member): Readonly<{runOriginal?: object}>;
+  resourceFields(member: RowMember): Readonly<{runOriginal?: object}>;
   commandContentRow(contentOf: ContentBorrower, index: number): unknown;
   fail(code: string): never;
 }>;
 
-export function createInstalledRowEffectMembers({
+export function createInstalledRowEffectMembers<SelectedOwner extends Owner>({
   moon, limits, owners, singular, routes, installedEffectKinds, retainMember, ownerOf,
   assertPrepared, installedRowEffectUnit, recipeOf, fail,
-}: MemberControls) {
-  const reject: MemberControls['fail'] = fail;
+}: MemberControls<SelectedOwner>) {
+  const reject: MemberControls<SelectedOwner>['fail'] = fail;
   const selectOwner = (descriptor: unknown) => {
     if (singular !== undefined) return singular;
     const route = routes!.find(value => value.descriptor.effectId === runtimeField(descriptor, 1));
@@ -70,7 +74,7 @@ export function createInstalledRowEffectMembers({
         expected.mappingCid !== runtimeField(descriptor, 5)) reject('InstalledEffectProgramMismatch');
     return route!.owner;
   };
-  const scopes = (members: readonly Member[]) => Object.freeze(members.map(member =>
+  const scopes = (members: readonly RowMember[]) => Object.freeze(members.map(member =>
     Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
   const permissionsOf = (member: Member) => {
     if (member.kind === 'command') return [...member.command.permissions];
@@ -150,7 +154,7 @@ export function createInstalledRowEffectRequests({
   const reject: RequestControls['fail'] = fail;
   // One row's request with the facts the common owner holds it to: the
   // value it writes and, for an update, the target it selects.
-  const entryOf = (member: Member, request: unknown, requestCid: string | undefined) => {
+  const entryOf = (member: RowMember, request: unknown, requestCid: string | undefined) => {
     const {owned} = ownerOf(member);
     const facts = owned.requestFacts(request) as RequestFacts | null | undefined;
     if (!request || !cidPattern.test(requestCid ?? '') ||
@@ -167,7 +171,7 @@ export function createInstalledRowEffectRequests({
   // The exact request of every row of a member, from its mapped values and
   // selectors. A request that writes another value, or selects another
   // target, than the Program's row is refused.
-  const requestEntry = (member: Member, row: RequestRow, prepared: PreparedRequest | null | undefined) => {
+  const requestEntry = (member: RowMember, row: RequestRow, prepared: PreparedRequest | null | undefined) => {
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameEffectValue(member.kind, entry.value, row.value) ||
         (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
@@ -175,7 +179,7 @@ export function createInstalledRowEffectRequests({
     }
     return entry;
   };
-  const requestsOf = (member: Member, rows: readonly RequestRow[], current: unknown,
+  const requestsOf = (member: RowMember, rows: readonly RequestRow[], current: unknown,
     contentOf: ContentBorrower | undefined, createRows: readonly CreateRow[] | undefined) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,

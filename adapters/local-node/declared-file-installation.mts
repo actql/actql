@@ -9,7 +9,6 @@ import {beginInstalledSourceInitialization, finishInstalledSourceInitialization,
   retainBoundInstalledSourceFailure, withInstalledSourceLoading, installedSourceConfigurationReader}
   from '../host-node/installed-host-services.mjs';
 import {createInstalledRowSource} from '../host-node/installed-row-source.mjs';
-// @ts-expect-error TS7016: the installed Row Effect factory is still authored in JavaScript.
 import {createInstalledRowEffect} from '../host-node/installed-row-effect.mjs';
 import type {loadInstalledProjectConnections} from '../host-node/installed-project-connections.mjs';
 import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
@@ -129,7 +128,7 @@ const effectModule = Object.freeze({
   identityParts: (profile: Readonly<Partial<Profile>>) => [checkProfile(profile, 'effect')],
   load: (profile: Readonly<Partial<Profile>>, options: AdapterOptions) => {
     checkProfile(profile, 'effect');
-    return createInstalledRowEffect(options);
+    return createInstalledRowEffect(options as Parameters<typeof createInstalledRowEffect>[0]);
   },
 });
 // Normal table admission snapshots the implementation and records its actual

@@ -21,8 +21,8 @@ import type {createInstalledRowEffectMembers, createInstalledRowEffectRequests} 
 type Requests = ReturnType<typeof createInstalledRowEffectRequests>;
 type RequestMember = Parameters<Requests['requestEntry']>[0];
 type MappingMember = Extract<RequestMember, {kind: Exclude<RequestMember['kind'], 'command'>}>;
-type Member = Extract<RequestMember, {kind: 'command'}> |
-  (MappingMember & Readonly<{mapping: Readonly<{primaryIdentity: unknown; approval?: string}>}>);
+type RowMember = Extract<RequestMember, {kind: 'command'}> | MappingMember;
+type Member = RowMember & Readonly<{stageIndex: number}>;
 type RowOptions = Parameters<typeof createInstalledRowEffectCaptureRows<Member>>[0];
 type Values = ReturnType<typeof createInstalledRowEffectCaptureValues>;
 type Effect = Pick<ReturnType<typeof effectApplicationControl>, 'admitPreviewIdentity' | 'dispatchKeyCid'>;
@@ -117,7 +117,7 @@ type StageControls = Readonly<{
   effect: Effect; openLedger(identity: unknown, construction: RowOptions['controlConstruction']): Ledger;
   physicalRoute: Route; authorPreview: Preview; footprintOf: ReturnType<typeof createInstalledRowEffectFootprint<Member>>;
   scopes: ReturnType<typeof createInstalledRowEffectMembers>['scopes'];
-}> & ReadOperations & Requests & Values & Pick<Context, 'basePreflight' | 'continuationOf'> & Claims &
+}> & ReadOperations & Pick<Requests, 'requestEntry' | 'requestsOf'> & Values & Pick<Context, 'basePreflight' | 'continuationOf'> & Claims &
   Pick<ReturnType<typeof createInstalledRowEffectCapability<Member>>, 'admitCapability'>;
 
 type Computation = Awaited<ReturnType<typeof issueCompletedEffectfulComputationEvidence>>;

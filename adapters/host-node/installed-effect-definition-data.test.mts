@@ -3,7 +3,6 @@ import {access, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-// @ts-expect-error TS7016: the installed Row Effect facade still has an authored JavaScript entry.
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 

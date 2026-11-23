@@ -6,7 +6,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {installedEffectFor} from './installed-effect-inventory.mjs';
-// @ts-expect-error TS7016: the real installed Row Effect constructor remains authored in JavaScript.
 import {createInstalledRowEffect,composeInstalledRowEffectOwners} from './installed-row-effect.mjs';
 
 const cid=(digit: string)=>'sha256:'+digit.repeat(64);

@@ -89,7 +89,7 @@ type Runtime = (NativeRun & CredentialRun)['runtime'] & Readonly<{
   clientProgramEffectPreviewInputLimits(...limits: number[]): unknown;
 }>;
 type Facts<Member extends MemberRef> = Readonly<{
-  moon: Runtime; control: RecoveryControl; store: unknown; recovered: Recovered; continuation: Continuation;
+  moon: Runtime; control: RecoveryControl; store: unknown; prepared?: unknown; recovered: Recovered; continuation: Continuation;
   signal?: AbortSignal; retainRecoveryOwner?(owner: CloseOwner): void;
   targetReads?: RouteOptions<Member>['targetReads']; managedEffect?: ManagedRun<Member>; updateTargetSelections?: Selection;
   contentRun?: unknown; principalId?: string;

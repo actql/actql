@@ -3,6 +3,7 @@ import {releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from '.
 import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 
+import type {createInstalledRowEffectCaptureStage} from './installed-row-effect-capture-stage.mjs';
 import type {createInstalledRowEffectRunControls} from './installed-row-effect-run-controls.mjs';
 import type {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
 
@@ -12,22 +13,24 @@ type ReleaseOptions = Parameters<typeof releaseInstalledRowCapture>[0];
 type CaptureChildren = NonNullable<ReleaseOptions['children']>;
 type Release = NonNullable<ReleaseOptions['releaseInputs']>;
 type SourceSet = Readonly<{payloads: NonNullable<ReleaseOptions['payloads']>}>;
-type Managed = Parameters<typeof prepareInstalledEffectResultProgress>[0];
+type ActualStage = Parameters<ReturnType<typeof createInstalledRowEffectCaptureStage>>[0];
+type Managed = Parameters<typeof prepareInstalledEffectResultProgress>[0] & NonNullable<ActualStage['managedEffect']>;
 type RunOptions = ReturnType<typeof createInstalledRowEffectRunControls>;
 type Selection = Parameters<RunOptions['selectionFence']>[3];
 type RouteOptions = Parameters<ReturnType<typeof createInstalledRowEffectPhysicalRoute>>[0];
 type RunFacts = Readonly<{moon?: Runtime; compilation?: unknown}>;
 type PlanInput = Pick<ResultsInput, 'runDefinition' | 'invocation' | 'results' | 'outputLimits' | 'contractLimits'> &
-  Readonly<{invocationOwner: unknown}>;
-type EffectUnit = Readonly<{stageIndex: number; effectIds: readonly string[]}>;
+  Readonly<{invocationOwner: unknown}> & ActualStage['plan'];
+type EffectUnit = ActualStage['unit'] & Readonly<{effectIds: readonly string[]}>;
 type PreviewContext = Readonly<{runDefinition: unknown; runInvocation: unknown; compiledPlan: unknown}>;
 type Runtime = Readonly<{
+  clientProgramEffectCompilationPlanWire(compilation: unknown): string;
   strategyPublicationAdmit(kind: string, wire: string, bytes: number, nodes: number, depth: number): unknown;
   clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
   clientProgramEffectRequestScope(prepared: unknown, identity: unknown): unknown;
 }>;
 type CaptureFacts<Control, Plan> = Readonly<{
-  moon: Runtime; control: Control; store: ResultsInput['store']; execution: ResultsInput['execution'];
+  moon: Runtime; control: Control; store: ResultsInput['store']; execution: ActualStage['execution'];
   checkedHost: unknown; prepared: unknown; identity: unknown; definition?: unknown; compilation?: unknown;
   signal?: AbortSignal; targetReads?: RouteOptions['targetReads']; contentOwner?: unknown;
   publicationPlan?: Plan; plan?: Plan; previewContext?: PreviewContext; unit?: EffectUnit;

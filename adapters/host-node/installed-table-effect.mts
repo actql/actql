@@ -16,7 +16,6 @@ import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication}
   from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016: the installed Row Effect still has a JavaScript entry.
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
 import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-recipe-construction.mjs';
 import {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';

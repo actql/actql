@@ -6426,7 +6426,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "provider-neutral installed Effect"
               },
               {
@@ -6492,7 +6492,7 @@
                 "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
@@ -6584,7 +6584,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
@@ -6638,7 +6638,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "durable claim"
               },
               {
@@ -6692,7 +6692,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "unknown, never resent"
               },
               {
@@ -6746,7 +6746,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "signal"
               },
               {
@@ -6796,7 +6796,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainedLimits"
               },
               {
@@ -6858,7 +6858,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "checkDriver"
               },
               {
@@ -6866,7 +6866,7 @@
                 "anchor": "let expected_fields = 3 +"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               },
               {
@@ -11834,7 +11834,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-run-controls.mjs",
-      "sha256": "cd256bbdfa7b321e0561dd0aa9bff327b9339e02079b61e39c8895865af64140",
+      "sha256": "21ae2f0dcf1febbeebece8e04ce70ecb2514b50223e1215a8c6e2fedd78a07e6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -12955,7 +12955,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "6480ce10d3c17028a19097f3261b19ab922665d0444c8bac3f7d4174961b4d82",
+      "sha256": "7e7382a5b72b351eb16ea958f7aef094a28cb931962f69d1594cc64bbe68238c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -13373,7 +13373,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "provider-neutral installed Effect"
               },
               {
@@ -13427,7 +13427,7 @@
                 "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
@@ -13511,7 +13511,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
@@ -13561,7 +13561,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "durable claim"
               },
               {
@@ -13607,7 +13607,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "unknown, never resent"
               },
               {
@@ -13657,7 +13657,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "signal"
               },
               {
@@ -13703,7 +13703,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainedLimits"
               },
               {
@@ -13761,7 +13761,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "checkDriver"
               },
               {
@@ -13769,7 +13769,7 @@
                 "anchor": "let expected_fields = 3 +"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               },
               {
@@ -13941,7 +13941,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -13951,7 +13951,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -13961,7 +13961,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -13971,7 +13971,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -13981,7 +13981,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -14008,13 +14008,13 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "export function prepareInstalledTargetPlanRecipes"
               },
               {
@@ -14520,7 +14520,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "provider-neutral installed Effect"
               },
               {
@@ -14556,7 +14556,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14586,7 +14586,7 @@
                 "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
@@ -14610,7 +14610,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14664,7 +14664,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14678,7 +14678,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
@@ -14718,7 +14718,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14732,7 +14732,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "durable claim"
               },
               {
@@ -14772,7 +14772,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14786,7 +14786,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "unknown, never resent"
               },
               {
@@ -14826,7 +14826,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14840,7 +14840,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "signal"
               },
               {
@@ -14876,7 +14876,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14890,7 +14890,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainedLimits"
               },
               {
@@ -14938,7 +14938,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -14952,7 +14952,7 @@
                 "anchor": "Recovered Effect physical children"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "checkDriver"
               },
               {
@@ -14960,7 +14960,7 @@
                 "anchor": "let expected_fields = 3 +"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               },
               {
@@ -14988,7 +14988,7 @@
                 "anchor": "The standard comment subject check declares its fixed HTTP request to the same"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15184,7 +15184,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15192,7 +15192,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "provider-neutral installed Effect"
               },
               {
@@ -15230,7 +15230,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15254,7 +15254,7 @@
                 "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
@@ -15280,7 +15280,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15330,7 +15330,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15338,7 +15338,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
@@ -15380,7 +15380,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15388,7 +15388,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "durable claim"
               },
               {
@@ -15430,7 +15430,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15438,7 +15438,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "unknown, never resent"
               },
               {
@@ -15480,7 +15480,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15488,7 +15488,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "signal"
               },
               {
@@ -15526,7 +15526,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15534,7 +15534,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainedLimits"
               },
               {
@@ -15584,7 +15584,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15592,7 +15592,7 @@
                 "anchor": "## Saved Command Content"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "checkDriver"
               },
               {
@@ -15600,7 +15600,7 @@
                 "anchor": "let expected_fields = 3 +"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               },
               {
@@ -15746,7 +15746,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15756,7 +15756,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15766,7 +15766,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15776,7 +15776,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15786,7 +15786,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15796,7 +15796,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15806,7 +15806,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15816,7 +15816,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15826,7 +15826,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareRecoveredContentChild"
               },
               {
@@ -15852,7 +15852,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "provider-neutral installed Effect"
               },
               {
@@ -15906,7 +15906,7 @@
                 "anchor": "export function retainInstalledRowCaptureChild<Result>({children, create, assertCurrent, signal}:"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
@@ -15974,7 +15974,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainInstalledRowEffectAdapter"
               },
               {
@@ -16016,7 +16016,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "durable claim"
               },
               {
@@ -16058,7 +16058,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "unknown, never resent"
               },
               {
@@ -16100,7 +16100,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "signal"
               },
               {
@@ -16138,7 +16138,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "retainedLimits"
               },
               {
@@ -16188,7 +16188,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "checkDriver"
               },
               {
@@ -16196,7 +16196,7 @@
                 "anchor": "let expected_fields = 3 +"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               },
               {
@@ -16342,7 +16342,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16352,7 +16352,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16362,7 +16362,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16372,7 +16372,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16382,7 +16382,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16392,7 +16392,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16402,7 +16402,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16412,7 +16412,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16422,7 +16422,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               }
             ],
@@ -16432,7 +16432,7 @@
                 "anchor": "## Original guarded row deletion"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "const sameEffectValue ="
               },
               {
@@ -16453,7 +16453,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16467,7 +16467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16481,7 +16481,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16495,7 +16495,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16509,7 +16509,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16523,7 +16523,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16537,7 +16537,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16551,7 +16551,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16565,7 +16565,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "prepareCredentialOperation"
               },
               {
@@ -16603,7 +16603,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16613,7 +16613,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16623,7 +16623,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16633,7 +16633,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16643,7 +16643,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16653,7 +16653,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16663,7 +16663,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16673,7 +16673,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16683,7 +16683,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -16989,8 +16989,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "const update = routes.every(route => route.descriptor.kind === 'update');"
+                "path": "adapters/host-node/installed-row-effect.mts",
+                "anchor": "const update = routes!.every(route => route.descriptor.kind === 'update');"
               }
             ],
             "inputsOutputs": [
@@ -25994,7 +25994,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "f0cd8cb0edae7a6547995cd4cd7c00142b5d2bf19bea9b6474ee1362aa1211a5",
+      "sha256": "be87202b68a3972048821b9bf68ca0c491d56581544fa09102a5a83eece3bac1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",

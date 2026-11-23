@@ -83,7 +83,7 @@ export function createInstalledRowEffectDriverControls({fail, text, optionalFunc
   // Reobserve a legacy driver's kinds at each owner check. An admitted
   // declaration has the one fixed UPDATE kind from its selected write slot.
   function installedEffectKinds({owned, updateWriteSlot}: {owned: {kinds?: readonly string[]}; updateWriteSlot?: unknown}) {
-    return updateWriteSlot === undefined ? owned.kinds : declaredRowUpdateKinds;
+    return updateWriteSlot === undefined ? owned.kinds! : declaredRowUpdateKinds;
   }
 
   function installedEffectWriteOperation<Member>(driver: {writeOperation?: (member: Member) => unknown; operation?: unknown},

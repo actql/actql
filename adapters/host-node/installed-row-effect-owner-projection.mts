@@ -21,34 +21,34 @@ type InstallationOwner = Readonly<{
 }>;
 type TargetReadBinding = Readonly<{installationOwnerCid: string; installationBindingCid: string; targetRef: string}>;
 type SelectionOwner = Pick<NonNullable<ReturnType<typeof retainUpdateTargetSelection>>[number], 'installation_owner_cid'>;
-type OwnerControls = Readonly<{
-  rowInstallations: Pick<WeakMap<object, InstallationOwner | readonly InstallationOwner[]>, 'get'>;
-  installedEffectKinds(owner: InstallationOwner): readonly string[];
+type OwnerControls<Owner extends InstallationOwner> = Readonly<{
+  rowInstallations: Pick<WeakMap<object, Owner | readonly Owner[]>, 'get'>;
+  installedEffectKinds(owner: Owner): readonly string[];
 }>;
 
-export function createInstalledRowEffectOwnerProjection({rowInstallations, installedEffectKinds}: OwnerControls) {
+export function createInstalledRowEffectOwnerProjection<Owner extends InstallationOwner>({rowInstallations, installedEffectKinds}: OwnerControls<Owner>) {
   // This is the existing installation projection used by composed recovery.
   // Its canonical bytes identify an owner without admitting structural copies
   // of an adapter or introducing another installation registry.
-  const installationFacts = (owner: InstallationOwner) => ({
+  const installationFacts = (owner: Owner) => ({
     connector_registration: owner.connectorRegistration,
     connector_revision: owner.connectorRevision,
     runtime_bundle_cid: owner.runtimeBundleCid, binding_cid: owner.bindingCid,
     connection: owner.connection, profile: owner.profile,
     continuation_binding: owner.continuationBinding,
   });
-  const ownerBinding = (owner: InstallationOwner) => issueUpdateTargetInstallation(owner.moon, installationFacts(owner));
+  const ownerBinding = (owner: Owner) => issueUpdateTargetInstallation(owner.moon, installationFacts(owner));
   function installedRowEffectOwnerBinding(adapter: unknown) {
     const owner = rowInstallations.get(adapter as object);
-    return owner === undefined || Array.isArray(owner) ? undefined : ownerBinding(owner as InstallationOwner);
+    return owner === undefined || Array.isArray(owner) ? undefined : ownerBinding(owner as Owner);
   }
 
   // Borrow only the actual installed owner's metadata-read scopes. Target names
   // and equal CIDs cannot manufacture an adapter, Account or execution grant.
   function installedRowEffectUpdateTargetReadAccess(adapter: unknown, target: TargetReadBinding) {
     const retained = rowInstallations.get(adapter as object);
-    const owners = retained === undefined ? [] : Array.isArray(retained) ? retained as readonly InstallationOwner[] : [retained as InstallationOwner];
-    let selected: InstallationOwner | undefined;
+    const owners = retained === undefined ? [] : Array.isArray(retained) ? retained as readonly Owner[] : [retained as Owner];
+    let selected: Owner | undefined;
     for (const owner of owners) {
       if (ownerBinding(owner).cid !== target.installationOwnerCid ||
           owner.bindingCid !== target.installationBindingCid) continue;
@@ -71,7 +71,7 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
       new Error('InstalledRowEffectInstallationChanged', {cause}),
       {code: 'InstalledRowEffectInstallationChanged'}));
   };
-  const updateObservation = (owner: InstallationOwner, installation = ownerBinding(owner)) => ({installation,
+  const updateObservation = (owner: Owner, installation = ownerBinding(owner)) => ({installation,
     update: installedEffectKinds(owner).includes('update'),
     ...(installedEffectKinds(owner).includes('delete') ? {delete: true} : {}),
     ...(owner.storeMappings.length === 0 ? {} : {store: true}),
@@ -80,9 +80,9 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
       update: mapping.rules.some(rule => rule.effect_kind === 'update'),
       ...(mapping.rules.some(rule => rule.effect_kind === 'delete') ? {delete: true} : {}),
       ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))});
-  const updateObservations = (owners: readonly InstallationOwner[]) => owners.map(owner => updateObservation(owner));
+  const updateObservations = (owners: readonly Owner[]) => owners.map(owner => updateObservation(owner));
 
-  const updateInstallationProjection = (owner: InstallationOwner) =>
+  const updateInstallationProjection = (owner: Owner) =>
     typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
       ? undefined : issueUpdateTargetInstallationData(owner.moon as Required<Pick<UpdateTargetRuntime, 'clientProgramIssueEffectTargetInstallationData'>>, [
         owner.bindingCid, owner.connection, owner.connectorRegistration,
@@ -97,15 +97,15 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
   // retained between calls and Common still validates the complete observation.
   function installedRowEffectUpdateObservation(adapters: unknown, ownerCid: string) {
     if (!Array.isArray(adapters)) return undefined;
-    const matches: {owner: InstallationOwner; installation: Installation; data: unknown}[] = [];
+    const matches: {owner: Owner; installation: Installation; data: unknown}[] = [];
     for (const adapter of adapters) {
       const owner = rowInstallations.get(adapter as object);
       if (owner === undefined || Array.isArray(owner)) continue;
       // The private physical Owner supplies scalar slots, never untrusted DATA.
       // Its profile is the closed frozen installation-table snapshot. Missing
       // typed ports keep the existing complete raw path for older components.
-      const projection = updateInstallationProjection(owner as InstallationOwner);
-      const installation = projection?.installation ?? ownerBinding(owner as InstallationOwner);
+      const projection = updateInstallationProjection(owner as Owner);
+      const installation = projection?.installation ?? ownerBinding(owner as Owner);
       if (installation.cid === ownerCid) matches.push({owner, installation, data: projection?.data} as (typeof matches)[number]);
     }
     if (matches.length !== 1) return undefined;
@@ -125,8 +125,8 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
     for (const adapter of adapters) {
       const owner = rowInstallations.get(adapter as object);
       if (owner === undefined || Array.isArray(owner)) continue;
-      const projection = updateInstallationProjection(owner as InstallationOwner);
-      const installation = projection?.installation ?? ownerBinding(owner as InstallationOwner);
+      const projection = updateInstallationProjection(owner as Owner);
+      const installation = projection?.installation ?? ownerBinding(owner as Owner);
       let selected = false;
       for (const selection of selections) {
         if (selection.installation_owner_cid === installation.cid) selected = true;
@@ -151,7 +151,7 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
       if (occurrences !== 1) return false;
     }
     for (const [ownerCid, owner] of observations) {
-      const observation = updateObservation(owner as InstallationOwner, originals.get(ownerCid));
+      const observation = updateObservation(owner as Owner, originals.get(ownerCid));
       if (installationData.has(ownerCid)) {
         const {installation, ...currentFacts} = observation;
         observations.set(ownerCid, currentFacts);
@@ -159,7 +159,7 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
     }
     return true;
   }
-  const validateOwnerSelections = <Selections,>(owners: readonly InstallationOwner[], selections: Selections, prepared: unknown) => {
+  const validateOwnerSelections = <Selections,>(owners: readonly Owner[], selections: Selections, prepared: unknown) => {
     if (selections === undefined) return undefined;
     try {
       // These call-local DATA slots replace the full embedded installation
@@ -192,7 +192,7 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
   // Current physical installation facts; semantic matching stays in Common.
   function installedRowEffectUpdateObservations(adapter: unknown) {
     const owner = rowInstallations.get(adapter as object);
-    return updateObservations(owner === undefined ? [] : Array.isArray(owner) ? owner as readonly InstallationOwner[] : [owner as InstallationOwner]);
+    return updateObservations(owner === undefined ? [] : Array.isArray(owner) ? owner as readonly Owner[] : [owner as Owner]);
   }
 
   // The Host has already checked the original Core selection owners. This
@@ -200,7 +200,7 @@ export function createInstalledRowEffectOwnerProjection({rowInstallations, insta
   function validateInstalledUpdateOwnerSelections<Selections>(adapter: unknown, selections: Selections, prepared: unknown) {
     const owner = rowInstallations.get(adapter as object);
     return validateOwnerSelections(owner === undefined ? [] :
-      Array.isArray(owner) ? owner as readonly InstallationOwner[] : [owner as InstallationOwner], selections, prepared);
+      Array.isArray(owner) ? owner as readonly Owner[] : [owner as Owner], selections, prepared);
   }
 
   return {installationFacts, selectionChanged, validateOwnerSelections, installedRowEffectOwnerBinding,

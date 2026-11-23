@@ -71204,7 +71204,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dfff3629a3bc36bf1f4a6a0ce6a43edc419fc1436f09efe26726bca986bb926e",
+      "sha256": "7f6d733e0b5e1db720ab1333118859a443f34cde911abd449856bee42d0ac1f6",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -73446,7 +73446,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0fbaf8efa1bf34a0ed08549811bb884376a42e44f680132edc839f87dd10fdb2",
+      "sha256": "a9b4cd7445550ebad2d502f8ce74e7cb86d69864f79cd41d0325ac7c1a3f8457",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -82584,7 +82584,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],
@@ -82664,7 +82664,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect.mts",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],

@@ -8,7 +8,6 @@ import {verifyInstalledConnectorBindings}
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {contentCid} from './local-account-config.mjs';
-// @ts-expect-error TS7016: the installed Row Effect owner is still authored in JavaScript.
 import {composeInstalledRowEffectOwners, installedRowEffectOwnerBinding, installedRowEffectUpdateTargetReadAccess} from './installed-row-effect.mjs';
 
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
@@ -50,7 +49,8 @@ type Alias = Readonly<{
   name: string; targetRef: string; installationBindingCid?: string; installationOwnerCid?: string;
 }>;
 type BoundAlias = Readonly<Required<Alias>>;
-type EffectRegistration = Readonly<{environmentWire: string; effectSelectors?: readonly Selector[]}>;
+type OfferedSelector = Selector | (Omit<MappingSelector, 'kind'> & Readonly<{kind: 'delete'}>);
+type EffectRegistration = Readonly<{environmentWire: string; effectSelectors?: readonly OfferedSelector[]}>;
 export type EffectOwner = EffectRegistration & Readonly<{
   connectorBindings?: readonly ConnectorBinding[]; environmentOriginal?: NativeEnvironment;
   queryUpdateTargets?: readonly Alias[]; queryTableBindings?: readonly unknown[]; queryTableWriteAccesses?: readonly unknown[];
@@ -414,7 +414,7 @@ export function installedEffectFor<Member extends object>(inventory: (Member & {
     owner = matches[0];
   }
   if (owners.some(value => value !== owner)) {
-    return composeInstalledRowEffectOwners(owners, descriptors, inventory.environmentWire) as Stage;
+    return composeInstalledRowEffectOwners(owners, descriptors, inventory.environmentWire!) as Stage;
   }
   return owner!;
 }

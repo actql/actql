@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-recipe-construction.mjs';
-// @ts-expect-error TS7016: the installed Row Effect facade still has a JavaScript entry.
 import {installedRowEffectConstructionLimits} from './installed-row-effect.mjs';
 
 type RecipeOptions = Parameters<typeof prepareInstalledPhysicalWritePlanRecipe>[0];

@@ -6,7 +6,6 @@ import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts,assertAuthorizationAccountCurrent}
   from '../../../host-common/authorization-gate.mjs';
-// @ts-expect-error TS7016: the original Row Effect is still authored in JavaScript.
 import {createInstalledRowEffect,retainInstalledRowEffectAdapter,installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
@@ -41,7 +40,8 @@ type Limits = Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxFi
 type RunLimits = Readonly<Record<string, number>> & Readonly<{maxRows: number; maxEffects: number}>;
 type Resources = Readonly<{assertCurrent(runOriginal: object): unknown; limits(runOriginal: object): RunLimits;
   bindRunOriginal(...input: never[]): unknown}>;
-type Authorization = Readonly<{context: Readonly<{contextCid: string}>; configurationCid: string}>;
+type Authorization = Parameters<typeof createInstalledRowEffect>[0]['authorization'] &
+  Readonly<{context: Readonly<{contextCid: string}>; configurationCid: string}>;
 type InstallationInput = Readonly<{
   moon: Runtime; preparation: Preparation; sourceManaged: Readonly<{assertCurrent(): unknown}>;
   baseEnvironmentWire: string; authorizationFor(connection: string): Authorization | Promise<Authorization>;
