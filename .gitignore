@@ -3018,3 +3018,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/sheets/test/sheets-packed.fixture.d.mts
 /adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs
 /adapters/connectors/sheets/test/sheets-standard-host.integration.test.d.mts
+/adapters/connectors/sheets/test/sheets-clear-command.test.mjs
+/adapters/connectors/sheets/test/sheets-clear-command.test.d.mts
+/adapters/connectors/sheets/test/sheets-range-command.test.mjs
+/adapters/connectors/sheets/test/sheets-range-command.test.d.mts

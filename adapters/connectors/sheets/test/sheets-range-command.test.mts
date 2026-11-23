@@ -2,8 +2,6 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {inspect} from 'node:util';
-import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, contentCid} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -13,11 +11,37 @@ import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from '../host/sheets-range-command.mjs';
 import {rangeProgram} from './sheets-range-program.fixture.mjs';
 
+type Provider = Parameters<typeof createSheetsRangeDriver>[0]['moon'] &
+  Parameters<typeof sheetsRangeCommand>[2] & Parameters<typeof sheetsRangeReference>[0]['moon'] & Parameters<typeof withSheetsRangeCommand>[2];
+const provider = await import(new URL('../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js', import.meta.url).href) as Provider;
+
+type Declared = Parameters<typeof rowSourceCheckEnvironment>[1] & Readonly<{catalog_cid: string}>;
+type Common = Readonly<{
+  clientProgramRowSourceRestoreRelationDeclaration(id: string, registration: string, revision: string, views: string, expected: undefined): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+  clientProgramCheckEnvironment(wire: string, cid: string, textTime: boolean, veca: boolean, rela: boolean,
+    sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareEffectComputationWithParameters(program: string, format: 'json', environment: unknown,
+    parameters: undefined, optionalInputs: readonly unknown[]): unknown;
+  clientProgramEffectPreparationReady(outcome: unknown): unknown;
+  clientProgramEffectPreparationIssue(outcome: unknown): unknown;
+  clientProgramCompileLocalEffects(prepared: unknown): unknown;
+  clientProgramEffectCompilationResultNames(compiled: unknown): unknown;
+}>;
+type RangeCommandView = ReturnType<typeof sheetsRangeCommand>['command'] & Readonly<{
+  command_id: string; input_contract: Readonly<{fields: {rows: {max_items: number; items: {fields: object}}}}>;
+  target: Readonly<{resource_kind: string}>; idempotency: Readonly<{support: string}>;
+}>;
+type SavedConfiguration = {
+  range?: typeof site.gridRange; extra?: boolean; bindingCid: string; columns: typeof site.columns; effectId: string;
+};
+const common = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as Common;
+
 const site = {apiOrigin: 'https://sheets.example.test', spreadsheetId: 'book',
   gridRange: {sheetId: 7, startRow: 2, endRow: 4, startColumn: 1, endColumn: 3},
   columns: [{name: 'text', type: 'string', nullable: false},
     {name: 'flag', type: 'boolean', nullable: true}]};
-const token = character => `sha256:${character.repeat(64)}`;
+const token = (character: string) => `sha256:${character.repeat(64)}`;
 const profile = {siteProfilePath: '/fixture/site.json', publicationPath: '/fixture/publication.json',
   connectorId: 'sheets-book', accountConfigurationWire: '{}'};
 const member = {resource: 'range_target', effectId: 'replace'};
@@ -61,7 +85,7 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
       schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const original = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
   const range = sheetsRangeCommand(profile.connectorId, site, provider);
-  const declared = withSheetsRangeCommand(original, range, provider);
+  const declared = withSheetsRangeCommand(original, range, provider) as Declared;
   assert.notEqual(declared.catalog_cid, original.catalog_cid);
   assert.deepEqual(JSON.parse(original.catalog).commands, []);
   assert.deepEqual(JSON.parse(declared.catalog).source_views, JSON.parse(original.catalog).source_views);
@@ -71,13 +95,13 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
   const cid = contentCid(body);
   const wire = canonicalJson({...body, evidence_bundle_cid: cid});
   assert(common.clientProgramCheckEnvironment(wire, cid, false, false, true, false, false, false, false));
-  assert.deepEqual(range.command.input_contract.fields.rows.items.fields, {
+  assert.deepEqual((range.command as RangeCommandView).input_contract.fields.rows.items.fields, {
     text: {type: 'string', nullable: false}, flag: {type: 'boolean', nullable: false}});
-  assert.equal(range.command.input_contract.fields.rows.max_items, 2);
+  assert.equal((range.command as RangeCommandView).input_contract.fields.rows.max_items, 2);
   assert.equal(Object.hasOwn(range.command, 'minimum_approval'), false);
-  assert.equal(range.command.command_id, 'command:sheets-book.sheets.update_range.v0');
-  assert.equal(range.command.target.resource_kind, 'sheet_range');
-  assert.equal(range.command.idempotency.support, 'unsupported');
+  assert.equal((range.command as RangeCommandView).command_id, 'command:sheets-book.sheets.update_range.v0');
+  assert.equal((range.command as RangeCommandView).target.resource_kind, 'sheet_range');
+  assert.equal((range.command as RangeCommandView).idempotency.support, 'unsupported');
 });
 
 test('Sheets range authored Program reaches the existing effect preparation and compiler', () => {
@@ -91,7 +115,7 @@ test('Sheets range authored Program reaches the existing effect preparation and 
     profile.connectorId, 'sheets', 'sheets/0.1', JSON.stringify({views: [{resource: 'range_target',
       resource_kind: 'sheet_range', schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
   const declared = withSheetsRangeCommand(
-    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range, provider);
+    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range, provider) as Declared;
   const base = readFileSync(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
   const {evidence_bundle_cid: _, ...body} = JSON.parse(rowSourceCheckEnvironment(base, declared).wire);
   body.command_contracts = [range.command];
@@ -101,7 +125,7 @@ test('Sheets range authored Program reaches the existing effect preparation and 
   const rows = [{text: '=literal e\u0301\r\n', number: 0, flag: false},
     {text: 'second', number: -2.5, flag: true}];
   const outcome = common.clientProgramPrepareEffectComputationWithParameters(
-    rangeProgram(range.command.command_id, rows, profile.connectorId), 'json', environment, undefined, []);
+    rangeProgram((range.command as RangeCommandView).command_id, rows, profile.connectorId), 'json', environment, undefined, []);
   const prepared = common.clientProgramEffectPreparationReady(outcome);
   assert(prepared, inspect(common.clientProgramEffectPreparationIssue(outcome),
     {depth: 9, maxArrayLength: 0, maxStringLength: 100, customInspect: false, getters: false}));
@@ -119,8 +143,8 @@ test('Sheets range request binds original literal values exact rectangle and ori
     fields: 'userEnteredValue'}}]});
   assert.deepEqual(driver.requestFacts(request), {value, target});
   assert.equal(driver.requestCid(request), request.requestCid);
-  assert.throws(() => { request.value.rows[0].text = 'replacement'; }, TypeError);
-  assert.throws(() => { request.target.identity_cid = token('c'); }, TypeError);
+  assert.throws(() => { (request.value as typeof value).rows[0].text = 'replacement'; }, TypeError);
+  assert.throws(() => { (request.target as {identity_cid: string}).identity_cid = token('c'); }, TypeError);
   assert.throws(() => driver.recheckRequests({entries: [{request: {...request}}]}),
     /ForeignSheetsRangeRequest/);
 });
@@ -166,7 +190,7 @@ test('Sheets original configuration and footprint do not follow later caller DTO
   originalSite.apiOrigin = 'https://foreign.example.test';
   originalSite.gridRange.endRow = 9;
   originalSite.columns.reverse();
-  target.boundary_cid = token('c');
+  (target as {boundary_cid: string}).boundary_cid = token('c');
   const again = driver.prepareRequest({member, value, selector: request.target}).request;
   assert.equal(again.body, request.body);
   assert.equal(driver.requestCid(again), request.requestCid);
@@ -216,9 +240,9 @@ test('Sheets range recovery refuses missing duplicate foreign and noncanonical r
     assert.throws(() => driver.recoverRequests({body, durable: {connectorRecovery: entries}}),
       /SheetsRangeRecoveryMismatch/);
   }
-  for (const mutate of [value => { delete value.range; }, value => { value.extra = true; },
-    value => { value.range.sheetId = 8; }, value => { value.bindingCid = token('c'); },
-    value => { value.columns.reverse(); }, value => { value.effectId = 'foreign'; }]) {
+  for (const mutate of [(value: SavedConfiguration) => { delete value.range; }, (value: SavedConfiguration) => { value.extra = true; },
+    (value: SavedConfiguration) => { value.range!.sheetId = 8; }, (value: SavedConfiguration) => { value.bindingCid = token('c'); },
+    (value: SavedConfiguration) => { value.columns.reverse(); }, (value: SavedConfiguration) => { value.effectId = 'foreign'; }]) {
     const saved = JSON.parse(original.wire); mutate(saved);
     const changed = {...original, wire: canonicalJson(saved), observationCid: contentCid(saved)};
     assert.throws(() => driver.recoverRequests({body, durable: {connectorRecovery: [changed]}}),
@@ -228,7 +252,7 @@ test('Sheets range recovery refuses missing duplicate foreign and noncanonical r
 
 test('Sheets range projection requires exact batch ACK and never settles an uncertain response', () => {
   const {driver, request} = fixture();
-  const project = (statusCode, body) => driver.project({request,
+  const project = (statusCode: number, body: string) => driver.project({request,
     observation: {statusCode, body: Buffer.from(body)}});
   assert.deepEqual(project(200, '{"spreadsheetId":"book","replies":[{}]}'), {
     kind: 'typed-success-response', outcome: {state: 'applied', result: {
@@ -247,7 +271,7 @@ test('Sheets range projection requires exact batch ACK and never settles an unce
 // counter, internal Native invocation count or performance measurement.
 test('range original request does not repeat the exported target parser at CID and recheck boundaries',()=>{
   let completedMatches=0,current=true;
-  const native=Object.freeze({...provider,sheetsRangeTargetMatches(...args){
+  const native=Object.freeze({...provider,sheetsRangeTargetMatches(...args: Parameters<Provider['sheetsRangeTargetMatches']>){
     const result=Reflect.apply(provider.sheetsRangeTargetMatches,provider,args);completedMatches++;return result;
   }});
   const definition=sheetsRangeCommand('sheets-book',site,native);

@@ -491,7 +491,7 @@
               "anchor": "pub(all) enum Issue"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -539,7 +539,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -651,7 +651,7 @@
               "anchor": "pub(all) enum Issue"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -699,7 +699,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -1001,7 +1001,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -1042,7 +1042,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -1130,7 +1130,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -1178,7 +1178,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -1473,7 +1473,7 @@
               "anchor": "pub(all) enum Issue"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -1521,7 +1521,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -1606,7 +1606,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -1647,7 +1647,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -1716,7 +1716,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -1745,7 +1745,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -1824,7 +1824,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -1860,7 +1860,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -2015,7 +2015,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -2063,7 +2063,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -2265,7 +2265,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -2306,7 +2306,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -2804,7 +2804,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -2845,7 +2845,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -2933,7 +2933,7 @@
               "anchor": "pub(all) enum Issue"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -2974,7 +2974,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -3071,7 +3071,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -3100,7 +3100,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -3408,7 +3408,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -3457,7 +3457,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -3627,7 +3627,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -3668,7 +3668,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -3899,7 +3899,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -3940,7 +3940,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             }
           ]
@@ -4063,7 +4063,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -4104,7 +4104,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -4458,7 +4458,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -4499,7 +4499,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -4585,7 +4585,7 @@
               "anchor": "pub(all) enum Issue"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -4626,7 +4626,7 @@
               "anchor": "test \""
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -4713,7 +4713,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -4742,7 +4742,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -5110,7 +5110,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "refuses missing duplicate foreign"
             }
           ],
@@ -5151,7 +5151,7 @@
               "anchor": "same physical bytes"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-range-command.test.mts",
               "anchor": "same bytes under another permission"
             },
             {
@@ -5384,7 +5384,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -5420,7 +5420,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -5588,7 +5588,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -5617,7 +5617,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -5708,7 +5708,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -5737,7 +5737,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -5883,7 +5883,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -5912,7 +5912,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -6028,7 +6028,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -6057,7 +6057,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {
@@ -6257,7 +6257,7 @@
               "anchor": "Err(range_failure"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear restore refuses missing"
             }
           ],
@@ -6286,7 +6286,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mts",
               "anchor": "clear only settles the exact two acknowledgements"
             },
             {

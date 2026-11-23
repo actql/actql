@@ -1,17 +1,29 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
 import {createSheetsClearDriver, sheetsClearCommand} from '../host/sheets-clear-command.mjs';
 import {sheetsRangeCommand, sheetsRangeReference} from '../host/sheets-range-command.mjs';
+
+type Provider = Parameters<typeof createSheetsClearDriver>[0]['moon'] &
+  Parameters<typeof sheetsClearCommand>[2] & Parameters<typeof sheetsRangeReference>[0]['moon'] & Parameters<typeof sheetsRangeCommand>[2];
+const provider = await import(new URL('../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js', import.meta.url).href) as Provider;
 
 const site = {apiOrigin: 'https://sheets.example.test', spreadsheetId: 'book',
   gridRange: {sheetId: 7, startRow: 2, endRow: 4, startColumn: 1, endColumn: 3},
   columns: [{name: 'text', type: 'string', nullable: false},
     {name: 'flag', type: 'boolean', nullable: true}]};
-const token = character => `sha256:${character.repeat(64)}`;
+const token = (character: string) => `sha256:${character.repeat(64)}`;
 const member = {resource: 'range_target', effectId: 'clear'};
-const roleIdentities = JSON.parse(readFileSync(new URL('./fixtures/clear-role-identities.json', import.meta.url)));
+type ContractRole = Readonly<{id: string; version: string}>;
+type RoleIdentities = Readonly<{
+  clearRange: Readonly<{body: object; cid: string; contracts: readonly ContractRole[]}>;
+  previousClear: Readonly<{cid: string}>;
+}>;
+type ClearCommandView = ReturnType<typeof sheetsClearCommand>['command'] &
+  Readonly<{command_id: string; input_contract: Readonly<{fields: object}>; permissions: readonly string[]; contract_cid: string}>;
+type ClearRequest = ReturnType<ReturnType<typeof createSheetsClearDriver>['prepareRequest']>['request'];
+type MetadataReply = {createDeveloperMetadata: {developerMetadata: {metadataValue: string; location: {sheetId: number}}}};
+const roleIdentities = JSON.parse(readFileSync(new URL('./fixtures/clear-role-identities.json', import.meta.url), 'utf8')) as RoleIdentities;
 function fixture() {
   const clear = sheetsClearCommand('sheets-book', site, provider);
   const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b'), moon: provider});
@@ -19,28 +31,29 @@ function fixture() {
   const driver = createSheetsClearDriver({moon: provider, site, command: clear.installed,
     target, bindingCid: token('b'), isCurrent: () => current});
   const request = driver.prepareRequest({member, value: {}, selector: target}).request;
-  const entry = driver.recoveryEntry({member, entries: [{request}]});
+  const entry = driver.recoveryEntry({member, entries: [{request}]}) as
+    Readonly<{kind: 'sheets-clear-request'; wire: string; observationCid: string}>;
   const body = {effects: [{effect_id: member.effectId, effect_kind: 'command',
     resolved_command_contract_cid: clear.installed.commandCid,
     changes: [{intended_changes: {value: {}}, target_row_identity: target}]}]};
   const durable = {connectorRecovery: [{...entry, memberIndex: 0}]};
   return {clear, target, driver, request, body, durable, revoke: () => { current = false; }};
 }
-const ack = request => ({spreadsheetId: 'book', replies: [{}, {createDeveloperMetadata: {
+const ack = (request: ClearRequest) => ({spreadsheetId: 'book', replies: [{}, {createDeveloperMetadata: {
   developerMetadata: {metadataId: 17, metadataKey: 'actql_request', visibility: 'DOCUMENT',
-    metadataValue: JSON.parse(request.body).requests[1].createDeveloperMetadata.developerMetadata.metadataValue,
+    metadataValue: JSON.parse(request.body).requests[1].createDeveloperMetadata.developerMetadata.metadataValue as string,
     location: {sheetId: 7}}}}]});
 
 test('clear selects a distinct empty-input Command and preserves the original update declaration', () => {
   const {clear} = fixture();
-  assert.equal(clear.command.command_id, 'command:sheets-book.sheets.clear_range.v1');
-  assert.deepEqual(clear.command.input_contract.fields, {});
-  assert.deepEqual(clear.command.permissions, ['sheets:cells:clear']);
+  assert.equal((clear.command as ClearCommandView).command_id, 'command:sheets-book.sheets.clear_range.v1');
+  assert.deepEqual((clear.command as ClearCommandView).input_contract.fields, {});
+  assert.deepEqual((clear.command as ClearCommandView).permissions, ['sheets:cells:clear']);
   assert.equal(Object.hasOwn(clear.command, 'minimum_approval'), false);
   assert.deepEqual(clear.command, {...roleIdentities.clearRange.body,
     contract_cid: roleIdentities.clearRange.cid});
   assert.deepEqual(clear.contracts, roleIdentities.clearRange.contracts);
-  assert.notEqual(clear.command.contract_cid, roleIdentities.previousClear.cid);
+  assert.notEqual((clear.command as ClearCommandView).contract_cid, roleIdentities.previousClear.cid);
   const old = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url), 'utf8'));
   const update = sheetsRangeCommand('sheets-book', site, provider);
   const current = JSON.parse(readFileSync(new URL('./fixtures/range-command-approval-carriage.json', import.meta.url), 'utf8'));
@@ -50,7 +63,7 @@ test('clear selects a distinct empty-input Command and preserves the original up
   assert.equal(update.command.input_schema.cid, old.inputContractCid);
   assert.equal(update.command.output_schema.cid, old.outputContractCid);
   for (const clearRole of clear.contracts) {
-    assert(!update.contracts.some(updateRole => clearRole.id === updateRole.id && clearRole.version === updateRole.version));
+    assert(!update.contracts.some(updateRole => (clearRole as ContractRole).id === (updateRole as ContractRole).id && (clearRole as ContractRole).version === (updateRole as ContractRole).version));
   }
 });
 
@@ -66,8 +79,8 @@ test('clear prepares one immutable original marker in the same values-only batch
   const next = driver.prepareRequest({member, value: {}, selector: target}).request;
   assert.notEqual(next.marker, request.marker);
   assert.notEqual(next.requestCid, request.requestCid);
-  assert.throws(() => { request.marker = next.marker; }, TypeError);
-  assert.throws(() => { request.target.identity_cid = token('c'); }, TypeError);
+  assert.throws(() => { (request as {marker: string}).marker = next.marker; }, TypeError);
+  assert.throws(() => { (request.target as {identity_cid: string}).identity_cid = token('c'); }, TypeError);
 });
 
 test('clear refuses copied requests and equal configuration under another nominal binding', () => {
@@ -124,17 +137,17 @@ test('clear restore refuses missing duplicate noncanonical and substituted origi
 
 test('clear only settles the exact two acknowledgements with the original range marker', () => {
   const {driver, request} = fixture();
-  const project = (statusCode, response) => driver.project({request,
+  const project = (statusCode: number, response: unknown) => driver.project({request,
     observation: {statusCode, body: Buffer.from(JSON.stringify(response))}});
   assert.deepEqual(project(200, ack(request)), {kind: 'typed-success-response',
     outcome: {state: 'applied', result: {spreadsheet_id: 'book', sheet_id: 7, cleared_rows: 2}}});
   for (const status of [0, 400, 403, 409, 429, 500, 503]) {
     assert.deepEqual(project(status, ack(request)), {kind: 'provider-response'});
   }
-  for (const mutate of [value => { value.replies.pop(); }, value => { value.replies.push({}); },
-    value => { value.spreadsheetId = 'other'; },
-    value => { value.replies[1].createDeveloperMetadata.developerMetadata.metadataValue = 'another-request'; },
-    value => { value.replies[1].createDeveloperMetadata.developerMetadata.location.sheetId = 8; }]) {
+  for (const mutate of [(value: ReturnType<typeof ack>) => { value.replies.pop(); }, (value: ReturnType<typeof ack>) => { value.replies.push({}); },
+    (value: ReturnType<typeof ack>) => { value.spreadsheetId = 'other'; },
+    (value: ReturnType<typeof ack>) => { (value.replies[1] as MetadataReply).createDeveloperMetadata.developerMetadata.metadataValue = 'another-request'; },
+    (value: ReturnType<typeof ack>) => { (value.replies[1] as MetadataReply).createDeveloperMetadata.developerMetadata.location.sheetId = 8; }]) {
     const response = ack(request); mutate(response);
     assert.deepEqual(project(200, response), {kind: 'provider-response'});
   }
@@ -148,7 +161,7 @@ test('clear only settles the exact two acknowledgements with the original range 
 // counter, internal Native invocation count or performance measurement.
 test('clear original request does not repeat the exported target parser at CID and recheck boundaries',()=>{
   let completedMatches=0,current=true;
-  const native=Object.freeze({...provider,sheetsClearTargetMatches(...args){
+  const native=Object.freeze({...provider,sheetsClearTargetMatches(...args: Parameters<Provider['sheetsClearTargetMatches']>){
     const result=Reflect.apply(provider.sheetsClearTargetMatches,provider,args);completedMatches++;return result;
   }});
   const definition=sheetsClearCommand('sheets-book',site,native);
