@@ -2966,3 +2966,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/gmail/host/installed-gmail-source.d.mts
 /adapters/connectors/gmail/test/installed-gmail-threads.test.mjs
 /adapters/connectors/gmail/test/installed-gmail-threads.test.d.mts
+/adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs
+/adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.d.mts

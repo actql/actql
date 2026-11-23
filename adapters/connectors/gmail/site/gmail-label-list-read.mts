@@ -88,7 +88,7 @@ export function prepareGmailLabelListPages({moon, mailbox, names, limits}: PageO
       if (pageIndex !== 0) fail('GmailLabelListReadAlreadyCompleted');
       return {method: 'GET', path, query, headers: [['accept', 'application/json']], responseHeaders: []};
     },
-    decodePage(response: Response) {
+    decodePage(response: Pick<Response, 'accepted' | 'statusCode' | 'body'>) {
       if (!response.accepted || response.statusCode !== 200) fail('GmailLabelListReadRejected');
       const page = checked(provider.gmailProjectLabelList(response.body, bound.maxResponseBytes,
         bound.maxNodes, bound.maxDepth, bound.maxRows, bound.maxValueNodes, bound.maxValueTextBytes));

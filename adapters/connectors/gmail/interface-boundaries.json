@@ -265,7 +265,7 @@
                 "anchor": "test('Gmail labels constructs through the same original Host Source services"
               },
               {
-                "path": "adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs",
+                "path": "adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mts",
                 "anchor": "test('actual Gmail Catalog supplies identical complete label cells"
               }
             ],
@@ -1700,7 +1700,7 @@
                 "anchor": "test('Gmail labels constructs through the same original Host Source services"
               },
               {
-                "path": "adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs",
+                "path": "adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mts",
                 "anchor": "test('actual Gmail Catalog supplies identical complete label cells"
               }
             ]
