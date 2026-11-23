@@ -26929,7 +26929,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/database-reader.mjs",
-      "sha256": "7ba692167fbe5a81e8a8e370fb964ee067eb8b5ec670b09a9e41b90229d6e2df",
+      "sha256": "bebc8f52274be5c43d13ccdbf6690bf2aa9731705e3905c65d57c4177ee67eee",
       "exports": [
         "createNotionDatabaseReaderFactory"
       ],
@@ -27008,6 +27008,11 @@
           "async": false
         },
         {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
           "parameters": [
             "selected"
@@ -27074,7 +27079,8 @@
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
             "createNotionDatabaseReaderFactory/provider/provider",
             "createNotionDatabaseReaderFactory/provider/provider/provider",
-            "methods/methods"
+            "methods/methods",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry"
           ],
           "exports": [
             "createNotionDatabaseReaderFactory"
@@ -27102,6 +27108,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Each prepared reader retains the original RowRun identifiers"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-reader.mts",
+                "anchor": "const retireWorkspace=()=>{"
               }
             ],
             "synchronization": [
@@ -27126,6 +27136,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The original phase inventory includes factory"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-reader.mts",
+                "anchor": "properties.clear();"
               }
             ],
             "extension": [

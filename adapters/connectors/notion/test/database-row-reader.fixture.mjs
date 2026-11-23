@@ -101,9 +101,9 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,false,false,true,false,false,false,false);assert.ok(check);
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'notion.tasks',sourceRef:view.source_ref,
       sourceViewContractCid:view.source_view_contract_cid,schemaContractCid:view.carrier_schema_contract_cid}]});
-    // This fixture exercises the managed Query acquisition path.
+    // Exercise the managed Query path and retain the system fields asserted by the consumer.
     const outcome=common.clientProgramPrepareSourceWithParameters(
-      'SELECT id, title, amount FROM notion.tasks WHERE TRUE','sql',check,publication,undefined,undefined);
+      'SELECT id, title, amount, resource, version FROM notion.tasks WHERE TRUE','sql',check,publication,undefined,undefined);
     const preparedProgram=common.clientProgramPreparationReady(outcome);assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
     const aoa=JSON.parse(await readFile(new URL('spec/contracts/actql-aoa.json',repo),'utf8'));
     const registry=await readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8');

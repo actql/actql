@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {ledgerUsageHasPendingResources} from '../../../host-common/runtime-core.mjs';
 import {createNotionDatabaseReaderFactory} from '../host/database-reader.mjs';
 import {databaseRowReaderFixture,databaseReaderLimits,databaseSnapshot} from './database-row-reader.fixture.mjs';
 
@@ -17,10 +18,14 @@ test('ordinary original database RowRun captures exact typed rows with separatel
   assert.equal(f.state.requests.length,6);assert.equal(f.state.resolutions,6);
   const uses=f.site.credential.journal.recover();assert.equal(uses.length,6);assert(uses.every(x=>x.outcome==='succeeded'));
   assert.equal(new Set(uses.map(x=>x.grantCid)).size,3,'one query grant plus two distinct original pending-property grants');
-  const before=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-  await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),before);
-  assert.equal(f.state.requests.length,6,'pending raw custody cannot read again');
+  assert.equal(ledgerUsageHasPendingResources(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger)),true,
+    'the immutable capture remains funded after the response workspace retires');
+  await opened.close();
+  const retired=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
+  assert.equal(ledgerUsageHasPendingResources(retired),false);
+  await opened.close();
+  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),retired);
+  assert.equal(f.state.requests.length,6,'neither workspace retirement nor capture close may send another request');
 });
 
 test('ordinary database lost property reply retains the original RowRun and Unknown without resend',async t=>{

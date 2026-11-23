@@ -1,6 +1,6 @@
 // Trusted installed RowRun caller only. Catalog owns the saved schema and
 // pending property originals; the existing Site owns each operation's grant.
-// This adapter supplies neither a capacity declaration nor physical retirement.
+// The RowRun supplies capacity; this reader retires its own response workspace.
 import {types} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {ownInvocationAuthorization,invocationBindingsMatch} from '../../../host-common/owned-invocation-context.mjs';
@@ -96,22 +96,25 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
     if(!run||!text(requestId)||!text(runInvocationCid)||!text(dispatchRequestCid))fail('InvalidNotionDatabaseReader');
     const callbacks=methods(options,['verifyRead','authorizationFor','chargePage','consumeObservation','consumePage']);
     const invoke=(name:keyof typeof callbacks,...args:unknown[]):unknown=>Reflect.apply(callbacks[name],options,args);
-    const stop=new AbortController(),originalSignal=data(options,'signal');
-    const signal=originalSignal===undefined?stop.signal:AbortSignal.any([originalSignal,stop.signal]);
+    let stop:AbortController|undefined=new AbortController();
+    const originalSignal=data(options,'signal');
+    let signal:AbortSignal|undefined=originalSignal===undefined?stop.signal:AbortSignal.any([originalSignal,stop.signal]);
     // One original factory invocation per acquisition; failure never reopens it.
     preparations.add(acquisition);
     let phase:NotionReadPhase='ready',child:QueryReader|undefined,binding:Binding|undefined,transportClosed=false,
-      transportFailure:unknown,originalFailure:unknown;
+      transportFailure:{cause:unknown}|undefined,primary:{cause:unknown}|undefined;
+    let stopped=false,readPending=false,retired=false;
+    let completedChild:ReturnType<QueryReader['observe']>|undefined,completedOccurrences=0;
     const properties=new Map<string,PropertyRecord>();
     const closeTransport=()=>{
       if(binding!==undefined&&!transportClosed){
         try{transportClosed=closeHttpsCredentialBinding(binding)==='closed';}
-        catch(cause){transportFailure??=cause;throw cause;}
+        catch(cause){transportFailure??={cause};throw cause;}
       }
     };
     const verify=async (operation:Operation)=>{
       if(operation!==queryOperation&&operation!==propertyOperation)fail('ForeignNotionDatabaseOperation');
-      signal.throwIfAborted();const decision=await invoke('verifyRead');signal.throwIfAborted();return decision;
+      signal!.throwIfAborted();const decision=await invoke('verifyRead');signal!.throwIfAborted();return decision;
     };
     const coordinates=(request:unknown):Coordinates=>{
       const wire=checked(call('notionPropertyRequestJson',request,bounded.maxRowsWireBytes,
@@ -120,6 +123,17 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
       return Object.freeze({pageId:value.pageId,propertyId:value.propertyId});
     };
     let initial:Authorization|undefined;
+    const retireWorkspace=()=>{
+      if(retired||!stopped||readPending||phase!=='succeeded'||!transportClosed||transportFailure!==undefined)return;
+      // The managed reader never returns the raw result. Its child owns the
+      // response bytes, nested projections and consumed tickets. The separate
+      // captured relation already belongs to the RowRun.
+      completedChild=child?.observe();
+      completedOccurrences=properties.size;
+      properties.clear();
+      child=undefined;binding=undefined;initial=undefined;stop=undefined;signal=undefined;
+      retired=true;
+    };
     const selectedProperty=async (selected:Parameters<NonNullable<QueryOptions['propertyAuthorizationFor']>>[0])=>{
       if(selected.declaration!==declaration||selected.source!==source||selected.readContracts!==readContracts||
           selected.operation!==propertyOperation||!Number.isSafeInteger(selected.column)||selected.column<0||
@@ -157,7 +171,7 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
     const handle=Object.freeze({
       async read(){
         if(this!==handle)fail('ForeignNotionDatabaseReader');
-        if(phase!=='ready')fail('NotionDatabaseReaderAlreadyStarted');phase='reading';
+        if(phase!=='ready')fail('NotionDatabaseReaderAlreadyStarted');phase='reading';readPending=true;
         try{
           await verify(queryOperation);
           initial=ownInvocationAuthorization(await invoke('authorizationFor',0));
@@ -171,22 +185,33 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
             chargeResponse:body=>invoke('chargePage',body),
             consumeObservation:charge=>invoke('consumeObservation',charge),
             consumePage:(rows,ticket)=>invoke('consumePage',rows,ticket),limits:bounded,signal});
-          const result=await child.read();phase='succeeded';return result;
-        }catch(cause){phase='failed';originalFailure=cause;throw cause;}
+          await child.read();phase='succeeded';
+        }catch(cause){phase='failed';primary={cause};throw cause;}
         finally{
-          try{closeTransport();}catch(cause){phase='failed';if(originalFailure===undefined){originalFailure=cause;throw cause;}}
+          try{closeTransport();}catch(cause){
+            phase='failed';
+            if(primary===undefined){primary={cause};throw cause;}
+          }finally{readPending=false;}
+          retireWorkspace();
         }
       },
       requestStop(reason?:unknown){
         if(this!==handle)fail('ForeignNotionDatabaseReader');
-        stop.abort(reason);child?.requestStop(reason);closeTransport();
+        if(retired)return;
+        stopped=true;stop!.abort(reason);child?.requestStop(reason);
+        closeTransport();retireWorkspace();
+      },
+      retry(){
+        if(this!==handle)fail('ForeignNotionDatabaseReader');
+        if(!stopped)fail('NotionDatabaseReaderStopRequired');
+        if(retired)return;
+        closeTransport();retireWorkspace();
       },
       observe(){
         if(this!==handle)fail('ForeignNotionDatabaseReader');
-        // Original raw/error/child/callback/grant aliases remain with this same
-        // RowRun. Transport close is not their physical retirement receipt.
         return Object.freeze({phase,transportClosed,transportFailure:transportFailure!==undefined,
-          propertyOccurrences:properties.size,child:child?.observe(),cleanupConfirmed:false});
+          propertyOccurrences:retired?completedOccurrences:properties.size,
+          child:retired?completedChild:child?.observe(),cleanupConfirmed:retired});
       },
     });return handle;
   }});return factory;
