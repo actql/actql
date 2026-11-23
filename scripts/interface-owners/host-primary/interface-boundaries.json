@@ -9889,8 +9889,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -14117,8 +14117,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -16925,8 +16925,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -19220,8 +19220,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -21442,8 +21442,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -22726,8 +22726,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -24006,8 +24006,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -25286,8 +25286,8 @@
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -32937,8 +32937,8 @@
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -33534,8 +33534,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -34014,8 +34014,8 @@
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -34536,8 +34536,8 @@
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -35667,8 +35667,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -36420,8 +36420,8 @@
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",

@@ -2640,6 +2640,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-common/runtime-effect-publication-control.d.mts
 /adapters/host-common/runtime-run-plan-control.mjs
 /adapters/host-common/runtime-run-plan-control.d.mts
+/adapters/host-common/runtime-infer-admission-control.mjs
+/adapters/host-common/runtime-infer-admission-control.d.mts
 /adapters/host-common/runtime-infer-original-read-control.mjs
 /adapters/host-common/runtime-infer-original-read-control.d.mts
 /adapters/host-common/runtime-model-preparation-control.mjs

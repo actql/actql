@@ -27250,8 +27250,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -27661,8 +27661,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -28045,8 +28045,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -29292,12 +29292,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -29370,8 +29370,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -30626,12 +30626,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -30700,8 +30700,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -34007,12 +34007,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -34093,8 +34093,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -35423,12 +35423,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -35505,8 +35505,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -36227,12 +36227,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -36305,8 +36305,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -38931,12 +38931,12 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -39009,8 +39009,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
@@ -39683,18 +39683,18 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
               },
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",

@@ -18276,8 +18276,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -23613,6 +23613,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inferAdmissionControls/inferAdmissionControls",
             "publicationControl/runPlanControls/runPlanControls",
             "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
             "publicationControl/effectRecoveryControls/effectRecoveryControls",
@@ -24534,222 +24535,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
-            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
-            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
-            "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
-            "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The private Node binding projects the Program from the actual compiled owner"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const retained = originalInferRunTokens.get(selected);"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const originalInferRunTokens = new WeakMap();"
-              },
-              {
-                "path": "adapters/host-node/client-request-journal.mts",
-                "anchor": "if (originalInferRun !== undefined) {"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-request-journal-records.mts",
-                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-request-journal-records.mts",
-                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "assert.equal(saved.physicalStartReserved, false);"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "That returned pair is not itself Host restoration:"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
-                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
-            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "### Original INFER materials in the installed Host"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "originalInputs(prepared: object) {"
-              },
-              {
-                "path": "adapters/host-node/local-model-content-publication.mts",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/client-program-preparation.mts",
-                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const restoredInferRuns = new WeakSet();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
-              },
-              {
-                "path": "docs/design/model-provider-registration.md",
-                "anchor": "compilation and existing custody path."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
-              },
-              {
-                "path": "adapters/host-node/infer-run-original-host.test.mjs",
-                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
-              },
-              {
-                "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/issued/issued#2",
@@ -25302,8 +25087,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -26351,6 +26136,11 @@
           "async": false
         },
         {
+          "name": "publicationControl/inferAdmissionControls/inferAdmissionControls",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admit/init:admit",
           "parameters": [
             "name",
@@ -26498,33 +26288,6 @@
           "parameters": [
             "resultPolicy",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
-          "parameters": [
-            "original",
-            "definition",
-            "request",
-            "evidence",
-            "profiles",
-            "limits",
-            "recovery"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
-          "parameters": [
-            "graph"
           ],
           "async": false
         },
@@ -26696,19 +26459,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
-          "parameters": [
-            "compiled",
-            "checkedProgram",
-            "definition",
-            "request",
-            "environment",
-            "parameters",
-            "funded"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
           "parameters": [
             "compiled",
@@ -26738,38 +26488,6 @@
           "parameters": [
             "compiled",
             "checkedProgram"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
-          "parameters": [
-            "compiled",
-            "checkedProgram",
-            "definition"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-          "parameters": [
-            "compiled",
-            "checkedProgram",
-            "definition"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
-          "parameters": [
-            "original"
           ],
           "async": false
         },
@@ -26819,14 +26537,6 @@
             "referenceWire",
             "bindingWire",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
-          "parameters": [
-            "restored",
-            "checkedProgram"
           ],
           "async": false
         },
@@ -27227,16 +26937,6 @@
             "entry",
             "role",
             "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
-          "parameters": [
-            "selected",
-            "definition",
-            "request",
-            "evidence"
           ],
           "async": false
         },
@@ -27811,6 +27511,7 @@
         "./runtime-effect-recovery-control.mjs",
         "./runtime-effect-unit-result-control.mjs",
         "./runtime-execution-control.mjs",
+        "./runtime-infer-admission-control.mjs",
         "./runtime-infer-original-read-control.mjs",
         "./runtime-model-preparation-control.mjs",
         "./runtime-publication-contract-control.mjs",
@@ -27824,7 +27525,424 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "33dc2efc0143790409aa54545fa4c7fb71ba7daf877bb4a51347d29b7df8b10a"
+      "sha256": "3bf907c79879b8af63d09a4a0093bd6da8aab2a54b90c27c8359050a2404ad53"
+    },
+    {
+      "module": "adapters/host-common/runtime-infer-admission-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Infer material admission, restored Run and compiler originals",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInferAdmissionControls"
+          ],
+          "exports": [
+            "createInferAdmissionControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "export function createInferAdmissionControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "moon.clientProgramIssueInferRunMaterials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "originalInferRunTokens.set(selected, Object.freeze({"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "restoredInferRuns.add(restored);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "'Foreign Client original Infer materials'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "Infer material and Run roll back together when original journal custody COMMIT fails"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "Buffer.byteLength(original.materialsWire) > limits.maxWireBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...inferAdmissionControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "actual Common boxed plural originals retain fresh and restored compiler members"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
+            "createInferAdmissionControls/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+            "createInferAdmissionControls/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "captureOriginalClientInferRun(compiled: CompiledInfer, checkedProgram: unknown, definition: Definition,"
+              },
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "admitStoredClientInferRunOriginal(original: StoredMaterials, definition: Definition, request: unknown,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "const retained = originalInferRunTokens.get(selected as object);"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mts",
+                "anchor": "if (originalInferRun !== undefined) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "const outcome = transact<AcceptanceOutcome>('accept', 'ClientRequestAcceptanceUnknown',"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal-records.mts",
+                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "That returned pair is not itself Host restoration:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInferAdmissionControls/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+            "createInferAdmissionControls/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+            "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+            "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
+              },
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createInferAdmissionControls"
+      ],
+      "operations": [
+        {
+          "name": "createInferAdmissionControls",
+          "parameters": [
+            "moon",
+            "originalInferRunTokens",
+            "compiledRunTokens",
+            "restoredInferRuns",
+            "issuanceLimits",
+            "compiledRunResult",
+            "token",
+            "inspect",
+            "inspectEvidence",
+            "inspectAdmission",
+            "currentControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence",
+            "profiles",
+            "limits",
+            "recovery"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
+          "parameters": [
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition",
+            "request",
+            "environment",
+            "parameters",
+            "funded"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+          "parameters": [
+            "restored",
+            "checkedProgram"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferAdmissionControls/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
+          "parameters": [
+            "selected",
+            "definition",
+            "request",
+            "evidence"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "68b07b6573b41b33e9d29fafb810c81eb6e27c4e378fcb8a43e466c6ad911582"
     },
     {
       "module": "adapters/host-common/runtime-run-plan-control.mjs",
@@ -32133,8 +32251,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -38298,8 +38416,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -56319,8 +56437,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -62426,8 +62544,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -66848,8 +66966,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -70345,8 +70463,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -70589,8 +70707,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -70829,8 +70947,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -71069,8 +71187,8 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -116802,8 +116920,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -119048,8 +119166,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -120784,8 +120902,8 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
@@ -122800,8 +122918,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+                "path": "adapters/host-common/runtime-infer-admission-control.mts",
+                "anchor": "checkRestoredClientInferRunOwner<Restored extends RestoredRun>(restored: Restored, checkedProgram: unknown)"
               },
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
