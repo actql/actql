@@ -10,7 +10,12 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {nativeCliReleaseInstallSelection} from './release-native-install.mjs';
-import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
+import {runNativeInstallCommand} from './release-install-child.mjs';
+
+type SharedCommand = Awaited<ReturnType<typeof runNativeInstallCommand>>;
+type CommandRecord = {command: string; args: readonly string[]; code: number | null;
+  signal: NodeJS.Signals | null; terminationReason: 'timeout' | 'output-limit' | null;
+  timeoutMs: number; stdout: string; stderr: string; elapsedMs: number};
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const {cliDirectory, sdkDirectory, sharedClients} = nativeCliReleaseInstallSelection(process.argv.slice(2));
@@ -22,20 +27,21 @@ assert(cli.platforms[key], 'No fixed artifact for this actual platform');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-cli-install-', label: 'Native CLI fixed release installation'});
 const root = scratch.path, registry = await openReleaseTestRegistry([
   {directory: cliDirectory, manifest: cli}, {directory: sdkDirectory, manifest: sdk}]);
-const prefix = join(root, 'global'), consumer = join(root, 'host'), records = [];
+const prefix = join(root, 'global'), consumer = join(root, 'host'), records: (CommandRecord | SharedCommand)[] = [];
 await mkdir(consumer); await mkdir(prefix);
 await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
 await writeFile(join(root, 'npmrc-global'), '');
 const env = {...process.env, npm_config_registry: registry.url, npm_config_userconfig: join(root, 'npmrc'),
   npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_cache: join(root, 'cache'),
-  npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost', npm_config_update_notifier: 'false'};
+  npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost', npm_config_update_notifier: 'false'} as NodeJS.ProcessEnv;
 delete env.NODE_PATH;
-async function run(command, args, cwd = root, expectedCode = 0, timeoutMs = 180_000) {
+async function run(command: string, args: readonly string[], cwd = root, expectedCode = 0, timeoutMs = 180_000) {
   const started = Date.now();
-  const record = await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']}); let stdout = '', stderr = '', length = 0, terminationReason = null;
+  const record = await new Promise<CommandRecord>((resolve, reject) => {
+    const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
+    let stdout = '', stderr = '', length = 0, terminationReason: CommandRecord['terminationReason'] = null;
     const timer = setTimeout(() => {terminationReason = 'timeout'; child.kill('SIGTERM');}, timeoutMs);
-    for (const [stream, append] of [[child.stdout, v => {stdout += v;}], [child.stderr, v => {stderr += v;}]]) {
+    for (const [stream, append] of [[child.stdout, (v: string) => {stdout += v;}], [child.stderr, (v: string) => {stderr += v;}]] as const) {
       stream.on('data', chunk => {length += chunk.length; if (length > 8 * 1024 * 1024) {terminationReason = 'output-limit'; child.kill('SIGTERM');} else append(chunk.toString());});
     }
     child.once('error', error => {clearTimeout(timer); reject(error);});
@@ -77,14 +83,14 @@ try {
     // The existing fixture keeps the SAME Host alive after its first close
     // while this existing observer checks its scoped FDs and acknowledges.
     // An exited CLI or transport disconnect cannot supply that observation.
-    let record;
+    let record: SharedCommand;
     try {
       record = await runNativeInstallCommand(process.execPath,
         ['host-acceptance.mjs', executable, '--shared-clients'],
         {cwd: consumer, env, state: join(consumer, 'host-state')});
     } catch (failure) {
-      if (failure.commandRecord) await writeFile(join(root, 'shared-host-command.json'),
-        JSON.stringify(failure.commandRecord, null, 2) + '\n', {flag: 'wx'});
+      if ((failure as {commandRecord?: SharedCommand}).commandRecord) await writeFile(join(root, 'shared-host-command.json'),
+        JSON.stringify((failure as {commandRecord?: SharedCommand}).commandRecord, null, 2) + '\n', {flag: 'wx'});
       throw failure;
     }
     records.push(record);
@@ -101,7 +107,8 @@ try {
   }
   const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha,
     runtimeSourceDelta: [],
-    platform: key, node: process.version, glibc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : null,
+    platform: key, node: process.version, glibc: process.platform === 'linux'
+      ? (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime : null,
     artifact, cliPackages: cli.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     hostPackages: sdk.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested',

@@ -8,7 +8,8 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {nativeCliReleaseInstallSelection, nativeReleaseInstallSelection, nativeStandaloneEnvironment} from './release-native-install.mjs';
 import {releaseConsumerDestination} from './release-public-install.mjs';
-import {runNativeInstallCommand, runNativeStandaloneInstall} from './test-native-standalone-install.mjs';
+import {runNativeInstallCommand} from './release-install-child.mjs';
+import {runNativeStandaloneInstall} from './test-native-standalone-install.mjs';
 
 test('Native fixed consumer selects only explicit shared clients without replacing either artifact input', () => {
   const original = nativeCliReleaseInstallSelection(['native', 'node']);

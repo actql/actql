@@ -15,6 +15,12 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
+type ChildResult = {
+  code: string | number | null; signal: NodeJS.Signals | null; killed?: boolean; stdout: string; stderr: string;
+};
+type CommandRecord = ChildResult & {command: string; args: readonly string[]; cwd: string;
+  timeoutMs: number; elapsedMs: number};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, ...extra] = process.argv.slice(2);
 assert(input && extra.length === 0, 'usage: test-native-cli-local-install.mjs <fixed-CLI-RC>');
@@ -23,13 +29,14 @@ const manifest = await verifyNativeCliRelease(directory);
 const source = checkoutState(repository);
 assert(source.clean, 'Installed Local preparation acceptance requires clean source');
 assert.equal(source.revision, manifest.sourceSha, 'Fixture and Native artifact must share the fixed source');
-const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+const glibc = process.platform === 'linux'
+  ? (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime : undefined;
 const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
 assert(manifest.platforms[platform], 'No fixed Native artifact for this platform');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-local-install-',
   label: 'Native Local preparation external installation'});
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
-const root = scratch.path, prefix = join(root, 'global'), records = [];
+const root = scratch.path, prefix = join(root, 'global'), records: CommandRecord[] = [];
 const env = {...process.env};
 for (const key of Object.keys(env)) if (/^npm_config_/iu.test(key)) delete env[key];
 Object.assign(env, {npm_config_registry: registry.url,
@@ -38,15 +45,16 @@ Object.assign(env, {npm_config_registry: registry.url,
   npm_config_update_notifier: 'false', NO_PROXY: '127.0.0.1,localhost'});
 delete env.NODE_PATH;
 const execute = promisify(execFile);
-async function run(command, args, timeoutMs = 120_000) {
+async function run(command: string, args: readonly string[], timeoutMs = 120_000) {
   const started = Date.now();
-  let result;
+  let result: ChildResult;
   try {
     result = {...await execute(command, args, {cwd: root, env, timeout: timeoutMs,
       killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024}), code: 0, signal: null};
   } catch (error) {
-    result = {code: error.code ?? null, signal: error.signal ?? null,
-      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? ''};
+    result = {code: (error as Partial<ChildResult>).code ?? null, signal: (error as Partial<ChildResult>).signal ?? null,
+      killed: (error as Partial<ChildResult>).killed ?? false,
+      stdout: (error as Partial<ChildResult>).stdout ?? '', stderr: (error as Partial<ChildResult>).stderr ?? ''};
   }
   const record = {command, args, cwd: root, timeoutMs, elapsedMs: Date.now() - started, ...result};
   records.push(record);
@@ -71,8 +79,8 @@ try {
   assert.deepEqual((await readdir(join(installed, 'node_modules/@actql'))).sort(), [`cli-${platform}`]);
   const platformRoot = join(installed, 'node_modules/@actql', `cli-${platform}`);
   const binary = join(platformRoot, 'bin/actql-native-client');
-  const artifact = JSON.parse(await readFile(join(platformRoot, 'artifact.json'), 'utf8'));
-  assert.deepEqual(artifact, manifest.artifacts.find(value => value.platform === platform));
+  const artifact = JSON.parse(await readFile(join(platformRoot, 'artifact.json'), 'utf8')) as typeof manifest.artifacts[number];
+  assert.deepEqual(artifact, manifest.artifacts.find(value => value.platform === platform)!);
   const bytes = await readFile(binary);
   assert.equal(bytes.length, manifest.platforms[platform].binaryBytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), manifest.platforms[platform].binarySha256);

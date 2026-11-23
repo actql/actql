@@ -11,7 +11,7 @@ import {parse as parseJavaScript} from 'acorn';
 import {createHash} from 'node:crypto';
 import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthorizationReceipt}
   from './ci-native-cli-installed.mjs';
-import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
+import {runNativeInstallCommand} from './release-install-child.mjs';
 import {admitNativeReleaseCohort} from './native-cli-release.mjs';
 import {runSharedHostSourceAcceptance} from './fixtures/shared-host-source-acceptance.mjs';
 import {runSharedHostSourceFixture} from './fixtures/shared-host-source-cancel.mjs';
