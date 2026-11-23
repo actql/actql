@@ -14,6 +14,7 @@ import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {openSourceFreeEffectComputation as openSourceFree} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
@@ -444,13 +445,6 @@ test('Source selection and preparation borrow the same retained Effect plan and 
   assert.strictEqual(profile.ledgerCapacity(sourcePrepared).managedRun, parent);
   assert.deepEqual(calls, ['plan-source', 'prepare']);
 });
-
-const valuesSource = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
-const valuesAst = parse(valuesSource, {ecmaVersion: 'latest', sourceType: 'module'});
-const openNode = valuesAst.body.find(node => node.type === 'ExportNamedDeclaration' &&
-  node.declaration?.id?.name === 'openSourceFreeEffectComputation').declaration;
-const openSourceFree = new Function('checked', valuesSource.slice(openNode.start, openNode.end) +
-  ';return openSourceFreeEffectComputation;')(checked);
 
 test('source-free Effect open consumes its original planned parent without old Host constructors', () => {
   const managedRun = {}, prepared = {}, identity = {}, owner = {}, host = {}, calls = [];

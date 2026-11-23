@@ -6,8 +6,13 @@ import {checkedPublicationLimitValues} from './local-publication-limit-projectio
 import {localContractLimits as limits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
-import {buildLocalPublicationPlan, effectPublicationAdmission} from './local-publication-plan.mjs';
+import {buildLocalPublicationPlan} from './local-publication-plan.mjs';
+import {sourceFreeInferEffectPublicationPlan} from './local-source-free-effect-publication.mjs';
 export {keyedInputRetentionSelection} from './local-publication-plan.mjs';
+export {acquiredEffectPublicationAdmission, openSourceFreeEffectComputation,
+  sourceFreeEffectPublicationPlan, sourceFreeEffectPublicationPlanOriginal,
+  sourceFreeContentEffectPublicationPlan, sourceFreeInferEffectPublicationPlan}
+  from './local-source-free-effect-publication.mjs';
 export {inferTaskRunAdmission, selectRestoredInferOccurrence, restoreInferTaskRunAdmission,
   serializationTaskRunAdmission, selectInstalledSerializationGraph, serializationTaskPublicationPlan,
   inferTaskPublicationPlan} from './local-model-content-publication.mjs';
@@ -18,157 +23,6 @@ export {prepareTimedClientInvocation} from './local-query-invocation.mjs';
 export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
 export {acquiredTaskRunAdmission, sourceFreePlanOriginal, sourceFreePlanExplanation, sourceFreePlanExecutionOwner,
   sourceFreeTaskPlan, sourceFreeValuesAdmissionEvidence, sourceFreeValuesPlan} from './local-source-free-plan.mjs';
-
-// This is the existing admitted Effect Run, not a second preparation or a
-// replacement timestamp. Common checks its exact Run/request correspondence.
-export function openSourceFreeEffectComputation({moon, facts, managedRun}) {
-  if (managedRun === undefined ||
-      typeof moon.clientProgramInstalledEffectManagedRunCheck !== 'function' ||
-      typeof moon.clientProgramInstalledEffectManagedHostOpen !== 'function') {
-    throw new Error('InstalledEffectPlanUnavailable');
-  }
-  checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, facts.prepared, facts.identity));
-  return checked(moon.clientProgramInstalledEffectManagedHostOpen(managedRun, facts.owner, []));
-}
-
-function finishSourceFreeEffectPublicationPlan(acquired, observation, invocation, invocationOwner,
-  sourceFreeInvocationOriginal, managedRun, sourcePlan) {
-  const {moon, control, prepared, compilation, admission, runDefinition,
-    compiledPlan, dataPolicyCid, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
-  const run = JSON.parse(runDefinition.wire);
-  const resultCount = moon.clientProgramEffectCompilationResultNames(
-    compilation).length;
-  const {plan, retention} = buildLocalPublicationPlan({control, admission, runDefinition,
-    invocation, observation, compiledPlanCid: compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
-    storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
-    resultCount, retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared,
-    retentionSelection: acquired.selectRetention?.(),
-    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
-      acquired.requestIdentity, sourcePlan, dataPolicyCid, acquired.selectRetention(), limits))});
-  const result = {...plan, effectInputRetention: retention, invocationOwner,
-    localEvidenceContext: Object.freeze({admission, runDefinition,
-      runInvocation: invocation, observation})};
-  if (sourceFreeInvocationOriginal !== undefined) result.sourceFreeInvocationOriginal = sourceFreeInvocationOriginal;
-  return Object.freeze(result);
-}
-
-export function sourceFreeEffectPublicationPlan(options) {
-  const acquired = effectPublicationAdmission(options);
-  const {moon, control, compilation, dataPolicyCid} = acquired;
-  const issued = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
-    compilation, dataPolicyCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-  const observation = control.admitRunEvidence('observation_set',
-    moon.strategyRunEvidenceJson(runtimeField(issued, 0)), limits);
-  const invocation = control.admit('run_invocation',
-    moon.strategyPublicationContractJson(runtimeField(issued, 1)), limits);
-  return finishSourceFreeEffectPublicationPlan(acquired, observation, invocation, runtimeField(issued, 1));
-}
-
-// The ordinary retained Request uses the exact early issuer receipt. It is
-// attached once only after its actual managed Host/execution is retained.
-export function sourceFreeEffectPublicationPlanOriginal(options) {
-  const acquired = effectPublicationAdmission(options);
-  const issued = acquired.control.issueCheckedClientEffectSourceFreeInvocationOriginal(
-    acquired.compilation, acquired.dataPolicyCid, limits);
-  return finishSourceFreeEffectPublicationPlan(acquired, issued.observation,
-    issued.invocation, issued.owner, issued.original, options.managedRun, options.sourcePlan);
-}
-
-// The accepted Effect Run can be admitted before provider I/O, but its
-// Observation Set cannot be issued until the exact acquired source exists.
-export function acquiredEffectPublicationAdmission(options) {
-  return effectPublicationAdmission(options);
-}
-
-// Source-free Content is generated before its real Observation Set is issued.
-// Use the original Common generation and explicit compiled policy, without a
-// fabricated Source capture, Model call, input relation or second Run.
-export function sourceFreeContentEffectPublicationPlan({acquired,compiled,generation,
-  managedRun, sourcePlan, sourceHost}) {
-  const {moon,control,prepared,compilation,admission,runDefinition,compiledPlan,
-    authorityScopeCid,namespaceId,storeAuthorityCid,now}=acquired;
-  if(moon.clientProgramEffectAcquisitionCount(prepared)!==0)
-    throw new TypeError('InvalidSourceFreeContentEffectPublication');
-  const {observation,invocation,owner:invocationOwner}=
-    managedRun === undefined
-      ? control.issueCheckedClientSerializationInvocation(compiled,runDefinition,generation,limits)
-      : control.issueCheckedInstalledEffectContentInvocation(managedRun, prepared, acquired.requestIdentity,
-        sourcePlan, sourceHost, compilation, admission, acquired.definition, compiled, generation, limits);
-  const policy=control.compiledSerializationPolicy(compiled);
-  if(policy===undefined)throw new TypeError('ContentPolicyMissing');
-  const run=JSON.parse(runDefinition.wire);
-  const {plan,retention,retentionDependencies}=buildLocalPublicationPlan({control,admission,
-    runDefinition,invocation,observation,compiledPlanCid:compiledPlan.identity,
-    programDefinitionCid:moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids:JSON.parse(observation.wire).captured_input_artifact_cids,
-    sourceEvidence:[],authorityScopeCid,namespaceId,storeAuthorityCid,dataPolicyCid:policy.cid,
-    createdAt:run.created_at,now,retainUntil:run.valid_until,
-    resultCount:moon.clientProgramEffectCompilationResultNames(compilation).length,
-    moon,effectCompilation:compilation,preparedEffect:prepared,
-    retentionSelection: acquired.selectRetention?.(),
-    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
-      acquired.requestIdentity, sourcePlan, policy.cid, acquired.selectRetention(), limits))});
-  const contentGenerations=Object.freeze([generation]);
-  return Object.freeze({...plan,effectInputRetention:retention,invocationOwner,
-    receiptEvidence:Object.freeze({...plan.receiptEvidence,contentGenerations}),
-    captureEvidence:Object.freeze({...plan.captureEvidence,contentGenerations}),
-    localEvidenceContext:Object.freeze({admission,runDefinition,runInvocation:invocation,observation,
-      retentionDependencies,resultDataPolicy:policy,sourceFreeDependencyClosure:true})});
-}
-
-// A source-free Model still issues its real Observation Set after dispatch.
-// Keep the original Effect admission and bind that exact Model issuer instead
-// of issuing a no-external-work observation during Run preparation.
-export function sourceFreeInferEffectPublicationPlan({acquired,
-  compiled, operation, issuance, modelEvidence, issuedModel, modelOriginals,
-  managedRun, sourcePlan, sourceHost}) {
-  const {moon, control, prepared, compilation, admission, runDefinition,
-    compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
-  const issued = issuedModel ?? operation.bindIssuedInvocation(control, {
-    compiled, runDefinition, issued: issuance});
-  try {
-    const {observation, invocation, owner: invocationOwner} =
-      managedRun === undefined ? control.checkedClientEffectInferInvocation(prepared, compilation,
-        runDefinition, issued) : control.bindCheckedInstalledEffectModelInvocation(managedRun,
-        prepared, acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission,
-        acquired.definition, issued);
-    const run = JSON.parse(runDefinition.wire);
-    const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
-      control, admission, runDefinition, invocation, observation,
-      compiledPlanCid: compiledPlan.identity,
-      programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-      inputRelationCids: JSON.parse(observation.wire).captured_input_artifact_cids,
-      sourceEvidence: [], modelEvidence,
-      authorityScopeCid, namespaceId, storeAuthorityCid,
-      dataPolicyCid: JSON.parse(observation.wire).data_policy_cid,
-      createdAt: run.created_at, now,
-      resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
-      retainUntil: run.valid_until,
-      moon, effectCompilation: compilation, preparedEffect: prepared,
-      retentionSelection: acquired.selectRetention?.(),
-    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
-      acquired.requestIdentity, sourcePlan, JSON.parse(observation.wire).data_policy_cid, acquired.selectRetention(), limits))});
-    return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
-      invocationOwner, localEvidenceContext: Object.freeze({admission,
-        runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
-          Object.freeze({kind: 'result_retention_policy',
-            cid: retention.identity, wire: retention.wire})]),
-        sourceFreeDependencyClosure:true,
-        ...(modelOriginals === undefined ? {} : {
-          modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
-          modelRetention: retention,
-        }),
-        resultDataPolicy: control.compiledInferSourceFreeResultPolicy(compiled),
-        runInvocation: invocation,
-        observation})})});
-  } catch (error) {
-    if (issuedModel === undefined) moon.clientProgramReleaseInferInvocationBinding(issued.binding);
-    throw error;
-  }
-}
 
 // One real captured Source and its completed keyed right input form the same
 // checked Unit. Neither side is relabeled as Model or a single-Source result.

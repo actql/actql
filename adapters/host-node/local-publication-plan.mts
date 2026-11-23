@@ -90,11 +90,11 @@ type EffectAdmissionControl = {
   admitCheckedClientEffectRunPublication(prepared: unknown, template: unknown,
     preparedEvidence: unknown, authorization: unknown, compiledPlan: PublicationContract): unknown;
 };
-type EffectAdmissionOptions<Moon extends EffectAdmissionBindings, Control extends EffectAdmissionControl> = {
+type EffectAdmissionOptions<Moon extends EffectAdmissionBindings, Control extends EffectAdmissionControl, Compilation> = {
   moon: Moon;
   control: Control;
   prepared: unknown;
-  compilation: unknown;
+  compilation: Compilation;
   allowed: unknown;
   definition: unknown;
   authorityScopeCid: string;
@@ -250,9 +250,9 @@ export function buildLocalPublicationPlan<Retention>({control, admission, runDef
 // Reuse its exact compiler outputs; do not prepare or compile another Program
 // to reconstruct publication evidence. Captured inputs must outlive approval
 // waiting, so retention covers the admitted Run's validity window.
-export function effectPublicationAdmission<Moon extends EffectAdmissionBindings, Control extends EffectAdmissionControl>({moon, control, prepared,
+export function effectPublicationAdmission<Moon extends EffectAdmissionBindings, Control extends EffectAdmissionControl, Compilation>({moon, control, prepared,
   compilation, allowed, definition, authorityScopeCid, namespaceId,
-  storeAuthorityCid, now, resultDataPolicy, queryTimePreparation, queryTime, identity}: EffectAdmissionOptions<Moon, Control>) {
+  storeAuthorityCid, now, resultDataPolicy, queryTimePreparation, queryTime, identity}: EffectAdmissionOptions<Moon, Control, Compilation>) {
   const compiledPlan = control.admit('compiled_plan',
     moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
   let admission, runDefinition;

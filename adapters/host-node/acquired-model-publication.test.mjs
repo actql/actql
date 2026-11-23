@@ -10,11 +10,13 @@ import {preparePrivatePublicationHolding as originalPrivateHolding} from '../hos
 
 // Actual publication functions with explicit typed Core/Store-plan ports.
 // No runtime source overlay, installed package, real Model or authority claim.
-const text=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
-const declarations=parse(text,{ecmaVersion:'latest',sourceType:'module'}).body;
-const body=name=>{
-  const node=declarations.find(node=>node.declaration?.id?.name===name)?.declaration;
-  assert.ok(node);return text.slice(node.start,node.end);
+const publicationBodies = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
+const sourceFreeBodies = readFileSync(new URL('./local-source-free-effect-publication.mjs', import.meta.url), 'utf8');
+const body = (name, source = publicationBodies) => {
+  const node = parse(source, {ecmaVersion:'latest', sourceType:'module'}).body
+    .find(node => node.declaration?.id?.name === name)?.declaration;
+  assert.ok(node);
+  return source.slice(node.start, node.end);
 };
 const limits={maxWireBytes:16384,maxNodes:1024,maxDepth:20};
 
@@ -474,7 +476,7 @@ function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=fals
   };
   const create=new Function('runtimeField','runtimeOptionalField','checked','limits',
     'withOriginalInferModelObservation','buildLocalPublicationPlan',
-    body('sourceFreeInferEffectPublicationPlan')+'\n'+body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
+    body('sourceFreeInferEffectPublicationPlan', sourceFreeBodies)+'\n'+body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
       '\nreturn {acquiredMultiEffectPublicationPlan,acquiredInferEffectPublicationPlan};');
   const functions=create(runtimeField,runtimeOptionalField,checked,limits,
     withOriginalInferModelObservation,buildLocalPublicationPlan);

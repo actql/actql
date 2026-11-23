@@ -113157,7 +113157,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f22952f448b3f274b2c9e4427788f5ea0f944f0b07e722512324aa7c3fe74d24",
+      "sha256": "1cdfdd4d52049bc4fb026658f0e1c7e1a981a6a7b33940d5b4aaf6e1d7c72e1c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -113196,13 +113196,6 @@
         "sourceFreeValuesPlan"
       ],
       "operations": [
-        {
-          "name": "acquiredEffectPublicationAdmission",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
         {
           "name": "acquiredEffectPublicationPlan",
           "parameters": [
@@ -113435,15 +113428,6 @@
           "async": false
         },
         {
-          "name": "openSourceFreeEffectComputation",
-          "parameters": [
-            "moon",
-            "facts",
-            "managedRun"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareAcquiredEffectSourceUnits",
           "parameters": [
             "acquired",
@@ -113467,55 +113451,6 @@
           "parameters": [
             "unit",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeContentEffectPublicationPlan",
-          "parameters": [
-            "acquired",
-            "compiled",
-            "generation",
-            "managedRun",
-            "sourcePlan",
-            "sourceHost"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeEffectPublicationPlan",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeEffectPublicationPlanOriginal",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeInferEffectPublicationPlan",
-          "parameters": [
-            "acquired",
-            "compiled",
-            "operation",
-            "issuance",
-            "modelEvidence",
-            "issuedModel",
-            "modelOriginals",
-            "managedRun",
-            "sourcePlan",
-            "sourceHost"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
-          "parameters": [
-            "model"
           ],
           "async": false
         }
@@ -113741,16 +113676,14 @@
           }
         },
         {
-          "operations": [
-            "acquiredEffectPublicationAdmission"
-          ],
+          "operations": [],
           "exports": [
             "acquiredEffectPublicationAdmission"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113760,7 +113693,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113770,7 +113703,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113780,7 +113713,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113790,7 +113723,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113800,7 +113733,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113810,7 +113743,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113820,7 +113753,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113830,7 +113763,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -113840,7 +113773,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -115104,9 +115037,7 @@
           }
         },
         {
-          "operations": [
-            "openSourceFreeEffectComputation"
-          ],
+          "operations": [],
           "exports": [
             "openSourceFreeEffectComputation"
           ],
@@ -116367,16 +116298,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeContentEffectPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeContentEffectPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116398,7 +116327,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116420,7 +116349,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116442,7 +116371,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116464,7 +116393,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116482,7 +116411,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116500,7 +116429,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116518,7 +116447,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116536,7 +116465,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeContentEffectPublicationPlan"
               },
               {
@@ -116573,16 +116502,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeEffectPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeEffectPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116592,7 +116519,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116602,7 +116529,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116612,7 +116539,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116622,7 +116549,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116632,7 +116559,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116642,7 +116569,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116652,7 +116579,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116662,7 +116589,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116672,7 +116599,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeEffectPublicationPlan"
               },
               {
@@ -116687,17 +116614,14 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeInferEffectPublicationPlan",
-            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeInferEffectPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116715,7 +116639,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116733,7 +116657,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116751,7 +116675,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116769,7 +116693,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116787,7 +116711,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116805,7 +116729,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116823,7 +116747,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116841,7 +116765,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -116859,7 +116783,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
                 "anchor": "sourceFreeInferEffectPublicationPlan"
               },
               {
@@ -117860,17 +117784,15 @@
           }
         },
         {
-          "operations": [
-            "sourceFreeEffectPublicationPlanOriginal"
-          ],
+          "operations": [],
           "exports": [
             "sourceFreeEffectPublicationPlanOriginal"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117879,8 +117801,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117889,8 +117811,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117899,8 +117821,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117909,8 +117831,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117919,8 +117841,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117929,8 +117851,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117939,8 +117861,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -117949,8 +117871,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
               },
               {
                 "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
@@ -118105,7 +118027,982 @@
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",
         "./local-query-invocation.mjs",
+        "./local-source-free-effect-publication.mjs",
         "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-source-free-effect-publication.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "515d711cee858cbe0e76acfe8a3116d7df5a05c41141b1605ea222eedd22043f",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "acquiredEffectPublicationAdmission",
+        "openSourceFreeEffectComputation",
+        "sourceFreeContentEffectPublicationPlan",
+        "sourceFreeEffectPublicationPlan",
+        "sourceFreeEffectPublicationPlanOriginal",
+        "sourceFreeInferEffectPublicationPlan"
+      ],
+      "operations": [
+        {
+          "name": "acquiredEffectPublicationAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSourceFreeEffectComputation",
+          "parameters": [
+            "moon",
+            "facts",
+            "managedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeContentEffectPublicationPlan",
+          "parameters": [
+            "acquired",
+            "compiled",
+            "generation",
+            "managedRun",
+            "sourcePlan",
+            "sourceHost"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeEffectPublicationPlan",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeEffectPublicationPlanOriginal",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeInferEffectPublicationPlan",
+          "parameters": [
+            "acquired",
+            "compiled",
+            "operation",
+            "issuance",
+            "modelEvidence",
+            "issuedModel",
+            "modelOriginals",
+            "managedRun",
+            "sourcePlan",
+            "sourceHost"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquired.compilation, acquired.dataPolicyCid, limits);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "facts.prepared, facts.identity));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "issued.invocation, issued.owner, issued.original, options.managedRun, options.sourcePlan);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "return checked(moon.clientProgramInstalledEffectManagedHostOpen(managedRun, facts.owner, []));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "throw new TypeError('ContentPolicyMissing');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "if (issuedModel === undefined) moon.clientProgramReleaseInferInvocationBinding(issued.binding);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquired.requestIdentity, sourcePlan, dataPolicyCid, acquired.selectRetention(), limits)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "const contentGenerations=Object.freeze([generation]);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/original-effect-query-time.test.mjs",
+                "anchor": "Effect computation forwards the same invocation preparation and request"
+              },
+              {
+                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "anchor": "one admitted Effect retains its original input retention after the Model clock advances"
+              },
+              {
+                "path": "adapters/host-node/acquired-model-publication.test.mjs",
+                "anchor": "source-free plural Model publication retains every original Unit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquiredEffectPublicationAdmission"
+          ],
+          "exports": [
+            "acquiredEffectPublicationAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "acquiredEffectPublicationAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openSourceFreeEffectComputation"
+          ],
+          "exports": [
+            "openSourceFreeEffectComputation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeContentEffectPublicationPlan"
+          ],
+          "exports": [
+            "sourceFreeContentEffectPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
+                "anchor": "test \"source-free Content Effect compiler requires"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeEffectPublicationPlan"
+          ],
+          "exports": [
+            "sourceFreeEffectPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeInferEffectPublicationPlan",
+            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
+          ],
+          "exports": [
+            "sourceFreeInferEffectPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "sourceFreeInferEffectPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeEffectPublicationPlanOriginal"
+          ],
+          "exports": [
+            "sourceFreeEffectPublicationPlanOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-source-free-effect-publication.mts",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options: AdmissionWith<EffectMoon, OriginalValueControl> & Initialization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-capture-inputs.mts",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('late Values binding consumes its exact early receipt once at the closed port'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
