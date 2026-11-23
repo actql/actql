@@ -222,7 +222,7 @@ test "capacity COMMIT preserves the actual extended code across failed rollback"
     abort("the unconfirmed capacity change cannot return an ACK")
   }
   assert_eq(
-    primary, "SQLite capacity COMMIT failure: primary 787, rollback -5, state 1",
+    primary, "SQLite capacity COMMIT failure: primary 787, rollback -5, state 1: FOREIGN KEY constraint failed",
   )
   assert_true(database.transaction_fenced())
   assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
@@ -309,4 +309,41 @@ test "ordinal capacity exhaustion preserves the primary when cleanup is unconfir
   assert_true(database.lookup_claim_ordinal("original", "second") is Ok(None))
   database.close_checked().unwrap()
   root.close().unwrap()
+}
+
+///|
+#borrow(database)
+extern "C" fn capacity_test_refuse_insert(database : Database) -> Int = "actql_native_sqlite_test_refuse_capacity_insert"
+
+///|
+test "real capacity body refusal keeps its whole SQLite reason after failed rollback" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let sqlite = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  // The whole primary reason fits 32 bytes. The combined report cannot fit.
+  for ceiling in [32, 128] {
+    let library = load_library(sqlite, diagnostic_ceiling=Some(ceiling)).unwrap()
+    let selected = path + "/capacity-trigger-\{ceiling}.sqlite3"
+    let database = library.open_database_with_custody(selected, 64L).unwrap()
+    assert_eq(capacity_test_refuse_insert(database), 0)
+    capacity_test_finish_fault(database, 0, 1)
+    guard database.reserve_capacity("original", "input", 8L, 1L, 64L, 2L)
+      is Err(Physical(primary)) else {
+      abort("original capacity statement refusal lost")
+    }
+    assert_eq(
+      primary,
+      if ceiling == 32 {
+        "capacity fixture refused"
+      } else {
+        "SQLite capacity body failure: primary -1, rollback -5, state 1: capacity fixture refused"
+      },
+    )
+    assert_true(database.transaction_fenced())
+    assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+    database.rollback().unwrap()
+    assert_true(database.transaction_fenced())
+    assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+    assert_true(database.read_capacity("original", "input") is Err(NotFound))
+    database.close_checked().unwrap()
+  }
 }

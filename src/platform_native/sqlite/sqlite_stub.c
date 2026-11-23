@@ -99,11 +99,26 @@ typedef struct {
 
 typedef struct actql_native_store_operation actql_native_store_operation;
 
+typedef enum {
+  ACTQL_CAPACITY_FAILURE_NONE,
+  ACTQL_CAPACITY_FAILURE_BODY,
+  ACTQL_CAPACITY_FAILURE_COMMIT
+} actql_capacity_failure_phase;
+
+// Same-operation diagnostic facts. The original SQLite text remains in error.
+typedef struct {
+  actql_capacity_failure_phase phase;
+  int32_t primary;
+  int32_t rollback;
+  int32_t state;
+} actql_capacity_failure;
+
 typedef struct {
   actql_native_sqlite_library *library;
   sqlite3 *database;
   actql_native_store_operation *store_operation;
   char *error;
+  actql_capacity_failure capacity_failure;
   unsigned char *result_body;
   int32_t result_body_length;
   unsigned char *result_key;
@@ -321,6 +336,7 @@ static void actql_retire_result_storage(actql_native_sqlite_database *database) 
 
 static void actql_clear_result(actql_native_sqlite_database *database) {
   actql_retire_result_storage(database);
+  database->capacity_failure.phase = ACTQL_CAPACITY_FAILURE_NONE;
   actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, NULL);
 }
 
@@ -382,6 +398,7 @@ static void actql_native_sqlite_database_close(
       database->library->close_v2(database->database) != SQLITE_OK) return;
   database->database = NULL;
   database->opened = false;
+  database->capacity_failure.phase = ACTQL_CAPACITY_FAILURE_NONE;
   actql_retire_result_storage(database);
 }
 
@@ -691,6 +708,18 @@ int32_t actql_native_sqlite_test_stage_deferred_constraint(
     "CREATE TEMP TABLE actql_test_child(parent INTEGER REFERENCES "
     "actql_test_parent(id) DEFERRABLE INITIALLY DEFERRED);"
     "INSERT INTO actql_test_child VALUES (1)");
+}
+
+// Whitebox-only: fail the actual INSERT step, with no durable schema change.
+int32_t actql_native_sqlite_test_refuse_capacity_insert(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library)) return -1;
+  return actql_exec(database,
+    "CREATE TEMP TRIGGER actql_test_refuse_capacity "
+    "BEFORE INSERT ON main.actql_capacity BEGIN "
+    "SELECT RAISE(ABORT, 'capacity fixture refused'); END");
 }
 
 static int actql_user_version(actql_native_sqlite_database *database) {
@@ -1422,8 +1451,36 @@ MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_retained_data_current(
 moonbit_bytes_t actql_native_sqlite_database_error(
   actql_native_sqlite_database *database
 ) {
-  return database == NULL || !actql_library_current(database->library) ? actql_copy_bytes(NULL, 0) :
-    actql_copy_diagnostic(database->error, database->diagnostic_ceiling);
+  if (database == NULL || !actql_library_current(database->library))
+    return actql_copy_bytes(NULL, 0);
+  const actql_capacity_failure failure = database->capacity_failure;
+  if (failure.phase != ACTQL_CAPACITY_FAILURE_NONE) {
+    database->capacity_failure.phase = ACTQL_CAPACITY_FAILURE_NONE;
+    char detail[256];
+    int prefix = snprintf(detail, sizeof(detail),
+      "SQLite capacity %s failure: primary %d, rollback %d, state %d",
+      failure.phase == ACTQL_CAPACITY_FAILURE_COMMIT ? "COMMIT" : "body",
+      failure.primary, failure.rollback, failure.state);
+    if (prefix >= 0 && (size_t)prefix < sizeof(detail) - 2) {
+      size_t length = (size_t)prefix;
+      bool complete = true;
+      if (database->error != NULL) {
+        size_t room = sizeof(detail) - length - 3;
+        size_t primary_length = strnlen(database->error, room + 1);
+        complete = primary_length <= room;
+        if (complete) {
+          memcpy(detail + length, ": ", 2);
+          memcpy(detail + length + 2, database->error, primary_length + 1);
+          length += 2 + primary_length;
+        }
+      }
+      if (complete && (database->diagnostic_ceiling <= 0 ||
+          length <= (size_t)database->diagnostic_ceiling))
+        return actql_copy_bytes(detail, (int32_t)length);
+    }
+    // If the combined diagnostic does not fit, keep the whole original reason.
+  }
+  return actql_copy_diagnostic(database->error, database->diagnostic_ceiling);
 }
 
 static int32_t actql_database_read(
@@ -2224,7 +2281,8 @@ static int32_t actql_capacity_rollback(
 }
 
 static int32_t actql_capacity_finish_failure(
-  actql_native_sqlite_database *database, int32_t primary, bool commit_attempt
+  actql_native_sqlite_database *database, actql_capacity_failure_phase phase,
+  int32_t operation_tag, int32_t primary_observation
 ) {
   int32_t state = actql_native_sqlite_database_transaction_state(database);
   int32_t rollback = ACTQL_TRANSACTION_NOT_ISSUED;
@@ -2237,18 +2295,14 @@ static int32_t actql_capacity_finish_failure(
 
   // Keep the original body denial after cleanup. COMMIT BUSY retains its
   // original category only when the transaction is confirmed stopped.
-  if (!commit_attempt && stopped) return primary;
-  if (commit_attempt && stopped && actql_operation_code(primary) == 3)
-    return 3;
+  if (stopped && (phase == ACTQL_CAPACITY_FAILURE_BODY || operation_tag == 3))
+    return operation_tag;
 
   // NoActive alone supplies neither durable outcome nor retry permission.
   database->transaction_fenced = 1;
-  char detail[144];
-  snprintf(detail, sizeof(detail),
-    "SQLite capacity %s failure: primary %d, rollback %d, state %d",
-    commit_attempt ? "COMMIT" : "body", primary, rollback, state);
-  actql_replace_error_for(database->library, &database->error,
-    database->diagnostic_ceiling, detail);
+  database->capacity_failure = (actql_capacity_failure){
+    phase, primary_observation, rollback, state
+  };
   return -1;
 }
 
@@ -2256,7 +2310,8 @@ static int32_t actql_capacity_body_failure(
   actql_native_sqlite_database *database, bool owns_transaction, int32_t primary
 ) {
   return owns_transaction ?
-    actql_capacity_finish_failure(database, primary, false) : primary;
+    actql_capacity_finish_failure(database, ACTQL_CAPACITY_FAILURE_BODY,
+      primary, primary) : primary;
 }
 
 static int32_t actql_capacity_begin(
@@ -2274,7 +2329,8 @@ static int32_t actql_capacity_commit(
   if (fault == ACTQL_CAPACITY_COMMIT_DEFERRED_CONSTRAINT) {
     int staged = actql_native_sqlite_test_stage_deferred_constraint(database);
     if (staged != SQLITE_OK)
-      return actql_capacity_finish_failure(database, staged, false);
+      return actql_capacity_finish_failure(database, ACTQL_CAPACITY_FAILURE_BODY,
+        actql_operation_code(staged), staged);
   }
   int code = fault == ACTQL_CAPACITY_COMMIT_REFUSED ?
     ACTQL_TRANSACTION_REFUSED_BEFORE_SQL : actql_exec(database, "COMMIT");
@@ -2282,7 +2338,8 @@ static int32_t actql_capacity_commit(
     if (fault != ACTQL_CAPACITY_COMMIT_REPLY_LOST) return 0;
     code = ACTQL_TRANSACTION_REPLY_LOST;
   }
-  return actql_capacity_finish_failure(database, code, true);
+  return actql_capacity_finish_failure(database, ACTQL_CAPACITY_FAILURE_COMMIT,
+    actql_operation_code(code), code);
 }
 
 static int32_t actql_capacity_existing(
