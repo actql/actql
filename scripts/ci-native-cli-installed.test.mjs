@@ -13,7 +13,7 @@ import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthoriz
   from './ci-native-cli-installed.mjs';
 import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
 import {admitNativeReleaseCohort} from './native-cli-release.mjs';
-import {runSharedHostSourceAcceptance} from './fixtures/shared-host-source-acceptance.mjs';
+import {readSharedHostConnectorPack, runSharedHostSourceAcceptance} from './fixtures/shared-host-source-acceptance.mjs';
 import {runSharedHostSourceFixture} from './fixtures/shared-host-source-cancel.mjs';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 
@@ -21,6 +21,17 @@ const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.
 test('shared Source fault selection refuses an unsupported case before software or state acquisition', async () => {
   await assert.rejects(runSharedHostSourceAcceptance({scenario: 'replay-after-crash'}),
     /Unsupported shared Source acceptance scenario/u);
+});
+
+test('shared Source connector pack requires exactly one original package in either npm JSON shape', () => {
+  const connector = {name: '@actql-connectors/acme', filename: 'actql-connectors-acme-0.0.1.tgz'};
+  for (const output of [[connector], {[connector.name]: connector}]) {
+    assert.deepEqual(readSharedHostConnectorPack(JSON.stringify(output)), connector);
+  }
+  assert.throws(() => readSharedHostConnectorPack(JSON.stringify([connector, connector])));
+  assert.throws(() => readSharedHostConnectorPack(JSON.stringify([{
+    ...connector, name: '@actql-connectors/foreign',
+  }])));
 });
 
 // Actual imported fixture lifetime with inert constructor/listener ports.

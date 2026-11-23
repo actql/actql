@@ -16,6 +16,7 @@ from unittest.mock import patch
 from actql_sdk._local_storage import (
     ByteFence, ByteWrite, CapacityReservation, LocalByteStore,
     LocalStorageError, StoredBytes,
+    LocalStorageCommitUnknown,
 )
 
 
@@ -142,8 +143,10 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True
-                with self.assertRaisesRegex(OSError, 'ACK lost'):
+                with self.assertRaises(LocalStorageCommitUnknown) as caught:
                     store.compare_exchange_many_attached(self.writes(), originals)
+                self.assertIs(caught.exception.cleanup_store, store)
+                self.assertRegex(str(caught.exception.__cause__), 'ACK lost')
                 self.assertEqual(store._connection.writes, 3)
                 for write in self.writes():
                     self.assertEqual(store.read_exchange(write), StoredBytes(0, write.payload))

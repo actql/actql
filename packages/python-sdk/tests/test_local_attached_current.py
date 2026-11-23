@@ -43,18 +43,21 @@ class AttachedCurrentTests(unittest.TestCase):
 
     def test_commit_reply_loss_preserves_same_store_and_actual_allocated_bytes(self):
         store, _, binding, original, capacity, write = self.fixture()
-        actual = store._connection
-        class LostReply:
-            @property
-            def in_transaction(self): return actual.in_transaction
-            def execute(self, sql, *args):
-                result = actual.execute(sql, *args)
-                if sql == 'COMMIT': raise OSError('original allocation reply lost')
-                return result
-        with patch.object(store, '_connection', LostReply()):
+        physical = store._physical
+        original_commit = type(physical).commit
+        primary = OSError('original allocation reply lost')
+
+        def lose_reply(database):
+            self.assertIs(database, physical)
+            original_commit(database)
+            raise primary
+
+        with patch.object(type(physical), 'commit', new=lose_reply):
             with self.assertRaises(LocalStorageCommitUnknown) as failure:
                 self.invoke(store, binding, original, capacity, write)
         self.assertIs(failure.exception.cleanup_store, store)
+        self.assertIs(failure.exception.__cause__, primary)
+        self.assertFalse(failure.exception.commit_confirmed)
         self.assertEqual(store.read(write.key).payload, write.payload)
         self.assertEqual(store.read_capacity(capacity.namespace, capacity.key), capacity)
 

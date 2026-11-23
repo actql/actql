@@ -188,15 +188,6 @@ fn wire_rule_1073(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1075(value : Json) -> Bool {
-  guard value is String(text) else { return false }
-  if !(text == "observed") {
-    return false
-  }
-  true
-}
-
-///|
 fn wire_rule_1078(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "not_provided") {

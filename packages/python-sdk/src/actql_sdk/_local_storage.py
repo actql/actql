@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import stat
 from threading import RLock, get_ident
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal as _Literal
 
 if TYPE_CHECKING:
     from ._local_host_binding import _InvocationObservation
@@ -116,6 +116,9 @@ class CapacityUsage:
     reserved_objects: int
 
 
+_TransactionCleanupPhase = _Literal['state_inspection', 'rollback']
+
+
 class LocalStorageError(RuntimeError):
     """Physical storage failure; it grants no execution, retry or absence fact."""
 
@@ -127,9 +130,26 @@ class LocalStorageCommitUnknown(LocalStorageError):
     current-port refusal after COMMIT cannot become a pre-write refusal.
     """
 
-    def __init__(self, cleanup_store: 'LocalByteStore') -> None:
+    def __init__(self, cleanup_store: 'LocalByteStore', *,
+                 commit_confirmed: bool = False, cleanup_error: BaseException | None = None,
+                 _cleanup_phase: _TransactionCleanupPhase | None = None) -> None:
         super().__init__('Local physical COMMIT outcome is unknown')
         self.cleanup_store = cleanup_store
+        self.commit_confirmed = commit_confirmed
+        self.cleanup_error = cleanup_error
+        self._cleanup_phase = _cleanup_phase
+
+
+class LocalStorageWriteCleanupPending(LocalStorageError):
+    """The original write connection has no confirmed transaction stop."""
+
+    def __init__(self, cleanup_store: 'LocalByteStore',
+                 cleanup_error: BaseException, *,
+                 _cleanup_phase: _TransactionCleanupPhase | None = None) -> None:
+        super().__init__('Local physical storage transaction cleanup is pending')
+        self.cleanup_store = cleanup_store
+        self.cleanup_error = cleanup_error
+        self._cleanup_phase = _cleanup_phase
 
 
 class LocalStorageInitializationError(LocalStorageError):
@@ -138,7 +158,7 @@ class LocalStorageInitializationError(LocalStorageError):
         self.cleanup_store = cleanup_store
 
 
-class _ProjectedWriteConflict(Exception):
+class _PhysicalWriteConflict(Exception):
     """Internal physical CAS refusal; not a Run or publication outcome."""
 
 
@@ -192,9 +212,16 @@ class LocalByteStore:
                     self._close_descriptor()
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
+        # SQLite transactions are owned by explicit SQL. Keep CPython's
+        # legacy isolation_level=None semantics when autocommit is available.
+        transaction_mode = {}
+        legacy_mode = getattr(sqlite3, 'LEGACY_TRANSACTION_CONTROL', None)
+        if legacy_mode is not None:
+            transaction_mode['autocommit'] = legacy_mode
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False,
-                                           factory=_TrackedSQLiteConnection, cached_statements=0)
+                                           factory=_TrackedSQLiteConnection, cached_statements=0,
+                                           **transaction_mode)
         try:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
@@ -205,7 +232,13 @@ class LocalByteStore:
             # Changing it later discards TEMP while SQLite may retain prepared
             # schema observations from this same connection's constructor.
             self._connection.execute('PRAGMA temp_store = FILE')
-            self._connection.execute('BEGIN IMMEDIATE')
+            if self._created:
+                self._configure_durability()
+                self._connection.execute('BEGIN IMMEDIATE')
+            else:
+                # Identify the existing format in one read snapshot before
+                # asking SQLite to set a persistent journal mode.
+                self._connection.execute('BEGIN')
             try:
                 schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
                     WHERE name NOT LIKE 'sqlite_%' LIMIT 1''').fetchone()
@@ -247,8 +280,8 @@ class LocalByteStore:
                 if self._physical.in_transaction:
                     self._connection.execute('ROLLBACK')
                 raise
-            self._connection.execute('PRAGMA journal_mode = DELETE')
-            self._connection.execute('PRAGMA synchronous = FULL')
+            if not self._created:
+                self._configure_durability()
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
             self._observe_generation()
@@ -259,6 +292,13 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    def _configure_durability(self) -> None:
+        if self._connection.execute('PRAGMA main.journal_mode = DELETE').fetchone() != ('delete',):
+            raise LocalStorageError('Original Local Store journal mode is unavailable')
+        self._connection.execute('PRAGMA main.synchronous = EXTRA')
+        if self._connection.execute('PRAGMA main.synchronous').fetchone() != (3,):
+            raise LocalStorageError('Original Local Store synchronous mode is unavailable')
 
     def _prepare_physical_path(self, path: Path, *, max_records: int,
                                max_record_bytes: int, max_payload_bytes: int,
@@ -279,6 +319,7 @@ class LocalByteStore:
         self._ready = False
         self._created = False
         self._creation_claimed = False
+        self._write_cleanup_pending = False
         self._opening_descriptor = None
         self._max_records = max_records
         self._max_record_bytes = max_record_bytes
@@ -382,8 +423,30 @@ class LocalByteStore:
             raise LocalStorageError('Local physical storage is closed')
         if self._native_file_root is not None:
             self._observe_generation()
-        if self._physical.in_transaction:
+        if self._write_cleanup_pending or self._physical.in_transaction:
             raise LocalStorageError('Local physical storage transaction cleanup is pending')
+
+    def _classify_failed_write(self, failure: BaseException, *,
+                               commit_attempted: bool, commit_confirmed: bool) -> None:
+        cleanup_error = None
+        cleanup_phase: _TransactionCleanupPhase | None = None
+        if not commit_confirmed:
+            phase: _TransactionCleanupPhase = 'state_inspection'
+            try:
+                if self._physical.in_transaction:
+                    phase = 'rollback'
+                    self._physical.rollback()
+            except BaseException as cleanup:
+                self._write_cleanup_pending = True
+                cleanup_error = cleanup
+                cleanup_phase = phase
+        if commit_attempted:
+            raise LocalStorageCommitUnknown(
+                self, commit_confirmed=commit_confirmed, cleanup_error=cleanup_error,
+                _cleanup_phase=cleanup_phase) from failure
+        if cleanup_error is not None:
+            raise LocalStorageWriteCleanupPending(
+                self, cleanup_error, _cleanup_phase=cleanup_phase) from failure
 
     @staticmethod
     def _key(key: str) -> None:
@@ -543,9 +606,9 @@ class LocalByteStore:
         with self._lock:
             self._open()
             database = self._physical
-            database.begin_immediate()
-            commit_attempted = False
+            commit_attempted = commit_confirmed = False
             try:
+                database.begin_immediate()
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences):
                     raise LocalStorageError('Original Local capacity fences changed')
@@ -565,18 +628,12 @@ class LocalByteStore:
                     raise LocalStorageError('Original Local capacity fences changed')
                 commit_attempted = True
                 database.commit()
+                commit_confirmed = True
                 self._fenced_current(current)
                 return changed
             except BaseException as failure:
-                try:
-                    if database.in_transaction:
-                        database.rollback()
-                except BaseException as cleanup:
-                    if current is not None and commit_attempted:
-                        raise LocalStorageCommitUnknown(self) from cleanup
-                    raise
-                if current is not None and commit_attempted:
-                    raise LocalStorageCommitUnknown(self) from failure
+                self._classify_failed_write(failure, commit_attempted=commit_attempted,
+                                            commit_confirmed=commit_confirmed)
                 raise
 
     def release_capacity(self, namespace: str, key: str,
@@ -593,18 +650,20 @@ class LocalByteStore:
         with self._lock:
             self._open()
             database = self._physical
-            database.begin_immediate()
+            commit_attempted = False
             try:
+                database.begin_immediate()
                 try:
                     changed = database.release_capacity_in_transaction(
                         namespace, key, reserved_bytes, reserved_objects)
                 except _PhysicalCapacityCollision as collision:
                     raise LocalStorageError('Local physical capacity reservation collision') from collision
+                commit_attempted = True
                 database.commit()
                 return changed
-            except BaseException:
-                if database.in_transaction:
-                    database.rollback()
+            except BaseException as failure:
+                self._classify_failed_write(failure, commit_attempted=commit_attempted,
+                                            commit_confirmed=False)
                 raise
 
     def compare_exchange_reserved(self, write: ByteWrite,
@@ -1822,15 +1881,14 @@ class LocalByteStore:
         with self._lock:
             self._open()
             database = self._physical
-            database.begin_immediate()
-            commit_attempted = False
+            commit_attempted = commit_confirmed = False
             try:
+                database.begin_immediate()
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
-                    database.rollback()
-                    return None
+                    raise _PhysicalWriteConflict()
                 record_count, payload_bytes = database.record_usage()
                 generations: list[int] = []
                 keys: set[str] = set()
@@ -1892,10 +1950,10 @@ class LocalByteStore:
                                 if existing[1] > self._max_record_bytes:
                                     raise LocalStorageError('Local physical payload capacity exceeded')
                                 if existing[1] != len(write.payload):
-                                    raise _ProjectedWriteConflict()
+                                    raise _PhysicalWriteConflict()
                                 stored = self._read_bytes_locked(write.key)
                                 if stored is None or stored.payload != write.payload:
-                                    raise _ProjectedWriteConflict()
+                                    raise _PhysicalWriteConflict()
                                 del stored
                                 keys.add(write.key)
                                 generations.append(existing[0])
@@ -1904,7 +1962,7 @@ class LocalByteStore:
                             if ((existing is None) != (write.expected_generation is None)
                                     or (existing is not None
                                         and existing[0] != write.expected_generation)):
-                                raise _ProjectedWriteConflict()
+                                raise _PhysicalWriteConflict()
                             generation = 0 if existing is None else existing[0] + 1
                             next_count = record_count + (1 if existing is None else 0)
                             next_bytes = payload_bytes - (0 if existing is None else existing[1]) + len(write.payload)
@@ -1983,35 +2041,19 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
-                    database.rollback()
-                    return None
+                    raise _PhysicalWriteConflict()
                 commit_attempted = True
                 database.commit()
+                commit_confirmed = True
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
                 return tuple(generations)
-            except _ProjectedWriteConflict as original:
-                try:
-                    if database.in_transaction:
-                        database.rollback()
-                except BaseException as cleanup_failure:
-                    if current is not None and commit_attempted:
-                        raise LocalStorageCommitUnknown(self) from cleanup_failure
-                    raise
-                if current is not None and commit_attempted:
-                    raise LocalStorageCommitUnknown(self) from original
-                return None
-            except BaseException as original:
-                try:
-                    if database.in_transaction:
-                        database.rollback()
-                except BaseException as cleanup_failure:
-                    if current is not None and commit_attempted:
-                        raise LocalStorageCommitUnknown(self) from cleanup_failure
-                    raise
-                if current is not None and commit_attempted:
-                    raise LocalStorageCommitUnknown(self) from original
+            except BaseException as failure:
+                self._classify_failed_write(failure, commit_attempted=commit_attempted,
+                                            commit_confirmed=commit_confirmed)
+                if type(failure) is _PhysicalWriteConflict:
+                    return None
                 raise
 
     def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
@@ -2142,19 +2184,17 @@ class LocalByteStore:
         with self._lock:
             self._open()
             database = self._physical
-            database.begin_immediate()
-            commit_attempted = False
+            commit_attempted = commit_confirmed = False
             try:
+                database.begin_immediate()
                 self._fenced_current(current)
                 if capacity is not None:
                     retained = database.read_capacity(capacity.namespace, capacity.key)
                     if retained != (capacity.reserved_bytes, capacity.reserved_objects):
-                        database.rollback()
-                        return None
+                        raise _PhysicalWriteConflict()
                 if (not self._originals_match_locked(originals)
                         or not self._fences_match_locked(fences)):
-                    database.rollback()
-                    return None
+                    raise _PhysicalWriteConflict()
                 if inspect is not None:
                     # This reader retires before this owner starts its SQL writes.
                     self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
@@ -2164,8 +2204,7 @@ class LocalByteStore:
                     existing = database.read_header(write.key)
                     if (existing is None) != (write.expected_generation is None) or (
                             existing is not None and existing[0] != write.expected_generation):
-                        database.rollback()
-                        return None
+                        raise _PhysicalWriteConflict()
                     if existing is None:
                         inserted += 1
                         generations.append(0)
@@ -2183,24 +2222,17 @@ class LocalByteStore:
                         raise LocalStorageError('Original Local physical CAS generation changed')
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, writes):
-                    database.rollback()
-                    return None
+                    raise _PhysicalWriteConflict()
                 commit_attempted = True
                 database.commit()
+                commit_confirmed = True
                 self._fenced_current(current)
                 return tuple(generations)
             except BaseException as failure:
-                # COMMIT failure is not a successful write or permission to
-                # resend. Preserve the exception and the original store handle.
-                try:
-                    if database.in_transaction:
-                        database.rollback()
-                except BaseException as cleanup_failure:
-                    if current is not None and commit_attempted:
-                        raise LocalStorageCommitUnknown(self) from cleanup_failure
-                    raise
-                if current is not None and commit_attempted:
-                    raise LocalStorageCommitUnknown(self) from failure
+                self._classify_failed_write(failure, commit_attempted=commit_attempted,
+                                            commit_confirmed=commit_confirmed)
+                if type(failure) is _PhysicalWriteConflict:
+                    return None
                 raise
 
     def close(self) -> None:

@@ -14,12 +14,13 @@ import {externalRestConfiguration} from './external-rest/configuration.mjs';
 import {publishStandardRestBarrier} from './external-rest/cancel-conformance.mjs';
 import {runNativeInstallCommand} from '../test-native-standalone-install.mjs';
 import {verifyNodeBenchmarkPackages} from '../benchmark-node-operations.mjs';
-import {inventory} from '../package-release.mjs';
+import {inventory, nodePackages, verifyPackageRelease} from '../package-release.mjs';
 import {normalNpmPackJsonArgs, parseNpmPackJson} from '../packed-client-packages.mjs';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, CLIENT_PACKAGES, packedClientPackage} from '../packed-client-packages.mjs';
 import {verifyNativeCliRelease} from '../native-cli-release.mjs';
-import {verifyNativeStandaloneInstallation} from '../release-native-install.mjs';
+import {admitInstalledNativeRemoteHttp, verifyNativeStandaloneInstallation} from '../release-native-install.mjs';
+import {installedLocalRuntimeEnvironment} from '../../packages/native-cli/lib/local-runtime.mjs';
 import {platformKey, macOSProductVersion} from '../../packages/native-cli/bin/actql.mjs';
 import {unpack} from '../package-release.mjs';
 const source = fileURLToPath(new URL('../../', import.meta.url));
@@ -31,6 +32,16 @@ const tool = promisify(execFile);
 // The existing Native installed CI owner selects these two affected cases.
 // No producer, normal package fallback or product service is supplied here.
 export const sharedHostSourceScenarios = Object.freeze(['client-crash', 'owner-crash']);
+export const fixedSharedHostSourceScenarios = Object.freeze(['cancel', ...sharedHostSourceScenarios]);
+
+export function readSharedHostConnectorPack(output) {
+ const value=parseNpmPackJson(output);
+ const packages=Array.isArray(value)?value:Object.values(value);
+ assert.equal(packages.length,1);
+ const [packed]=packages;
+ assert.equal(packed.name,'@actql-connectors/acme');
+ return packed;
+}
 
 async function crashOwnedHost(descriptor, env, cwd, save) {
  const args=[join(source,'scripts/fixtures/shared-host-source-cancel.mjs'),descriptor];
@@ -70,17 +81,23 @@ async function crashOwnedHost(descriptor, env, cwd, save) {
  return record;
 }
 
-export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory, scenario} = {}) {
- assert(sharedHostSourceScenarios.includes(scenario), 'Unsupported shared Source acceptance scenario');
+export async function originalNodeInputs(revision, output, sdkDirectory) {
+ if (sdkDirectory !== undefined) {
+  const manifestPath=join(sdkDirectory,'release.json');
+  const manifest=await verifyPackageRelease(sdkDirectory);
+  assert.equal(manifest.sourceSha,revision,'Fixed Source case requires the matching Node release');
+  const packages=nodePackages.map(name => {
+   const supplied=manifest.packages.find(item => item.name===`@actql/${name}`);
+   assert(supplied,`Fixed Node release is missing @actql/${name}`);
+   return supplied;
+  });
+  return {manifestPath, packages, nodeTarballs:packages.map(item => join(sdkDirectory,item.file))};
+ }
  assert(process.env.ACTQL_PACKED_CLIENT_PACKAGES, 'Use the original normal Client producer; no fallback build');
- const fixed=checkoutState(source);assert.equal(fixed.clean,true);
- const native=await verifyNativeCliRelease(nativeDirectory);assert.equal(native.sourceSha,fixed.revision);
- const output=outputRoot;await mkdir(output);
- const save=(name,value)=>writeFile(join(output,name),JSON.stringify(value,null,2)+'\n',{flag:'wx'});
- const inputCopies=join(output,'normal-inputs');await mkdir(inputCopies);
- const normalManifestPath=join(process.env.ACTQL_PACKED_CLIENT_PACKAGES,'packed-client-packages.json');
- const originalManifest=await read(normalManifestPath);assert.equal(originalManifest.revision,fixed.revision);
+ const manifestPath=join(process.env.ACTQL_PACKED_CLIENT_PACKAGES,'packed-client-packages.json');
  const nodeTarballs=[],packages=[];
+ const originalManifest=await read(manifestPath);assert.equal(originalManifest.revision,revision);
+ const inputCopies=join(output,'normal-inputs');await mkdir(inputCopies);
  for(const name of CLIENT_PACKAGES){
   await packedClientPackage({repository:source,name,destination:inputCopies,
    pack(){throw Error('Shared Host CI consumes only the existing normal producer');}});
@@ -90,15 +107,27 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   packages.push({name:`@actql/${name}`,file,bytes:bytes.length,sha256:hash(bytes),
    integrity:'sha512-'+createHash('sha512').update(bytes).digest('base64'),files:await inventory(extracted)});
  }
- // Derived comparison DATA only; the canonical producer manifest above remains
- // the source/digest authority, and no replacement manifest is emitted.
+ // Derived comparison data for the existing development artifact.
+ return {manifestPath, packages, nodeTarballs};
+}
+
+export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory, sdkDirectory, scenario} = {}) {
+ const scenarios=sdkDirectory===undefined?sharedHostSourceScenarios:fixedSharedHostSourceScenarios;
+ assert(scenarios.includes(scenario), 'Unsupported shared Source acceptance scenario');
+ const fixed=checkoutState(source);assert.equal(fixed.clean,true);
+ const native=await verifyNativeCliRelease(nativeDirectory);assert.equal(native.sourceSha,fixed.revision);
+ const output=outputRoot;await mkdir(output);
+ const save=(name,value)=>writeFile(join(output,name),JSON.stringify(value,null,2)+'\n',{flag:'wx'});
+ const {manifestPath:normalManifestPath,packages,nodeTarballs}=await originalNodeInputs(fixed.revision,output,sdkDirectory);
+ const nodeInstallLabel=sdkDirectory===undefined?'normal-five':'fixed-node-release';
  const normalComparison={packages};
- await save('original-software-inputs.json',{source:fixed.revision,normalManifestPath,
-  normalManifestSha256:hash(await readFile(normalManifestPath)),nativeDirectory});
+ const normalManifestSha256=hash(await readFile(normalManifestPath));
+ await save('original-software-inputs.json',{source:fixed.revision,normalManifestPath,normalManifestSha256,nativeDirectory});
  const consumer=join(output,'consumer');await assert.rejects(lstat(consumer),{code:'ENOENT'});
  const originalProvider=externalRestProvider({mode:'paged'}),cleanupRelease=Promise.withResolvers();
  const markerPaths={first:join(output,'page-first-entered.json'),second:join(output,'page-second-entered.json')};
  const env={...process.env,npm_config_cache:join(output,'npm-cache')};
+ delete env.ACTQL_TEST_NATIVE_HTTP_LIBRARY;
  const commands=[],report={passed:false,runtimeHostSource:fixed.revision,nativeClientSource:native.sourceSha,fixtureSource:fixed.revision,commands};
  let family,before,pluginFiles,pluginRoot,hostCommand,primary,failed=false,pageCount=0;
  const run=async(name,command,args,cwd)=>{
@@ -135,38 +164,52 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   // Author validation resolves the same installed public package from its
   // consumer ancestor. Establish and verify it before invoking the author CLI.
   await mkdir(consumer);await writeFile(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
-  await run('install-normal-five','npm',['install','--offline','--no-audit','--no-fund',
+  await run(`install-${nodeInstallLabel}`,'npm',['install','--offline','--no-audit','--no-fund',
    ...nodeTarballs],consumer);
   const authorFramework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
-  await save('author-installed-normal-five.json',authorFramework);
+  await save(`author-installed-${nodeInstallLabel}.json`,authorFramework);
   const author=join(consumer,'author'),packageRoot=join(output,'connector-package');
   await run('author-init',process.execPath,[join(runtime,'scripts/connector.mjs'),'init',author,'acme'],runtime);
   const definition=join(author,'connector.json');await writeFile(definition,JSON.stringify(externalRestDefinition(family.resourceHttps.origin))+'\n');
   await run('author-build',process.execPath,[join(runtime,'scripts/connector.mjs'),'build',definition,packageRoot],runtime);
   pluginFiles=await inventory(packageRoot);
   const artifacts=join(output,'artifacts');await mkdir(artifacts);
-  const packed=parseNpmPackJson(await run('pack-connector','npm',normalNpmPackJsonArgs(['pack','--offline','--json','--pack-destination',artifacts]),packageRoot))[0];
-  assert.equal(packed.name,'@actql-connectors/acme');const connectorTar=join(artifacts,packed.filename);
+  const packed=readSharedHostConnectorPack(await run('pack-connector','npm',normalNpmPackJsonArgs(['pack','--offline','--json','--pack-destination',artifacts]),packageRoot));
+  const connectorTar=join(artifacts,packed.filename);
   const bytes=await readFile(connectorTar);assert.equal(packed.integrity,'sha512-'+createHash('sha512').update(bytes).digest('base64'));
+  const glibc=process.platform==='linux'?process.report.getReport().header.glibcVersionRuntime:undefined;
+  const platform=platformKey({platform:process.platform,arch:process.arch,glibc});
+  const artifact=native.artifacts.find(value=>value.platform===platform);
+  const nativePackage=native.packages.find(value=>value.name===native.platforms[platform]?.package);
+  const launcher=native.packages.find(value=>value.name==='actql');
+  assert(artifact&&nativePackage&&launcher);
+  const selectedNative=[launcher,nativePackage];
   await run('install-native-connector','npm',['install','--offline','--no-audit','--no-fund',
-   ...native.packages.map(p=>join(nativeDirectory,p.file)),connectorTar],consumer);
+   ...selectedNative.map(p=>join(nativeDirectory,p.file)),connectorTar],consumer);
   const installed=async()=>{
-   const n=[];for(const p of native.packages){const files=await inventory(join(consumer,'node_modules',p.name));assert.deepEqual(files,p.files);n.push({name:p.name,files});}
+   assert.equal(hash(await readFile(normalManifestPath)),normalManifestSha256);
+   const n=[];for(const p of selectedNative){const files=await inventory(join(consumer,'node_modules',p.name));assert.deepEqual(files,p.files);n.push({name:p.name,files});}
    const framework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
    assert.deepEqual(framework,authorFramework);
    const connector=await inventory(join(consumer,'node_modules/@actql-connectors/acme'));assert.deepEqual(connector,pluginFiles);
    return {native:n,framework,connector};
   };
   before=await installed();await save('installed-before.json',before);pluginRoot=installed;
-  const glibc=process.platform==='linux'?process.report.getReport().header.glibcVersionRuntime:undefined;
-  const platform=platformKey({platform:process.platform,arch:process.arch,glibc});
-  const artifact=native.artifacts.find(value=>value.platform===platform);
-  const nativePackage=native.packages.find(value=>value.name===native.platforms[platform].package);
-  assert(artifact&&nativePackage);
-  const admitted=await verifyNativeStandaloneInstallation(join(consumer,'node_modules',nativePackage.name),
-   {...nativePackage,platform},artifact,native.sourceSha,native.cohort.packageVersion,
-   {glibc,macOS:process.platform==='darwin'?macOSProductVersion():undefined});
-  await save('direct-native-admission.json',admitted);
+  const installedPlatform=join(consumer,'node_modules',nativePackage.name);
+  const platformFacts={glibc,macOS:process.platform==='darwin'?macOSProductVersion():undefined};
+  const admitted=await verifyNativeStandaloneInstallation(installedPlatform,
+   {...nativePackage,platform},artifact,native.sourceSha,native.cohort.packageVersion,platformFacts);
+  const expected={...native.platforms[platform],sourceSha:native.sourceSha,platform};
+  const remote=expected.localRuntimeSha256===undefined
+   ? undefined : admitInstalledNativeRemoteHttp(installedPlatform,expected,artifact);
+  if (remote===undefined) assert.equal(artifact.localRuntime,undefined);
+  else for(const key of Object.keys(env)){
+   if(key.startsWith('DYLD_')||key.startsWith('LD_')) delete env[key];
+  }
+  const installedContext=remote===undefined?undefined:installedLocalRuntimeEnvironment({
+   root:installedPlatform, expected, metadata:artifact.localRuntime, platformFacts, environment:{},
+  }).ACTQL_NATIVE_LOCAL_RUNTIME;
+  await save('direct-native-admission.json',{...admitted,...(remote===undefined?{}:{httpMember:remote.member})});
   const prepared=externalRestConfiguration(family,{connectorId:'rest-acme',profileVersion:'actql-installed-acme-rest-source/0.1'});
   for(const [name,value]of Object.entries(prepared.files))await family.writeProjectInput(name,JSON.stringify(value));
   // Select the existing declared records view. These lifetime cases do not
@@ -179,9 +222,10 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
    outputRoot:publicRoot,installation:prepared.installation,connectorPackage:'@actql-connectors/acme',
    fixtureSecretPath:family.providerTokenPath,certificate:join(publicRoot,'host.crt'),privateKey:join(publicRoot,'host.key'),
    executable:join(consumer,'node_modules/.bin/actql'),nativeCrashExecutable:admitted.executable,programPath,scenario,
+   nativeHttpLibrary:remote?.libraryPath,nativeCrashContext:installedContext,
    clientScript:join(source,'scripts/fixtures/shared-host-source-client.mjs'),pageEntered:markerPaths});
   const childEnv={...env,HOME:family.paths.home,NODE_EXTRA_CA_CERTS:join(publicRoot,'host.crt')};
-  if(scenario==='client-crash'){
+  if(scenario!=='owner-crash'){
   const flight=runNativeInstallCommand(process.execPath,[join(source,'scripts/fixtures/shared-host-source-cancel.mjs'),descriptor],
    {cwd:publicRoot,env:childEnv,state:family.root});
   const settled=flight.then(value=>({value}),cause=>({failed:true,cause}));
@@ -189,9 +233,15 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   if(terminal.failed){if(terminal.cause.commandRecord)await save('host-command.json',terminal.cause.commandRecord);throw terminal.cause;}
   hostCommand=terminal.value;await save('host-command.json',hostCommand);
   const observed=await read(join(publicRoot,'shared-source-cancel-result.json'));assert.equal(observed.passed,true);
-  assert.equal(observed.firstSourceSurvivedClientCrash,true);assert.equal(observed.otherRunUnaffected,true);
-  const crashed=await read(join(publicRoot,'native-client-crash.json'));assert.equal(crashed.signal,'SIGKILL');assert.equal(crashed.publicCloseAttempted,false);
-  const recovery=await read(join(publicRoot,'source-recover-first-report.json'));assert.equal(recovery.publicStartSource,0);assert.equal(recovery.publicAttach,1);
+  assert.equal(observed.otherRunUnaffected,true);
+  if(scenario==='client-crash'){
+   assert.equal(observed.firstSourceSurvivedClientCrash,true);
+   const crashed=await read(join(publicRoot,'native-client-crash.json'));assert.equal(crashed.signal,'SIGKILL');assert.equal(crashed.publicCloseAttempted,false);
+   const recovery=await read(join(publicRoot,'source-recover-first-report.json'));assert.equal(recovery.publicStartSource,0);assert.equal(recovery.publicAttach,1);
+  }else{
+   assert.equal(observed.firstCancellationAndPhysicalStop,true);
+   assert.equal(observed.dispatchObservations,2);
+  }
   assert.equal(hostCommand.close.scopedStateFd0,true);assert.equal(hostCommand.closeObservationAcknowledged,true);
   assert.deepEqual(originalProvider.requests(),[{method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'},
    {method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'}]);
@@ -227,7 +277,7 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   assert.deepEqual(originalProvider.requests(),[{method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'},
    {method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'}]);
   }
-  report.passed=true;report.caseScope=scenario==='owner-crash'?'completed original Saved plus one held Read; own Host crash; ordinary reopen/Saved/status without replay':'own Native client crash; same-ref recovery without resubmit; other Run continues';report.hostCloseReturned=true;report.aliveScopedFd0=true;
+  report.passed=true;report.caseScope=scenario==='owner-crash'?'completed original Saved plus one held Read; own Host crash; ordinary reopen/Saved/status without replay':scenario==='cancel'?'original Native cancellation and confirmed physical stop; other Run continues':'own Native client crash; same-ref recovery without resubmit; other Run continues';report.hostCloseReturned=true;report.aliveScopedFd0=true;
  }catch(error){if(error.commandRecord)await save('failed-host-command.json',error.commandRecord);failed=true;primary=error;report.failure={name:error?.name,code:error?.code,message:error?.message};}
  finally{
   cleanupRelease.resolve();report.providerRequests=originalProvider.requests();

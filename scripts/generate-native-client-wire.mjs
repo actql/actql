@@ -212,6 +212,9 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       '  guard value is Object(fields) else { return false }\n' +
       `  ${alternatives.join(' ||\n  ')}\n}\n`);
   }
+  for (const name of ['submission_name', 'named_submission_attempt']) {
+    emit(schemas[name], `wire_${name}_shape`);
+  }
   // Owner observations are tested against the Native wire contract, but are
   // not a CLI operation yet. Keep their exclusive helpers in white-box test
   // output. Any helper also reached by a production validator stays there.
