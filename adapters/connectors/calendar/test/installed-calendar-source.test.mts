@@ -6,8 +6,8 @@ import {createInstalledConnectorTable,installedConnectorForTable} from '../../..
 test('ordinary installed Source selection reaches the Calendar-owned factory',()=>{
   const table=createInstalledConnectorTable(installedConnectors);
   const selected=installedConnectorForTable(table,'source',{version:'actql-installed-calendar-source/0.1'});
-  assert.equal(selected.registration,'calendar');
-  assert.equal(selected.providerBundle,'connectors/calendar/host_node');
+  assert.equal(selected!.registration,'calendar');
+  assert.equal(selected!.providerBundle,'connectors/calendar/host_node');
 });
 
 
@@ -32,36 +32,37 @@ test('installed Calendar snapshots the closed profile without inventing grants o
 
 test('installed Calendar refuses missing original initialization before profile I/O',async()=>{
   await assert.rejects(loadInstalledCalendarSource(profile,{}),{code:'CalendarSourceInitializationUnavailable'});
-  await assert.rejects(loadInstalledCalendarSource(profile,{readerCapacity:{}}),{code:'CalendarSourceInitializationUnavailable'});
+  await assert.rejects(loadInstalledCalendarSource(profile,{readerCapacity:{}} as unknown as Parameters<typeof loadInstalledCalendarSource>[1]),{code:'CalendarSourceInitializationUnavailable'});
 });
 
 // Invoke the actual exported identity and loader with original configuration
 // ports. The provider sentinel precedes declaration, Account and Source work.
-function originalConfiguration({ca=true, mutate=false, failure}={}) {
-  const events=[], selected={...profile,limits:{...limits,maxCaBytes:16000000}};
+function originalConfiguration({ca=true, mutate=false, failure}: {ca?: boolean; mutate?: boolean; failure?: unknown}={}) {
+  const events: string[]=[], selected={...profile,limits:{...limits,maxCaBytes:16000000}};
   const site={version:'actql-installed-calendar-site/0.1',apiOrigin:'https://www.googleapis.com',
     credentialAuthorityId:'authority',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
     environment:'test',journalRoot:'/UNOPENED/journal',namespaceId:'test',siteGeneration:1,siteKey:'calendar',
     ...(ca?{caPath:'/UNOPENED/ca.pem'}:{})};
   const pem='-----BEGIN CERTIFICATE-----\nORIGINAL\n-----END CERTIFICATE-----\n';
-  const reader={readJson(path){assert.equal(this,reader);assert.equal(path,selected.siteProfilePath);events.push('json');
+  const reader={readJson(path: string){assert.equal(this,reader);assert.equal(path,selected.siteProfilePath);events.push('json');
     if(mutate)reader.readJson=reader.readText=()=>assert.fail('late method read');return site;},
-    readText(path,bounds){assert.equal(this,reader);assert.equal(path,site.caPath);assert.deepEqual(bounds,{maxBytes:16000000});events.push('text');if(failure)throw failure;return pem;}};
-  const originalJson=reader.readJson, read=(...args)=>Reflect.apply(originalJson,reader,args);
+    readText(path: string,bounds: unknown){assert.equal(this,reader);assert.equal(path,site.caPath);assert.deepEqual(bounds,{maxBytes:16000000});events.push('text');if(failure)throw failure;return pem;}};
+  const originalJson=reader.readJson, read=(...args: [path: string])=>Reflect.apply(originalJson,reader,args);
   const stop=new Error('Original provider boundary');
   const provider=Object.fromEntries(['calendarProjectCalendarList','calendarListRowsWire','calendarListMetadataJson',
-    'calendarListColumnNames','calendarListSchemaWire','calendarListRelationFactsWire'].map(name=>[name,function(){
+    'calendarListColumnNames','calendarListSchemaWire','calendarListRelationFactsWire'].map(name=>[name,function(this: object){
       assert.equal(this,provider);if(name==='calendarListColumnNames')return ['id'];
-      assert.equal(name,'calendarListSchemaWire');events.push('schema');throw stop;} ]));
+      assert.equal(name,'calendarListSchemaWire');events.push('schema');throw stop;} ])) as
+    NonNullable<Parameters<typeof loadInstalledCalendarSource>[1]>['providerMoon'];
   const installation=Object.freeze({original:'calendar'});
   const sourceInitialization=Object.freeze({prepareDeclaration(){assert.fail('no declaration before schema');}});
   const installationServices={
-    sourceReaderImplementationProfile(input){assert.equal(this,installationServices);
+    sourceReaderImplementationProfile(input: Readonly<Record<string, unknown>>){assert.equal(this,installationServices);
       assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.metadataResponses,0);assert.equal(input.originUnits,site.apiOrigin.length);
       return Object.freeze({maxDeclarationBytes:limits.maxDeclarationBytes,maxDeclarationNodes:limits.maxDeclarationNodes,
         pageSize:2,maxTotalRows:10,maxTotalResponseBytes:16384,maxCursorBytes:512,maxTargetBytes:4096});},
-    sourceReaderImplementation(input){assert.equal(this,installationServices);
+    sourceReaderImplementation(input: Readonly<Record<string, unknown>>){assert.equal(this,installationServices);
       assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.columnCount,1);return Object.freeze({original:'unexecuted implementation'});},
     openRowSite(){assert.fail('no Site before provider schema');},
@@ -84,14 +85,14 @@ test('Calendar original reader public callers capture both methods and preserve 
     const f=originalConfiguration({mutate:true});
     if(entry==='identity'){
       const result=await f.identity();const {createHash}=await import('node:crypto');
-      assert.equal(result[2].caSha256,'sha256:'+createHash('sha256').update(Buffer.from(f.pem,'ascii')).digest('hex'));
+      assert.equal((result[2] as {caSha256?: string}).caSha256,'sha256:'+createHash('sha256').update(Buffer.from(f.pem,'ascii')).digest('hex'));
     }else await assert.rejects(f.load(),error=>error===f.stop);
     assert.deepEqual(f.events,entry==='identity'?['json','text']:['json','text','schema']);
   }
 });
 
 test('Calendar original reader public callers preserve pending error and refuse method accessors',async()=>{
-  for(const entry of ['identity','load']){
+  for(const entry of ['identity','load'] as const){
     let retries=0;const error=Object.assign(new Error('Original pending read'),{cleanupPending:true,
       cleanupHandle:{retry(){retries++;}}});
     const f=originalConfiguration({failure:error});await assert.rejects(f[entry](),actual=>actual===error);

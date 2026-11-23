@@ -160,11 +160,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar calendars constructs through original Host Source services without external capacity"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
@@ -705,7 +705,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -1435,7 +1435,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -1805,7 +1805,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               },
               {
@@ -1967,7 +1967,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -2823,11 +2823,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar calendars constructs through original Host Source services without external capacity"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
@@ -3677,7 +3677,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mts",
                 "anchor": "Calendar Events pure hooks retain original"
               }
             ],
@@ -3701,7 +3701,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mts",
                 "anchor": "Calendar Events pure hooks retain original"
               }
             ]
@@ -3745,7 +3745,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -3769,7 +3769,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]
@@ -3968,7 +3968,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -3992,7 +3992,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]
@@ -4100,7 +4100,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -4124,7 +4124,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]

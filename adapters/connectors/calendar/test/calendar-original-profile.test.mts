@@ -14,7 +14,14 @@ import {prepareCalendarEventsRequestPages} from '../site/calendar-events-pages.m
 // namespace; a separately compiled provider cannot consume its retained Map.
 const commonUrl=process.env.ACTQL_TEST_COMMON_MODULE??
   new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href;
-const common=await import(commonUrl),calendar=common;
+type EventInput = Parameters<typeof prepareCalendarEventsRequestPages>[0];
+type Common = Required<NonNullable<EventInput['moon']>> & Readonly<{
+  clientProgramCheckEnvironment(wire: string, evidenceCid: string, http: boolean, infer: boolean,
+    local: boolean, remote: boolean, calendarModule: boolean, calendarProfile: boolean, authorization: boolean): unknown;
+  clientProgramCheckEnvironmentWithCalendarArtifact(original: unknown, bytes: Uint8Array, maxBytes: number,
+    maxNodes: number, maxDepth: number, maxZones: number, maxTransitions: number, maxWork: number): unknown;
+}>;
+const common: Common=await import(commonUrl),calendar=common;
 const table='{"conversion_law":"actql-calendar-boundaries/0.1","coverage_end_ms":253402300800000,"coverage_start_ms":-62135596800000,"tzdb_version":"test-fixture","version":"actql-tzdb-table/0.1","zones":{"UTC":{"initial_offset_seconds":0,"transitions":[]}}}';
 const tableCid='sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca';
 assert.equal('sha256:'+createHash('sha256').update(table).digest('hex'),tableCid);
@@ -29,7 +36,7 @@ function environment(enabled=true){
   assert(original,'Actual original Common CheckEnvironment admission failed');
   return original;
 }
-function supplement(original,body=table){
+function supplement(original: unknown,body=table){
   return common.clientProgramCheckEnvironmentWithCalendarArtifact(original,
     new TextEncoder().encode(body),1000,100,8,1,0,10000);
 }
@@ -46,21 +53,21 @@ test('actual Calendar provider retains the Common environment original Profile t
   assert.equal(profile,checked(calendar.calendarEventsProfileFromEnvironment(selected)),'same immutable original, not re-admitted Profile');
   let query;
   try{query=checked(calendar.calendarEventsQueryFromRequestWire(requestWire,profile,4096,1024,20,3,128,128,100,1000,8192,100));}
-  catch(error){console.error('Actual original Calendar request refusal:',inspect(error.cause,{depth:4}));throw error;}
+  catch(error){console.error('Actual original Calendar request refusal:',inspect((error as Error).cause,{depth:4}));throw error;}
   const body=new TextEncoder().encode('{"kind":"calendar#events","timeZone":"UTC","items":[{"id":"event","start":{"date":"2026-03-08"},"end":{"date":"2026-03-09"},"attendees":[]}]}');
   const page=checked(calendar.calendarProjectEvents(body,query,16384,1024,20,2,128,128,100,1000,8192,100));
   assert.equal(calendar.calendarEventsMatchesQuery(page,query),true);
-  const metadata=JSON.parse(checked(calendar.calendarEventsMetadataWire(page,16384,2048,20)));
+  const metadata=JSON.parse(checked(calendar.calendarEventsMetadataWire(page,16384,2048,20)) as string);
   assert.equal(metadata.profileCid,tableCid);assert.equal(metadata.calendarId,'original@example.test');
   assert.deepEqual(metadata.ids,['event']);assert.equal(metadata.nextPageToken,null);
-  assert.deepEqual(JSON.parse(checked(calendar.calendarEventsRowsWire(page,['start','end','all_day'],16384,2048,20))),
+  assert.deepEqual(JSON.parse(checked(calendar.calendarEventsRowsWire(page,['start','end','all_day'],16384,2048,20)) as string),
     [{start:'2026-03-08T00:00:00.000Z',end:'2026-03-09T00:00:00.000Z',all_day:true}]);
   // This is the actual new request-entry provider connection, still using an
   // explicit response DATA port and not a signed physical read or RowRun.
   const hooks=prepareCalendarEventsRequestPages({moon:calendar,environment:selected,requestWire,names:['id'],limits},
     (method,receiver,args)=>Reflect.apply(method,receiver,args));
   const frame={pageIndex:0,rowCount:0};
-  assert.equal(hooks.fetchPage(frame).query.find(([name])=>name==='timeZone')[1],'UTC');
+  assert.equal(hooks.fetchPage(frame).query.find(([name])=>name==='timeZone')![1],'UTC');
   const result=hooks.decodePage({accepted:true,statusCode:200,body},frame);
   assert.equal(result.rowCount,1);assert.equal(result.done,true);
   const rows=JSON.parse(result.rowsWire);assert.equal(rows[0].id,'event');

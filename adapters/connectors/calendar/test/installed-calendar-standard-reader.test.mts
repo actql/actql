@@ -7,24 +7,29 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
+import type {Node} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 
 const source=await readFile(new URL('../host/installed-calendar-source.mjs',import.meta.url),'utf8');
-const declarations=code=>parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.map(node=>node.declaration??node);
+const declarations=(code: string)=>parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.map(node=>(node as Node & {declaration?: Node | null}).declaration??node);
 const body=declarations(source).filter(node=>['VariableDeclaration','FunctionDeclaration'].includes(node.type))
   .map(node=>source.slice(node.start,node.end)).join('\n');
-const ok=value=>({$tag:1,_0:value});
+const ok=(value: unknown)=>({$tag:1,_0:value});
 const columns=['id','summary','time_zone','access_role'];
 const limits={maxResponseBytes:8192,maxNodes:512,maxDepth:16,maxPages:4,maxRows:3,maxRequests:5,perPage:2,
   maxCursorUnits:128,maxValueNodes:100,maxValueTextBytes:4096,maxRowsWireBytes:8192,
   maxRowsWireNodes:200,maxRowsWireDepth:8,maxDeclarationBytes:4096,maxDeclarationNodes:1000,
   maxSecretBytes:128,maxCaBytes:16384};
 
-function fixture({implementationFailure,sourceFailure,foreignCapacity=false}={}){
-  const events=[],cleanup=[],installation={},capacity={},acquisition={},declaration={},result={};
+type Options = {implementationFailure?: unknown; sourceFailure?: unknown; foreignCapacity?: boolean};
+type Input = Readonly<Record<string, unknown>>;
+type SourceInput = Parameters<typeof import('../../../host-node/installed-row-source.mjs').createInstalledRowSource>[0];
+
+function fixture({implementationFailure,sourceFailure,foreignCapacity=false}: Options={}){
+  const events: string[]=[],cleanup: {cause: unknown; original: Input}[]=[],installation={},capacity={},acquisition={},declaration={},result={};
   const environment=Object.freeze({wire:'original-environment'});
   const declared=Object.freeze({views:[{resource:'calendars',fields:columns}]});
   const profile={version:'actql-installed-calendar-source/0.1',connectorId:'calendar',
@@ -33,7 +38,7 @@ function fixture({implementationFailure,sourceFailure,foreignCapacity=false}={})
     credentialAuthorityId:'original-authority',credentialKeyId:'original-key',
     credentialPrivateKeyPath:'/UNOPENED/key',environment:'fixture',journalRoot:'/UNOPENED/journal',
     namespaceId:'fixture',siteGeneration:1,siteKey:'calendar'};
-  const sourceInitialization={prepareDeclaration(views){
+  const sourceInitialization={prepareDeclaration(views: unknown){
     assert.equal(this,sourceInitialization);
     assert.deepEqual(views,[{resource:'calendars',resource_kind:'calendar_list',schema_wire:'original-schema',
       schema_cid:`sha256:${createHash('sha256').update('original-schema').digest('hex')}`,facts_wire:'original-facts'}]);
@@ -49,56 +54,57 @@ function fixture({implementationFailure,sourceFailure,foreignCapacity=false}={})
   };
   const implementation=Object.freeze({capacity,runAcquisitionLimits:acquisition});
   const authorization={context:{contextCid:'original-context'}},site={},reader=Object.freeze({capacity:foreignCapacity?{}:capacity});
-  let implementationInput,readerInput,sourceInput;
+  let implementationInput: Input | undefined,readerInput: Input | undefined,sourceInput: SourceInput | undefined;
   const services={
-    sourceReaderImplementationProfile(input){
+    sourceReaderImplementationProfile(input: Input){
       assert.equal(this,services);assert.equal(input.installation,installation);
       assert.equal(input.sourceInitialization,sourceInitialization);events.push('profile');
       return{maxDeclarationBytes:4096,maxDeclarationNodes:1000,pageSize:250,maxTotalRows:1000,
         maxTotalResponseBytes:65536,maxCursorBytes:1024,maxTargetBytes:4096};
     },
-    sourceReaderImplementation(input){
+    sourceReaderImplementation(input: Input){
       assert.equal(this,services);assert.equal(input.installation,installation);
       assert.equal(input.sourceInitialization,sourceInitialization);implementationInput=input;events.push('implementation');
       if(implementationFailure)throw implementationFailure;return implementation;
     },
-    async openRowSite(input){
+    async openRowSite(input: Input){
       assert.equal(this,services);assert.equal(input.installation,installation);
       assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.runAcquisitionLimits,acquisition);
       events.push('site');return{site,authorization};
     },
-    createSourceReader(input){
+    createSourceReader(input: Input){
       assert.equal(this,services);assert.equal(input.installation,installation);
       assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.implementation,implementation);
       assert.equal(input.site,site);readerInput=input;events.push('reader');return reader;
     },
   };
-  const configurationReader={readJson(path){
+  const configurationReader={readJson(path: string){
     assert.equal(this,configurationReader);assert.equal(path,profile.siteProfilePath);
     // The actual loader must have captured all original methods before await.
-    for(const name of Object.keys(services))services[name]=()=>assert.fail('Replaced service consumed');
-    for(const name of Object.keys(provider))provider[name]=()=>assert.fail('Replaced provider consumed');
+    for(const name of Object.keys(services) as (keyof typeof services)[])services[name]=()=>assert.fail('Replaced service consumed');
+    for(const name of Object.keys(provider) as (keyof typeof provider)[])provider[name]=()=>assert.fail('Replaced provider consumed');
     sourceInitialization.prepareDeclaration=()=>assert.fail('Replaced constructor consumed');
     events.push('configuration');return siteProfile;
   },readText(){assert.fail('No CA selected');}};
   const ports={createHash,isAbsolute,nodeTypes,types:nodeTypes,canonicalJson,checked,captureConfigurationReaders,
     captureInstalledSourceServices,CALENDAR_LIST_OPERATION:'calendar:calendars:list',
     prepareCalendarListPages(){assert.fail('No page read in constructor scope');},
-    createInstalledRowSource(input){
+    createInstalledRowSource(input: SourceInput){
       assert.equal(input.declaration,declaration);assert.equal(input.declared,declared);
       assert.equal(input.environment,environment);assert.equal(input.environmentWire,environment.wire);
       assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.providerReader,reader);
       assert.equal(input.authorization,authorization);assert.equal(input.site,site);sourceInput=input;events.push('source');
       if(sourceFailure)throw sourceFailure;return result;
     },
-    retainInstalledHostInitializationFailure(cause,original){
+    retainInstalledHostInitializationFailure(cause: unknown,original: Input){
       assert.equal(original.sourceReader,reader);assert.equal(original.sourceProfile,site);cleanup.push({cause,original});return cause;
     },
   };
-  const load=Function(...Object.keys(ports),body+'\nreturn loadInstalledCalendarSource;')(...Object.values(ports));
+  const load=Function(...Object.keys(ports),body+'\nreturn loadInstalledCalendarSource;')(...Object.values(ports)) as
+    (profile: unknown, options: Input) => Promise<object>;
   return{events,cleanup,result,profile,sourceInitialization,services,
     selected:()=>({implementationInput,readerInput,sourceInput}),
-    load:(overrides={})=>load(profile,{moon:{},providerMoon:provider,runtimeBundleCid:'original-runtime',
+    load:(overrides: Input={})=>load(profile,{moon:{},providerMoon:provider,runtimeBundleCid:'original-runtime',
       installation,sourceInitialization,installationServices:services,configurationReader,
       resolveSecret(){assert.fail('No credential resolution');},...overrides})};
 }
@@ -107,16 +113,16 @@ test('Calendar calendars constructs through original Host Source services withou
   const f=fixture();assert.equal(await f.load(),f.result);
   assert.deepEqual(f.events,['configuration','profile','implementation','schema','declaration','site','reader','source']);
   const {implementationInput,readerInput,sourceInput}=f.selected();
-  assert.deepEqual(implementationInput.limits,{
+  assert.deepEqual(implementationInput!.limits,{
     maxResponseBytes:8192,maxTotalResponseBytes:32768,maxNodes:512,maxDepth:16,
     maxRows:2,maxTotalRows:3,maxPages:4,pageSize:2,maxCursorBytes:512,
     maxIdentityBytes:4096,maxTargetBytes:4096,maxValueNodes:100,maxValueTextBytes:4096,
     maxRowsWireBytes:8192,maxRowsWireNodes:200,maxRowsWireDepth:8,maxSecretBytes:128,
   });
-  assert.equal(implementationInput.columnCount,4);
-  assert.deepEqual(sourceInput.limits,{maxPages:4,maxPageBytes:8192,maxPageRows:2,maxCaptureRows:3});
-  assert.equal(readerInput.operation,'calendar:calendars:list');
-  assert.equal(typeof readerInput.preparePageReader,'function');
+  assert.equal(implementationInput!.columnCount,4);
+  assert.deepEqual(sourceInput!.limits,{maxPages:4,maxPageBytes:8192,maxPageRows:2,maxCaptureRows:3});
+  assert.equal(readerInput!.operation,'calendar:calendars:list');
+  assert.equal(typeof readerInput!.preparePageReader,'function');
 });
 
 test('Calendar original constructor and service accessors refuse before configuration',async()=>{
@@ -143,13 +149,13 @@ test('Calendar retains original implementation failure and original failed reade
 
 test('Calendar Source selects its complete original page recipe before the shared reader constructor',async()=>{
   const f=fixture();assert.equal(await f.load(),f.result);
-  assert.deepEqual(f.selected().implementationInput.limits,{
+  assert.deepEqual(f.selected().implementationInput!.limits,{
     maxResponseBytes:8192,maxTotalResponseBytes:32768,maxNodes:512,maxDepth:16,
     maxRows:2,maxTotalRows:3,maxPages:4,pageSize:2,maxCursorBytes:512,
     maxIdentityBytes:4096,maxTargetBytes:4096,maxValueNodes:100,maxValueTextBytes:4096,
     maxRowsWireBytes:8192,maxRowsWireNodes:200,maxRowsWireDepth:8,maxSecretBytes:128,
   });
-  assert.deepEqual(f.selected().sourceInput.limits,
+  assert.deepEqual(f.selected().sourceInput!.limits,
     {maxPages:4,maxPageBytes:8192,maxPageRows:2,maxCaptureRows:3});
 });
 
